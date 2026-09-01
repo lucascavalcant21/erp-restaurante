@@ -830,35 +830,38 @@ export default function GuiaDeFuncoes() {
 
                           <div className="space-y-3 pt-2">
                             {(bloco.horarios || []).map((horario, idxHorario) => (
-                              <div key={idxHorario} className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "hora", e.target.value)} className="h-9 bg-slate-50 border border-slate-200 px-2 font-bold text-xs rounded-lg" />
-                                    <span className="text-xs font-bold text-slate-400">até</span>
-                                    <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "fim", e.target.value)} className="h-9 bg-slate-50 border border-slate-200 px-2 font-bold text-xs rounded-lg" />
+                              <div key={idxHorario} className={`p-4.5 rounded-2xl border-2 space-y-3 shadow-sm transition-all ${horario.intervalo ? "border-amber-300 bg-amber-50/90" : "border-slate-300/90 bg-white"}`}>
+                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between border-b border-slate-200/80 pb-2.5">
+                                  <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                                    <Clock size={15} className="text-slate-600 ml-1" />
+                                    <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "hora", e.target.value)} className="h-9 bg-white border border-slate-300 px-2 font-black text-xs rounded-lg outline-none focus:border-emerald-500" />
+                                    <span className="text-xs font-bold text-slate-500">até</span>
+                                    <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "fim", e.target.value)} className="h-9 bg-white border border-slate-300 px-2 font-black text-xs rounded-lg outline-none focus:border-emerald-500" />
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-black rounded-lg border ${horario.intervalo ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-slate-50 text-slate-600 border-slate-200"}`}>
-                                      <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo" : "É intervalo?"}
+                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-black rounded-xl border transition-all ${horario.intervalo ? "bg-amber-200 text-amber-900 border-amber-400" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"}`}>
+                                      <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo / Pausa" : "É intervalo?"}
                                     </button>
-                                    <button onClick={() => removerHorario(funcao.id, indice, idxHorario)} className="h-9 w-9 bg-red-50 text-red-600 rounded-lg flex items-center justify-center border border-red-200">
-                                      <Trash2 size={14} />
+                                    <button onClick={() => removerHorario(funcao.id, indice, idxHorario)} title="Excluir este horário" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center border border-red-200 hover:bg-red-100">
+                                      <Trash2 size={15} />
                                     </button>
                                   </div>
                                 </div>
 
                                 {!horario.intervalo && (
-                                  <div className="space-y-1.5 pt-1">
+                                  <div className="space-y-2 pt-1">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Tarefas deste horário (linha por linha)</p>
                                     {tarefasDoHorario(horario).map((t, idxT) => (
                                       <div key={idxT} className="flex items-center gap-2">
-                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-200 px-3 text-xs font-bold rounded-lg" />
+                                        <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-500 flex items-center justify-center shrink-0">{idxT + 1}</span>
+                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-300 px-3 text-xs font-bold rounded-xl outline-none focus:border-emerald-500 focus:bg-white" />
                                         <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-slate-400 hover:text-red-600 flex items-center justify-center">
-                                          <Trash2 size={14} />
+                                          <Trash2 size={15} />
                                         </button>
                                       </div>
                                     ))}
                                     <button onClick={() => adicionarTarefa(funcao.id, indice, idxHorario)} className="text-xs font-black text-emerald-700 hover:underline flex items-center gap-1 pt-1">
-                                      <Plus size={13} /> Adicionar tarefa neste horário
+                                      <Plus size={14} /> + Adicionar mais uma tarefa neste horário
                                     </button>
                                   </div>
                                 )}

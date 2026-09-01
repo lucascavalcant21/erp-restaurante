@@ -1,6 +1,5 @@
 "use client";
 
-import { useERP } from "../../../../context/ERPContext";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
@@ -12,7 +11,6 @@ export default function EspelhoDePonto() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { abrirMenu } = useERP();
   
   const colabId = params.id;
   const mesParam = searchParams.get("mes") || new Date().toISOString().slice(0, 7); // ex: 2026-06
@@ -213,7 +211,7 @@ export default function EspelhoDePonto() {
       
       {/* Barra de Ações (Oculta na impressão) */}
       <div className="bg-white border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
-         <button onClick={() => abrirMenu()} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
+         <button onClick={() => router.push("/dashboard/rh")} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
 

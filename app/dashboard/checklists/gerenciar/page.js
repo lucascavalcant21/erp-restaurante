@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchTemplates, salvarTemplate, desativarTemplate, fetchExecucoesMes } from "../../../lib/checklists";
 import { SkeletonList } from "../../../components/ui";
-import { Camera, CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2, BarChart3, ImagePlus, Clock3, Upload } from "lucide-react";
+import { Camera, CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2, BarChart3, ImagePlus, Clock3, Upload, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 
 // Tipos de checklist por setor:
@@ -81,7 +81,18 @@ function GerenciarChecklistsContent() {
   const [modalNovo, setModalNovo] = useState(false);
   const [modalModelos, setModalModelos] = useState(false);
   const [criandoTudo, setCriandoTudo] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
   const [form, setForm] = useState({ id: null, departamento: deptPadrao, tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", tempo_minutos: 5 }] });
+
+  const moverTarefa = (origem, destino) => {
+    if (destino < 0 || destino >= form.itens.length || origem === destino) return;
+    setForm(f => {
+      const novaLista = [...f.itens];
+      const [itemRemovido] = novaLista.splice(origem, 1);
+      novaLista.splice(destino, 0, itemRemovido);
+      return { ...f, itens: novaLista };
+    });
+  };
 
   // Montar por IA (organiza em título + categorias + tópicos)
   const [contextoIA, setContextoIA] = useState("");
@@ -634,7 +645,18 @@ function GerenciarChecklistsContent() {
                     const catAtual = (it.categoria || "").trim();
                     const novaCategoria = catAtual && catAtual !== catAnterior;
                     return (
-                    <div key={it.id}>
+                    <div
+                      key={it.id}
+                      draggable
+                      onDragStart={() => setDragIndex(i)}
+                      onDragOver={e => { if (dragIndex !== null) e.preventDefault(); }}
+                      onDrop={() => {
+                        if (dragIndex !== null && dragIndex !== i) {
+                          moverTarefa(dragIndex, i);
+                          setDragIndex(null);
+                        }
+                      }}
+                    >
                       {novaCategoria && (
                         <div className="flex items-center gap-2 mt-4 mb-1.5">
                           <Layers size={13} className="text-violet-500 shrink-0" />
@@ -642,9 +664,36 @@ function GerenciarChecklistsContent() {
                           <div className="flex-1 h-px bg-violet-100" />
                         </div>
                       )}
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4">
-                        <div className="flex items-start gap-3">
-                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-900 text-sm font-black text-white shadow-sm">{i + 1}</span>
+                      <div className={`rounded-2xl border p-3 shadow-sm transition-all sm:p-4 ${dragIndex === i ? "opacity-50 border-emerald-400 bg-emerald-50/40" : "border-slate-200 bg-slate-50/70 hover:shadow-md hover:border-slate-300"}`}>
+                        <div className="flex items-start gap-2.5">
+                          {/* CONTROLES DE REORDENAÇÃO (ALÇA DE ARRASTO + SETAS CIMA/BAIXO) */}
+                          <div className="flex items-center gap-1 shrink-0 pt-1">
+                            <span className="grid h-8 w-8 cursor-grab active:cursor-grabbing place-items-center rounded-xl bg-slate-200/80 text-slate-500 hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta linha">
+                              <GripVertical size={16} />
+                            </span>
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                type="button"
+                                disabled={i === 0}
+                                onClick={() => moverTarefa(i, i - 1)}
+                                title="Mover para cima"
+                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-slate-700 transition-colors"
+                              >
+                                <ChevronUp size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={i === form.itens.length - 1}
+                                onClick={() => moverTarefa(i, i + 1)}
+                                title="Mover para baixo"
+                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-slate-700 transition-colors"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                            </div>
+                            <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-900 text-xs font-black text-white shadow-sm ml-0.5">{i + 1}</span>
+                          </div>
+
                           <div className="min-w-0 flex-1">
                             <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">Ação a executar</label>
                             <input
@@ -652,10 +701,10 @@ function GerenciarChecklistsContent() {
                               placeholder="O que deve ser feito?"
                               value={it.texto}
                               onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
-                              className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-base font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                              className="w-full rounded-xl border border-slate-200 bg-white p-3 text-base font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                             />
                           </div>
-                          <button onClick={() => removeTarefa(it.id)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={17} /></button>
+                          <button onClick={() => removeTarefa(it.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200 mt-1" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={16} /></button>
                         </div>
 
                         <div className="mt-3 grid gap-2 sm:grid-cols-3">

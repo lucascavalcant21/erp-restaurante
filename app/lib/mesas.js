@@ -58,15 +58,19 @@ export async function gerarMesas(unidadeId, quantidade = 20) {
 // ── Abrir Comanda ───────────────────────────────────────────────────────────
 export async function abrirComanda(mesaId, nome_cliente, unidadeId) {
   if (!isSupabaseReady()) return { error: "Supabase não configurado" };
-  const { error } = await supabase.from("comandas").insert([
-    carimbarUnidade({
-      mesa_id: mesaId,
-      nome_cliente: nome_cliente || "Cliente",
-      status: "aberta",
-      itens: []
-    }, unidadeId)
-  ]);
-  return { error: error?.message || null };
+  const { data, error } = await supabase
+    .from("comandas")
+    .insert([
+      carimbarUnidade({
+        mesa_id: mesaId,
+        nome_cliente: nome_cliente || "Cliente",
+        status: "aberta",
+        itens: []
+      }, unidadeId)
+    ])
+    .select("*")
+    .single();
+  return { data: data || null, error: error?.message || null };
 }
 
 // ── Gerenciar Itens na Comanda ──────────────────────────────────────────────
@@ -86,6 +90,7 @@ export async function adicionarItemComanda(comanda, produto) {
       preco: Number(produto.preco) || 0,
       custo: Number(produto.custo) || 0,
       categoria: produto.categoria,
+      departamento: produto.departamento,
       quantidade: 1
     });
   }
@@ -100,6 +105,15 @@ export async function removerItemComanda(comanda, produtoId) {
   const novoArray = itensAtuais.map(i => i.id === produtoId ? { ...i, quantidade: i.quantidade - 1 } : i).filter(i => i.quantidade > 0);
   
   const { error } = await supabase.from("comandas").update({ itens: novoArray }).eq("id", comanda.id);
+  return { error: error?.message || null };
+}
+
+// Salva o retrato completo dos itens depois do envio à cozinha. Cada linha
+// guarda quanto já foi enviado, então um segundo clique manda apenas o que foi
+// acrescentado e nunca duplica o pedido no KDS.
+export async function atualizarItensComanda(comandaId, itens) {
+  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
+  const { error } = await supabase.from("comandas").update({ itens: Array.isArray(itens) ? itens : [] }).eq("id", comandaId);
   return { error: error?.message || null };
 }
 

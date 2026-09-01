@@ -99,7 +99,7 @@ export async function POST(request) {
 
     if (!colaborador?.email) {
       return NextResponse.json({
-        erro: `${colaborador?.nome || "O colaborador"} não tem e-mail cadastrado. Cadastre em Equipe & RH para poder enviar o comprovante.`,
+        erro: `${colaborador?.nome || "O colaborador"} não tem e-mail cadastrado. Cadastre em RH para poder enviar o comprovante.`,
       }, { status: 422 });
     }
 

@@ -519,19 +519,29 @@ export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departam
   const localLimpo = String(local || (dept === "bar" ? "Bar" : "Freezer 1")).trim();
   const nomeBase = String(ficha.nome_receita).trim();
   const nomeItem = `${nomeBase} - ${localLimpo}`;
-  let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} · ${localLimpo}`]).limit(1).maybeSingle();
+  let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} · ${localLimpo}`, nomeBase]).limit(1).maybeSingle();
 
   const unidadeFicha = String(ficha.rendimento_unidade || "un").toLowerCase();
   const unidade = ["kg", "g", "l", "ml", "un"].includes(unidadeFicha) ? unidadeFicha : "un";
+  const categoriaPreparo = dept === "bar" ? "Xaropes e pre-preparos" : "Pre-preparos";
   if (!insumo) {
     const criado = await supabase.from("insumos").insert([{
       unidade_id: unidadeId, nome: nomeItem, departamento: dept,
-      categoria: ficha.categoria || (dept === "bar" ? "Xaropes e pre-preparos" : "Pre-preparos"),
+      categoria: categoriaPreparo,
       unidade_medida: unidade, unidade_comercial: unidade, tamanho_embalagem: 1,
       custo_unitario: Number(custoUnitario) || 0, custo_compra: Number(custoUnitario) || 0,
     }]).select("id,nome,unidade_medida,custo_unitario").single();
     if (criado.error || !criado.data) return { error: erroMensagem(criado.error) || "Nao foi possivel criar o item de preparo." };
     insumo = criado.data;
+  } else {
+    await supabase.from("insumos").update({
+      categoria: categoriaPreparo,
+      unidade_medida: unidade,
+      unidade_comercial: unidade,
+      tamanho_embalagem: 1,
+      custo_unitario: Number(custoUnitario) || 0,
+      custo_compra: Number(custoUnitario) || 0,
+    }).eq("id", insumo.id);
   }
 
   const { data: itemExistente } = await supabase.from("estoque_itens").select("id").eq("estoque_id", estoque.id).eq("insumo_id", insumo.id).maybeSingle();
@@ -540,6 +550,41 @@ export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departam
     if (vinculo.error) return { error: vinculo.error };
   }
   return { data: { estoque, insumo, nome: nomeBase, local: localLimpo, unidade }, error: null };
+}
+
+// Repara unidades que já tinham fichas de pré-preparo antes da integração com
+// os estoques múltiplos. A rotina é idempotente: abrir o estoque novamente não
+// duplica nada, apenas cria os vínculos que estiverem faltando com saldo zero.
+export async function garantirFichasExistentesNoEstoquePreparo(unidadeId, departamento = "cozinha") {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const dept = String(departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+  let resposta = await supabase.from("fichas_tecnicas").select("*").eq("unidade_id", unidadeId).eq("departamento", dept);
+  if (resposta.error) {
+    // Cadastros antigos nem sempre têm departamento preenchido. Nesse caso,
+    // lemos a unidade inteira e decidimos o setor em memória.
+    resposta = await supabase.from("fichas_tecnicas").select("*").eq("unidade_id", unidadeId);
+  }
+  if (resposta.error) return { data: [], error: erroMensagem(resposta.error) };
+
+  const fichas = (resposta.data || []).filter(ficha => {
+    const setorFicha = String(ficha.departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+    const tipoBase = String(ficha.tipo_base || "").toLowerCase();
+    return setorFicha === dept && ficha.ativo !== false
+      && (ficha.eh_base === true || ["pre", "pre_preparo", "pre-preparo"].includes(tipoBase));
+  });
+  const sincronizadas = [];
+  const erros = [];
+  for (const ficha of fichas) {
+    const resultado = await garantirFichaNoEstoquePreparo({
+      unidadeId,
+      ficha,
+      departamento: dept,
+      custoUnitario: Number(ficha.custo_por_porcao || ficha.custo_unitario) || 0,
+    });
+    if (resultado.error) erros.push(`${ficha.nome_receita}: ${resultado.error}`);
+    else sincronizadas.push(resultado.data);
+  }
+  return { data: sincronizadas, error: erros.length ? erros.join("; ") : null };
 }
 
 export async function registrarProducaoNoEstoquePreparo({ unidadeId, ficha, departamento = "cozinha", quantidade, local, usuarioId = null, usuarioNome = "", custoUnitario = 0 }) {

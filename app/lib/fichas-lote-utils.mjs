@@ -11,7 +11,7 @@ export function ordenarFichasDocumento(fichas, ordem = "selecao", idsPersonaliza
   }
   if (ordem === "tipo") {
     const tipo = ficha => ficha.eh_base
-      ? (ficha.tipo_base === "receita" ? "Receita base" : "Pré-preparo")
+      ? "Pré-preparo"
       : (ficha.tipo_base === "produto_pronto" ? "Produto pronto" : "Prato");
     return lista.sort((a, b) => tipo(a).localeCompare(tipo(b), "pt-BR")
       || String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR"));

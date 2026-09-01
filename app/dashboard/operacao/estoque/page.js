@@ -430,8 +430,8 @@ function EstoqueRunner() {
     avisar(`Categoria "${nome}" excluída.`);
   }
   const [modalZerar, setModalZerar] = useState(null);
-  // Trocar a unidade de medida NÃO converte o saldo: 5 kg viram 5 g. Por isso
-  // fica atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
+  // Limites e unidade de medida afetam reposição e contagem. Por isso ficam
+  // atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
   const [pinGerente, setPinGerente] = useState("1234");
   const [unidadeLiberada, setUnidadeLiberada] = useState(false);
   const [pinDigitado, setPinDigitado] = useState(null); // null = não está pedindo
@@ -1165,6 +1165,11 @@ function EstoqueRunner() {
 
   const salvarConfiguracaoItem = async event => {
     event.preventDefault();
+    const minimo = Number(formItem.estoque_minimo || 0);
+    const maximo = Number(formItem.estoque_maximo || 0);
+    if (minimo > 0 && maximo > 0 && maximo < minimo) {
+      return avisar("O estoque máximo não pode ser menor que o mínimo.", "erro");
+    }
     setSalvando(true);
     const resposta = await atualizarItemEstoque(formItem.estoque_item_id, formItem);
     // Unidade comercial e "permite fracionado" ficam no insumo (valem p/ todos
@@ -1519,6 +1524,7 @@ function EstoqueRunner() {
                   <TabelaItens
                     itens={aba === "alertas" ? itensFiltrados.filter(i => alertas.some(a => a.id === i.id)) : itensFiltrados}
                     estoque={estoqueAtual} loading={loading} agruparPor={agruparPor}
+                    dinheiro={dinheiro}
                     onEntrada={item => abrirOperacao("entrada", item)}
                     onSaida={item => abrirOperacao("saida", item)}
                     onEditar={abrirEdicaoItem}
@@ -1526,7 +1532,7 @@ function EstoqueRunner() {
                   />
                 </>
               ) : (
-                <ListaMovimentos movimentos={movimentos} modo={aba} />
+                <ListaMovimentos movimentos={movimentos} modo={aba} dinheiro={dinheiro} />
               )}
             </section>
           </>
@@ -1982,10 +1988,9 @@ function EstoqueRunner() {
                 foi digitado nos outros campos. */}
             {pinDigitado !== null && !unidadeLiberada && (
               <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
-                <p className="text-sm font-black text-amber-900">PIN do gerente para trocar a unidade</p>
+                <p className="text-sm font-black text-amber-900">PIN do gerente para alterar limites ou unidade</p>
                 <p className="mt-1 text-xs font-semibold text-amber-800">
-                  Trocar a unidade não converte o saldo: {fmtQtd(modal?.item?.quantidade_atual)} continua {fmtQtd(modal?.item?.quantidade_atual)},
-                  só muda o nome da medida. Corrija o saldo depois, se precisar.
+                  O PIN protege o estoque mínimo, o máximo e a unidade de medida deste item.
                 </p>
                 <div className="mt-2 flex gap-2">
                   <input type="password" inputMode="numeric" autoFocus value={pinDigitado}
@@ -2000,8 +2005,13 @@ function EstoqueRunner() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
+              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></Campo>
+              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></Campo>
+              {!unidadeLiberada && (
+                <button type="button" onClick={() => setPinDigitado("")} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800">
+                  <Lock size={16} /> Liberar mínimo e máximo com PIN
+                </button>
+              )}
               <Campo label="Custo unitário">
                 <div className="relative">
                   <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
@@ -2307,7 +2317,7 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria" }) {
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria", dinheiro = fmtBRL }) {
   const [colapsadas, setColapsadas] = useState({});
 
   const toggleColapso = (cat) => {
@@ -2567,7 +2577,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
   );
 }
 
-function ListaMovimentos({ movimentos, modo }) {
+function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
   const [busca, setBusca] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [colabFiltro, setColabFiltro] = useState("todos");

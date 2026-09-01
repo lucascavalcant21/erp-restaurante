@@ -26,11 +26,12 @@ Monte um checklist REAL, específico e prático para esse setor e momento. Organ
 Regras:
 - Entre 4 e 8 categorias, cada uma com 2 a 6 tarefas.
 - Tarefas concretas e verificáveis, sem repetição.
+- Informe um tempo previsto realista, em minutos, para cada tarefa.
 - Sem emojis. Português do Brasil.
 - Título curto e direto para o checklist.
 
 Responda ESTRITAMENTE com JSON, sem markdown:
-{ "titulo": "...", "itens": [ { "categoria": "Nome da categoria", "texto": "Tarefa a fazer" }, ... ] }`;
+{ "titulo": "...", "itens": [ { "categoria": "Nome da categoria", "texto": "Tarefa a fazer", "tempo_minutos": 5 }, ... ] }`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -58,7 +59,7 @@ Responda ESTRITAMENTE com JSON, sem markdown:
 
     const itens = obj.itens
       .filter(i => i && (i.texto || "").trim())
-      .map((i, idx) => ({ id: Date.now() + idx, texto: String(i.texto).trim(), categoria: (i.categoria || "").trim(), responsavel: "" }));
+      .map((i, idx) => ({ id: Date.now() + idx, texto: String(i.texto).trim(), categoria: (i.categoria || "").trim(), responsavel: "", tempo_minutos: Math.max(1, Number(i.tempo_minutos) || 5) }));
 
     return NextResponse.json({ titulo: String(obj.titulo || "").trim(), itens });
   } catch (error) {

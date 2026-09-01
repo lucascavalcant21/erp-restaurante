@@ -27,9 +27,8 @@ import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from "react"
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import {
-  atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
-  inativarFichasLote, registrarAuditoriaFichas, removerFicha, salvarFicha,
-  salvarInsumo, verificarDependenciasFichas,
+  atualizarCategoriaFicha, atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
+  inativarFichasLote, registrarAuditoriaFichas, salvarFicha, salvarInsumo,
 } from "../../../lib/operacao";
 import { fetchEstoques, vincularItemEstoque } from "../../../lib/estoques-multiplos";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
@@ -40,7 +39,7 @@ import {
   AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BarChart3, BookOpen, Calculator, Camera,
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
   FileDown, FolderPlus, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
-  Search, ShieldAlert, Sparkles, Trash2, UtensilsCrossed, Wine, X,
+  Search, Sparkles, Trash2, UtensilsCrossed, Wine, X,
   Clock, Thermometer, MoreVertical,
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
@@ -51,7 +50,6 @@ import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/para
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
-  separarFichasPorDependencias,
 } from "../../../lib/fichas-lote-utils.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
@@ -271,6 +269,23 @@ function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
   return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
 }
 
+function unidadePadraoDepartamento(departamento) {
+  return String(departamento || "").toLowerCase() === "bar" ? "l" : "kg";
+}
+
+function rendimentoPadronizado(ficha) {
+  const unidade = unidadePadraoDepartamento(ficha?.departamento);
+  const rendimento = Number(ficha?.rendimento_porcoes) || 0;
+  const pesoTotal = pesoTotalDaFicha(rendimento, ficha?.rendimento_unidade, Number(ficha?.peso_porcao_g) || 0);
+  return { unidade, valor: pesoTotal > 0 ? pesoTotal / 1000 : rendimento, totalBase: pesoTotal };
+}
+
+function textoRendimentoPadronizado(ficha) {
+  const padrao = rendimentoPadronizado(ficha);
+  const unidade = padrao.unidade === "l" ? "L" : "kg";
+  return `${padrao.valor.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${unidade}`;
+}
+
 // Info de peso de uma ficha: peso total produzido (g), custo por kg, peso por
 // porção e QUANTAS porções renderam. Vale quando a ficha tem peso_porcao_g
 // preenchido OU quando rende direto em peso/volume (kg/g/l/ml).
@@ -302,7 +317,7 @@ const fmtG = (g) => g >= 1000
 // no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" entram se o
 // insumo tiver peso médio cadastrado (ex: 1 tomate ≈ 100g). Sugere a unidade
 // conforme o que domina.
-function rendimentoPelosIngredientes(ingLista) {
+function rendimentoPelosIngredientes(ingLista, departamento = "cozinha") {
   let solidosG = 0, liquidosMl = 0;
   (ingLista || []).forEach(ing => {
     const u = String(ing.unidade || "").toLowerCase();
@@ -317,9 +332,8 @@ function rendimentoPelosIngredientes(ingLista) {
   });
   const total = solidosG + liquidosMl;
   if (total <= 0) return null;
-  const ehLiquido = liquidosMl > solidosG;
-  const unidade = total >= 1000 ? (ehLiquido ? "l" : "kg") : (ehLiquido ? "ml" : "g");
-  const valor = (unidade === "kg" || unidade === "l") ? total / 1000 : total;
+  const unidade = unidadePadraoDepartamento(departamento);
+  const valor = total / 1000;
   return { totalG: total, unidade, valor: Math.round(valor * 1000) / 1000, solidosG, liquidosMl };
 }
 
@@ -364,13 +378,18 @@ function FichasRunner() {
   const [modalCategorias, setModalCategorias] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [salvandoCategoria, setSalvandoCategoria] = useState(false);
+  const [alterandoCategoriaId, setAlterandoCategoriaId] = useState("");
   const [modoFicha, setModoFicha] = useState("principais");
   const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
   const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
-  const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(true);
+  const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
+  const [modalEscolhaNovo, setModalEscolhaNovo] = useState(false);
+  const [modalTitulosLote, setModalTitulosLote] = useState(false);
+  const [titulosLote, setTitulosLote] = useState("");
+  const [salvandoTitulosLote, setSalvandoTitulosLote] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
   const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
@@ -390,10 +409,9 @@ function FichasRunner() {
   const [modalImpressao, setModalImpressao] = useState(null);
   const [configImpressao, setConfigImpressao] = useState(null);
   const [ordemPersonalizada, setOrdemPersonalizada] = useState([]);
-  const [modalExclusao, setModalExclusao] = useState(false);
-  const [dependenciasExclusao, setDependenciasExclusao] = useState(null);
   const [processandoLote, setProcessandoLote] = useState(false);
   const [mensagemLote, setMensagemLote] = useState("");
+  const [erroLote, setErroLote] = useState("");
 
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
@@ -406,7 +424,7 @@ function FichasRunner() {
     eh_base: false,
     produto_pronto: false,
     tipo_base: null,
-    rendimento_unidade: "porcao",
+    rendimento_unidade: deptUrl === "bar" ? "l" : "kg",
     peso_porcao_g: "",
     imagem: "", // Base64 da foto
     preco_venda: "",
@@ -470,7 +488,12 @@ function FichasRunner() {
   // Simulação de rendimento: recalcula os ingredientes para outra quantidade
   const [modalSim, setModalSim] = useState(null); // ficha sendo simulada
   const [simAlvo, setSimAlvo] = useState("");      // rendimento desejado (mesma unidade)
-  const abrirSimulacao = (f) => { setModalSim(f); setSimAlvo(String(f.rendimento_porcoes || 1)); };
+  const abrirSimulacao = (f) => {
+    const padrao = rendimentoPadronizado(f);
+    const fichaPadronizada = { ...f, rendimento_porcoes: padrao.valor, rendimento_unidade: padrao.unidade };
+    setModalSim(fichaPadronizada);
+    setSimAlvo(String(padrao.valor || 1));
+  };
 
   // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
@@ -605,7 +628,7 @@ function FichasRunner() {
     // Rendimento = peso total somado dos ingredientes (kg/g/l/ml), automático.
     // Usa peso médio do insumo p/ incluir itens em "un". Só cai para "porção"
     // se os ingredientes forem todos em unidades sem peso conhecido.
-    const pesoIA = rendimentoPelosIngredientes(novosIngFicha);
+    const pesoIA = rendimentoPelosIngredientes(novosIngFicha, deptUrl);
     setForm({
       id: null, departamento: deptUrl,
       nome_receita: iaFResultado.nome_receita,
@@ -615,7 +638,7 @@ function FichasRunner() {
       eh_base: false,
       produto_pronto: false,
       tipo_base: null,
-      rendimento_unidade: pesoIA ? pesoIA.unidade : "porcao",
+      rendimento_unidade: pesoIA ? pesoIA.unidade : unidadePadraoDepartamento(deptUrl),
       peso_porcao_g: "",
       preco_venda: "",
       cmv_meta: 30,
@@ -663,7 +686,7 @@ function FichasRunner() {
     setLoading(true);
     const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens, resEstoqueEmbalagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
-       fetchInsumos(unidadeAtiva, deptUrl),
+       fetchInsumos(unidadeAtiva, deptUrl, { excluirPrePreparos: true }),
        fetchProdutos(unidadeAtiva),
        fetchMontagens(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, "embalagens"),
@@ -783,20 +806,32 @@ function FichasRunner() {
       adicionais: categoriasAdicionais.filter(item => item !== nome),
       excluidas: [...new Set([...categoriasExcluidas, nome])],
     });
-    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Preparos e receitas" : "Pratos principais");
+    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Pré-preparos" : "Pratos principais");
+  };
+
+  const organizarFichaNaCategoria = async (ficha, categoria) => {
+    const categoriaAnterior = ficha.categoria || "";
+    setAlterandoCategoriaId(ficha.id);
+    setFichas(lista => lista.map(item => item.id === ficha.id ? { ...item, categoria: categoria || null } : item));
+    const { error } = await atualizarCategoriaFicha(ficha.id, categoria);
+    setAlterandoCategoriaId("");
+    if (error) {
+      setFichas(lista => lista.map(item => item.id === ficha.id ? { ...item, categoria: categoriaAnterior || null } : item));
+      alert("Não foi possível mudar a categoria: " + error);
+    }
   };
 
   // Rendimento automático: sempre que os ingredientes mudam (e não estiver no
   // modo manual), o rendimento passa a ser o PESO SOMADO dos ingredientes, na
-  // unidade que domina (kg/g/l/ml). Sem porção, sem multiplicação.
+  // unidade padrão do setor: cozinha em kg e bar em litros.
   useEffect(() => {
     if (form && autoSoma && ingFicha.length > 0) {
-      const est = rendimentoPelosIngredientes(ingFicha);
+      const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
       if (est && est.totalG > 0) {
          setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade, peso_porcao_g: "" }));
       }
     }
-  }, [ingFicha, autoSoma]);
+  }, [ingFicha, autoSoma, form.departamento, deptUrl]);
 
   // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
   // usadas dentro de outros pratos: molhos, massas, caldos...)
@@ -808,10 +843,8 @@ function FichasRunner() {
   // cardápio e o estoque, não a ficha técnica.
   const passaFiltro = (f) => {
     if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
-    if (tipoFiltro === "Preparos e receitas") return !!f.eh_base;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
-    if (tipoFiltro === "Pré-preparos") return !!f.eh_base && f.tipo_base !== "receita";
-    if (tipoFiltro === "Receitas base") return !!f.eh_base && f.tipo_base === "receita";
+    if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
     if (tipoFiltro === "Pratos") return !f.eh_base;
     if (modoFicha === "preparos") return !!f.eh_base && (f.categoria || "") === tipoFiltro;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
@@ -822,9 +855,6 @@ function FichasRunner() {
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
   const fichasSelecionadas = selecionadas.map(id => fichas.find(f => f.id === id)).filter(Boolean);
-  const papelUsuario = String(sessao?.papel || sessao?.role || "").toLowerCase();
-  const podeImprimirCustos = ["admin", "administrador", "superadmin", "gestor", "gerente", "dono"]
-    .some(papel => papelUsuario.includes(papel));
   const usuarioAuditoria = {
     unidadeId: unidadeAtiva,
     usuarioId: sessao?.id || sessao?.user?.id || null,
@@ -858,7 +888,7 @@ function FichasRunner() {
     const categoriaInicial = criandoPreparo
       ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
       : "";
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: unidadePadraoDepartamento(deptUrl), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
@@ -868,20 +898,77 @@ function FichasRunner() {
     setModalNovo(true);
   };
 
+  const abrirOpcaoNovo = () => {
+    if (modoFicha === "preparos") return abrirNova();
+    setModalEscolhaNovo(true);
+  };
+
+  const salvarTitulosEmLote = async () => {
+    const existentes = new Set(fichas.map(ficha => normalizarNome(ficha.nome_receita)));
+    const vistos = new Set();
+    const titulos = String(titulosLote || "")
+      .split(/\r?\n|;/)
+      .map(titulo => titulo.trim())
+      .filter(titulo => {
+        const chave = normalizarNome(titulo);
+        if (!chave || existentes.has(chave) || vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      });
+    if (!titulos.length) return alert("Digite ao menos um título novo, usando uma linha para cada prato.");
+
+    setSalvandoTitulosLote(true);
+    const falhas = [];
+    let criados = 0;
+    for (const titulo of titulos) {
+      const resultado = await salvarFicha({
+        unidade_id: unidadeAtiva,
+        departamento: deptUrl,
+        nome_receita: titulo,
+        categoria: null,
+        rendimento_porcoes: 1,
+        rendimento_unidade: unidadePadraoDepartamento(deptUrl),
+        peso_porcao_g: null,
+        modo_preparo: "",
+        eh_base: false,
+        tipo_base: null,
+        cmv_meta: 30,
+        imagem: null,
+        tempo_preparo: null,
+        validade_dias: null,
+        observacoes: null,
+        metodo_bar: null,
+      }, []);
+      if (resultado.error) falhas.push(`${titulo}: ${resultado.error}`);
+      else criados++;
+    }
+    setSalvandoTitulosLote(false);
+    if (criados > 0) {
+      setModalTitulosLote(false);
+      setTitulosLote("");
+      setModoFicha("principais");
+      setTipoFiltro("Pratos principais");
+      setMensagemLote(`${criados} ${criados === 1 ? "título criado" : "títulos criados"}. Agora abra Editar em cada ficha para completar os dados.`);
+      await carregar();
+    }
+    if (falhas.length) alert(`Alguns títulos não foram criados:\n\n${falhas.join("\n")}`);
+  };
+
   const abrirEditar = (ficha) => {
     setAutoSoma(false);
     const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
+    const rendimentoSetor = rendimentoPadronizado(ficha);
     setForm({
        id: ficha.id,
        departamento: ficha.departamento,
        nome_receita: ficha.nome_receita,
-       categoria: ficha.departamento === "bar" && ficha.eh_base && ficha.tipo_base !== "receita" ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
-       rendimento_porcoes: ficha.rendimento_porcoes,
+       categoria: ficha.departamento === "bar" && ficha.eh_base ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
+       rendimento_porcoes: rendimentoSetor.valor,
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
        tipo_base: ficha.tipo_base || "pre",
        produto_pronto: ficha.tipo_base === "produto_pronto",
-       rendimento_unidade: ficha.rendimento_unidade || "porcao",
+       rendimento_unidade: rendimentoSetor.unidade,
        peso_porcao_g: ficha.peso_porcao_g || "",
        imagem: ficha.imagem || "",
        tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
@@ -1178,6 +1265,7 @@ function FichasRunner() {
   const handleSalvar = async (criarOutra = false) => {
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
+    const unidadeRendimento = unidadePadraoDepartamento(form.departamento);
 
     // Filtra ingredientes que estão com qtd = 0
     const ingValidos = ingFicha.filter(i => i.quantidade > 0);
@@ -1193,9 +1281,9 @@ function FichasRunner() {
           rendimento_porcoes: Number(form.rendimento_porcoes),
           modo_preparo: form.eh_base ? form.modo_preparo : "",
           eh_base: !!form.eh_base,
-          tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? (form.tipo_base || "pre") : null),
+          tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
           cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
-          rendimento_unidade: form.rendimento_unidade || "porcao",
+          rendimento_unidade: unidadeRendimento,
           peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
           imagem: form.imagem || null,
           tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
@@ -1228,9 +1316,8 @@ function FichasRunner() {
     if (!criarOutra) setModalNovo(false);
     carregar();
 
-    // ── Liga a ficha aos estoques certos (não bloqueia o salvar) ────────────
-    // Pré-preparo entra no estoque de Pré-preparos (nunca no de pratos) e as
-    // embalagens usadas na receita entram no estoque de Embalagens do setor.
+    // As embalagens usadas na receita entram no estoque de Embalagens do setor.
+    // O pré-preparo já foi vinculado acima, de forma aguardada e idempotente.
     (async () => {
       try {
         const fichaId = erro.id;
@@ -1239,29 +1326,7 @@ function FichasRunner() {
         const { data: estoques } = await fetchEstoques(unidadeAtiva);
         const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
 
-        // 1) A ficha de PRÉ-PREPARO vira um item do estoque de pré-preparos.
-        if (form.eh_base && !form.produto_pronto) {
-          const estoquePre = acharEstoque(dept === "bar" ? "pre-preparos-bar" : "pre-preparos-cozinha");
-          if (estoquePre) {
-            const rend = Number(form.rendimento_porcoes) || 1;
-            const custoUnit = rend > 0 ? calcularCustoTotal(ingValidos) / rend : 0;
-            const insumo = await salvarInsumo({
-              unidade_id: unidadeAtiva,
-              nome: form.nome_receita.trim(),
-              departamento: dept,
-              categoria: "Pré-preparos",
-              unidade_medida: (form.rendimento_unidade || "un").toLowerCase(),
-              tamanho_embalagem: 1,
-              custo_unitario: custoUnit,
-              custo_compra: custoUnit,
-            }, { origem: "Ficha de pré-preparo" });
-            if (insumo?.id) {
-              await vincularItemEstoque({ unidadeId: unidadeAtiva, estoqueId: estoquePre.id, insumoId: insumo.id, custoUnitario: custoUnit });
-            }
-          }
-        }
-
-        // 2) Embalagens usadas na ficha entram no estoque de Embalagens.
+        // Embalagens usadas na ficha entram no estoque de Embalagens.
         const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
         if (estoqueEmb) {
           const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
@@ -1360,19 +1425,12 @@ function FichasRunner() {
 
     // "Salvar e criar outra": limpa o formulário e continua no modal
     if (criarOutra) {
-      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: unidadePadraoDepartamento(form.departamento), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
       setIngFicha([]);
       setFichaEmbalagens([]);
       setNovaEmbalagem({ nome: "", custo: "" });
       setAutoSoma(true);
       setIaExplicacao("");
-    }
-  };
-
-  const handleRemover = async (id) => {
-    if(confirm("Deseja excluir esta ficha técnica permanentemente?")) {
-       await removerFicha(id);
-       carregar();
     }
   };
 
@@ -1398,36 +1456,28 @@ function FichasRunner() {
 
   const limparSelecaoLote = () => setSelecionadas([]);
 
-  const abrirExclusaoSegura = async (lista = fichasSelecionadas) => {
+  const excluirImediatamente = async (lista = fichasSelecionadas) => {
     if (!lista.length) return;
     setProcessandoLote(true);
     setMensagemLote("");
-    setDependenciasExclusao(null);
-    setModalExclusao({ lista });
-    const resposta = await verificarDependenciasFichas(lista, unidadeAtiva);
-    setDependenciasExclusao(resposta);
+    setErroLote("");
+    let resposta = await excluirFichasLote(lista, usuarioAuditoria);
+    let arquivada = false;
+    // Se houver histórico ou outra receita ligada, preserva os registros e
+    // arquiva a ficha. Para o usuário ela desaparece da lista no mesmo clique.
+    if (resposta.error) {
+      resposta = await inativarFichasLote(lista, usuarioAuditoria);
+      arquivada = !resposta.error;
+    }
     setProcessandoLote(false);
-  };
-
-  const concluirExclusaoLote = async (modo) => {
-    const alvo = modalExclusao?.lista || [];
-    const { vinculadas, livres } = separarFichasPorDependencias(alvo, dependenciasExclusao);
-    const verificacaoIncompleta = dependenciasExclusao?.avisos?.length > 0;
-    const lista = modo === "livres" ? livres : modo === "inativar" ? (verificacaoIncompleta ? alvo : vinculadas) : alvo;
-    if (!lista.length) return;
-    setProcessandoLote(true);
-    const resposta = modo === "inativar"
-      ? await inativarFichasLote(lista, usuarioAuditoria)
-      : await excluirFichasLote(lista, usuarioAuditoria);
-    setProcessandoLote(false);
-    if (resposta.error) return setMensagemLote(resposta.error);
+    if (resposta.error) return setErroLote(`Não foi possível excluir: ${resposta.error}`);
     setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
-    setMensagemLote(`${lista.length} ficha(s) ${modo === "inativar" ? "inativada(s)" : "excluída(s)"} com registro no histórico.`);
+    setAcoesCardAberto("");
+    setMensagemLote(arquivada
+      ? `${lista.length} ficha(s) removida(s) da lista; o histórico vinculado foi preservado.`
+      : `${lista.length} ficha(s) excluída(s) definitivamente.`);
     await carregar();
-    window.setTimeout(() => {
-      setModalExclusao(false);
-      setMensagemLote("");
-    }, 1400);
+    window.setTimeout(() => setMensagemLote(""), 3500);
   };
 
   const duplicarFichasSelecionadas = async () => {
@@ -1469,17 +1519,14 @@ function FichasRunner() {
   const abrirPreviaImpressao = (modo, lista = fichasSelecionadas) => {
     if (!lista.length) return;
     const livroAutomatico = modo === "livro" || lista.length >= 6;
-    const modelo = modo === "livro" ? "livro" : podeImprimirCustos ? "gerencial" : "operacional";
+    const modelo = modo === "livro" ? "livro" : "operacional";
     setOrdemPersonalizada(lista.map(f => f.id));
     setConfigImpressao({
       ordem: "selecao", formato: "a4-retrato", modelo,
       foto: true, ingredientes: true,
-      custos: podeImprimirCustos && modelo !== "operacional",
-      preco: podeImprimirCustos && modelo !== "operacional",
-      cmv: podeImprimirCustos && modelo !== "operacional",
-      margem: podeImprimirCustos && modelo !== "operacional",
-      preparo: true, montagem: true, observacoes: true,
-      responsaveis: true, atualizacao: true,
+      custos: false, preco: false, cmv: false, margem: false,
+      preparo: true, montagem: false, observacoes: false,
+      responsaveis: false, atualizacao: false,
       capa: livroAutomatico, indice: livroAutomatico, livro: livroAutomatico,
     });
     setModalImpressao({ modo, lista });
@@ -1569,12 +1616,9 @@ function FichasRunner() {
     };
     
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    const fmtBRL = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtDataBR = (d) => { if (!d) return '—'; const dt = new Date(d); return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
-    const completo = !opcoes.modelo || opcoes.modelo === "gerencial" || opcoes.modelo === "livro";
     const incluir = (campo, padrao = true) => opcoes[campo] === undefined ? padrao : !!opcoes[campo];
     const paginaPaisagem = opcoes.formato === "a4-paisagem";
-    const permitirCustos = podeImprimirCustos && completo && incluir("custos", false);
 
     let conteudoHTML = `
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
@@ -1642,7 +1686,7 @@ function FichasRunner() {
       if (nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Geleias';
       if (cat.includes('mix') || cat.includes('infus') || nome.includes('infusão') || nome.includes('infusao')) return 'Mixes e Infusões';
       if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
-      if (f.eh_base && f.tipo_base !== 'receita') return 'Pré-preparos';
+      if (f.eh_base) return 'Pré-preparos';
       if (cat === 'sobremesas') return 'Sobremesas';
       if (cat === 'sucos') return 'Sucos';
       return 'Preparos';
@@ -1652,28 +1696,8 @@ function FichasRunner() {
     // Capa e índice são montados DEPOIS, quando as páginas já foram distribuídas
     // (receitas pequenas se combinam 2 por página; as grandes se comprimem).
     const dados = lista.map((f) => {
-      const custoTotal = custoTotalDaFicha(f, fichas);
-      const rende = Number(f.rendimento_porcoes) || 1;
-      const peso = infoPesoFicha(f, fichas);
-      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-      const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
-      const porcoesTxt = unR === 'porcao'
-         ? Number(rende).toLocaleString('pt-BR')
-         : (peso && peso.porcoes ? Number(peso.porcoes).toLocaleString('pt-BR') : '—');
-      const custoPorcaoBase = unR === 'porcao' ? rende : (peso && peso.porcoes ? peso.porcoes : 0);
-      const custoPorcao = custoPorcaoBase > 0 ? custoTotal / custoPorcaoBase : 0;
-      const produto = produtos.find(item => item.ficha_id === f.id
-        || String(item.nome_produto || "").toLocaleLowerCase("pt-BR") === String(f.nome_receita || "").toLocaleLowerCase("pt-BR"));
-      const precoVenda = Number(produto?.preco_venda) || 0;
-      const cmv = precoVenda > 0 ? (custoPorcao / precoVenda) * 100 : null;
-      const margem = cmv === null ? null : 100 - cmv;
-      const montagem = montagens.find(item =>
-        String(item.nome || "").toLocaleLowerCase("pt-BR") === String(f.nome_receita || "").toLocaleLowerCase("pt-BR"));
-      // Rendimento = só o peso em GRAMAS. Se estiver em kg (ou L), converte p/ g.
-      const pesoGramas = (peso && peso.pesoTotalG) ? peso.pesoTotalG
-         : (unR === 'kg' || unR === 'l') ? rende * 1000
-         : (unR === 'g' || unR === 'ml') ? rende
-         : 0;
+      const rendimentoSetor = rendimentoPadronizado(f);
+      const rendimentoSetorTexto = textoRendimentoPadronizado(f);
 
       // Itens do preparo: Tipo | Nome | Medida | Quantidade total
       const rows = (f.fichas_ingredientes || []).map(fi => {
@@ -1694,7 +1718,6 @@ function FichasRunner() {
       const foto = incluir("foto") && f.imagem
          ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
          : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
-      const tipoFicha = f.eh_base ? 'Receita base' : 'Produto de venda';
       const deptLabel = f.departamento === 'bar' ? 'Bar' : (f.departamento === 'cozinha' ? 'Cozinha' : (f.departamento || '—'));
 
       // Passos do modo de preparo (remove numeração já existente e re-enumera)
@@ -1725,8 +1748,8 @@ function FichasRunner() {
 
             <h2>Rendimento</h2>
             <table class="rende">
-               <thead><tr><th>Peso total</th></tr></thead>
-               <tbody><tr><td>${pesoGramas > 0 ? Math.round(pesoGramas).toLocaleString('pt-BR') + ' g' : '—'}</td></tr></tbody>
+               <thead><tr><th>Quantidade total</th></tr></thead>
+               <tbody><tr><td>${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</td></tr></tbody>
             </table>
 
             ${incluir("ingredientes") ? `<h2>Itens do preparo</h2>
@@ -1735,21 +1758,7 @@ function FichasRunner() {
                <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
             </table>` : ""}
 
-            ${permitirCustos ? `<h2>Custos e precificação</h2>
-            <table><thead><tr>
-              <th>Custo total</th><th>Custo/porção</th>
-              ${incluir("preco", false) ? "<th>Preço de venda</th>" : ""}
-              ${incluir("cmv", false) ? "<th>CMV</th>" : ""}
-              ${incluir("margem", false) ? "<th>Margem</th>" : ""}
-            </tr></thead><tbody><tr>
-              <td>${fmtBRL(custoTotal)}</td><td>${fmtBRL(custoPorcao)}</td>
-              ${incluir("preco", false) ? `<td>${precoVenda > 0 ? fmtBRL(precoVenda) : "—"}</td>` : ""}
-              ${incluir("cmv", false) ? `<td>${cmv === null ? "—" : cmv.toFixed(1) + "%"}</td>` : ""}
-              ${incluir("margem", false) ? `<td>${margem === null ? "—" : margem.toFixed(1) + "%"}</td>` : ""}
-            </tr></tbody></table>` : ""}
-
-            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${passosHTML}</div>` : ""}
-            ${incluir("montagem") ? `<h2>Guia de montagem</h2><div class="passos"><div class="passo">${esc(montagem?.descritivo || montagem?.observacoes || "Não informado.")}</div></div>` : ""}`;
+            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${passosHTML}</div>` : ""}`;
 
       // Altura estimada (≈mm) para decidir se cabe DUAS na mesma página
       const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + passos.length * 7 + (f.observacoes ? 8 : 0);
@@ -1909,7 +1918,7 @@ function FichasRunner() {
           nome_receita: item.nome,
           categoria: catFicha || null,
           rendimento_porcoes: 1,
-          rendimento_unidade: "porcao",
+          rendimento_unidade: item.categoria === "Drink" ? "l" : "kg",
           modo_preparo: "",
           eh_base: false,
         }, []);
@@ -1963,14 +1972,12 @@ function FichasRunner() {
       const foto = f.imagem
         ? `<img src="data:image/jpeg;base64,${f.imagem}" alt=""/>`
         : `<span>${(f.nome_receita || "?")[0].toUpperCase()}</span>`;
-      const peso = infoPesoFicha(f, fichas);
-      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-      const pesoG = (peso && peso.pesoTotalG) ? peso.pesoTotalG : (unR === 'kg' || unR === 'l') ? (Number(f.rendimento_porcoes) || 0) * 1000 : (unR === 'g' || unR === 'ml') ? (Number(f.rendimento_porcoes) || 0) : 0;
+      const rendimentoSetor = rendimentoPadronizado(f);
       return `
       <div class="item">
         <div class="foto">${foto}</div>
         <div class="info">
-          <h3>${f.nome_receita}${pesoG > 0 ? `<span class="peso"> · ${Math.round(pesoG).toLocaleString("pt-BR")} g</span>` : ""}</h3>
+          <h3>${f.nome_receita}${rendimentoSetor.valor > 0 ? `<span class="peso"> · ${textoRendimentoPadronizado(f)}</span>` : ""}</h3>
           <ul>${ings.map(i => `<li><b>${i.qtd}</b> ${i.nome}</li>`).join("") || "<li>Sem ingredientes cadastrados</li>"}</ul>
         </div>
       </div>`;
@@ -2031,7 +2038,27 @@ function FichasRunner() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div className="erp-fichas-theme min-h-screen bg-slate-50 pb-24 text-slate-800">
+      <style>{`
+        .erp-fichas-theme { font-family: Aptos, "Segoe UI Variable", "Segoe UI", Arial, sans-serif; letter-spacing: -0.006em; }
+        .erp-fichas-theme .font-black { font-weight: 700 !important; }
+        .erp-fichas-theme .font-bold { font-weight: 600 !important; }
+        .erp-fichas-theme [class*="bg-emerald-600"] { background-color: #ea580c !important; }
+        .erp-fichas-theme [class*="bg-emerald-700"] { background-color: #c2410c !important; }
+        .erp-fichas-theme [class*="hover:bg-emerald-700"]:hover, .erp-fichas-theme [class*="hover:bg-emerald-800"]:hover { background-color: #9a3412 !important; }
+        .erp-fichas-theme [class*="bg-emerald-50"] { background-color: #fff7ed !important; }
+        .erp-fichas-theme [class*="bg-emerald-100"] { background-color: #ffedd5 !important; }
+        .erp-fichas-theme [class*="text-emerald-600"] { color: #ea580c !important; }
+        .erp-fichas-theme [class*="text-emerald-700"], .erp-fichas-theme [class*="text-emerald-800"] { color: #9a3412 !important; }
+        .erp-fichas-theme [class*="border-emerald-100"], .erp-fichas-theme [class*="border-emerald-200"], .erp-fichas-theme [class*="border-emerald-300"] { border-color: #fed7aa !important; }
+        .erp-fichas-theme [class*="border-emerald-500"], .erp-fichas-theme [class*="border-emerald-600"], .erp-fichas-theme [class*="ring-emerald-500"] { border-color: #f97316 !important; --tw-ring-color: rgb(249 115 22 / .22) !important; }
+        .erp-fichas-theme [class*="shadow-emerald"] { --tw-shadow-color: rgb(234 88 12 / .22) !important; }
+        .erp-fichas-theme input[class*="accent-emerald"] { accent-color: #ea580c; }
+        .erp-fichas-theme .erp-status-ativo { background-color: #ffedd5 !important; color: #9a3412 !important; }
+        .erp-fichas-theme input, .erp-fichas-theme select, .erp-fichas-theme textarea, .erp-fichas-theme button { font-family: inherit; }
+        .erp-fichas-card { border-color: #dbe2ee; box-shadow: 0 5px 18px rgb(30 41 59 / .06); }
+        .erp-fichas-card:hover { box-shadow: 0 12px 28px rgb(154 52 18 / .10); }
+      `}</style>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -2041,9 +2068,6 @@ function FichasRunner() {
               </button>
               <div>
                 <h1 className="text-2xl font-black tracking-tight text-slate-950">{deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}</h1>
-                <p className="mt-1 text-sm font-medium text-slate-500">{modoFicha === "preparos"
-                  ? (deptUrl === "bar" ? "Produção de xaropes, espumas, infusões e bases do bar" : "Produção de molhos, caldos, massas e receitas-base da cozinha")
-                  : (deptUrl === "bar" ? "Montagem, custos e margens de drinks e bebidas" : "Montagem de pratos, rendimento, custo e CMV para o cardápio")}</p>
               </div>
             </div>
             <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
@@ -2053,7 +2077,7 @@ function FichasRunner() {
                 {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
               </label>
               <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
-              <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
+              <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>
             </div>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
@@ -2080,16 +2104,13 @@ function FichasRunner() {
               : (!f.eh_base && f.tipo_base !== "produto_pronto"));
             if (!base.length) return null;
             if (modoFicha === "preparos") {
-              const prePreparos = base.filter(f => f.tipo_base !== "receita").length;
-              const receitasBase = base.filter(f => f.tipo_base === "receita").length;
               const comCusto = base.filter(f => custoTotalDaFicha(f, fichas) > 0).length;
               const semModo = base.filter(f => !String(f.modo_preparo || "").trim()).length;
               const tempos = base.map(f => Number(f.tempo_preparo) || 0).filter(Boolean);
               const tempoMedio = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
               const cardsPreparo = [
                 { rot: "Preparos", val: base.length, sub: deptUrl === "bar" ? "bases do bar" : "bases da cozinha" },
-                { rot: "Pré-preparos", val: prePreparos, sub: "usados em montagens" },
-                { rot: "Receitas base", val: receitasBase, sub: "produção do dia" },
+                { rot: "Pré-preparos", val: base.length, sub: "usados em montagens" },
                 { rot: "Com custo", val: comCusto, sub: `${base.length - comCusto} sem custo` },
                 { rot: "Tempo médio", val: tempoMedio ? `${tempoMedio} min` : "—", sub: `${tempos.length} informados` },
                 { rot: "Sem instruções", val: semModo, sub: "modo de preparo", alerta: semModo > 0 },
@@ -2148,18 +2169,16 @@ function FichasRunner() {
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {
-                id: "Preparos e receitas",
+                id: "Pré-preparos",
                 modo: "preparos",
-                titulo: "Preparos e receitas",
-                descricao: deptUrl === "bar" ? "Xaropes, espumas, infusões e bases usadas em outras fichas." : "Molhos, caldos, massas, arroz, feijão e outras bases do prato.",
+                titulo: "Pré-preparos",
                 quantidade: fichas.filter(f => !!f.eh_base).length,
                 icone: <BookOpen size={24} />,
               },
               {
                 id: "Pratos principais",
                 modo: "principais",
-                titulo: deptUrl === "bar" ? "Drinks e montagens" : "Pratos principais e montagens",
-                descricao: deptUrl === "bar" ? "Monte o drink final usando insumos e preparos já cadastrados." : "Monte o prato final separando claramente cada preparo e ingrediente.",
+                titulo: deptUrl === "bar" ? "Drinks" : "Pratos",
                 quantidade: fichas.filter(f => !f.eh_base).length,
                 icone: <UtensilsCrossed size={24} />,
               },
@@ -2167,11 +2186,11 @@ function FichasRunner() {
               <button
                 type="button"
                 key={item.id}
-                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(true); }}
-                className={`min-h-[74px] rounded-xl border p-3 text-left transition-all ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"}`}
+                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(false); }}
+                className={`min-h-[58px] rounded-xl border p-2.5 text-left transition-all sm:min-h-[66px] sm:p-3 ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-600"}`}>{item.icone}</span>
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-600"}`}>{item.icone}</span>
                   <span className="min-w-0">
                     <span className="block text-sm sm:text-base font-black leading-tight text-slate-900">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
                   </span>
@@ -2191,27 +2210,25 @@ function FichasRunner() {
                <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
              </button>
            </div>
-         {!categoriasRecolhidas && <div className="flex flex-wrap items-center gap-2">
+         {!categoriasRecolhidas && <div className="flex flex-wrap items-center justify-center gap-2 py-1">
             {categoriasDisponiveis.map(cat => {
               const n = fichasDoModo.filter(f => (f.categoria || "") === cat).length;
               return (
                 <div key={cat} className="flex items-center">
                   <button onClick={() => setTipoFiltro(cat)}
-                    className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+                    className={`min-h-10 rounded-xl px-3 py-2 font-black text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
                     {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-slate-400"}>({n})</span>
                   </button>
                 </div>
               );
             })}
             {(modoFicha === "preparos" ? [
-              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita").length],
-              ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
-              ["Preparos e receitas", "Todos os preparos", fichas.filter(f => !!f.eh_base).length],
+              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base).length],
             ] : [
               ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
             ]).map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                className={`min-h-10 rounded-xl px-3 py-2 font-black text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {label} <span className={tipoFiltro === t ? "text-white/75" : "text-slate-400"}>({n})</span>
               </button>
             ))}
@@ -2245,7 +2262,7 @@ function FichasRunner() {
                  <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
                  <button onClick={() => abrirPreviaImpressao("pdf")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
                  <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
-                 <button onClick={() => abrirExclusaoSegura()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> Excluir</button>
+                  <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>
                  <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-800"><X size={16}/></button>
                </div>
              </div>
@@ -2256,6 +2273,12 @@ function FichasRunner() {
            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
              <span className="flex items-center gap-2"><CheckCircle2 size={18}/>{mensagemLote}</span>
              <button onClick={() => setMensagemLote("")}><X size={16}/></button>
+           </div>
+         )}
+         {erroLote && (
+           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+             <span className="flex items-center gap-2"><AlertTriangle size={18}/>{erroLote}</span>
+             <button onClick={() => setErroLote("")}><X size={16}/></button>
            </div>
          )}
 
@@ -2272,13 +2295,12 @@ function FichasRunner() {
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
                      <div key={f.id}
                         onDragOver={e => { if (dragId) e.preventDefault(); }}
                         onDrop={() => reordenar(dragId, f.id)}
-                        className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
+                        className={`erp-fichas-card bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
                         {/* Cabeçalho sem foto: nome e ações sempre fáceis de tocar */}
                         <div className="border-b border-slate-100 bg-slate-50 p-3">
                            <div className="flex items-start gap-2">
@@ -2300,7 +2322,7 @@ function FichasRunner() {
                               <button onClick={() => abrirSimulacao(f)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Calculator size={17}/> Simular</button>
                               <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
                               <button onClick={() => abrirPreviaImpressao("pdf", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Download size={17}/> PDF</button>
-                              <button onClick={() => abrirExclusaoSegura([f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-rose-600 hover:bg-rose-50"><Trash2 size={17}/> Remover</button>
+                               <button onClick={() => excluirImediatamente([f])} disabled={processandoLote} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50"><Trash2 size={17}/> Excluir</button>
                            </div>}
                         </div>
                         <div className="p-4 sm:p-5 cursor-pointer" onClick={() => abrirFicha(f)} title="Abrir ficha">
@@ -2314,10 +2336,12 @@ function FichasRunner() {
                               const precoPorcao = Number(prod?.preco_venda) || 0;
                               const meta = Number(f.cmv_meta) || 30;
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
-                              const margem = cmv !== null ? 100 - cmv : null;
-                              const composicao = (f.fichas_ingredientes || []).length;
-                              const pesoPorcao = Number(f.peso_porcao_g) || (peso?.pesoTotalG > 0 && porcoes > 0 ? peso.pesoTotalG / porcoes : 0);
-                              const rendimentoTexto = `${Number(f.rendimento_porcoes || 0).toLocaleString("pt-BR")} ${labelUn}`;
+                               const margem = cmv !== null ? 100 - cmv : null;
+                               const composicao = (f.fichas_ingredientes || []).length;
+                               const padrao = rendimentoPadronizado(f);
+                               const unidadeLabel = padrao.unidade === "l" ? "L" : "kg";
+                               const rendimentoTexto = textoRendimentoPadronizado(f);
+                               const custoUnidadePadrao = padrao.valor > 0 ? custoTotal / padrao.valor : custoTotal;
                               return (
                                  <>
                                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -2332,9 +2356,8 @@ function FichasRunner() {
                                     </div>
 
                                     <div className="divide-y divide-slate-100">
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Rendimento</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} g` : unR === "porcao" ? "1 porção" : "—"}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo por porção</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Quantidade</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">1 {unidadeLabel} custa</span><strong className="text-base text-emerald-700">{fmtBRL(custoUnidadePadrao)}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
                                         {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
@@ -2390,14 +2413,17 @@ function FichasRunner() {
                         livro: modelo === "livro",
                         capa: modelo === "livro",
                         indice: modelo === "livro",
-                        custos: modelo !== "operacional" && podeImprimirCustos,
-                        preco: modelo !== "operacional" && podeImprimirCustos,
-                        cmv: modelo !== "operacional" && podeImprimirCustos,
-                        margem: modelo !== "operacional" && podeImprimirCustos,
+                        custos: false,
+                        preco: false,
+                        cmv: false,
+                        margem: false,
+                        montagem: false,
+                        observacoes: false,
+                        responsaveis: false,
+                        atualizacao: false,
                       }));
                     }} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
                       <option value="operacional">Operacional</option>
-                      {podeImprimirCustos && <option value="gerencial">Gerencial</option>}
                       <option value="resumido">Resumo rápido</option>
                       <option value="livro">Livro completo</option>
                     </select>
@@ -2419,20 +2445,12 @@ function FichasRunner() {
                   </label>
                 </div>
 
-                {!podeImprimirCustos && (
-                  <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                    <ShieldAlert size={18} className="shrink-0"/> Os custos, preços, CMV e margem ficam ocultos de acordo com a permissão do seu usuário.
-                  </div>
-                )}
-
                 <div>
                   <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Conteúdo incluído</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {[
                       ["foto", "Foto"], ["ingredientes", "Ingredientes"], ["preparo", "Preparo"],
-                      ["montagem", "Montagem"], ["observacoes", "Observações"], ["responsaveis", "Responsável"],
-                      ["atualizacao", "Atualização"], ["capa", "Capa"], ["indice", "Índice"],
-                      ...(podeImprimirCustos ? [["custos", "Custos"], ["preco", "Preço"], ["cmv", "CMV"], ["margem", "Margem"]] : []),
+                      ["capa", "Capa"], ["indice", "Índice"],
                     ].map(([campo, label]) => (
                       <label key={campo} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
                         <input type="checkbox" checked={!!configImpressao[campo]} onChange={e => setConfigImpressao(atual => ({...atual, [campo]: e.target.checked, ...(campo === "capa" || campo === "indice" ? { livro: e.target.checked || atual.livro } : {})}))} className="h-4 w-4 accent-emerald-700"/>
@@ -2497,78 +2515,6 @@ function FichasRunner() {
         </div>
       )}
 
-      {/* EXCLUSÃO SEGURA EM LOTE */}
-      {modalExclusao && (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5 sm:p-6">
-              <div className="flex gap-3">
-                <div className="rounded-2xl bg-rose-100 p-3 text-rose-700"><AlertTriangle size={24}/></div>
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">Confirmar exclusão segura</h2>
-                  <p className="mt-1 text-sm font-bold text-slate-500">Você está prestes a excluir {modalExclusao.lista.length} {modalExclusao.lista.length === 1 ? "ficha técnica" : "fichas técnicas"}.</p>
-                </div>
-              </div>
-              <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="rounded-full bg-slate-100 p-2 text-slate-500"><X size={18}/></button>
-            </div>
-
-            <div className="max-h-[62vh] space-y-4 overflow-y-auto p-5 sm:p-6">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fichas selecionadas</p>
-                <p className="mt-1 text-sm font-bold text-slate-700">{modalExclusao.lista.slice(0, 8).map(f => f.nome_receita).join(", ")}{modalExclusao.lista.length > 8 ? ` e mais ${modalExclusao.lista.length - 8}` : ""}.</p>
-              </div>
-
-              {!dependenciasExclusao ? (
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 p-6 text-sm font-bold text-slate-500"><Loader2 size={18} className="animate-spin"/> Verificando cardápio, outras receitas, montagem e histórico...</div>
-              ) : (() => {
-                const { vinculadas, livres } = separarFichasPorDependencias(modalExclusao.lista, dependenciasExclusao);
-                return (
-                  <>
-                    {dependenciasExclusao.avisos?.length > 0 && (
-                      <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                        <ShieldAlert size={18} className="shrink-0"/> A verificação não foi concluída em todas as áreas. Por segurança, a exclusão definitiva foi bloqueada; use apenas inativar ou cancelar.
-                      </div>
-                    )}
-                    {vinculadas.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm font-black text-slate-800">{vinculadas.length} {vinculadas.length === 1 ? "ficha possui vínculo" : "fichas possuem vínculos"} e não será excluída diretamente:</p>
-                        {vinculadas.map(ficha => (
-                          <div key={ficha.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <p className="text-sm font-black text-slate-800">{ficha.nome_receita}</p>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {(dependenciasExclusao.porFicha?.[ficha.id] || []).map((item, indice) => <span key={`${item.tipo}-${indice}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-amber-800">{item.tipo}: {item.nome}</span>)}
-                            </div>
-                          </div>
-                        ))}
-                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Os vínculos não são removidos automaticamente.</p>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800"><CheckCircle2 size={19} className="shrink-0"/> Nenhum vínculo encontrado. As fichas podem ser excluídas com segurança.</div>
-                    )}
-                    {livres.length > 0 && vinculadas.length > 0 && <p className="text-xs font-bold text-emerald-700">{livres.length} ficha(s) sem vínculos podem ser excluídas separadamente.</p>}
-                  </>
-                );
-              })()}
-            </div>
-
-            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4 sm:px-6">
-              <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="mr-auto rounded-xl px-4 py-2.5 text-sm font-black text-slate-600">Cancelar</button>
-              {dependenciasExclusao && (() => {
-                const { vinculadas, livres } = separarFichasPorDependencias(modalExclusao.lista, dependenciasExclusao);
-                const verificacaoIncompleta = dependenciasExclusao.avisos?.length > 0;
-                return (
-                  <>
-                    {livres.length > 0 && vinculadas.length > 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("livres")} disabled={processandoLote} className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 disabled:opacity-50">Excluir somente livres ({livres.length})</button>}
-                    {(vinculadas.length > 0 || verificacaoIncompleta) && <button onClick={() => concluirExclusaoLote("inativar")} disabled={processandoLote} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{verificacaoIncompleta ? `Inativar com segurança (${modalExclusao.lista.length})` : `Inativar vinculadas (${vinculadas.length})`}</button>}
-                    {vinculadas.length === 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("todos")} disabled={processandoLote} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{processandoLote ? "Excluindo..." : `Excluir ${modalExclusao.lista.length} ficha(s)`}</button>}
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
       {modalCategorias && (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModalCategorias(false)}>
           <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -2609,6 +2555,28 @@ function FichasRunner() {
                 );
               })}
             </div>
+
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <h4 className="text-base font-black text-slate-900">Organizar {modoFicha === "preparos" ? "receitas" : deptUrl === "bar" ? "drinks" : "pratos"}</h4>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Escolha diretamente em qual categoria cada item deve aparecer.</p>
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                {[...fichasDoModo].sort(ordenarFichas).map(ficha => (
+                  <div key={ficha.id} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+                    <p className="truncate text-sm font-black text-slate-800" title={ficha.nome_receita}>{ficha.nome_receita}</p>
+                    <select
+                      value={ficha.categoria || ""}
+                      disabled={alterandoCategoriaId === ficha.id}
+                      onChange={e => organizarFichaNaCategoria(ficha, e.target.value)}
+                      className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 disabled:opacity-60"
+                    >
+                      <option value="">Sem categoria</option>
+                      {categoriasDisponiveis.map(categoria => <option key={categoria} value={categoria}>{categoria}</option>)}
+                    </select>
+                  </div>
+                ))}
+                {fichasDoModo.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha cadastrada neste grupo.</p>}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -2619,11 +2587,13 @@ function FichasRunner() {
          const peso = infoPesoFicha(f, fichas);
          const custoTotal = custoTotalDaFicha(f, fichas);
          const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-         const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
-         const rend = Number(f.rendimento_porcoes) || 0;
-         const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+         const rendimentoOriginal = Number(f.rendimento_porcoes) || 0;
+         const porcoes = (unR === "porcao" || unR === "un") ? rendimentoOriginal : (peso?.porcoes || 0);
          const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-         const custoKg = peso?.pesoTotalG > 0 ? custoTotal / (peso.pesoTotalG / 1000) : null;
+         const padraoSetor = rendimentoPadronizado(f);
+         const rend = padraoSetor.valor;
+         const labelUn = padraoSetor.unidade === "l" ? "L" : "kg";
+         const custoKg = rend > 0 ? custoTotal / rend : null;
          const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
          const preco = Number(prod?.preco_venda) || 0;
          const meta = Number(f.cmv_meta) || 30;
@@ -2660,7 +2630,7 @@ function FichasRunner() {
                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                            <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">{f.nome_receita}</h2>
-                           <span className="inline-flex items-center text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">Ativo</span>
+                           <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">Ativo</span>
                         </div>
                         <p className="text-[11px] font-bold text-slate-500 mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
                      </div>
@@ -2697,13 +2667,13 @@ function FichasRunner() {
                            <div className="flex flex-col sm:flex-row gap-4">
                               <div className="grid grid-cols-2 gap-3 flex-1">
                                  {[
-                                    ["Categoria", f.categoria || "—"],
-                                    ["Setor", setorTxt],
-                                    ["Rendimento", `${nf(rend)} ${labelUn}`],
-                                    ["Peso líquido", peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")],
-                                    ["Unidade de venda", unR === "porcao" ? "Porção" : labelUn],
-                                    ["Porção padrão", pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"],
-                                 ].map(([rot, val]) => (
+                                     ["Categoria", f.categoria || "—"],
+                                     ["Setor", setorTxt],
+                                     ["Quantidade da receita", `${nf(rend)} ${labelUn}`],
+                                     [`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"],
+                                     ["Unidade padrão", labelUn],
+                                     ["Custo total", fmtBRL(custoTotal)],
+                                  ].map(([rot, val]) => (
                                     <div key={rot} className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{rot}</p>
                                        <p className="text-sm font-black text-slate-800 mt-0.5 truncate">{val}</p>
@@ -2775,7 +2745,7 @@ function FichasRunner() {
                            <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-emerald-700 font-black text-sm px-4 py-2.5 hover:bg-emerald-50"><Plus size={16} /> Adicionar ingrediente</button>
                            <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
                               <span className="text-slate-500 font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
-                              {porcoes > 0 && <span className="text-slate-500 font-bold">Custo por porção{pesoPorcaoG ? ` (${nf(pesoPorcaoG)} g)` : ""}: <b className="text-emerald-700 font-black">{fmtBRL(custoPorcao)}</b></span>}
+                              {custoKg !== null && <span className="text-slate-500 font-bold">1 {labelUn} custa: <b className="text-emerald-700 font-black">{fmtBRL(custoKg)}</b></span>}
                            </div>
                         </div>
                         )}
@@ -2886,7 +2856,7 @@ function FichasRunner() {
                               </div>
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Peso total</p>
-                                 <p className="text-xl font-black text-emerald-700">{peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")}</p>
+                                 <p className="text-xl font-black text-emerald-700">{padraoSetor.valor > 0 ? textoRendimentoPadronizado(f) : "—"}</p>
                               </div>
                            </div>
                            <div className="flex items-center justify-between mt-3 text-sm">
@@ -2917,8 +2887,7 @@ function FichasRunner() {
                            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Custo e precificação</p>
                            <div className="space-y-2 text-sm">
                               <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
-                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por porção</span><span className="font-black text-slate-800">{fmtBRL(custoPorcao)}</span></div>
-                              {custoKg !== null && <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por kg</span><span className="font-black text-slate-800">{fmtBRL(custoKg)}</span></div>}
+                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo de 1 {labelUn}</span><span className="font-black text-slate-800">{custoKg !== null ? fmtBRL(custoKg) : "—"}</span></div>
                            </div>
                            <div className="grid grid-cols-2 gap-2 mt-3">
                               <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
@@ -2962,6 +2931,57 @@ function FichasRunner() {
          );
       })()}
 
+      {modalEscolhaNovo && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => setModalEscolhaNovo(false)}>
+          <div className="w-full max-w-lg rounded-t-3xl bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6" onClick={evento => evento.stopPropagation()}>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.16em] text-orange-600">Nova ficha técnica</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Como deseja começar?</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Você pode completar uma ficha agora ou cadastrar vários títulos para preencher depois.</p>
+              </div>
+              <button onClick={() => setModalEscolhaNovo(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={17}/></button>
+            </div>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <button onClick={() => { setModalEscolhaNovo(false); abrirNova(); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-3 text-left text-orange-950 hover:border-orange-400">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-600 text-white"><Edit3 size={19}/></span>
+                <span><strong className="block text-sm font-black">Criar um {deptUrl === "bar" ? "drink" : "prato"}</strong><small className="mt-0.5 block font-semibold text-orange-700">Preencher a ficha completa agora</small></span>
+              </button>
+              <button onClick={() => { setModalEscolhaNovo(false); setTitulosLote(""); setModalTitulosLote(true); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left text-slate-900 hover:border-orange-300">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-800 text-white"><LayoutList size={19}/></span>
+                <span><strong className="block text-sm font-black">Adicionar vários títulos</strong><small className="mt-0.5 block font-semibold text-slate-500">Completar cada ficha depois</small></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalTitulosLote && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => !salvandoTitulosLote && setModalTitulosLote(false)}>
+          <div className="flex max-h-[100dvh] w-full max-w-xl flex-col rounded-t-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl" onClick={evento => evento.stopPropagation()}>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-4 sm:p-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.16em] text-orange-600">Cadastro rápido</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Adicionar títulos de {deptUrl === "bar" ? "drinks" : "pratos"}</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Digite um {deptUrl === "bar" ? "drink" : "prato"} por linha. Eles serão salvos para você completar depois.</p>
+              </div>
+              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 disabled:opacity-40"><X size={17}/></button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500">Títulos</label>
+              <textarea autoFocus value={titulosLote} onChange={evento => setTitulosLote(evento.target.value)} placeholder={deptUrl === "bar" ? "Ex.:\nCaipirinha de limão\nGin tônica\nMoscow mule" : "Ex.:\nAçaí de 300 ml\nAçaí de 500 ml\nBatata frita com cheddar"} className="mt-2 min-h-[220px] w-full resize-y rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-base font-semibold leading-8 text-slate-800 outline-none focus:border-orange-500"/>
+              <p className="mt-2 text-xs font-semibold text-slate-400">Títulos repetidos ou que já existem serão ignorados.</p>
+            </div>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 p-3 sm:p-4" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} className="min-h-10 rounded-xl px-4 text-sm font-black text-slate-500 hover:bg-slate-200 disabled:opacity-40">Cancelar</button>
+              <button disabled={salvandoTitulosLote || !titulosLote.trim()} onClick={salvarTitulosEmLote} className="flex min-h-11 items-center gap-2 rounded-xl bg-orange-600 px-5 text-sm font-black text-white shadow-lg shadow-orange-600/20 hover:bg-orange-700 disabled:opacity-50">
+                {salvandoTitulosLote ? <Loader2 size={17} className="animate-spin"/> : <Plus size={17}/>} {salvandoTitulosLote ? "Criando..." : "Criar títulos"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
@@ -2978,7 +2998,7 @@ function FichasRunner() {
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-white">
                   <div className="min-w-0">
-                     <p className={`text-[10px] font-black uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-emerald-700"}`}>{form.eh_base ? "Pré-preparo / receita base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                     <p className={`text-[10px] font-black uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-emerald-700"}`}>{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
                      <p className="text-sm font-bold text-slate-500 mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-emerald-600 font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
@@ -3033,30 +3053,24 @@ function FichasRunner() {
                      {!form.id ? <div>
                        <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">O que você vai cadastrar?</p>
                        <div className="grid grid-cols-2 gap-3">
-                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: form.tipo_base === "receita" ? "receita" : "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
-                           className={`min-h-[94px] rounded-2xl border-2 p-4 text-left transition-all ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-amber-300"}`}>
+                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-amber-300"}`}>
                            <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-slate-400"} />
                            <strong className="mt-2 block text-base">Pré-preparo</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
                          </button>
                          <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
-                           className={`min-h-[94px] rounded-2xl border-2 p-4 text-left transition-all ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"}`}>
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"}`}>
                            <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-slate-400"} />
                            <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">item final do cardápio</span>
                          </button>
                        </div>
-                       {form.eh_base && (
-                         <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-amber-50 p-2">
-                           <button type="button" onClick={() => setForm({ ...form, tipo_base: "pre" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base !== "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Pré-preparo</button>
-                           <button type="button" onClick={() => setForm({ ...form, tipo_base: "receita" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base === "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Receita base</button>
-                         </div>
-                       )}
                        {/* O botão "É um produto pronto" saiu daqui: garrafa, lata e
                            cerveja não são receituário e não aparecem mais na ficha
                            técnica. Criar por aqui só geraria registro invisível.
                            Esses itens se cadastram no Cardápio e no Estoque. */}
                      </div> : (
-                       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-violet-200 bg-violet-50" : "border-emerald-200 bg-emerald-50"}`}>
-                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-violet-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
+                       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-orange-200 bg-orange-50" : "border-emerald-200 bg-emerald-50"}`}>
+                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-orange-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
                          <div>
                            <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Tipo da ficha</p>
                            <p className="text-base font-black text-slate-900">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
@@ -3249,7 +3263,7 @@ function FichasRunner() {
                      </div>
                      )}
 
-                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
+                     {/* RENDIMENTO — cozinha em kg; bar em litros */}
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento da receita</p>
@@ -3259,11 +3273,13 @@ function FichasRunner() {
                         </div>
                         {autoSoma ? (
                            (() => {
-                              const est = rendimentoPelosIngredientes(ingFicha);
-                              const custoTotal = calcularCustoTotal(ingFicha);
-                              if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 kg aparecem aqui sozinhos.</p>;
-                              const custoKg = custoTotal / (est.totalG / 1000);
-                              const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
+                               const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
+                               const custoTotal = calcularCustoTotal(ingFicha);
+                               const unidadeSetor = unidadePadraoDepartamento(form.departamento || deptUrl);
+                               const unidadeLabelSetor = unidadeSetor === "l" ? "L" : "kg";
+                               if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 {unidadeLabelSetor} aparecem aqui sozinhos.</p>;
+                               const custoKg = custoTotal / (est.totalG / 1000);
+                               const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
                               return (
                                  <>
                                     <div className="grid grid-cols-2 gap-3">
@@ -3273,7 +3289,7 @@ function FichasRunner() {
                                           <p className="text-[10px] font-medium text-slate-400">somado dos ingredientes</p>
                                        </div>
                                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 kg custa</p>
+                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 {unidadeLabelSetor} custa</p>
                                           <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoKg)}</p>
                                           <p className="text-[10px] font-medium text-emerald-600/70">custo total {fmtBRL(custoTotal)}</p>
                                        </div>
@@ -3331,11 +3347,8 @@ function FichasRunner() {
                                     <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
                                        <span className="text-[11px] font-bold text-slate-500">Quanto custa se eu usar</span>
                                        <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
-                                       <select value={["g","kg","l","ml"].includes(calcUn) ? calcUn : "g"} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
-                                          <option value="g">g</option>
-                                          <option value="kg">kg</option>
-                                          <option value="l">L</option>
-                                          <option value="ml">ml</option>
+                                       <select value={unidadeSetor === "l" ? (["l","ml"].includes(calcUn) ? calcUn : "ml") : (["g","kg"].includes(calcUn) ? calcUn : "g")} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
+                                          {unidadeSetor === "l" ? <><option value="ml">ml</option><option value="l">L</option></> : <><option value="g">g</option><option value="kg">kg</option></>}
                                        </select>
                                        {(() => {
                                           const q = Number(calcQtd) || 0;
@@ -3351,7 +3364,7 @@ function FichasRunner() {
                            })()
                         ) : (
                         <>
-                        <div className={`grid ${["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
+                        <div className="grid grid-cols-2 gap-3">
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rendimento</label>
                               <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
@@ -3361,42 +3374,10 @@ function FichasRunner() {
                            </div>
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medido em</label>
-                              <select value={form.rendimento_unidade} onChange={e=>{
-                                 const newUn = String(e.target.value).toLowerCase();
-                                 const oldUn = String(form.rendimento_unidade || "porcao").toLowerCase();
-                                 let newVal = Number(String(form.rendimento_porcoes).replace(',', '.')) || 0;
-                                 
-                                 if (newVal > 0) {
-                                    if (oldUn === "kg" && newUn === "g") newVal = newVal * 1000;
-                                    else if (oldUn === "g" && newUn === "kg") newVal = newVal / 1000;
-                                    else if (oldUn === "l" && newUn === "ml") newVal = newVal * 1000;
-                                    else if (oldUn === "ml" && newUn === "l") newVal = newVal / 1000;
-                                 }
-
-                                 setForm({
-                                    ...form, 
-                                    rendimento_unidade: newUn,
-                                    rendimento_porcoes: newVal > 0 ? String(newVal).replace('.', ',') : form.rendimento_porcoes
-                                 });
-                                 setAutoSoma(false);
-                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                                 <option value="porcao">porções</option>
-                                 <option value="kg">kg</option>
-                                 <option value="g">g</option>
-                                 <option value="l">L</option>
-                                 <option value="ml">ml</option>
-                                 <option value="un">unidades</option>
+                              <select value={unidadePadraoDepartamento(form.departamento || deptUrl)} disabled className="w-full p-3 mt-1 bg-slate-100 border border-slate-200 rounded-xl font-black text-slate-700 outline-none disabled:opacity-100">
+                                 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? <option value="l">L (padrão do bar)</option> : <option value="kg">kg (padrão da cozinha)</option>}
                               </select>
                            </div>
-                           {!["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) && (
-                              <div>
-                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Porção pesa (g)</label>
-                                 <input type="number" step="0.1" min="0" placeholder="Ex: 300" value={form.peso_porcao_g} onChange={e=>{
-                                    setForm({...form, peso_porcao_g: e.target.value});
-                                    setAutoSoma(false);
-                                 }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
-                              </div>
-                           )}
                         </div>
 
                         {/* Resumo em UMA linha do que isso significa */}
@@ -3404,7 +3385,7 @@ function FichasRunner() {
                            const rendimento = Number(form.rendimento_porcoes) || 0;
                            const pesoPorcao = Number(form.peso_porcao_g) || 0;
                            const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
-                           const est = rendimentoPelosIngredientes(ingFicha);
+                           const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
                            const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao) || (est ? est.totalG : 0);
                            const custoTotal = calcularCustoTotal(ingFicha);
                            const porcoesRendidas = (unR === "porcao" || unR === "un")
@@ -3437,7 +3418,7 @@ function FichasRunner() {
                                        </>
                                     )}
                                     {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
-                                    {custoKg !== null && <> · 1 kg custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
+                                    {custoKg !== null && <> · 1 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"} custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
                                  </p>
                                  {est && Math.abs(est.totalG - pesoTotalG) / Math.max(est.totalG, pesoTotalG) > 0.05 && (
                                     <p className="text-[10px] font-medium text-slate-400 mt-1">
@@ -3608,7 +3589,7 @@ function FichasRunner() {
                                     <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
                                  </div>
                                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/kg</p>
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/{unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"}</p>
                                     <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
                                  </div>
                               </div>
@@ -3896,12 +3877,13 @@ function FichasRunner() {
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do prato (vai pro cardápio)</label>
                            <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
                            {(() => {
-                              const pesoIA = rendimentoPelosIngredientes(
-                                 iaFResultado.itens.map(it => {
-                                    const ins = insumosAtivos.find(i => i.id === it.vinculoId);
-                                    return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null };
-                                 })
-                              );
+                               const pesoIA = rendimentoPelosIngredientes(
+                                  iaFResultado.itens.map(it => {
+                                     const ins = insumosAtivos.find(i => i.id === it.vinculoId);
+                                     return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null };
+                                  }),
+                                  deptUrl,
+                               );
                               if (pesoIA) return (
                                  <>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (peso total)</label>

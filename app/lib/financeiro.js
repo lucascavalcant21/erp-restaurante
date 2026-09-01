@@ -4,6 +4,8 @@ export const CATEGORIAS_CUSTO = [
   { id: 'cmv', label: 'CMV (Custo de Mercadoria Vendida)', cor: 'bg-orange-500' },
   { id: 'cmo', label: 'CMO (Custo de Mão de Obra)', cor: 'bg-blue-500' },
   { id: 'custo_fixo', label: 'Custo Fixo (Aluguel, Luz, etc)', cor: 'bg-slate-600' },
+  { id: 'custo_variavel', label: 'Custos Variáveis', cor: 'bg-violet-500' },
+  { id: 'frete', label: 'Fretes e Entregas', cor: 'bg-teal-500' },
   { id: 'limpeza', label: 'Materiais de Limpeza', cor: 'bg-cyan-500' },
   { id: 'marketing', label: 'Custo Marketing', cor: 'bg-pink-500' },
   { id: 'investimento', label: 'Investimentos', cor: 'bg-emerald-500' },
@@ -83,6 +85,108 @@ export async function pagarConta(contaId) {
   const dataHoje = new Date().toISOString().split('T')[0];
   const { error } = await supabase.from("contas_pagar").update({ status: 'pago', data_pagamento: dataHoje }).eq("id", contaId);
   return { error: error?.message };
+}
+
+export async function removerConta(contaId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("contas_pagar").delete().eq("id", contaId);
+  return { error: error?.message || null };
+}
+
+// Painel unificado do caixa: vendas do PDV novo + pedidos pagos do módulo de
+// salão/balcão legado. Cada origem é normalizada no mesmo formato para não
+// perder histórico durante a transição entre as duas telas.
+export async function fetchPainelCaixa(unidadeId, inicioIso, fimIso) {
+  if (!isSupabaseReady()) return { data: { vendas: [], despesas: [] }, error: "Offline" };
+
+  let vendasQuery = supabase.from("vendas")
+    .select("id,total,subtotal,desconto,forma_pagamento,cliente,status,created_at,venda_itens(id,nome,quantidade,preco_unit,subtotal,custo_unit)")
+    .eq("unidade_id", unidadeId)
+    .neq("status", "cancelada")
+    .gte("created_at", inicioIso)
+    .lt("created_at", fimIso)
+    .order("created_at", { ascending: false });
+
+  let pedidosQuery = supabase.from("pedidos")
+    .select("id,valor_total,forma_pagamento,tipo_pedido,identificacao,cliente_nome,status,created_at,pedidos_itens(id,quantidade,valor_unitario,produtos(nome_produto,departamento,categoria))")
+    .eq("unidade_id", unidadeId)
+    .eq("status", "pago")
+    .gte("created_at", inicioIso)
+    .lt("created_at", fimIso)
+    .order("created_at", { ascending: false });
+
+  const [resVendas, resPedidos, resDespesas, resProdutos] = await Promise.all([
+    vendasQuery,
+    pedidosQuery,
+    supabase.from("contas_pagar").select("*").eq("unidade_id", unidadeId).order("data_vencimento", { ascending: false }),
+    supabase.from("produtos").select("nome_produto,departamento,categoria").eq("unidade_id", unidadeId),
+  ]);
+
+  const chaveNome = valor => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const setorPorNome = new Map((resProdutos.data || []).map(produto => [chaveNome(produto.nome_produto), produto]));
+  const setorDoProduto = produto => {
+    const departamento = String(produto?.departamento || "").toLowerCase();
+    if (departamento.includes("bar")) return "bar";
+    if (departamento.includes("cozinha")) return "cozinha";
+    const texto = chaveNome(`${produto?.categoria || ""} ${produto?.nome_produto || produto?.nome || ""}`);
+    return /(drink|bebida|cerveja|vinho|whisk|vodka|gin|rum|tequila|suco|refrigerante|agua|chopp)/.test(texto) ? "bar" : "cozinha";
+  };
+
+  const vendasNovas = (resVendas.data || []).map(venda => ({
+    id: venda.id,
+    total: Number(venda.total) || 0,
+    forma_pagamento: venda.forma_pagamento || "nao_informado",
+    cliente: venda.cliente || "Balcão",
+    origem: "PDV",
+    created_at: venda.created_at,
+    itens: (venda.venda_itens || []).map(item => ({
+      nome: item.nome || "Item", quantidade: Number(item.quantidade) || 0,
+      valor_unitario: Number(item.preco_unit) || 0, custo_unitario: Number(item.custo_unit) || 0,
+      setor: setorDoProduto({ nome_produto: item.nome, ...(setorPorNome.get(chaveNome(item.nome)) || {}) }),
+    })),
+  }));
+
+  const pedidosAntigos = (resPedidos.data || []).map(pedido => ({
+    id: pedido.id,
+    total: Number(pedido.valor_total) || (pedido.pedidos_itens || []).reduce((s, item) => s + Number(item.valor_unitario || 0) * Number(item.quantidade || 0), 0),
+    forma_pagamento: pedido.forma_pagamento || "nao_informado",
+    cliente: pedido.cliente_nome || pedido.identificacao || "Cliente",
+    origem: pedido.tipo_pedido || "Salão",
+    created_at: pedido.created_at,
+    itens: (pedido.pedidos_itens || []).map(item => ({
+      nome: item.produtos?.nome_produto || "Item", quantidade: Number(item.quantidade) || 0,
+      valor_unitario: Number(item.valor_unitario) || 0, custo_unitario: 0,
+      setor: setorDoProduto(item.produtos || {}),
+    })),
+  }));
+
+  const inicio = new Date(inicioIso).getTime();
+  const fim = new Date(fimIso).getTime();
+  const despesas = (resDespesas.data || []).filter(conta => {
+    const data = new Date(conta.data_pagamento || conta.data_vencimento || conta.created_at).getTime();
+    return Number.isFinite(data) && data >= inicio && data < fim;
+  });
+
+  const erros = [resVendas.error, resPedidos.error, resDespesas.error, resProdutos.error].filter(Boolean).map(e => e.message).join(" · ");
+  return { data: { vendas: [...vendasNovas, ...pedidosAntigos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), despesas }, error: erros || null };
+}
+
+// Entradas físicas registradas no estoque. O Financeiro usa estas compras
+// para formar o CMV realizado do período sem pedir um segundo lançamento.
+export async function fetchEntradasEstoqueFinanceiro(unidadeId, inicioIso, fimIso) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const base = () => supabase.from("estoque_movimentacoes_multi")
+    .eq("unidade_id", unidadeId)
+    .eq("tipo", "entrada")
+    .gte("data_movimento", inicioIso)
+    .lt("data_movimento", fimIso)
+    .order("data_movimento", { ascending: false });
+
+  let resposta = await base().select("id,estoque_id,insumo_id,tipo,quantidade,valor_total,valor_unitario,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
+  if (resposta.error && /valor_total|valor_unitario/i.test(resposta.error.message || "")) {
+    resposta = await base().select("id,estoque_id,insumo_id,tipo,quantidade,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
+  }
+  return { data: resposta.data || [], error: resposta.error?.message || null };
 }
 
 // ============================================================================

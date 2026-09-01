@@ -28,11 +28,12 @@ import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
 import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
 import { useTempoReal } from "../../lib/realtime";
+import { supabase } from "../../lib/supabase";
 
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
 // Desconto do funcionário: ajustável em Configurações > Parâmetros (paramsSis)
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera, Award
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera, Award, Link2
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
@@ -81,13 +82,14 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_transporte: false, tipo_transporte: "", usa_vale_transporte: false, pontos_taxa: "", genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_transporte: false, tipo_transporte: "", usa_vale_transporte: false, pontos_taxa: "", genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
   const [menuAcoes, setMenuAcoes] = useState(null);
+  const [abaMenuAcoes, setAbaMenuAcoes] = useState("trabalho");
   const [detAberto, setDetAberto] = useState({}); // detalhamento salarial por card // funcionário com o menu "Ações" aberto
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
@@ -869,7 +871,7 @@ export default function RHPage() {
       const jaExiste = funcionarios.find(f => (f.nome || "").toLowerCase() === d.nome.toLowerCase());
       let colabId = jaExiste?.id;
       if (!colabId) {
-        const r = await inserirColaborador({ unidade_id: unidadeAtiva, nome: d.nome, cargo: "Extra", tipo_contrato: "Freelancer", salario: d.diaria || 0, telefone: d.telefone || null, cpf: d.cpf || null, chave_pix: d.chave_pix || null, anotacoes_rh: d.observacoes || null, dias_trabalho: "" });
+        const r = await inserirColaborador({ unidade_id: unidadeAtiva, nome: d.nome, cargo: "Extra", tipo_contrato: "Freelancer", salario: d.diaria || 0, telefone: d.telefone || null, cpf: d.cpf || null, chave_pix: d.chave_pix || null, dias_trabalho: "" });
         if (r.error || !r.data?.id) { alert("Erro ao cadastrar: " + (r.error || "desconhecido")); return; }
         colabId = r.data.id;
       }
@@ -1269,6 +1271,70 @@ export default function RHPage() {
     setTimeout(() => win.print(), 500);
   };
 
+  const imprimirPerfilFuncionario = (f) => {
+    const esc = valor => String(valor ?? "").replace(/[&<>"']/g, caractere => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[caractere]));
+    const seguro = valor => esc(String(valor ?? "").trim() || "Não informado");
+    const dataBR = valor => {
+      if (!valor) return "Não informado";
+      const [ano, mes, dia] = String(valor).slice(0, 10).split("-");
+      return ano && mes && dia ? `${dia}/${mes}/${ano}` : seguro(valor);
+    };
+    const simNao = valor => valor ? "Sim" : "Não";
+    const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const diasTrabalho = String(f.dias_trabalho || "").split(",").filter(Boolean).map(dia => dias[Number(dia)]).filter(Boolean).join(", ") || "Não informado";
+    const filhos = Array.isArray(f.filhos) ? f.filhos.filter(item => item?.nome) : [];
+    const foto = f.foto ? `<img class="foto" src="data:image/jpeg;base64,${f.foto}" alt="Foto"/>` : `<div class="foto vazia">${esc((f.nome || "?")[0].toUpperCase())}</div>`;
+    const campo = (rotulo, valor) => `<div class="campo"><span>${esc(rotulo)}</span><strong>${seguro(valor)}</strong></div>`;
+    const secao = (titulo, conteudo) => `<section><h2>${esc(titulo)}</h2><div class="grade">${conteudo}</div></section>`;
+    const salario = f.tipo_contrato === "Freelancer" ? `${fmtBRL(f.salario)} / diária` : fmtBRL(f.salario);
+    const domingoDiferente = !!(f.horario_dom_entrada && f.horario_dom_saida)
+      && (f.horario_dom_entrada !== f.horario_entrada || f.horario_dom_saida !== f.horario_saida);
+    const campoHorarioDomingo = domingoDiferente
+      ? campo("Horário de domingo", `${f.horario_dom_entrada} às ${f.horario_dom_saida}`)
+      : "";
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Perfil - ${esc(f.nome)}</title><style>
+      @page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,sans-serif;color:#172033;font-size:10px;line-height:1.25}.pagina{width:100%;max-height:281mm;overflow:hidden}.cab{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:13px;background:linear-gradient(135deg,#064e3b,#059669);color:white}.foto{width:66px;height:66px;flex:0 0 66px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,255,255,.8)}.foto.vazia{display:grid;place-items:center;background:#d1fae5;color:#065f46;font-size:28px;font-weight:900}.cab h1{font-size:22px;line-height:1.05;margin:0 0 4px}.cab p{margin:1px 0;opacity:.9}.selo{margin-left:auto;text-align:right;font-size:7.5px;line-height:1.5;text-transform:uppercase;letter-spacing:.07em}.conteudo{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:0 14px}.coluna{min-width:0}section{margin-top:9px;break-inside:avoid}h2{margin:0 0 4px;padding:5px 7px;border-left:3px solid #10b981;border-radius:0 6px 6px 0;background:#ecfdf5;color:#065f46;font-size:9px;line-height:1.15;text-transform:uppercase;letter-spacing:.07em}.grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 9px}.campo{min-width:0;min-height:34px;padding:4px 2px;border-bottom:1px solid #d5dbe3}.campo span{display:block;color:#64748b;font-size:7.5px;font-weight:800;line-height:1.15;text-transform:uppercase;letter-spacing:.035em}.campo strong{display:block;margin-top:2px;font-size:10px;line-height:1.22;overflow-wrap:anywhere}.rodape{margin-top:10px;padding-top:5px;border-top:1px solid #cbd5e1;color:#64748b;font-size:7.5px;text-align:center}@media print{html,body{width:100%;height:auto;overflow:hidden}body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.pagina{break-after:avoid;page-break-after:avoid}}
+    </style></head><body><main class="pagina"><header class="cab">${foto}<div><h1>${seguro(f.nome)}</h1><p>${seguro(f.cargo)}</p><p>${seguro(f.tipo_contrato)} · ${seguro(f.status_contrato)}</p></div><div class="selo"><b>Perfil do colaborador</b><br/>${seguro(unidadeInfo?.nome || nomeDaCasa)}<br/>Emitido em ${new Date().toLocaleDateString("pt-BR")}</div></header>
+    <div class="conteudo"><div class="coluna">
+      ${secao("Contato e identificação", campo("Nome completo", f.nome) + campo("Telefone", f.telefone) + campo("E-mail", f.email) + campo("CPF", formatarCPF(f.cpf)) + campo("RG", f.rg) + campo("Data de nascimento", dataBR(f.data_nascimento)) + campo("Gênero", f.genero) + campo("Estado civil", f.estado_civil) + campo("Escolaridade", f.escolaridade) + campo("Cidade de nascimento", f.cidade_nascimento))}
+      ${secao("Endereço", campo("Rua / Avenida", f.rua_av || f.endereco) + campo("Número", f.numero_casa) + campo("Bairro", f.bairro) + campo("Cidade / UF", f.cidade_uf) + campo("CEP", f.cep))}
+    </div><div class="coluna">
+      ${secao("Contrato e valores", campo("Cargo", f.cargo) + campo("Tipo de contrato", f.tipo_contrato) + campo("Status do contrato", f.status_contrato) + campo("Data de admissão", dataBR(f.data_admissao)) + campo("Salário / diária", salario) + campo("Vale-alimentação", fmtBRL(f.vale_alimentacao)) + campo("Taxa de serviço mensal", fmtBRL(f.taxa_servico_mes)) + campo("Chave Pix", f.chave_pix))}
+      ${secao("Jornada", campo("Dias de trabalho", diasTrabalho) + campo("Horário padrão", `${f.horario_entrada || "—"} às ${f.horario_saida || "—"}`) + campo("Intervalo", `${f.intervalo_inicio || "—"} às ${f.intervalo_fim || "—"} (${f.tempo_intervalo || 60} min)`) + campoHorarioDomingo)}
+      ${secao("Família e transporte", campo("Nome da mãe", f.nome_mae) + campo("Nome do pai", f.nome_pai) + campo("Filhos", filhos.length ? filhos.map(item => `${item.nome}${item.data_nascimento ? ` (${dataBR(item.data_nascimento)})` : ""}`).join("; ") : "Nenhum informado") + campo("Possui transporte", simNao(f.tem_transporte)) + campo("Tipo de transporte", f.tipo_transporte) + campo("Usa vale-transporte", simNao(f.usa_vale_transporte)))}
+    </div></div><div class="rodape">Documento interno e confidencial · Perfil gerado pelo Hefisto</div></main></body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para abrir o perfil.");
+    win.document.write(comFecharImpressao(html));
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  };
+
+  const compartilharLinkAtualizacao = async (f) => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token;
+      if (!accessToken) return alert("Sua sessão expirou. Entre novamente para gerar o link.");
+      const resposta = await fetch("/api/rh/perfil-compartilhado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ colaboradorId: f.id }),
+      });
+      const resultado = await resposta.json();
+      if (!resposta.ok || !resultado.url) return alert(resultado.error || "Não foi possível gerar o link.");
+      const texto = `${f.nome}, use este link seguro para conferir e atualizar seus dados no RH. Ele vale por 30 dias: ${resultado.url}`;
+      if (navigator.share) {
+        try { await navigator.share({ title: "Atualização de cadastro do RH", text: texto, url: resultado.url }); return; } catch (erro) { if (erro?.name === "AbortError") return; }
+      }
+      await navigator.clipboard.writeText(texto);
+      alert("Link copiado. Agora é só colar no WhatsApp ou enviar como preferir.");
+    } catch (erro) {
+      alert("Não foi possível compartilhar o link: " + (erro?.message || "tente novamente"));
+    }
+  };
+
   const abrirModalNovo = () => {
     setEditandoId(null);
     setNovoFunc(statePadrao);
@@ -1331,7 +1397,6 @@ export default function RHPage() {
        cidade_uf: f.cidade_uf || f.cidade || "",
        chave_pix: f.chave_pix || "",
        avaliacao_estrelas: f.avaliacao_estrelas || 0,
-       anotacoes_rh: f.anotacoes_rh || "",
        data_admissao: f.data_admissao || "",
        status_contrato: f.status_contrato || "Definitivo",
        supervisor_id: f.supervisor_id || "",
@@ -1404,7 +1469,6 @@ export default function RHPage() {
       setor_entrega: novoFunc.setor_entrega || null,
       janta_ofertada: novoFunc.janta_ofertada !== false,
       avaliacao_estrelas: Number(novoFunc.avaliacao_estrelas) || 0,
-      anotacoes_rh: novoFunc.anotacoes_rh,
       data_admissao: novoFunc.data_admissao || null,
       status_contrato: novoFunc.status_contrato,
       supervisor_id: (novoFunc.supervisores_ids && novoFunc.supervisores_ids[0]) || novoFunc.supervisor_id || null,
@@ -2122,7 +2186,7 @@ export default function RHPage() {
                               </div>
                               <div className="flex items-center gap-1.5">
                                  <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
-                                 <button onClick={() => setMenuAcoes(f)} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
+                                 <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>
                            </div>
                         </div>
@@ -2136,82 +2200,104 @@ export default function RHPage() {
 
       </div>
 
-      {/* MENU DE AÇÕES DO FUNCIONÁRIO — tudo organizado por grupo */}
+      {/* MENU DE AÇÕES DO FUNCIONÁRIO — uma categoria por vez para ficar compacto */}
       {menuAcoes && (() => {
          const f = menuAcoes;
          const fechar = () => setMenuAcoes(null);
          const ir = (fn) => { fechar(); fn(); };
          const tb = totalBancoDe(f.id);
          const critico = tb >= BANCO_LIMITE_MIN, alerta = tb >= BANCO_ALERTA_MIN;
-         const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 hover:bg-slate-100", onClick, children, extra }) => (
-            <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold text-sm text-left transition-colors ${bg} ${cor}`}>
-               <Icon size={16} className="shrink-0" /> <span className="flex-1">{children}</span> {extra}
+         const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 group-hover:bg-slate-100", onClick, children, extra }) => (
+            <button onClick={onClick} className="group flex min-h-[52px] w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition-all hover:border-slate-300 hover:shadow-sm sm:min-h-[56px] sm:rounded-2xl sm:px-3">
+               <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${bg} ${cor}`}><Icon size={17}/></span>
+               <span className={`min-w-0 flex-1 text-[13px] font-black leading-tight sm:text-sm ${cor}`}>{children}</span>
+               {extra}
             </button>
          );
-         const Grupo = ({ titulo, children }) => (
-            <div>
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">{titulo}</p>
-               <div className="space-y-1.5">{children}</div>
-            </div>
-         );
+         const abas = [
+            ["trabalho", "Trabalho", Clock],
+            ["financeiro", "Financeiro", CreditCard],
+            ["documentos", "Documentos", FileText],
+            ["gestao", "Gestão", ClipboardList],
+         ];
          return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>
-            <div className="bg-white rounded-[28px] w-full max-w-md md:max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-               <div className="flex items-center justify-between mb-4">
-                  <div className="min-w-0">
-                     <h2 className="font-black text-xl text-slate-800 truncate">{f.nome}</h2>
-                     <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{f.cargo || "—"}</p>
+         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-0 backdrop-blur-sm sm:items-center sm:p-3" onClick={fechar}>
+            <div className="flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-slate-50 shadow-2xl sm:max-h-[calc(100dvh-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
+               <div className="flex shrink-0 items-center gap-2.5 bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3 text-white sm:gap-3 sm:px-5 sm:py-4">
+                  {f.foto
+                     ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-white/20 object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
+                     : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black sm:h-12 sm:w-12 sm:rounded-2xl sm:text-xl">{(f.nome || "?")[0].toUpperCase()}</span>}
+                  <div className="min-w-0 flex-1">
+                     <p className="text-[8px] font-black uppercase tracking-[.16em] text-emerald-300 sm:text-[9px]">Ações do colaborador</p>
+                     <h2 className="truncate text-base font-black sm:text-lg">{f.nome}</h2>
+                     <p className="truncate text-[10px] font-bold text-slate-300 sm:text-[11px]">{f.cargo || "Sem cargo informado"}</p>
                   </div>
-                  <button onClick={fechar} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 shrink-0"><X size={17}/></button>
+                  <button onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"><X size={17}/></button>
                </div>
 
-               <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-                  <Grupo titulo="Ponto e Jornada">
+               <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-slate-200 bg-white p-1.5 sm:p-2">
+                  {abas.map(([id, rotulo, Icone]) => (
+                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-[9px] font-black transition-colors sm:min-h-11 sm:rounded-xl sm:text-[10px] ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>
+                        <Icone size={15}/><span className="truncate">{rotulo}</span>
+                     </button>
+                  ))}
+               </nav>
+
+               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-4">
+                  {abaMenuAcoes === "trabalho" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
-                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 hover:bg-red-100" : alerta ? "bg-amber-50 hover:bg-amber-100" : "bg-sky-50 hover:bg-sky-100"}
+                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-sky-50 group-hover:bg-sky-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
-                        extra={tb > 0 && <span className="text-xs font-black">{fmtMin(tb)}{critico ? " LIMITE!" : ""}</span>}>
+                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-700">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
-                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
-                     <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Linha do Tempo de Carreira</Acao>
-                  </Grupo>
+                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
+                     <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 group-hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
+                  </div>}
 
-                  <Grupo titulo="Financeiro">
-                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="text-xs font-black">{fmtBRL(t)} pend.</span> : null; })()}>Consumo / Vales</Acao>
-                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
+                  {abaMenuAcoes === "financeiro" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 group-hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="shrink-0 text-[10px] font-black text-teal-700">{fmtBRL(t)}</span> : null; })()}>Consumo / Vales</Acao>
+                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
                      {f.tipo_contrato === "Freelancer" && (
                         <>
-                          <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
+                          <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 group-hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
                           <Acao icon={Clock} cor="text-slate-700" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
-                  </Grupo>
+                  </div>}
 
-                  <Grupo titulo="Documentos">
-                     <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
+                  {abaMenuAcoes === "documentos" && <div>
+                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={Printer} cor="text-indigo-700" bg="bg-indigo-50 group-hover:bg-indigo-100" onClick={() => ir(() => imprimirPerfilFuncionario(f))}>Perfil em PDF / imprimir</Acao>
+                     <Acao icon={Link2} cor="text-sky-700" bg="bg-sky-50 group-hover:bg-sky-100" onClick={() => ir(() => compartilharLinkAtualizacao(f))}>Link para atualizar dados</Acao>
+                     <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
                      {f.tipo_contrato === "Freelancer" && (
-                        <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Trabalho Extra</Acao>
+                        <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Trabalho Extra</Acao>
                      )}
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
-                     {(f.docs || []).map(d => (
-                        <div key={d.id} className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50">
+                     </div>
+                     {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-slate-200 pt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Arquivos anexados</p>{(f.docs || []).map(d => (
+                        <div key={d.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2">
                            <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-emerald-700 hover:underline min-w-0">
                               <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
                            </a>
                            <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14}/></button>
                         </div>
-                     ))}
-                  </Grupo>
+                     ))}</div>}
+                  </div>}
 
-                  <Grupo titulo="Gestão e Disciplina">
-                     <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
+                  {abaMenuAcoes === "gestao" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 group-hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
                      {abaAtiva !== "Ex-funcionários" && (
-                        <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar (arquiva com histórico)</Acao>
+                        <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 group-hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar e arquivar</Acao>
                      )}
                      <Acao icon={Trash2} cor="text-slate-500" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
-                  </Grupo>
+                  </div>}
+               </div>
+               <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+                  <p className="hidden text-[10px] font-bold text-slate-400 sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
+                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-slate-100 px-4 text-xs font-black text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
                </div>
             </div>
          </div>
@@ -2240,7 +2326,7 @@ export default function RHPage() {
                <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
-                    ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"], ["func-observacoes", "5. Observações"],
+                    ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"],
                   ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
                </nav>
 
@@ -2712,20 +2798,6 @@ export default function RHPage() {
                      </>}
                   </div>
 
-                  <div id="func-observacoes" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                     {novoFunc.tipo_contrato === "Freelancer" && (
-                        <div className="mb-4">
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Avaliação do Freelancer (Estrelas)</label>
-                           <div className="flex gap-2">
-                              {[1,2,3,4,5].map(star => (
-                                 <button key={star} type="button" onClick={() => setNovoFunc({...novoFunc, avaliacao_estrelas: star})} className={`p-2 rounded-lg transition-colors ${novoFunc.avaliacao_estrelas >= star ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}>
-                                    <Star size={24} className={novoFunc.avaliacao_estrelas >= star ? 'fill-amber-500' : ''} />
-                                 </button>
-                              ))}
-                           </div>
-                        </div>
-                     )}
-                  </div>
                </div>
 
                <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0">
@@ -3231,9 +3303,8 @@ export default function RHPage() {
 
                         <section>
                           <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
-                          {modalDiarias.func?.anotacoes_rh && <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900"><b>Anotação do cadastro:</b> {modalDiarias.func.anotacoes_rh}</p>}
                           <div className="space-y-2">
-                            {advertencias.length === 0 && !modalDiarias.func?.anotacoes_rh ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
+                            {advertencias.length === 0 ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
                               <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-black text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
                             ))}
                           </div>

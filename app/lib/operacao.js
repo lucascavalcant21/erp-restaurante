@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { calcularPrecoNormalizado } from "./ingredientes-utils.mjs";
+import { calcularPrecoNormalizado, ehInsumoPrePreparo } from "./ingredientes-utils.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
@@ -13,15 +13,48 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   const { data, error } = await query;
   if (error || !data?.length) return { data: data || [], error: error?.message };
 
+  let dadosFiltrados = data;
+  if (opcoes?.excluirPrePreparos === true) {
+    // Pré-preparos também existem como itens de estoque para receber as
+    // produções. Eles não são ingredientes comprados e não devem reaparecer
+    // no cadastro nem no seletor de ingredientes das fichas.
+    const idsPrePreparos = new Set(
+      data.filter(ehInsumoPrePreparo).map(item => String(item.id)),
+    );
+    try {
+      let estoquesQuery = supabase.from("estoques").select("id");
+      if (unidadeId && unidadeId !== "matriz" && unidadeId !== "todas") {
+        estoquesQuery = estoquesQuery.eq("unidade_id", unidadeId);
+      }
+      estoquesQuery = dept === "bar" || dept === "cozinha"
+        ? estoquesQuery.eq("slug", `pre-preparos-${dept}`)
+        : estoquesQuery.like("slug", "pre-preparos-%");
+      const { data: estoquesPreparo } = await estoquesQuery;
+      const estoqueIds = (estoquesPreparo || []).map(item => item.id).filter(Boolean);
+      if (estoqueIds.length) {
+        const { data: vinculosPreparo } = await supabase
+          .from("estoque_itens")
+          .select("insumo_id")
+          .in("estoque_id", estoqueIds);
+        for (const vinculo of vinculosPreparo || []) {
+          if (vinculo.insumo_id) idsPrePreparos.add(String(vinculo.insumo_id));
+        }
+      }
+    } catch { /* sem a estrutura de estoques: o filtro por categoria continua valendo */ }
+    dadosFiltrados = data.filter(item => !idsPrePreparos.has(String(item.id)));
+  }
+
+  if (!dadosFiltrados.length) return { data: [], error: null };
+
   // A tabela de vínculo foi adicionada depois do cadastro original. Se a
   // migração ainda não tiver sido aplicada, a listagem continua funcionando
   // com o fornecedor textual legado.
-  const ids = data.map(item => item.id);
+  const ids = dadosFiltrados.map(item => item.id);
   const { data: vinculos, error: erroVinculos } = await supabase
     .from("insumos_fornecedores")
     .select("insumo_id, fornecedor_id, fornecedor:fornecedores(id,nome)")
     .in("insumo_id", ids);
-  if (erroVinculos) return { data, error: null };
+  if (erroVinculos) return { data: dadosFiltrados, error: null };
 
   const porInsumo = new Map();
   for (const vinculo of vinculos || []) {
@@ -31,7 +64,7 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
     porInsumo.get(vinculo.insumo_id).push(fornecedor);
   }
   return {
-    data: data.map(item => ({
+    data: dadosFiltrados.map(item => ({
       ...item,
       fornecedores_vinculados: porInsumo.get(item.id) || (item.fornecedor ? [{ nome: item.fornecedor }] : []),
     })),
@@ -653,4 +686,14 @@ export async function atualizarOrdemFicha(id, ordem) {
     const r = await supabase.from("fichas_tecnicas").update(campos).eq("id", id); return r.error;
   }, campos);
   return { error: error?.message };
+}
+
+// Permite organizar rapidamente cada ficha nas categorias exibidas na tela.
+export async function atualizarCategoriaFicha(id, categoria) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase
+    .from("fichas_tecnicas")
+    .update({ categoria: categoria || null })
+    .eq("id", id);
+  return { error: error?.message || null };
 }

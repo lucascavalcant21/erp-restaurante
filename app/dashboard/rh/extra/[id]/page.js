@@ -7,11 +7,12 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Loader2, Camera, Trash2, ReceiptText } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Camera, Trash2, ReceiptText, FileDown, Printer } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
 import { inserirColaborador, atualizarColaborador, fetchRecibosPrestacao } from "../../../../lib/rh";
 import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../../../lib/contrato-experiencia.mjs";
+import { baixarPdfDeHtml } from "../../../../lib/pdf";
 
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Transferência"];
 
@@ -26,7 +27,6 @@ const vazio = {
   horario_entrada: "", horario_saida: "", tempo_intervalo: 60,
   topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix",
   vale_transporte_val: "", setor_entrega: "", janta_ofertada: true,
-  anotacoes_rh: "",
 };
 
 const soDigitos = (v) => String(v || "").replace(/\D/g, "");
@@ -72,6 +72,57 @@ export default function CadastroExtraPage() {
   }, [id, novo]);
 
   const set = (campo, valor) => setForm(a => ({ ...a, [campo]: valor }));
+
+  const htmlCadastroExtra = () => {
+    const esc = (valor) => String(valor ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const mostrar = (valor) => esc(String(valor ?? "").trim() || "Não informado");
+    const linha = (rotulo, valor) => `<div class="campo"><span>${esc(rotulo)}</span><b>${mostrar(valor)}</b></div>`;
+    const endereco = [form.rua_av, form.numero_casa, form.bairro, form.cidade_uf, form.cep].filter(Boolean).join(", ");
+    const foto = form.foto ? `<img src="data:image/jpeg;base64,${form.foto}" alt="Foto"/>` : `<div class="sem-foto">${esc((form.nome || "?")[0].toUpperCase())}</div>`;
+    return `<!doctype html><html><head><meta charset="utf-8"/><title>Cadastro - ${esc(form.nome)}</title><style>
+      @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#172033;font-size:10px}.folha{width:100%}.cab{display:flex;align-items:center;gap:14px;padding:15px;border-radius:14px;background:linear-gradient(135deg,#064e3b,#059669);color:#fff}.cab img,.sem-foto{width:72px;height:72px;border-radius:15px;object-fit:cover;border:2px solid #fff}.sem-foto{display:grid;place-items:center;background:#d1fae5;color:#065f46;font-size:28px;font-weight:900}.cab h1{margin:0 0 4px;font-size:23px}.cab p{margin:2px 0;opacity:.92}.selo{margin-left:auto;text-align:right;font-size:8px;text-transform:uppercase;letter-spacing:.08em}.grade-secoes{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.secao{margin-top:10px;break-inside:avoid}.secao h2{margin:0 0 4px;padding:6px 8px;border-left:3px solid #10b981;border-radius:0 7px 7px 0;background:#ecfdf5;color:#065f46;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.grade{display:grid;grid-template-columns:1fr 1fr;gap:3px 9px}.campo{min-height:37px;padding:5px 2px;border-bottom:1px solid #d8dee7}.campo span{display:block;color:#64748b;font-size:7.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.campo b{display:block;margin-top:3px;font-size:10px;overflow-wrap:anywhere}.largo{grid-column:1/-1}.rodape{margin-top:12px;padding-top:6px;border-top:1px solid #cbd5e1;color:#64748b;text-align:center;font-size:8px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+    </style></head><body><main class="folha"><header class="cab">${foto}<div><h1>${mostrar(form.nome)}</h1><p>${mostrar(form.cargo || "Profissional extra")}</p><p>Freelancer / diarista</p></div><div class="selo"><b>Cadastro de profissional extra</b><br/>Emitido em ${new Date().toLocaleDateString("pt-BR")}</div></header>
+      <div class="grade-secoes"><div>
+        <section class="secao"><h2>Identificação</h2><div class="grade">${linha("Nome completo", form.nome)}${linha("Telefone", form.telefone)}${linha("CPF", fmtCPF(form.cpf))}${linha("RG", form.rg)}${linha("Nascimento", dataBR(form.data_nascimento))}${linha("Estado civil", form.estado_civil)}${linha("Gênero", form.genero)}${linha("Escolaridade", form.escolaridade)}${linha("Filhos", form.tem_filhos ? `${form.qtd_filhos || 0}` : "Não")}</div></section>
+        <section class="secao"><h2>Endereço</h2><div class="grade">${linha("Endereço completo", endereco)}</div></section>
+      </div><div>
+        <section class="secao"><h2>Pagamento e jornada</h2><div class="grade">${linha("Função", form.cargo)}${linha("Valor da diária", moeda(form.salario))}${linha("Chave PIX", form.chave_pix)}${linha("Forma de pagamento", form.forma_pagamento)}${linha("Entrada", form.horario_entrada)}${linha("Saída", form.horario_saida)}${linha("Intervalo", `${form.tempo_intervalo || 0} minutos`)}${linha("Vale-transporte", moeda(form.vale_transporte_val))}${linha("Setor", form.setor_entrega)}${linha("Janta ofertada", form.janta_ofertada !== false ? "Sim" : "Não")}</div></section>
+        <section class="secao"><h2>Função e materiais</h2><div class="grade">${linha("Atividades da função", form.topicos_funcao)}${linha("Itens emprestados", form.itens_emprestados)}</div></section>
+      </div></div><div class="rodape">Documento interno e confidencial · Cadastro gerado pelo Hefisto</div></main></body></html>`;
+  };
+
+  const imprimirCadastro = () => {
+    const win = window.open("", "_blank");
+    if (!win) return setErro("Habilite os pop-ups para imprimir o cadastro.");
+    win.document.write(htmlCadastroExtra().replace("</body>", `<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},350)});<\/script></body>`));
+    win.document.close();
+  };
+
+  const baixarCadastroPdf = () => baixarPdfDeHtml(htmlCadastroExtra(), `cadastro-extra-${form.nome || "profissional"}`);
+
+  const htmlPreAdmissaoESocial = () => {
+    const esc = (valor) => String(valor ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const valor = (v) => esc(String(v ?? "").trim() || "PENDENTE");
+    const item = (r, v) => `<div class="item"><span>${esc(r)}</span><b class="${String(v ?? "").trim() ? "" : "pendente"}">${valor(v)}</b></div>`;
+    const endereco = [form.rua_av, form.numero_casa, form.bairro, form.cidade_uf, form.cep].filter(Boolean).join(", ");
+    const faltantes = [
+      ["CPF", soDigitos(form.cpf).length === 11], ["data de nascimento", !!form.data_nascimento],
+      ["endereço completo", !!(form.rua_av && form.numero_casa && form.cidade_uf)],
+      ["cargo", !!form.cargo], ["salário", Number(form.salario) > 0],
+      ["horário de entrada e saída", !!(form.horario_entrada && form.horario_saida)],
+      ["data de admissão", false], ["matrícula do empregado", false], ["tipo de contrato", false],
+    ].filter(([, ok]) => !ok).map(([nome]) => nome);
+    return `<!doctype html><html><head><meta charset="utf-8"/><title>Pré-admissão eSocial - ${esc(form.nome)}</title><style>
+      @page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#172033;font-size:11px}.topo{padding:17px;border-radius:14px;background:#0f172a;color:#fff}.topo small{font-weight:800;text-transform:uppercase;letter-spacing:.13em;color:#86efac}.topo h1{margin:5px 0 2px;font-size:24px}.topo p{margin:0;color:#cbd5e1}.aviso{margin-top:12px;padding:10px 12px;border:1px solid #fbbf24;border-radius:10px;background:#fffbeb;color:#92400e;font-weight:700}.secao{margin-top:14px}.secao h2{margin:0 0 6px;padding:7px 9px;background:#ecfdf5;border-left:4px solid #10b981;color:#065f46;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.grade{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}.item{min-height:39px;padding:5px 2px;border-bottom:1px solid #d8dee7}.item span{display:block;color:#64748b;font-size:8px;font-weight:800;text-transform:uppercase}.item b{display:block;margin-top:3px}.item b.pendente{color:#b45309}.faltantes{margin-top:8px;padding:11px 13px;border-radius:10px;background:#fff7ed;color:#9a3412}.faltantes b{display:block;margin-bottom:4px}.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:42px}.assinaturas div{padding-top:6px;border-top:1px solid #475569;text-align:center;color:#475569}.rodape{margin-top:20px;color:#64748b;font-size:8px;text-align:center}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+      </style></head><body><header class="topo"><small>Preparação para contratação</small><h1>Ficha de pré-admissão para eSocial</h1><p>Dados aproveitados do cadastro de profissional extra · ${new Date().toLocaleDateString("pt-BR")}</p></header>
+      <div class="aviso">Documento preparatório. Não é protocolo nem comprovante de envio ao eSocial. A admissão oficial deve ser validada e transmitida pelo empregador ou pela contabilidade.</div>
+      <section class="secao"><h2>Dados do trabalhador</h2><div class="grade">${item("Nome completo", form.nome)}${item("CPF", fmtCPF(form.cpf))}${item("Data de nascimento", dataBR(form.data_nascimento))}${item("Telefone", form.telefone)}${item("RG", form.rg)}${item("Gênero", form.genero)}${item("Estado civil", form.estado_civil)}${item("Escolaridade", form.escolaridade)}${item("Endereço", endereco)}</div></section>
+      <section class="secao"><h2>Dados contratuais propostos</h2><div class="grade">${item("Cargo / função", form.cargo)}${item("Salário proposto", moeda(form.salario))}${item("Data de admissão", "")}${item("Matrícula", "")}${item("Tipo de contrato", "")}${item("Horário", form.horario_entrada && form.horario_saida ? `${form.horario_entrada} às ${form.horario_saida}` : "")}${item("Intervalo", `${form.tempo_intervalo || 0} minutos`)}${item("Setor", form.setor_entrega)}${item("Atividades", form.topicos_funcao)}</div></section>
+      <div class="faltantes"><b>Antes do envio, completar/conferir:</b>${faltantes.length ? esc(faltantes.join("; ")) : "Dados básicos preenchidos; realizar a validação final da contabilidade."}</div>
+      <div class="assinaturas"><div>Trabalhador</div><div>Responsável pela admissão</div></div><div class="rodape">Referência operacional: admissão de empregado S-2200; quando aplicável, registro preliminar S-2190. Validar sempre no leiaute vigente do eSocial.</div></body></html>`;
+  };
+
+  const baixarPreAdmissaoESocial = () => baixarPdfDeHtml(htmlPreAdmissaoESocial(), `pre-admissao-esocial-${form.nome || "profissional"}`);
 
   const escolherFoto = (e) => {
     const file = e.target.files?.[0];
@@ -130,7 +181,6 @@ export default function CadastroExtraPage() {
       vale_transporte_val: form.vale_transporte_val === "" ? null : Number(form.vale_transporte_val),
       setor_entrega: form.setor_entrega || null,
       janta_ofertada: form.janta_ofertada !== false,
-      anotacoes_rh: form.anotacoes_rh || null,
     };
     const r = novo ? await inserirColaborador(payload) : await atualizarColaborador(id, payload);
     setSalvando(false);
@@ -151,7 +201,7 @@ export default function CadastroExtraPage() {
     <div className="min-h-screen bg-slate-50 pb-28">
       {/* Cabeçalho */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
           <button onClick={() => router.back()}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
             <ArrowLeft size={19} />
@@ -162,6 +212,11 @@ export default function CadastroExtraPage() {
             </h1>
             <p className="text-xs font-bold text-slate-500">Freelancer / diarista · dados do recibo inclusos</p>
           </div>
+          {!novo && <div className="flex gap-2">
+            <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 hover:bg-blue-100"><FileDown size={17}/> Pré-admissão eSocial</button>
+            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={17}/> PDF</button>
+            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
+          </div>}
         </div>
       </div>
 
@@ -382,16 +437,6 @@ export default function CadastroExtraPage() {
           </div>
         </section>
         )}
-
-        {/* Observações */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <label className="block">
-            <span className={rotulo}>Observações internas do RH</span>
-            <textarea rows={3} value={form.anotacoes_rh} onChange={e => set("anotacoes_rh", e.target.value)}
-              className="w-full p-3.5 mt-1.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-emerald-500"
-              placeholder="Só o RH vê. Ex.: pontual, já trabalhou em eventos grandes." />
-          </label>
-        </section>
 
         {erro && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
       </main>

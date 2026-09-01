@@ -8,11 +8,23 @@ const UNIDADES = {
   lata: { familia: "unidade", paraBase: valor => valor, rotulo: "Lata" },
   barril: { familia: "unidade", paraBase: valor => valor, rotulo: "Barril (Chopp)" },
   caixa: { familia: "unidade", paraBase: valor => valor, rotulo: "Caixa" },
+  pct: { familia: "unidade", paraBase: valor => valor, rotulo: "pct" },
   pacote: { familia: "unidade", paraBase: valor => valor, rotulo: "Pacote" },
+  maco: { familia: "unidade", paraBase: valor => valor, rotulo: "maço" },
   fardo: { familia: "unidade", paraBase: valor => valor, rotulo: "Lata" },
 };
 
-export const UNIDADES_INGREDIENTE = [
+export const UNIDADES_INGREDIENTE_COZINHA = [
+  { value: "kg", label: "kg" },
+  { value: "g", label: "g" },
+  { value: "l", label: "L" },
+  { value: "ml", label: "ml" },
+  { value: "pct", label: "pct" },
+  { value: "maco", label: "maço" },
+  { value: "caixa", label: "caixa" },
+];
+
+export const UNIDADES_INGREDIENTE_BAR = [
   { value: "ml", label: "ml" },
   { value: "l", label: "L" },
   { value: "un", label: "unidade (un)" },
@@ -22,6 +34,23 @@ export const UNIDADES_INGREDIENTE = [
   { value: "g", label: "g" },
   { value: "kg", label: "kg" },
 ];
+
+export const UNIDADES_INGREDIENTE = [
+  ...UNIDADES_INGREDIENTE_COZINHA,
+  ...UNIDADES_INGREDIENTE_BAR.filter(
+    item => !UNIDADES_INGREDIENTE_COZINHA.some(unidade => unidade.value === item.value),
+  ),
+];
+
+export function unidadesIngredientePorDepartamento(departamento) {
+  return String(departamento || "cozinha").toLowerCase() === "bar"
+    ? UNIDADES_INGREDIENTE_BAR
+    : UNIDADES_INGREDIENTE_COZINHA;
+}
+
+export function ehInsumoPrePreparo(insumo) {
+  return normalizarBusca(insumo?.categoria).includes("preparo");
+}
 
 export function parseNumeroBR(valor) {
   if (typeof valor === "number") return Number.isFinite(valor) ? valor : NaN;

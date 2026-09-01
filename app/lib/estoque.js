@@ -218,8 +218,8 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
      return { error: errLog.message };
   }
 
-  // Receita base concluída vira saldo físico no estoque independente de
-  // pré-preparos, separado pelo freezer/geladeira escolhido na produção.
+  // Pré-preparo concluído vira saldo físico no estoque correspondente,
+  // separado pelo freezer/geladeira escolhido na produção.
   if (ficha.eh_base) {
      const custoTotal = calculo.itens.reduce((total, item) => total + item.quantidade * Number(item.insumo.custo_unitario || 0), 0);
      const resultadoPreparo = await registrarProducaoNoEstoquePreparo({

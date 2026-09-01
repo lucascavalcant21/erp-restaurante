@@ -104,7 +104,7 @@ const MODULOS = {
     ],
   },
   rh: {
-    title: "Equipe & RH", subtitle: "Equipe, ponto, folha, documentos e desenvolvimento", icon: Users,
+    title: "RH", subtitle: "Equipe, ponto, folha, documentos e desenvolvimento", icon: Users,
     columns: [
       { title: "Jornada e Folha", subtitle: "Ponto e pagamento", icon: UserRoundCheck, accent: "#e11d48", items: [
         { label: "Painel de RH", desc: "Equipe e indicadores", href: "/dashboard/rh", icon: LayoutDashboard },
@@ -124,7 +124,7 @@ const MODULOS = {
     ],
   },
   gestao: {
-    title: "Gestão & Ajustes", subtitle: "Patrimônio, manutenção, auditoria, documentos e configurações", icon: Settings,
+    title: "Gestão", subtitle: "Patrimônio, manutenção, auditoria, documentos e configurações", icon: Settings,
     columns: [
       { title: "Patrimônio", subtitle: "Bens e manutenção", icon: PackageSearch, accent: "#d97706", items: [
         { label: "Inventário", desc: "Bens e equipamentos", href: "/dashboard/gestao/inventario", icon: PackageSearch, countKey: "inventario" },

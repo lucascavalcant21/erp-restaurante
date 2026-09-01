@@ -6,11 +6,12 @@ import { useTempoReal } from "../../../lib/realtime";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
-import { calcularConsumoProducao, registrarProducao } from "../../../lib/estoque";
+import { calcularConsumoProducao, fetchProducoesPeriodo, registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
-import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList } from "lucide-react";
+import { fetchEstoques, fetchItensEstoque } from "../../../lib/estoques-multiplos";
+import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList, Boxes, History, Search, CheckCircle2 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -64,6 +65,9 @@ function ProducaoRunner() {
   const [fichas, setFichas] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
+  const [producoes, setProducoes] = useState([]);
+  const [saldosProntos, setSaldosProntos] = useState([]);
+  const [buscaFicha, setBuscaFicha] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [modalProduzir, setModalProduzir] = useState(false);
@@ -160,6 +164,7 @@ function ProducaoRunner() {
         </div>
         <div class="quando">${dataFmt}<span>${diaSemana}</span></div>
       </div>
+
       <table>
         <thead>
           <tr><th>#</th><th>Item (ficha técnica)</th><th>Quantidade</th><th>Feito por (nome)</th><th>Início</th><th>Término</th><th>OK</th></tr>
@@ -208,16 +213,25 @@ function ProducaoRunner() {
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
-    const [resFichas, resProdutos, resColab, resMemo] = await Promise.all([
+    const [resFichas, resProdutos, resColab, resMemo, resProducoes, resEstoques] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva, deptUrl),
        fetchColaboradores(unidadeAtiva),
        fetchMemorandoOperacao(unidadeAtiva, hojeISO).catch(() => ({ data: null })),
+       fetchProducoesPeriodo(unidadeAtiva, 30),
+       fetchEstoques(unidadeAtiva),
     ]);
     setFichas(resFichas.data || []);
     setProdutos(resProdutos.data || []);
     setColaboradores((resColab.data || []).filter(c => c.ativo !== false && c.status !== "inativo"));
     setMemoHoje(resMemo?.data || null);
+    const idsDoSetor = new Set((resFichas.data || []).map(item => String(item.id)));
+    setProducoes((resProducoes.data || []).filter(item => idsDoSetor.has(String(item.ficha_id))));
+    const estoquePreparo = (resEstoques.data || []).find(item => String(item.slug || "").toLowerCase() === `pre-preparos-${deptUrl}`);
+    if (estoquePreparo?.id) {
+      const saldos = await fetchItensEstoque(estoquePreparo.id, unidadeAtiva);
+      setSaldosProntos((saldos.data || []).filter(item => Number(item.quantidade_atual || 0) > 0));
+    } else setSaldosProntos([]);
     setLoading(false);
   };
 
@@ -239,7 +253,11 @@ function ProducaoRunner() {
   const abrirProduzir = (ficha) => {
     setFichaAtual(ficha);
     setQtdProd("1");
-    setColabSelecionado("");
+    const responsavelPlanejado = plano[ficha.id]?.resp;
+    const planejado = colaboradores.find(item => item.nome === responsavelPlanejado);
+    let ultimo = "";
+    try { ultimo = localStorage.getItem(`producao_responsavel_${unidadeAtiva}`) || ""; } catch {}
+    setColabSelecionado(planejado?.id || colaboradores.find(item => String(item.id) === String(ultimo))?.id || "");
     setLocalArmazenamento(deptUrl === "bar" ? "Geladeira do Bar" : "Freezer 1");
     setModalProduzir(true);
   };
@@ -268,11 +286,13 @@ function ProducaoRunner() {
       return alert("Produção não registrada. Revise a ficha técnica: " + erro.error);
     }
     if(erro.error) return alert("Falha ao registrar produção: " + erro.error);
+    try { localStorage.setItem(`producao_responsavel_${unidadeAtiva}`, String(colabSelecionado)); } catch {}
 
     alert(erro.preparo
       ? `Produção registrada!\n\nEntraram ${numQtd} ${fichaAtual.rendimento_unidade || "un"} de ${fichaAtual.nome_receita} no estoque de pré-preparos (${localArmazenamento}).`
       : "Produção registrada e estoque abatido com sucesso!");
     setModalProduzir(false);
+    await carregar(true);
   };
 
   const containerRef = useRef(null);
@@ -285,6 +305,9 @@ function ProducaoRunner() {
   };
 
   const isBar = deptUrl === 'bar';
+  const totalProduzido = producoes.reduce((total, item) => total + Number(item.quantidade_produzida || 0), 0);
+  const estoqueHref = isBar ? "/dashboard/bar/tablet" : "/dashboard/operacao/cardapio/tablet";
+  const fichasFiltradas = fichas.filter(ficha => String(ficha.nome_receita || "").toLowerCase().includes(buscaFicha.toLowerCase()));
 
   return (
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
@@ -324,6 +347,17 @@ function ProducaoRunner() {
             </div>
          </div>
       </div>
+
+      <section className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:grid-cols-4">
+          {[
+            ["1", "Ver o que está pronto", `${saldosProntos.length} item(ns) disponíveis`],
+            ["2", "Planejar a produção", `${itensPlanejados.length} item(ns) no plano`],
+            ["3", "Conferir ingredientes", "Cálculo automático"],
+            ["4", "Produzir e salvar", "Baixa e histórico juntos"],
+          ].map(([numeroEtapa, titulo, texto]) => <div key={numeroEtapa} className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-100 p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600 font-black text-white">{numeroEtapa}</span><span className="min-w-0"><b className="block truncate text-xs text-slate-800 sm:text-sm">{titulo}</b><small className="block truncate font-bold text-slate-500">{texto}</small></span></div>)}
+        </div>
+      </section>
 
       {/* MEMORANDO DE HOJE: o que a gerência planejou para este setor */}
       {(() => {
@@ -369,10 +403,56 @@ function ProducaoRunner() {
          );
       })()}
 
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
+         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <button onClick={() => setModalPlanejar(true)} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-700"><ClipboardList size={17}/> Produção planejada</span>
+               <strong className="mt-2 block text-2xl font-black text-slate-900">{itensPlanejados.length} item(ns)</strong>
+               <span className="mt-1 block text-xs font-bold text-slate-600">Para {dataPlano ? dataPlano.split("-").reverse().join("/") : "a data escolhida"}</span>
+            </button>
+            <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-emerald-700"><History size={17}/> Produzido nos últimos 30 dias</span>
+               <strong className="mt-2 block text-2xl font-black text-slate-900">{totalProduzido.toLocaleString("pt-BR")} porções</strong>
+               <span className="mt-1 block text-xs font-bold text-slate-600">{producoes.length} lançamento(s) registrado(s)</span>
+            </article>
+            <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-slate-300 bg-slate-900 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-300"><Boxes size={17}/> Estoque produzido</span>
+               <strong className="mt-2 block text-xl font-black">{saldosProntos.length} item(ns) prontos</strong>
+               <span className="mt-1 block text-xs font-bold text-slate-300">Toque para ver quantidades e locais</span>
+            </button>
+         </div>
+
+         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-slate-900"><CheckCircle2 size={18} className="text-emerald-600"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-black text-emerald-700">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-black text-emerald-700">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-slate-500">{item.local_interno}</small>}</div>)}</div></div>}
+
+         {(itensPlanejados.length > 0 || producoes.length > 0) && (
+            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                     <h2 className="text-base font-black text-slate-900">O que quero produzir</h2>
+                     <button onClick={() => setModalPlanejar(true)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-black text-amber-800">Editar plano</button>
+                  </div>
+                  {itensPlanejados.length === 0 ? <p className="text-sm font-bold text-slate-500">Nenhuma produção planejada.</p> : (
+                     <div className="space-y-2">
+                        {itensPlanejados.slice(0, 6).map(item => <div key={item.ficha.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="truncate text-sm font-black text-slate-700">{item.ficha.nome_receita}</span><strong className="shrink-0 text-sm text-amber-700">{Number(String(item.qtd).replace(",", ".")).toLocaleString("pt-BR")} porções</strong></div>)}
+                     </div>
+                  )}
+               </div>
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h2 className="mb-3 text-base font-black text-slate-900">Últimas produções feitas</h2>
+                  {producoes.length === 0 ? <p className="text-sm font-bold text-slate-500">Ainda não há produção registrada.</p> : (
+                     <div className="space-y-2">
+                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-slate-700">{item.fichas_tecnicas?.nome_receita || "Pré-preparo"}</strong><small className="font-bold text-slate-400">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-emerald-700">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
+                     </div>
+                  )}
+               </div>
+            </div>
+         )}
+      </section>
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-         <div className="mb-6">
-            <h2 className="text-xl font-black text-slate-800 mb-2">O que você vai produzir agora?</h2>
-            <p className="text-slate-500 font-medium">Selecione a ficha técnica. O sistema vai calcular e retirar os ingredientes do estoque físico.</p>
+         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div><h2 className="text-xl font-black text-slate-800 mb-1">Produzir agora</h2><p className="text-slate-500 font-medium">Escolha a receita; os ingredientes e a baixa aparecem antes da confirmação.</p></div>
+            <label className="relative block w-full sm:w-80"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={buscaFicha} onChange={e => setBuscaFicha(e.target.value)} placeholder="Buscar receita..." className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 font-bold outline-none focus:border-emerald-500"/></label>
          </div>
 
          {loading ? (
@@ -383,14 +463,14 @@ function ProducaoRunner() {
                <p className="text-slate-500 mt-2 font-medium">Crie suas Fichas Técnicas primeiro para poder produzir.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-               {fichas.map(f => {
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+               {fichasFiltradas.map(f => {
                   const cmv = calcCmv(f, fichas, produtoDaFicha);
                   return (
                   <button
                      key={f.id}
                      onClick={() => abrirProduzir(f)}
-                     className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all relative group text-left flex flex-col"
+                     className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all relative group text-left flex flex-col"
                   >
                      <div className="flex justify-between items-start mb-4">
                         <span className={`w-12 h-12 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
@@ -402,7 +482,7 @@ function ProducaoRunner() {
                            </span>
                         )}
                      </div>
-                     <h3 className="text-2xl font-black text-slate-800 leading-tight mb-2">{f.nome_receita}</h3>
+                     <h3 className="text-lg font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
 
                      <div className="mt-auto pt-4 border-t border-slate-100">

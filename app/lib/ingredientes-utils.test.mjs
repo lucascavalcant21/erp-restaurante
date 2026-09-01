@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import {
   calcularCustoSolicitado,
   calcularPrecoNormalizado,
+  ehInsumoPrePreparo,
   normalizarBusca,
   ordenarIngredientes,
   parseNumeroBR,
   precoNormalizadoDoInsumo,
   textoPesquisavel,
+  unidadesIngredientePorDepartamento,
 } from "./ingredientes-utils.mjs";
 
 test("normaliza acentos, maiúsculas, espaços e hífens para pesquisa", () => {
@@ -73,4 +75,29 @@ test("conversão entre peso e volume exige densidade", () => {
     calcularCustoSolicitado({ ...ingrediente, densidade_g_ml: 0.8 }, "250", "ml").valor,
     4,
   );
+});
+
+test("cozinha oferece somente as sete unidades solicitadas", () => {
+  assert.deepEqual(
+    unidadesIngredientePorDepartamento("cozinha").map(item => item.value),
+    ["kg", "g", "l", "ml", "pct", "maco", "caixa"],
+  );
+});
+
+test("bar preserva garrafa e lata", () => {
+  const bar = unidadesIngredientePorDepartamento("bar").map(item => item.value);
+  assert.equal(bar.includes("garrafa"), true);
+  assert.equal(bar.includes("lata"), true);
+});
+
+test("identifica itens de pré-preparo pela categoria", () => {
+  assert.equal(ehInsumoPrePreparo({ categoria: "Pré-preparos" }), true);
+  assert.equal(ehInsumoPrePreparo({ categoria: "Xaropes e pre-preparos" }), true);
+  assert.equal(ehInsumoPrePreparo({ categoria: "Hortifrúti" }), false);
+});
+
+test("normaliza custo de pacote, maço e caixa por unidade", () => {
+  assert.equal(calcularPrecoNormalizado(2, "pct", 18), 9);
+  assert.equal(calcularPrecoNormalizado(4, "maco", 12), 3);
+  assert.equal(calcularPrecoNormalizado(3, "caixa", 45), 15);
 });

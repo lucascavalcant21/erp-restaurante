@@ -26,15 +26,26 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "Salão",
-    home: "/dashboard/modulo/salao",
-    icon: Users,
+    category: "Checklist",
+    home: "/dashboard/checklists",
+    icon: ClipboardList,
     items: [
-      { label: "Checklist do Salão", href: "/dashboard/operacao/rotina?dept=salao" },
-      { label: "Treinamentos", href: "/dashboard/salao/treinamento" }
+      { label: "Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
+      { label: "Bar", href: "/dashboard/operacao/rotina?dept=bar" },
+      { label: "Salão", href: "/dashboard/operacao/rotina?dept=salao" },
+      { label: "Gerenciar modelos", href: "/dashboard/checklists/gerenciar" },
     ]
   },
-
+  {
+    category: "Treinamentos",
+    home: "/dashboard/treinamentos",
+    icon: Briefcase,
+    items: [
+      { label: "Trilhas de Cozinha", href: "/dashboard/salao/treinamento?dept=cozinha" },
+      { label: "Trilhas de Bar", href: "/dashboard/salao/treinamento?dept=bar" },
+      { label: "Trilhas de Salão", href: "/dashboard/salao/treinamento?dept=salao" },
+    ]
+  },
   {
     category: "Estoque",
     home: "/dashboard/operacao/estoque",
@@ -65,7 +76,6 @@ const SIDEBAR_MENU = [
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
       { label: "Central Operacional", href: "/dashboard/operacao/inteligente" },
-      { label: "Checklist da Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]
   },
@@ -81,7 +91,6 @@ const SIDEBAR_MENU = [
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=bar" },
       { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=bar" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=bar" },
-      { label: "Checklist do Bar", href: "/dashboard/operacao/rotina?dept=bar" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
     ]
   },
@@ -117,7 +126,7 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "Equipe & RH",
+    category: "RH",
     home: "/dashboard/modulo/rh",
     icon: Users,
     items: [
@@ -132,7 +141,7 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "Gestão & Ajustes",
+    category: "Gestão",
     home: "/dashboard/modulo/gestao",
     icon: Store,
     items: [
@@ -153,7 +162,7 @@ const ATALHOS_POR_PAPEL = {
     { label: "Início", href: "/dashboard", icon: Home },
     { label: "Cozinha", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
     { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
-    { label: "Equipe", href: "/dashboard/rh", icon: Users },
+    { label: "RH", href: "/dashboard/rh", icon: Users },
   ],
   gerente: [
     { label: "Início", href: "/dashboard", icon: Home },
@@ -232,9 +241,9 @@ function moduloDaRota(pathname, dept) {
 
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
-  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
-  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento"],
-  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
+  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento", "/dashboard/salao/treinamento"],
+  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento", "/dashboard/salao/treinamento"],
+  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 
 // Nestas telas o setor é definido por ?dept=. Uma estação travada nunca pode
@@ -253,6 +262,7 @@ const ROTAS_SETORIZADAS = [
   "/dashboard/operacao/fichas",
   "/dashboard/operacao/montagem",
   "/dashboard/operacao/orcamento",
+  "/dashboard/salao/treinamento",
 ];
 
 const rotaEstoqueRapido = pathname => pathname === "/dashboard/operacao/estoque/tablet";
@@ -366,7 +376,7 @@ function SidebarSection({ section, idx, ativo, onOpen }) {
   );
 }
 
-function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao }) {
+function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao, onSair }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -450,36 +460,17 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
                 <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
              </div>
           </div>
+          <button type="button" onClick={onSair} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-rose-500/10 px-3 text-xs font-black uppercase tracking-wider text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-white">
+            <LogOut size={15} /> Sair
+          </button>
         </div>
       </aside>
     </>
   );
 }
 
-function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, onToggleDensidade }) {
-  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
-  const router = useRouter();
-
-  // Seletor de unidade: abre por CLIQUE e fica fixo até escolher ou clicar fora.
-  // Trocar de unidade mantém você na MESMA página (os dados recarregam sozinhos).
-  const [unidadesAberto, setUnidadesAberto] = useState(false);
-  const seletorRef = useRef(null);
-  useEffect(() => {
-    const fecharFora = (e) => {
-      if (seletorRef.current && !seletorRef.current.contains(e.target)) setUnidadesAberto(false);
-    };
-    document.addEventListener("mousedown", fecharFora);
-    document.addEventListener("touchstart", fecharFora);
-    return () => {
-      document.removeEventListener("mousedown", fecharFora);
-      document.removeEventListener("touchstart", fecharFora);
-    };
-  }, []);
-
-  const handleTrocaUnidade = (id) => {
-    setUnidadeAtiva(id);
-    setUnidadesAberto(false);
-  };
+function TopHeader({ onToggleSidebar }) {
+  const { unidadeInfo } = useERP();
 
   return (
     <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
@@ -493,42 +484,6 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, 
          </h1>
       </div>
 
-      <div className="flex items-center justify-end gap-1.5 sm:gap-3 min-w-0 shrink">
-         {podeTrocar && (
-           <div className="relative min-w-0" ref={seletorRef}>
-             <button onClick={() => setUnidadesAberto(a => !a)} aria-expanded={unidadesAberto}
-               className="h-11 max-w-[150px] sm:max-w-[240px] md:max-w-xs flex items-center gap-1.5 sm:gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-700 px-2.5 sm:px-3 rounded-xl transition-all shadow-sm text-[10px] sm:text-xs font-bold uppercase min-w-0">
-                <Store size={14} className="text-slate-400 shrink-0"/>
-                <span className="truncate min-w-0">{unidadeInfo?.nome || 'Nenhuma Lj.'}</span>
-                <ChevronDown size={14} className="text-slate-400 transition-transform" style={{ transform: unidadesAberto ? "rotate(180deg)" : "none" }}/>
-             </button>
-             {unidadesAberto && (
-               <div className="erp-unit-menu absolute right-0 top-full mt-2 w-[min(16rem,calc(100vw-1rem))] max-h-[min(28rem,calc(100dvh-5rem))] overflow-y-auto overscroll-contain bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in fade-in zoom-in-95 origin-top-right z-50">
-                 {unidades.map(u => (
-                   <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full min-h-12 text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center gap-3 transition-colors">
-                     <span className="min-w-0 break-words">{u.nome}</span>
-                     {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500"/>}
-                   </button>
-                 ))}
-               </div>
-             )}
-           </div>
-         )}
-
-         <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
-
-         <button onClick={onToggleDensidade}
-           className={`hidden md:flex h-11 items-center justify-center gap-2 px-3 rounded-xl transition-colors ${compacto ? "bg-emerald-50 text-emerald-700" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"}`}
-           title={compacto ? "Usar visual confortável" : "Usar visual compacto"}>
-           <SlidersHorizontal size={17} />
-           <span className="text-xs font-bold">{compacto ? "Compacto" : "Confortável"}</span>
-         </button>
-
-         <button onClick={onSair} className="w-11 h-11 sm:w-auto flex items-center justify-center gap-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 sm:px-3 rounded-xl transition-colors group shrink-0" title="Sair do Sistema">
-           <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-           <span className="text-sm font-bold hidden sm:block">Sair</span>
-         </button>
-      </div>
     </header>
   );
 }
@@ -832,7 +787,7 @@ export default function DashboardLayout({ children }) {
       {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
       <div className="print:hidden h-full flex shrink-0">
          <Suspense fallback={null}>
-           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} />
+           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} onSair={sair} />
          </Suspense>
       </div>
 

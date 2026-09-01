@@ -44,6 +44,7 @@ import {
   precoNormalizadoDoInsumo,
   textoPesquisavel,
   unidadeNormalizada,
+  unidadesIngredientePorDepartamento,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
@@ -113,6 +114,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
   const quantidade = estado?.quantidade ?? "";
   const unidade = estado?.unidade || unidadeInicial;
   const resultado = calcularCustoSolicitado(insumo, quantidade, unidade);
+  const unidadesDisponiveis = unidadesIngredientePorDepartamento(insumo.departamento);
 
   return (
     <div className="min-w-[156px]">
@@ -135,7 +137,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
           onChange={event => onChange({ quantidade, unidade: event.target.value })}
           className="min-w-[54px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-[11px] font-bold text-slate-600 outline-none"
         >
-          {UNIDADES_INGREDIENTE.map(item => (
+          {unidadesDisponiveis.map(item => (
             <option key={item.value} value={item.value}>{item.label}</option>
           ))}
         </select>
@@ -288,7 +290,7 @@ function IngredientesRunner() {
     if (!unidadeAtiva) return;
     setLoading(true);
     const [resInsumos, resFornecedores] = await Promise.all([
-      fetchInsumos(unidadeAtiva, deptUrl),
+      fetchInsumos(unidadeAtiva, deptUrl, { excluirPrePreparos: true }),
       fetchFornecedores(unidadeAtiva),
     ]);
     setInsumos((resInsumos.data || []).map(item => (
@@ -476,7 +478,9 @@ function IngredientesRunner() {
 
   const abrirEditar = insumo => {
     const dep = insumo.departamento || deptUrl || "cozinha";
+    const unidadesDisponiveis = unidadesIngredientePorDepartamento(dep);
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
+    if (!unidadesDisponiveis.some(item => item.value === un)) un = dep === "bar" ? "ml" : "kg";
     setForm({
       id: insumo.id,
       departamento: dep,
@@ -1020,7 +1024,18 @@ function IngredientesRunner() {
                   </label>
                   <label>
                     <span className="text-xs font-bold text-slate-600">Departamento</span>
-                    <select value={form.departamento} onChange={event => setForm({ ...form, departamento: event.target.value, categoria: "" })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                    <select value={form.departamento} onChange={event => {
+                      const departamento = event.target.value;
+                      const unidades = unidadesIngredientePorDepartamento(departamento);
+                      setForm({
+                        ...form,
+                        departamento,
+                        categoria: "",
+                        unidade_medida: unidades.some(item => item.value === form.unidade_medida)
+                          ? form.unidade_medida
+                          : (departamento === "bar" ? "ml" : "kg"),
+                      });
+                    }} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="cozinha">Cozinha</option>
                       <option value="bar">Bar</option>
                     </select>
@@ -1038,7 +1053,7 @@ function IngredientesRunner() {
                   <label>
                     <span className="text-xs font-bold text-slate-600">Unidade *</span>
                     {(() => {
-                      const lista = UNIDADES_INGREDIENTE;
+                      const lista = unidadesIngredientePorDepartamento(form.departamento);
                       return (
                         <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
                           {lista.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
@@ -1439,7 +1454,17 @@ function IngredientesRunner() {
                             <td className="p-2">
                               <select
                                 value={item.departamento || "cozinha"}
-                                onChange={e => atualizarItemMigracao(idx, "departamento", e.target.value)}
+                                onChange={e => {
+                                  const departamento = e.target.value;
+                                  const unidades = unidadesIngredientePorDepartamento(departamento);
+                                  setItensMigracao(prev => prev.map((atual, i) => i === idx ? {
+                                    ...atual,
+                                    departamento,
+                                    unidade: unidades.some(unidade => unidade.value === atual.unidade)
+                                      ? atual.unidade
+                                      : (departamento === "bar" ? "ml" : "kg"),
+                                  } : atual));
+                                }}
                                 className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
                               >
                                 <option value="cozinha">Cozinha</option>
@@ -1461,7 +1486,7 @@ function IngredientesRunner() {
                                 onChange={e => atualizarItemMigracao(idx, "unidade", e.target.value)}
                                 className="rounded-lg border border-slate-200 px-1 py-1 font-bold"
                               >
-                                {UNIDADES_INGREDIENTE.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                                {unidadesIngredientePorDepartamento(item.departamento).map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                               </select>
                             </td>
                             <td className="p-2">

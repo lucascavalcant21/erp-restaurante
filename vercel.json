@@ -5,7 +5,7 @@
     { "src": "next.config.js",               "use": "@vercel/next" }
   ],
   "routes": [
-    { "src": "^/api/(hefisto|ia-montagem|ia-preparo|ia-insumos|ia-ficha|ia-guia-montagem|ia-inventario|ia-ata|ia-recibo|ia-checklist|ia-cardapio|ia-ficha-extra|ia-lista-estoque|ia-contagem|ia-drinks|ia-requisitos-vaga|ifood/.*)$", "dest": "/api/$1" },
+    { "src": "^/api/(hefisto|ia-montagem|ia-preparo|ia-insumos|ia-ficha|ia-guia-montagem|ia-inventario|ia-ata|ia-recibo|ia-checklist|ia-cardapio|ia-ficha-extra|ia-lista-estoque|ia-contagem|ia-drinks|ia-requisitos-vaga|rh/perfil-compartilhado|ifood/.*)$", "dest": "/api/$1" },
     { "src": "/api/(.*)",     "dest": "backend_cloud_code/server.js" },
     { "src": "/webhook/(.*)", "dest": "backend_cloud_code/server.js" }
   ],

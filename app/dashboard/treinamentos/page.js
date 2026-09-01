@@ -1,16 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Armchair, ArrowLeft, ChefHat, ClipboardList, Maximize2, Wine } from "lucide-react";
+import { Armchair, ArrowLeft, BookOpen, ChefHat, Maximize2, Wine } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 
 const AREAS = [
-  { id: "cozinha", nome: "Cozinha", texto: "Abertura, produção, limpeza e fechamento", Icon: ChefHat, classe: "cozinha" },
-  { id: "bar", nome: "Bar", texto: "Organização, bebidas, reposição e fechamento", Icon: Wine, classe: "bar" },
-  { id: "salao", nome: "Salão", texto: "Montagem, atendimento, organização e fechamento", Icon: Armchair, classe: "salao" },
+  { id: "cozinha", nome: "Cozinha", texto: "Técnicas, segurança, preparo e padrões da cozinha", Icon: ChefHat, classe: "cozinha" },
+  { id: "bar", nome: "Bar", texto: "Drinks, bebidas, atendimento e organização do bar", Icon: Wine, classe: "bar" },
+  { id: "salao", nome: "Salão", texto: "Atendimento, serviço, vendas e experiência do cliente", Icon: Armchair, classe: "salao" },
 ];
 
-export default function ChecklistSeletorPage() {
+export default function TreinamentosSeletorPage() {
   const router = useRouter();
   const { unidadeInfo } = useERP();
   const telaCheia = () => document.documentElement.requestFullscreen?.().catch?.(() => {});
@@ -37,12 +37,12 @@ export default function ChecklistSeletorPage() {
         <button onClick={telaCheia}><Maximize2 size={18}/> Tela cheia</button>
       </div>
       <main className="seletor-centro">
-        <ClipboardList size={52}/>
-        <h1>Checklists</h1>
-        <p>Escolha o setor. Cada área tem suas próprias rotinas, fotos-modelo, tempo das ações e histórico.</p>
+        <BookOpen size={52}/>
+        <h1>Treinamentos</h1>
+        <p>Escolha o setor para criar, organizar ou compartilhar as trilhas de aprendizagem da equipe.</p>
         <div className="seletor-grid">
           {AREAS.map(({ id, nome, texto, Icon, classe }) => (
-            <button key={id} className={`seletor-card ${classe}`} onClick={() => router.push(`/dashboard/operacao/rotina?dept=${id}`)}>
+            <button key={id} className={`seletor-card ${classe}`} onClick={() => router.push(`/dashboard/salao/treinamento?dept=${id}`)}>
               <Icon/> {nome}<span>{texto}</span>
             </button>
           ))}

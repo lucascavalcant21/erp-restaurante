@@ -83,7 +83,7 @@ export const RECIBO_TEXTOS_PADRAO = {
   responsavel_nome: "",
   responsavel_cargo: "Proprietário(a)",
   motivo_folga: "por ser o dia de folga do restaurante",
-  observacao_horario: "", // Removido conforme solicitado pelo usuário
+  observacao_horario: "",
   encerramento: "O presente recibo é emitido para comprovação dos serviços prestados e dos respectivos pagamentos referentes ao período acima mencionado.",
 };
 
@@ -144,10 +144,22 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
   const dados = recibo?.dados || {};
   const emp = unidade || {};
 
-  const empresa = emp.razao_social || emp.nome_fantasia || emp.nome || unidadeNome || "Restaurante";
-  const cnpjRaw = String(emp.cnpj || "").trim();
+  const empresa = emp.razao_social || emp.nome_fantasia || emp.nome || unidadeNome || "Seldeestrela Comidas Nortistas Ltda";
+  const cnpjRaw = String(emp.cnpj || "42021920000136").trim();
   const cnpj = formatarCNPJ(cnpjRaw);
-  const cidadeUf = [emp.cidade, emp.uf].filter(Boolean).join("/");
+
+  // Endereço oficial da empresa/restaurante
+  const ruaEmp = String(emp.endereco || emp.rua_av || emp.rua || "Rua Doutor Dirceu Lopes").trim();
+  const numEmp = String(emp.numero || emp.numero_estabelecimento || "1812").trim();
+  const bairroEmp = String(emp.bairro || "Yolanda").trim();
+  const cidadeEmp = String(emp.cidade || "Foz do Iguaçu").trim();
+  const ufEmp = String(emp.uf || "PR").trim();
+
+  const partesEmp = [];
+  if (ruaEmp) partesEmp.push(numEmp ? `${ruaEmp}, nº ${numEmp}` : ruaEmp);
+  if (bairroEmp) partesEmp.push(`Bairro ${bairroEmp}`);
+  if (cidadeEmp && ufEmp) partesEmp.push(`${cidadeEmp}/${ufEmp}`);
+  const enderecoEmpresa = partesEmp.join(", ");
 
   const nome = String(dados.nome || extra?.nome || "").trim() || "—";
   const cpfRaw = String(dados.cpf || extra?.cpf || "").trim();
@@ -192,10 +204,11 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
 
   const b = (texto) => `<strong>${esc(texto)}</strong>`;
 
-  // ── Parágrafo de abertura ──
+  // ── Parágrafo de abertura com endereço do restaurante ──
   const abertura = `Declaro, para os devidos fins, que ${b(nome)}${cpf ? `, inscrito no CPF nº ${b(cpf)}` : ""}` +
     `${enderecoCompleto ? `, residente e domiciliado(a) em ${b(enderecoCompleto)}` : ""}, ` +
-    `prestou serviços como ${b(funcao)} no ${b(empresa)}${cnpj ? `, inscrito no CNPJ nº ${b(cnpj)}` : ""}, ` +
+    `prestou serviços como ${b(funcao)} no ${b(empresa)}${cnpj ? `, inscrito no CNPJ nº ${b(cnpj)}` : ""}` +
+    `${enderecoEmpresa ? `, localizado em ${b(enderecoEmpresa)}` : ""}, ` +
     `no período compreendido entre ${b(periodoPorExtenso(inicio, fim))}.`;
 
   // ── Parágrafo dos dias e horários (início e fim) ──
@@ -247,12 +260,12 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
       pagamentoFormaTexto = `de forma híbrida (Pix + Dinheiro)`;
     }
   } else if (forma) {
-    pagamentoFormaTexto = `efetuado via ${b(forma)}`;
+    pagamentoFormaTexto = `via ${b(forma)}`;
   } else {
-    pagamentoFormaTexto = `efetuado via Pix`;
+    pagamentoFormaTexto = `via Pix`;
   }
 
-  const pagamento = `O pagamento referente aos serviços prestados é realizado ${b("ao final de cada turno de trabalho")}, podendo ser ${pagamentoFormaTexto}.`;
+  const pagamento = `O pagamento referente aos serviços prestados foi efetuado ${pagamentoFormaTexto}.`;
 
   const hoje = new Date();
   const emissao = `${hoje.getDate()} de ${MESES[hoje.getMonth()]} de ${hoje.getFullYear()}`;
@@ -306,7 +319,8 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
       <div class="linha"></div>
       ${t.responsavel_nome ? `<strong>${esc(t.responsavel_nome)}</strong>` : ""}
       ${t.responsavel_cargo ? `<span>${esc(t.responsavel_cargo)} do ${esc(empresa)}</span>` : ""}
-      ${cnpj ? `<span>CNPJ: ${esc(cnpj)}</span>` : ""}
+      <span>${esc(empresa)}${cnpj ? ` - CNPJ: ${esc(cnpj)}` : ""}</span>
+      ${enderecoEmpresa ? `<span>${esc(enderecoEmpresa)}</span>` : ""}
     </div>
   </div></body></html>`;
 

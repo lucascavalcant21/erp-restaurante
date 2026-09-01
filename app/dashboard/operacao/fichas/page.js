@@ -47,7 +47,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { rotuloPesoUnitario, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
-import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
+import { fetchCategoriasFichas, fetchParams, salvarCategoriasFichas } from "../../../lib/parametros";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -475,6 +475,11 @@ function FichasRunner() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [categoriasConfig, setCategoriasConfig] = useState({});
+  // Imposto e taxa de cartão são % da VENDA e valem para a unidade inteira —
+  // ficam nos parâmetros, editáveis no Ponto de Equilíbrio. Não confundir com
+  // a embalagem, que é valor fixo POR FICHA: a caixa do açaí não é a mesma do
+  // hambúrguer, e somar as duas como percentual esconderia isso.
+  const [paramsUnidade, setParamsUnidade] = useState({});
   const [modalCategorias, setModalCategorias] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [salvandoCategoria, setSalvandoCategoria] = useState(false);
@@ -857,6 +862,7 @@ function FichasRunner() {
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
     fetchCategoriasFichas(unidadeAtiva).then(({ data }) => setCategoriasConfig(data || {}));
+    fetchParams(unidadeAtiva).then(({ data }) => setParamsUnidade(data || {})).catch(() => {});
   }, [unidadeAtiva]);
 
   const configCategoriasDept = categoriasConfig?.[deptUrl] || {};
@@ -2670,10 +2676,18 @@ function FichasRunner() {
                               const porPorcao = (v) => (porcoes > 0 ? v / porcoes : v);
                               const custoPorcao = porPorcao(custoTotal);
                               const custoIngredientes = porPorcao(custos.ingredientes);
-                              const custoAgregados = porPorcao(custos.agregados);
+                              const custoEmbalagem = porPorcao(custos.agregados);
                               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
                               const precoPorcao = Number(prod?.preco_venda) || 0;
                               const meta = Number(f.cmv_meta) || 30;
+                              // Imposto e maquininha mordem uma fatia de CADA venda, então a
+                              // base deles é o preço, não o custo. Sem preço não há o que
+                              // calcular — e aí a linha nem aparece, em vez de mostrar zero
+                              // e dar a impressão de que a casa não paga nada disso.
+                              const pctAgregados = (Number(paramsUnidade.imposto_pct) || 0)
+                                + (Number(paramsUnidade.taxa_cartao_pct) || 0);
+                              const custoAgregados = precoPorcao > 0 ? precoPorcao * pctAgregados / 100 : 0;
+                              const custoCheio = custoPorcao + custoAgregados;
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                               const margem = cmv !== null ? 100 - cmv : null;
                               const composicao = (f.fichas_ingredientes || []).length;
@@ -2707,25 +2721,42 @@ function FichasRunner() {
                                           antes ele vinha somado, invisível. Só aparece
                                           quando há agregado: ficha sem embalagem não
                                           precisa de uma linha dizendo "R$ 0,00". */}
+                                      {/* Três linhas separadas porque são três decisões
+                                          diferentes: ingrediente se muda na ficha,
+                                          embalagem se troca no fornecedor, e imposto e
+                                          maquininha se negociam ou se mudam de regime.
+                                          Somadas, o dono não sabe onde mexer. Cada uma só
+                                          aparece quando existe. */}
                                       {!(f.eh_base && custoPorcao === custoTotal) && (
                                         <>
-                                          {custoAgregados > 0 && (
+                                          {(custoEmbalagem > 0 || custoAgregados > 0) && (
                                             <div className="flex min-h-12 items-center justify-between gap-3">
                                               <span className="text-sm font-bold text-slate-500">Ingredientes</span>
                                               <strong className="text-base text-slate-700">{fmtBRL(custoIngredientes)}</strong>
                                             </div>
                                           )}
+                                          {custoEmbalagem > 0 && (
+                                            <div className="flex min-h-12 items-center justify-between gap-3">
+                                              <span className="text-sm font-bold text-slate-500">Embalagem</span>
+                                              <strong className="text-base text-slate-700">{fmtBRL(custoEmbalagem)}</strong>
+                                            </div>
+                                          )}
                                           {custoAgregados > 0 && (
                                             <div className="flex min-h-12 items-center justify-between gap-3">
-                                              <span className="text-sm font-bold text-slate-500">Embalagem e agregados</span>
+                                              <span className="text-sm font-bold text-slate-500">
+                                                Agregados
+                                                <small className="block text-[10px] font-bold text-slate-400">
+                                                  imposto e cartão · {pctAgregados.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% da venda
+                                                </small>
+                                              </span>
                                               <strong className="text-base text-slate-700">{fmtBRL(custoAgregados)}</strong>
                                             </div>
                                           )}
                                           <div className="flex min-h-12 items-center justify-between gap-3">
-                                            <span className={`text-sm ${custoAgregados > 0 ? "font-black text-slate-600" : "font-bold text-slate-500"}`}>
-                                              {custoAgregados > 0 ? "Custo com agregados" : "Custo"}
+                                            <span className={`text-sm ${(custoEmbalagem > 0 || custoAgregados > 0) ? "font-black text-slate-600" : "font-bold text-slate-500"}`}>
+                                              {(custoEmbalagem > 0 || custoAgregados > 0) ? "Custo total" : "Custo"}
                                             </span>
-                                            <strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong>
+                                            <strong className="text-base text-slate-900">{fmtBRL(custoCheio)}</strong>
                                           </div>
                                         </>
                                       )}
@@ -2751,8 +2782,8 @@ function FichasRunner() {
                                       {!f.eh_base && precoPorcao > 0 && (
                                         <div className="flex min-h-12 items-center justify-between gap-3">
                                           <span className="text-sm font-black text-slate-600">Lucro por {ehBarCard ? "dose" : "porção"}</span>
-                                          <strong className={`text-base ${precoPorcao - custoPorcao >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                                            {fmtBRL(precoPorcao - custoPorcao)}
+                                          <strong className={`text-base ${precoPorcao - custoCheio >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                                            {fmtBRL(precoPorcao - custoCheio)}
                                           </strong>
                                         </div>
                                       )}

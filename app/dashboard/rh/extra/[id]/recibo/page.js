@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, BadgeDollarSign, CheckCircle2, Clock3, Loader2, Pencil,
+  ArrowLeft, BadgeDollarSign, CheckCircle2, Clock, Clock3, Loader2, Pencil,
   Printer, Save, Shirt, Utensils,
 } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
@@ -31,6 +31,9 @@ export default function GerarPagamentoExtraPage() {
   const [erro, setErro] = useState("");
   const [form, setForm] = useState({
     valor: "", data_trabalho: hojeISO(), forma_pagamento: "Pix",
+    valor_pix: "", valor_dinheiro: "",
+    dias_contratados: "1",
+    hora_entrada: "", hora_saida: "",
     alimentacao: true, materiais: false, descricao_materiais: "",
   });
 
@@ -53,6 +56,8 @@ export default function GerarPagamentoExtraPage() {
           ...anterior,
           valor: cadastro.data.salario ? String(cadastro.data.salario) : "",
           forma_pagamento: cadastro.data.forma_pagamento || "Pix",
+          hora_entrada: cadastro.data.horario_entrada || "",
+          hora_saida: cadastro.data.horario_saida || "",
           alimentacao: cadastro.data.janta_ofertada !== false,
           materiais: !!String(cadastro.data.itens_emprestados || "").trim(),
           descricao_materiais: cadastro.data.itens_emprestados || "",
@@ -68,6 +73,10 @@ export default function GerarPagamentoExtraPage() {
 
   const montarPagamento = numero => {
     const valor = Number(String(form.valor || "").replace(",", ".")) || 0;
+    const valPix = Number(String(form.valor_pix || "").replace(",", ".")) || 0;
+    const valDinheiro = Number(String(form.valor_dinheiro || "").replace(",", ".")) || 0;
+    const dias = Number(String(form.dias_contratados || "1").replace(",", ".")) || 1;
+
     const itens = form.materiais
       ? String(form.descricao_materiais || "").split(",").map(item => item.trim()).filter(Boolean)
       : [];
@@ -77,28 +86,30 @@ export default function GerarPagamentoExtraPage() {
       numero,
       data_trabalho: form.data_trabalho,
       datas_contratadas: [form.data_trabalho],
-      dias_contratados: 1,
+      dias_contratados: dias,
       valor_diaria: valor,
       valor_total: valor,
       pagamento_realizado: true,
       data_pagamento: hojeISO(),
       forma_pagamento: form.forma_pagamento,
-      hora_entrada: extra.horario_entrada || null,
+      hora_entrada: form.hora_entrada || extra?.horario_entrada || null,
       hora_saida_intervalo: null,
       hora_retorno_intervalo: null,
-      hora_saida: extra.horario_saida || null,
+      hora_saida: form.hora_saida || extra?.horario_saida || null,
       evento: null,
-      funcao: extra.cargo || "Extra",
+      funcao: extra?.cargo || "Extra",
       janta_ofertada: !!form.alimentacao,
       itens,
       dados: {
-        nome: extra.nome || "", cpf: extra.cpf || "", rg: extra.rg || "",
-        telefone: extra.telefone || "", chave_pix: extra.chave_pix || "",
-        endereco: extra.endereco || "", rua_av: extra.rua_av || "",
-        numero_casa: extra.numero_casa || "", bairro: extra.bairro || "",
-        cidade_uf: extra.cidade_uf || "", topicos_funcao: extra.topicos_funcao || "",
-        setor_entrega: extra.setor_entrega || "", alimentacao_fornecida: !!form.alimentacao,
+        nome: extra?.nome || "", cpf: extra?.cpf || "", rg: extra?.rg || "",
+        telefone: extra?.telefone || "", chave_pix: extra?.chave_pix || "",
+        endereco: extra?.endereco || extra?.rua_av || "", rua_av: extra?.rua_av || "",
+        numero_casa: extra?.numero_casa || "", bairro: extra?.bairro || "",
+        cidade_uf: extra?.cidade_uf || "", topicos_funcao: extra?.topicos_funcao || "",
+        setor_entrega: extra?.setor_entrega || "", alimentacao_fornecida: !!form.alimentacao,
         materiais_fornecidos: !!form.materiais,
+        valor_pix: form.forma_pagamento.includes("Híbrido") ? valPix : (form.forma_pagamento === "Pix" ? valor : 0),
+        valor_dinheiro: form.forma_pagamento.includes("Híbrido") ? valDinheiro : (form.forma_pagamento === "Dinheiro" ? valor : 0),
       },
     };
   };
@@ -109,6 +120,15 @@ export default function GerarPagamentoExtraPage() {
     if (!form.data_trabalho) return setErro("Informe a data do trabalho.");
     if (form.materiais && !form.descricao_materiais.trim()) return setErro("Informe quais materiais de trabalho foram entregues.");
     if (!unidadeAtiva || unidadeAtiva === "todas") return setErro("Selecione uma unidade específica.");
+
+    if (form.forma_pagamento.includes("Híbrido")) {
+      const vPix = Number(String(form.valor_pix || "").replace(",", ".")) || 0;
+      const vDinheiro = Number(String(form.valor_dinheiro || "").replace(",", ".")) || 0;
+      if (vPix + vDinheiro !== valor) {
+        return setErro(`A soma do Pix (${moeda(vPix)}) com Dinheiro (${moeda(vDinheiro)}) deve ser igual ao valor total (${moeda(valor)}).`);
+      }
+    }
+
     setErro("");
     setSalvando(true);
     const numero = `EXT-${form.data_trabalho.replaceAll("-", "")}-${String(Date.now()).slice(-6)}`;
@@ -118,7 +138,12 @@ export default function GerarPagamentoExtraPage() {
     if (resposta.error) return setErro("Não consegui salvar o pagamento: " + resposta.error);
     const salvo = resposta.data || payload;
     setRecibos(lista => [salvo, ...lista]);
-    if (imprimirDepois) imprimirReciboExtra({ extra, recibo: salvo, unidadeNome: unidadeInfo?.nome, textos });
+    if (imprimirDepois) {
+      imprimirReciboExtra({
+        extra, recibo: salvo,
+        unidade: unidadeInfo, unidadenome: unidadeInfo?.nome, textos
+      });
+    }
     setForm(anterior => ({ ...anterior, valor: extra.salario ? String(extra.salario) : "" }));
   };
 
@@ -144,11 +169,23 @@ export default function GerarPagamentoExtraPage() {
 
       <main className="mx-auto max-w-4xl space-y-5 p-4 sm:p-6">
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <div className="mb-6 flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700"><BadgeDollarSign size={24} /></span><div><h2 className="text-xl font-black text-slate-900">Pagamento do extra</h2><p className="text-sm font-semibold text-slate-500">Os demais dados já vêm de Editar cadastro.</p></div></div>
+          <div className="mb-6 flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700"><BadgeDollarSign size={24} /></span><div><h2 className="text-xl font-black text-slate-900">Pagamento do extra</h2><p className="text-sm font-semibold text-slate-500">Recibo oficial de prestação de serviços</p></div></div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="sm:col-span-2"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Valor a pagar *</span><div className="mt-1.5 flex min-h-16 items-center rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4"><span className="mr-2 text-xl font-black text-emerald-700">R$</span><input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-3xl font-black text-slate-900 outline-none" placeholder="0,00" /></div></label>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <label className="sm:col-span-2"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Valor total a pagar *</span><div className="mt-1.5 flex min-h-16 items-center rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4"><span className="mr-2 text-xl font-black text-emerald-700">R$</span><input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-3xl font-black text-slate-900 outline-none" placeholder="0,00" /></div></label>
+            <label><span className="text-xs font-black uppercase tracking-wider text-slate-500">Diárias</span><input type="number" step="0.1" min="0.1" value={form.dias_contratados} onChange={e => set("dias_contratados", e.target.value)} className="mt-1.5 min-h-16 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 font-black text-slate-800 outline-none" placeholder="1" /></label>
             <label><span className="text-xs font-black uppercase tracking-wider text-slate-500">Data do trabalho</span><input type="date" value={form.data_trabalho} onChange={e => set("data_trabalho", e.target.value)} className="mt-1.5 min-h-16 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 font-black text-slate-800 outline-none" /></label>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5"><Clock size={14} /> Horário de Início</span>
+              <input type="time" value={form.hora_entrada} onChange={e => set("hora_entrada", e.target.value)} className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none" placeholder="Ex: 15:40" />
+            </label>
+            <label>
+              <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5"><Clock size={14} /> Horário de Término</span>
+              <input type="time" value={form.hora_saida} onChange={e => set("hora_saida", e.target.value)} className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none" placeholder="Ex: 23:40" />
+            </label>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -163,7 +200,30 @@ export default function GerarPagamentoExtraPage() {
           </div>
 
           {form.materiais && <label className="mt-4 block"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Quais materiais?</span><input value={form.descricao_materiais} onChange={e => set("descricao_materiais", e.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: avental, camisa, rádio" /></label>}
-          <label className="mt-4 block"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Forma de pagamento</span><select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none"><option>Pix</option><option>Dinheiro</option><option>Transferência</option></select></label>
+          
+          <div className="mt-4 space-y-3">
+            <label className="block"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Forma de pagamento</span>
+              <select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none">
+                <option>Pix</option>
+                <option>Dinheiro</option>
+                <option>Transferência</option>
+                <option>Híbrido (Pix + Dinheiro)</option>
+              </select>
+            </label>
+
+            {form.forma_pagamento.includes("Híbrido") && (
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 grid gap-3 sm:grid-cols-2 animate-in fade-in">
+                <label>
+                  <span className="text-xs font-black text-emerald-800">Quanto pago no PIX (R$)</span>
+                  <input type="number" min="0" step="0.01" value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 min-h-12 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none" />
+                </label>
+                <label>
+                  <span className="text-xs font-black text-emerald-800">Quanto pago no DINHEIRO (R$)</span>
+                  <input type="number" min="0" step="0.01" value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 min-h-12 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none" />
+                </label>
+              </div>
+            )}
+          </div>
 
           {erro && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{erro}</p>}
           <div className="mt-6 grid gap-3 sm:grid-cols-2"><button onClick={() => salvar(false)} disabled={salvando} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-emerald-200 bg-white font-black text-emerald-700 disabled:opacity-50">{salvando ? <Loader2 className="animate-spin" /> : <Save />} Salvar</button><button onClick={() => salvar(true)} disabled={salvando} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 font-black text-white shadow-lg disabled:opacity-50">{salvando ? <Loader2 className="animate-spin" /> : <><Save /><Printer /></>} Salvar e imprimir</button></div>
@@ -171,7 +231,7 @@ export default function GerarPagamentoExtraPage() {
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-lg font-black text-slate-900">Pagamentos anteriores</h2>
-          {!recibos.length ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Nenhum pagamento gerado.</p> : <div className="mt-4 grid gap-3 sm:grid-cols-2">{recibos.map(recibo => <article key={recibo.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xl font-black text-slate-900">{moeda(recibo.valor_total)}</p><p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-black text-slate-700"><Printer size={15} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1 rounded-xl bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={15} /> : <CheckCircle2 size={15} />}{recibo.pagamento_realizado ? "Pendente" : "Marcar pago"}</button></div></article>)}</div>}
+          {!recibos.length ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Nenhum pagamento gerado.</p> : <div className="mt-4 grid gap-3 sm:grid-cols-2">{recibos.map(recibo => <article key={recibo.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xl font-black text-slate-900">{moeda(recibo.valor_total)}</p><p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-black text-slate-700"><Printer size={15} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1 rounded-xl bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={15} /> : <CheckCircle2 size={15} />}{recibo.pagamento_realizado ? "Pendente" : "Marcar pago"}</button></div></article>)}</div>}
         </section>
       </main>
     </div>

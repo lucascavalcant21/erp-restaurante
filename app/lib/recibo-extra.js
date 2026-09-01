@@ -9,8 +9,23 @@ const moeda = (valor) => Number(valor || 0).toLocaleString("pt-BR", {
   style: "currency", currency: "BRL",
 });
 
-// Nomes fixos em vez de toLocaleDateString: a janela de impressão pode abrir
-// com outro locale e trocar "terça-feira" por "Tuesday" no meio do documento.
+// Formatadores auxiliares para CPF e CNPJ
+function formatarCPF(v) {
+  const limpo = String(v || "").replace(/\D/g, "");
+  if (limpo.length === 11) {
+    return limpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  }
+  return String(v || "");
+}
+
+function formatarCNPJ(v) {
+  const limpo = String(v || "").replace(/\D/g, "");
+  if (limpo.length === 14) {
+    return limpo.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  }
+  return String(v || "");
+}
+
 const DIAS_SEMANA = [
   "domingo", "segunda-feira", "terça-feira", "quarta-feira",
   "quinta-feira", "sexta-feira", "sábado",
@@ -20,7 +35,6 @@ const MESES = [
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
 ];
 
-// Meio-dia evita o recuo de fuso que joga a data para o dia anterior.
 const comoData = (iso) => iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00`) : null;
 const diaSemana = (iso) => { const d = comoData(iso); return d ? DIAS_SEMANA[d.getDay()] : ""; };
 const diaDoMes = (iso) => { const d = comoData(iso); return d ? d.getDate() : ""; };
@@ -29,8 +43,6 @@ const porExtenso = (iso) => {
   return d ? `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}` : "—";
 };
 
-// "18 e 25 de agosto de 2026" quando cabe no mesmo mês; a forma longa só quando
-// o período atravessa mês ou ano, para o texto não ficar repetitivo à toa.
 function periodoPorExtenso(inicio, fim) {
   const a = comoData(inicio);
   const b = comoData(fim);
@@ -45,7 +57,6 @@ function periodoPorExtenso(inicio, fim) {
   return `${porExtenso(inicio)} e ${porExtenso(fim)}`;
 }
 
-// "terça-feira (18), quarta-feira (19) e quinta-feira (20)"
 function listarComE(itens) {
   const lista = itens.filter(Boolean);
   if (lista.length === 0) return "";
@@ -53,8 +64,6 @@ function listarComE(itens) {
   return `${lista.slice(0, -1).join(", ")} e ${lista[lista.length - 1]}`;
 }
 
-// Todos os dias entre o primeiro e o último trabalhado, para descobrir quais
-// ficaram de fora: é dessa diferença que sai a frase de "não houve expediente".
 function diasDoPeriodo(inicio, fim) {
   const a = comoData(inicio);
   const b = comoData(fim);
@@ -66,14 +75,9 @@ function diasDoPeriodo(inicio, fim) {
   return dias;
 }
 
-// Linha de dinheiro só aparece se houver valor.
 const linhaValor = (rot, valor, sinal = "") =>
   Number(valor) ? `<tr><td>${esc(rot)}</td><td>${sinal}${moeda(valor)}</td></tr>` : "";
 
-// ── TEXTOS EDITÁVEIS ────────────────────────────────────────────────────────
-// Cada casa escreve o recibo com as próprias palavras. Em vez de fixar no
-// código, tudo isto fica em config_sistema.params.recibo_textos — mesmo padrão
-// dos portais, sem migração.
 export const RECIBO_TEXTOS_PADRAO = {
   titulo: "RECIBO DE PAGAMENTO E SERVIÇO PRESTADO",
   responsavel_nome: "",
@@ -93,10 +97,8 @@ function normalizarTextos(config) {
   const saida = {};
   for (const chave of Object.keys(RECIBO_TEXTOS_PADRAO)) {
     const valor = String(base[chave] ?? "").trim().slice(0, LIMITES[chave]);
-    // Só o título é obrigatório; os demais em branco somem do papel de propósito.
     saida[chave] = chave === "titulo" ? (valor || RECIBO_TEXTOS_PADRAO.titulo) : valor;
   }
-  // Primeira gravação: quem nunca configurou recebe os textos de exemplo.
   if (!config) return { ...RECIBO_TEXTOS_PADRAO };
   return saida;
 }
@@ -116,13 +118,12 @@ export async function salvarReciboTextos(unidadeId, textos) {
   if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade específica." };
   const recibo_textos = normalizarTextos(textos);
 
-  // Merge atômico quando a função existe: não pisa nas outras chaves do JSON.
   try {
     const { error } = await supabase.rpc("merge_config_sistema_params", {
       p_unidade_id: unidadeId, p_patch: { recibo_textos },
     });
     if (!error) return { data: recibo_textos, error: null };
-  } catch { /* função ainda não criada — grava lendo e reescrevendo o JSON */ }
+  } catch {}
 
   const { data: registros, error: erroLeitura } = await supabase
     .from("config_sistema").select("id, params").eq("unidade_id", unidadeId).limit(1);
@@ -138,26 +139,33 @@ export async function salvarReciboTextos(unidadeId, textos) {
   return { data: recibo_textos, error: error?.message || null };
 }
 
-// Monta o HTML do recibo. Usado tanto pela impressão quanto pela pré-visualização
-// ao lado do formulário, que atualiza a cada tecla.
-//
-// `unidade` é o registro inteiro da tabela unidades: dele saem razão social,
-// CNPJ e cidade/UF. O nome solto continua aceito para chamadas antigas.
 export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }) {
   const t = normalizarTextos(textos);
   const dados = recibo?.dados || {};
   const emp = unidade || {};
 
   const empresa = emp.razao_social || emp.nome_fantasia || emp.nome || unidadeNome || "Restaurante";
-  const cnpj = String(emp.cnpj || "").trim();
+  const cnpjRaw = String(emp.cnpj || "").trim();
+  const cnpj = formatarCNPJ(cnpjRaw);
   const cidadeUf = [emp.cidade, emp.uf].filter(Boolean).join("/");
 
   const nome = String(dados.nome || extra?.nome || "").trim() || "—";
-  const cpf = String(dados.cpf || extra?.cpf || "").trim();
+  const cpfRaw = String(dados.cpf || extra?.cpf || "").trim();
+  const cpf = formatarCPF(cpfRaw);
   const funcao = String(recibo?.funcao || dados.funcao || extra?.cargo || "").trim() || "prestador de serviço";
 
-  // Só os dias efetivamente trabalhados entram aqui; o que faltar no meio do
-  // intervalo vira a frase de folga mais abaixo.
+  // Endereço completo do funcionário extra
+  const rua = String(dados.endereco || dados.rua_av || extra?.endereco || extra?.rua_av || "").trim();
+  const numCasa = String(dados.numero_casa || extra?.numero_casa || "").trim();
+  const bairro = String(dados.bairro || extra?.bairro || "").trim();
+  const cidadeColab = String(dados.cidade_uf || extra?.cidade_uf || "").trim();
+
+  const partesEndereco = [];
+  if (rua) partesEndereco.push(numCasa ? `${rua}, nº ${numCasa}` : rua);
+  if (bairro) partesEndereco.push(bairro);
+  if (cidadeColab) partesEndereco.push(cidadeColab);
+  const enderecoCompleto = partesEndereco.join(" - ");
+
   const trabalhados = (Array.isArray(recibo?.datas_contratadas) && recibo.datas_contratadas.length
     ? [...recibo.datas_contratadas]
     : [recibo?.data_trabalho].filter(Boolean)
@@ -167,9 +175,10 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
   const fim = trabalhados[trabalhados.length - 1] || inicio;
   const folgas = diasDoPeriodo(inicio, fim).filter((d) => !trabalhados.includes(d));
 
-  const dias = trabalhados.length || Math.max(1, Number(recibo?.dias_contratados) || 1);
+  const diasNum = Number(recibo?.dias_contratados) || 1;
+  const diasFormatado = (diasNum % 1 === 0) ? String(diasNum) : diasNum.toLocaleString("pt-BR", { minimumFractionDigits: 1 });
   const diaria = Number(recibo?.valor_diaria || 0);
-  const base = diaria * dias;
+  const base = Number(recibo?.valor_total) || (diaria * diasNum);
   const transporte = Number(dados.vale_transporte || 0);
   const adicional = Number(dados.adicional || 0);
   const descontos = Number(dados.descontos || 0);
@@ -178,18 +187,28 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
   const b = (texto) => `<strong>${esc(texto)}</strong>`;
 
   // ── Parágrafo de abertura ──
-  const abertura = `Declaro, para os devidos fins, que ${b(nome)}${cpf ? `, inscrito no CPF nº ${b(cpf)}` : ""}, ` +
+  const abertura = `Declaro, para os devidos fins, que ${b(nome)}${cpf ? `, inscrito no CPF nº ${b(cpf)}` : ""}` +
+    `${enderecoCompleto ? `, residente e domiciliado(a) em ${b(enderecoCompleto)}` : ""}, ` +
     `prestou serviços como ${b(funcao)} no ${b(empresa)}${cnpj ? `, inscrito no CNPJ nº ${b(cnpj)}` : ""}, ` +
     `no período compreendido entre ${b(periodoPorExtenso(inicio, fim))}.`;
 
-  // ── Parágrafo dos dias ──
-  const entrada = String(recibo?.hora_entrada || dados.entrada || "").trim();
+  // ── Parágrafo dos dias e horários (início e fim) ──
+  const entrada = String(recibo?.hora_entrada || dados.entrada || extra?.horario_entrada || "").trim();
+  const saida = String(recibo?.hora_saida || dados.saida || extra?.horario_saida || "").trim();
+
+  let horarioTexto = "";
+  if (entrada && saida) {
+    horarioTexto = `, das ${b(entrada)} às ${b(saida)}`;
+  } else if (entrada) {
+    horarioTexto = `, às ${b(entrada)}`;
+  } else if (saida) {
+    horarioTexto = `, com término às ${b(saida)}`;
+  }
+
   const partes = [
-    `A prestação de serviços teve início na ${b(`${diaSemana(inicio)}, dia ${porExtenso(inicio)}`)}` +
-    `${entrada ? `, às ${b(entrada)}` : ""}.`,
+    `A prestação de serviços teve início na ${b(`${diaSemana(inicio)}, dia ${porExtenso(inicio)}`)}${horarioTexto}.`,
   ];
-  // Quando há folga no meio, a lista para antes dela: o dia da volta é dito na
-  // frase seguinte, e repetir os dois lugares fica redundante no papel.
+
   const ateAFolga = folgas.length ? trabalhados.filter((d) => d < folgas[0]) : trabalhados;
   if (ateAFolga.length > 1) {
     partes.push(`No período referente a este recibo, o prestador trabalhou na ` +
@@ -204,10 +223,30 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
     );
   }
 
-  // ── Pagamento ──
+  // ── Forma de Pagamento Única ou Híbrida ──
   const forma = String(recibo?.forma_pagamento || "").trim();
-  const pagamento = `O pagamento referente aos serviços prestados é realizado ${b("ao final de cada turno de trabalho")}` +
-    `${forma ? `, podendo ser efetuado ${b(`via ${forma}`)}` : ""}.`;
+  const valPix = Number(dados.valor_pix || 0);
+  const valDinheiro = Number(dados.valor_dinheiro || 0);
+
+  let pagamentoFormaTexto = "";
+  if (valPix > 0 && valDinheiro > 0) {
+    pagamentoFormaTexto = `de forma híbrida, sendo ${b(`${moeda(valPix)} via Pix`)} e ${b(`${moeda(valDinheiro)} em Dinheiro`)}`;
+  } else if (forma.toLowerCase().includes("híbrido") || forma.toLowerCase().includes("hibrido")) {
+    if (valPix > 0 || valDinheiro > 0) {
+      const partesPag = [];
+      if (valPix > 0) partesPag.push(`${moeda(valPix)} via Pix`);
+      if (valDinheiro > 0) partesPag.push(`${moeda(valDinheiro)} em Dinheiro`);
+      pagamentoFormaTexto = `de forma híbrida, sendo ${b(listarComE(partesPag))}`;
+    } else {
+      pagamentoFormaTexto = `de forma híbrida (Pix + Dinheiro)`;
+    }
+  } else if (forma) {
+    pagamentoFormaTexto = `efetuado via ${b(forma)}`;
+  } else {
+    pagamentoFormaTexto = `efetuado via Pix`;
+  }
+
+  const pagamento = `O pagamento referente aos serviços prestados é realizado ${b("ao final de cada turno de trabalho")}, podendo ser ${pagamentoFormaTexto}.`;
 
   const hoje = new Date();
   const emissao = `${hoje.getDate()} de ${MESES[hoje.getMonth()]} de ${hoje.getFullYear()}`;
@@ -242,7 +281,7 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
 
     <table><tbody>
       <tr><td>Diária acordada</td><td>${moeda(diaria)}</td></tr>
-      <tr><td>Dias trabalhados</td><td>${dias}</td></tr>
+      <tr><td>Dias trabalhados / Diária</td><td>${diasFormatado}</td></tr>
       <tr><td>Subtotal das diárias</td><td>${moeda(base)}</td></tr>
       ${linhaValor("Vale-transporte", transporte)}
       ${linhaValor("Adicional / bônus", adicional)}

@@ -125,9 +125,6 @@ export default function GerarPagamentoExtraPage() {
       funcao: extra?.cargo || "Extra",
       janta_ofertada: !!form.alimentacao,
       itens,
-      taxa_servico: form.desmembrar ? valTaxaServico : 0,
-      inss: form.desmembrar ? valInss : 0,
-      fgts: form.desmembrar ? valFgts : 0,
       dados: {
         nome: extra?.nome || "", cpf: extra?.cpf || "", rg: extra?.rg || "",
         telefone: extra?.telefone || "", chave_pix: extra?.chave_pix || "",
@@ -212,7 +209,7 @@ export default function GerarPagamentoExtraPage() {
             <label className="sm:col-span-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valor Total a Pagar *</span>
               <div className="mt-1 flex h-12 items-center rounded-xl border-2 border-emerald-400 bg-emerald-50/70 px-3">
-                <span className="mr-1.5 text-lg font-black text-emerald-700">R$</span>
+                <span className="mr-2 text-lg font-black text-emerald-700 shrink-0 whitespace-nowrap leading-none">R$</span>
                 <input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-slate-900 outline-none" placeholder="0,00" />
               </div>
             </label>

@@ -2787,8 +2787,19 @@ function FichasRunner() {
                                           </strong>
                                         </div>
                                       )}
+                                      {/* O CMV conta ingrediente + embalagem, e NÃO imposto e
+                                          cartão: é assim que a conta se compara com a meta
+                                          e com o resto do mercado. Sem dizer isso, o card
+                                          mostra "custo total R$ 7,40" ao lado de "CMV
+                                          39,8%" e parece erro de conta — 7,40 de 15,00
+                                          seriam 49%. O lucro acima é que desconta tudo. */}
                                       <div className="flex min-h-12 items-center justify-between gap-3">
-                                        <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
+                                        <span className="text-sm font-black text-slate-600">
+                                          {f.eh_base ? "Custo total" : "CMV"}
+                                          {!f.eh_base && custoAgregados > 0 && (
+                                            <small className="block text-[10px] font-bold text-slate-400">só ingrediente e embalagem</small>
+                                          )}
+                                        </span>
                                         {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
                                       </div>
                                     </div>

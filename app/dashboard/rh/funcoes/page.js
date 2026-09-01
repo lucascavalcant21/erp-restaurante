@@ -361,49 +361,71 @@ export default function GuiaDeFuncoes() {
   const imprimir = () => {
     const win = window.open("", "_blank");
     if (!win) return alert("Habilite pop-ups para imprimir.");
-    const paginas = funcoesOrdenadas.map((f, indice) => `
-      <section class="pagina${indice < funcoesOrdenadas.length - 1 ? " quebra" : ""}">
-        <h1>${esc(f.funcao || "(sem nome)")}</h1>
-        <p class="sub">${esc(f.setor || "")} · ${esc(unidadeInfo?.nome || "")}</p>
-        <table>
-          <thead><tr><th class="h">Horário</th><th>Etapa e tarefas</th></tr></thead>
-          <tbody>
-            ${f.blocos.map(b => {
-              const horarios = b.horarios || [];
-              return `<tr class="periodo"><td colspan="2"><b>${esc(b.titulo || "Período")}</b><span>${esc(periodoDoBloco(b))}</span></td></tr>
-                ${horarios.map(horario => {
-                  const tarefas = tarefasDoHorario(horario).filter(tarefa => tarefa.trim());
-                  return `<tr class="${horario.intervalo ? "pausa" : ""}">
-                    <td class="h">${esc(periodoDoHorario(horario))}</td>
-                    <td>${horario.intervalo ? "<b>INTERVALO</b>" : (tarefas.length ? `<ul>${tarefas.map(tarefa => `<li>${esc(tarefa)}</li>`).join("")}</ul>` : "")}</td>
-                  </tr>`;
-                }).join("")}`;
-            }).join("")}
-          </tbody>
-        </table>
-      </section>`).join("");
 
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia de Funções</title><style>
+    const listaPaginas = [];
+
+    funcoesOrdenadas.forEach((f) => {
+      const blocos = (f.blocos || []).filter(b => (b.horarios || []).length > 0);
+      if (!blocos.length) return;
+
+      blocos.forEach((b) => {
+        const horarios = b.horarios || [];
+        const temTituloPeriodo = b.titulo && b.titulo !== "Período" && b.titulo.trim();
+        const tituloPeriodo = temTituloPeriodo ? b.titulo : "";
+        const duracaoPeriodo = periodoDoBloco(b);
+
+        const tabelaHtml = `
+          <table>
+            <thead>
+              <tr>
+                <th class="h">Horário</th>
+                <th>Etapa e tarefas ${duracaoPeriodo && duracaoPeriodo !== "—" ? `(${esc(duracaoPeriodo)})` : ""}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${horarios.map(horario => {
+                const tarefas = tarefasDoHorario(horario).filter(tarefa => tarefa.trim());
+                return `<tr class="${horario.intervalo ? "pausa" : ""}">
+                  <td class="h">${esc(periodoDoHorario(horario))}</td>
+                  <td>${horario.intervalo ? "<b>INTERVALO</b>" : (tarefas.length ? `<ul>${tarefas.map(tarefa => `<li>${esc(tarefa)}</li>`).join("")}</ul>` : "")}</td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        `;
+
+        listaPaginas.push(`
+          <section class="pagina quebra">
+            <div class="topo" style="border-left: 6px solid ${esc(f.cor || "#0f172a")}">
+              <h1>${esc(f.funcao || "(sem nome)")}${tituloPeriodo ? ` — ${esc(tituloPeriodo)}` : ""}</h1>
+              <p class="sub">${esc(f.setor || "")} · ${esc(unidadeInfo?.nome || "")}${duracaoPeriodo && duracaoPeriodo !== "—" ? ` · Turno: ${esc(duracaoPeriodo)}` : ""}</p>
+            </div>
+            ${tabelaHtml}
+          </section>
+        `);
+      });
+    });
+
+    const paginasHtml = listaPaginas.join("");
+
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia de Funções — Cartaz</title><style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .pagina{padding:14mm}
-      .quebra{page-break-after:always}
-      .marca{display:flex;justify-content:center;margin-bottom:10px}
-      .faixa{height:6px;border-radius:99px;margin-bottom:10px}
-      h1{font-size:30px;text-transform:uppercase;letter-spacing:1px;line-height:1.05}
-      .sub{font-size:12px;font-weight:bold;color:#64748b;margin:4px 0 14px}
-      table{width:100%;border-collapse:collapse;font-size:14px}
-      th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
-      th{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#475569;border-bottom:2px solid #cbd5e1}
-      .h{white-space:nowrap;font-weight:900;font-size:16px;width:34%;color:#0f172a}
-      ul{margin:0;padding-left:18px}li{margin:3px 0;line-height:1.35}
-      tr.periodo td{background:#e2e8f0;padding:9px 10px;border-bottom:0}
-      tr.periodo b{font-size:14px;text-transform:uppercase;letter-spacing:.7px;font-weight:900}
-      tr.periodo span{float:right;font-size:15px;font-weight:900;color:#0f172a}
-      tr.pausa td{background:#f1f5f9;font-weight:bold}
-      .rodape{margin-top:14px;font-size:10px;color:#94a3b8;font-weight:bold}
-      @media print{@page{margin:0}}
-    </style></head><body>${paginas}</body></html>`);
+      @page{size:A4 portrait;margin:8mm 10mm}
+      body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff}
+      .pagina{page-break-after:always;page-break-inside:avoid;min-height:92vh;max-height:100vh;overflow:hidden;padding:2mm 0}
+      .pagina:last-child{page-break-after:auto}
+      .topo{padding-left:12px;margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:8px}
+      h1{font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;line-height:1.1;color:#0f172a}
+      .sub{font-size:11px;font-weight:700;color:#64748b;margin-top:3px}
+      table{width:100%;border-collapse:collapse;font-size:12px}
+      th,td{padding:6px 8px;border-bottom:1px solid #cbd5e1;text-align:left;vertical-align:top}
+      th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#334155;border-bottom:2px solid #0f172a;background:#f1f5f9;font-weight:900}
+      .h{white-space:nowrap;font-weight:900;font-size:13px;width:26%;color:#0f172a}
+      ul{margin:0;padding-left:16px}
+      li{margin:2px 0;line-height:1.3;font-size:12px;font-weight:600}
+      tr.pausa td{background:#fef3c7;color:#92400e;font-weight:900}
+      @media print{@page{margin:6mm 8mm}}
+    </style></head><body>${paginasHtml}</body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 400);
   };

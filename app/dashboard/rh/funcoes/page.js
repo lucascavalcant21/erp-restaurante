@@ -345,8 +345,6 @@ export default function GuiaDeFuncoes() {
     if (!win) return alert("Habilite pop-ups para imprimir.");
     const paginas = funcoesOrdenadas.map((f, indice) => `
       <section class="pagina${indice < funcoesOrdenadas.length - 1 ? " quebra" : ""}">
-        <div class="marca">${logoSeldeestrelaSVG(38)}</div>
-        <div class="faixa" style="background:${esc(f.cor)}"></div>
         <h1>${esc(f.funcao || "(sem nome)")}</h1>
         <p class="sub">${esc(f.setor || "")} · ${esc(unidadeInfo?.nome || "")}</p>
         <table>
@@ -365,7 +363,6 @@ export default function GuiaDeFuncoes() {
             }).join("")}
           </tbody>
         </table>
-        <p class="rodape">Guia de funções · impresso em ${new Date().toLocaleDateString("pt-BR")}</p>
       </section>`).join("");
 
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia de Funções</title><style>
@@ -380,11 +377,11 @@ export default function GuiaDeFuncoes() {
       table{width:100%;border-collapse:collapse;font-size:14px}
       th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
       th{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#475569;border-bottom:2px solid #cbd5e1}
-      .h{white-space:nowrap;font-weight:bold;width:34%}
+      .h{white-space:nowrap;font-weight:900;font-size:16px;width:34%;color:#0f172a}
       ul{margin:0;padding-left:18px}li{margin:3px 0;line-height:1.35}
-      tr.periodo td{background:#e2e8f0;padding:8px 10px;border-bottom:0}
-      tr.periodo b{font-size:12px;text-transform:uppercase;letter-spacing:.7px}
-      tr.periodo span{float:right;font-size:11px;font-weight:bold;color:#475569}
+      tr.periodo td{background:#e2e8f0;padding:9px 10px;border-bottom:0}
+      tr.periodo b{font-size:14px;text-transform:uppercase;letter-spacing:.7px;font-weight:900}
+      tr.periodo span{float:right;font-size:15px;font-weight:900;color:#0f172a}
       tr.pausa td{background:#f1f5f9;font-weight:bold}
       .rodape{margin-top:14px;font-size:10px;color:#94a3b8;font-weight:bold}
       @media print{@page{margin:0}}
@@ -422,27 +419,25 @@ export default function GuiaDeFuncoes() {
       table{width:100%;border-collapse:collapse;font-size:12px}
       th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
       th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
-      td.h{white-space:nowrap;font-weight:bold;width:22%}
+      td.h{white-space:nowrap;font-weight:900;font-size:14px;width:22%;color:#0f172a}
       ul{margin:0;padding-left:16px}li{margin:2px 0;line-height:1.3}
       td:first-child{width:8px;padding:0}
       tr.grupo td{background:#0f172a;color:#fff;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:1px;padding:7px 10px}
       tr.grupo small{display:block;font-size:9px;font-weight:bold;letter-spacing:1px;color:#cbd5e1;text-transform:none}
-      tr.periodo td{background:#e2e8f0;padding:6px 8px;border-bottom:0}
-      tr.periodo b{font-size:10px;text-transform:uppercase;letter-spacing:.6px}
-      tr.periodo span{float:right;font-size:10px;font-weight:bold;color:#475569}
+      tr.periodo td{background:#e2e8f0;padding:7px 9px;border-bottom:0}
+      tr.periodo b{font-size:12px;text-transform:uppercase;letter-spacing:.6px;font-weight:900}
+      tr.periodo span{float:right;font-size:14px;font-weight:900;color:#0f172a}
       tr.pausa td{background:#f1f5f9;font-weight:bold}
       tr{page-break-inside:avoid}
       .nota{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:10px;color:#64748b;line-height:1.5}
       @media print{@page{margin:10mm}}
     </style></head><body>
-      <div class="marca">${logoSeldeestrelaSVG(38)}</div>
       <h1>Guia de Funções</h1>
       <div class="sub">${esc(unidadeInfo?.nome || "")} · ${new Date().toLocaleDateString("pt-BR")} · ${funcoesOrdenadas.length} função(ões)</div>
       <table>
         <thead><tr><th></th><th>Horário</th><th>Etapa e tarefas</th></tr></thead>
         <tbody>${linhas}</tbody>
       </table>
-      <p class="nota">Guia por função, sem nomes: quem cobre o turno de alguém segue a mesma linha. As faixas cinzas são os intervalos.</p>
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 400);

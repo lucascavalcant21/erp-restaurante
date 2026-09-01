@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Briefcase, CheckCircle2, DollarSign, FileClock, Loader2,
-  Check, Copy, ExternalLink, Pencil, Phone, Plus, Printer, ReceiptText, Search, UserPlus, UsersRound,
+  ArrowLeft, Briefcase, Check, CheckCircle2, Copy, DollarSign, ExternalLink,
+  FileClock, Loader2, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search, UserPlus, UsersRound,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
@@ -23,6 +23,7 @@ export default function CadastroExtrasPage() {
   const [refPagamento, setRefPagamento] = useState(() => new Date());
   const [carregando, setCarregando] = useState(true);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [menuPortalAberto, setMenuPortalAberto] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -49,8 +50,6 @@ export default function CadastroExtrasPage() {
   const pendentes = recibos.filter((recibo) => !recibo.pagamento_realizado);
   const totalPendente = pendentes.reduce((soma, recibo) => soma + Number(recibo.valor_total || 0), 0);
 
-  // Quanto já foi pago no recorte escolhido: dia, semana ou mês, andando
-  // para trás quando quiser conferir o mês passado.
   const faixaPagamentos = useMemo(() => faixaCompras(refPagamento, periodo), [refPagamento, periodo]);
   const pagosNoPeriodo = useMemo(() => {
     const de = isoData(faixaPagamentos.de), ate = isoData(faixaPagamentos.ate);
@@ -62,58 +61,180 @@ export default function CadastroExtrasPage() {
   }, [recibos, faixaPagamentos]);
   const totalPago = pagosNoPeriodo.reduce((soma, r) => soma + Number(r.valor_total || 0), 0);
 
+  const copiarLinkPortal = () => {
+    const link = window.location.origin + "/extras/" + unidadeAtiva;
+    navigator.clipboard?.writeText(link);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 2500);
+  };
+
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-7">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" aria-label="Voltar à tela anterior"><ArrowLeft size={20} /></button>
-            <div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Módulo exclusivo</p><h1 className="text-2xl font-black tracking-tight sm:text-3xl">Extras</h1><p className="text-sm font-medium text-slate-500">Cadastro e recibos · {unidadeInfo?.nome || "unidade selecionada"}</p></div>
+    <div className="min-h-screen bg-slate-100/80 pb-16 text-slate-900">
+      {/* HEADER COMPACTO E ORGANIZADO */}
+      <header className="border-b border-slate-200 bg-white px-4 py-3.5 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" aria-label="Voltar"><ArrowLeft size={18} /></button>
+            <div>
+              <h1 className="text-xl font-black text-slate-900">Extras</h1>
+              <p className="text-xs font-semibold text-slate-500">Cadastro e recibos · {unidadeInfo?.nome || "unidade ativa"}</p>
+            </div>
           </div>
-          <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 font-black text-white shadow-sm hover:bg-emerald-700"><UserPlus size={18} /> Cadastrar novo extra</button><button onClick={() => router.push("/dashboard/rh/extra/banco")} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-5 font-black text-emerald-700 hover:bg-emerald-50"><UsersRound size={18}/> Banco de extras</button><button onClick={() => router.push("/dashboard/rh/extra/portal")} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-5 font-black text-emerald-700 hover:bg-emerald-50"><Pencil size={18}/> Editar portal</button><button onClick={() => { const link = window.location.origin + "/extras/" + unidadeAtiva; navigator.clipboard?.writeText(link); setLinkCopiado(true); setTimeout(() => setLinkCopiado(false), 2500); }} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-5 font-black text-emerald-700 hover:bg-emerald-50">{linkCopiado ? <><Check size={18}/> Link copiado</> : <><Copy size={18}/> Copiar link</>}</button><a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-5 font-black text-emerald-700 hover:bg-emerald-50"><ExternalLink size={18}/> Abrir portal</a>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-black text-white shadow-sm hover:bg-emerald-700">
+              <UserPlus size={15} /> Cadastrar extra
+            </button>
+            <button onClick={() => router.push("/dashboard/rh/extra/banco")} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-black text-slate-700 hover:bg-slate-50">
+              <UsersRound size={15}/> Banco
+            </button>
+
+            {/* Menu Dropdown do Portal para economizar espaço */}
+            <div className="relative">
+              <button onClick={() => setMenuPortalAberto(a => !a)} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50">
+                Portal <MoreHorizontal size={15}/>
+              </button>
+              {menuPortalAberto && (
+                <div className="absolute right-0 top-11 z-20 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl text-xs font-bold">
+                  <button onClick={() => { setMenuPortalAberto(false); router.push("/dashboard/rh/extra/portal"); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"><Pencil size={14}/> Editar portal</button>
+                  <button onClick={() => { setMenuPortalAberto(false); copiarLinkPortal(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50">{linkCopiado ? <Check size={14} className="text-emerald-600"/> : <Copy size={14}/>} {linkCopiado ? "Link copiado!" : "Copiar link"}</button>
+                  <a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" onClick={() => setMenuPortalAberto(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"><ExternalLink size={14}/> Abrir portal</a>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-7">
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><UsersRound size={20} /></span><strong className="text-3xl text-slate-900">{extras.length}</strong></div><p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-500">Extras cadastrados</p></div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-100 text-blue-700"><ReceiptText size={20} /></span><strong className="text-3xl text-slate-900">{recibos.length}</strong></div><p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-500">Recibos emitidos</p></div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm"><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-700"><DollarSign size={20} /></span><strong className="text-2xl text-amber-950">{fmtBRL(totalPendente)}</strong></div><p className="mt-3 text-xs font-black uppercase tracking-wider text-amber-700">Pagamentos pendentes</p></div>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><DollarSign size={20} /></span>
-              <strong className="text-2xl text-slate-900">{fmtBRL(totalPago)}</strong>
+      <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6">
+        {/* MÉTRICAS COMPACTAS (4 COLUNAS EM GRID DIRETO) */}
+        <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Cadastrados</span>
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><UsersRound size={16} /></span>
             </div>
-            <p className="mt-3 text-xs font-black uppercase tracking-wider text-emerald-700">Pago no período</p>
-            <div className="mt-2 flex rounded-lg border border-slate-200 p-0.5">
-              {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"]].map(([v, r]) => (
-                <button key={v} onClick={() => setPeriodo(v)}
-                  className={`h-8 flex-1 rounded-md text-[11px] font-black ${periodo === v ? "bg-emerald-600 text-white" : "text-slate-500 hover:bg-slate-50"}`}>{r}</button>
-              ))}
+            <p className="mt-2 text-2xl font-black text-slate-900">{extras.length}</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Recibos Emitidos</span>
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReceiptText size={16} /></span>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-1">
-              <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, -1))} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&lsaquo;</button>
-              <span className="flex-1 truncate text-center text-[11px] font-black capitalize text-slate-600">{rotuloPeriodo(faixaPagamentos, periodo)}</span>
-              <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, 1))} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&rsaquo;</button>
+            <p className="mt-2 text-2xl font-black text-slate-900">{recibos.length}</p>
+          </div>
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">Pendentes</span>
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-800"><DollarSign size={16} /></span>
             </div>
-            <p className="mt-1 text-[11px] font-bold text-slate-400">{pagosNoPeriodo.length} recibo(s) pago(s)</p>
+            <p className="mt-2 text-xl font-black text-amber-950">{fmtBRL(totalPendente)}</p>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200 bg-white p-3.5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">Pago no período</span>
+              <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg">
+                {[["dia", "Dia"], ["semana", "Sem."], ["mes", "Mês"]].map(([v, r]) => (
+                  <button key={v} onClick={() => setPeriodo(v)} className={`px-2 py-0.5 rounded text-[10px] font-black ${periodo === v ? "bg-emerald-600 text-white" : "text-slate-600"}`}>{r}</button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between">
+              <p className="text-xl font-black text-slate-900">{fmtBRL(totalPago)}</p>
+              <div className="flex items-center gap-1 text-[11px] font-black text-slate-500">
+                <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, -1))} className="px-1 hover:text-slate-900">&lsaquo;</button>
+                <span className="capitalize">{rotuloPeriodo(faixaPagamentos, periodo)}</span>
+                <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, 1))} className="px-1 hover:text-slate-900">&rsaquo;</button>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><ReceiptText className="mt-0.5 shrink-0 text-emerald-700" size={22} /><div><p className="font-black text-emerald-950">Cadastro totalmente ligado ao recibo</p><p className="mt-1 text-sm font-medium text-emerald-800">Nome, CPF, PIX, função, diária, horário e itens emprestados entram automaticamente. Cada recibo fica salvo no histórico da pessoa.</p></div></div></section>
+        {/* CONTEÚDO PRINCIPAL: EXTRAS + SIDEBAR DE RECIBOS MAIS COMPACTA */}
+        <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+          <section className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-3 text-slate-400" size={18} />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, função ou telefone..." className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold outline-none focus:border-emerald-500 shadow-sm" />
+            </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <section className="space-y-4">
-            <div className="relative"><Search className="absolute left-4 top-3.5 text-slate-400" size={20} /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, função ou telefone..." className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 font-semibold outline-none focus:border-emerald-500" /></div>
+            {!unidadeAtiva || unidadeAtiva === "todas" ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center font-bold text-slate-500">Selecione uma unidade específica para acessar os extras.</div>
+            ) : carregando ? (
+              <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+            ) : filtrados.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                <UsersRound className="mx-auto text-slate-300" size={36} />
+                <p className="mt-2 font-black text-slate-700">Nenhum extra encontrado</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {filtrados.map((extra) => (
+                  <article key={extra.id} className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-emerald-300">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-slate-900">{extra.nome}</p>
+                        <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-slate-500"><Briefcase size={12} /> {extra.cargo || "Extra"}</p>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-700">Ativo</span>
+                    </div>
 
-            {!unidadeAtiva || unidadeAtiva === "todas" ? <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">Selecione uma unidade específica para acessar os extras.</div> : carregando ? <div className="grid min-h-52 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div> : filtrados.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><UsersRound className="mx-auto text-slate-300" size={42} /><p className="mt-3 font-black text-slate-700">Nenhum extra encontrado</p><p className="mt-1 text-sm text-slate-500">Cadastre o primeiro freelancer ou diarista desta unidade.</p></div> : <div className="grid gap-3 sm:grid-cols-2">{filtrados.map((extra) => <article key={extra.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md">
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-base font-black text-slate-900">{extra.nome}</p><p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-slate-500"><Briefcase size={13} /> {extra.cargo || "Extra"}</p></div><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-700">Cadastrado</span></div>
-              <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-sm font-semibold text-slate-600"><p className="flex items-center gap-2"><Phone size={14} className="text-emerald-600" /> {extra.telefone || "Telefone não informado"}</p><p className="flex items-center gap-2"><DollarSign size={14} className="text-emerald-600" /> Diária: {fmtBRL(extra.salario)}</p></div>
-              <div className="mt-4 grid grid-cols-2 gap-2"><button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-black text-slate-700 hover:bg-slate-200"><Pencil size={16} /> Editar</button><button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}/recibo`)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"><Plus size={16} /> Recibo</button></div>
-            </article>)}</div>}
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs font-semibold text-slate-600">
+                      <span className="flex items-center gap-1"><Phone size={13} className="text-emerald-600" /> {extra.telefone || "Sem fone"}</span>
+                      <span className="font-black text-slate-900">Diária: {fmtBRL(extra.salario)}</span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 text-xs font-black text-slate-700 hover:bg-slate-200">
+                        <Pencil size={14} /> Editar
+                      </button>
+                      <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}/recibo`)} className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700">
+                        <Plus size={14} /> Recibo
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
 
-          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4"><div className="flex items-center gap-2"><FileClock className="text-emerald-600" size={20} /><h2 className="font-black">Recibos recentes</h2></div>{recibos.length === 0 ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Os recibos emitidos aparecerão aqui.</p> : <div className="mt-4 space-y-3">{recibos.slice(0, 8).map((recibo) => <button key={recibo.id} onClick={() => router.push(`/dashboard/rh/extra/${recibo.colaborador_id}/recibo`)} className="w-full rounded-xl border border-slate-200 p-3 text-left hover:border-emerald-300"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-black text-slate-800">{nomes[recibo.colaborador_id] || recibo.dados?.nome || "Profissional extra"}</p>{recibo.pagamento_realizado ? <CheckCircle2 className="shrink-0 text-emerald-600" size={16} /> : <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" />}</div><div className="mt-1 flex items-center justify-between text-xs font-bold text-slate-500"><span>{dataBR(recibo.data_trabalho)}</span><span>{fmtBRL(recibo.valor_total)}</span></div></button>)}</div>}</aside>
+          {/* SIDEBAR DE RECIBOS RECENTES ENXUTA E COMPACTA */}
+          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm lg:sticky lg:top-4">
+            <div className="flex items-center gap-2 mb-3">
+              <FileClock className="text-emerald-600" size={18} />
+              <h2 className="text-sm font-black text-slate-900">Recibos recentes</h2>
+            </div>
+
+            {recibos.length === 0 ? (
+              <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">Nenhum recibo emitido.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-0.5">
+                {recibos.slice(0, 10).map((recibo) => (
+                  <button
+                    key={recibo.id}
+                    onClick={() => router.push(`/dashboard/rh/extra/${recibo.colaborador_id}/recibo`)}
+                    className="w-full rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-left hover:border-emerald-300 hover:bg-white transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs font-black text-slate-800">{nomes[recibo.colaborador_id] || recibo.dados?.nome || "Extra"}</p>
+                      {recibo.pagamento_realizado ? (
+                        <CheckCircle2 className="shrink-0 text-emerald-600" size={14} />
+                      ) : (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[11px] font-bold text-slate-500">
+                      <span>{dataBR(recibo.data_trabalho)}</span>
+                      <span className="font-black text-slate-800">{fmtBRL(recibo.valor_total)}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </aside>
         </div>
       </main>
     </div>

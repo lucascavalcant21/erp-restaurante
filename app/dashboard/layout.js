@@ -161,14 +161,14 @@ const ATALHOS_POR_PAPEL = {
   admin: [
     { label: "Início", href: "/dashboard", icon: Home },
     { label: "Cozinha", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
-    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
+    { label: "Bar", href: "/dashboard/operacao/fichas?dept=bar", icon: GlassWater },
     { label: "RH", href: "/dashboard/rh", icon: Users },
   ],
   gerente: [
     { label: "Início", href: "/dashboard", icon: Home },
-    { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
-    { label: "Operação", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ChefHat },
-    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
+    { label: "Cozinha", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
+    { label: "Bar", href: "/dashboard/operacao/fichas?dept=bar", icon: GlassWater },
+    { label: "RH", href: "/dashboard/rh", icon: Users },
   ],
   financeiro: [
     { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },

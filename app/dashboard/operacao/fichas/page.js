@@ -2297,12 +2297,155 @@ function FichasRunner() {
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
 
                   return (
-                      <div
-                        key={f.id}
-                        onDragOver={e => { if (dragId) e.preventDefault(); }}
-                        onDrop={() => reordenar(dragId, f.id)}
-                           })()}
-                        </div>
+                     <div
+                       key={f.id}
+                       onDragOver={e => { if (dragId) e.preventDefault(); }}
+                       onDrop={() => reordenar(dragId, f.id)}
+                       className={`erp-fichas-card bg-white rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200/90'}`}
+                     >
+                       <div>
+                         {/* TOP ROW: Nome e Botão Editar verde */}
+                         <div className="flex items-start justify-between gap-3 mb-3">
+                           <div className="flex items-center gap-2 min-w-0 flex-1">
+                             <label className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="h-4 w-4 cursor-pointer rounded accent-emerald-600"/>
+                             </label>
+                             <h3
+                               onClick={() => abrirFicha(f)}
+                               className="text-xl font-black leading-snug text-slate-900 truncate cursor-pointer hover:text-emerald-700 transition-colors"
+                               title={f.nome_receita}
+                             >
+                               {f.nome_receita}
+                             </h3>
+                           </div>
+                           <div className="flex items-center gap-1.5 shrink-0">
+                             <button
+                               onClick={() => abrirEditar(f)}
+                               className="h-8 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors shadow-sm"
+                             >
+                               Editar
+                             </button>
+                             <button
+                               onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
+                               title="Mais opções"
+                               className="h-8 w-8 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center"
+                             >
+                               <MoreVertical size={16} />
+                             </button>
+                           </div>
+                         </div>
+
+                         {/* Menu suspenso de ações rápidas se clicado */}
+                         {acoesCardAberto === f.id && (
+                           <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-lg text-xs font-bold">
+                             <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📖 Ver Ficha</button>
+                             {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📋 Montagem</button>}
+                             <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🧮 Simular</button>
+                             <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🖨️ Imprimir</button>
+                             <button onClick={() => abrirPreviaImpressao("pdf", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📄 PDF</button>
+                             <button onClick={() => excluirImediatamente([f])} className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-left">🗑️ Excluir</button>
+                           </div>
+                         )}
+
+                         {/* BADGES & CONTEÚDO */}
+                         {(() => {
+                           const custoTotal = custoTotalDaFicha(f, fichas);
+                           const rend = Number(f.rendimento_porcoes) || 1;
+                           const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+                           const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+                           const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+                           const precoPorcao = Number(prod?.preco_venda) || 0;
+                           const meta = Number(f.cmv_meta) || 30;
+                           const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
+                           const margem = cmv !== null ? 100 - cmv : null;
+                           const composicaoCount = (f.fichas_ingredientes || []).length;
+                           const rendimentoTexto = textoRendimentoPadronizado(f);
+                           const lucro = precoPorcao > 0 ? precoPorcao - custoPorcao : null;
+
+                           const custoEmb = (f.embalagens || []).reduce((acc, emb) => acc + (Number(emb.custo) || Number(emb.preco_unitario) || 0) * (Number(emb.qtd) || 1), 0);
+                           const custoIngred = Math.max(0, custoPorcao - custoEmb);
+
+                           return (
+                             <div>
+                               <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                                 <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${f.eh_base ? "bg-amber-100 text-amber-900" : "bg-emerald-100/80 text-emerald-800"}`}>
+                                   {f.eh_base ? "PREPARO" : "PRATO"}
+                                 </span>
+                                 <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                   {f.categoria || "SEM CATEGORIA"}
+                                 </span>
+                                 {cmv !== null && cmv > meta && (
+                                   <span className="rounded-full bg-red-100/80 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-600">
+                                     CMV ALTO
+                                   </span>
+                                 )}
+                               </div>
+
+                               <div className="border-t border-slate-100 pt-2 mb-2">
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">COMPOSIÇÃO</span>
+                                 <span className="text-sm font-black text-slate-900">{composicaoCount} {composicaoCount === 1 ? "item" : "itens"}</span>
+                               </div>
+
+                               {/* TABELA DE VALORES COM LINHAS DIVISORAS LIMPAS */}
+                               <div className="divide-y divide-slate-100 text-xs font-bold">
+                                 <div className="py-2.5 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">Quantidade</span>
+                                   <span className="text-sm font-black text-slate-900">{rendimentoTexto}</span>
+                                 </div>
+
+                                 <div className="py-2.5 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">{custoEmb > 0 ? "Ingredientes" : "Custo"}</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoIngred)}</span>
+                                 </div>
+
+                                 {custoEmb > 0 && (
+                                   <div className="py-2.5 flex items-center justify-between">
+                                     <span className="text-slate-600 font-bold">Embalagem</span>
+                                     <span className="text-sm font-black text-slate-900">{fmtBRL(custoEmb)}</span>
+                                   </div>
+                                 )}
+
+                                 <div className="py-2.5 flex items-center justify-between">
+                                   <span className="text-slate-700 font-black">Custo total</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoPorcao)}</span>
+                                 </div>
+
+                                 {!f.eh_base && (
+                                   <>
+                                     <div className="py-2.5 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Venda</span>
+                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
+                                     </div>
+
+                                     <div className="py-2.5 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Lucro por porção</span>
+                                       <span className="text-base font-black text-emerald-600">{lucro !== null ? fmtBRL(lucro) : "—"}</span>
+                                     </div>
+
+                                     <div className="pt-2.5 pb-1 flex flex-col items-end">
+                                       <div className="w-full flex items-center justify-between">
+                                         <span className="text-slate-600 font-bold">CMV</span>
+                                         <span className={`px-3 py-1 rounded-xl text-sm font-black ${
+                                           cmv === null
+                                             ? "bg-slate-100 text-slate-500"
+                                             : cmv > meta
+                                             ? "bg-red-100/90 text-red-600"
+                                             : "bg-emerald-100/90 text-emerald-800"
+                                         }`}>
+                                           {cmv !== null ? `${cmv.toFixed(1)}%` : "—"}
+                                         </span>
+                                       </div>
+                                       {margem !== null && (
+                                         <span className="text-[11px] font-bold text-slate-400 mt-1">Margem {margem.toFixed(1)}%</span>
+                                       )}
+                                     </div>
+                                   </>
+                                 )}
+                               </div>
+                             </div>
+                           );
+                         })()}
+                       </div>
                      </div>
                   );
                })}

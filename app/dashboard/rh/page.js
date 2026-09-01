@@ -1654,17 +1654,9 @@ export default function RHPage() {
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
       {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
-      <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto">
-         <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
-                 <Users size={32} />
-              </div>
-              <div>
-                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
-              </div>
-            </div>
+      <div className="pt-4 pb-4 px-4 sm:px-6 max-w-5xl mx-auto">
+         <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">RH &amp; Equipe</h1>
             <div className="flex items-center gap-2 flex-wrap">
                <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário

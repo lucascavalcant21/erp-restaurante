@@ -1,11 +1,16 @@
 /*
  CORRECOES DE PONTO E ATESTADOS - 13 a 30/08/2026
 
- CONFERIR ANTES DE RODAR
- Voce escreveu "tirar o horario da Brenda de 27/09". 27/09 ainda nao aconteceu
- (hoje e 31/08), e no mesmo pedido veio "25 a 30/08 tudo atestado da Brenda" --
- que inclui o 27/08. Entendi como 27/08: as batidas dela saem e o dia entra no
- atestado. Se era 27/09 mesmo, me avise que eu troco.
+ A DATA DA BRENDA E 27/08 (confirmado pelo proprietario), e ela ja esta dentro
+ do periodo de atestado de 25 a 30/08 -- nada a fazer alem do que o script ja
+ faz.
+
+ POR QUE O PONTO DOS DIAS DE ATESTADO E APAGADO
+ Nesses dias a pessoa bateu o ponto POR ENGANO: estava de atestado e marcou
+ assim mesmo. Nao e um dia trabalhado que precisa de correcao de horario, e um
+ registro que nao devia existir. Deixar os dois no mesmo dia faria o sistema
+ contar como trabalho o que a folha tem de pagar como atestado -- e um diria
+ que trabalhou enquanto o outro diz que nao.
 
  O QUE ESTE SCRIPT FAZ
 

@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
+import { limparTentativas } from "../lib/erro-chunk.mjs";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
@@ -765,6 +766,10 @@ export default function DashboardLayout({ children }) {
       setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1");
       setCompacto(localStorage.getItem("erp_densidade") === "compacta");
     } catch (_) {}
+    // O dashboard montou: a versão nova carregou. Zerar a contagem devolve as
+    // duas chances de recarga automática para a próxima publicação — sem isso,
+    // depois de duas recargas a aba nunca mais se recuperaria sozinha.
+    try { limparTentativas(window.sessionStorage); } catch (_) {}
   }, []);
 
   useEffect(() => {

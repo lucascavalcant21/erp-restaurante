@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -17,10 +17,18 @@ export default function EspelhoDePonto() {
   const colabId = params.id;
   const mesParam = searchParams.get("mes") || new Date().toISOString().slice(0, 7); // ex: 2026-06
 
+  // A troca do mês vai para a URL, não para um estado da tela: assim ela
+  // sobrevive ao recarregar, o endereço pode ser copiado para outra pessoa, e
+  // o efeito que busca os dados já depende de mesParam — não há o que
+  // sincronizar à mão.
+  const trocarMes = (novoMes) => {
+    if (!novoMes) return;
+    router.replace(`/dashboard/rh/espelho/${colabId}?mes=${novoMes}`);
+  };
+
   const [colaborador, setColaborador] = useState(null);
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
-  const [bancoMes, setBancoMes] = useState([]);
   const [feriadosMes, setFeriadosMes] = useState([]);
   const [fechamento, setFechamento] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,8 +80,6 @@ export default function EspelhoDePonto() {
       setFolgasEsporadicas(resFolgas.data || []);
 
       // Banco de horas do mês (intervalos não tirados)
-      const resBanco = await fetchBancoHorasColaborador(colabId, mesParam);
-      setBancoMes(resBanco.data || []);
 
       // Feriados do mês (para o relatório de adicionais dia a dia)
       if (colab?.unidade_id) {
@@ -177,6 +183,17 @@ export default function EspelhoDePonto() {
          <button onClick={() => abrirMenu()} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
+
+         {/* Escolher o mês aqui. Antes o mês só chegava pela URL (?mes=), então
+             quem entrava pelo menu caía sempre no mês atual e não tinha como
+             ver agosto sem editar o endereço à mão. */}
+         <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
+            Mês
+            <input type="month" value={mesParam} max={new Date().toISOString().slice(0, 7)}
+               onChange={e => trocarMes(e.target.value)}
+               className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-700 outline-none focus:border-emerald-500" />
+         </label>
+
          <div className="flex items-center gap-3">
             {/* Congelar um mês antigo usa o cadastro de hoje. Se o contrato já
                 tinha mudado antes de alguém abrir a folha, o retrato nasce
@@ -420,41 +437,6 @@ export default function EspelhoDePonto() {
                </div>
             ))}
          </div>
-
-         {/* Banco de Horas do mês (intervalos não tirados) */}
-         {bancoMes.length > 0 && (() => {
-            const totalMin = bancoMes.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
-            const fmtM = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
-            return (
-               <div className="fora-da-folha mt-2 print:mt-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Banco de Horas — intervalos não tirados (limite 8h/mês)</p>
-                  <table className="w-full border-collapse text-[9px]">
-                     <thead>
-                        <tr className="bg-slate-100">
-                           <th className="border border-slate-800 !py-1 !px-2 text-left">Data</th>
-                           <th className="border border-slate-800 !py-1 !px-2 text-left">Motivo</th>
-                           <th className="border border-slate-800 !py-1 !px-2 text-right">Minutos</th>
-                        </tr>
-                     </thead>
-                     <tbody>
-                        {bancoMes.map(b => (
-                           <tr key={b.id}>
-                              <td className="border border-slate-800 !py-0.5 !px-2">{b.data ? b.data.split("-").reverse().join("/") : "—"}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2">{b.tipo === "excesso" ? `OCORRÊNCIA: ${b.observacao || "passou do intervalo"}` : (b.observacao || "Intervalo não tirado")}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{b.tipo === "excesso" ? `(+${b.minutos} min além)` : `${b.minutos} min`}</td>
-                           </tr>
-                        ))}
-                     </tbody>
-                     <tfoot>
-                        <tr className="bg-slate-100">
-                           <td colSpan={2} className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Total acumulado no mês:</td>
-                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black text-[11px]">{fmtM(totalMin)}</td>
-                        </tr>
-                     </tfoot>
-                  </table>
-               </div>
-            );
-         })()}
 
          {/* Hora extra e adicional noturno — dia a dia */}
          {(() => {

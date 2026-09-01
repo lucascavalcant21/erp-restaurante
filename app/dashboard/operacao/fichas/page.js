@@ -2297,75 +2297,10 @@ function FichasRunner() {
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
 
                   return (
-                     <div key={f.id}
+                      <div
+                        key={f.id}
                         onDragOver={e => { if (dragId) e.preventDefault(); }}
                         onDrop={() => reordenar(dragId, f.id)}
-                        className={`erp-fichas-card bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
-                        {/* Cabeçalho sem foto: nome e ações sempre fáceis de tocar */}
-                        <div className="border-b border-slate-100 bg-slate-50 p-3">
-                           <div className="flex items-start gap-2">
-                             <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)} title="Arraste para reordenar" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm cursor-grab active:cursor-grabbing"><GripVertical size={19} /></div>
-                             <label className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white cursor-pointer shadow-sm">
-                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="block h-5 w-5 cursor-pointer rounded accent-emerald-600"/>
-                             </label>
-                             <button type="button" onClick={() => abrirFicha(f)} title="Abrir ficha" className="min-h-10 min-w-0 flex-1 px-1 text-left">
-                               <span className="block text-lg font-black leading-tight text-slate-900">{f.nome_receita}</span>
-                             </button>
-                           </div>
-                           <div className="mt-3 flex justify-end gap-2">
-                              <button onClick={() => abrirFicha(f)} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm"><BookOpen size={17}/> Abrir</button>
-                              <button onClick={() => abrirEditar(f)} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
-                              <button onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)} title="Mais opções" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"><MoreVertical size={19}/></button>
-                           </div>
-                           {acoesCardAberto === f.id && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-                              {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><LayoutList size={17}/> Montagem</button>}
-                              <button onClick={() => abrirSimulacao(f)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Calculator size={17}/> Simular</button>
-                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
-                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Download size={17}/> PDF</button>
-                               <button onClick={() => excluirImediatamente([f])} disabled={processandoLote} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50"><Trash2 size={17}/> Excluir</button>
-                           </div>}
-                        </div>
-                        <div className="p-4 sm:p-5 cursor-pointer" onClick={() => abrirFicha(f)} title="Abrir ficha">
-                           {(() => {
-                              // Métricas estilo "app de gestão": custo, preço, CMV e margem
-                              const custoTotal = custoTotalDaFicha(f, fichas);
-                              const rend = Number(f.rendimento_porcoes) || 1;
-                              const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
-                              const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-                              const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-                              const precoPorcao = Number(prod?.preco_venda) || 0;
-                              const meta = Number(f.cmv_meta) || 30;
-                              const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
-                               const margem = cmv !== null ? 100 - cmv : null;
-                               const composicao = (f.fichas_ingredientes || []).length;
-                               const padrao = rendimentoPadronizado(f);
-                               const unidadeLabel = padrao.unidade === "l" ? "L" : "kg";
-                               const rendimentoTexto = textoRendimentoPadronizado(f);
-                               const custoUnidadePadrao = padrao.valor > 0 ? custoTotal / padrao.valor : custoTotal;
-                              return (
-                                 <>
-                                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${f.eh_base ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>{f.eh_base ? "Preparo" : deptUrl === "bar" ? "Drink / produto" : "Prato"}</span>
-                                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">{f.categoria || "Sem categoria"}</span>
-                                      {cmv !== null && cmv > meta && <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase text-red-700">CMV alto</span>}
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 border-y border-slate-100 py-3">
-                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Tempo</p><p className="mt-1 text-sm font-black text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</p></div>
-                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Validade</p><p className="mt-1 text-sm font-black text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) === 1 ? "" : "s"}` : "—"}</p></div>
-                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Composição</p><p className="mt-1 text-sm font-black text-slate-800">{composicao} {composicao === 1 ? "item" : "itens"}</p></div>
-                                    </div>
-
-                                    <div className="divide-y divide-slate-100">
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Quantidade</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">1 {unidadeLabel} custa</span><strong className="text-base text-emerald-700">{fmtBRL(custoUnidadePadrao)}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3">
-                                        <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
-                                        {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
-                                      </div>
-                                    </div>
-                                    {!f.eh_base && <p className="mt-1 text-xs font-bold text-slate-400">Venda {precoPorcao > 0 ? fmtBRL(precoPorcao) : "não informada"} · Margem {margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>}
-                                 </>
-                              );
                            })()}
                         </div>
                      </div>

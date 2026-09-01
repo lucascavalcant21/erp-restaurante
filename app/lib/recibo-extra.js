@@ -196,9 +196,9 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
   const descontos = Number(dados.descontos || 0);
 
   // Desmembramento de encargos e taxa de serviço
-  const taxaServico = Number(dados.taxa_servico || recibo?.taxa_servico || 0);
-  const inss = Number(dados.inss || recibo?.inss || 0);
-  const fgts = Number(dados.fgts || recibo?.fgts || 0);
+  const taxaServico = Number(dados.taxa_servico || recibo?.taxa_servico || (base * 0.10));
+  const inss = Number(dados.inss || recibo?.inss || (base * 0.11));
+  const fgts = Number(dados.fgts || recibo?.fgts || (base * 0.08));
 
   const total = Number(recibo?.valor_total ?? Math.max(0, base + taxaServico + transporte + adicional - inss - descontos));
 
@@ -285,10 +285,11 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
     td:last-child{text-align:right;white-space:nowrap;width:32%}
     .total td{font-weight:bold}
     .local{margin-top:26px;font-weight:bold}
-    .assinatura{margin-top:64px;text-align:center}
-    .linha{border-top:1px solid #000;width:62%;margin:0 auto 6px}
-    .assinatura strong{display:block}
-    .assinatura span{display:block;font-size:11px}
+    .assinaturas{margin-top:54px;display:flex;justify-content:space-between;gap:30px;text-align:center}
+    .bloco-assinatura{flex:1;min-width:0}
+    .linha{border-top:1px solid #000;width:85%;margin:0 auto 6px}
+    .bloco-assinatura strong{display:block;font-size:12px;margin-top:4px}
+    .bloco-assinatura span{display:block;font-size:10px;color:#333}
     @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
   </style></head><body><div class="folha">
     <h1>${esc(t.titulo)}</h1>
@@ -302,9 +303,9 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
       <tr><td>Diária acordada</td><td>${moeda(diaria)}</td></tr>
       <tr><td>Dias trabalhados / Diária</td><td>${diasFormatado}</td></tr>
       <tr><td>Subtotal das diárias</td><td>${moeda(base)}</td></tr>
-      ${linhaValor("Taxa de serviço", taxaServico)}
-      ${linhaValor("Retenção INSS", inss, "− ")}
-      ${linhaValor("Recolhimento FGTS", fgts)}
+      ${linhaValor("Taxa de serviço (10%)", taxaServico)}
+      ${linhaValor("Retenção INSS (11%)", inss, "− ")}
+      ${linhaValor("Recolhimento FGTS (8%)", fgts)}
       ${linhaValor("Vale-transporte", transporte)}
       ${linhaValor("Adicional / bônus", adicional)}
       ${linhaValor("Descontos", descontos, "− ")}
@@ -315,12 +316,20 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
 
     <p class="local">${cidadeUf ? `${esc(cidadeUf)}, ` : ""}${esc(emissao)}.</p>
 
-    <div class="assinatura">
-      <div class="linha"></div>
-      ${t.responsavel_nome ? `<strong>${esc(t.responsavel_nome)}</strong>` : ""}
-      ${t.responsavel_cargo ? `<span>${esc(t.responsavel_cargo)} do ${esc(empresa)}</span>` : ""}
-      <span>${esc(empresa)}${cnpj ? ` - CNPJ: ${esc(cnpj)}` : ""}</span>
-      ${enderecoEmpresa ? `<span>${esc(enderecoEmpresa)}</span>` : ""}
+    <div class="assinaturas">
+      <div class="bloco-assinatura">
+        <div class="linha"></div>
+        <strong>${esc(nome)}</strong>
+        ${cpf ? `<span>CPF: ${esc(cpf)}</span>` : ""}
+        <span>Prestador(a) de Serviço (${esc(funcao)})</span>
+      </div>
+
+      <div class="bloco-assinatura">
+        <div class="linha"></div>
+        ${t.responsavel_nome ? `<strong>${esc(t.responsavel_nome)}</strong>` : `<strong>${esc(empresa)}</strong>`}
+        ${t.responsavel_cargo ? `<span>${esc(t.responsavel_cargo)}</span>` : ""}
+        <span>${esc(empresa)}${cnpj ? ` - CNPJ: ${esc(cnpj)}` : ""}</span>
+      </div>
     </div>
   </div></body></html>`;
 

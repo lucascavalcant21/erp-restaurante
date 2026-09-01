@@ -36,7 +36,7 @@ export default function GerarPagamentoExtraPage() {
     hora_entrada: "", hora_saida: "",
     alimentacao: true, materiais: false, descricao_materiais: "",
     desmembrar: true, // Desmembramento automático ativado por padrão
-    taxa_servico: "0,00", inss: "", fgts: "",
+    taxa_servico: "", inss: "", fgts: "",
   });
 
   const carregarHistorico = async () => {
@@ -64,6 +64,7 @@ export default function GerarPagamentoExtraPage() {
           alimentacao: cadastro.data.janta_ofertada !== false,
           materiais: !!String(cadastro.data.itens_emprestados || "").trim(),
           descricao_materiais: cadastro.data.itens_emprestados || "",
+          taxa_servico: valSalario > 0 ? (valSalario * 0.10).toFixed(2) : "",
           inss: valSalario > 0 ? (valSalario * 0.11).toFixed(2) : "",
           fgts: valSalario > 0 ? (valSalario * 0.08).toFixed(2) : "",
         }));
@@ -74,7 +75,7 @@ export default function GerarPagamentoExtraPage() {
     });
   }, [id, unidadeAtiva]);
 
-  // Função auxiliar de atualização com cálculo automático de desmembramento (INSS 11% e FGTS 8%)
+  // Função auxiliar de atualização com cálculo automático de desmembramento (Taxa 10%, INSS 11% e FGTS 8%)
   const set = (campo, valor) => {
     setForm(anterior => {
       const novo = { ...anterior, [campo]: valor };
@@ -82,6 +83,7 @@ export default function GerarPagamentoExtraPage() {
         const v = Number(String(campo === "valor" ? valor : anterior.valor).replace(",", ".")) || 0;
         const ativo = campo === "desmembrar" ? valor : anterior.desmembrar;
         if (v > 0 && ativo) {
+          novo.taxa_servico = (v * 0.10).toFixed(2);
           novo.inss = (v * 0.11).toFixed(2);
           novo.fgts = (v * 0.08).toFixed(2);
         }
@@ -96,7 +98,7 @@ export default function GerarPagamentoExtraPage() {
     const valDinheiro = Number(String(form.valor_dinheiro || "").replace(",", ".")) || 0;
     const dias = Number(String(form.dias_contratados || "1").replace(",", ".")) || 1;
 
-    const valTaxaServico = Number(String(form.taxa_servico || "").replace(",", ".")) || 0;
+    const valTaxaServico = Number(String(form.taxa_servico || "").replace(",", ".")) || (form.desmembrar ? valor * 0.10 : 0);
     const valInss = Number(String(form.inss || "").replace(",", ".")) || (form.desmembrar ? valor * 0.11 : 0);
     const valFgts = Number(String(form.fgts || "").replace(",", ".")) || (form.desmembrar ? valor * 0.08 : 0);
 
@@ -263,7 +265,7 @@ export default function GerarPagamentoExtraPage() {
           <div className="pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Sparkles size={15} className="text-emerald-600"/> Desmembramento Automático no Recibo (INSS / FGTS)
+                <Sparkles size={15} className="text-emerald-600"/> Desmembramento Automático (Taxa 10% / INSS 11% / FGTS 8%)
               </span>
               <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                 <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.desmembrar ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Ativado</button>
@@ -274,7 +276,7 @@ export default function GerarPagamentoExtraPage() {
             {form.desmembrar && (
               <div className="mt-3 p-3 rounded-2xl bg-emerald-50/40 border border-emerald-200 grid gap-3 sm:grid-cols-3 animate-in fade-in">
                 <label>
-                  <span className="text-[11px] font-black text-slate-700">Taxa de serviço (R$)</span>
+                  <span className="text-[11px] font-black text-slate-700">Taxa de serviço (10%)</span>
                   <input type="number" min="0" step="0.01" value={form.taxa_servico} onChange={e => set("taxa_servico", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
                 </label>
                 <label>

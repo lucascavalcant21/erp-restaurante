@@ -92,3 +92,40 @@ export const CORES_TOM = {
   // Azul-petróleo, não vermelho: atestado não é problema do funcionário.
   atestado:  { cor: "#0E7490", fundo: "rgba(6,182,212,0.12)" },
 };
+
+// Toque duplo não pode virar duas marcações.
+//
+// Andrey (28/08: 15:40 | 15:40 | 00:27 | 00:27) e Cedeine (27/08: ... 18:12 |
+// 18:12) apareceram com a MESMA hora em campos seguidos: o segundo toque
+// chegou antes de a tela atualizar, o sistema avançou de etapa e gravou o
+// mesmo instante de novo. O intervalo inteiro se perde e a correção só sai no
+// SQL, à mão, dias depois.
+//
+// Um minuto é folgado para o que se quer barrar e curto para o que é real:
+// ninguém entra e sai para o intervalo no mesmo minuto, nem volta do intervalo
+// um segundo depois de sair.
+export const MIN_ENTRE_BATIDAS_MS = 60000;
+
+/**
+ * Quantos ms ainda faltam para a próxima batida ser aceita. 0 = pode bater.
+ *
+ * Só olha para a última marcação gravada, seja ela qual for: o defeito não é
+ * "bater duas vezes a mesma etapa", é o segundo toque cair na etapa seguinte.
+ */
+export function esperaEntreBatidasMs(registro, agora, limiteMs = MIN_ENTRE_BATIDAS_MS) {
+  if (!registro) return 0;
+  const instante = new Date(agora).getTime();
+  if (!Number.isFinite(instante)) return 0;
+  const ultima = [registro.hora_entrada, registro.hora_saida_intervalo,
+                  registro.hora_retorno_intervalo, registro.hora_saida]
+    .filter(Boolean)
+    .map(v => new Date(v).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  if (ultima === undefined) return 0;
+  const decorrido = instante - ultima;
+  // Batida anterior no futuro (relógio do aparelho atrasado) não trava nada:
+  // trancar o ponto de alguém por causa do relógio dele seria pior que o bug.
+  if (decorrido < 0) return 0;
+  return decorrido < limiteMs ? limiteMs - decorrido : 0;
+}

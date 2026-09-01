@@ -23,6 +23,10 @@ export const ESTOQUES_PADRAO = [
     locais: LOCAIS_BAR },
   { nome: "Pré-preparos do Bar", slug: "pre-preparos-bar", tipo: "bebidas", cor: "#ea580c", controla_validade: true, controla_minimo: true,
     locais: LOCAIS_BAR },
+  // O salão também pré-prepara (mise en place de bebidas, guarnições de balcão,
+  // sobremesas montadas). Sem estoque próprio isso caía no da cozinha, e a
+  // contagem de dois setores virava um número só.
+  { nome: "Pré-preparos do Salão", slug: "pre-preparos-salao", tipo: "alimentos", cor: "#0d9488", controla_validade: true, controla_minimo: true },
   { nome: "Limpeza", slug: "limpeza", tipo: "limpeza", cor: "#0284c7", controla_validade: false, controla_minimo: true },
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens da Cozinha", slug: "embalagens-cozinha", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },
@@ -31,6 +35,25 @@ export const ESTOQUES_PADRAO = [
   // sem o filtro por setor dos demais. Mesma auditoria dos outros estoques.
   { nome: "Depósito", slug: "deposito", tipo: "materiais", cor: "#047857", controla_validade: true, controla_minimo: true },
 ];
+
+// Validade por entrada (lote) só existe no pré-preparo. Lá cada fornada tem a
+// sua data e sai na ordem de vencimento. No estoque normal da cozinha e do bar
+// a pessoa repõe o mesmo produto várias vezes por turno; pedir a data em cada
+// reposição só atrasava o lançamento e vinha em branco de qualquer jeito.
+// O nome entra na conta junto do slug porque estoque criado à mão não segue o
+// slug padrão.
+export function ehEstoquePrePreparo(estoque) {
+  if (!estoque) return false;
+  const alvo = `${estoque.slug || ""} ${estoque.nome || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return alvo.includes("pre-preparo") || alvo.includes("pre preparo");
+}
+
+export function estoqueControlaLote(estoque) {
+  return !!estoque?.controla_validade && ehEstoquePrePreparo(estoque);
+}
 
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {
   cozinha: [
@@ -217,4 +240,54 @@ export function calcularValorItem(item) {
   }
 
   return Math.round(numUnidades * custoEfetivo * 100) / 100;
+}
+
+// ---------------------------------------------------------------------------
+// De que setor é o estoque, e qual estoque é a casa do setor.
+//
+// São duas perguntas diferentes e é por isso que existem duas funções:
+//
+// 1. "Um produto do bar nasce e vai para onde?" -> estoquePrincipalDoSetor.
+//    O bar tem quatro estoques ("Bar", "Pré-preparos do Bar", "Embalagens do
+//    Bar" e o "Depósito"). Procurar só por "bar" no nome acha os quatro, e um
+//    `find` sem ordem definida devolvia qualquer um deles: a cerveja recém
+//    cadastrada ia parar no pré-preparo. A casa do setor é o estoque simples.
+//
+// 2. "Este estoque recebe automaticamente os produtos do setor?" ->
+//    setorAutomaticoDoEstoque. Só o estoque principal recebe. O pré-preparo é
+//    alimentado pela ficha técnica e o depósito é geral; encher os dois com
+//    todo o catálogo do setor bagunçaria a contagem de ambos.
+// ---------------------------------------------------------------------------
+
+function textoDoEstoque(estoque) {
+  return `${estoque?.slug || ""} ${estoque?.nome || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/** Setor cujos produtos este estoque recebe sozinho. "" = nenhum. */
+export function setorAutomaticoDoEstoque(estoque) {
+  if (!estoque) return "";
+  const texto = textoDoEstoque(estoque);
+  // Pré-preparo vem da produção, não do catálogo de compras.
+  if (ehEstoquePrePreparo(estoque)) return "";
+  // Depósito e materiais variados são gerais: não pertencem a um setor.
+  if (texto.includes("deposito") || texto.includes("materiais")) return "";
+  if (texto.includes("embalage")) return "embalagens";
+  if (texto.includes("limpeza")) return "limpeza";
+  if (texto.includes("bar") || texto.includes("bebida")) return "bar";
+  if (texto.includes("cozinha")) return "cozinha";
+  return "";
+}
+
+/** Onde um produto recém cadastrado neste setor deve aparecer. null = nenhum. */
+export function estoquePrincipalDoSetor(estoques, departamento) {
+  const setor = String(departamento || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (!setor || !Array.isArray(estoques)) return null;
+  const candidatos = estoques.filter(e => setorAutomaticoDoEstoque(e) === setor);
+  if (!candidatos.length) return null;
+  // Empate é resolvido pelo nome mais curto: "Bar" ganha de "Bar do Terraço".
+  // Sem isso a escolha dependia da ordem em que o banco devolveu as linhas.
+  return candidatos.sort((a, b) => textoDoEstoque(a).length - textoDoEstoque(b).length)[0];
 }

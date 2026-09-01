@@ -39,6 +39,26 @@ const COR = {
   limpeza: "#14B8A6", cmo: "#EC4899", lucro: "#10B981",
 };
 
+// CampoCusto mora FORA do componente de propósito.
+//
+// Definido dentro, virava uma função nova a cada render — e render acontece a
+// cada tecla. Para o React, função nova é OUTRO tipo de componente: ele
+// desmontava o campo e montava outro, o <input> morria e o foco ia embora no
+// primeiro caractere. Recebe valor e onChange por prop porque precisava do
+// estado que ficou lá dentro.
+function CampoCusto({ valor, onChange, label, prefixo = "R$" }) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+      <div className="relative mt-1">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{prefixo}</span>
+        <input type="number" min="0" step="0.01" value={valor ?? ""} onChange={e => onChange(e.target.value)}
+          className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+      </div>
+    </div>
+  );
+}
+
 export default function PontoEquilibrioPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [p, setP] = useState({ ...PARAMS_PADRAO });
@@ -81,7 +101,7 @@ export default function PontoEquilibrioPage() {
   const salvar = async () => {
     setSalvando(true);
     const payload = {};
-    ["custo_aluguel_mes", "custo_luz_mes", "custo_gas_mes", "custo_agua_mes", "custo_limpeza_mes", "custo_cmo_mes", "custo_outros_mes", "imposto_pct", "embalagem_pct", "dias_operacao_mes", "pratos_por_dia", "meta_cmv"]
+    ["custo_aluguel_mes", "custo_luz_mes", "custo_gas_mes", "custo_agua_mes", "custo_limpeza_mes", "custo_cmo_mes", "custo_outros_mes", "imposto_pct", "taxa_cartao_pct", "embalagem_pct", "dias_operacao_mes", "pratos_por_dia", "meta_cmv"]
       .forEach(k => payload[k] = num(p[k]));
     const { error } = await salvarParams(unidadeAtiva, payload);
     setSalvando(false);
@@ -94,7 +114,9 @@ export default function PontoEquilibrioPage() {
   const pratosDia = Math.max(1, num(p.pratos_por_dia));
   const fixosMes = num(p.custo_aluguel_mes) + num(p.custo_luz_mes) + num(p.custo_gas_mes) + num(p.custo_agua_mes) + num(p.custo_limpeza_mes) + num(p.custo_cmo_mes) + num(p.custo_outros_mes);
   const fixoDia = fixosMes / dias;
-  const variavelPct = num(p.meta_cmv) + num(p.imposto_pct) + num(p.embalagem_pct);
+  // A maquininha e um custo variavel como qualquer outro: fica com uma fatia
+  // de CADA venda. Fora da conta, o ponto de equilibrio sai otimista.
+  const variavelPct = num(p.meta_cmv) + num(p.imposto_pct) + num(p.taxa_cartao_pct) + num(p.embalagem_pct);
   const margemPct = 100 - variavelPct;
   const equilibrioDia = margemPct > 0 ? fixoDia / (margemPct / 100) : Infinity;
 
@@ -107,6 +129,7 @@ export default function PontoEquilibrioPage() {
   const fatias = [
     { id: "ingredientes", nome: "Ingredientes (CMV)", valor: ingredientes },
     { id: "imposto", nome: "Imposto", valor: P * num(p.imposto_pct) / 100 },
+    { id: "cartao", nome: "Taxa de cartão", valor: P * num(p.taxa_cartao_pct) / 100 },
     { id: "embalagem", nome: "Embalagem", valor: P * num(p.embalagem_pct) / 100 },
     { id: "aluguel", nome: "Aluguel", valor: porPrato(p.custo_aluguel_mes) },
     { id: "luz", nome: "Luz / Energia", valor: porPrato(p.custo_luz_mes) },
@@ -130,16 +153,6 @@ export default function PontoEquilibrioPage() {
     return `${cor} ${ini.toFixed(2)}% ${fim.toFixed(2)}%`;
   }).join(", ");
 
-  const CampoCusto = ({ k, label, prefixo = "R$" }) => (
-    <div>
-      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
-      <div className="relative mt-1">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{prefixo}</span>
-        <input type="number" min="0" step="0.01" value={p[k] ?? ""} onChange={e => set(k, e.target.value)}
-          className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen">
@@ -155,22 +168,23 @@ export default function PontoEquilibrioPage() {
             <h3 className="font-black text-slate-800 mb-1">Custos do mês</h3>
             <p className="text-[11px] text-slate-500 mb-4">Quanto você gasta por mês com cada item. O sistema divide pelos dias de operação.</p>
             <div className="grid grid-cols-2 gap-3">
-              <CampoCusto k="custo_aluguel_mes" label="Aluguel" />
-              <CampoCusto k="custo_luz_mes" label="Luz / Energia" />
-              <CampoCusto k="custo_gas_mes" label="Gás" />
-              <CampoCusto k="custo_agua_mes" label="Água" />
-              <CampoCusto k="custo_limpeza_mes" label="Produtos de limpeza" />
-              <CampoCusto k="custo_cmo_mes" label="Folha / Mão de obra" />
-              <CampoCusto k="custo_outros_mes" label="Outros fixos" />
+              <CampoCusto valor={p["custo_aluguel_mes"]} onChange={v => set("custo_aluguel_mes", v)} label="Aluguel" />
+              <CampoCusto valor={p["custo_luz_mes"]} onChange={v => set("custo_luz_mes", v)} label="Luz / Energia" />
+              <CampoCusto valor={p["custo_gas_mes"]} onChange={v => set("custo_gas_mes", v)} label="Gás" />
+              <CampoCusto valor={p["custo_agua_mes"]} onChange={v => set("custo_agua_mes", v)} label="Água" />
+              <CampoCusto valor={p["custo_limpeza_mes"]} onChange={v => set("custo_limpeza_mes", v)} label="Produtos de limpeza" />
+              <CampoCusto valor={p["custo_cmo_mes"]} onChange={v => set("custo_cmo_mes", v)} label="Folha / Mão de obra" />
+              <CampoCusto valor={p["custo_outros_mes"]} onChange={v => set("custo_outros_mes", v)} label="Outros fixos" />
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
-              <CampoCusto k="dias_operacao_mes" label="Dias abertos no mês" prefixo="dias" />
-              <CampoCusto k="pratos_por_dia" label="Pratos vendidos/dia" prefixo="un" />
+              <CampoCusto valor={p["dias_operacao_mes"]} onChange={v => set("dias_operacao_mes", v)} label="Dias abertos no mês" prefixo="dias" />
+              <CampoCusto valor={p["pratos_por_dia"]} onChange={v => set("pratos_por_dia", v)} label="Pratos vendidos/dia" prefixo="un" />
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
-              <CampoCusto k="meta_cmv" label="CMV %" prefixo="%" />
-              <CampoCusto k="imposto_pct" label="Imposto %" prefixo="%" />
-              <CampoCusto k="embalagem_pct" label="Embalagem %" prefixo="%" />
+              <CampoCusto valor={p["meta_cmv"]} onChange={v => set("meta_cmv", v)} label="CMV %" prefixo="%" />
+              <CampoCusto valor={p["imposto_pct"]} onChange={v => set("imposto_pct", v)} label="Imposto %" prefixo="%" />
+              <CampoCusto valor={p["taxa_cartao_pct"]} onChange={v => set("taxa_cartao_pct", v)} label="Taxa de cartão %" prefixo="%" />
+              <CampoCusto valor={p["embalagem_pct"]} onChange={v => set("embalagem_pct", v)} label="Embalagem %" prefixo="%" />
             </div>
             <button onClick={salvar} disabled={salvando} className="mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-xl flex items-center justify-center gap-2">
               <Save size={16} /> {salvando ? "Salvando..." : (salvou ? "Salvo!" : "Salvar")}

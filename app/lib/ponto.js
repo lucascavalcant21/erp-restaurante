@@ -1,5 +1,7 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { registrarMarcacao } from "./ponto-marcacao";
+import { entradaContratada, minutosAteOTurno } from "./jornada-calculo.mjs";
+import { esperaEntreBatidasMs } from "./ponto-status.mjs";
 
 // Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
 function dataLocalISO(offsetDias = 0) {
@@ -134,6 +136,30 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
   const ontem = dataLocalISO(-1);
   const agora = horaMarcada || new Date().toISOString();
 
+  // Entrada antes da hora do turno não entra. O livro de marcações guarda a
+  // hora REAL (art. 74, II proíbe horário predeterminado) e registro_ponto
+  // segue o livro, então não dá para "arredondar" 15:39 para 15:40 na
+  // gravação: o jeito honesto é a pessoa esperar o minuto e bater 15:40.
+  //
+  // Falha na consulta não tranca o ponto de ninguém: sem o horário, libera.
+  if (tipoBatida === "entrada" && !horaMarcada) {
+    const { data: colab } = await supabase
+      .from("colaboradores")
+      .select("horario_entrada, horario_dom_entrada, horario_por_dia, horarios_dia")
+      .eq("id", colaboradorId)
+      .maybeSingle();
+    const agoraLocal = new Date();
+    // Quem tem jornada por dia da semana comeca em hora diferente a cada dia.
+    // Comparar com o horario fixo travaria a pessoa no dia errado.
+    const inicio = entradaContratada(colab, agoraLocal);
+    const falta = minutosAteOTurno(inicio, agoraLocal);
+    if (falta > 0) {
+      return {
+        error: `Seu turno começa às ${inicio}. Faltam ${falta} ${falta === 1 ? "minuto" : "minutos"} — bata a entrada a partir desse horário.`,
+      };
+    }
+  }
+
   // Busca o registro de hoje E o de ontem (turno noturno que virou a madrugada)
   let { data: registros, error: err } = await supabase
     .from("registro_ponto")
@@ -155,6 +181,20 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     registro = regOntem;
   }
     
+  // Toque duplo não pode virar duas marcações. A regra e o porquê estão em
+  // esperaEntreBatidasMs (ponto-status.mjs), com teste.
+  //
+  // Só vale para a batida ao vivo: correção manual passa `horaMarcada` e
+  // lança um horário passado de propósito — travá-la impediria justamente o
+  // conserto do estrago que esta trava existe para evitar.
+  if (!horaMarcada) {
+    const faltaMs = esperaEntreBatidasMs(registro, agora);
+    if (faltaMs > 0) {
+      const seg = Math.max(1, Math.ceil(faltaMs / 1000));
+      return { error: `Você acabou de bater o ponto. Espere ${seg} segundo${seg === 1 ? "" : "s"} antes da próxima marcação.` };
+    }
+  }
+
   let updates = {};
   let novoStatus = 0;
   
@@ -304,4 +344,79 @@ export async function anexarAuditoriaFacial(colaboradorId, { foto, distancia, ti
   } catch {
     return { error: null }; // auditoria é acessória
   }
+}
+
+// ─── CORREÇÃO DE BATIDA ──────────────────────────────────────────────────────
+// Esqueceu de picar, picou na hora errada, tablet fora do ar: a batida precisa
+// ser corrigida, e ATÉ AGORA não havia como fazer isso pelo sistema — só
+// mexendo no banco à mão, o que quebraria o encadeamento por hash.
+//
+// Corrigir aqui NÃO reescreve a marcação original. Entra uma marcação do tipo
+// 'ajuste' guardando o valor anterior, quem corrigiu e o motivo — que é o que a
+// Portaria MTP 671/2021 manda. Depois disso o resumo do dia (registro_ponto),
+// que é o que as telas leem, recebe a hora nova.
+
+export const CAMPO_POR_TIPO = {
+  entrada: "hora_entrada",
+  saida_intervalo: "hora_saida_intervalo",
+  retorno_intervalo: "hora_retorno_intervalo",
+  saida_trabalho: "hora_saida",
+};
+
+export async function corrigirBatida({
+  unidadeId, colaboradorId, dataReferencia, tipo, novaHoraISO, registradoPor, motivo,
+}) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  const campo = CAMPO_POR_TIPO[tipo];
+  if (!campo) return { error: "Tipo de batida inválido." };
+  if (!unidadeId || !colaboradorId || !dataReferencia) return { error: "Faltam dados da correção." };
+  if (!novaHoraISO) return { error: "Informe o horário corrigido." };
+  if (!String(registradoPor || "").trim()) return { error: "Informe quem está corrigindo." };
+
+  const { data: registro, error: erroLeitura } = await supabase
+    .from("registro_ponto")
+    .select(`id, ${campo}`)
+    .eq("colaborador_id", colaboradorId)
+    .eq("data_referencia", dataReferencia)
+    .maybeSingle();
+  if (erroLeitura) return { error: erroLeitura.message };
+
+  const valorAnterior = registro ? registro[campo] : null;
+
+  // Livro legal PRIMEIRO. Se ele não gravar, nada mais acontece: resumo
+  // corrigido sem marcação correspondente é pior do que correção nenhuma,
+  // porque a tela passa a mostrar uma hora que o livro não conhece.
+  const marcacao = await registrarMarcacao({
+    unidadeId, colaboradorId, dataReferencia,
+    tipo: "ajuste",
+    tipoAlvo: tipo,
+    marcadoEm: novaHoraISO,
+    valorAnterior,
+    origem: "ajuste",
+    registradoPor,
+    motivo: String(motivo || "").trim() || null,
+  });
+  if (marcacao?.erro) {
+    return {
+      error: marcacao.semTabela
+        ? "O livro de marcações não existe neste banco. Rode db/migracao_ponto_nsr.sql antes de corrigir batidas."
+        : `Não consegui gravar a correção no livro de marcações: ${marcacao.erro}`,
+    };
+  }
+
+  // Agora o resumo do dia, que é o que as telas mostram.
+  if (registro) {
+    const { error } = await supabase.from("registro_ponto")
+      .update({ [campo]: novaHoraISO }).eq("id", registro.id);
+    if (error) return { error: `Correção registrada no livro, mas o resumo do dia não aceitou: ${error.message}` };
+  } else {
+    // Dia sem registro nenhum: a pessoa não bateu nada. A correção cria a linha.
+    const { error } = await supabase.from("registro_ponto").insert([{
+      colaborador_id: colaboradorId, unidade_id: unidadeId,
+      data_referencia: dataReferencia, [campo]: novaHoraISO,
+    }]);
+    if (error) return { error: `Correção registrada no livro, mas não consegui criar o dia: ${error.message}` };
+  }
+
+  return { error: null, nsr: marcacao?.nsr ?? null, valorAnterior };
 }

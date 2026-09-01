@@ -199,7 +199,8 @@ export default function AtasReuniaoPage() {
 
   const excluir = async (a) => {
     if (!confirm(`Excluir a ata "${a.tema}" do histórico?`)) return;
-    await removerAtaReuniao(a.id);
+    const { error } = await removerAtaReuniao(a.id);
+    if (error) return alert(`Não consegui remover esta ata: ${error}`);
     if (form.id === a.id) setForm(FORM_VAZIO());
     notificar("Ata excluída.");
     carregar();

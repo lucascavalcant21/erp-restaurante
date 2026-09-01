@@ -14,6 +14,16 @@ import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 const BUCKET = "montagem-fotos";
 
+// Nome comparavel de uma montagem. Existe porque as tres telas que criam
+// montagem normalizavam diferente -- uma so minusculava, outra tirava espaco so
+// de um lado -- e "Aperol Spritz " nascia ao lado de "Aperol Spritz". Acento
+// tambem cai, senao "Caipijambu" e "Caipijambú" viram duas fichas.
+export function chaveNomeMontagem(nome) {
+  return String(nome || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export async function fetchMontagens(unidadeId, departamento) {
   if (!isSupabaseReady()) return { data: [], error: null };
   let query = supabase.from("montagem").select("*").order("nome");

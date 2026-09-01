@@ -1,29 +1,41 @@
 "use client";
 
-import { useERP } from "../../../../context/ERPContext";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
-import { Printer, ArrowLeft } from "lucide-react";
+import { fetchFolgasEsporadicas, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
+import { Printer, ArrowLeft, Download } from "lucide-react";
 
 export default function EspelhoDePonto() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { abrirMenu } = useERP();
   
   const colabId = params.id;
   const mesParam = searchParams.get("mes") || new Date().toISOString().slice(0, 7); // ex: 2026-06
 
+  // A troca do mês vai para a URL, não para um estado da tela: assim ela
+  // sobrevive ao recarregar, o endereço pode ser copiado para outra pessoa, e
+  // o efeito que busca os dados já depende de mesParam — não há o que
+  // sincronizar à mão.
+  const trocarMes = (novoMes) => {
+    if (!novoMes) return;
+    router.replace(`/dashboard/rh/espelho/${colabId}?mes=${novoMes}`);
+  };
+
   const [colaborador, setColaborador] = useState(null);
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
-  const [bancoMes, setBancoMes] = useState([]);
   const [feriadosMes, setFeriadosMes] = useState([]);
   const [fechamento, setFechamento] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Este estado fica aqui em cima com os outros de proposito. Mais abaixo a
+  // tela tem `if (loading) return ...` e `if (!colaborador) return ...`; um
+  // useState depois deles roda em um render e nao roda no outro, e o React
+  // derruba a tela com o erro #310 ("rendered more hooks than during the
+  // previous render"). Hook nenhum pode ficar abaixo daqueles returns.
+  const [refazendo, setRefazendo] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -72,8 +84,6 @@ export default function EspelhoDePonto() {
       setFolgasEsporadicas(resFolgas.data || []);
 
       // Banco de horas do mês (intervalos não tirados)
-      const resBanco = await fetchBancoHorasColaborador(colabId, mesParam);
-      setBancoMes(resBanco.data || []);
 
       // Feriados do mês (para o relatório de adicionais dia a dia)
       if (colab?.unidade_id) {
@@ -158,6 +168,33 @@ export default function EspelhoDePonto() {
     return v;
   };
 
+  // O navegador nao deixa a pagina gravar um PDF sozinha: nao existe API para
+  // isso. Os dois botoes abrem a mesma janela de impressao — o PDF e um
+  // DESTINO escolhido la dentro. O que da para fazer de util e o nome do
+  // arquivo: o Chrome usa o titulo da pagina como nome sugerido ao salvar em
+  // PDF, entao sem isto a folha do funcionario nasce chamada
+  // "Dashboard · Seldeestrela".
+  const nomeDoArquivo = () => {
+    const [ano, mes] = mesParam.split("-");
+    const quem = (colaborador.nome || "colaborador").trim().replace(/\s+/g, " ");
+    return `Espelho de ponto - ${quem} - ${mes}-${ano}`;
+  };
+
+  const salvarPdf = () => {
+    const tituloOriginal = document.title;
+    document.title = nomeDoArquivo();
+    // Devolve o titulo quando a janela de impressao fecha, senao a aba fica
+    // com o nome do arquivo para sempre. O setTimeout e rede de seguranca:
+    // nem todo navegador dispara o afterprint.
+    const restaurar = () => {
+      document.title = tituloOriginal;
+      window.removeEventListener("afterprint", restaurar);
+    };
+    window.addEventListener("afterprint", restaurar);
+    setTimeout(restaurar, 60000);
+    window.print();
+  };
+
   // Descarta o retrato antigo e grava o cadastro de agora no lugar.
   const refazerRetrato = async () => {
     if (refazendo || !colaborador) return;
@@ -174,21 +211,37 @@ export default function EspelhoDePonto() {
       
       {/* Barra de Ações (Oculta na impressão) */}
       <div className="bg-white border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
-         <button onClick={() => abrirMenu()} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
+         <button onClick={() => router.push("/dashboard/rh")} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
-         <div className="flex items-center gap-3">
+
+         {/* Escolher o mês aqui. Antes o mês só chegava pela URL (?mes=), então
+             quem entrava pelo menu caía sempre no mês atual e não tinha como
+             ver agosto sem editar o endereço à mão. */}
+         <label className="flex w-full items-center justify-between gap-2 text-xs font-black uppercase tracking-widest text-slate-400 sm:w-auto sm:justify-start">
+            Mês
+            <input type="month" value={mesParam} max={new Date().toISOString().slice(0, 7)}
+               onChange={e => trocarMes(e.target.value)}
+               className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-700 outline-none focus:border-emerald-500 sm:flex-none" />
+         </label>
+
+         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">
             {/* Congelar um mês antigo usa o cadastro de hoje. Se o contrato já
                 tinha mudado antes de alguém abrir a folha, o retrato nasce
                 errado — e sem isto não haveria como corrigir. */}
             {fechamento && (
                <button onClick={refazerRetrato} disabled={refazendo}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2 disabled:opacity-40">
+                  className="w-full text-left text-xs font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2 disabled:opacity-40 sm:w-auto sm:text-right">
                   {refazendo ? "Atualizando..." : "Refazer retrato do contrato"}
                </button>
             )}
-            <button onClick={() => window.print()} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-               <Printer size={18}/> Imprimir PDF
+            <button onClick={() => window.print()} title="Enviar a folha para a impressora"
+               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2.5 font-bold text-white shadow-lg shadow-emerald-600/20 transition-colors hover:bg-emerald-700 sm:flex-none sm:px-5 sm:py-2">
+               <Printer size={18}/> Imprimir
+            </button>
+            <button onClick={salvarPdf} title="Abre a mesma janela, com o nome do arquivo pronto: escolha 'Salvar como PDF' no destino"
+               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:flex-none sm:px-5 sm:py-2">
+               <Download size={18}/> Salvar PDF
             </button>
          </div>
       </div>
@@ -421,44 +474,15 @@ export default function EspelhoDePonto() {
             ))}
          </div>
 
-         {/* Banco de Horas do mês (intervalos não tirados) */}
-         {bancoMes.length > 0 && (() => {
-            const totalMin = bancoMes.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
-            const fmtM = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
-            return (
-               <div className="fora-da-folha mt-2 print:mt-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Banco de Horas — intervalos não tirados (limite 8h/mês)</p>
-                  <table className="w-full border-collapse text-[9px]">
-                     <thead>
-                        <tr className="bg-slate-100">
-                           <th className="border border-slate-800 !py-1 !px-2 text-left">Data</th>
-                           <th className="border border-slate-800 !py-1 !px-2 text-left">Motivo</th>
-                           <th className="border border-slate-800 !py-1 !px-2 text-right">Minutos</th>
-                        </tr>
-                     </thead>
-                     <tbody>
-                        {bancoMes.map(b => (
-                           <tr key={b.id}>
-                              <td className="border border-slate-800 !py-0.5 !px-2">{b.data ? b.data.split("-").reverse().join("/") : "—"}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2">{b.tipo === "excesso" ? `OCORRÊNCIA: ${b.observacao || "passou do intervalo"}` : (b.observacao || "Intervalo não tirado")}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{b.tipo === "excesso" ? `(+${b.minutos} min além)` : `${b.minutos} min`}</td>
-                           </tr>
-                        ))}
-                     </tbody>
-                     <tfoot>
-                        <tr className="bg-slate-100">
-                           <td colSpan={2} className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Total acumulado no mês:</td>
-                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black text-[11px]">{fmtM(totalMin)}</td>
-                        </tr>
-                     </tfoot>
-                  </table>
-               </div>
-            );
-         })()}
-
          {/* Hora extra e adicional noturno — dia a dia */}
          {(() => {
-            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, { contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d) });
+            // entradaDoDia: quem bate antes do turno não ganha hora extra por
+            // ter chegado cedo. A batida real continua no espelho e no livro;
+            // o corte é só na conta.
+            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, {
+              contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d),
+              entradaDoDia: (d) => entradaContratadaDoDia(colaborador, d),
+            });
             if (!dias.length) return null;
             const tot = dias.reduce((a, d) => ({ e: a.e + d.minExtra, n: a.n + d.minNoturno, f: a.f + d.minFeriado }), { e: 0, n: 0, f: 0 });
             const fmtM = (m) => m > 0 ? `${m} min` : "—";

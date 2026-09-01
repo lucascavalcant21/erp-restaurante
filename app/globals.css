@@ -8,7 +8,10 @@
 
 :root {
   /* Superfícies (Light Premium) */
-  --surface:    #F8FAFC; /* Fundo principal cinza muito claro (slate-50) */
+  /* Fundo do app. Era slate-50 (#F8FAFC), quase branco: como os cartões são
+     brancos, um não se separava do outro e a tela ficava chapada. Um cinza um
+     passo mais escuro dá o contraste que faz o cartão parecer estar por cima. */
+  --surface:    #D9E0E9; /* Fundo principal cinza */
   --panel:      #FFFFFF; /* Fundo de painéis e seções */
   --card:       #FFFFFF; /* Fundo de cartões */
   --elevated:   #F1F5F9; /* Hover de linhas, bg alternativo */

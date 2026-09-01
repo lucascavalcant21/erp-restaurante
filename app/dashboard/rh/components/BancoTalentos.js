@@ -117,29 +117,73 @@ export default function BancoTalentos({ unidadeAtiva }) {
     };
   }, [unidadeAtiva]);
 
-  const handleDragStart = (e, id) => {
-    e.dataTransfer.setData("candidato_id", id);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (e, novoStatus) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("candidato_id");
-    if (!id) return;
-
-    // Otimista
+  // Decidir um candidato de uma vez. Marcar vários continua existindo abaixo,
+  // para quando a decisão é a mesma para a lista inteira.
+  const decidir = async (id, novoStatus) => {
     setCandidatos(prev => prev.map(c => c.id === id ? { ...c, status: novoStatus } : c));
-    await atualizarStatusCandidato(id, novoStatus);
+    const { error } = await atualizarStatusCandidato(id, novoStatus);
+    // Sem isto a tela mentiria: mostraria aprovado com o banco dizendo o
+    // contrário, e ninguém saberia até recarregar.
+    if (error) { await carregar(); alert("Não deu para gravar a decisão. Tente de novo."); }
   };
 
-  const colunas = [
-    { nome: "Novo", status: "Novo", cor: "bg-blue-50", borda: "border-blue-200" },
-    { nome: "Em Contato / Entrevista", status: "Entrevista Marcada", cor: "bg-amber-50", borda: "border-amber-200" },
-    { nome: "Banco de Talentos", status: "Banco de Talentos", cor: "bg-emerald-50", borda: "border-emerald-200" },
-    { nome: "Descartado", status: "Reprovado", cor: "bg-slate-50", borda: "border-slate-200" }
+  // Abre em 'A decidir': e a unica aba com trabalho a fazer.
+  const [abaSituacao, setAbaSituacao] = useState("decidir");
+  const [selecionados, setSelecionados] = useState({});
+  const [movendo, setMovendo] = useState(false);
+  const idsSelecionados = Object.keys(selecionados).filter(id => selecionados[id]);
+
+  const alternarSelecao = (id) => setSelecionados(atual => {
+    const proximo = { ...atual };
+    if (proximo[id]) delete proximo[id]; else proximo[id] = true;
+    return proximo;
+  });
+
+  const moverSelecionados = async (novoStatus) => {
+    if (!idsSelecionados.length) return;
+    setMovendo(true);
+    const ids = [...idsSelecionados];
+    // Otimista: a coluna reage na hora, e o que falhar volta abaixo.
+    setCandidatos(prev => prev.map(c => ids.includes(c.id) ? { ...c, status: novoStatus } : c));
+    const falhas = [];
+    for (const id of ids) {
+      const { error } = await atualizarStatusCandidato(id, novoStatus);
+      if (error) falhas.push(id);
+    }
+    setMovendo(false);
+    if (falhas.length) {
+      // Desfaz só o que não gravou, para a tela não mentir sobre o que moveu.
+      await carregar();
+      alert(`${falhas.length} candidato(s) não foram gravados. Tente de novo.`);
+      setSelecionados(Object.fromEntries(falhas.map(id => [id, true])));
+      return;
+    }
+    setSelecionados({});
+  };
+
+  // A tela responde uma pergunta só: aprovado ou não. O que era "Novo",
+  // "Em Contato / Entrevista", "Banco de Talentos" e "Descartado" virou
+  // A DECIDIR / APROVADO / REPROVADO.
+  //
+  // Os valores GRAVADOS continuam os mesmos de antes, de propósito: a tabela
+  // de candidatos não foi criada por aqui, então não dá para saber se o campo
+  // status aceita valores novos. Reaproveitando os que já existem, a mudança é
+  // só de tela e nada pode falhar na hora de gravar.
+  const APROVADO = "Banco de Talentos";
+  const REPROVADO = "Reprovado";
+  const A_DECIDIR = "Novo";
+
+  // "Entrevista Marcada" é de antes desta simplificação: quem chegou lá já
+  // tinha passado, então lê como aprovado em vez de sumir da tela.
+  const situacaoDe = (c) =>
+    c.status === REPROVADO ? "reprovado"
+    : (c.status === APROVADO || c.status === "Entrevista Marcada") ? "aprovado"
+    : "decidir";
+
+  const ABAS = [
+    { id: "decidir",   nome: "A decidir",  status: A_DECIDIR, ativo: "bg-slate-800 text-white" },
+    { id: "aprovado",  nome: "Aprovados",  status: APROVADO,  ativo: "bg-emerald-600 text-white" },
+    { id: "reprovado", nome: "Reprovados", status: REPROVADO, ativo: "bg-slate-500 text-white" },
   ];
 
   // Dentro de cada etapa, os candidatos vêm separados pela vaga que querem:
@@ -309,73 +353,135 @@ export default function BancoTalentos({ unidadeAtiva }) {
            <p className="font-bold">Carregando banco de talentos...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start pb-10">
-           {colunas.map(coluna => (
-              <div 
-                 key={coluna.status}
-                 onDragOver={handleDragOver}
-                 onDrop={(e) => handleDrop(e, coluna.status)}
-                 className={`${coluna.cor} border ${coluna.borda} rounded-[24px] p-4 min-h-[500px] flex flex-col gap-3 shadow-inner`}
-              >
-                 <div className="flex justify-between items-center mb-2 px-2">
-                    <h3 className="font-black text-slate-700 uppercase tracking-widest text-xs">{coluna.nome}</h3>
-                    <span className="bg-white px-2 py-0.5 rounded-full text-xs font-bold text-slate-500 shadow-sm border border-slate-200">
-                       {filtrados.filter(c => c.status === coluna.status).length}
-                    </span>
-                 </div>
+        // Uma lista só, dividida por aba. Quatro colunas lado a lado não cabiam
+        // no tablet e obrigavam a rolar de lado para achar alguém.
+        <div className={idsSelecionados.length > 0 ? "pb-32" : "pb-10"}>
+           <div className="mb-4 flex gap-2 overflow-x-auto scrollbar-none">
+              {ABAS.map(a => {
+                 const n = filtrados.filter(c => situacaoDe(c) === a.id).length;
+                 const ativa = abaSituacao === a.id;
+                 return (
+                   <button key={a.id} type="button" onClick={() => setAbaSituacao(a.id)}
+                     className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-widest transition-colors ${ativa ? a.ativo : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}>
+                     {a.nome}
+                     <span className={`rounded-full px-2 py-0.5 text-[11px] ${ativa ? "bg-white/25" : "bg-slate-100 text-slate-500"}`}>{n}</span>
+                   </button>
+                 );
+              })}
+           </div>
 
-                 {agruparPorVaga(filtrados.filter(c => c.status === coluna.status)).map(([vaga, daVaga]) => (
-                 <div key={vaga} className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-2 rounded-xl bg-white/70 px-3 py-2">
-                       <h4 className="truncate text-[13px] font-black text-slate-700">{vaga}</h4>
-                       <span className="shrink-0 text-[11px] font-black text-slate-400">{daVaga.length}</span>
-                    </div>
-                 {daVaga.map(c => (
-                    <div 
-                       key={c.id} 
-                       draggable
-                       onDragStart={(e) => handleDragStart(e, c.id)}
-                       onClick={() => setCandidatoAberto(c)}
-                       className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-indigo-300 hover:shadow-md transition-all group"
-                    >
-                       <div className="flex justify-between items-start mb-2">
-                          <p className="font-black text-sm text-slate-800 line-clamp-1">{c.nome}</p>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${getCorNota(c.nota_ia)}`}>
-                             {c.nota_ia} pts
-                          </span>
-                       </div>
-                       <div className="flex gap-2">
-                          {c.url_curriculo && <div className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold flex items-center gap-1"><FileText size={10}/> Tem CV</div>}
-                          {c.tem_filhos === "Sim" && <div className="text-[10px] bg-rose-50 text-rose-600 px-2 py-1 rounded font-bold border border-rose-100">Tem Filhos</div>}
-                       </div>
-                       {/* Marcou entrevista: falar com a pessoa tem que ser um toque */}
-                       {coluna.status === "Entrevista Marcada" && c.telefone && (
-                         <div className="mt-2 flex gap-2 border-t border-slate-100 pt-2" onClick={e => e.stopPropagation()}>
-                           <a href={`https://wa.me/55${String(c.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
-                             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">
-                             <Phone size={13} /> Chamar
-                           </a>
-                           <button type="button" title="Compartilhar contato"
-                             onClick={() => {
-                               const texto = `${c.nome} — ${c.cargo_pretendido || "candidato"} — ${c.telefone}`;
-                               if (navigator.share) navigator.share({ text: texto }).catch(() => {});
-                               else navigator.clipboard?.writeText(texto);
-                             }}
-                             className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
-                             Compartilhar
-                           </button>
-                           <button type="button" title="Ficha em PDF para enviar" onClick={() => imprimirFichaCandidato(c)}
-                             className="flex items-center justify-center rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
-                             PDF
-                           </button>
+           {(() => {
+              const lista = filtrados.filter(c => situacaoDe(c) === abaSituacao);
+              if (!lista.length) return (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+                   <p className="text-sm font-bold text-slate-400">Nenhum candidato nesta situação.</p>
+                </div>
+              );
+              return agruparPorVaga(lista).map(([vaga, daVaga]) => (
+                <div key={vaga} className="mb-5">
+                   <div className="mb-2 flex items-center gap-2 px-1">
+                      <h4 className="text-[13px] font-black text-slate-700">{vaga}</h4>
+                      <span className="text-[11px] font-black text-slate-400">{daVaga.length}</span>
+                   </div>
+                   <div className="space-y-2">
+                      {daVaga.map(c => {
+                         const sit = situacaoDe(c);
+                         return (
+                         <div key={c.id} onClick={() => setCandidatoAberto(c)}
+                            className={`cursor-pointer rounded-2xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 ${selecionados[c.id] ? "border-emerald-500 ring-2 ring-emerald-200" : "border-slate-200"}`}>
+                            <div className="flex flex-wrap items-center gap-3">
+                               {/* A caixa fica fora do onClick do cartão: marcar não pode
+                                   abrir a ficha, e abrir a ficha não pode marcar. */}
+                               <button type="button" aria-label={selecionados[c.id] ? `Desmarcar ${c.nome}` : `Marcar ${c.nome}`}
+                                  onClick={e => { e.stopPropagation(); alternarSelecao(c.id); }}
+                                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition-colors ${selecionados[c.id] ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-white text-transparent hover:border-emerald-400"}`}>
+                                  <Check size={13} strokeWidth={3} />
+                               </button>
+
+                               <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-black leading-snug text-slate-800">
+                                     {c.nome}
+                                     {c.cargo_pretendido && <span className="font-bold text-slate-400"> ({c.cargo_pretendido})</span>}
+                                  </p>
+                                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${getCorNota(c.nota_ia)}`}>{c.nota_ia} pts</span>
+                                     {c.url_curriculo && <span className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"><FileText size={10}/> Tem CV</span>}
+                                     {c.tem_filhos === "Sim" && <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">Tem filhos</span>}
+                                  </div>
+                               </div>
+
+                               {/* Situação e decisão. Aqui o clique não abre a ficha. */}
+                               <div className="flex shrink-0 items-center gap-2" onClick={e => e.stopPropagation()}>
+                                  {sit === "aprovado" && <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">Aprovado</span>}
+                                  {sit === "reprovado" && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600">Reprovado</span>}
+                                  {sit !== "aprovado" && (
+                                    <button type="button" onClick={() => decidir(c.id, APROVADO)}
+                                       className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700">Aprovar</button>
+                                  )}
+                                  {sit !== "reprovado" && (
+                                    <button type="button" onClick={() => decidir(c.id, REPROVADO)}
+                                       className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">Reprovar</button>
+                                  )}
+                               </div>
+                            </div>
+
+                            {/* Aprovado: falar com a pessoa tem que ser um toque. */}
+                            {sit === "aprovado" && c.telefone && (
+                              <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3" onClick={e => e.stopPropagation()}>
+                                <a href={`https://wa.me/55${String(c.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">
+                                  <Phone size={13} /> Chamar
+                                </a>
+                                <button type="button" title="Compartilhar contato"
+                                  onClick={() => {
+                                    const texto = `${c.nome} — ${c.cargo_pretendido || "candidato"} — ${c.telefone}`;
+                                    if (navigator.share) navigator.share({ text: texto }).catch(() => {});
+                                    else navigator.clipboard?.writeText(texto);
+                                  }}
+                                  className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
+                                  Compartilhar
+                                </button>
+                                <button type="button" title="Ficha em PDF para enviar" onClick={() => imprimirFichaCandidato(c)}
+                                  className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
+                                  PDF
+                                </button>
+                              </div>
+                            )}
                          </div>
-                       )}
-                    </div>
-                 ))}
-                 </div>
-                 ))}
-              </div>
-           ))}
+                         );
+                      })}
+                   </div>
+                </div>
+              ));
+           })()}
+        </div>
+      )}
+
+      {/* Barra de ação: só existe quando há alguém marcado. Fica presa no rodapé
+          porque no celular a coluna de destino pode estar telas abaixo. */}
+      {idsSelecionados.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-slate-200 bg-white/95 px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.10)] backdrop-blur sm:px-6">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
+            <span className="mr-1 text-sm font-black text-slate-700">
+              {idsSelecionados.length} marcado{idsSelecionados.length > 1 ? "s" : ""}
+            </span>
+            <button type="button" disabled={movendo} onClick={() => moverSelecionados(APROVADO)}
+              className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+              Aprovar
+            </button>
+            <button type="button" disabled={movendo} onClick={() => moverSelecionados(REPROVADO)}
+              className="rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+              Reprovar
+            </button>
+            <button type="button" disabled={movendo} onClick={() => moverSelecionados(A_DECIDIR)}
+              className="rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+              Voltar para a decidir
+            </button>
+            <button type="button" onClick={() => setSelecionados({})} disabled={movendo}
+              className="ml-auto rounded-xl px-3 py-2 text-xs font-black text-slate-500 hover:text-slate-800 disabled:opacity-50">
+              {movendo ? "Movendo..." : "Limpar"}
+            </button>
+          </div>
         </div>
       )}
 

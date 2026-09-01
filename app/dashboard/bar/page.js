@@ -87,11 +87,6 @@ export default function BarHubPage() {
             <h3 className="font-bold text-violet-800 text-sm">Memorando de Amanhã</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/embalagens?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
-            <Package size={24} className="text-teal-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm">Embalagens</h3>
-         </button>
-
          <button onClick={() => router.push("/dashboard/operacao/produtos?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <PlusCircle size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
             <h3 className="font-bold text-slate-700 text-sm leading-tight">Criação de Drinks</h3>

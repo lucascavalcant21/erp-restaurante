@@ -1,5 +1,5 @@
 import React from "react";
-import { fmtBRL } from "./index";
+import { fmtBRL } from "../ui";
 
 export function CupomTermico({ pedido, unidadeInfo, tipo = "parcial" }) {
   if (!pedido) return null;

@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  estoquePrincipalDoSetor,
   filtrarItensEstoque,
   grupoOperacionalItem,
   gruposOperacionaisEstoque,
   slugEstoque,
+  setorAutomaticoDoEstoque,
   statusItemEstoque,
   tiposCompativeis,
 } from "./estoques-multiplos-utils.mjs";
@@ -86,4 +88,42 @@ test("filtro operacional mostra somente o grupo selecionado", () => {
   ];
   const resultado = filtrarItensEstoque(itens, { grupo: "Xaropes" }, estoque);
   assert.deepEqual(resultado.map(item => item.nome), ["Xarope de gengibre"]);
+});
+
+test("só o estoque principal do setor recebe produto novo automaticamente", () => {
+  assert.equal(setorAutomaticoDoEstoque({ slug: "bar", nome: "Bar" }), "bar");
+  assert.equal(setorAutomaticoDoEstoque({ slug: "cozinha", nome: "Cozinha" }), "cozinha");
+  assert.equal(setorAutomaticoDoEstoque({ slug: "limpeza", nome: "Limpeza" }), "limpeza");
+  // Pré-preparo é abastecido pela produção, não pelo catálogo de compras.
+  assert.equal(setorAutomaticoDoEstoque({ slug: "pre-preparos-bar", nome: "Pré-preparos do Bar" }), "");
+  assert.equal(setorAutomaticoDoEstoque({ slug: "pre-preparos-cozinha", nome: "Pré-preparos da Cozinha" }), "");
+  // Depósito e materiais são gerais: não são a casa de nenhum setor.
+  assert.equal(setorAutomaticoDoEstoque({ slug: "deposito", nome: "Depósito" }), "");
+  assert.equal(setorAutomaticoDoEstoque({ slug: "materiais-variados", nome: "Materiais variados" }), "");
+  // Embalagens é setor próprio, e não o bar/cozinha do nome.
+  assert.equal(setorAutomaticoDoEstoque({ slug: "embalagens-bar", nome: "Embalagens do Bar" }), "embalagens");
+});
+
+test("produto do bar vai para o estoque Bar, não para o pré-preparo dele", () => {
+  // Ordem embaralhada de propósito: o banco devolve as linhas sem ordem
+  // garantida, e era daí que vinha o produto indo parar no estoque errado.
+  const estoques = [
+    { id: "1", slug: "pre-preparos-bar", nome: "Pré-preparos do Bar" },
+    { id: "2", slug: "embalagens-bar", nome: "Embalagens do Bar" },
+    { id: "3", slug: "bar", nome: "Bar" },
+    { id: "4", slug: "cozinha", nome: "Cozinha" },
+    { id: "5", slug: "deposito", nome: "Depósito" },
+  ];
+  assert.equal(estoquePrincipalDoSetor(estoques, "bar")?.id, "3");
+  assert.equal(estoquePrincipalDoSetor(estoques, "cozinha")?.id, "4");
+  assert.equal(estoquePrincipalDoSetor(estoques, "embalagens")?.id, "2");
+});
+
+test("setor sem estoque não escolhe um estoque qualquer", () => {
+  const estoques = [{ id: "1", slug: "cozinha", nome: "Cozinha" }];
+  // Antes caía num `|| estoques[0]` e a bebida ia parar na cozinha.
+  assert.equal(estoquePrincipalDoSetor(estoques, "bar"), null);
+  assert.equal(estoquePrincipalDoSetor(estoques, ""), null);
+  assert.equal(estoquePrincipalDoSetor([], "bar"), null);
+  assert.equal(estoquePrincipalDoSetor(null, "bar"), null);
 });

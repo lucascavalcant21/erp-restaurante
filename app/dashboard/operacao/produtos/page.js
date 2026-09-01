@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto, removerProduto, removerProdutoComPedidos } from "../../../lib/vendas";
-import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
+import { chaveNomeMontagem, fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
@@ -390,7 +390,7 @@ function CardapioRunner() {
     // (cozinha ou bar) para criar a montagem lá — sem duplicar por nome.
     if (!form.id) {
       const { data: montagens } = await fetchMontagens(unidadeAtiva, form.departamento);
-      const jaExiste = (montagens || []).some(m => (m.nome || "").toLowerCase() === form.nome_produto.trim().toLowerCase());
+      const jaExiste = (montagens || []).some(m => chaveNomeMontagem(m.nome) === chaveNomeMontagem(form.nome_produto));
       if (!jaExiste) {
         await inserirMontagem({
           nome: form.nome_produto.trim(),
@@ -598,7 +598,7 @@ function CardapioRunner() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
       
       {/* TOPBAR */}
       <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">

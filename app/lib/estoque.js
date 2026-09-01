@@ -93,6 +93,38 @@ export async function fetchProducoesPeriodo(unidadeId, dias = 30) {
   return { data: data || [], error: error?.message };
 }
 
+// O que foi produzido HOJE nesta unidade. A tela do funcionario usa para
+// mostrar o que ele mesmo fez e para descontar do plano do dia o que ja saiu.
+// Sem colaboradorId devolve a producao do setor inteiro, que e o que a
+// lideranca precisa ver.
+export async function fetchProducaoDeHoje(unidadeId, { colaboradorId = null, departamento = null } = {}) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  // Virada do dia pelo relogio local: as 23h de um sabado ainda e sabado para
+  // quem esta na cozinha, mesmo que em UTC ja seja domingo.
+  const agora = new Date();
+  const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).toISOString();
+
+  let consulta = supabase
+    .from("producao_diaria")
+    .select("*, fichas_tecnicas(nome_receita, rendimento_unidade, eh_base, departamento), colaboradores(nome)")
+    .eq("unidade_id", unidadeId)
+    .gte("created_at", inicio)
+    .order("created_at", { ascending: false });
+  if (colaboradorId) consulta = consulta.eq("colaborador_id", colaboradorId);
+
+  const { data, error } = await consulta;
+  if (error) return { data: [], error: error.message };
+
+  // O filtro por setor fica aqui e nao na consulta: producao antiga nao tem a
+  // coluna departamento preenchida, e nesse caso o setor vem da ficha.
+  const lista = (data || []).filter((registro) => {
+    if (!departamento) return true;
+    const setor = registro.departamento || registro.fichas_tecnicas?.departamento;
+    return !setor || String(setor).toLowerCase() === String(departamento).toLowerCase();
+  });
+  return { data: lista, error: null };
+}
+
 export function calcularConsumoProducao(ficha, qtdProduzida, todasFichas = []) {
   const fichasPorId = new Map((todasFichas || []).map(item => [item.id, item]));
   if (ficha?.id) fichasPorId.set(ficha.id, ficha);
@@ -198,12 +230,26 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
      if(errUpsert) return { error: errUpsert.message };
   }
 
-  const { data: logProducao, error: errLog } = await supabase.from("producao_diaria").insert([{
+  // Setor e local no proprio registro: a tela do funcionario le daqui o que ele
+  // fez hoje, sem ter que passar por cada ficha para descobrir de onde veio.
+  const registroProducao = {
      unidade_id: unidadeId,
      ficha_id: ficha.id,
      colaborador_id: colaboradorId,
-     quantidade_produzida: qtdProduzida
-  }]).select("id").single();
+     quantidade_produzida: qtdProduzida,
+     departamento: opcoes.departamento || ficha.departamento || null,
+     local_armazenamento: ficha.eh_base ? (opcoes.localArmazenamento || null) : null,
+  };
+  let { data: logProducao, error: errLog } = await supabase.from("producao_diaria").insert([registroProducao]).select("id").single();
+  // Colunas novas so existem depois da migracao; sem ela grava o basico em vez
+  // de recusar a producao inteira por causa de um campo acessorio.
+  if (errLog && /column .* does not exist|could not find/i.test(errLog.message || "")) {
+     const r = await supabase.from("producao_diaria").insert([{
+        unidade_id: unidadeId, ficha_id: ficha.id,
+        colaborador_id: colaboradorId, quantidade_produzida: qtdProduzida,
+     }]).select("id").single();
+     logProducao = r.data; errLog = r.error;
+  }
 
   if (errLog) {
      const reversao = Object.keys(consumoPorInsumo).map(id => ({

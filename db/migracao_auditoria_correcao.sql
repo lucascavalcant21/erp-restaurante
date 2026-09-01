@@ -95,7 +95,21 @@ begin
 end $$;
 
 -- 5) Sem GRANT a política não adianta: o erro sai como "permission denied".
-grant select, insert on public.hefisto_auditoria to anon, authenticated;
+--    Os papéis anon/authenticated são do Supabase. Fora dele o grant aborta o
+--    resto do arquivo, incluindo o reload do PostgREST logo abaixo — script que
+--    morre pela metade é armadilha, então cada papel é concedido só se existir.
+do $$
+declare
+  papel text;
+begin
+  foreach papel in array array['anon', 'authenticated'] loop
+    if exists (select 1 from pg_roles where rolname = papel) then
+      execute format('grant select, insert on public.hefisto_auditoria to %I', papel);
+    else
+      raise notice 'Papel % nao existe neste banco; grant ignorado.', papel;
+    end if;
+  end loop;
+end $$;
 
 -- 6) O PostgREST guarda o desenho das tabelas em cache; sem isto ele continua
 --    respondendo "Could not find the table" logo depois da migração.

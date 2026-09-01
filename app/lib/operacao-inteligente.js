@@ -218,6 +218,36 @@ export async function fetchExecucoes(unidadeId, { data: iso = hojeISO(), respons
   return { data: (data || []).map(e => ({ ...e, status: statusDaExecucao(e, agora) })), error: err(error) };
 }
 
+// Execuções de um intervalo, para os rankings.
+//
+// O status é recalculado aqui também, e é justamente no passado que isso
+// importa: ATRASADA nunca é gravada no banco — ela nasce da comparação do
+// prazo com o relógio. Uma rotina de semana passada que ninguém concluiu está
+// gravada como AGENDADA, e sem recalcular o ranking a contaria como "ainda vai
+// acontecer" em vez do atraso que foi. Os status terminais (concluída,
+// cancelada) passam intactos, então o que já aconteceu não é reescrito.
+//
+// O teto de 5000 linhas existe para uma unidade com muitos processos não puxar
+// o histórico inteiro sem querer. O retorno diz quando bateu no teto, para a
+// tela avisar em vez de mostrar meio período como se fosse o todo.
+export async function fetchExecucoesPeriodo(unidadeId, { de, ate } = {}) {
+  if (!isSupabaseReady() || !unidadeId || !de || !ate) return { data: [] };
+  const TETO = 5000;
+  const { data, error } = await supabase.from("op_execucoes")
+    .select("*, processo:op_processos(nome, setor, categoria, criticidade)")
+    .eq("unidade_id", String(unidadeId))
+    .gte("data_referencia", de)
+    .lte("data_referencia", ate)
+    .order("data_referencia")
+    .limit(TETO);
+  if (error) return { data: [], error: err(error) };
+  const agora = new Date();
+  return {
+    data: (data || []).map(e => ({ ...e, status: statusDaExecucao(e, agora) })),
+    truncado: (data || []).length >= TETO,
+  };
+}
+
 export async function fetchExecucao(execucaoId) {
   if (!isSupabaseReady() || !execucaoId) return { data: null };
   const { data, error } = await supabase.from("op_execucoes")

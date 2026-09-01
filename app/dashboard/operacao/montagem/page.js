@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Maximize, Type, Palette, ListChecks, Download, Share2, X, Eye, Wine } from "lucide-react";
+import { ArrowDown, ArrowUp, Camera, CheckSquare, ClipboardList, Clock, Download, Edit3, Eye, ImageIcon, ListChecks, Loader2, Maximize, Palette, Plus, Printer, RotateCcw, Save, Share2, SlidersHorizontal, Sparkles, Square, Trash2, Type, Wine, X } from "lucide-react";
 import {
-  PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
+  PageHeader, PageBody, Card, SectionLabel,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  fetchMontagens, inserirMontagem, atualizarMontagem, removerMontagem,
-  uploadFotoMontagem,
+  chaveNomeMontagem, fetchMontagens, inserirMontagem, atualizarMontagem,
+  removerMontagem, uploadFotoMontagem,
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
@@ -1237,7 +1237,7 @@ function imprimirLote(fichas, porFolha, deptLabel) {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Montagens — ${escaparHtml(deptLabel)}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:5mm 6mm;font-size:${escala}px}
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:3mm 3.5mm;font-size:${escala}px}
       .grade{display:grid;grid-template-columns:repeat(${cols},1fr);gap:4mm}
       .card{border:1.5px solid #333;border-radius:8px;padding:${porFolha <= 2 ? "6mm" : "3.5mm"};height:${alturaCard};overflow:hidden;overflow-wrap:anywhere;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
       .card.card-longo{height:auto;min-height:${alturaCard};overflow:visible;grid-column:1/-1;break-inside:auto;page-break-inside:auto}
@@ -1580,8 +1580,20 @@ const COR_CATEGORIA = { "Com Álcool": "#1f7a33", "Sem Álcool": "#b45309", "Dos
 const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses", "Xaropes", "Espumas", "Geleias"];
 
 // HTML de um card de drink (kanban) — reaproveitado pelo pôster e pelo livro.
+// Batido e mexido não são estilo: mudam o resultado no copo. O shaker aera,
+// gela e dilui mais; o mixing glass mantém o drink límpido. O campo já existia
+// na ficha (fichas_tecnicas.metodo_bar) e só não chegava até aqui.
+const METODOS_DRINK = {
+  batido: "Batido na coqueteleira",
+  mexido: "Mexido",
+  montado: "Montado no copo",
+  liquidificador: "Batido no liquidificador",
+  dose: "Dose pura",
+};
+
 function drinkCardHTML(m) {
   const nome = escaparHtml((m.nome || "Drink").toUpperCase());
+  const metodo = METODOS_DRINK[m.metodo_bar] || null;
   const categoria = categoriaDrink(m);
   const classeCategoria = categoria === "Doses" ? " dose" : categoria === "Sem Álcool" ? " semAlcool" : "";
   const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
@@ -1594,7 +1606,11 @@ function drinkCardHTML(m) {
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
     : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
-  const subtitulo = m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "";
+  // O método vira balão colado na foto. Como subtítulo ele se perdia entre o
+  // nome e os ingredientes; ao lado da imagem é a primeira coisa que quem monta
+  // o drink lê — bater na coqueteleira, no liquidificador ou mexer muda o
+  // resultado no copo, não é detalhe de estilo.
+  const subtitulo = metodo ? `<p class="metodo">${escaparHtml(metodo)}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
   const blocoPreparo = passos.length
@@ -1604,7 +1620,7 @@ function drinkCardHTML(m) {
   const blocoCopo = copo && (copo.nome || "").trim()
     ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${imagemCopoHTML(copo.nome, { altura: 58, fotoUrl: copo.foto_url || null, usarFotoGlobal: false })}<span>${escaparHtml(copo.nome)}</span></div></div>`
     : "";
-  return `<article class="drink${classeCategoria}"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
+  return `<article class="drink${classeCategoria}"><h2>${nome}</h2><div class="cab">${foto}<div class="tit">${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
 }
 
 // CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto;
@@ -1618,25 +1634,26 @@ function drinkCardCSS(colunas, gridCols = colunas, larguraCardMm = null) {
     : `grid-template-columns:repeat(${gridCols},1fr)`;
   return `
     .grade{display:grid;${colunasCss};gap:3.5mm;align-content:start}
-    .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff}
-    .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
-    .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
+    .drink{border:2px solid #111;border-radius:10px;padding:${colunas >= 3 ? 2.6 : 3.5}mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff;overflow:hidden}
+    .cab{display:flex;gap:2.5mm;align-items:center;margin-bottom:2mm}
+    .foto{width:${colunas >= 4 ? 14 : colunas === 3 ? 16 : 26}mm;height:${colunas >= 4 ? 14 : colunas === 3 ? 16 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
     .foto img{width:100%;height:100%;object-fit:cover;display:block}
     .foto.semFoto{display:flex;align-items:center;justify-content:center;text-align:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:8px;letter-spacing:.5px}
     .tit{min-width:0;flex:1}
-    .drink h2{font-size:${colunas >= 4 ? 18 : colunas === 3 ? 22 : 28}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
-    .copo{font-size:${colunas >= 4 ? 11 : 13}px;font-weight:800;color:#444;margin-top:2px}
-    .bloco{margin-top:2.5mm}
-    .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
-    .drink ul,.drink ol{padding-left:1.3em}
-    .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.35;margin-bottom:2px}
+    .drink h2{font-size:${colunas >= 4 ? 16 : colunas === 3 ? 19 : 28}px;font-weight:900;line-height:1.08;letter-spacing:.3px;text-transform:uppercase;overflow-wrap:break-word;hyphens:auto;margin-bottom:2mm}
+    .copo{font-size:${colunas >= 4 ? 10 : colunas === 3 ? 11 : 13}px;font-weight:800;color:#444;line-height:1.25}
+    .metodo{display:inline-block;max-width:100%;font-size:${colunas >= 4 ? 8.5 : colunas === 3 ? 9.5 : 12}px;font-weight:900;line-height:1.3;color:#111;background:#f4f4f5;border:1.5px solid #111;border-radius:${colunas >= 3 ? 3 : 999}mm;padding:${colunas >= 3 ? "1mm 2mm" : "1.4mm 3mm"};text-transform:uppercase;overflow-wrap:break-word}
+    .bloco{margin-top:${colunas >= 3 ? 1.6 : 2.5}mm}
+    .rot{font-size:${colunas >= 4 ? 11 : colunas === 3 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.2px;border-bottom:2px solid #111;padding-bottom:1px;margin-bottom:2px}
+    .drink ul,.drink ol{padding-left:1.1em}
+    .drink li{font-size:${colunas >= 4 ? 12 : colunas === 3 ? 13 : 17}px;font-weight:700;line-height:${colunas >= 3 ? 1.25 : 1.35};margin-bottom:${colunas >= 3 ? 1 : 2}px;overflow-wrap:break-word}
     .drink ol li::marker{font-weight:900}
     .vazio{font-size:13px;color:#999;font-style:italic}
     .foto.ilustrada{display:flex;align-items:center;justify-content:center;background:#fdf9ef}
     .foto.ilustrada svg{width:76%;height:86%}
     .copoRow{display:flex;align-items:center;gap:2.5mm}
-    .copoRow svg{height:${colunas >= 4 ? 12 : 15}mm;width:auto;flex:none}
-    .copoRow span{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800}
+    .copoRow svg{height:${colunas >= 4 ? 10 : colunas === 3 ? 11 : 15}mm;width:auto;flex:none}
+    .copoRow span{font-size:${colunas >= 4 ? 11 : colunas === 3 ? 12 : 14}px;font-weight:800}
     .drink.semAlcool,.drink.dose{padding:3.5mm}`;
 }
 
@@ -1717,13 +1734,19 @@ function gerarHtmlLivroDrinks(fichas, formato = "a4") {
   if (!drinks.length) { alert("Nenhum drink para o livro."); return null; }
   // A4 = folha inteira; A5 = metade da A4 (148×210mm), para um livro menor.
   const a5 = formato === "a5";
-  const CARDS_POR_PAGINA = a5 ? 4 : 6; // A4: 2×3 · A5: 2×2
-  const colunas = a5 ? 4 : 2;          // A5 usa letras/fotos compactas
-  const gridCols = 2;
+  // A4 passou de 2×3 para 3×3 e o A5 de 2×2 para 2×3: metade das páginas para o
+  // mesmo cardápio, e o livro cabe na mão de quem está atrás do balcão.
+  const CARDS_POR_PAGINA = a5 ? 6 : 9;  // A4: 3×3 · A5: 2×3
+  const gridCols = a5 ? 2 : 3;
+  // `colunas` manda no tamanho de letra e foto, não na grade. Com 3 colunas na
+  // A4 a fonte cai junto — era o título de 28px num card estreito que vazava
+  // para fora da borda.
+  const colunas = a5 ? 4 : 3;
   const larguraPapelMm = a5 ? 148 : 210;
   const alturaPapelMm = a5 ? 210 : 297;
   // Largura FIXA do card: categorias com poucos drinks não esticam pra folha.
-  const larguraCardMm = a5 ? 58 : 86;
+  // A4 útil = 210 − 8 − 18 = 184mm; 3 cards de 58mm + 2 vãos de 3,5mm = 181mm.
+  const larguraCardMm = a5 ? 58 : 58;
 
   const porCat = {};
   drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });
@@ -1781,10 +1804,23 @@ function gerarHtmlLivroDrinks(fichas, formato = "a4") {
       <section class="indice"><h1>Índice</h1>${indiceHTML}<div class="rodape-livro"><span>Guia de Drinks</span><span>Página 2</span></div></section>
       ${conteudo}
       <script>addEventListener('load',function(){
+        // Encolher a grade para caber na altura tambem encolhe a LARGURA, e a
+        // pagina ficava com tarja branca dos dois lados. A correcao e alargar as
+        // colunas na proporcao inversa do encolhimento: BASE/z de largura, com
+        // zoom z, volta ao tamanho visual certo e enche a folha.
+        //
+        // So que texto em coluna mais larga quebra menos e ocupa menos altura,
+        // entao o fator certo nao sai de uma conta -- uma unica passada travava
+        // no piso e deixava letra minuscula com meia pagina vazia. Procuramos o
+        // MAIOR zoom que ainda cabe, do maior para o menor.
+        var BASE=${larguraCardMm}, COLS=${gridCols};
         document.querySelectorAll('.pagina').forEach(function(pg){
-          var cont=pg.querySelector('.conteudo');var grade=pg.querySelector('.grade');
-          if(cont&&grade&&cont.scrollHeight>cont.clientHeight+4){
-            grade.style.zoom=Math.max(0.5,cont.clientHeight/cont.scrollHeight);
+          var cont=pg.querySelector('.conteudo'),grade=pg.querySelector('.grade');
+          if(!cont||!grade)return;
+          for(var z=1; z>=0.5; z-=0.05){
+            grade.style.gridTemplateColumns='repeat('+COLS+','+(BASE/z).toFixed(2)+'mm)';
+            grade.style.zoom=(z>=0.999?'':z);
+            if(cont.scrollHeight<=cont.clientHeight+4)break;
           }
         });
       });<\/script>
@@ -1892,6 +1928,7 @@ function MontagemPageInner() {
   };
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
+  const [excluindo, setExcluindo] = useState(false);
   const toggleSel = (id) => setSelecionadas(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   // Ver o que foi tirado do guia, para poder devolver. Sem isso, tirar seria
   // uma porta só de ida e ninguém arriscaria usar.
@@ -2005,16 +2042,22 @@ function MontagemPageInner() {
         fetchMontagens(unidadeAtiva, dept),
         fetchProdutos(unidadeAtiva, dept),
       ]);
-      const nomes = new Set((rMont.data || []).map(m => (m.nome || "").toLowerCase().trim()));
+      const nomes = new Set((rMont.data || []).map(m => chaveNomeMontagem(m.nome)));
       // Só ganha ficha de montagem o que é receita de verdade. A checagem antiga
       // olhava só o tipo_base, então cerveja e água cadastradas direto no
       // cardápio — sem ficha nenhuma — passavam pelo `!== "produto_pronto"` e
       // apareciam aqui como se fossem drinks a montar.
+      //
+      // Pré-preparo também não entra: o guia mostra o que se monta para o
+      // cliente, e molho, base ou caldo é insumo de outra receita, não prato.
+      // Passavam porque tipo_base "pre" não é "produto_pronto".
+      const ehPrePreparo = (f) => !!f?.eh_base || f?.tipo_base === "pre";
       const faltantes = (rProds.data || []).filter(p =>
         p.nome_produto &&
         p.fichas_tecnicas &&
         p.fichas_tecnicas.tipo_base !== "produto_pronto" &&
-        !nomes.has(p.nome_produto.toLowerCase().trim())
+        !ehPrePreparo(p.fichas_tecnicas) &&
+        !nomes.has(chaveNomeMontagem(p.nome_produto))
       );
       for (const p of faltantes) {
         await inserirMontagem({
@@ -2041,7 +2084,9 @@ function MontagemPageInner() {
   useEffect(() => { carregar(); }, [unidadeAtiva, dept]);
 
   const filtrados = useMemo(() => lista.filter((m) => {
-    const mb = m.nome?.toLowerCase().includes(busca.toLowerCase());
+    // chaveNomeMontagem nos dois lados: buscar "acai" acha "Açaí" e buscar
+    // "a" acha "Água". É a mesma chave que já compara nomes duplicados.
+    const mb = chaveNomeMontagem(m.nome).includes(chaveNomeMontagem(busca));
     const mt = tipo === "Todos" || m.tipo === tipo.toLowerCase();
     // Garrafa, lata e água não têm montagem para ensinar — abrir e servir não é
     // receita. Some da lista, da contagem e da impressão de uma vez só, porque
@@ -2069,14 +2114,47 @@ function MontagemPageInner() {
   const alvoImpressao = selecionadas.length ? lista.filter(m => selecionadas.includes(m.id)) : filtrados;
 
   async function salvar(dados) {
-    if (editar) {
-      await atualizarMontagem(editar.id, dados);
-    } else {
-      await inserirMontagem(dados, unidadeAtiva);
-    }
+    const r = editar
+      ? await atualizarMontagem(editar.id, dados)
+      : await inserirMontagem(dados, unidadeAtiva);
+    // Fechar o modal com o banco recusando jogava fora o que foi digitado e
+    // ainda anunciava "salva!".
+    if (r?.error) return alert(`Não consegui salvar esta ficha de montagem: ${r.error}`);
     setModal(false); setEditar(null); setSalvou("Ficha de montagem salva!");
     setTimeout(() => setSalvou(""), 2600);
     carregar();
+  }
+
+  // Marca ou desmarca o que esta na tela AGORA, respeitando busca e filtro:
+  // "todos" tem que querer dizer o que a pessoa esta vendo, nao a base inteira.
+  function alternarTodos() {
+    const idsNaTela = filtrados.map((m) => m.id);
+    const todosMarcados = idsNaTela.length > 0 && idsNaTela.every((id) => selecionadas.includes(id));
+    setSelecionadas(todosMarcados ? [] : idsNaTela);
+  }
+
+  async function removerSelecionadas() {
+    const alvos = lista.filter((m) => selecionadas.includes(m.id));
+    if (!alvos.length) return;
+    // Nome dos primeiros na confirmacao: "excluir 12 fichas" nao deixa conferir
+    // se a selecao e a que se pretendia.
+    const amostra = alvos.slice(0, 5).map((m) => `· ${m.nome}`).join("\n");
+    const resto = alvos.length > 5 ? `\n· e mais ${alvos.length - 5}` : "";
+    if (!confirm(`Excluir ${alvos.length} ficha(s) de montagem?\n\n${amostra}${resto}\n\nNão tem desfazer.`)) return;
+
+    setExcluindo(true);
+    const falhas = [];
+    for (const m of alvos) {
+      const r = await removerMontagem(m.id);
+      if (r?.error) falhas.push(`${m.nome} (${r.error})`);
+    }
+    const idsFalhos = new Set(alvos.filter((m) => falhas.some((f) => f.startsWith(m.nome))).map((m) => m.id));
+    setLista((p) => p.filter((m) => !selecionadas.includes(m.id) || idsFalhos.has(m.id)));
+    setSelecionadas([]);
+    setExcluindo(false);
+    // O lote continua ate o fim mesmo com erro, mas quem falhou e nomeado:
+    // antes uma exclusao recusada sumiria da tela e voltaria no proximo load.
+    if (falhas.length) alert(`${alvos.length - falhas.length} de ${alvos.length} excluída(s).\n\nNão saíram:\n${falhas.join("\n")}`);
   }
 
   async function remover(id) {
@@ -2178,9 +2256,6 @@ function MontagemPageInner() {
         active="montagem"
         dept={dept}
         title={dept === "bar" ? "Guia de montagem do Bar" : "Guia de montagem da Cozinha"}
-        description={dept === "bar"
-          ? "Converta as fichas em instruções visuais de copo, dosagem, finalização e serviço para toda a equipe."
-          : "Converta receitas em padrões visuais claros de porcionamento, montagem, acabamento e apresentação."}
         total={filtrados.length}
         mostrarEtapas={false}
         onPrimary={() => { setEditar(null); setModal(true); }}
@@ -2196,38 +2271,22 @@ function MontagemPageInner() {
               {vazios > 0 && (
                 <button onClick={preencherVaziosIA} disabled={preenchendoIA}
                   title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
+                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
                   {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
                 </button>
               )}
               <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert(vazios ? `Nenhum drink com receita ainda. Use o botão "Receitas com IA" para a IA montar as ${vazios} bebidas de uma vez, ou cadastre manualmente.` : "Nenhum drink com receita para o guia.")}
-                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex items-center gap-2 rounded-xl border border-violet-300/30 bg-violet-500/30 px-4 py-2 text-sm font-bold text-white hover:bg-violet-500/40">
+                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-md shadow-violet-600/20 transition-all hover:bg-violet-700 active:scale-[.98]">
                 <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
               </button>
             </>
           );
         })()}
-        <button
-          onClick={() => {
-            if (!filtrados.length) return alert("Nenhuma ficha cadastrada nesta área.");
-            setGuiaModoPraca(filtrados[0]);
-          }}
-          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition-all active:scale-95"
-          title="Abrir o Modo Produção em Tela Cheia para Tablet ou TV da Cozinha/Bar"
-        >
-          <Maximize size={15} /> Modo Produção / Praça
-        </button>
-        <button onClick={() => setModalImpressao(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>
-
-        <KpiGrid>
-          <Kpi icon={ClipboardList} label="Fichas cadastradas" value={lista.length} tint="var(--accent-fg)" />
-          <Kpi icon={Sparkles} label="Geradas com IA" value={lista.filter(l => !!l.estrutura_ia).length} tint="#9333EA" />
-          <Kpi icon={Clock} label="Tempo médio" value={`${lista.length ? Math.round(lista.reduce((a, m) => a + (m.tempo_preparo || 0), 0) / lista.length) : 0} min`} tint="#3B82F6" />
-        </KpiGrid>
 
         <div className="erp-card p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 items-center">
           <SearchBar value={busca} onChange={setBusca} placeholder={dept === "bar" ? "Buscar drink ou montagem..." : "Buscar prato ou montagem..."} autoFocus />
@@ -2241,12 +2300,27 @@ function MontagemPageInner() {
             className={`min-h-10 rounded-xl border px-3 text-xs font-black ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
             {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia || !temConteudoDrink(m)).length})`}
           </button>
+          {filtrados.length > 0 && (() => {
+            const todosMarcados = filtrados.every(m => selecionadas.includes(m.id));
+            return (
+              <button type="button" onClick={alternarTodos}
+                className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300">
+                {todosMarcados ? <CheckSquare size={15} /> : <Square size={15} />}
+                {todosMarcados ? "Desmarcar todos" : `Selecionar todos (${filtrados.length})`}
+              </button>
+            );
+          })()}
           {selecionadas.length > 0 && (
-            <button type="button" onClick={() => mudarForaDoGuia(!verForaDoGuia)}
+            <button type="button" onClick={removerSelecionadas} disabled={excluindo}
+              className="flex min-h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-xs font-black text-white hover:bg-red-700 disabled:opacity-60">
+              {excluindo ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              {excluindo ? "Excluindo..." : `Excluir (${selecionadas.length})`}
+            </button>
+          )}
+          {verForaDoGuia && selecionadas.length > 0 && (
+            <button type="button" onClick={() => mudarForaDoGuia(false)}
               className="min-h-10 rounded-xl bg-slate-800 px-4 text-xs font-black text-white hover:bg-slate-900">
-              {verForaDoGuia
-                ? `Devolver ao guia (${selecionadas.length})`
-                : `Não é drink — tirar do guia (${selecionadas.length})`}
+              Devolver ao guia ({selecionadas.length})
             </button>
           )}
         </div>

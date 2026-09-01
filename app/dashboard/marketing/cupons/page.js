@@ -85,7 +85,8 @@ export default function CuponsPage() {
 
   const handleExcluir = async (id) => {
     if (!confirm("Tem certeza que deseja excluir este cupom permanentemente?")) return;
-    await excluirCupom(id);
+    const { error } = await excluirCupom(id);
+    if (error) return alert(`Não consegui excluir este cupom: ${error}`);
     carregar();
   };
 

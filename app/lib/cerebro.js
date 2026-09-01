@@ -1,4 +1,3 @@
-import { UNIDADES } from "./unidades";
 import { fetchEstoque } from "./estoque";
 import { fetchFuncionarios } from "./rh";
 import { fetchCardapio } from "./cardapio";

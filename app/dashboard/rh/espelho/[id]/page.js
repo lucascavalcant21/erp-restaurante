@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -32,6 +32,12 @@ export default function EspelhoDePonto() {
   const [feriadosMes, setFeriadosMes] = useState([]);
   const [fechamento, setFechamento] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Este estado fica aqui em cima com os outros de proposito. Mais abaixo a
+  // tela tem `if (loading) return ...` e `if (!colaborador) return ...`; um
+  // useState depois deles roda em um render e nao roda no outro, e o React
+  // derruba a tela com o erro #310 ("rendered more hooks than during the
+  // previous render"). Hook nenhum pode ficar abaixo daqueles returns.
+  const [refazendo, setRefazendo] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -163,12 +169,6 @@ export default function EspelhoDePonto() {
     v = v.replace(/(\d{4})(\d)/, "$1-$2");
     return v;
   };
-
-  // O botão de refazer o retrato lia `refazendo` e chamava `setRefazendo`, mas
-  // o estado nunca foi declarado — "refazendo is not defined" derrubava a tela
-  // inteira. Ficou escondido porque o botão só existe em mês FECHADO, e até o
-  // seletor de mês existir não havia como abrir um mês fechado pela interface.
-  const [refazendo, setRefazendo] = useState(false);
 
   // Descarta o retrato antigo e grava o cadastro de agora no lugar.
   const refazerRetrato = async () => {

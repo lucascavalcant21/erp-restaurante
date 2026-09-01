@@ -265,7 +265,6 @@ export default function EtiquetasRapidas() {
     setItem({ ...produto, quantidade: "", informarQuantidade: false, copias: 1, dias: 3, conservacao: "Resfriado", codigo: gerarCodigo() });
     setCategoriaId("");
     setModeloEtiqueta("validade");
-    setMostrarDetalhes(false);
     setMomento(new Date());
   }
 

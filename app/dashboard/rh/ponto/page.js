@@ -252,7 +252,9 @@ export default function PontoPage() {
   const [batendo, setBatendo] = useState(false);
   const [sucesso, setSucesso] = useState(null); // { titulo, detalhe, tone }
   const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo', tirou, faltou }
-  const [pinAberto, setPinAberto] = useState(false);
+  // Nao existe mais PIN de atraso: desde que a batida atrasada parou de ser
+  // travada (art. 74, I da Portaria 671/2021), o funcionario bate a hora em
+  // que chegou e o atraso aparece no espelho. O modal antigo foi removido.
   const [pinAntecipada, setPinAntecipada] = useState(false);      // entrar ANTES do horário (reunião)
   const [escolhaAntecipada, setEscolhaAntecipada] = useState(null); // { min } — decisão do gerente
 
@@ -773,17 +775,6 @@ export default function PontoPage() {
 
     return (
       <div ref={containerRef} className="erp-safe-top fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
-        {pinAberto && (
-          <ModalPinGerente senha={pinGerente}
-            onClose={() => setPinAberto(false)}
-            onSuccess={() => {
-              setPinAberto(false);
-              const prevista = comHora(new Date(), entradaDoDia(selecionado, horaLocal) || "00:00");
-              const min = Math.max(1, Math.round((Date.now() - prevista.getTime()) / 60000));
-              setEscolhaAtraso({ min });
-            }}
-          />
-        )}
         {pinAntecipada && (
           <ModalPinGerente senha={pinGerente}
             titulo="Entrada antecipada"

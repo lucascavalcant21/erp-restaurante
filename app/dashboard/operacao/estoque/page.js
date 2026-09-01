@@ -1631,7 +1631,7 @@ function EstoqueRunner() {
                   <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })}
                     className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-slate-200 bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
                     <option value="">Selecione o responsável...</option>
-                    {colaboradoresDaArea.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
+                    {colaboradoresFiltrados.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
                   </select>
                 </label>
 

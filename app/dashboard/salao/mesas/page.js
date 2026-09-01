@@ -8,7 +8,7 @@ import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAbe
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
-import { fmtBRL, CupomTermico } from "../../../components/ui";
+import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
   const { unidadeAtiva, usuarioLogado } = useERP();
@@ -74,6 +74,7 @@ export default function SaloesMesasPage() {
   const [pedidosDaMesa, setPedidosDaMesa] = useState([]);
   const [modalListaComandas, setModalListaComandas] = useState(false);
   const [modalTransferir, setModalTransferir] = useState(false);
+  const [mesaDestinoId, setMesaDestinoId] = useState(""); // mesa escolhida na transferencia
   const [modalGestaoMesas, setModalGestaoMesas] = useState(false);
   const [novaMesaNum, setNovaMesaNum] = useState("");
   const [qrMesa, setQrMesa] = useState(null); // Mesa para imprimir QR Code
@@ -1670,7 +1671,7 @@ export default function SaloesMesasPage() {
                </div>
                
                <div className="flex gap-3">
-                  <button onClick={() => setModalTransferir(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 font-bold text-slate-600 rounded-xl transition-colors">Cancelar</button>
+                  <button onClick={() => { setModalTransferir(false); setMesaDestinoId(""); }} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 font-bold text-slate-600 rounded-xl transition-colors">Cancelar</button>
                   <button disabled={!mesaDestinoId || processando} onClick={async () => {
                      setProcessando(true);
                      const { error } = await transferirComanda(pedidoAtivo.id, mesaAtiva.id, mesaDestinoId);
@@ -1678,6 +1679,7 @@ export default function SaloesMesasPage() {
                      if(error) alert("Erro ao transferir: " + error);
                      else {
                         setModalTransferir(false);
+                        setMesaDestinoId("");
                         setPedidoAtivo(null);
                         setMesaAtiva(null);
                         carregarMesas();

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchEngenharia, salvarItemEngenharia } from "../../../lib/engenharia";
+import { fetchEngenharia } from "../../../lib/engenharia";
 import { BarChart, ArrowLeft, Star, Heart, Puzzle, Ghost, TrendingUp, AlertTriangle } from "lucide-react";
 import { PageHeader, PageBody, Card, EmptyState, fmtBRL } from "../../../components/ui";
 

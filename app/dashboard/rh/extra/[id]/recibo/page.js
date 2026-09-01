@@ -141,7 +141,7 @@ export default function GerarPagamentoExtraPage() {
     if (imprimirDepois) {
       imprimirReciboExtra({
         extra, recibo: salvo,
-        unidade: unidadeInfo, unidadenome: unidadeInfo?.nome, textos
+        unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos
       });
     }
     setForm(anterior => ({ ...anterior, valor: extra.salario ? String(extra.salario) : "" }));
@@ -158,80 +158,142 @@ export default function GerarPagamentoExtraPage() {
   if (!extra) return <div className="mx-auto max-w-xl p-8 text-center"><p className="font-bold text-red-700">{erro || "Extra não encontrado."}</p><button onClick={() => router.push("/dashboard/rh/extra")} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white">Voltar</button></div>;
 
   return (
-    <div className="min-h-screen bg-slate-100/80 pb-20">
-      <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-7">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-3">
-          <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600"><ArrowLeft size={20} /></button>
-          <div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-widest text-emerald-700">Extras</p><h1 className="truncate text-xl font-black text-slate-900 sm:text-2xl">Gerar pagamento</h1><p className="text-sm font-semibold text-slate-500">{extra.nome}</p></div>
-          <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700"><Pencil size={16} /> Editar cadastro</button>
+    <div className="min-h-screen bg-slate-100/80 pb-16 text-slate-900">
+      {/* HEADER COMPACTO */}
+      <header className="border-b border-slate-200 bg-white px-4 py-3.5 sm:px-6">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"><ArrowLeft size={18} /></button>
+            <div>
+              <h1 className="text-xl font-black text-slate-900">Gerar Recibo Extra</h1>
+              <p className="text-xs font-semibold text-slate-500">{extra.nome} ({extra.cargo || "Extra"})</p>
+            </div>
+          </div>
+          <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><Pencil size={14} /> Editar cadastro</button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-5 p-4 sm:p-6">
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <div className="mb-6 flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700"><BadgeDollarSign size={24} /></span><div><h2 className="text-xl font-black text-slate-900">Pagamento do extra</h2><p className="text-sm font-semibold text-slate-500">Recibo oficial de prestação de serviços</p></div></div>
-
-          <div className="grid gap-4 sm:grid-cols-4">
-            <label className="sm:col-span-2"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Valor total a pagar *</span><div className="mt-1.5 flex min-h-16 items-center rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4"><span className="mr-2 text-xl font-black text-emerald-700">R$</span><input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-3xl font-black text-slate-900 outline-none" placeholder="0,00" /></div></label>
-            <label><span className="text-xs font-black uppercase tracking-wider text-slate-500">Diárias</span><input type="number" step="0.1" min="0.1" value={form.dias_contratados} onChange={e => set("dias_contratados", e.target.value)} className="mt-1.5 min-h-16 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 font-black text-slate-800 outline-none" placeholder="1" /></label>
-            <label><span className="text-xs font-black uppercase tracking-wider text-slate-500">Data do trabalho</span><input type="date" value={form.data_trabalho} onChange={e => set("data_trabalho", e.target.value)} className="mt-1.5 min-h-16 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 font-black text-slate-800 outline-none" /></label>
-          </div>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label>
-              <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5"><Clock size={14} /> Horário de Início</span>
-              <input type="time" value={form.hora_entrada} onChange={e => set("hora_entrada", e.target.value)} className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none" placeholder="Ex: 15:40" />
+      <main className="mx-auto max-w-4xl space-y-4 p-4 sm:p-6">
+        {/* FORMULÁRIO ENXUTO E PRÁTICO */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 space-y-4">
+          {/* LINHA 1: VALORES E DATA */}
+          <div className="grid gap-3 sm:grid-cols-4">
+            <label className="sm:col-span-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valor Total a Pagar *</span>
+              <div className="mt-1 flex h-12 items-center rounded-xl border-2 border-emerald-400 bg-emerald-50/70 px-3">
+                <span className="mr-1.5 text-lg font-black text-emerald-700">R$</span>
+                <input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-slate-900 outline-none" placeholder="0,00" />
+              </div>
             </label>
             <label>
-              <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5"><Clock size={14} /> Horário de Término</span>
-              <input type="time" value={form.hora_saida} onChange={e => set("hora_saida", e.target.value)} className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none" placeholder="Ex: 23:40" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Diárias</span>
+              <input type="number" step="0.1" min="0.1" value={form.dias_contratados} onChange={e => set("dias_contratados", e.target.value)} className="mt-1 h-12 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-black text-slate-800 outline-none" placeholder="1" />
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Data do Trabalho</span>
+              <input type="date" value={form.data_trabalho} onChange={e => set("data_trabalho", e.target.value)} className="mt-1 h-12 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold text-slate-800 outline-none" />
             </label>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center gap-2"><Utensils className="text-emerald-600" /><h3 className="font-black text-slate-900">Foi oferecida alimentação?</h3></div>
-              <div className="grid grid-cols-2 gap-2"><button onClick={() => set("alimentacao", true)} className={`min-h-12 rounded-xl font-black ${form.alimentacao ? "bg-emerald-600 text-white" : "bg-white text-slate-600"}`}>Sim</button><button onClick={() => set("alimentacao", false)} className={`min-h-12 rounded-xl font-black ${!form.alimentacao ? "bg-slate-800 text-white" : "bg-white text-slate-600"}`}>Não</button></div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center gap-2"><Shirt className="text-emerald-600" /><h3 className="font-black text-slate-900">Recebeu material de trabalho?</h3></div>
-              <div className="grid grid-cols-2 gap-2"><button onClick={() => set("materiais", true)} className={`min-h-12 rounded-xl font-black ${form.materiais ? "bg-emerald-600 text-white" : "bg-white text-slate-600"}`}>Sim</button><button onClick={() => set("materiais", false)} className={`min-h-12 rounded-xl font-black ${!form.materiais ? "bg-slate-800 text-white" : "bg-white text-slate-600"}`}>Não</button></div>
-            </div>
-          </div>
-
-          {form.materiais && <label className="mt-4 block"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Quais materiais?</span><input value={form.descricao_materiais} onChange={e => set("descricao_materiais", e.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: avental, camisa, rádio" /></label>}
-          
-          <div className="mt-4 space-y-3">
-            <label className="block"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Forma de pagamento</span>
-              <select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none">
+          {/* LINHA 2: HORÁRIO E PAGAMENTO */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Início</span>
+              <input type="time" value={form.hora_entrada} onChange={e => set("hora_entrada", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm" placeholder="15:40" />
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Término</span>
+              <input type="time" value={form.hora_saida} onChange={e => set("hora_saida", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm" placeholder="23:40" />
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Forma de Pagamento</span>
+              <select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm">
                 <option>Pix</option>
                 <option>Dinheiro</option>
                 <option>Transferência</option>
                 <option>Híbrido (Pix + Dinheiro)</option>
               </select>
             </label>
-
-            {form.forma_pagamento.includes("Híbrido") && (
-              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 grid gap-3 sm:grid-cols-2 animate-in fade-in">
-                <label>
-                  <span className="text-xs font-black text-emerald-800">Quanto pago no PIX (R$)</span>
-                  <input type="number" min="0" step="0.01" value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 min-h-12 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none" />
-                </label>
-                <label>
-                  <span className="text-xs font-black text-emerald-800">Quanto pago no DINHEIRO (R$)</span>
-                  <input type="number" min="0" step="0.01" value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 min-h-12 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none" />
-                </label>
-              </div>
-            )}
           </div>
 
-          {erro && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{erro}</p>}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2"><button onClick={() => salvar(false)} disabled={salvando} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-emerald-200 bg-white font-black text-emerald-700 disabled:opacity-50">{salvando ? <Loader2 className="animate-spin" /> : <Save />} Salvar</button><button onClick={() => salvar(true)} disabled={salvando} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 font-black text-white shadow-lg disabled:opacity-50">{salvando ? <Loader2 className="animate-spin" /> : <><Save /><Printer /></>} Salvar e imprimir</button></div>
+          {/* DETALHAMENTO HÍBRIDO (SE SELECIONADO) */}
+          {form.forma_pagamento.includes("Híbrido") && (
+            <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 grid gap-3 sm:grid-cols-2 animate-in fade-in">
+              <label>
+                <span className="text-[11px] font-black text-emerald-800">Valor no PIX (R$)</span>
+                <input type="number" min="0" step="0.01" value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none text-sm" />
+              </label>
+              <label>
+                <span className="text-[11px] font-black text-emerald-800">Valor em DINHEIRO (R$)</span>
+                <input type="number" min="0" step="0.01" value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none text-sm" />
+              </label>
+            </div>
+          )}
+
+          {/* LINHA 3: TOGGLES COMPACTOS (ALIMENTAÇÃO E MATERIAIS) */}
+          <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Utensils size={15} className="text-emerald-600" /> Ofereceu Alimentação?</span>
+              <div className="flex gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                <button type="button" onClick={() => set("alimentacao", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.alimentacao ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("alimentacao", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.alimentacao ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Shirt size={15} className="text-emerald-600" /> Entregou Material/Uniforme?</span>
+              <div className="flex gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                <button type="button" onClick={() => set("materiais", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.materiais ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("materiais", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.materiais ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+              </div>
+            </div>
+          </div>
+
+          {form.materiais && (
+            <label className="block">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Quais materiais foram entregues?</span>
+              <input value={form.descricao_materiais} onChange={e => set("descricao_materiais", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-bold outline-none focus:border-emerald-500" placeholder="Ex.: avental, camisa da loja, rádio" />
+            </label>
+          )}
+
+          {erro && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">{erro}</p>}
+
+          {/* BOTÕES DE AÇÃO */}
+          <div className="grid gap-2.5 sm:grid-cols-2 pt-2 border-t border-slate-100">
+            <button onClick={() => salvar(false)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+              {salvando ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Salvar sem imprimir
+            </button>
+            <button onClick={() => salvar(true)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50">
+              {salvando ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /><Printer size={18} /></>} Salvar e imprimir recibo
+            </button>
+          </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-black text-slate-900">Pagamentos anteriores</h2>
-          {!recibos.length ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">Nenhum pagamento gerado.</p> : <div className="mt-4 grid gap-3 sm:grid-cols-2">{recibos.map(recibo => <article key={recibo.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xl font-black text-slate-900">{moeda(recibo.valor_total)}</p><p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-black text-slate-700"><Printer size={15} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1 rounded-xl bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={15} /> : <CheckCircle2 size={15} />}{recibo.pagamento_realizado ? "Pendente" : "Marcar pago"}</button></div></article>)}</div>}
+        {/* HISTÓRICO ANTERIOR */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-black text-slate-900">Recibos anteriores deste extra</h2>
+          {!recibos.length ? (
+            <p className="mt-2 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">Nenhum pagamento gerado anteriormente.</p>
+          ) : (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {recibos.map(recibo => (
+                <article key={recibo.id} className="rounded-2xl border border-slate-200 p-3 flex items-center justify-between gap-3 bg-slate-50/50">
+                  <div>
+                    <p className="text-base font-black text-slate-900">{moeda(recibo.valor_total)}</p>
+                    <p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · <span className={recibo.pagamento_realizado ? "text-emerald-700" : "text-amber-700"}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex h-9 items-center gap-1 rounded-xl bg-white border border-slate-200 px-3 text-xs font-black text-slate-700 hover:bg-slate-50">
+                      <Printer size={14} /> Imprimir
+                    </button>
+                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100">
+                      {recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

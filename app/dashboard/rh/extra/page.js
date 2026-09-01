@@ -3,15 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Briefcase, Check, CheckCircle2, Copy, DollarSign, ExternalLink,
-  FileClock, Loader2, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search, UserPlus, UsersRound,
+  ArrowLeft, Briefcase, Calendar, Check, CheckCircle2, Copy, DollarSign, ExternalLink,
+  FileClock, History, Loader2, MoreHorizontal, Pencil, Phone, Plus, Printer, ReceiptText, Search, UserPlus, UsersRound, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
 import { faixaCompras, andarPeriodo, rotuloPeriodo, isoData } from "../../../lib/compras.mjs";
+import { imprimirReciboExtra } from "../../../lib/recibo-extra";
 
 const fmtBRL = (valor) => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (valor) => valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
+const fmtTel = (v) => {
+  const limpo = String(v || "").replace(/\D/g, "");
+  if (limpo.length === 11) return limpo.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  if (limpo.length === 10) return limpo.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  return String(v || "Sem telefone");
+};
 
 export default function CadastroExtrasPage() {
   const router = useRouter();
@@ -24,6 +31,9 @@ export default function CadastroExtrasPage() {
   const [carregando, setCarregando] = useState(true);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [menuPortalAberto, setMenuPortalAberto] = useState(false);
+  
+  // Modal de histórico da pessoa selecionada
+  const [historicoModal, setHistoricoModal] = useState(null); // extra object
 
   useEffect(() => {
     let ativo = true;
@@ -171,32 +181,74 @@ export default function CadastroExtrasPage() {
                 <p className="mt-2 font-black text-slate-700">Nenhum extra encontrado</p>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {filtrados.map((extra) => (
-                  <article key={extra.id} className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-emerald-300">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-slate-900">{extra.nome}</p>
-                        <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-slate-500"><Briefcase size={12} /> {extra.cargo || "Extra"}</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {filtrados.map((extra) => {
+                  const recibosPessoa = recibos.filter(r => String(r.colaborador_id) === String(extra.id));
+                  const totalGastoPessoa = recibosPessoa.filter(r => r.pagamento_realizado).reduce((s, r) => s + Number(r.valor_total || 0), 0);
+                  const diasTrabalhadosCount = recibosPessoa.length;
+                  const funcoesExercidasSet = new Set(recibosPessoa.map(r => r.funcao || extra.cargo).filter(Boolean));
+                  if (!funcoesExercidasSet.size && extra.cargo) funcoesExercidasSet.add(extra.cargo);
+                  const funcoesTexto = Array.from(funcoesExercidasSet).slice(0, 2).join(", ");
+
+                  return (
+                    <article key={extra.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md flex flex-col justify-between">
+                      <div>
+                        {/* CABEÇALHO DO CARD */}
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-800 font-black text-base uppercase">
+                              {extra.nome ? extra.nome[0] : "E"}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="truncate text-base font-black text-slate-900 leading-tight" title={extra.nome}>{extra.nome}</h3>
+                              <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-slate-500 truncate"><Briefcase size={12} className="shrink-0 text-slate-400" /> {extra.cargo || "Extra"}</p>
+                            </div>
+                          </div>
+                          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 shrink-0">
+                            Cadastrado
+                          </span>
+                        </div>
+
+                        {/* DETALHES DE CONTATO E DIÁRIA */}
+                        <div className="space-y-1.5 border-t border-slate-100 pt-2.5 text-xs font-semibold text-slate-600">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium"><Phone size={13} className="text-emerald-600 shrink-0" /> {fmtTel(extra.telefone)}</span>
+                            <span className="font-black text-slate-900">Diária: <strong className="text-emerald-700 font-black">{fmtBRL(extra.salario)}</strong></span>
+                          </div>
+
+                          {/* RESUMO HISTÓRICO VISÍVEL NO CARD */}
+                          <div className="mt-2.5 rounded-2xl bg-slate-50/80 p-2.5 text-xs border border-slate-100 grid grid-cols-3 gap-2 text-center">
+                            <div>
+                              <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Total Gasto</span>
+                              <strong className="text-emerald-700 font-black text-sm">{fmtBRL(totalGastoPessoa)}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Trabalhos</span>
+                              <strong className="text-slate-800 font-black text-sm">{diasTrabalhadosCount} {diasTrabalhadosCount === 1 ? "dia" : "dias"}</strong>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Função</span>
+                              <strong className="text-slate-700 font-black text-xs truncate block" title={funcoesTexto}>{funcoesTexto}</strong>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-700">Ativo</span>
-                    </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs font-semibold text-slate-600">
-                      <span className="flex items-center gap-1"><Phone size={13} className="text-emerald-600" /> {extra.telefone || "Sem fone"}</span>
-                      <span className="font-black text-slate-900">Diária: {fmtBRL(extra.salario)}</span>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 text-xs font-black text-slate-700 hover:bg-slate-200">
-                        <Pencil size={14} /> Editar
-                      </button>
-                      <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}/recibo`)} className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700">
-                        <Plus size={14} /> Recibo
-                      </button>
-                    </div>
-                  </article>
-                ))}
+                      {/* AÇÕES NO CARD */}
+                      <div className="mt-3.5 grid grid-cols-3 gap-2">
+                        <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-black text-slate-700 hover:bg-slate-200 transition-colors">
+                          <Pencil size={13} /> Editar
+                        </button>
+                        <button onClick={() => setHistoricoModal(extra)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-amber-50 text-xs font-black text-amber-800 hover:bg-amber-100 border border-amber-200/80 transition-colors">
+                          <History size={13} /> Histórico
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}/recibo`)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700 shadow-sm transition-colors">
+                          <Plus size={13} /> Recibo
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -237,6 +289,94 @@ export default function CadastroExtrasPage() {
           </aside>
         </div>
       </main>
+
+      {/* MODAL DE HISTÓRICO COMPLETO DA PESSOA */}
+      {historicoModal && (() => {
+        const extra = historicoModal;
+        const recibosPessoa = recibos.filter(r => String(r.colaborador_id) === String(extra.id));
+        const totalGastoPessoa = recibosPessoa.filter(r => r.pagamento_realizado).reduce((s, r) => s + Number(r.valor_total || 0), 0);
+        const funcoesExercidasSet = new Set(recibosPessoa.map(r => r.funcao || extra.cargo).filter(Boolean));
+        if (!funcoesExercidasSet.size && extra.cargo) funcoesExercidasSet.add(extra.cargo);
+        const funcoesTexto = Array.from(funcoesExercidasSet).join(", ");
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setHistoricoModal(null)}>
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-slate-100 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-800 font-black text-xl uppercase">
+                    {extra.nome ? extra.nome[0] : "E"}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Histórico do Profissional</span>
+                    <h2 className="text-xl font-black text-slate-900">{extra.nome}</h2>
+                    <p className="text-xs font-semibold text-slate-500">{extra.cargo || "Extra"} · Diária: {fmtBRL(extra.salario)}</p>
+                  </div>
+                </div>
+                <button onClick={() => setHistoricoModal(null)} className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center"><X size={18} /></button>
+              </div>
+
+              <div className="p-5 overflow-y-auto space-y-4">
+                {/* RESUMO GERAL */}
+                <div className="grid grid-cols-3 gap-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 text-center">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-emerald-800">Total Gasto</span>
+                    <p className="text-xl font-black text-emerald-700">{fmtBRL(totalGastoPessoa)}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-emerald-800">Dias Trabalhados</span>
+                    <p className="text-xl font-black text-slate-800">{recibosPessoa.length} turno(s)</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-emerald-800">Funções Exercidas</span>
+                    <p className="text-xs font-bold text-slate-800 truncate" title={funcoesTexto}>{funcoesTexto}</p>
+                  </div>
+                </div>
+
+                {/* LISTA DE RECIBOS */}
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Todos os recibos gerados ({recibosPessoa.length})</h3>
+                  {recibosPessoa.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm font-semibold text-slate-500">Nenhum recibo emitido para esta pessoa ainda.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {recibosPessoa.map(r => {
+                        const entrada = r.hora_entrada || r.dados?.entrada || extra.horario_entrada || "";
+                        const saida = r.hora_saida || r.dados?.saida || extra.horario_saida || "";
+                        const horarioShift = entrada && saida ? `${entrada} às ${saida}` : (entrada ? `Início ${entrada}` : "");
+                        return (
+                          <div key={r.id} className="rounded-2xl border border-slate-200 p-3.5 bg-white hover:border-emerald-300 transition-all flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <strong className="text-sm font-black text-slate-900">{dataBR(r.data_trabalho)}</strong>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${r.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{r.pagamento_realizado ? "Pago" : "Pendente"}</span>
+                              </div>
+                              <p className="text-xs font-bold text-slate-500 mt-0.5">Função: <span className="text-slate-800">{r.funcao || extra.cargo || "Extra"}</span>{horarioShift ? ` · Horário: ${horarioShift}` : ""}</p>
+                              <p className="text-xs font-bold text-slate-500">Forma de pagamento: <span className="text-slate-800">{r.forma_pagamento || "Pix"}</span></p>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="text-base font-black text-slate-900">{fmtBRL(r.valor_total)}</span>
+                              <button onClick={() => imprimirReciboExtra({ extra, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })} className="flex h-9 items-center gap-1 px-3 rounded-xl bg-slate-100 text-xs font-black text-slate-700 hover:bg-slate-200">
+                                <Printer size={14} /> Imprimir
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-end gap-2">
+                <button onClick={() => setHistoricoModal(null)} className="px-5 py-2.5 rounded-xl bg-slate-200 text-xs font-black text-slate-700 hover:bg-slate-300">Fechar</button>
+                <button onClick={() => { setHistoricoModal(null); router.push(`/dashboard/rh/extra/${extra.id}/recibo`); }} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700">Gerar novo recibo</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

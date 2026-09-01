@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, BadgeDollarSign, CheckCircle2, Clock, Clock3, Loader2, Pencil,
-  Printer, Save, Shirt, Utensils,
+  Printer, Save, Shirt, Utensils, Sliders,
 } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
 import { supabase } from "../../../../../lib/supabase";
@@ -35,6 +35,8 @@ export default function GerarPagamentoExtraPage() {
     dias_contratados: "1",
     hora_entrada: "", hora_saida: "",
     alimentacao: true, materiais: false, descricao_materiais: "",
+    desmembrar: false,
+    taxa_servico: "", inss: "", fgts: "",
   });
 
   const carregarHistorico = async () => {
@@ -77,6 +79,10 @@ export default function GerarPagamentoExtraPage() {
     const valDinheiro = Number(String(form.valor_dinheiro || "").replace(",", ".")) || 0;
     const dias = Number(String(form.dias_contratados || "1").replace(",", ".")) || 1;
 
+    const valTaxaServico = Number(String(form.taxa_servico || "").replace(",", ".")) || 0;
+    const valInss = Number(String(form.inss || "").replace(",", ".")) || 0;
+    const valFgts = Number(String(form.fgts || "").replace(",", ".")) || 0;
+
     const itens = form.materiais
       ? String(form.descricao_materiais || "").split(",").map(item => item.trim()).filter(Boolean)
       : [];
@@ -100,6 +106,9 @@ export default function GerarPagamentoExtraPage() {
       funcao: extra?.cargo || "Extra",
       janta_ofertada: !!form.alimentacao,
       itens,
+      taxa_servico: form.desmembrar ? valTaxaServico : 0,
+      inss: form.desmembrar ? valInss : 0,
+      fgts: form.desmembrar ? valFgts : 0,
       dados: {
         nome: extra?.nome || "", cpf: extra?.cpf || "", rg: extra?.rg || "",
         telefone: extra?.telefone || "", chave_pix: extra?.chave_pix || "",
@@ -110,6 +119,9 @@ export default function GerarPagamentoExtraPage() {
         materiais_fornecidos: !!form.materiais,
         valor_pix: form.forma_pagamento.includes("Híbrido") ? valPix : (form.forma_pagamento === "Pix" ? valor : 0),
         valor_dinheiro: form.forma_pagamento.includes("Híbrido") ? valDinheiro : (form.forma_pagamento === "Dinheiro" ? valor : 0),
+        taxa_servico: form.desmembrar ? valTaxaServico : 0,
+        inss: form.desmembrar ? valInss : 0,
+        fgts: form.desmembrar ? valFgts : 0,
       },
     };
   };
@@ -229,6 +241,34 @@ export default function GerarPagamentoExtraPage() {
               </label>
             </div>
           )}
+
+          {/* DESMEMBRAMENTO DE TAXA DE SERVIÇO, INSS E FGTS */}
+          <div className="pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Sliders size={15} className="text-emerald-600"/> Desmembrar Taxa de serviço, INSS ou FGTS?</span>
+              <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.desmembrar ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("desmembrar", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.desmembrar ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+              </div>
+            </div>
+
+            {form.desmembrar && (
+              <div className="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 grid gap-3 sm:grid-cols-3 animate-in fade-in">
+                <label>
+                  <span className="text-[11px] font-black text-slate-700">Taxa de serviço (R$)</span>
+                  <input type="number" min="0" step="0.01" value={form.taxa_servico} onChange={e => set("taxa_servico", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
+                </label>
+                <label>
+                  <span className="text-[11px] font-black text-slate-700">Retenção INSS (R$)</span>
+                  <input type="number" min="0" step="0.01" value={form.inss} onChange={e => set("inss", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
+                </label>
+                <label>
+                  <span className="text-[11px] font-black text-slate-700">FGTS (R$)</span>
+                  <input type="number" min="0" step="0.01" value={form.fgts} onChange={e => set("fgts", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
+                </label>
+              </div>
+            )}
+          </div>
 
           {/* LINHA 3: TOGGLES COMPACTOS (ALIMENTAÇÃO E MATERIAIS) */}
           <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-100">

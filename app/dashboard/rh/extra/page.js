@@ -34,6 +34,8 @@ export default function CadastroExtrasPage() {
   
   // Modal de histórico da pessoa selecionada
   const [historicoModal, setHistoricoModal] = useState(null); // extra object
+  // Modal de ação ao clicar em um recibo recente
+  const [reciboAcaoModal, setReciboAcaoModal] = useState(null); // recibo object
 
   useEffect(() => {
     let ativo = true;
@@ -118,46 +120,46 @@ export default function CadastroExtrasPage() {
 
       <main className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6">
         {/* MÉTRICAS COMPACTAS (4 COLUNAS EM GRID DIRETO) */}
-        <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+        <section className="grid gap-2.5 grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Cadastrados</span>
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><UsersRound size={16} /></span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Cadastrados</span>
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><UsersRound size={15} /></span>
             </div>
-            <p className="mt-2 text-2xl font-black text-slate-900">{extras.length}</p>
+            <p className="mt-1 text-xl font-black text-slate-900">{extras.length}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Recibos Emitidos</span>
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReceiptText size={16} /></span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Recibos Emitidos</span>
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReceiptText size={15} /></span>
             </div>
-            <p className="mt-2 text-2xl font-black text-slate-900">{recibos.length}</p>
+            <p className="mt-1 text-xl font-black text-slate-900">{recibos.length}</p>
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 shadow-sm">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-2.5 sm:p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">Pendentes</span>
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-800"><DollarSign size={16} /></span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">Pendentes</span>
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-amber-100 text-amber-800"><DollarSign size={15} /></span>
             </div>
-            <p className="mt-2 text-xl font-black text-amber-950">{fmtBRL(totalPendente)}</p>
+            <p className="mt-1 text-lg font-black text-amber-950 truncate">{fmtBRL(totalPendente)}</p>
           </div>
 
-          <div className="rounded-2xl border border-emerald-200 bg-white p-3.5 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">Pago no período</span>
-              <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg">
+          <div className="rounded-2xl border border-emerald-200 bg-white p-2.5 sm:p-3 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 shrink-0">Pago no período</span>
+              <div className="flex gap-0.5 bg-slate-100 p-0.5 rounded-lg shrink-0">
                 {[["dia", "Dia"], ["semana", "Sem."], ["mes", "Mês"]].map(([v, r]) => (
-                  <button key={v} onClick={() => setPeriodo(v)} className={`px-2 py-0.5 rounded text-[10px] font-black ${periodo === v ? "bg-emerald-600 text-white" : "text-slate-600"}`}>{r}</button>
+                  <button key={v} onClick={() => setPeriodo(v)} className={`px-1.5 py-0.5 rounded text-[9px] font-black ${periodo === v ? "bg-emerald-600 text-white" : "text-slate-600"}`}>{r}</button>
                 ))}
               </div>
             </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <p className="text-xl font-black text-slate-900">{fmtBRL(totalPago)}</p>
-              <div className="flex items-center gap-1 text-[11px] font-black text-slate-500">
-                <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, -1))} className="px-1 hover:text-slate-900">&lsaquo;</button>
-                <span className="capitalize">{rotuloPeriodo(faixaPagamentos, periodo)}</span>
-                <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, 1))} className="px-1 hover:text-slate-900">&rsaquo;</button>
+            <div className="mt-1 flex items-center justify-between gap-1">
+              <p className="text-base sm:text-lg font-black text-slate-900 truncate">{fmtBRL(totalPago)}</p>
+              <div className="flex items-center gap-0.5 text-[10px] font-black text-slate-500 shrink-0">
+                <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, -1))} className="px-0.5 hover:text-slate-900">&lsaquo;</button>
+                <span className="capitalize text-[10px]">{rotuloPeriodo(faixaPagamentos, periodo)}</span>
+                <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, 1))} className="px-0.5 hover:text-slate-900">&rsaquo;</button>
               </div>
             </div>
           </div>
@@ -267,7 +269,7 @@ export default function CadastroExtrasPage() {
                 {recibos.slice(0, 10).map((recibo) => (
                   <button
                     key={recibo.id}
-                    onClick={() => router.push(`/dashboard/rh/extra/${recibo.colaborador_id}/recibo`)}
+                    onClick={() => setReciboAcaoModal(recibo)}
                     className="w-full rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-left hover:border-emerald-300 hover:bg-white transition-all"
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -373,6 +375,68 @@ export default function CadastroExtrasPage() {
                 <button onClick={() => setHistoricoModal(null)} className="px-5 py-2.5 rounded-xl bg-slate-200 text-xs font-black text-slate-700 hover:bg-slate-300">Fechar</button>
                 <button onClick={() => { setHistoricoModal(null); router.push(`/dashboard/rh/extra/${extra.id}/recibo`); }} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700">Gerar novo recibo</button>
               </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL DE AÇÃO AO CLICAR EM UM RECIBO RECENTE */}
+      {reciboAcaoModal && (() => {
+        const recibo = reciboAcaoModal;
+        const extraDoRecibo = extras.find(e => String(e.id) === String(recibo.colaborador_id));
+        const nomeExtra = extraDoRecibo?.nome || recibo.dados?.nome || nomes[recibo.colaborador_id] || "Profissional Extra";
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setReciboAcaoModal(null)}>
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+              <div className="flex items-start justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Recibo Selecionado</span>
+                  <h2 className="text-lg font-black text-slate-900">{nomeExtra}</h2>
+                  <p className="text-xs font-semibold text-slate-500">Trabalho em {dataBR(recibo.data_trabalho)} · {fmtBRL(recibo.valor_total)}</p>
+                </div>
+                <button onClick={() => setReciboAcaoModal(null)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center"><X size={18} /></button>
+              </div>
+
+              <p className="text-sm font-bold text-slate-700 mb-4">Escolha a ação desejada:</p>
+
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => {
+                    setReciboAcaoModal(null);
+                    imprimirReciboExtra({ extra: extraDoRecibo, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} });
+                  }}
+                  className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Printer size={18} /> Visualizar / Reimprimir Recibo
+                </button>
+
+                {extraDoRecibo && (
+                  <button
+                    onClick={() => {
+                      setReciboAcaoModal(null);
+                      setHistoricoModal(extraDoRecibo);
+                    }}
+                    className="w-full py-3 px-4 bg-amber-50 border border-amber-200 text-amber-900 font-black text-sm rounded-2xl flex items-center justify-center gap-2 hover:bg-amber-100 transition-all"
+                  >
+                    <History size={18} /> Ver Histórico Completo da Pessoa
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setReciboAcaoModal(null);
+                    router.push(`/dashboard/rh/extra/${recibo.colaborador_id}/recibo`);
+                  }}
+                  className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all"
+                >
+                  <Plus size={18} /> Gerar Novo Recibo para esta Pessoa
+                </button>
+              </div>
+
+              <button onClick={() => setReciboAcaoModal(null)} className="w-full mt-4 text-center text-xs font-bold text-slate-400 hover:text-slate-600">
+                Cancelar
+              </button>
             </div>
           </div>
         );

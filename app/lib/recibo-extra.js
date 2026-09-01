@@ -83,7 +83,7 @@ export const RECIBO_TEXTOS_PADRAO = {
   responsavel_nome: "",
   responsavel_cargo: "Proprietário(a)",
   motivo_folga: "por ser o dia de folga do restaurante",
-  observacao_horario: "Em razão da alta demanda de produção e do fluxo de trabalho do restaurante, o horário de saída pode variar, de acordo com a necessidade operacional de cada dia.",
+  observacao_horario: "", // Removido conforme solicitado pelo usuário
   encerramento: "O presente recibo é emitido para comprovação dos serviços prestados e dos respectivos pagamentos referentes ao período acima mencionado.",
 };
 
@@ -182,7 +182,13 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
   const transporte = Number(dados.vale_transporte || 0);
   const adicional = Number(dados.adicional || 0);
   const descontos = Number(dados.descontos || 0);
-  const total = Number(recibo?.valor_total ?? Math.max(0, base + transporte + adicional - descontos));
+
+  // Desmembramento de encargos e taxa de serviço
+  const taxaServico = Number(dados.taxa_servico || recibo?.taxa_servico || 0);
+  const inss = Number(dados.inss || recibo?.inss || 0);
+  const fgts = Number(dados.fgts || recibo?.fgts || 0);
+
+  const total = Number(recibo?.valor_total ?? Math.max(0, base + taxaServico + transporte + adicional - inss - descontos));
 
   const b = (texto) => `<strong>${esc(texto)}</strong>`;
 
@@ -283,6 +289,9 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
       <tr><td>Diária acordada</td><td>${moeda(diaria)}</td></tr>
       <tr><td>Dias trabalhados / Diária</td><td>${diasFormatado}</td></tr>
       <tr><td>Subtotal das diárias</td><td>${moeda(base)}</td></tr>
+      ${linhaValor("Taxa de serviço", taxaServico)}
+      ${linhaValor("Retenção INSS", inss, "− ")}
+      ${linhaValor("Recolhimento FGTS", fgts)}
       ${linhaValor("Vale-transporte", transporte)}
       ${linhaValor("Adicional / bônus", adicional)}
       ${linhaValor("Descontos", descontos, "− ")}

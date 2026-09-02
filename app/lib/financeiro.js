@@ -289,3 +289,37 @@ export const fetchDocumentos = async () => { return { data: [], error: null }; }
 export const inserirDocumento = async () => { return { error: null }; };
 export const atualizarDocumento = async () => { return { error: null }; };
 export const removerDocumento = async () => { return { error: null }; };
+
+// ============================================================================
+// PARÂMETROS E CÁLCULO DE PONTO DE EQUILÍBRIO DIÁRIO
+// ============================================================================
+
+export function obterParametrosPontoEquilibrio(unidadeId) {
+  const padrao = {
+    diasTrabalho: 26,
+    luz: 1200,
+    agua: 450,
+    internet: 200,
+    gas: 800,
+    limpeza: 350,
+    manutencao: 500,
+    gastosExtras: 300,
+    impostoPct: 4.0,
+    taxaCartaoPct: 2.5,
+  };
+  if (typeof window === "undefined" || !unidadeId) return padrao;
+  try {
+    const salvo = localStorage.getItem(`ponto_equilibrio_params_${unidadeId}`);
+    return salvo ? { ...padrao, ...JSON.parse(salvo) } : padrao;
+  } catch {
+    return padrao;
+  }
+}
+
+export function salvarParametrosPontoEquilibrio(unidadeId, params) {
+  if (typeof window === "undefined" || !unidadeId) return;
+  try {
+    localStorage.setItem(`ponto_equilibrio_params_${unidadeId}`, JSON.stringify(params));
+  } catch {}
+}
+

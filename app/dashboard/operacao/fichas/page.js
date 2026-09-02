@@ -850,7 +850,7 @@ function FichasRunner() {
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
-    .filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()) && passaFiltro(f))
+    .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
     .sort(ordenarFichas);
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
@@ -1164,9 +1164,9 @@ function FichasRunner() {
   ], [insumosAtivos, basesDisponiveis, embalagensCat]);
 
   const sugestoesIngrediente = useMemo(() => {
-    const termo = buscaIng.trim().toLocaleLowerCase("pt-BR");
+    const termo = normalizarNome(buscaIng);
     if (!termo) return [];
-    return opcoesIngrediente.filter(o => o.nome.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8);
+    return opcoesIngrediente.filter(o => normalizarNome(o.nome).includes(termo)).slice(0, 8);
   }, [buscaIng, opcoesIngrediente]);
 
   const addIngrediente = (valor) => {
@@ -2312,7 +2312,7 @@ function FichasRunner() {
                              </label>
                              <h3
                                onClick={() => abrirFicha(f)}
-                               className="text-xl font-black leading-snug text-slate-900 truncate cursor-pointer hover:text-emerald-700 transition-colors"
+                               className="text-xl font-black leading-snug text-slate-900 break-words cursor-pointer hover:text-emerald-700 transition-colors"
                                title={f.nome_receita}
                              >
                                {f.nome_receita}
@@ -2728,7 +2728,7 @@ function FichasRunner() {
                      </div>
                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                           <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">{f.nome_receita}</h2>
+                           <h2 className="text-lg sm:text-xl font-black text-slate-900 break-words">{f.nome_receita}</h2>
                            <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">Ativo</span>
                         </div>
                         <p className="text-[11px] font-bold text-slate-500 mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
@@ -3786,21 +3786,6 @@ function FichasRunner() {
                         </div>
                      )}
 
-                     {/* Dados extras da ficha técnica: tempo, validade e observações */}
-                     <div>
-                        <div className="grid grid-cols-2 gap-3">
-                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tempo de preparo (min)</label>
-                              <input type="number" min="0" step="1" placeholder="Ex: 15" value={form.tempo_preparo} onChange={e=>setForm({...form, tempo_preparo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
-                           </div>
-                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Validade (dias)</label>
-                              <input type="number" min="0" step="1" placeholder="Ex: 3" value={form.validade_dias} onChange={e=>setForm({...form, validade_dias: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
-                           </div>
-                        </div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Observações</label>
-                        <textarea placeholder="Observações da ficha (opcional)..." value={form.observacoes} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full h-20 p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
-                     </div>
                   </div>
 
 

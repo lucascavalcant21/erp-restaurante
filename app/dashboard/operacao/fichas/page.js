@@ -1320,6 +1320,34 @@ function FichasRunner() {
       }
 
       if (!criarOutra) setModalNovo(false);
+      if (fichaIdSalva) {
+        setFichas(fichasAntigas => {
+          const existe = fichasAntigas.some(f => f.id === fichaIdSalva);
+          const novaFichaObjeto = {
+            id: fichaIdSalva,
+            unidade_id: unidadeAtiva,
+            departamento: form.departamento,
+            nome_receita: form.nome_receita,
+            categoria: form.categoria || null,
+            rendimento_porcoes: Number(form.rendimento_porcoes),
+            modo_preparo: form.eh_base ? form.modo_preparo : "",
+            eh_base: !!form.eh_base,
+            tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
+            cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            rendimento_unidade: unidadeRendimento,
+            peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+            imagem: form.imagem || null,
+            fichas_ingredientes: ingValidos.map(i => ({
+               ficha_id: fichaIdSalva,
+               insumo_id: i.insumo_id || null,
+               subficha_id: i.subficha_id || null,
+               quantidade: i.quantidade,
+               insumos: i.insumo_id ? insumosAtivos.find(x => x.id === i.insumo_id) : null
+            })),
+          };
+          return existe ? fichasAntigas.map(f => f.id === fichaIdSalva ? { ...f, ...novaFichaObjeto } : f) : [novaFichaObjeto, ...fichasAntigas];
+        });
+      }
       await carregar();
 
       // As embalagens usadas na receita entram no estoque de Embalagens do setor.

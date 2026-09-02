@@ -19,7 +19,7 @@ import {
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
-import { situacaoExperiencia, emExperiencia, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
+import { situacaoExperiencia, emExperiencia, faseContratoCalculada, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
@@ -1565,10 +1565,11 @@ export default function RHPage() {
      else if (aniv && aniv.faltam <= 15) badges.push({ text: `Aniversário em ${aniv.faltam} dia(s) · ${aniv.diaMes}`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' });
 
      if (emExperiencia(f)) {
-        // A experiência renova sozinha no 2º período até alguém efetivar.
         const s = situacaoExperiencia(f, hj);
         if (s && !s.erro) {
-           if (s.vencido) {
+           if (s.efetivadoAutomatico) {
+              badges.push({ text: `Contrato Definitivo (Efetivado após 90 dias)`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' });
+           } else if (s.vencido) {
               badges.push({ text: `Experiência encerrada — efetive ou desligue`, color: 'text-rose-700 bg-rose-50 border-rose-200' });
            } else {
               const cor = s.decidirAgora ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200';
@@ -2650,11 +2651,17 @@ export default function RHPage() {
                         <div>
                            <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Fase do Contrato</label>
                            <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700 appearance-none">
-                              <option value="Experiência (30 dias)">Experiência (30 dias)</option>
-                              <option value="Experiência (45 dias)">Experiência (45 dias)</option>
-                              <option value="Experiência (90 dias)">Experiência (90 dias)</option>
+                              <option value="Experiência (30 dias)">Experiência (renova a cada 30d até 90d)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
                            </select>
+                           {(() => {
+                              const info = faseContratoCalculada(novoFunc);
+                              return (
+                                 <p className="mt-2 text-xs font-bold text-indigo-700 bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100">
+                                    ℹ️ {info.fase}: {info.detalhe}
+                                 </p>
+                              );
+                           })()}
                         </div>
                      </div>
                   )}

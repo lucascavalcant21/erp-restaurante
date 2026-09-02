@@ -20,42 +20,112 @@ export function prazoExperiencia(colaborador) {
 }
 
 export function emExperiencia(colaborador) {
-  return /experi/i.test(String(colaborador?.status_contrato || ""));
+  const status = String(colaborador?.status_contrato || "");
+  if (status.includes("Definitivo") || status.includes("Efetivo")) return false;
+  return /experi/i.test(status);
 }
 
-// Situação do contrato hoje: qual período está correndo, quando vence e
-// quantos dias faltam. Devolve null quando não está em experiência.
+// Situação dinâmica do contrato: renova a cada 30 dias até 90 dias, depois vira definitivo.
+export function faseContratoCalculada(colaborador, hoje = new Date()) {
+  const status = String(colaborador?.status_contrato || "");
+  if (status.includes("Definitivo") || status.includes("Efetivo") || colaborador?.tipo_contrato === "Freelancer") {
+    return {
+      fase: status.includes("Definitivo") || status.includes("Efetivo") ? "Contrato Definitivo" : (colaborador?.tipo_contrato || "CLT"),
+      detalhe: "Contrato em vigência por prazo indeterminado.",
+      ehDefinitivo: true,
+      periodo: null,
+      diasCorridos: null,
+    };
+  }
+
+  const admissao = dataDe(colaborador?.data_admissao);
+  if (!admissao) {
+    return {
+      fase: status || "Experiência (30 dias)",
+      detalhe: "Data de admissão não informada.",
+      ehDefinitivo: false,
+      periodo: 1,
+      diasCorridos: 0,
+    };
+  }
+
+  const base = meiaNoite(hoje);
+  const diasCorridos = Math.max(0, Math.floor((base - admissao) / DIA));
+
+  if (diasCorridos <= 30) {
+    const faltam = 30 - diasCorridos;
+    return {
+      fase: "Experiência (1º Período - 30 dias)",
+      detalhe: `1º Período (${diasCorridos}/30 dias). Atualiza para +30 dias em ${faltam} dia(s).`,
+      ehDefinitivo: false,
+      periodo: 1,
+      diasCorridos,
+      diasRestantesPeriodo: faltam,
+    };
+  } else if (diasCorridos <= 60) {
+    const faltam = 60 - diasCorridos;
+    return {
+      fase: "Experiência (2º Período renovado +30 dias)",
+      detalhe: `Renovado automaticamente (${diasCorridos}/60 dias). Próxima fase em ${faltam} dia(s).`,
+      ehDefinitivo: false,
+      periodo: 2,
+      diasCorridos,
+      diasRestantesPeriodo: faltam,
+    };
+  } else if (diasCorridos <= 90) {
+    const faltam = 90 - diasCorridos;
+    return {
+      fase: "Experiência (3º Período renovado +30 dias)",
+      detalhe: `3º Período (${diasCorridos}/90 dias). Torna-se Definitivo em ${faltam} dia(s).`,
+      ehDefinitivo: false,
+      periodo: 3,
+      diasCorridos,
+      diasRestantesPeriodo: faltam,
+    };
+  } else {
+    return {
+      fase: "Contrato Definitivo",
+      detalhe: `Efetivado automaticamente (${diasCorridos} dias de casa - ultrapassou 90 dias).`,
+      ehDefinitivo: true,
+      automaticoDefinitivo: true,
+      periodo: 4,
+      diasCorridos,
+    };
+  }
+}
+
+// Situação do contrato hoje: qual período está correndo, quando vence e quantos dias faltam.
 export function situacaoExperiencia(colaborador, hoje = new Date()) {
   if (!emExperiencia(colaborador)) return null;
   const admissao = dataDe(colaborador?.data_admissao);
   if (!admissao) return { erro: "Sem data de admissão" };
 
-  const prazo = prazoExperiencia(colaborador);
   const base = meiaNoite(hoje);
   const diasCorridos = Math.floor((base - admissao) / DIA);
 
-  const fimPrimeiro = new Date(admissao.getTime() + prazo * DIA);
-  // Prazo de 90 dias já é o máximo da lei: não há prorrogação.
-  const periodoUnico = prazo >= 90;
-  const fimSegundo = periodoUnico ? fimPrimeiro : new Date(admissao.getTime() + Math.min(90, prazo * 2) * DIA);
+  if (diasCorridos > 90) {
+    return {
+      prazo: 90,
+      periodo: 4,
+      diasCorridos,
+      efetivadoAutomatico: true,
+      vencido: false,
+      decidirAgora: false,
+    };
+  }
 
-  const noPrimeiro = periodoUnico || base < fimPrimeiro;
-  const fimAtual = noPrimeiro ? fimPrimeiro : fimSegundo;
-  const diasRestantes = Math.ceil((fimAtual - base) / DIA);
+  const periodo = diasCorridos <= 30 ? 1 : diasCorridos <= 60 ? 2 : 3;
+  const limitePeriodo = periodo * 30;
+  const diasRestantes = limitePeriodo - diasCorridos;
 
   return {
-    prazo,
-    periodoUnico,
-    periodo: noPrimeiro ? 1 : 2,
+    prazo: 30,
+    periodo,
     diasCorridos,
-    fimPrimeiro,
-    fimSegundo,
-    fimAtual,
+    fimAtual: new Date(admissao.getTime() + limitePeriodo * DIA),
     diasRestantes,
-    // Passou dos 90 dias sem ninguém efetivar: por lei já é indeterminado.
-    vencido: base >= fimSegundo,
-    // Últimos 7 dias do período: hora de decidir.
-    decidirAgora: diasRestantes <= 7 && diasRestantes >= 0,
+    vencido: false,
+    decidirAgora: diasRestantes <= 5 && diasRestantes >= 0,
   };
 }
 

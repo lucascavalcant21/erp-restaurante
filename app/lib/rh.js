@@ -724,6 +724,52 @@ export async function removerAdvertencia(id) {
   return { error: error?.message };
 }
 
+// ─── REUNIÕES & FEEDBACKS DO COLABORADOR ─────────────────────────────────────
+export async function fetchReunioesColab(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase.from("rh_reunioes_colab")
+    .select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirReuniaoColab(reuniao) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  let { error } = await supabase.from("rh_reunioes_colab").insert([reuniao]);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("rh_reunioes_colab").insert([reuniao]); return r.error;
+  }, reuniao);
+  return { error: error?.message };
+}
+
+export async function removerReuniaoColab(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_reunioes_colab").delete().eq("id", id);
+  return { error: error?.message };
+}
+
+// ─── TREINAMENTOS & CERTIFICAÇÕES DO COLABORADOR ──────────────────────────────
+export async function fetchTreinamentosColab(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase.from("rh_treinamentos_colab")
+    .select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirTreinamentoColab(treino) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  let { error } = await supabase.from("rh_treinamentos_colab").insert([treino]);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("rh_treinamentos_colab").insert([treino]); return r.error;
+  }, treino);
+  return { error: error?.message };
+}
+
+export async function removerTreinamentoColab(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_treinamentos_colab").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 // Banco de horas de UM colaborador no mês (para a tela de ponto e o espelho)
 export async function fetchBancoHorasColaborador(colaboradorId, mesAno) {
   if (!isSupabaseReady() || !colaboradorId) return { data: [] };

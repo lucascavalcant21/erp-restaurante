@@ -1268,6 +1268,7 @@ function FichasRunner() {
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
     const unidadeRendimento = unidadePadraoDepartamento(form.departamento);
+    const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
 
     // Filtra ingredientes que estão com qtd = 0
     const ingValidos = ingFicha.filter(i => i.quantidade > 0);
@@ -1287,6 +1288,7 @@ function FichasRunner() {
             eh_base: !!form.eh_base,
             tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
             cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            preco_venda: precoVendaNum,
             rendimento_unidade: unidadeRendimento,
             peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
             imagem: form.imagem || null,
@@ -1334,6 +1336,7 @@ function FichasRunner() {
             eh_base: !!form.eh_base,
             tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
             cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            preco_venda: precoVendaNum,
             rendimento_unidade: unidadeRendimento,
             peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
             imagem: form.imagem || null,
@@ -1387,7 +1390,6 @@ function FichasRunner() {
       }
 
       // PREÇO DE VENDA sincroniza com o produto do cardápio interno
-      const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
       if (!form.eh_base && fichaIdSalva) {
         try {
           const nome = form.nome_receita.trim();
@@ -1396,31 +1398,20 @@ function FichasRunner() {
             p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
           );
           if (prodExistente) {
-            await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
-          }
-        } catch { /* sincronização de preço não bloqueia o salvar */ }
-      }
-
-      // PRATO/DRINK novo: cai automaticamente no Cardápio e no Guia de Montagem.
-      if (!form.id && !form.eh_base && fichaIdSalva) {
-        try {
-          const nome = form.nome_receita.trim();
-          const ehBarDept = form.departamento === "bar";
-
-          const { data: prods } = await fetchProdutos(unidadeAtiva, form.departamento);
-          const jaTemProduto = (prods || []).some(p =>
-            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
-          );
-          if (!jaTemProduto) {
+            await salvarProduto({ id: prodExistente.id, ficha_id: fichaIdSalva, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
+          } else {
+            const ehBarDept = form.departamento === "bar";
             await salvarProduto({
               unidade_id: unidadeAtiva,
+              ficha_id: fichaIdSalva,
               nome_produto: nome,
+              preco_venda: precoVendaNum,
               categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
               departamento: form.departamento,
               observacoes: "Criado automaticamente pela Ficha Técnica.",
             }, unidadeAtiva);
           }
-        } catch { /* integrações não bloqueiam o salvar da ficha */ }
+        } catch { /* sincronização de preço não bloqueia o salvar */ }
       }
     } catch (errGlobal) {
       console.error("[handleSalvar] Erro ao salvar ficha:", errGlobal);

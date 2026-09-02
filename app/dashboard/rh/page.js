@@ -12,6 +12,9 @@ import {
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
+  fetchAtestados, salvarAtestado, removerAtestado, anexarArquivoAtestado,
+  fetchReunioesColab, inserirReuniaoColab, removerReuniaoColab,
+  fetchTreinamentosColab, inserirTreinamentoColab, removerTreinamentoColab,
   fetchFeriados, inserirFeriado, removerFeriado,
   liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
@@ -1575,6 +1578,131 @@ export default function RHPage() {
     const { error } = await cancelarAvisoPrevio(f.id);
     if (error) alert("Erro: " + error);
     else carregar();
+  };
+
+  // Central de Ocorrências e Documentos do Colaborador (Lugar Exclusivo)
+  const [modalOcorrencias, setModalOcorrencias] = useState(false);
+  const [funcOcorrencias, setFuncOcorrencias] = useState(null);
+  const [abaOcorrencia, setAbaOcorrencia] = useState("atestados"); // 'atestados' | 'advertencias' | 'reunioes' | 'treinamentos' | 'documentos'
+  const [listaAtestados, setListaAtestados] = useState([]);
+  const [listaAdvertencias, setListaAdvertencias] = useState([]);
+  const [listaReunioes, setListaReunioes] = useState([]);
+  const [listaTreinamentos, setListaTreinamentos] = useState([]);
+  const [loadingOcorrencias, setLoadingOcorrencias] = useState(false);
+
+  // Forms da Central de Ocorrências
+  const [atestedoForm, setAtestadoForm] = useState({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+  const [advFormNovo, setAdvFormNovo] = useState({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
+  const [reuniaoForm, setReuniaoForm] = useState({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: "" });
+  const [treinoForm, setTreinoForm] = useState({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
+
+  const abrirOcorrencias = async (f, aba = "atestados") => {
+    setFuncOcorrencias(f);
+    setAbaOcorrencia(aba);
+    setModalOcorrencias(true);
+    const hj = new Date().toISOString().split("T")[0];
+    setAtestadoForm({ data_inicio: hj, dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+    setAdvFormNovo({ data: hj, tipo: "Advertência Escrita", motivo: "" });
+    setReuniaoForm({ data: hj, titulo: "", resumo: "", participantes: f.nome });
+    setTreinoForm({ data: hj, nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
+
+    await recarregarOcorrencias(f.id);
+  };
+
+  const recarregarOcorrencias = async (colabId) => {
+    setLoadingOcorrencias(true);
+    const [rAtest, rAdv, rReun, rTrein] = await Promise.all([
+      fetchAtestados(colabId),
+      fetchAdvertenciasColab(colabId),
+      fetchReunioesColab(colabId),
+      fetchTreinamentosColab(colabId),
+    ]);
+    setListaAtestados(rAtest.data || []);
+    setListaAdvertencias(rAdv.data || []);
+    setListaReunioes(rReun.data || []);
+    setListaTreinamentos(rTrein.data || []);
+    setLoadingOcorrencias(false);
+  };
+
+  const handleSalvarAtestado = async (e) => {
+    e.preventDefault();
+    if (!atestedoForm.data_inicio) return alert("Informe a data de início do atestado.");
+    const ini = new Date(`${atestedoForm.data_inicio}T12:00:00`);
+    const dias = (Number(atestedoForm.dias) || 1) - 1;
+    const fimDate = new Date(ini.getTime() + Math.max(0, dias) * 86400000);
+    const data_fim = fimDate.toISOString().split("T")[0];
+
+    let arquivoUrl = null;
+    if (atestedoForm.arquivo) {
+      const up = await anexarArquivoAtestado(funcOcorrencias.id, atestedoForm.arquivo);
+      if (up.error) return alert("Erro ao enviar anexo: " + up.error);
+      arquivoUrl = up.url;
+    }
+
+    const payload = {
+      unidade_id: unidadeAtiva,
+      colaborador_id: funcOcorrencias.id,
+      data_inicio: atestedoForm.data_inicio,
+      data_fim,
+      cid: atestedoForm.cid || null,
+      medico: atestedoForm.medico || null,
+      motivo: atestedoForm.motivo || null,
+      arquivo_url: arquivoUrl,
+    };
+
+    const { error } = await salvarAtestado(payload);
+    if (error) return alert("Erro ao salvar atestado: " + error);
+    alert(`Atestado médico de ${atestedoForm.dias} dia(s) registrado! O ponto do colaborador será abonado automaticamente no período.`);
+    setAtestadoForm({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
+  const handleSalvarAdvNovo = async (e) => {
+    e.preventDefault();
+    if (!advFormNovo.motivo) return alert("Informe o motivo da advertência.");
+    const payload = {
+      colaborador_id: funcOcorrencias.id,
+      data: advFormNovo.data,
+      tipo: advFormNovo.tipo,
+      motivo: advFormNovo.motivo,
+    };
+    const { error } = await inserirAdvertencia(payload);
+    if (error) return alert("Erro: " + error);
+    setAdvFormNovo({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
+  const handleSalvarReuniao = async (e) => {
+    e.preventDefault();
+    if (!reuniaoForm.titulo) return alert("Informe o título/pauta da reunião.");
+    const payload = {
+      colaborador_id: funcOcorrencias.id,
+      data: reuniaoForm.data,
+      titulo: reuniaoForm.titulo,
+      resumo: reuniaoForm.resumo,
+      participantes: reuniaoForm.participantes,
+    };
+    const { error } = await inserirReuniaoColab(payload);
+    if (error) return alert("Erro: " + error);
+    setReuniaoForm({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: funcOcorrencias.nome });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
+  const handleSalvarTreino = async (e) => {
+    e.preventDefault();
+    if (!treinoForm.nome_curso) return alert("Informe o nome do treinamento/curso.");
+    const payload = {
+      colaborador_id: funcOcorrencias.id,
+      data: treinoForm.data,
+      nome_curso: treinoForm.nome_curso,
+      instituicao: treinoForm.instituicao,
+      carga_horaria: treinoForm.carga_horaria,
+      vencimento: treinoForm.vencimento || null,
+    };
+    const { error } = await inserirTreinamentoColab(payload);
+    if (error) return alert("Erro: " + error);
+    setTreinoForm({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
+    recarregarOcorrencias(funcOcorrencias.id);
   };
 
   const handleRemover = async (id) => {
@@ -3527,6 +3655,238 @@ export default function RHPage() {
                      </button>
                   </div>
                </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL: CENTRAL EXCLUSIVA DE OCORRÊNCIAS & DOCUMENTOS */}
+      {modalOcorrencias && funcOcorrencias && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[92vh]">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
+                  </div>
+                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               {/* ABAS */}
+               <div className="flex gap-1.5 border-b border-slate-200 overflow-x-auto shrink-0 mb-4 pb-1">
+                  {[
+                     { id: "atestados", rotulo: "🏥 Atestados Médicos", count: listaAtestados.length },
+                     { id: "advertencias", rotulo: "⚠️ Advertências", count: listaAdvertencias.length },
+                     { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
+                     { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
+                  ].map(tab => (
+                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-black text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                        <span>{tab.rotulo}</span>
+                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-700"}`}>{tab.count}</span>}
+                     </button>
+                  ))}
+               </div>
+
+               <div className="flex-1 overflow-y-auto pr-1">
+                  {loadingOcorrencias ? (
+                     <div className="py-12 text-center font-bold text-slate-400">Carregando histórico do colaborador...</div>
+                  ) : (
+                     <>
+                        {/* ABA 1: ATESTADOS MÉDICOS */}
+                        {abaOcorrencia === "atestados" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarAtestado} className="bg-cyan-50/70 border border-cyan-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Início do Afastamento</label>
+                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Qtd Dias Afastado</label>
+                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-black text-slate-800 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">CID (Opcional)</label>
+                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                 </div>
+
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Médico / CRM (Opcional)</label>
+                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
+                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
+                                    </div>
+                                 </div>
+
+                                 <button type="submit" className="w-full py-3 bg-cyan-700 hover:bg-cyan-800 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Atestado e Abonar Ponto Automático
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaAtestados.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhum atestado médico cadastrado para este colaborador.</p>
+                                 ) : listaAtestados.map(a => (
+                                    <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <p className="font-black text-slate-800 text-xs">🏥 Atestado Médico · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-[11px] font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                          {a.arquivo_url && (
+                                             <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-[11px] rounded-xl hover:bg-cyan-100">Ver Anexo</a>
+                                          )}
+                                          <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {/* ABA 2: ADVERTÊNCIAS */}
+                        {abaOcorrencia === "advertencias" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarAdvNovo} className="bg-rose-50/70 border border-rose-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data da Ocorrência</label>
+                                       <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipo de Medida</label>
+                                       <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500">
+                                          <option value="Advertência Verbal">Advertência Verbal</option>
+                                          <option value="Advertência Escrita">Advertência Escrita</option>
+                                          <option value="Suspensão (1 dia)">Suspensão (1 dia)</option>
+                                          <option value="Suspensão (3 dias)">Suspensão (3 dias)</option>
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Motivo / Descrição Detalhada</label>
+                                    <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-rose-500 resize-none"/>
+                                 </div>
+                                 <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Advertência
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaAdvertencias.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhuma advertência disciplinar para este colaborador.</p>
+                                 ) : listaAdvertencias.map(a => (
+                                    <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
+                                          <p className="font-bold text-slate-800 text-xs mt-1">{a.motivo || a.descricao}</p>
+                                          <p className="text-[10px] font-bold text-slate-400 mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                                       </div>
+                                       <button type="button" onClick={async () => { if(confirm("Excluir registro?")) { await removerAdvertencia(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {/* ABA 3: REUNIÕES & FEEDBACKS */}
+                        {abaOcorrencia === "reunioes" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarReuniao} className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data</label>
+                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Título / Pauta da Reunião</label>
+                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
+                                    </div>
+                                 </div>
+                                 <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
+                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-indigo-500 resize-none"/>
+                                 </div>
+                                 <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Reunião
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaReunioes.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhuma reunião ou feedback registrado.</p>
+                                 ) : listaReunioes.map(r => (
+                                    <div key={r.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <p className="font-black text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-xs text-slate-600 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
+                                       </div>
+                                       <button type="button" onClick={async () => { if(confirm("Excluir reunião?")) { await removerReuniaoColab(r.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {/* ABA 4: TREINAMENTOS */}
+                        {abaOcorrencia === "treinamentos" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarTreino} className="bg-emerald-50/70 border border-emerald-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nome do Curso / Treinamento</label>
+                                       <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Instituição / Instrutor</label>
+                                       <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                 </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Conclusão</label>
+                                       <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Carga Horária</label>
+                                       <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Vencimento (Opcional)</label>
+                                       <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                 </div>
+                                 <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Treinamento
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaTreinamentos.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhum treinamento registrado para este colaborador.</p>
+                                 ) : listaTreinamentos.map(t => (
+                                    <div key={t.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <p className="font-black text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
+                                          <p className="text-[11px] font-bold text-slate-500 mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          {t.vencimento && <p className="text-[10px] font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
+                                       </div>
+                                       <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+                     </>
+                  )}
+               </div>
             </div>
          </div>
       )}

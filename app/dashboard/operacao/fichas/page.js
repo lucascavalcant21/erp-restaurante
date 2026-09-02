@@ -852,7 +852,7 @@ function FichasRunner() {
     const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
     const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
     const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-    const preco = Number(prod?.preco_venda) || 0;
+    const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
     const meta = Number(f.cmv_meta) || 30;
     if (preco <= 0) return false;
     const cmv = (custoPorcao / preco) * 100;
@@ -996,7 +996,7 @@ function FichasRunner() {
        cmv_meta: ficha.cmv_meta != null ? Number(ficha.cmv_meta) : 30,
        preco_venda: (() => {
           const prod = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
-          return prod && Number(prod.preco_venda) > 0 ? String(prod.preco_venda) : "";
+          return (prod && Number(prod.preco_venda) > 0) ? String(prod.preco_venda) : (ficha.preco_venda && Number(ficha.preco_venda) > 0 ? String(ficha.preco_venda) : "");
        })()
     });
     setCalcQtd("");
@@ -1857,7 +1857,7 @@ function FichasRunner() {
       const porcoes = (unR === 'porcao' || unR === 'un') ? (Number(f.rendimento_porcoes) || 1) : (peso?.porcoes || 0);
       const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
       const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || '').toLowerCase() === String(f.nome_receita || '').toLowerCase());
-      const preco = Number(prod?.preco_venda) || 0;
+      const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
       const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
       return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv };
     }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -2151,7 +2151,7 @@ function FichasRunner() {
                const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
                if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
                const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-               const preco = Number(prod?.preco_venda) || 0;
+               const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
                const meta = Number(f.cmv_meta) || 30;
                if (preco > 0) {
                   const cmv = (custoPorcao / preco) * 100;
@@ -2408,7 +2408,7 @@ function FichasRunner() {
                            const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
                            const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
                            const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-                           const precoPorcao = Number(prod?.preco_venda) || 0;
+                           const precoPorcao = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
                            const meta = Number(f.cmv_meta) || 30;
                            const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                            const margem = cmv !== null ? 100 - cmv : null;

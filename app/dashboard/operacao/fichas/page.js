@@ -401,6 +401,7 @@ function FichasRunner() {
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
   const [buscaIng, setBuscaIng] = useState("");
+  const [salvandoFicha, setSalvandoFicha] = useState(false);
 
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
@@ -1263,6 +1264,7 @@ function FichasRunner() {
   };
 
   const handleSalvar = async (criarOutra = false) => {
+    if (salvandoFicha) return;
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
     const unidadeRendimento = unidadePadraoDepartamento(form.departamento);
@@ -1271,149 +1273,122 @@ function FichasRunner() {
     const ingValidos = ingFicha.filter(i => i.quantidade > 0);
     if(ingValidos.length === 0 && !form.produto_pronto) return alert("Adicione pelo menos um ingrediente com quantidade válida.");
 
-    const erro = await salvarFicha(
-       {
-          id: form.id,
-          unidade_id: unidadeAtiva,
-          departamento: form.departamento,
-          nome_receita: form.nome_receita,
-          categoria: form.categoria || null,
-          rendimento_porcoes: Number(form.rendimento_porcoes),
-          modo_preparo: form.eh_base ? form.modo_preparo : "",
-          eh_base: !!form.eh_base,
-          tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
-          cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
-          rendimento_unidade: unidadeRendimento,
-          peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
-          imagem: form.imagem || null,
-          tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
-          validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
-          observacoes: form.observacoes || null,
-          // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
-          metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
-       },
-       ingValidos.map(i => ({
-          insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
-          subficha_id: i.tipo === "base" ? i.subficha_id : null,
-          quantidade: i.quantidade,
-          fator_correcao: Number(i.fator) || 0
-       }))
-    );
-
-    if(erro.error) return alert("Erro ao salvar: " + erro.error);
-
-    if (form.eh_base && erro.id) {
-      const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
-      const estoquePreparo = await garantirFichaNoEstoquePreparo({
-        unidadeId: unidadeAtiva,
-        ficha: { ...form, id: erro.id },
-        departamento: form.departamento,
-        custoUnitario: custoUnitarioPreparo,
-      });
-      if (estoquePreparo.error) return alert(`A ficha foi salva, mas nao entrou no estoque de preparos: ${estoquePreparo.error}`);
-    }
-
-    if (!criarOutra) setModalNovo(false);
-    carregar();
-
-    // As embalagens usadas na receita entram no estoque de Embalagens do setor.
-    // O pré-preparo já foi vinculado acima, de forma aguardada e idempotente.
-    (async () => {
-      try {
-        const fichaId = erro.id;
-        if (!fichaId) return;
-        const dept = (form.departamento || deptUrl || "cozinha").toLowerCase();
-        const { data: estoques } = await fetchEstoques(unidadeAtiva);
-        const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
-
-        // Embalagens usadas na ficha entram no estoque de Embalagens.
-        const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
-        if (estoqueEmb) {
-          const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
-          for (const item of ingValidos) {
-            if (item.tipo !== "insumo" || !idsEmbalagem.has(item.insumo_id)) continue;
-            await vincularItemEstoque({
-              unidadeId: unidadeAtiva, estoqueId: estoqueEmb.id,
-              insumoId: item.insumo_id, custoUnitario: item.custo_unitario,
-            });
-          }
-        }
-      } catch { /* integração com estoque é acessória: nunca derruba o salvar */ }
-    })();
-
-    // Registra um retrato do custo no histórico (não bloqueia o salvar).
-    const fichaIdHist = erro.id;
-    if (fichaIdHist && !form.produto_pronto) {
-      const custoTotalS = custoTotalFormulario(ingValidos);
-      const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
-      const rendS = Number(form.rendimento_porcoes) || 0;
-      const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
-      const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
-      const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
-      const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
-      registrarCustoFicha({
-        unidadeId: unidadeAtiva, fichaId: fichaIdHist, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
-        origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
-      }).catch(() => {});
-    }
-
-    // O PREÇO DE VENDA agora é definido AQUI na ficha (seção CMV e Precificação)
-    // e sincroniza com o produto do cardápio interno em toda gravação.
-    const fichaIdSalva = erro.id;
-    const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
-    if (!form.eh_base && fichaIdSalva) {
-      try {
-        const nome = form.nome_receita.trim();
-        const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
-        const prodExistente = (prodsAtu || []).find(p =>
-          p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
-        );
-        if (prodExistente) {
-          await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
-        }
-      } catch { /* sincronização de preço não bloqueia o salvar */ }
-    }
-
-    // PRATO/DRINK novo: cai automaticamente no Cardápio e no Guia de Montagem.
-    // Pré-preparo não dispara nada (é só uma base).
-    if (!form.id && !form.eh_base && fichaIdSalva) {
-      try {
-        const nome = form.nome_receita.trim();
-        const ehBarDept = form.departamento === "bar";
-
-        // 1) Cardápio: cria o produto já com o preço definido na ficha
-        const { data: prods } = await fetchProdutos(unidadeAtiva, form.departamento);
-        const jaTemProduto = (prods || []).some(p =>
-          p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
-        );
-        if (!jaTemProduto) {
-          await salvarProduto({
+    setSalvandoFicha(true);
+    try {
+      const erro = await salvarFicha(
+         {
+            id: form.id,
             unidade_id: unidadeAtiva,
-            nome_produto: nome,
-            categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
             departamento: form.departamento,
-            tempo_preparo_base: 15,
-            preco_venda: precoVendaNum,
-            ficha_id: fichaIdSalva,
-            composicao: form.produto_pronto ? [] : [{ ficha_id: fichaIdSalva, qtd: 1 }],
-            embalagens: fichaEmbalagens,
-          });
-        }
+            nome_receita: form.nome_receita,
+            categoria: form.categoria || null,
+            rendimento_porcoes: Number(form.rendimento_porcoes),
+            modo_preparo: form.eh_base ? form.modo_preparo : "",
+            eh_base: !!form.eh_base,
+            tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
+            cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            rendimento_unidade: unidadeRendimento,
+            peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+            imagem: form.imagem || null,
+            tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
+            validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
+            observacoes: form.observacoes || null,
+            // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
+            metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
+         },
+         ingValidos.map(i => ({
+            insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
+            subficha_id: i.tipo === "base" ? i.subficha_id : null,
+            quantidade: i.quantidade,
+            fator_correcao: Number(i.fator) || 0
+         }))
+      );
 
-        // 2) Guia de Montagem: entra como ficha pendente de montagem
-        if (!form.produto_pronto) {
-          const { data: monts } = await fetchMontagens(unidadeAtiva, form.departamento);
-          const jaTemMontagem = (monts || []).some(m => (m.nome || "").toLowerCase() === nome.toLowerCase());
-          if (!jaTemMontagem) {
-            await inserirMontagem({
-              nome,
-              tipo: ehBarDept ? "drink" : "prato",
+      if(erro?.error) return alert("Erro ao salvar: " + erro.error);
+
+      const fichaIdSalva = form.id || erro?.id;
+
+      if (form.eh_base && fichaIdSalva) {
+        const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
+        const estoquePreparo = await garantirFichaNoEstoquePreparo({
+          unidadeId: unidadeAtiva,
+          ficha: { ...form, id: fichaIdSalva },
+          departamento: form.departamento,
+          custoUnitario: custoUnitarioPreparo,
+        });
+        if (estoquePreparo.error) alert(`A ficha foi salva, mas não entrou no estoque de preparos: ${estoquePreparo.error}`);
+      }
+
+      if (!criarOutra) setModalNovo(false);
+      await carregar();
+
+      // As embalagens usadas na receita entram no estoque de Embalagens do setor.
+      if (fichaIdSalva) {
+        try {
+          const dept = (form.departamento || deptUrl || "cozinha").toLowerCase();
+          const { data: estoques } = await fetchEstoques(unidadeAtiva);
+          const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
+
+          const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
+          if (estoqueEmb) {
+            const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
+            for (const item of ingValidos) {
+              if (item.tipo !== "insumo" || !idsEmbalagem.has(item.insumo_id)) continue;
+              await vincularItemEstoque({
+                unidadeId: unidadeAtiva, estoqueId: estoqueEmb.id,
+                insumoId: item.insumo_id, custoUnitario: item.custo_unitario,
+              });
+            }
+          }
+        } catch { /* integração com estoque é acessória: nunca derruba o salvar */ }
+      }
+
+      // Registra um retrato do custo no histórico (não bloqueia o salvar).
+      if (fichaIdSalva && !form.produto_pronto) {
+        const custoTotalS = custoTotalFormulario(ingValidos);
+        const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
+        const rendS = Number(form.rendimento_porcoes) || 0;
+        const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
+        const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
+        const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
+        const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
+        registrarCustoFicha({
+          unidadeId: unidadeAtiva, fichaId: fichaIdSalva, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
+          origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+        }).catch(() => {});
+      }
+
+      // PREÇO DE VENDA sincroniza com o produto do cardápio interno
+      const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
+      if (!form.eh_base && fichaIdSalva) {
+        try {
+          const nome = form.nome_receita.trim();
+          const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
+          const prodExistente = (prodsAtu || []).find(p =>
+            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+          );
+          if (prodExistente) {
+            await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
+          }
+        } catch { /* sincronização de preço não bloqueia o salvar */ }
+      }
+
+      // PRATO/DRINK novo: cai automaticamente no Cardápio e no Guia de Montagem.
+      if (!form.id && !form.eh_base && fichaIdSalva) {
+        try {
+          const nome = form.nome_receita.trim();
+          const ehBarDept = form.departamento === "bar";
+
+          const { data: prods } = await fetchProdutos(unidadeAtiva, form.departamento);
+          const jaTemProduto = (prods || []).some(p =>
+            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+          );
+          if (!jaTemProduto) {
+            await salvarProduto({
+              unidade_id: unidadeAtiva,
+              nome_produto: nome,
+              categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
               departamento: form.departamento,
-              descritivo: "",
-              foto_url: "",
-              estrutura_ia: null,
-              tempo_preparo: null,
-              rendimento: "",
               observacoes: "Criado automaticamente pela Ficha Técnica.",
             }, unidadeAtiva);
           }
@@ -3793,11 +3768,27 @@ function FichasRunner() {
 
                {/* FOOTER DO MODAL */}
                <div className="p-3 sm:p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
-                  <button onClick={() => handleSalvar(false)} className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
-                     <Save size={20}/> {form.id ? "Salvar alterações" : form.produto_pronto ? "Salvar produto pronto" : `Salvar ficha (${fmtBRL(custoTotalFormulario(ingFicha))})`}
+                  <button
+                     type="button"
+                     onMouseDown={e => e.preventDefault()}
+                     onClick={() => handleSalvar(false)}
+                     disabled={salvandoFicha}
+                     className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                     {salvandoFicha ? (
+                        <><Loader2 size={20} className="animate-spin" /> Salvando alterações...</>
+                     ) : (
+                        <><Save size={20}/> {form.id ? "Salvar alterações" : form.produto_pronto ? "Salvar produto pronto" : `Salvar ficha (${fmtBRL(custoTotalFormulario(ingFicha))})`}</>
+                     )}
                   </button>
                   {!form.id && (
-                     <button onClick={() => handleSalvar(true)} className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                     <button
+                        type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => handleSalvar(true)}
+                        disabled={salvandoFicha}
+                        className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 disabled:opacity-50 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                     >
                         <Plus size={18}/> Salvar e criar outra
                      </button>
                   )}

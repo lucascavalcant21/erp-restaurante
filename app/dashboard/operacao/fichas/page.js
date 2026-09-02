@@ -1420,10 +1420,8 @@ function FichasRunner() {
               observacoes: "Criado automaticamente pela Ficha Técnica.",
             }, unidadeAtiva);
           }
-        }
-
-        alert(`"${nome}" salvo!\n\n· Preço de venda: ${precoVendaNum > 0 ? "definido na ficha" : "pendente — edite a ficha e preencha em CMV e Precificação"}${form.produto_pronto ? "\n· Produto pronto — não exige ingredientes nem montagem" : "\n· Guia de Montagem — crie o passo a passo lá"}`);
-      } catch { /* integrações não bloqueiam o salvar da ficha */ }
+        } catch { /* integrações não bloqueiam o salvar da ficha */ }
+      }
     }
 
     // "Salvar e criar outra": limpa o formulário e continua no modal

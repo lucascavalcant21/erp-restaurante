@@ -1850,6 +1850,16 @@ function FichasRunner() {
     if (!win) return alert('Habilite pop-ups para imprimir.');
     const esc2 = (v) => String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const brl = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const getOrdemCategoria = (cat) => {
+      const c = String(cat || "").toLowerCase();
+      if (c.includes("entrada")) return 1;
+      if (c.includes("prato") || c.includes("massa") || c.includes("carne") || c.includes("principal")) return 2;
+      if (c.includes("sobremesa") || c.includes("doce") || c.includes("açaí") || c.includes("acai")) return 3;
+      if (c.includes("adiciona") || c.includes("adicional") || c.includes("extra") || c.includes("acompanha") || c.includes("bebida") || c.includes("suco")) return 4;
+      return 5;
+    };
+
     const linhas = fichas.filter(f => !f.eh_base).map(f => {
       const custoTotal = custoTotalDaFicha(f, fichas);
       const peso = infoPesoFicha(f, fichas);
@@ -1860,14 +1870,34 @@ function FichasRunner() {
       const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
       const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
       return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv };
-    }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    }).sort((a, b) => {
+      const oA = getOrdemCategoria(a.cat);
+      const oB = getOrdemCategoria(b.cat);
+      if (oA !== oB) return oA - oB;
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
+
     const comCmv = linhas.filter(l => l.cmv !== null);
     const cmvMedio = comCmv.length ? comCmv.reduce((s, l) => s + l.cmv, 0) / comCmv.length : null;
-    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoTotal)}</td><td class="r">${brl(l.custoPorcao)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos</title><style>
+
+    const comPreco = linhas.filter(l => l.preco > 0);
+    const ticketMedio = comPreco.length ? comPreco.reduce((s, l) => s + l.preco, 0) / comPreco.length : null;
+
+    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoTotal)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos e CMV</title><style>
       *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
       .sub{font-size:11px;color:#64748b;font-weight:bold;margin-bottom:12px}
+      .kpi-container{display:flex;gap:14px;margin-bottom:16px;margin-top:10px}
+      .kpi-card{flex:1;border:2px solid #e2e8f0;background:#f8fafc;border-radius:12px;padding:12px 16px;text-align:center}
+      .kpi-cmv{border-color:#fecaca;background:#fef2f2}
+      .kpi-ticket{border-color:#bbf7d0;background:#f0fdf4}
+      .kpi-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b;display:block}
+      .kpi-value{font-size:26px;font-weight:900;line-height:1.2;margin-top:2px;display:block}
+      .kpi-sub{font-size:10px;font-weight:700;color:#64748b;margin-top:2px;display:block}
+      .kpi-bom{color:#047857}
+      .kpi-alerta{color:#dc2626}
+      .text-emerald{color:#047857}
       table{width:100%;border-collapse:collapse;font-size:12px}
       th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left}
       th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
@@ -1879,9 +1909,23 @@ function FichasRunner() {
       <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
       <h1>Planilha de Custos e CMV</h1>
       <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
-      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo total</th><th class="r">Custo/porção</th><th class="r">Preço de venda</th><th class="r">CMV</th></tr></thead>
+      
+      <div class="kpi-container">
+        <div class="kpi-card kpi-cmv">
+          <span class="kpi-label">CMV Médio da Carta</span>
+          <span class="kpi-value ${cmvMedio !== null && cmvMedio > 35 ? 'kpi-alerta' : 'kpi-bom'}">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</span>
+          <span class="kpi-sub">${comCmv.length} receita(s) precificada(s)</span>
+        </div>
+        <div class="kpi-card kpi-ticket">
+          <span class="kpi-label">Ticket Médio (Preço de Venda)</span>
+          <span class="kpi-value text-emerald">${ticketMedio !== null ? brl(ticketMedio) : '—'}</span>
+          <span class="kpi-sub">${comPreco.length} item(ns) precificado(s)</span>
+        </div>
+      </div>
+
+      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo Total</th><th class="r">Preço de Venda</th><th class="r">CMV</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="5">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
+      <tfoot><tr><td colspan="4">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 400);

@@ -176,6 +176,10 @@ export default function FinanceiroPage() {
     const metaVendaDiaria = custoFixoDiario / (margemContribucaoPct / 100);
     const metaVendaMensal = metaVendaDiaria * dias;
 
+    // Percentuais automáticos dos custos sobre o Faturamento de Equilíbrio
+    const cmoPct = metaVendaMensal > 0 ? (cmoMensal / metaVendaMensal) * 100 : 0;
+    const operacaoPct = metaVendaMensal > 0 ? (operacionaisMensais / metaVendaMensal) * 100 : 0;
+
     // 8. Venda Real de Hoje
     const [inicioHoje, fimHoje] = intervaloPeriodo("dia");
     const vendasHoje = (dados.vendas || []).filter(v => {
@@ -187,7 +191,7 @@ export default function FinanceiroPage() {
     const faltaHoje = Math.max(0, metaVendaDiaria - vendasHoje);
 
     return {
-      cmvPct, cmoMensal, cmoDiario, operacionaisMensais, operacaoDiaria,
+      cmvPct, cmoMensal, cmoDiario, cmoPct, operacionaisMensais, operacaoDiaria, operacaoPct,
       custoFixoTotalMensal, custoFixoDiario, dias, impostoPct, taxaCartaoPct, deducoesPct,
       margemContribucaoPct, metaVendaDiaria, metaVendaMensal, vendasHoje, progressoHojePct, faltaHoje,
     };
@@ -414,7 +418,10 @@ export default function FinanceiroPage() {
                 title="Clique para ir para as Fichas Técnicas"
                 className="rounded-xl border border-orange-200 bg-orange-50/60 p-3 text-left transition-all hover:border-orange-300 hover:bg-orange-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
-                <span className="block text-[10px] font-black uppercase tracking-wider text-orange-700">1. CMV Média (Fichas) 🔗</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="block text-[10px] font-black uppercase tracking-wider text-orange-700">1. CMV Médio 🔗</span>
+                  <span className="rounded-md bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-[10px] font-black text-orange-800">{calculoPE.cmvPct.toFixed(1)}%</span>
+                </div>
                 <span className="mt-1 block text-lg font-black text-orange-950">{calculoPE.cmvPct.toFixed(1)}%</span>
                 <span className="text-[10px] font-semibold text-slate-500">Baseado nas Fichas Técnicas</span>
               </button>
@@ -426,7 +433,10 @@ export default function FinanceiroPage() {
                 title="Clique para ir para a Equipe / RH"
                 className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-left transition-all hover:border-blue-300 hover:bg-blue-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
-                <span className="block text-[10px] font-black uppercase tracking-wider text-blue-700">2. CMO (Mão de Obra) 🔗</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="block text-[10px] font-black uppercase tracking-wider text-blue-700">2. CMO (Mão de Obra) 🔗</span>
+                  <span className="rounded-md bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-[10px] font-black text-blue-800">{calculoPE.cmoPct.toFixed(1)}%</span>
+                </div>
                 <span className="mt-1 block text-lg font-black text-blue-950">{fmtBRL(calculoPE.cmoDiario)}<small className="text-xs text-slate-500">/dia</small></span>
                 <span className="text-[10px] font-semibold text-slate-500">{fmtBRL(calculoPE.cmoMensal)} / mês</span>
               </button>
@@ -438,7 +448,10 @@ export default function FinanceiroPage() {
                 title="Clique para ajustar os Custos Operacionais"
                 className="rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-left transition-all hover:border-purple-300 hover:bg-purple-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
-                <span className="block text-[10px] font-black uppercase tracking-wider text-purple-700">3. Operacional Fixo ✏️</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="block text-[10px] font-black uppercase tracking-wider text-purple-700">3. Operacional Fixo ✏️</span>
+                  <span className="rounded-md bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-[10px] font-black text-purple-800">{calculoPE.operacaoPct.toFixed(1)}%</span>
+                </div>
                 <span className="mt-1 block text-lg font-black text-purple-950">{fmtBRL(calculoPE.operacaoDiaria)}<small className="text-xs text-slate-500">/dia</small></span>
                 <span className="text-[10px] font-semibold text-slate-500">{fmtBRL(calculoPE.operacionaisMensais)} / mês</span>
               </button>
@@ -450,7 +463,10 @@ export default function FinanceiroPage() {
                 title="Clique para ajustar os Impostos e Taxas"
                 className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-left transition-all hover:border-amber-300 hover:bg-amber-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
-                <span className="block text-[10px] font-black uppercase tracking-wider text-amber-700">4. Impostos + Cartão ✏️</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="block text-[10px] font-black uppercase tracking-wider text-amber-700">4. Impostos + Taxas ✏️</span>
+                  <span className="rounded-md bg-amber-100 border border-amber-200 px-1.5 py-0.5 text-[10px] font-black text-amber-800">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
+                </div>
                 <span className="mt-1 block text-lg font-black text-amber-950">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
                 <span className="text-[10px] font-semibold text-slate-500">({calculoPE.impostoPct}% imp + {calculoPE.taxaCartaoPct}% maq)</span>
               </button>
@@ -462,22 +478,31 @@ export default function FinanceiroPage() {
                 title="Clique para ver / ajustar os parâmetros"
                 className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-left transition-all hover:border-emerald-300 hover:bg-emerald-100/80 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
-                <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-800">5. Margem Contribuição ✏️</span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-800">5. Margem Contribuição ✏️</span>
+                  <span className="rounded-md bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
+                </div>
                 <span className="mt-1 block text-lg font-black text-emerald-950">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
                 <span className="text-[10px] font-semibold text-slate-500">100% - Deduções Totais</span>
               </button>
             </div>
 
-            {/* BARRA DE DISCRIMINAÇÃO DOS CUSTOS FIXOS OPERACIONAIS */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-600">
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Luz" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-amber-50 hover:text-amber-900 transition-all cursor-pointer border border-transparent hover:border-amber-200"><Zap size={14} className="text-amber-500"/> Luz: <b>{fmtBRL(paramsPE.luz)}</b></button>
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-blue-50 hover:text-blue-900 transition-all cursor-pointer border border-transparent hover:border-blue-200"><Droplets size={14} className="text-blue-500"/> Água: <b>{fmtBRL(paramsPE.agua)}</b></button>
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-indigo-50 hover:text-indigo-900 transition-all cursor-pointer border border-transparent hover:border-indigo-200"><Wifi size={14} className="text-indigo-500"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b></button>
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Gás" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-900 transition-all cursor-pointer border border-transparent hover:border-rose-200"><Flame size={14} className="text-rose-500"/> Gás: <b>{fmtBRL(paramsPE.gas)}</b></button>
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-cyan-50 hover:text-cyan-900 transition-all cursor-pointer border border-transparent hover:border-cyan-200"><Sparkles size={14} className="text-cyan-500"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b></button>
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer border border-transparent hover:border-slate-200"><Wrench size={14} className="text-slate-500"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b></button>
-              <button type="button" onClick={() => setModalPE(true)} title="Clique para editar Gastos Extras" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 transition-all cursor-pointer border border-transparent hover:border-emerald-200"><PackagePlus size={14} className="text-emerald-500"/> Extras: <b>{fmtBRL(paramsPE.gastosExtras)}</b></button>
-            </div>
+            {/* BARRA DE DISCRIMINAÇÃO DOS CUSTOS FIXOS OPERACIONAIS COM % AUTOMÁTICA */}
+            {(() => {
+              const metaM = calculoPE.metaVendaMensal || 1;
+              const calcPct = (v) => ((Number(v) || 0) / metaM * 100).toFixed(1);
+              return (
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-600">
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Luz" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-amber-50 hover:text-amber-900 transition-all cursor-pointer border border-transparent hover:border-amber-200"><Zap size={14} className="text-amber-500"/> Luz: <b>{fmtBRL(paramsPE.luz)}</b> <span className="text-[10px] font-black text-amber-700 bg-amber-100/80 px-1 rounded">({calcPct(paramsPE.luz)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-blue-50 hover:text-blue-900 transition-all cursor-pointer border border-transparent hover:border-blue-200"><Droplets size={14} className="text-blue-500"/> Água: <b>{fmtBRL(paramsPE.agua)}</b> <span className="text-[10px] font-black text-blue-700 bg-blue-100/80 px-1 rounded">({calcPct(paramsPE.agua)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-indigo-50 hover:text-indigo-900 transition-all cursor-pointer border border-transparent hover:border-indigo-200"><Wifi size={14} className="text-indigo-500"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b> <span className="text-[10px] font-black text-indigo-700 bg-indigo-100/80 px-1 rounded">({calcPct(paramsPE.internet)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Gás" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-900 transition-all cursor-pointer border border-transparent hover:border-rose-200"><Flame size={14} className="text-rose-500"/> Gás: <b>{fmtBRL(paramsPE.gas)}</b> <span className="text-[10px] font-black text-rose-700 bg-rose-100/80 px-1 rounded">({calcPct(paramsPE.gas)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-cyan-50 hover:text-cyan-900 transition-all cursor-pointer border border-transparent hover:border-cyan-200"><Sparkles size={14} className="text-cyan-500"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b> <span className="text-[10px] font-black text-cyan-700 bg-cyan-100/80 px-1 rounded">({calcPct(paramsPE.limpeza)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer border border-transparent hover:border-slate-200"><Wrench size={14} className="text-slate-500"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b> <span className="text-[10px] font-black text-slate-700 bg-slate-200/80 px-1 rounded">({calcPct(paramsPE.manutencao)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar Gastos Extras" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 transition-all cursor-pointer border border-transparent hover:border-emerald-200"><PackagePlus size={14} className="text-emerald-500"/> Extras: <b>{fmtBRL(paramsPE.gastosExtras)}</b> <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-1 rounded">({calcPct(paramsPE.gastosExtras)}%)</span></button>
+                </div>
+              );
+            })()}
           </div>
         </section>
 

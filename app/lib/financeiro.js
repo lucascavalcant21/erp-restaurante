@@ -323,3 +323,17 @@ export function salvarParametrosPontoEquilibrio(unidadeId, params) {
   } catch {}
 }
 
+export async function registrarVendaManual({ unidadeId, total, formaPagamento, cliente }) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { data, error } = await supabase.from("vendas").insert([{
+    unidade_id: unidadeId,
+    total: Number(total),
+    subtotal: Number(total),
+    forma_pagamento: formaPagamento || "pix",
+    cliente: cliente || "Lançamento manual do dia",
+    status: "concluida",
+    created_at: new Date().toISOString(),
+  }]).select("id").single();
+  return { data, error: error?.message };
+}
+

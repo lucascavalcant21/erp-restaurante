@@ -9,7 +9,7 @@ import {
 import { useERP } from "../../context/ERPContext";
 import {
   CATEGORIAS_CUSTO, fetchEntradasEstoqueFinanceiro, fetchPainelCaixa, pagarConta, removerConta, salvarConta,
-  obterParametrosPontoEquilibrio, salvarParametrosPontoEquilibrio,
+  obterParametrosPontoEquilibrio, salvarParametrosPontoEquilibrio, registrarVendaManual,
 } from "../../lib/financeiro";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
 import { fetchFichas } from "../../lib/operacao";
@@ -62,8 +62,27 @@ export default function FinanceiroPage() {
   const [erro, setErro] = useState("");
   const [modal, setModal] = useState(false);
   const [modalPE, setModalPE] = useState(false);
+  const [modalVenda, setModalVenda] = useState(false);
+  const [salvandoVenda, setSalvandoVenda] = useState(false);
+  const [formVenda, setFormVenda] = useState({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
   const [salvando, setSalvando] = useState(false);
   const [form, setForm] = useState({ descricao: "", valor: "", categoria: "custo_fixo", data_vencimento: new Date().toISOString().slice(0, 10), status: "pendente" });
+
+  const salvarVendaManual = async e => {
+    e.preventDefault();
+    if (!formVenda.valor || Number(formVenda.valor) <= 0) return alert("Digite o valor da venda");
+    setSalvandoVenda(true);
+    const res = await registrarVendaManual({
+      unidadeId: unidadeAtiva,
+      total: Number(formVenda.valor),
+      formaPagamento: formVenda.forma_pagamento,
+      cliente: formVenda.cliente || "Venda do dia",
+    });
+    setSalvandoVenda(false);
+    if (res.error) return alert("Não foi possível lançar a venda: " + res.error);
+    setModalVenda(false);
+    await carregar();
+  };
 
   const [paramsPE, setParamsPE] = useState({
     diasTrabalho: 26, luz: 1200, agua: 450, internet: 200, gas: 800, limpeza: 350, manutencao: 500, gastosExtras: 300, impostoPct: 4.0, taxaCartaoPct: 2.5,
@@ -334,11 +353,23 @@ export default function FinanceiroPage() {
 
             {/* CARD 2: REALIZADO HOJE VS META */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Vendido Hoje</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
-                  {calculoPE.progressoHojePct.toFixed(0)}% da meta
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormVenda({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
+                      setModalVenda(true);
+                    }}
+                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-[11px] font-black text-white hover:bg-emerald-700 transition shadow-sm cursor-pointer"
+                  >
+                    <Plus size={13} /> Lançar Venda
+                  </button>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                    {calculoPE.progressoHojePct.toFixed(0)}% da meta
+                  </span>
+                </div>
               </div>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-900">{fmtBRL(calculoPE.vendasHoje)}</p>
 
@@ -670,11 +701,72 @@ export default function FinanceiroPage() {
               <label><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" /></label>
             </div>
             <label className="block"><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
-            <label className="block"><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Situação</span><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500"><option value="pendente">Pendente</option><option value="pago">Já foi paga</option></select></label>
             <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-slate-100 font-black text-slate-600">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-emerald-600 font-black text-white disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
           </div>
         </form>
       </div>}
+
+      {/* MODAL LANÇAR VENDA MANUAL DO DIA */}
+      {modalVenda && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-3 pt-8 backdrop-blur-sm sm:items-center sm:pt-3">
+          <form onSubmit={salvarVendaManual} className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between bg-emerald-950 p-5 text-white">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Ponto de Equilíbrio</p>
+                <h2 className="text-xl font-black">Lançar Venda de Hoje</h2>
+              </div>
+              <button type="button" onClick={() => setModalVenda(false)} className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">Valor da Venda (R$)</label>
+                <input
+                  required
+                  autoFocus
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0,00"
+                  value={formVenda.valor}
+                  onChange={e => setFormVenda({ ...formVenda, valor: e.target.value })}
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 font-black text-xl text-slate-900 outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">Forma de Pagamento</label>
+                <select
+                  value={formVenda.forma_pagamento}
+                  onChange={e => setFormVenda({ ...formVenda, forma_pagamento: e.target.value })}
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold text-slate-900 outline-none focus:border-emerald-500"
+                >
+                  <option value="pix">PIX</option>
+                  <option value="credito">Cartão de Crédito</option>
+                  <option value="debito">Cartão de Débito</option>
+                  <option value="dinheiro">Dinheiro</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">Identificação / Descrição (opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ex.: Vendas do Almoço, Fechamento do caixa, etc."
+                  value={formVenda.cliente}
+                  onChange={e => setFormVenda({ ...formVenda, cliente: e.target.value })}
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold text-slate-900 outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="pt-2 flex gap-3">
+                <button type="button" onClick={() => setModalVenda(false)} className="flex-1 py-3.5 bg-slate-100 rounded-xl font-black text-slate-700">Cancelar</button>
+                <button disabled={salvandoVenda} className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black disabled:opacity-50 transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                  {salvandoVenda ? "Gravando..." : "Confirmar Venda"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

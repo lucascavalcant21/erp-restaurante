@@ -4,10 +4,11 @@ import { calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin,
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
   
-  let query = supabase.from("colaboradores").select("*").order("nome");
+  let query = supabase.from("colaboradores").select("*");
   if (unidadeId && unidadeId !== "matriz") {
     query = query.eq("unidade_id", unidadeId);
   }
+  query = query.order("nome");
 
   const { data, error } = await query;
   return { data: data || [], error: error?.message };
@@ -236,10 +237,11 @@ export const CARGOS_PADRAO_INICIAIS = [
 export async function fetchCargos(unidadeId) {
   if (!isSupabaseReady()) return { data: CARGOS_PADRAO_INICIAIS, error: null };
   try {
-    let q = supabase.from("rh_cargos").select("*").order("nome");
+    let q = supabase.from("rh_cargos").select("*");
     if (unidadeId && unidadeId !== "todas") {
       q = q.eq("unidade_id", unidadeId);
     }
+    q = q.order("nome");
     const { data, error } = await q;
     if (error || !data || data.length === 0) {
       return { data: CARGOS_PADRAO_INICIAIS, error: null };

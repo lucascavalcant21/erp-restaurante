@@ -15,11 +15,11 @@ import {
   fetchFeriados, inserirFeriado, removerFeriado,
   liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
-  desligarColaborador
+  desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
-import { situacaoExperiencia, emExperiencia, faseContratoCalculada, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
+import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
@@ -1516,25 +1516,65 @@ export default function RHPage() {
     }
   };
 
-  // Desligamento: arquiva (não apaga) — a vida do funcionário fica preservada
+  // Desligamento & Aviso Prévio — a vida do funcionário fica preservada
   const [modalDeslig, setModalDeslig] = useState(false);
   const [funcDeslig, setFuncDeslig] = useState(null);
-  const [desligForm, setDesligForm] = useState({ data: "", tipo: "Pedido de demissão", motivo: "" });
+  const [desligForm, setDesligForm] = useState({
+    modo: "aviso", // 'aviso' ou 'imediato'
+    data: new Date().toISOString().split("T")[0],
+    inicio_aviso: new Date().toISOString().split("T")[0],
+    dias_aviso: "27",
+    tipo_aviso: "Trabalhado",
+    tipo: "Demissão sem justa causa",
+    motivo: "",
+  });
+
   const abrirDesligamento = (f) => {
     setFuncDeslig(f);
-    setDesligForm({ data: new Date().toISOString().split("T")[0], tipo: "Pedido de demissão", motivo: "" });
+    const hj = new Date().toISOString().split("T")[0];
+    const emAviso = f.em_aviso_previo || f.status_aviso === "cumprindo_aviso";
+    setDesligForm({
+      modo: emAviso ? "imediato" : "aviso",
+      data: hj,
+      inicio_aviso: f.inicio_aviso_previo || hj,
+      dias_aviso: String(f.dias_aviso_previo || 27),
+      tipo_aviso: f.tipo_aviso_previo || "Trabalhado",
+      tipo: f.tipo_desligamento || "Demissão sem justa causa",
+      motivo: f.motivo_desligamento || "",
+    });
     setModalDeslig(true);
   };
+
   const confirmarDesligamento = async (e) => {
     e.preventDefault();
-    const { error } = await desligarColaborador(funcDeslig.id, {
-      data_desligamento: desligForm.data,
-      tipo_desligamento: desligForm.tipo,
-      motivo_desligamento: desligForm.motivo,
-    });
-    if (error) return alert("Erro: " + error);
+    if (!funcDeslig?.id) return;
+    if (desligForm.modo === "aviso") {
+      const { error } = await registrarAvisoPrevio(funcDeslig.id, {
+        inicio_aviso: desligForm.inicio_aviso,
+        dias_aviso: Number(desligForm.dias_aviso) || 30,
+        tipo_aviso: desligForm.tipo_aviso,
+        motivo: desligForm.motivo,
+      });
+      if (error) return alert("Erro ao registrar aviso prévio: " + error);
+      alert(`Aviso prévio registrado para ${funcDeslig.nome}! O colaborador permanecerá na lista da equipe cumprindo os ${desligForm.dias_aviso} dias.`);
+    } else {
+      const { error } = await desligarColaborador(funcDeslig.id, {
+        data_desligamento: desligForm.data,
+        tipo_desligamento: desligForm.tipo,
+        motivo_desligamento: desligForm.motivo,
+      });
+      if (error) return alert("Erro ao desligar: " + error);
+      alert(`${funcDeslig.nome} foi desligado(a) e movido(a) para o arquivo de Ex-funcionários.`);
+    }
     setModalDeslig(false);
     carregar();
+  };
+
+  const handleCancelarAviso = async (f) => {
+    if (!confirm(`Cancelar o aviso prévio de ${f.nome} e mantê-lo(a) normalmente na equipe?`)) return;
+    const { error } = await cancelarAvisoPrevio(f.id);
+    if (error) alert("Erro: " + error);
+    else carregar();
   };
 
   const handleRemover = async (id) => {
@@ -1551,6 +1591,16 @@ export default function RHPage() {
      const hj = new Date();
      hj.setHours(0,0,0,0);
      dAdm.setHours(0,0,0,0);
+     
+     // Aviso Prévio em andamento
+     const av = situacaoAvisoPrevio(f, hj);
+     if (av) {
+        if (av.concluido) {
+           badges.push({ text: `⚠️ Aviso Prévio Concluído (${av.diasTotal}d) · Finalizar Desligamento`, color: 'text-rose-800 bg-rose-100 border-rose-300 font-black animate-pulse' });
+        } else {
+           badges.push({ text: `⚠️ Cumprindo Aviso Prévio (${av.diasTotal} dias) · Faltam ${av.diasRestantes} dia(s) (Término ${av.fimPrevisto.toLocaleDateString("pt-BR")})`, color: 'text-amber-800 bg-amber-100 border-amber-300 font-bold' });
+        }
+     }
      
      const diffDias = Math.floor((hj - dAdm) / (1000 * 60 * 60 * 24));
      const anoAtual = hj.getFullYear();
@@ -3369,43 +3419,112 @@ export default function RHPage() {
          </div>
       )}
 
-      {/* MODAL: DESLIGAMENTO (arquiva o funcionário com a vida dele) */}
+      {/* MODAL: DESLIGAMENTO & AVISO PRÉVIO */}
       {modalDeslig && funcDeslig && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] overflow-y-auto">
-               <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                   <div>
-                     <h2 className="font-black text-2xl text-slate-800">Desligar Funcionário</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{funcDeslig.nome} · {funcDeslig.cargo || "—"}</p>
+                     <h2 className="font-black text-2xl text-slate-800">Desligamento / Aviso Prévio</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-0.5">{funcDeslig.nome} · {funcDeslig.cargo || "Sem cargo"}</p>
                   </div>
                   <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
-               <p className="text-xs font-medium text-slate-500 mb-4 bg-slate-50 border border-slate-100 rounded-xl p-3">Ele sai da equipe ativa e vai para o arquivo de <b>Ex-funcionários</b>. Todo o histórico (ponto, advertências, documentos, banco de horas) fica preservado.</p>
+
+               {/* Se o funcionário já está cumprindo aviso */}
+               {(funcDeslig.em_aviso_previo || funcDeslig.status_aviso === "cumprindo_aviso") && (
+                  <div className="mb-4 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4">
+                     <p className="text-xs font-black text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
+                     <p className="text-xs text-amber-800 font-medium">Início em <b>{funcDeslig.inicio_aviso_previo ? new Date(funcDeslig.inicio_aviso_previo + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</b> ({funcDeslig.dias_aviso_previo || 30} dias contratados).</p>
+                     <div className="mt-3 flex gap-2">
+                        <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-white border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
+                     </div>
+                  </div>
+               )}
+
+               {/* Alternador de Modo: Cumprir Aviso vs Desligar Imediatamente */}
+               <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-100 p-1.5 rounded-2xl">
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all ${desligForm.modo === "aviso" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                     1. Cumprindo Aviso Prévio
+                  </button>
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                     2. Desligar Imediatamente
+                  </button>
+               </div>
+
                <form onSubmit={confirmarDesligamento} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data</label>
-                        <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400"/>
+                  {desligForm.modo === "aviso" ? (
+                     <div className="space-y-3 bg-amber-50/60 border border-amber-200/80 p-4 rounded-2xl">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-amber-800">Parâmetros do Aviso Prévio</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Início do Aviso</label>
+                              <input type="date" value={desligForm.inicio_aviso} onChange={e=>setDesligForm({...desligForm, inicio_aviso: e.target.value})} className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Dias de Aviso</label>
+                              <input type="number" min="1" max="90" value={desligForm.dias_aviso} onChange={e=>setDesligForm({...desligForm, dias_aviso: e.target.value})} placeholder="Ex: 27 ou 30" className="w-full p-3 bg-white border border-amber-200 rounded-xl font-black text-amber-900 outline-none focus:border-amber-500"/>
+                           </div>
+                        </div>
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Aviso</label>
+                           <select value={desligForm.tipo_aviso} onChange={e=>setDesligForm({...desligForm, tipo_aviso: e.target.value})} className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500">
+                              <option value="Trabalhado">Trabalhado (cumpre horário no restaurante)</option>
+                              <option value="Indenizado">Indenizado (sem cumprimento presencial)</option>
+                           </select>
+                        </div>
+
+                        {/* Cálculo ao vivo do término */}
+                        {(() => {
+                           if (!desligForm.inicio_aviso || !desligForm.dias_aviso) return null;
+                           const ini = new Date(`${desligForm.inicio_aviso}T12:00:00`);
+                           const dias = Number(desligForm.dias_aviso) || 30;
+                           const fim = new Date(ini.getTime() + dias * 86400000);
+                           const hj = new Date(); hj.setHours(0,0,0,0); ini.setHours(0,0,0,0);
+                           const faltam = Math.ceil((fim - hj) / 86400000);
+                           return (
+                              <div className="bg-white border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900">
+                                 📅 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
+                                 {faltam > 0 ? <span className="block mt-0.5 text-amber-700">· Faltam <b>{faltam} dia(s)</b> de trabalho</span> : <span className="block mt-0.5 text-rose-700">· Prazo de aviso já finalizado!</span>}
+                              </div>
+                           );
+                        })()}
                      </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo</label>
-                        <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400">
-                           <option>Pedido de demissão</option>
-                           <option>Demissão sem justa causa</option>
-                           <option>Demissão por justa causa</option>
-                           <option>Fim de contrato</option>
-                           <option>Fim de experiência</option>
-                           <option>Acordo</option>
-                        </select>
+                  ) : (
+                     <div className="space-y-3 bg-rose-50/60 border border-rose-200/80 p-4 rounded-2xl">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-rose-800">Desligamento Definitivo & Arquivamento</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Data de Saída</label>
+                              <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-500"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Recisão</label>
+                              <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-500">
+                                 <option>Pedido de demissão</option>
+                                 <option>Demissão sem justa causa</option>
+                                 <option>Demissão por justa causa</option>
+                                 <option>Fim de contrato / experiência</option>
+                                 <option>Acordo entre as partes</option>
+                              </select>
+                           </div>
+                        </div>
                      </div>
-                  </div>
+                  )}
+
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Motivo / observações (opcional)</label>
-                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: reestruturação, desempenho, iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-orange-400 resize-none"/>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Motivo / Observações</label>
+                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: cumprindo aviso de 27 dias / iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-emerald-500 resize-none"/>
                   </div>
-                  <div className="flex gap-3">
+
+                  <div className="flex gap-3 pt-2">
                      <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl">Cancelar</button>
-                     <button type="submit" className="flex-1 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl flex items-center justify-center gap-2"><LogOut size={18}/> Desligar</button>
+                     <button type="submit" className={`flex-1 py-3.5 text-white font-black rounded-xl flex items-center justify-center gap-2 transition-colors ${desligForm.modo === "aviso" ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20" : "bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"}`}>
+                        <LogOut size={18}/> {desligForm.modo === "aviso" ? "Registrar Aviso Prévio" : "Desligar e Arquivar"}
+                     </button>
                   </div>
                </form>
             </div>

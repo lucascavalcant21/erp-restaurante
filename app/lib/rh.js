@@ -64,10 +64,44 @@ export async function desligarColaborador(id, { data_desligamento, motivo_deslig
   return { error: error?.message };
 }
 
+export async function registrarAvisoPrevio(id, { inicio_aviso, dias_aviso = 30, tipo_aviso = "Trabalhado", motivo = "" }) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const campos = {
+    status_aviso: "cumprindo_aviso",
+    em_aviso_previo: true,
+    inicio_aviso_previo: inicio_aviso || new Date().toISOString().split("T")[0],
+    dias_aviso_previo: Number(dias_aviso) || 30,
+    tipo_aviso_previo: tipo_aviso || "Trabalhado",
+    motivo_desligamento: motivo || null,
+  };
+  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
+  }, campos);
+  return { error: error?.message };
+}
+
+export async function cancelarAvisoPrevio(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const campos = {
+    status_aviso: null,
+    em_aviso_previo: false,
+    inicio_aviso_previo: null,
+    dias_aviso_previo: null,
+    tipo_aviso_previo: null,
+  };
+  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
+  }, campos);
+  return { error: error?.message };
+}
+
 export async function reativarColaborador(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("colaboradores").update({
     status: "ativo", data_desligamento: null, motivo_desligamento: null, tipo_desligamento: null,
+    status_aviso: null, em_aviso_previo: false, inicio_aviso_previo: null, dias_aviso_previo: null,
   }).eq("id", id);
   return { error: error?.message };
 }

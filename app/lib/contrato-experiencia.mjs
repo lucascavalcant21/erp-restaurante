@@ -129,6 +129,31 @@ export function situacaoExperiencia(colaborador, hoje = new Date()) {
   };
 }
 
+// Situação de aviso prévio em andamento.
+export function situacaoAvisoPrevio(colaborador, hoje = new Date()) {
+  if (!colaborador?.em_aviso_previo && colaborador?.status_aviso !== "cumprindo_aviso" && !colaborador?.inicio_aviso_previo) {
+    return null;
+  }
+  const inicio = dataDe(colaborador.inicio_aviso_previo);
+  if (!inicio) return null;
+  const diasTotal = Number(colaborador.dias_aviso_previo) || 30;
+  const base = meiaNoite(hoje);
+  const diasCorridos = Math.max(0, Math.floor((base - inicio) / DIA));
+  const fimPrevisto = new Date(inicio.getTime() + diasTotal * DIA);
+  const diasRestantes = Math.ceil((fimPrevisto - base) / DIA);
+
+  return {
+    inicio,
+    diasTotal,
+    diasCorridos,
+    fimPrevisto,
+    diasRestantes,
+    concluido: diasRestantes <= 0,
+    tipo: colaborador.tipo_aviso_previo || "Trabalhado",
+    motivo: colaborador.motivo_desligamento || "",
+  };
+}
+
 // Tempo de casa em dias, com um texto pronto ("1 ano e 3 meses").
 export function tempoDeCasa(colaborador, hoje = new Date()) {
   const admissao = dataDe(colaborador?.data_admissao);

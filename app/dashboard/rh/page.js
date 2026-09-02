@@ -2186,6 +2186,11 @@ export default function RHPage() {
                                  )}
                               </div>
                               <div className="flex items-center gap-1.5">
+                                 {abaAtiva !== "Ex-funcionários" && (
+                                    <button onClick={() => abrirDesligamento(f)} className="flex items-center gap-1 text-xs font-black text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
+                                       <LogOut size={12} /> Desligar
+                                    </button>
+                                 )}
                                  <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
                                  <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>

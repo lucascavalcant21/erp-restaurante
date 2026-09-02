@@ -1422,6 +1422,10 @@ function FichasRunner() {
           }
         } catch { /* integrações não bloqueiam o salvar da ficha */ }
       }
+    } catch (errGlobal) {
+      console.error("[handleSalvar] Erro ao salvar ficha:", errGlobal);
+    } finally {
+      setSalvandoFicha(false);
     }
 
     // "Salvar e criar outra": limpa o formulário e continua no modal

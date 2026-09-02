@@ -382,12 +382,12 @@ export async function fetchFichas(unidadeId, dept) {
         *,
         insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, empanado, ganho_pct, custo_empanado_kg)
       )
-    `)
-    .order("nome_receita");
+    `);
 
   if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
   if (dept) query = query.eq("departamento", dept);
   query = query.eq("ativo", true);
+  query = query.order("nome_receita");
 
   let { data, error } = await query;
   // Compatibilidade durante a publicação: se a migração de inativação ainda
@@ -400,10 +400,10 @@ export async function fetchFichas(unidadeId, dept) {
           *,
           insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, empanado, ganho_pct, custo_empanado_kg)
         )
-      `)
-      .order("nome_receita");
+      `);
     if (unidadeId && unidadeId !== "matriz") fallback = fallback.eq("unidade_id", unidadeId);
     if (dept) fallback = fallback.eq("departamento", dept);
+    fallback = fallback.order("nome_receita");
     const resposta = await fallback;
     data = resposta.data;
     error = resposta.error;

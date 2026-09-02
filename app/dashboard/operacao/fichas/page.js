@@ -382,6 +382,7 @@ function FichasRunner() {
   const [modoFicha, setModoFicha] = useState("principais");
   const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
   const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
+  const [apenasAcimaMeta, setApenasAcimaMeta] = useState(false);
   const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
@@ -842,8 +843,25 @@ function FichasRunner() {
   // Produto pronto (cerveja, refrigerante) não tem receita: é compra, não
   // receituário. Fica fora do receituário inteiro — quem cuida dele é o
   // cardápio e o estoque, não a ficha técnica.
+  const ehAcimaDaMeta = (f) => {
+    if (f.eh_base) return false;
+    const peso = infoPesoFicha(f, fichas);
+    const custoTotal = custoTotalDaFicha(f, fichas);
+    const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+    const rend = Number(f.rendimento_porcoes) || 0;
+    const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+    const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+    const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+    const preco = Number(prod?.preco_venda) || 0;
+    const meta = Number(f.cmv_meta) || 30;
+    if (preco <= 0) return false;
+    const cmv = (custoPorcao / preco) * 100;
+    return cmv > meta;
+  };
+
   const passaFiltro = (f) => {
     if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
+    if (apenasAcimaMeta && !ehAcimaDaMeta(f)) return false;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
     if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
     if (tipoFiltro === "Pratos") return !f.eh_base;
@@ -2143,25 +2161,65 @@ function FichasRunner() {
             });
             const cmvMedio = nCmv ? somaCmv / nCmv : null;
             const cards = [
-               { rot: "Fichas", val: base.length, sub: "pratos/receitas" },
-               { rot: "CMV médio", val: cmvMedio != null ? cmvMedio.toFixed(1) + "%" : "—", sub: `${nCmv} precificadas`, alerta: cmvMedio != null && cmvMedio > 35 },
-               { rot: "Margem média", val: nCmv ? (somaMargem / nCmv).toFixed(1) + "%" : "—", sub: "bruta" },
-               { rot: "Custo médio/porção", val: nCusto ? fmtBRL(somaCusto / nCusto) : "—", sub: "por porção" },
-               { rot: "Ticket médio", val: nPreco ? fmtBRL(somaPreco / nPreco) : "—", sub: "preço de venda" },
-               { rot: "Acima da meta", val: acimaMeta, sub: semPreco ? `${semPreco} sem preço` : "CMV alto", alerta: acimaMeta > 0 },
+               { key: "fichas", rot: "Fichas", val: base.length, sub: "pratos/receitas" },
+               { key: "cmv", rot: "CMV médio", val: cmvMedio != null ? cmvMedio.toFixed(1) + "%" : "—", sub: `${nCmv} precificadas`, alerta: cmvMedio != null && cmvMedio > 35 },
+               { key: "margem", rot: "Margem média", val: nCmv ? (somaMargem / nCmv).toFixed(1) + "%" : "—", sub: "bruta" },
+               { key: "custo", rot: "Custo médio/porção", val: nCusto ? fmtBRL(somaCusto / nCusto) : "—", sub: "por porção" },
+               { key: "ticket", rot: "Ticket médio", val: nPreco ? fmtBRL(somaPreco / nPreco) : "—", sub: "preço de venda" },
+               { key: "acima_meta", rot: "Acima da meta", val: acimaMeta, sub: apenasAcimaMeta ? "Filtrado (clique p/ limpar)" : (semPreco ? `${semPreco} sem preço · clique p/ ver` : "clique para filtrar"), alerta: acimaMeta > 0, clicavel: true },
             ];
             return (
                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
-                  {cards.map(c => (
-                     <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-red-50 border-red-200" : "bg-white border-slate-200"}`}>
-                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
-                        <p className={`text-lg font-black mt-0.5 ${c.alerta ? "text-red-600" : "text-emerald-700"}`}>{c.val}</p>
-                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
-                     </div>
-                  ))}
+                  {cards.map(c => {
+                     const isAcima = c.key === "acima_meta";
+                     const ativo = isAcima && apenasAcimaMeta;
+                     return (
+                        <div
+                           key={c.rot}
+                           onClick={() => { if (isAcima) setApenasAcimaMeta(v => !v); }}
+                           title={isAcima ? (apenasAcimaMeta ? "Clique para mostrar todas as fichas" : "Clique para ver somente fichas acima da meta") : ""}
+                           className={`rounded-2xl border shadow-sm px-3 py-2.5 transition-all ${
+                              isAcima ? "cursor-pointer hover:scale-[1.02] hover:shadow-md active:scale-95" : ""
+                           } ${
+                              ativo
+                                 ? "bg-red-600 text-white border-red-700 ring-4 ring-red-500/20"
+                                 : c.alerta
+                                 ? "bg-red-50 border-red-200 hover:border-red-300"
+                                 : "bg-white border-slate-200"
+                           }`}
+                        >
+                           <p className={`text-[9px] font-black uppercase tracking-wider leading-tight flex items-center justify-between ${ativo ? "text-red-100" : "text-slate-400"}`}>
+                              <span>{c.rot}</span>
+                              {isAcima && <span className={`text-[10px] font-black ${ativo ? "text-white" : "text-red-500"}`}>{ativo ? "✓ FILTRADO" : "🔍 FILTRAR"}</span>}
+                           </p>
+                           <p className={`text-lg font-black mt-0.5 ${ativo ? "text-white" : c.alerta ? "text-red-600" : "text-emerald-700"}`}>{c.val}</p>
+                           <p className={`text-[10px] font-bold truncate ${ativo ? "text-red-100" : "text-slate-400"}`}>{c.sub}</p>
+                        </div>
+                     );
+                  })}
                </div>
             );
          })()}
+
+         {apenasAcimaMeta && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border-2 border-red-200 bg-red-50/90 p-3.5 shadow-sm">
+               <div className="flex items-center gap-3 min-w-0">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-600 text-white font-black shadow-sm">
+                     ⚠️
+                  </div>
+                  <div className="min-w-0">
+                     <p className="text-xs font-black uppercase tracking-wider text-red-900">Filtrando: Fichas Técnicas Acima da Meta</p>
+                     <p className="text-xs font-bold text-red-700 mt-0.5 truncate">{filtradas.length} receita(s) com CMV calculado maior que a meta definida.</p>
+                  </div>
+               </div>
+               <button
+                  onClick={() => setApenasAcimaMeta(false)}
+                  className="shrink-0 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs px-3.5 py-2.5 shadow-sm transition-colors cursor-pointer"
+               >
+                  Ver todas ✕
+               </button>
+            </div>
+         )}
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {

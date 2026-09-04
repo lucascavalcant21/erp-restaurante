@@ -51,6 +51,10 @@ import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
 } from "../../../lib/fichas-lote-utils.mjs";
+import {
+  precoNormalizadoDoInsumo,
+  unidadeNormalizada,
+} from "../../../lib/ingredientes-utils.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -228,7 +232,7 @@ const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] ||
 // somam o custo do empanamento (custo_empanado_kg, por kg final). Só faz sentido
 // em peso (g/kg); em outras unidades usa o custo base.
 function custoUnitEfetivo(ins) {
-  const base = Number(ins?.custo_unitario) || 0;
+  const base = precoNormalizadoDoInsumo(ins) || Number(ins?.custo_unitario) || Number(ins?.custo_compra) || 0;
   if (!ins?.empanado) return base;
   const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
   const u = String(ins.unidade_medida || "").toLowerCase();
@@ -247,7 +251,10 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
     // Fator de correção (%) do item: a quantidade BRUTA (líquida × 1+fc) é a que custa
     const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
     if (fi.insumos) {
-      total += custoUnitEfetivo(fi.insumos) * (fi.quantidade || 0) * fc;
+      const unBase = unidadeNormalizada(fi.insumos.unidade_medida) || String(fi.insumos.unidade_medida || "un").toLowerCase();
+      const custoU = custoUnitEfetivo(fi.insumos);
+      const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
+      total += custoU * qtdBase * fc;
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
       const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
@@ -617,13 +624,14 @@ function FichasRunner() {
 
     const novosIngFicha = iaFResultado.itens.map(it => {
       const insumo = insumosAtivos.find(i => i.id === it.vinculoId);
-      const quantidade = converterParaBase(it.quantidade_lida, it.unidade_lida, insumo.unidade_medida);
+      const unBase = unidadeNormalizada(insumo.unidade_medida) || String(insumo.unidade_medida || "un").toLowerCase();
+      const quantidade = converterParaBase(it.quantidade_lida, it.unidade_lida, unBase);
       return {
         chave: insumo.id, tipo: "insumo", insumo_id: insumo.id,
-        nome: insumo.nome, unidade: insumo.unidade_medida,
-        custo_unitario: insumo.custo_unitario, quantidade,
+        nome: insumo.nome, unidade: unBase,
+        custo_unitario: custoUnitEfetivo(insumo), quantidade,
         peso_medio_g: insumo.peso_medio_g || null,
-        modo: getSub(insumo.unidade_medida) ? "sub" : "base",
+        modo: getSub(unBase) ? "sub" : "base",
       };
     });
 
@@ -1014,15 +1022,18 @@ function FichasRunner() {
              modo: getSub(base?.rendimento_unidade) ? "sub" : "base",
           };
        }
+       const unBase = unidadeNormalizada(fi.insumos.unidade_medida) || String(fi.insumos.unidade_medida || "un").toLowerCase();
+       const custoNorm = custoUnitEfetivo(fi.insumos);
+       const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
        return {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
-          nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
-          custo_unitario: custoUnitEfetivo(fi.insumos), quantidade: fi.quantidade,
+          nome: fi.insumos.nome, unidade: unBase,
+          custo_unitario: custoNorm, quantidade: qtdBase,
           // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
           fator: fi.insumos.empanado ? 0 : (Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0),
           empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
-          modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
+          modo: getSub(unBase) ? "sub" : "base",
        };
     });
     setIngFicha(mapIng);
@@ -1163,15 +1174,17 @@ function FichasRunner() {
     }
     const insumoDb = insumosAtivos.find(i => i.id === id) || embalagensCat.find(i => i.id === id);
     if (!insumoDb) return null;
+    const unBase = unidadeNormalizada(insumoDb.unidade_medida) || String(insumoDb.unidade_medida || "un").toLowerCase();
+    const custoNorm = custoUnitEfetivo(insumoDb);
     return {
        chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
-       nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
-       custo_unitario: custoUnitEfetivo(insumoDb), quantidade,
+       nome: insumoDb.nome, unidade: unBase,
+       custo_unitario: custoNorm, quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
        // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
        fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
        empanado: !!insumoDb.empanado,
-       modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
+       modo: getSub(unBase) ? "sub" : "base",
     };
   };
 

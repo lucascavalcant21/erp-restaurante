@@ -1,17 +1,72 @@
 import { NextResponse } from "next/server";
 
-// Monta ou converte um checklist completo a partir de texto (instruções, cópia/cola)
-// e/ou imagem (foto de quadro, documento ou papel anotado), dividindo as tarefas em:
-// - Abertura (Início do turno)
-// - Durante o turno
-// - Fechamento (Fim do turno)
+// Função para estruturar texto localmente (fallback sem IA ou sem internet/chave)
+function parseTextLocal(contexto, departamento, tipo) {
+  const deptLabel = departamento === "salao" ? "Salão" : departamento === "bar" ? "Bar" : "Cozinha";
+  const linhas = String(contexto || "")
+    .split(/\r?\n+/)
+    .map(l => l.trim().replace(/^[-*•\d+.)\s]*(\[[ xX]\])?\s*/, "").trim())
+    .filter(Boolean);
+
+  if (linhas.length === 0) return null;
+
+  let faseAtual = tipo && ["abertura", "durante_turno", "fechamento"].includes(tipo) ? tipo : "abertura";
+  const itens = [];
+
+  linhas.forEach((linha, idx) => {
+    const lLower = linha.toLowerCase();
+    
+    // Detecta se a linha marca o início de um grupo/seção de fase
+    if (lLower.includes("abertura") || lLower.includes("início") || lLower.includes("inicio") || lLower.includes("abrir")) {
+      faseAtual = "abertura";
+      if (linha.endsWith(":") || lLower.startsWith("fase") || lLower.startsWith("etapa") || lLower === "abertura") return;
+    } else if (lLower.includes("durante") || lLower.includes("operação") || lLower.includes("operacao") || lLower.includes("turno")) {
+      faseAtual = "durante_turno";
+      if (linha.endsWith(":") || lLower.startsWith("fase") || lLower.startsWith("etapa") || lLower === "durante o turno") return;
+    } else if (lLower.includes("fechamento") || lLower.includes("encerramento") || lLower.includes("fim do turno") || lLower.includes("fechar")) {
+      faseAtual = "fechamento";
+      if (linha.endsWith(":") || lLower.startsWith("fase") || lLower.startsWith("etapa") || lLower === "fechamento") return;
+    }
+
+    let itemFase = faseAtual;
+    if (lLower.includes("fechar") || lLower.includes("fechamento") || lLower.includes("lixo") || lLower.includes("desligar") || lLower.includes("trancar") || lLower.includes("conferência final") || lLower.includes("conferencia final")) {
+      itemFase = "fechamento";
+    } else if (lLower.includes("abrir") || lLower.includes("abertura") || lLower.includes("ligar") || lLower.includes("misa") || lLower.includes("mise") || lLower.includes("conferir portas")) {
+      itemFase = "abertura";
+    }
+
+    const matchHora = linha.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/);
+    const horario = matchHora ? matchHora[0] : (itemFase === "abertura" ? "08:00" : itemFase === "durante_turno" ? "14:00" : "22:00");
+
+    const matchMin = linha.match(/\b(\d+)\s*(min|m|minutos)\b/i);
+    const tempoMin = matchMin ? Math.max(1, parseInt(matchMin[1], 10)) : 5;
+
+    const textoLimpo = linha.replace(/\b([01]?\d|2[0-3]):[0-5]\d\b/g, "").replace(/\b(\d+)\s*(min|m|minutos)\b/gi, "").trim() || linha;
+
+    itens.push({
+      id: Date.now() + idx,
+      texto: textoLimpo,
+      categoria: itemFase === "abertura" ? "Abertura & Preparação" : itemFase === "durante_turno" ? "Operação & Manutenção" : "Fechamento & Limpeza",
+      fase_turno: itemFase,
+      horario_previsto: horario,
+      tempo_minutos: tempoMin,
+      responsavel: "",
+      foto_antes: "",
+      foto_final: "",
+    });
+  });
+
+  if (itens.length === 0) return null;
+
+  return {
+    titulo: `Checklist de ${deptLabel}`,
+    itens,
+  };
+}
+
 export async function POST(request) {
   try {
     const { departamento, tipo, contexto, imagem, unidade_nome } = await request.json();
-
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: "Chave da IA não configurada no servidor." }, { status: 500 });
-    }
 
     const deptLabel = departamento === "salao" ? "Salão" : departamento === "bar" ? "Bar" : "Cozinha";
     const tipoLabel = {
@@ -57,85 +112,120 @@ Responda ESTRITAMENTE em formato JSON sem markdown:
   ]
 }`;
 
-    const userMessageContent = [];
+    let resultObj = null;
 
-    // Se veio imagem (Base64 pura ou Data URL)
-    if (imagem && typeof imagem === "string") {
-      let mediaType = "image/jpeg";
-      let base64Pure = imagem;
-      if (imagem.includes(";base64,")) {
-        const parts = imagem.split(";base64,");
-        mediaType = parts[0].replace("data:", "") || "image/jpeg";
-        base64Pure = parts[1];
-      }
-      userMessageContent.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: mediaType,
-          data: base64Pure,
-        },
-      });
-    }
-
-    userMessageContent.push({ type: "text", text: promptText });
-
-    const modelosParaTestar = ["claude-opus-4-8", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"];
-    let response = null;
-    let errorDetail = "";
-
-    for (const modelName of modelosParaTestar) {
+    // 1. Tenta OpenAI se a chave estiver configurada
+    if (process.env.OPENAI_API_KEY) {
       try {
-        response = await fetch("https://api.anthropic.com/v1/messages", {
+        const userMessageContent = [];
+        if (imagem && typeof imagem === "string") {
+          let dataUrl = imagem;
+          if (!imagem.startsWith("data:")) {
+            dataUrl = `data:image/jpeg;base64,${imagem}`;
+          }
+          userMessageContent.push({
+            type: "image_url",
+            image_url: { url: dataUrl, detail: "low" },
+          });
+        }
+        userMessageContent.push({ type: "text", text: promptText });
+
+        const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: modelName,
-            max_tokens: 3500,
+            model: imagem ? "gpt-4o" : "gpt-4o-mini",
             messages: [{ role: "user", content: userMessageContent }],
+            response_format: { type: "json_object" },
+            max_tokens: 3500,
           }),
         });
 
-        if (response.ok) {
-          break;
+        if (openAiRes.ok) {
+          const openAiData = await openAiRes.json();
+          const raw = openAiData.choices?.[0]?.message?.content;
+          if (raw) resultObj = JSON.parse(raw);
+        } else {
+          console.error("[IA Checklist] OpenAI API Error:", await openAiRes.text());
         }
-
-        errorDetail = await response.text();
-        console.error(`[IA Checklist] Erro API Anthropic com modelo (${modelName}):`, errorDetail);
-      } catch (err) {
-        errorDetail = err?.message || String(err);
-        console.error(`[IA Checklist] Exceção com modelo (${modelName}):`, errorDetail);
+      } catch (errOpenAi) {
+        console.error("[IA Checklist] OpenAI Exception:", errOpenAi);
       }
     }
 
-    if (!response || !response.ok) {
-      console.error("[IA Checklist] Todos os modelos falharam. Detalhe do último erro:", errorDetail);
-      return NextResponse.json({ error: "Erro ao comunicar com a IA." }, { status: 500 });
+    // 2. Tenta Anthropic Claude se OpenAI não respondeu ou não configurada
+    if (!resultObj && process.env.ANTHROPIC_API_KEY) {
+      const userMessageContent = [];
+      if (imagem && typeof imagem === "string") {
+        let mediaType = "image/jpeg";
+        let base64Pure = imagem;
+        if (imagem.includes(";base64,")) {
+          const parts = imagem.split(";base64,");
+          mediaType = parts[0].replace("data:", "") || "image/jpeg";
+          base64Pure = parts[1];
+        }
+        userMessageContent.push({
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: base64Pure },
+        });
+      }
+      userMessageContent.push({ type: "text", text: promptText });
+
+      const modelosValidos = ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-haiku-20240307"];
+      for (const modelName of modelosValidos) {
+        try {
+          const antRes = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": process.env.ANTHROPIC_API_KEY,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model: modelName,
+              max_tokens: 3500,
+              messages: [{ role: "user", content: userMessageContent }],
+            }),
+          });
+
+          if (antRes.ok) {
+            const data = await antRes.json();
+            let rawText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+            rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+            try {
+              resultObj = JSON.parse(rawText);
+            } catch {
+              const match = rawText.match(/\{[\s\S]*\}/);
+              if (match) resultObj = JSON.parse(match[0]);
+            }
+            if (resultObj) break;
+          } else {
+            console.error(`[IA Checklist] Anthropic API Error (${modelName}):`, await antRes.text());
+          }
+        } catch (errAnt) {
+          console.error(`[IA Checklist] Anthropic Exception (${modelName}):`, errAnt?.message || String(errAnt));
+        }
+      }
     }
 
-    const data = await response.json();
-    let rawText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
-    rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-
-    let obj;
-    try {
-      obj = JSON.parse(rawText);
-    } catch {
-      const match = rawText.match(/\{[\s\S]*\}/);
-      obj = match ? JSON.parse(match[0]) : null;
+    // 3. Fallback: se nenhuma IA respondeu (ou chaves ausentes), tenta converter texto localmente
+    if ((!resultObj || !resultObj.itens || resultObj.itens.length === 0) && contexto && contexto.trim()) {
+      resultObj = parseTextLocal(contexto, departamento, tipo);
     }
 
-    if (!obj?.itens || !Array.isArray(obj.itens) || obj.itens.length === 0) {
-      return NextResponse.json({ error: "Não foi possível extrair o checklist da imagem/texto enviado." }, { status: 422 });
+    if (!resultObj?.itens || !Array.isArray(resultObj.itens) || resultObj.itens.length === 0) {
+      return NextResponse.json(
+        { error: "Não foi possível extrair o checklist. Se estiver usando foto, verifique a chave da IA ou digite/cole o texto das tarefas." },
+        { status: 422 }
+      );
     }
 
     const fasesValidas = new Set(["abertura", "durante_turno", "fechamento"]);
 
-    const itens = obj.itens
+    const itens = resultObj.itens
       .filter(i => i && (i.texto || "").trim())
       .map((i, idx) => {
         const fase = fasesValidas.has(String(i.fase_turno).toLowerCase())
@@ -155,7 +245,7 @@ Responda ESTRITAMENTE em formato JSON sem markdown:
       });
 
     return NextResponse.json({
-      titulo: String(obj.titulo || "").trim() || `Checklist de ${deptLabel}`,
+      titulo: String(resultObj.titulo || "").trim() || `Checklist de ${deptLabel}`,
       itens,
     });
   } catch (error) {

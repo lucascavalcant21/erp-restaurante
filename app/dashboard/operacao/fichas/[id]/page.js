@@ -12,15 +12,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  AlertTriangle, ArrowLeft, Calculator, ChevronRight, Clock, Info, Layers, ListOrdered,
-  Loader2, Package, Percent, Save, Scale, Snowflake, Tag, TrendingUp, UtensilsCrossed, Wrench,
+  AlertTriangle, ArrowLeft, Calculator, ChefHat, ChevronRight, Clock, FileDown, GitBranch,
+  History, Info, Layers, ListOrdered, Loader2, Package, Percent, Printer, Save, Scale,
+  Snowflake, Tag, TrendingUp, UtensilsCrossed, Wrench, X,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
 import {
   fetchFichaCompleta, salvarCamposFicha, garantirCodigoFicha, salvarComplementosFicha,
-  STATUS_FICHA,
+  criarVersaoFicha, fetchVersoes, compararVersoes, STATUS_FICHA,
 } from "../../../../lib/ficha-tecnica";
+import { baixarPdfDeHtml } from "../../../../lib/pdf";
+import { montarHtmlFichaTecnica } from "./imprimirFicha";
+import ModoCozinha from "./ModoCozinha";
 import {
   EtapasPreparo, Equipamentos, Alergenicos, Armazenamento, MontagemPassos, novaChave,
 } from "./SecoesFicha";
@@ -104,6 +108,12 @@ export default function FichaTecnicaPage() {
 
   // Toda seção nova mexe no mesmo botão SALVAR.
   const alterarSecao = (setter) => (valor) => { setter(valor); setSujo(true); };
+
+  const [modoCozinha, setModoCozinha] = useState(false);
+  const [modalVersoes, setModalVersoes] = useState(false);
+  const [versoes, setVersoes] = useState([]);
+  const [comparando, setComparando] = useState(null); // { a, b }
+  const [criandoVersao, setCriandoVersao] = useState(false);
 
   // ── Carga ────────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
@@ -230,6 +240,89 @@ export default function FichaTecnicaPage() {
     return precoSugerido(calc.custoPorcao, alvo);
   }, [cmvSimulado, calc]);
 
+  // Ingredientes num formato simples, usado pela impressão e pelo modo cozinha.
+  const ingredientesSimples = useMemo(() => {
+    if (!ficha) return [];
+    return (ficha.fichas_ingredientes || []).map(fi => {
+      const sub = fi.subficha_id ? todasFichas.find(f => f.id === fi.subficha_id) : null;
+      return {
+        nome: fi.insumos?.nome || sub?.nome_receita || "Item removido",
+        unidade: fi.insumos?.unidade_medida || sub?.rendimento_unidade || "",
+        quantidade: parseNumero(fi.quantidade),
+        subreceita: Boolean(sub),
+        observacao: parseNumero(fi.fator_correcao) ? `correção +${parseNumero(fi.fator_correcao)}%` : "",
+      };
+    });
+  }, [ficha, todasFichas]);
+
+  // ── Impressão e PDF ──────────────────────────────────────────────────────
+  const montarDocumento = (mostrarCustos = true) => montarHtmlFichaTecnica({
+    ficha: { ...ficha, ...form },
+    etapas, equipamentos, alergenicos, podeConter,
+    armazenamento, montagem, ingredientes: ingredientesSimples,
+    custos: calc, mostrarCustos,
+  });
+
+  const imprimir = () => {
+    const janela = window.open("", "_blank");
+    if (!janela) { setErro("O navegador bloqueou a janela de impressão. Libere os pop-ups para este site."); return; }
+    janela.document.write(montarDocumento(true));
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => janela.print(), 400);
+  };
+
+  const gerarPdf = () => {
+    const nome = `Ficha ${ficha.codigo || ""} ${ficha.nome_receita || ""}`.trim();
+    baixarPdfDeHtml(montarDocumento(true), `${nome}.pdf`);
+  };
+
+  // ── Versões ──────────────────────────────────────────────────────────────
+  const abrirVersoes = async () => {
+    setModalVersoes(true);
+    setComparando(null);
+    const { data } = await fetchVersoes(ficha.id);
+    setVersoes(data || []);
+  };
+
+  // O retrato guarda o que a ficha era neste momento, para dar para comparar
+  // depois. Fica fora da ficha, em fichas_versoes: nada é sobrescrito.
+  const montarSnapshot = () => ({
+    ...Object.fromEntries(CAMPOS_EDITAVEIS.map(c => [c, (form?.[c] ?? "") || null])),
+    alergenicos_pode_conter: podeConter || null,
+    custo_total: +Number(calc?.custoTotal || 0).toFixed(4),
+    custo_porcao: +Number(calc?.custoPorcao || 0).toFixed(4),
+    ingredientes: ingredientesSimples.map(i => `${i.quantidade} ${i.unidade} ${i.nome}`.trim()),
+    etapas: etapas.map(e => [e.titulo, e.instrucao].filter(Boolean).join(": ")),
+    equipamentos: [...equipamentos],
+    alergenicos: [...alergenicos],
+    montagem: montagem.map(m => m.descricao).filter(Boolean),
+  });
+
+  const novaVersao = async () => {
+    if (sujo) { setErro("Salve as alterações antes de criar uma versão."); return; }
+    const alteracao = window.prompt("O que mudou nesta versão?", "");
+    if (alteracao === null) return;
+
+    setCriandoVersao(true);
+    const { error, versao } = await criarVersaoFicha({
+      fichaId: ficha.id,
+      unidadeId: ficha.unidade_id || unidadeAtiva,
+      versaoAtual: ficha.versao || "1.0",
+      snapshot: montarSnapshot(),
+      alteracao,
+    });
+    setCriandoVersao(false);
+
+    if (error === "sem_tabela") {
+      setErro("O versionamento precisa da migração. Rode db/migracao_ficha_tecnica_completa.sql no Supabase.");
+      return;
+    }
+    if (error) { setErro(error); return; }
+    setAviso(`Versão ${versao} criada.`);
+    carregar();
+  };
+
   // ── Gravação ─────────────────────────────────────────────────────────────
   const salvar = async () => {
     if (!ficha || !form) return;
@@ -295,6 +388,19 @@ export default function FichaTecnicaPage() {
     );
   }
 
+  // Modo cozinha ocupa a tela inteira: é para ser lido de longe, na bancada.
+  if (modoCozinha) {
+    return (
+      <ModoCozinha
+        ficha={{ ...ficha, ...form }}
+        etapas={etapas} equipamentos={equipamentos}
+        alergenicos={alergenicos} podeConter={podeConter}
+        montagem={montagem} ingredientes={ingredientesSimples}
+        onSair={() => setModoCozinha(false)}
+      />
+    );
+  }
+
   const foto = ficha?.imagem
     ? (String(ficha.imagem).startsWith("data:") ? ficha.imagem : `data:image/jpeg;base64,${ficha.imagem}`)
     : "";
@@ -307,12 +413,21 @@ export default function FichaTecnicaPage() {
           <ArrowLeft size={16} /> Fichas
         </button>
         <div className="flex items-center gap-2">
-          {sujo ? <span className="text-xs font-medium text-amber-600">Alterações não salvas</span> : null}
+          {sujo ? <span className="hidden text-xs font-medium text-amber-600 sm:inline">Alterações não salvas</span> : null}
           <Btn onClick={salvar} disabled={salvando || !sujo}>
             {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             <span className="ml-1.5">Salvar</span>
           </Btn>
         </div>
+      </div>
+
+      {/* ── Ações da ficha ────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-1.5">
+        <AcaoBtn icone={ChefHat} onClick={() => setModoCozinha(true)} destaque>Modo cozinha</AcaoBtn>
+        <AcaoBtn icone={Printer} onClick={imprimir}>Imprimir</AcaoBtn>
+        <AcaoBtn icone={FileDown} onClick={gerarPdf}>PDF</AcaoBtn>
+        <AcaoBtn icone={GitBranch} onClick={novaVersao} carregando={criandoVersao}>Nova versão</AcaoBtn>
+        <AcaoBtn icone={History} onClick={abrirVersoes}>Histórico</AcaoBtn>
       </div>
 
       <Card className="overflow-hidden p-0">
@@ -675,6 +790,52 @@ export default function FichaTecnicaPage() {
         </div>
       </Secao>
 
+      {/* ── Histórico de versões ──────────────────────────────────────────── */}
+      {modalVersoes ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
+          onClick={() => setModalVersoes(false)}>
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-white p-4 sm:rounded-3xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-800">Histórico de versões</h2>
+              <button onClick={() => setModalVersoes(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+                <X size={18} />
+              </button>
+            </div>
+
+            {versoes.length === 0 ? (
+              <p className="py-8 text-center text-sm text-slate-400">
+                Nenhuma versão registrada ainda. Use “Nova versão” para congelar o estado atual da ficha.
+              </p>
+            ) : comparando ? (
+              <ComparacaoVersoes par={comparando} onVoltar={() => setComparando(null)} />
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {versoes.map((v, i) => {
+                  const anterior = versoes[i + 1];
+                  return (
+                    <li key={v.id} className="rounded-2xl border border-slate-200 p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-lg bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">v{v.versao}</span>
+                        <span className="text-xs text-slate-500">{fmtData(v.created_at)}</span>
+                        {v.usuario_nome ? <span className="text-xs text-slate-400">· {v.usuario_nome}</span> : null}
+                        {anterior ? (
+                          <button onClick={() => setComparando({ a: anterior, b: v })}
+                            className="ml-auto rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                            Comparar com v{anterior.versao}
+                          </button>
+                        ) : null}
+                      </div>
+                      {v.alteracao ? <p className="mt-1.5 text-sm text-slate-600">{v.alteracao}</p> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {/* Barra fixa de salvar no celular */}
       {sujo ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:hidden">
@@ -684,6 +845,77 @@ export default function FichaTecnicaPage() {
           </Btn>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AcaoBtn({ icone: Icone, children, onClick, destaque = false, carregando = false }) {
+  return (
+    <button onClick={onClick} disabled={carregando}
+      className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${
+        destaque
+          ? "bg-slate-900 text-white hover:bg-slate-700"
+          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+      {carregando ? <Loader2 size={15} className="animate-spin" /> : <Icone size={15} />}
+      {children}
+    </button>
+  );
+}
+
+// Nomes de campo em português, para a comparação não mostrar `peso_bruto_g`.
+const ROTULO_CAMPO = {
+  nome_receita: "Nome", nome_interno: "Nome interno", nome_comercial: "Nome comercial",
+  categoria: "Categoria", subcategoria: "Subcategoria", responsavel: "Responsável",
+  status: "Status", descricao: "Descrição", observacoes: "Observações",
+  rendimento_porcoes: "Rendimento", rendimento_unidade: "Unidade do rendimento",
+  peso_porcao_g: "Peso por porção (g)", peso_bruto_g: "Peso bruto (g)", peso_final_g: "Peso final (g)",
+  tempo_preparo: "Tempo de preparo", tempo_coccao_min: "Tempo de cocção (min)",
+  temperatura_preparo: "Temperatura de preparo", temperatura_servico: "Temperatura de serviço",
+  preco_venda: "Preço de venda", cmv_meta: "Meta de CMV", custo_indireto_tipo: "Tipo de custo indireto",
+  custo_indireto_valor: "Custo indireto", custo_total: "Custo total", custo_porcao: "Custo por porção",
+  alergenicos_pode_conter: "Pode conter", ingredientes: "Ingredientes", etapas: "Etapas",
+  equipamentos: "Equipamentos", alergenicos: "Alergênicos", montagem: "Montagem",
+};
+
+const mostrarValor = (v) => {
+  if (v === null || v === undefined || v === "") return "—";
+  if (Array.isArray(v)) return v.length ? v.join(" · ") : "—";
+  return String(v);
+};
+
+function ComparacaoVersoes({ par, onVoltar }) {
+  const diferencas = compararVersoes(par.a.snapshot, par.b.snapshot);
+  return (
+    <div className="mt-3">
+      <button onClick={onVoltar} className="mb-3 flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700">
+        <ArrowLeft size={15} /> Voltar ao histórico
+      </button>
+      <p className="text-sm font-semibold text-slate-700">
+        v{par.a.versao} <span className="text-slate-400">→</span> v{par.b.versao}
+      </p>
+      {diferencas.length === 0 ? (
+        <p className="py-6 text-center text-sm text-slate-400">Nada mudou entre estas duas versões.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5">
+          {diferencas.map(d => (
+            <li key={d.campo} className="rounded-xl border border-slate-200 p-2.5 text-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {ROTULO_CAMPO[d.campo] || d.campo}
+              </div>
+              <div className="mt-1 grid gap-1 sm:grid-cols-2">
+                <div className="rounded-lg bg-rose-50 px-2 py-1 text-rose-800">
+                  <span className="text-[10px] font-bold uppercase text-rose-400">antes</span>
+                  <div className="break-words">{mostrarValor(d.antes)}</div>
+                </div>
+                <div className="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800">
+                  <span className="text-[10px] font-bold uppercase text-emerald-500">depois</span>
+                  <div className="break-words">{mostrarValor(d.depois)}</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

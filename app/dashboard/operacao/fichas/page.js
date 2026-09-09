@@ -1825,6 +1825,43 @@ function FichasRunner() {
          </tr>`;
       }).join('');
 
+      const extra = complementosImpressao[f.id] || {};
+      const etapasNovas = extra.etapas || [];
+
+      let passosRows = '';
+      if (etapasNovas.length > 0) {
+        passosRows = etapasNovas.map((e, i) => `
+          <tr>
+            <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+            <td style="width:160px;font-weight:800;color:#0f172a">${esc(e.titulo || `Etapa ${i + 1}`)}</td>
+            <td style="color:#334155">${esc(e.instrucao || "")}${e.tempo_min ? ` <i style="color:#64748b;font-size:11px">(${e.tempo_min} min)</i>` : ''}</td>
+          </tr>
+        `).join('');
+      } else {
+        const passos = String(f.modo_preparo || '')
+           .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
+        passosRows = passos.length
+           ? passos.map((s, i) => {
+               let tit = `Etapa ${i + 1}`;
+               let txt = s;
+               if (s.includes(":")) {
+                 const pts = s.split(":");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(":").trim();
+               } else if (s.includes(" - ")) {
+                 const pts = s.split(" - ");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(" - ").trim();
+               }
+               return `<tr>
+                 <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+                 <td style="width:160px;font-weight:800;color:#0f172a">${esc(tit)}</td>
+                 <td style="color:#334155">${esc(txt)}</td>
+               </tr>`;
+             }).join('')
+           : `<tr><td colspan="3" style="color:#94a3b8;padding:10px">Não informado.</td></tr>`;
+      }
+
       const montagemPassosExtra = (extra.montagem && extra.montagem.length > 0)
         ? extra.montagem
         : (f.montagem_passos || []);

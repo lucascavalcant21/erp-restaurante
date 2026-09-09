@@ -15,7 +15,7 @@ import {
   AlertTriangle, ArrowLeft, Calculator, ChefHat, ChevronRight, Clock, FileDown, GitBranch,
   History, Info, Layers, ListOrdered, Loader2, Package, Percent, Power, Printer, QrCode,
   Save, Scale, Snowflake, Tag, TrendingUp, UtensilsCrossed, Wine, Wrench, X, Copy,
-  Camera, ImageOff, LineChart, TrendingDown,
+  Camera, ImageOff, LineChart, TrendingDown, Sparkles,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
@@ -30,6 +30,7 @@ import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../../lib/f
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
 import { montarHtmlFichaTecnica } from "./imprimirFicha";
 import ModoCozinha from "./ModoCozinha";
+import AssistenteReceita from "./AssistenteReceita";
 import {
   EtapasPreparo, Equipamentos, Alergenicos, Armazenamento, MontagemPassos, novaChave,
 } from "./SecoesFicha";
@@ -40,6 +41,7 @@ import {
   validarFicha, tipoDaFicha, custoPorUnidadeDeRendimento, fichasQueUsam,
 } from "../../../../lib/ficha-calculos.mjs";
 import { fmtBRL, fmtPct, fmtData, Card, Field, TextInput, NumberInput, Select, Btn } from "../../../../components/ui";
+import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog";
 
 const CMV_ATALHOS = [25, 30, 35, 40];
 
@@ -55,6 +57,20 @@ const CAMPOS_EDITAVEIS = [
   "metodo_bar", "copo", "guarnicao", "tipo_gelo",
   "imagem",
 ];
+
+// Quem pode ver os custos desta ficha.
+//
+// Espelha o guarda de rota do dashboard (`!sessao?.gerenciado || ...`): numa
+// instalação em que o controle de acesso ainda não foi ligado, a sessão não
+// traz permissões e TODO MUNDO veria custo nenhum. Falhar para o lado aberto
+// aqui é de propósito — esconder o custo de quem sempre pôde ver quebra a
+// operação; mostrá-lo a quem já via mantém o que existe hoje.
+function podeVerCustosDaFicha(sessao, departamento) {
+  if (!sessao?.gerenciado) return true;
+  const dept = String(departamento || "").toLowerCase() === "bar" ? "bar" : "cozinha";
+  return hasPermission(sessao, permissionKey("fichas", "recipes", "view_costs"))
+    || hasPermission(sessao, permissionKey(dept, "recipes", "view_costs"));
+}
 
 function Secao({ icone: Icone, titulo, descricao, children }) {
   return (
@@ -94,7 +110,7 @@ export default function FichaTecnicaPage() {
   const router = useRouter();
   const params = useParams();
   const fichaId = params?.id;
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, sessao } = useERP();
 
   const [ficha, setFicha] = useState(null);
   const [todasFichas, setTodasFichas] = useState([]);
@@ -125,6 +141,7 @@ export default function FichaTecnicaPage() {
   const [historico, setHistorico] = useState([]);
   const [histSemTabela, setHistSemTabela] = useState(false);
   const [registrandoCusto, setRegistrandoCusto] = useState(false);
+  const [assistenteAberto, setAssistenteAberto] = useState(false);
 
   // ── Carga ────────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
@@ -254,6 +271,7 @@ export default function FichaTecnicaPage() {
   // Bar e cozinha também são documentos diferentes: drink tem método, copo,
   // gelo e guarnição, e não tem cocção; prato tem cocção e montagem no prato.
   const ehBar = String(ficha?.departamento || "").toLowerCase() === "bar";
+  const podeVerCustos = podeVerCustosDaFicha(sessao, ficha?.departamento);
   const usadoPor = useMemo(
     () => (ehPreparo && ficha ? fichasQueUsam(ficha.id, todasFichas) : []),
     [ehPreparo, ficha, todasFichas]
@@ -300,10 +318,11 @@ export default function FichaTecnicaPage() {
     custos: calc, usadoPor, mostrarCustos,
   });
 
+  // Quem não pode ver custo também não imprime a via com custo.
   const imprimir = () => {
     const janela = window.open("", "_blank");
     if (!janela) { setErro("O navegador bloqueou a janela de impressão. Libere os pop-ups para este site."); return; }
-    janela.document.write(montarDocumento(true));
+    janela.document.write(montarDocumento(podeVerCustos));
     janela.document.close();
     janela.focus();
     setTimeout(() => janela.print(), 400);
@@ -311,7 +330,7 @@ export default function FichaTecnicaPage() {
 
   const gerarPdf = () => {
     const nome = `Ficha ${ficha.codigo || ""} ${ficha.nome_receita || ""}`.trim();
-    baixarPdfDeHtml(montarDocumento(true), `${nome}.pdf`);
+    baixarPdfDeHtml(montarDocumento(podeVerCustos), `${nome}.pdf`);
   };
 
   // ── Versões ──────────────────────────────────────────────────────────────
@@ -540,7 +559,8 @@ export default function FichaTecnicaPage() {
 
       {/* ── Ações da ficha ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-1.5">
-        <AcaoBtn icone={ChefHat} onClick={() => setModoCozinha(true)} destaque>Modo cozinha</AcaoBtn>
+        <AcaoBtn icone={Sparkles} onClick={() => setAssistenteAberto(true)} destaque>Assistente</AcaoBtn>
+        <AcaoBtn icone={ChefHat} onClick={() => setModoCozinha(true)}>Modo cozinha</AcaoBtn>
         <AcaoBtn icone={Printer} onClick={imprimir}>Imprimir</AcaoBtn>
         <AcaoBtn icone={FileDown} onClick={gerarPdf}>PDF</AcaoBtn>
         <AcaoBtn icone={GitBranch} onClick={novaVersao} carregando={criandoVersao}>Nova versão</AcaoBtn>
@@ -622,9 +642,11 @@ export default function FichaTecnicaPage() {
         <Indicador icone={Scale} rotulo="Peso final"
           valor={parseNumero(form.peso_final_g) ? `${Math.round(parseNumero(form.peso_final_g))} g` : "—"}
           nota={!ehPreparo && calc.pesoPorcao ? `${Math.round(calc.pesoPorcao)} g por porção` : null} />
-        <Indicador icone={Calculator} rotulo={ehPreparo ? "Custo do lote" : "Custo total"}
-          valor={fmtBRL(calc.custoTotal)}
-          nota={calc.custoIndireto ? `inclui ${fmtBRL(calc.custoIndireto)} indireto` : null} />
+        {podeVerCustos ? (
+          <Indicador icone={Calculator} rotulo={ehPreparo ? "Custo do lote" : "Custo total"}
+            valor={fmtBRL(calc.custoTotal)}
+            nota={calc.custoIndireto ? `inclui ${fmtBRL(calc.custoIndireto)} indireto` : null} />
+        ) : null}
         <Indicador icone={Percent} rotulo="Perda"
           tom={calc.perdaPct > 30 ? "ruim" : calc.perdaPct > 15 ? "atencao" : "neutro"}
           valor={calc.perdaPct ? fmtPct(calc.perdaPct) : "—"}
@@ -632,9 +654,11 @@ export default function FichaTecnicaPage() {
 
         {ehPreparo ? (
           <>
-            <Indicador icone={Calculator} rotulo={`Custo por ${ficha.rendimento_unidade || "unidade"}`}
-              valor={calc.custoUnidadeRendimento ? fmtBRL(calc.custoUnidadeRendimento, 4) : "—"}
-              nota="é o que entra nos pratos" />
+            {podeVerCustos ? (
+              <Indicador icone={Calculator} rotulo={`Custo por ${ficha.rendimento_unidade || "unidade"}`}
+                valor={calc.custoUnidadeRendimento ? fmtBRL(calc.custoUnidadeRendimento, 4) : "—"}
+                nota="é o que entra nos pratos" />
+            ) : null}
             <Indicador icone={ChefHat} rotulo="Usado em"
               valor={usadoPor.length ? `${usadoPor.length} receita${usadoPor.length > 1 ? "s" : ""}` : "—"}
               nota={usadoPor.length ? "mudar o custo mexe nelas" : "nenhuma receita usa ainda"} />
@@ -648,14 +672,18 @@ export default function FichaTecnicaPage() {
           </>
         ) : (
           <>
-            <Indicador icone={Calculator} rotulo="Custo por porção" valor={fmtBRL(calc.custoPorcao)} />
-            <Indicador icone={Tag} rotulo="Preço de venda" valor={calc.preco ? fmtBRL(calc.preco) : "—"} />
-            <Indicador icone={Percent} rotulo="CMV" tom={tomCmv}
-              valor={calc.cmv ? fmtPct(calc.cmv) : "—"} nota={`meta ${fmtPct(metaCmv, 0)}`} />
-            <Indicador icone={TrendingUp} rotulo="Margem bruta"
-              tom={calc.margem > 0 ? "bom" : calc.preco ? "ruim" : "neutro"}
-              valor={calc.preco ? fmtBRL(calc.margem) : "—"}
-              nota={calc.preco ? fmtPct(calc.margemPct) : null} />
+            {podeVerCustos ? (
+              <>
+                <Indicador icone={Calculator} rotulo="Custo por porção" valor={fmtBRL(calc.custoPorcao)} />
+                <Indicador icone={Tag} rotulo="Preço de venda" valor={calc.preco ? fmtBRL(calc.preco) : "—"} />
+                <Indicador icone={Percent} rotulo="CMV" tom={tomCmv}
+                  valor={calc.cmv ? fmtPct(calc.cmv) : "—"} nota={`meta ${fmtPct(metaCmv, 0)}`} />
+                <Indicador icone={TrendingUp} rotulo="Margem bruta"
+                  tom={calc.margem > 0 ? "bom" : calc.preco ? "ruim" : "neutro"}
+                  valor={calc.preco ? fmtBRL(calc.margem) : "—"}
+                  nota={calc.preco ? fmtPct(calc.margemPct) : null} />
+              </>
+            ) : null}
           </>
         )}
       </div>
@@ -789,7 +817,7 @@ export default function FichaTecnicaPage() {
                   <th className="px-1 pb-2 font-medium">Item</th>
                   <th className="px-1 pb-2 text-right font-medium">Qtd.</th>
                   <th className="px-1 pb-2 text-right font-medium">Correção</th>
-                  <th className="px-1 pb-2 text-right font-medium">Custo</th>
+                  {podeVerCustos ? <th className="px-1 pb-2 text-right font-medium">Custo</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -812,7 +840,9 @@ export default function FichaTecnicaPage() {
                       <td className="px-1 py-2 text-right tabular-nums text-slate-500">
                         {parseNumero(fi.fator_correcao) ? `+${parseNumero(fi.fator_correcao)}%` : "—"}
                       </td>
-                      <td className="px-1 py-2 text-right font-semibold tabular-nums text-slate-800">{fmtBRL(custo)}</td>
+                      {podeVerCustos ? (
+                        <td className="px-1 py-2 text-right font-semibold tabular-nums text-slate-800">{fmtBRL(custo)}</td>
+                      ) : null}
                     </tr>
                   );
                 })}
@@ -941,6 +971,7 @@ export default function FichaTecnicaPage() {
       </Secao>
 
       {/* ── Custos e precificação ─────────────────────────────────────────── */}
+      {podeVerCustos ? (
       <Secao icone={Calculator}
         titulo={ehPreparo ? "Custo do pré-preparo" : "Custo e precificação"}
         descricao={ehPreparo
@@ -1032,7 +1063,21 @@ export default function FichaTecnicaPage() {
         </div>
       </Secao>
 
+      ) : null}
+
+      {assistenteAberto ? (
+        <AssistenteReceita
+          ficha={{ ...ficha, ...form }}
+          todasFichas={todasFichas}
+          custos={calc}
+          podeVerCustos={podeVerCustos}
+          onAplicar={(proposta) => mudar(proposta.campo, proposta.valor)}
+          onFechar={() => setAssistenteAberto(false)}
+        />
+      ) : null}
+
       {/* ── Histórico de custos ───────────────────────────────────────────── */}
+      {podeVerCustos ? (
       <Secao icone={LineChart} titulo="Histórico de custos"
         descricao="Cada linha é um retrato do custo em um momento. Nada é apagado.">
         {histSemTabela ? (
@@ -1105,6 +1150,8 @@ export default function FichaTecnicaPage() {
           </>
         )}
       </Secao>
+
+      ) : null}
 
       {/* ── Histórico de versões ──────────────────────────────────────────── */}
       {modalVersoes ? (

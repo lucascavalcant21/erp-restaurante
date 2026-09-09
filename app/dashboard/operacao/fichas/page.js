@@ -48,6 +48,7 @@ import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
 import { METODOS_BAR, metodoBar } from "../../../lib/ficha-tecnica";
+import { hasPermission, permissionKey } from "../../../lib/permissions-catalog";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -389,6 +390,13 @@ function FichasRunner() {
   const [apenasAcimaMeta, setApenasAcimaMeta] = useState(false);
   // Ficha inativada continua no banco e volta quando o usuário quiser ver.
   const [filtroStatus, setFiltroStatus] = useState("ativas"); // ativas | inativas | todas
+
+  // Permissão de ver custos. Falha para o lado aberto onde o controle de acesso
+  // ainda não foi ligado (`gerenciado` falso), igual ao guarda de rota do
+  // dashboard — senão ninguém veria custo nenhum nessas instalações.
+  const podeVerCustos = !sessao?.gerenciado
+    || hasPermission(sessao, permissionKey("fichas", "recipes", "view_costs"))
+    || hasPermission(sessao, permissionKey(deptUrl === "bar" ? "bar" : "cozinha", "recipes", "view_costs"));
   const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
@@ -2159,7 +2167,7 @@ function FichasRunner() {
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("pdf", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
-            <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>
+            {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>}
             <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
             <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
@@ -2203,6 +2211,7 @@ function FichasRunner() {
                 </div>
               );
             }
+            if (!podeVerCustos) return null; // indicadores são todos financeiros
             let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
             base.forEach(f => {
                const peso = infoPesoFicha(f, fichas);
@@ -2548,7 +2557,7 @@ function FichasRunner() {
                                      RASCUNHO
                                    </span>
                                  )}
-                                 {cmv !== null && cmv > meta && (
+                                 {podeVerCustos && cmv !== null && cmv > meta && (
                                    <span className="rounded-full bg-red-100/80 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-600">
                                      CMV ALTO
                                    </span>
@@ -2567,6 +2576,8 @@ function FichasRunner() {
                                    <span className="text-sm font-black text-slate-900">{rendimentoTexto}</span>
                                  </div>
 
+                                 {/* Daqui para baixo é tudo dinheiro: só para quem tem view_costs. */}
+                                 {podeVerCustos && <>
                                  <div className="py-2 flex items-center justify-between">
                                    <span className="text-slate-600 font-bold">Custo</span>
                                    <span className="text-sm font-black text-slate-900">{fmtBRL(custoIngred)}</span>
@@ -2627,6 +2638,7 @@ function FichasRunner() {
                                      </div>
                                    </>
                                  )}
+                                 </>}
                                </div>
                              </div>
                            );
@@ -2934,7 +2946,7 @@ function FichasRunner() {
                                      ["Categoria", f.categoria || "—"],
                                      ["Setor", setorTxt],
                                      ["Quantidade da receita", `${nf(rend)} ${labelUn}`],
-                                     [`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"],
+                                     ...(podeVerCustos ? [[`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"]] : []),
                                      ["Unidade padrão", labelUn],
                                      ["Custo total", fmtBRL(custoTotal)],
                                   ].map(([rot, val]) => (
@@ -2968,8 +2980,8 @@ function FichasRunner() {
                                        <th className="text-right font-black py-2 px-1">Qtd. bruta</th>
                                        <th className="text-right font-black py-2 px-1">FC %</th>
                                        <th className="text-right font-black py-2 px-1">Qtd. líq.</th>
-                                       <th className="text-right font-black py-2 px-1">Custo un.</th>
-                                       <th className="text-right font-black py-2 pl-1">Custo total</th>
+                                       {podeVerCustos && <th className="text-right font-black py-2 px-1">Custo un.</th>}
+                                       {podeVerCustos && <th className="text-right font-black py-2 pl-1">Custo total</th>}
                                     </tr>
                                  </thead>
                                  <tbody>
@@ -2985,7 +2997,7 @@ function FichasRunner() {
                                       <Fragment key={grupo.titulo}>
                                         {linhas.some(l => l.base) && linhas.some(l => !l.base) && (
                                           <tr>
-                                            <td colSpan={7} className="pt-4 pb-1.5">
+                                            <td colSpan={podeVerCustos ? 7 : 5} className="pt-4 pb-1.5">
                                               <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700">{grupo.titulo}</span>
                                             </td>
                                           </tr>
@@ -2997,8 +3009,8 @@ function FichasRunner() {
                                             <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
                                             <td className="py-3 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
                                             <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>
-                                            <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
+                                            {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>}
+                                            {podeVerCustos && <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>}
                                           </tr>
                                         ))}
                                       </Fragment>
@@ -3007,10 +3019,12 @@ function FichasRunner() {
                               </table>
                            </div>
                            <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-emerald-700 font-black text-sm px-4 py-2.5 hover:bg-emerald-50"><Plus size={16} /> Adicionar ingrediente</button>
+                           {podeVerCustos && (
                            <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
                               <span className="text-slate-500 font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
                               {custoKg !== null && <span className="text-slate-500 font-bold">1 {labelUn} custa: <b className="text-emerald-700 font-black">{fmtBRL(custoKg)}</b></span>}
                            </div>
+                           )}
                         </div>
                         )}
                         </>)}

@@ -145,6 +145,47 @@ export async function fetchVersoes(fichaId) {
   return { data: data || [], error: null };
 }
 
+// Complementos de VÁRIAS fichas de uma vez, para a impressão do Livro.
+//
+// Uma consulta por tabela com `in(...)`, não uma por ficha: um livro com 80
+// receitas viraria centenas de requisições. Devolve um mapa
+// `ficha_id → { etapas, equipamentos, alergenicos, armazenamento }`.
+//
+// Se a migração não rodou, devolve o mapa vazio e a impressão sai como antes.
+export async function fetchComplementosDeFichas(ids = []) {
+  const alvos = [...new Set((ids || []).filter(Boolean))];
+  if (!isSupabaseReady() || !alvos.length) return { data: {}, error: null };
+
+  const tabelas = [
+    ["fichas_etapas", "etapas", "ordem"],
+    ["fichas_equipamentos", "equipamentos", "ordem"],
+    ["fichas_alergenicos", "alergenicos", null],
+    ["fichas_armazenamento", "armazenamento", null],
+  ];
+
+  const respostas = await Promise.all(tabelas.map(async ([tabela, , ordem]) => {
+    let q = supabase.from(tabela).select("*").in("ficha_id", alvos);
+    if (ordem) q = q.order(ordem, { ascending: true });
+    const { data, error } = await q;
+    if (error) return { linhas: [], ausente: estruturaAusente(error) };
+    return { linhas: data || [], ausente: false };
+  }));
+
+  const mapa = {};
+  const garantir = (id) => (mapa[id] ||= { etapas: [], equipamentos: [], alergenicos: [], armazenamento: null });
+
+  respostas.forEach(({ linhas }, i) => {
+    const chave = tabelas[i][1];
+    for (const linha of linhas) {
+      const alvo = garantir(linha.ficha_id);
+      if (chave === "armazenamento") alvo.armazenamento = linha;
+      else alvo[chave].push(linha);
+    }
+  });
+
+  return { data: mapa, error: respostas.every(r => r.ausente) ? "sem_tabela" : null };
+}
+
 // ─── Escrita: substitui a lista inteira da ficha ────────────────────────────
 
 // Apaga e regrava. Guarda o que existia antes: se o INSERT falhar, devolve a

@@ -47,7 +47,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
-import { METODOS_BAR, metodoBar } from "../../../lib/ficha-tecnica";
+import { METODOS_BAR, metodoBar, fetchComplementosDeFichas } from "../../../lib/ficha-tecnica";
 import { hasPermission, permissionKey } from "../../../lib/permissions-catalog";
 import {
   estimarPaginasDocumento,
@@ -423,6 +423,9 @@ function FichasRunner() {
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(12);
   const [modalImpressao, setModalImpressao] = useState(null);
+  // Etapas, equipamentos, alergênicos e armazenamento das fichas que vão para a
+  // impressão. Ficam fora da listagem porque só a impressão precisa deles.
+  const [complementosImpressao, setComplementosImpressao] = useState({});
   const [configImpressao, setConfigImpressao] = useState(null);
   const [ordemPersonalizada, setOrdemPersonalizada] = useState([]);
   const [processandoLote, setProcessandoLote] = useState(false);
@@ -1558,6 +1561,11 @@ function FichasRunner() {
 
   const abrirPreviaImpressao = (modo, lista = fichasSelecionadas) => {
     if (!lista.length) return;
+    // Busca em lote; a prévia abre na hora e o conteúdo novo entra quando chega.
+    setComplementosImpressao({});
+    fetchComplementosDeFichas(lista.map(f => f.id))
+      .then(r => setComplementosImpressao(r.data || {}))
+      .catch(() => setComplementosImpressao({}));
     const livroAutomatico = modo === "livro" || lista.length >= 6;
     const modelo = modo === "livro" ? "livro" : "operacional";
     setOrdemPersonalizada(lista.map(f => f.id));
@@ -1567,6 +1575,7 @@ function FichasRunner() {
       custos: false, preco: false, cmv: false, margem: false,
       preparo: true, montagem: false, observacoes: false,
       responsaveis: false, atualizacao: false,
+      codigo: true, equipamentos: true, armazenamento: true, alergenicos: true,
       capa: livroAutomatico, indice: livroAutomatico, livro: livroAutomatico,
     });
     setModalImpressao({ modo, lista });
@@ -1755,6 +1764,85 @@ function FichasRunner() {
          return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
       }).join('');
 
+      // Etapas, equipamentos, armazenamento e alergênicos — vêm das tabelas
+      // novas. Quando não há nada (migração não rodada, ou ficha ainda sem
+      // esses dados), cada bloco simplesmente não aparece.
+      const extra = complementosImpressao[f.id] || {};
+
+      // Modo de preparo: as etapas numeradas mandam; o texto livre antigo é o
+      // reserva, para as receitas que ainda não foram convertidas.
+      const preparoHTML = (extra.etapas || []).length
+        ? (extra.etapas || []).map((e, i) => {
+            const detalhes = [
+              e.tempo_min ? `${esc(String(e.tempo_min))} min` : "",
+              e.temperatura ? esc(e.temperatura) : "",
+              e.equipamento ? esc(e.equipamento) : "",
+            ].filter(Boolean).join(" · ");
+            const titulo = e.titulo ? `<b>${esc(e.titulo)}</b>${e.instrucao ? " — " : ""}` : "";
+            return `<div class="passo"><span class="num">${i + 1}</span><span>${titulo}${esc(e.instrucao || "")}`
+              + (detalhes ? `<br/><i style="color:#64748b;font-size:11px">${detalhes}</i>` : "")
+              + (e.observacao ? `<br/><i style="color:#92400e;font-size:11px">${esc(e.observacao)}</i>` : "")
+              + `</span></div>`;
+          }).join("")
+        : passosHTML;
+
+      const equipamentos = (extra.equipamentos || []).map(x => x.nome).filter(Boolean);
+      const blocoEquipamentos = incluir("equipamentos") && equipamentos.length
+        ? `<h2>Equipamentos e utensílios</h2><div class="passos">${esc(equipamentos.join(", "))}.</div>`
+        : "";
+
+      const arm = extra.armazenamento;
+      const validadesArm = arm ? [
+        arm.validade_refrigerado_dias ? `Refrigerado: ${esc(String(arm.validade_refrigerado_dias))} dias` : "",
+        arm.validade_congelado_dias ? `Congelado: ${esc(String(arm.validade_congelado_dias))} dias` : "",
+        arm.validade_apos_aberto_dias ? `Após aberto: ${esc(String(arm.validade_apos_aberto_dias))} dias` : "",
+        arm.validade_apos_preparo_horas ? `Após preparo: ${esc(String(arm.validade_apos_preparo_horas))} h` : "",
+      ].filter(Boolean) : [];
+      const linhasArm = arm ? [
+        arm.forma ? `<b>Forma:</b> ${esc(arm.forma)}` : "",
+        arm.recipiente ? `<b>Recipiente:</b> ${esc(arm.recipiente)}` : "",
+        arm.local_armazenamento ? `<b>Local:</b> ${esc(arm.local_armazenamento)}` : "",
+        (arm.temperatura_min != null || arm.temperatura_max != null)
+          ? `<b>Temperatura:</b> ${arm.temperatura_min ?? "—"} a ${arm.temperatura_max ?? "—"} °C` : "",
+        validadesArm.length ? `<b>Validade:</b> ${validadesArm.join(" · ")}` : "",
+      ].filter(Boolean) : [];
+      const blocoArmazenamento = incluir("armazenamento") && linhasArm.length
+        ? `<h2>Armazenamento e validade</h2><div class="passos">${linhasArm.join("<br/>")}</div>`
+        : "";
+
+      const alergs = (extra.alergenicos || []).map(x => x.alergenico).filter(Boolean);
+      const blocoAlergenicos = incluir("alergenicos") && (alergs.length || f.alergenicos_pode_conter)
+        ? `<h2>Alergênicos</h2><div class="passos">`
+          + (alergs.length ? `<b>Contém:</b> ${esc(alergs.join(", ").toLowerCase())}.` : "")
+          + (f.alergenicos_pode_conter ? `${alergs.length ? "<br/>" : ""}<b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}.` : "")
+          + `</div>`
+        : "";
+
+      // Custo, preço e CMV. As chaves `custos`/`preco`/`cmv`/`margem` já
+      // existiam na configuração, mas o template nunca as lia — então o livro
+      // saía sempre sem valor nenhum, mesmo com a opção ligada.
+      // Só sai para quem tem `view_costs`.
+      const custoFicha = custoTotalDaFicha(f, fichas);
+      const infoPeso = infoPesoFicha(f, fichas);
+      const porcoesFicha = (() => {
+        const un = String(f.rendimento_unidade || "").toLowerCase();
+        const rend = Number(f.rendimento_porcoes) || 0;
+        return (un === "porcao" || un === "un") ? rend : (infoPeso?.porcoes || 0);
+      })();
+      const custoPorcaoFicha = porcoesFicha > 0 ? custoFicha / porcoesFicha : custoFicha;
+      const precoFicha = Number(f.preco_venda) || 0;
+      const cmvFicha = precoFicha > 0 ? (custoPorcaoFicha / precoFicha) * 100 : null;
+      const linhasCusto = podeVerCustos ? [
+        incluir("custos", false) ? `<b>Custo total:</b> ${fmtBRL(custoFicha)}` : "",
+        incluir("custos", false) && porcoesFicha > 1 ? `<b>Custo por porção:</b> ${fmtBRL(custoPorcaoFicha)}` : "",
+        incluir("preco", false) && precoFicha > 0 ? `<b>Preço de venda:</b> ${fmtBRL(precoFicha)}` : "",
+        incluir("cmv", false) && cmvFicha !== null ? `<b>CMV:</b> ${cmvFicha.toFixed(1).replace(".", ",")}%` : "",
+        incluir("margem", false) && cmvFicha !== null ? `<b>Margem bruta:</b> ${fmtBRL(precoFicha - custoPorcaoFicha)}` : "",
+      ].filter(Boolean) : [];
+      const blocoCusto = linhasCusto.length
+        ? `<h2>Custo e precificação</h2><div class="passos">${linhasCusto.join(" &nbsp;·&nbsp; ")}</div>`
+        : "";
+
       const foto = incluir("foto") && f.imagem
          ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
          : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
@@ -1774,6 +1862,7 @@ function FichasRunner() {
                   <div class="rotulo">${ehLivro ? 'Livro de Receitas · ' + esc(secaoDe(f)) : 'Ficha Técnica'}</div>
                   <div class="titulo">${esc(f.nome_receita)}</div>
                   <div class="grid">
+                     ${incluir("codigo") && (f.codigo || f.versao) ? `<div class="campo"><b>Código:</b> ${esc(f.codigo || "—")}${f.versao ? ` &nbsp;·&nbsp; <b>Versão:</b> ${esc(f.versao)}` : ""}</div>` : ""}
                      <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
                      <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
                      <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
@@ -1798,7 +1887,11 @@ function FichasRunner() {
                <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
             </table>` : ""}
 
-            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${passosHTML}</div>` : ""}`;
+            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${preparoHTML}</div>` : ""}
+            ${blocoEquipamentos}
+            ${blocoArmazenamento}
+            ${blocoAlergenicos}
+            ${blocoCusto}`;
 
       // Altura estimada (≈mm) para decidir se cabe DUAS na mesma página
       const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + passos.length * 7 + (f.observacoes ? 8 : 0);
@@ -2726,6 +2819,13 @@ function FichasRunner() {
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {[
                       ["foto", "Foto"], ["ingredientes", "Ingredientes"], ["preparo", "Preparo"],
+                      ["codigo", "Código e versão"], ["equipamentos", "Equipamentos"],
+                      ["armazenamento", "Armazenamento"], ["alergenicos", "Alergênicos"],
+                      ["observacoes", "Observações"], ["responsaveis", "Responsável"],
+                      ["atualizacao", "Datas"],
+                      // Financeiro: só para quem pode ver custo.
+                      ...(podeVerCustos ? [["custos", "Custo"], ["preco", "Preço"],
+                                           ["cmv", "CMV"], ["margem", "Margem"]] : []),
                       ["capa", "Capa"], ["indice", "Índice"],
                     ].map(([campo, label]) => (
                       <label key={campo} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">

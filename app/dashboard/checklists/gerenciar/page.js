@@ -282,21 +282,30 @@ function GerenciarChecklistsContent() {
     } catch { alert("Não consegui falar com a IA."); } finally { setMontandoIA(false); }
   };
 
-  // Cria de uma vez TODOS os modelos de um setor que ainda não existem
-  const criarTodosDoSetor = async (dept) => {
+  // Cria de uma vez TODOS os modelos de um setor (ou recria com a estrutura completa de 18 etapas)
+  const criarTodosDoSetor = async (dept, forcar = false) => {
     if (deptFixo && dept !== deptFixo) return;
     const modelos = MODELOS_CHECKLIST[dept] || {};
-    const existentes = new Set(templates.filter(t => t.departamento === dept).map(t => (t.titulo || "").toLowerCase().trim()));
-    const paraCriar = Object.entries(modelos).filter(([, m]) => !existentes.has(m.titulo.toLowerCase().trim()));
-    if (!paraCriar.length) return alert(`Todos os checklists de ${dept} já existem.`);
-    if (!confirm(`Criar ${paraCriar.length} checklist(s) completo(s) de ${dept} (${paraCriar.map(([, m]) => m.titulo).join(", ")})?`)) return;
+    const existentesMap = new Map(templates.filter(t => t.departamento === dept).map(t => [(t.titulo || "").toLowerCase().trim(), t.id]));
+    const entradas = Object.entries(modelos);
+
+    const acaoTexto = forcar ? "Atualizar/Sobrescrever" : "Criar";
+    if (!forcar) {
+      const faltam = entradas.filter(([, m]) => !existentesMap.has(m.titulo.toLowerCase().trim()));
+      if (!faltam.length) return alert(`Todos os checklists de ${dept} já existem no sistema.`);
+    }
+
+    if (!confirm(`${acaoTexto} ${entradas.length} checklist(s) completo(s) de ${dept} com os modelos atualizados de 18 etapas?`)) return;
     setCriandoTudo(true);
-    for (const [tipo, m] of paraCriar) {
+    for (const [tipo, m] of entradas) {
+      const idExistente = existentesMap.get(m.titulo.toLowerCase().trim());
       await salvarTemplate({
+        id: forcar && idExistente ? idExistente : undefined,
         unidade_id: unidadeAtiva,
         departamento: dept,
         tipo,
         titulo: m.titulo,
+        frequencia: "diario",
         itens: m.itens.map((it, i) => typeof it === "string" ? { id: i + 1, texto: it, responsavel: "", tempo_minutos: 5 } : { id: i + 1, responsavel: "", tempo_minutos: 5, ...it }),
       });
     }
@@ -415,10 +424,17 @@ function GerenciarChecklistsContent() {
     let catAtual = null;
     const linhas = itens.map((it, i) => {
       const cat = (it.categoria || "").trim();
-      const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+      const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
+      const horaFase = [
+        it.horario_previsto ? `⏰ ${it.horario_previsto}` : "",
+        it.hora_intervalo ? `⏸️ ${it.hora_intervalo}` : "",
+        it.fase_turno ? (it.fase_turno === "abertura" ? "Abertura" : it.fase_turno === "durante_turno" ? "Turno" : "Fechamento") : ""
+      ].filter(Boolean).join(" · ") || "—";
+
       return `${header}<tr>
         <td class="n">${i + 1}</td>
-        <td class="tarefa">${it.texto || ""}</td>
+        <td class="hora">${horaFase}</td>
+        <td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td>
         <td class="resp">${it.responsavel || ""}</td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
@@ -427,36 +443,49 @@ function GerenciarChecklistsContent() {
     const extras = Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${itens.length + i + 1}</td>
+        <td class="hora">—</td>
         <td class="tarefa"></td>
         <td class="resp"></td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
       </tr>`).join("");
 
-    const deptLabel = t.departamento === "salao" ? "Salão" : t.departamento === "bar" ? "Bar" : "Cozinha";
+    const deptLabel = NOMES_DEPT[t.departamento] || t.departamento;
+    const corDept = t.departamento === "bar" ? "#7c3aed" : t.departamento === "salao" ? "#0284c7" : "#059669";
+    const fotoAmbienteHtml = t.foto_ambiente ? `
+      <div class="foto-box">
+        <img src="data:image/jpeg;base64,${t.foto_ambiente}" alt="Padrão do Cômodo"/>
+        <p>PADRÃO DE ORGANIZAÇÃO DO CÔMODO / ÁREA (${deptLabel.toUpperCase()})</p>
+      </div>` : "";
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Checklist - ${t.titulo}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:8mm 8mm}
-        .head{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end}
-        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#555;font-weight:bold}
+        .head{border-bottom:4px solid ${corDept};padding-bottom:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end}
+        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${corDept};font-weight:bold}
         h1{font-size:21px;margin-top:2px}
         .meta{font-size:12px;font-weight:bold;text-align:right}
         .meta span{display:block;font-size:10px;color:#555;font-weight:normal;margin-top:2px}
         .datas{display:flex;gap:24px;font-size:12px;margin:8px 0 10px;font-weight:bold}
         .datas b{border-bottom:1px solid #999;min-width:110px;display:inline-block}
+        .foto-box{margin:8px 0 12px;border:2px solid #cbd5e1;border-radius:8px;overflow:hidden;text-align:center;background:#f8fafc}
+        .foto-box img{max-height:160px;width:100%;object-fit:cover;display:block}
+        .foto-box p{font-size:9px;font-weight:bold;color:#475569;padding:4px;text-transform:uppercase;letter-spacing:1px;background:#e2e8f0}
         table{width:100%;border-collapse:collapse}
-        th,td{border:1px solid #333;padding:7px 6px;font-size:12px;vertical-align:middle}
-        th{background:#eee;text-transform:uppercase;letter-spacing:.5px;font-size:9px}
-        tr.cat td{background:#f3e8ff;color:#6b21a8;font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
-        td{height:30px}
-        td.n{width:5%;text-align:center;color:#666}
-        td.tarefa{width:45%}
-        td.resp{width:22%}
-        td.check{width:8%;text-align:center}
-        td.visto{width:20%}
+        th,td{border:1px solid #333;padding:6px 6px;font-size:11px;vertical-align:middle}
+        th{background:#ecfdf5;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
+        tr.cat td{background:#f1f5f9;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
+        td{height:28px}
+        td.n{width:4%;text-align:center;color:#666;font-weight:bold}
+        td.hora{width:16%;font-size:10px;color:#475569;font-weight:bold}
+        td.tarefa{width:42%}
+        td.tarefa .min{font-size:10px;color:#64748b;font-weight:normal}
+        td.resp{width:16%}
+        td.check{width:7%;text-align:center}
+        td.visto{width:15%}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
-        .assin{margin-top:22px;display:flex;justify-content:space-between;gap:40px}
+        .assin{margin-top:20px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
       </style></head><body>
@@ -468,8 +497,9 @@ function GerenciarChecklistsContent() {
         <div class="meta">${itens.length} tarefas<span>marque ao concluir e vista</span></div>
       </div>
       <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
+      ${fotoAmbienteHtml}
       <table>
-        <thead><tr><th>#</th><th>Tarefa</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
+        <thead><tr><th>#</th><th>Horário / Pausa</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
         <tbody>${linhas}${extras}</tbody>
       </table>
       <div class="assin">

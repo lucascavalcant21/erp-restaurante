@@ -585,19 +585,22 @@ function RotinaRunner() {
     const itensHtml = (tmpl.itens || []).map((it, i) => {
       const cat = (it.categoria || "").trim();
       const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
-      const horaFase = [
-        it.horario_previsto ? `⏰ ${it.horario_previsto}` : "",
-        it.hora_intervalo ? `⏸️ ${it.hora_intervalo}` : "",
-        it.fase_turno ? (it.fase_turno === "abertura" ? "Abertura" : it.fase_turno === "durante_turno" ? "Turno" : "Fechamento") : ""
+      const horaPrevistaStr = [
+        it.horario_previsto ? `${it.horario_previsto}` : "",
+        it.hora_intervalo ? `Pausa: ${it.hora_intervalo}` : ""
       ].filter(Boolean).join(" · ") || "—";
+
+      // Se já houver resposta registrada na tela de execução, mostra a hora real de conclusão
+      const rItem = respostas[it.id] || {};
+      const horaRealizada = rItem.concluido_em ? horaCurta(rItem.concluido_em) : "__ : __";
 
       return `${header}<tr>
         <td class="n">${i + 1}</td>
-        <td class="hora">${horaFase}</td>
+        <td class="hora">${horaPrevistaStr}</td>
         <td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td>
-        <td class="resp">${it.responsavel || ""}</td>
-        <td class="check"><span class="box"></span></td>
-        <td class="visto"></td>
+        <td class="resp">${rItem.feito_por_nome || it.responsavel || ""}</td>
+        <td class="check"><span class="box">${rItem.marcado ? "✓" : ""}</span></td>
+        <td class="visto">${horaRealizada}</td>
       </tr>`;
     }).join("");
     const extras = Array.from({ length: 3 }).map((_, i) => `
@@ -605,7 +608,7 @@ function RotinaRunner() {
         <td class="n">${(tmpl.itens?.length || 0) + i + 1}</td>
         <td class="hora">—</td>
         <td class="tarefa"></td><td class="resp"></td>
-        <td class="check"><span class="box"></span></td><td class="visto"></td>
+        <td class="check"><span class="box"></span></td><td class="visto">__ : __</td>
       </tr>`).join("");
 
     const deptLabel = TEMAS[tmpl.departamento]?.nome || tmpl.departamento;
@@ -614,7 +617,7 @@ function RotinaRunner() {
     const fotoAmbienteHtml = tmpl.foto_ambiente ? `
       <div class="foto-box">
         <img src="data:image/jpeg;base64,${tmpl.foto_ambiente}" alt="Padrão do Cômodo"/>
-        <p>PADRÃO DE ORGANIZAÇÃO DO CÔMODO / ÁREA (${String(deptLabel).toUpperCase()})</p>
+        <p>PADRÃO DE ORGANIZÁÇAO DO CÔMODO / ÁREA (${String(deptLabel).toUpperCase()})</p>
       </div>` : "";
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${tmpl.titulo}</title>
@@ -637,13 +640,13 @@ function RotinaRunner() {
         tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:28px}
         td.n{width:4%;text-align:center;color:#666;font-weight:bold}
-        td.hora{width:16%;font-size:10px;color:#475569;font-weight:bold}
-        td.tarefa{width:42%}
+        td.hora{width:15%;font-size:10px;color:#334155;font-weight:bold;text-align:center}
+        td.tarefa{width:43%}
         td.tarefa .min{font-size:10px;color:#64748b;font-weight:normal}
-        td.resp{width:16%}
-        td.check{width:7%;text-align:center}
-        td.visto{width:15%}
-        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
+        td.resp{width:17%}
+        td.check{width:6%;text-align:center}
+        td.visto{width:15%;text-align:center;color:#334155;font-weight:bold;font-size:10px}
+        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:11px;text-align:center;font-weight:bold}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
@@ -653,12 +656,12 @@ function RotinaRunner() {
           <div class="tag">${deptLabel} · ${tipoLabel} · ${unidadeInfo?.nome || ""}</div>
           <h1>${tmpl.titulo}</h1>
         </div>
-        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e vista</span></div>
+        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e anote a hora</span></div>
       </div>
       <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
       ${fotoAmbienteHtml}
       <table>
-        <thead><tr><th>#</th><th>Horário / Pausa</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
+        <thead><tr><th>#</th><th>Hora Prevista</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Hora Realizada</th></tr></thead>
         <tbody>${itensHtml}${extras}</tbody>
       </table>
       <div class="assin">
@@ -681,16 +684,15 @@ function RotinaRunner() {
       const linhas = (tmpl.itens || []).map((it, i) => {
         const cat = (it.categoria || "").trim();
         const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
-        const horaFase = [
-          it.horario_previsto ? `⏰ ${it.horario_previsto}` : "",
-          it.hora_intervalo ? `⏸️ ${it.hora_intervalo}` : "",
-          it.fase_turno ? (it.fase_turno === "abertura" ? "Abertura" : it.fase_turno === "durante_turno" ? "Turno" : "Fechamento") : ""
+        const horaPrevistaStr = [
+          it.horario_previsto ? `${it.horario_previsto}` : "",
+          it.hora_intervalo ? `Pausa: ${it.hora_intervalo}` : ""
         ].filter(Boolean).join(" · ") || "—";
 
-        return `${header}<tr><td class="n">${i + 1}</td><td class="hora">${horaFase}</td><td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`;
+        return `${header}<tr><td class="n">${i + 1}</td><td class="hora">${horaPrevistaStr}</td><td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td><td class="visto">__ : __</td></tr>`;
       }).join("");
       const extras = Array.from({ length: 2 }).map((_, i) => `
-        <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="hora">—</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`).join("");
+        <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="hora">—</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td><td class="visto">__ : __</td></tr>`).join("");
 
       const fotoAmbienteHtml = tmpl.foto_ambiente ? `
         <div class="foto-box">
@@ -701,11 +703,11 @@ function RotinaRunner() {
       return `<section>
         <div class="head">
           <div><div class="tag">${t.nome} · ${ROTULOS_TIPO[tmpl.tipo] || tmpl.tipo} · ${unidadeInfo?.nome || ""}</div><h1>${tmpl.titulo}</h1></div>
-          <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e vista</span></div>
+          <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e anote a hora</span></div>
         </div>
         <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
         ${fotoAmbienteHtml}
-        <table><thead><tr><th>#</th><th>Horário / Pausa</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead><tbody>${linhas}${extras}</tbody></table>
+        <table><thead><tr><th>#</th><th>Hora Prevista</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Hora Realizada</th></tr></thead><tbody>${linhas}${extras}</tbody></table>
         <div class="assin"><div>Responsável pelo ${t.nome}</div><div>Gerente / Conferência</div></div>
       </section>`;
     };

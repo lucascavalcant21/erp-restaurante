@@ -425,19 +425,18 @@ function GerenciarChecklistsContent() {
     const linhas = itens.map((it, i) => {
       const cat = (it.categoria || "").trim();
       const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
-      const horaFase = [
-        it.horario_previsto ? `⏰ ${it.horario_previsto}` : "",
-        it.hora_intervalo ? `⏸️ ${it.hora_intervalo}` : "",
-        it.fase_turno ? (it.fase_turno === "abertura" ? "Abertura" : it.fase_turno === "durante_turno" ? "Turno" : "Fechamento") : ""
+      const horaPrevistaStr = [
+        it.horario_previsto ? `${it.horario_previsto}` : "",
+        it.hora_intervalo ? `Pausa: ${it.hora_intervalo}` : ""
       ].filter(Boolean).join(" · ") || "—";
 
       return `${header}<tr>
         <td class="n">${i + 1}</td>
-        <td class="hora">${horaFase}</td>
+        <td class="hora">${horaPrevistaStr}</td>
         <td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td>
         <td class="resp">${it.responsavel || ""}</td>
         <td class="check"><span class="box"></span></td>
-        <td class="visto"></td>
+        <td class="visto">__ : __</td>
       </tr>`;
     }).join("");
     const extras = Array.from({ length: 3 }).map((_, i) => `
@@ -447,7 +446,7 @@ function GerenciarChecklistsContent() {
         <td class="tarefa"></td>
         <td class="resp"></td>
         <td class="check"><span class="box"></span></td>
-        <td class="visto"></td>
+        <td class="visto">__ : __</td>
       </tr>`).join("");
 
     const deptLabel = NOMES_DEPT[t.departamento] || t.departamento;
@@ -478,12 +477,12 @@ function GerenciarChecklistsContent() {
         tr.cat td{background:#f1f5f9;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:28px}
         td.n{width:4%;text-align:center;color:#666;font-weight:bold}
-        td.hora{width:16%;font-size:10px;color:#475569;font-weight:bold}
-        td.tarefa{width:42%}
+        td.hora{width:15%;font-size:10px;color:#334155;font-weight:bold;text-align:center}
+        td.tarefa{width:43%}
         td.tarefa .min{font-size:10px;color:#64748b;font-weight:normal}
-        td.resp{width:16%}
-        td.check{width:7%;text-align:center}
-        td.visto{width:15%}
+        td.resp{width:17%}
+        td.check{width:6%;text-align:center}
+        td.visto{width:15%;text-align:center;color:#94a3b8;font-weight:bold;font-size:10px}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
         .assin{margin-top:20px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:10px;text-align:center;color:#444}
@@ -494,12 +493,12 @@ function GerenciarChecklistsContent() {
           <div class="tag">Checklist ${deptLabel} · ${rotuloTipo(t.tipo)} · ${unidadeInfo?.nome || ""}</div>
           <h1>${t.titulo}</h1>
         </div>
-        <div class="meta">${itens.length} tarefas<span>marque ao concluir e vista</span></div>
+        <div class="meta">${itens.length} tarefas<span>marque ao concluir e anote a hora</span></div>
       </div>
       <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
       ${fotoAmbienteHtml}
       <table>
-        <thead><tr><th>#</th><th>Horário / Pausa</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
+        <thead><tr><th>#</th><th>Hora Prevista</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Hora Realizada</th></tr></thead>
         <tbody>${linhas}${extras}</tbody>
       </table>
       <div class="assin">

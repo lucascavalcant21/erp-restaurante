@@ -245,7 +245,7 @@ export function montarHtmlFichaTecnica({
         ${drink ? linha("MÉTODO", metodoBar(ficha.metodo_bar)?.nome || "—") : ""}
         ${drink ? linha("COPO", ou(ficha.copo)) : ""}
         ${drink ? linha("GELO", ou(ficha.tipo_gelo)) : ""}
-        ${drink ? linha("GUARNIÇÃO", ou(ficha.guarnicao)) : ""}
+        ${!preparo || ficha.guarnicao ? linha("GUARNIÇÃO", ou(ficha.guarnicao)) : ""}
         ${linha(bar ? "VOLUME FINAL (aprox.)" : "PESO FINAL (aprox.)",
                 pesoFinal ? `${Math.round(pesoFinal)} ${bar ? "ml" : "g"}` : "—")}
         ${perda ? linha("PERDA", pct(perda)) : ""}
@@ -262,18 +262,32 @@ export function montarHtmlFichaTecnica({
     <tbody>${linhasIngredientes}</tbody>
   </table>
 
-  <div class="faixa">MODO DE PREPARO</div>
-  ${blocoPreparo}
+  ${preparo ? `
+    <div class="faixa">MODO DE PREPARO</div>
+    ${blocoPreparo}
+    ${usadoPor.length ? `
+      <div class="faixa">USADO NAS RECEITAS</div>
+      <div class="lista">${usadoPor.map(f => esc(f.nome_receita)).join(" &nbsp;·&nbsp; ")}</div>
+    ` : ""}
+  ` : `
+    <div class="faixa">${bar ? "MONTAGEM NO COPO" : "MONTAGEM DO PRATO"}</div>
+    ${montagem.length ? `
+      <table class="t preparo">
+        <tbody>
+          ${montagem.map((m, i) => `
+            <tr>
+              <td class="num">${i + 1}</td>
+              <td>${esc(m.descricao || m)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    ` : blocoPreparo}
 
-  ${preparo && usadoPor.length ? `
-    <div class="faixa">USADO NAS RECEITAS</div>
-    <div class="lista">${usadoPor.map(f => esc(f.nome_receita)).join(" &nbsp;·&nbsp; ")}</div>
-  ` : ""}
-
-  ${!preparo && montagem.length ? `
-    <div class="faixa">${bar ? "MONTAGEM NO COPO" : "MONTAGEM"}</div>
-    <div class="lista">${montagem.map((m, i) => `${i + 1}. ${esc(m.descricao || m)}`).join("<br/>")}</div>
-  ` : ""}
+    ${ficha.guarnicao ? `
+      <div class="faixa">GUARNIÇÃO</div>
+      <div class="texto"><b>Guarnição / Acompanhamento:</b> ${esc(ficha.guarnicao)}</div>
+    ` : ""}
+  `}
 
   <div class="duplo">
     <div class="col">

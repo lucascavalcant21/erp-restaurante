@@ -161,6 +161,7 @@ export async function fetchComplementosDeFichas(ids = []) {
     ["fichas_equipamentos", "equipamentos", "ordem"],
     ["fichas_alergenicos", "alergenicos", null],
     ["fichas_armazenamento", "armazenamento", null],
+    ["fichas_montagem_passos", "montagem", "ordem"],
   ];
 
   const respostas = await Promise.all(tabelas.map(async ([tabela, , ordem]) => {
@@ -172,7 +173,7 @@ export async function fetchComplementosDeFichas(ids = []) {
   }));
 
   const mapa = {};
-  const garantir = (id) => (mapa[id] ||= { etapas: [], equipamentos: [], alergenicos: [], armazenamento: null });
+  const garantir = (id) => (mapa[id] ||= { etapas: [], equipamentos: [], alergenicos: [], armazenamento: null, montagem: [] });
 
   respostas.forEach(({ linhas }, i) => {
     const chave = tabelas[i][1];

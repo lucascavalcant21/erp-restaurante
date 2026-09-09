@@ -945,10 +945,18 @@ export default function FichaTecnicaPage() {
           ) : null}
 
           <Secao icone={Layers}
-            titulo={ehBar ? "Montagem no copo" : "Montagem e finalização"}
+            titulo={ehBar ? "Montagem no copo" : "Montagem e guarnição do prato"}
             descricao={ehBar
               ? "A ordem em que o drink é construído."
-              : "A ordem exata em que o prato é montado."}>
+              : "A ordem exata em que o prato é montado e sua guarnição."}>
+            {!ehBar && (
+              <div className="mb-4">
+                <Field label="Guarnição / Acompanhamento">
+                  <TextInput value={form.guarnicao || ""} placeholder="ex.: Arroz paraense, farofa de aviú e vinagrete"
+                    onChange={e => mudar("guarnicao", e.target.value)} />
+                </Field>
+              </div>
+            )}
             <MontagemPassos passos={montagem} onChange={alterarSecao(setMontagem)} />
           </Secao>
         </>

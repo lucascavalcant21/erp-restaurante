@@ -1821,41 +1821,20 @@ function FichasRunner() {
          </tr>`;
       }).join('');
 
-      const extra = complementosImpressao[f.id] || {};
-      const etapasNovas = extra.etapas || [];
+      const montagemPassosExtra = (extra.montagem && extra.montagem.length > 0)
+        ? extra.montagem
+        : (f.montagem_passos || []);
 
-      let passosRows = '';
-      if (etapasNovas.length > 0) {
-        passosRows = etapasNovas.map((e, i) => `
+      let montagemRows = '';
+      if (montagemPassosExtra.length > 0) {
+        montagemRows = montagemPassosExtra.map((m, i) => `
           <tr>
             <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
-            <td style="width:160px;font-weight:800;color:#0f172a">${esc(e.titulo || `Etapa ${i + 1}`)}</td>
-            <td style="color:#334155">${esc(e.instrucao || "")}${e.tempo_min ? ` <i style="color:#64748b;font-size:11px">(${e.tempo_min} min)</i>` : ''}</td>
+            <td style="color:#0f172a;font-weight:700" colspan="2">${esc(m.descricao || m)}</td>
           </tr>
         `).join('');
       } else {
-        const passos = String(f.modo_preparo || '')
-           .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
-        passosRows = passos.length
-           ? passos.map((s, i) => {
-               let tit = `Etapa ${i + 1}`;
-               let txt = s;
-               if (s.includes(":")) {
-                 const pts = s.split(":");
-                 tit = pts[0].trim();
-                 txt = pts.slice(1).join(":").trim();
-               } else if (s.includes(" - ")) {
-                 const pts = s.split(" - ");
-                 tit = pts[0].trim();
-                 txt = pts.slice(1).join(" - ").trim();
-               }
-               return `<tr>
-                 <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
-                 <td style="width:160px;font-weight:800;color:#0f172a">${esc(tit)}</td>
-                 <td style="color:#334155">${esc(txt)}</td>
-               </tr>`;
-             }).join('')
-           : `<tr><td colspan="3" style="color:#94a3b8;padding:10px">Não informado.</td></tr>`;
+        montagemRows = passosRows;
       }
 
       const arm = extra.armazenamento;
@@ -1976,6 +1955,7 @@ function FichasRunner() {
                   <tr><td class="lbl">RENDIMENTO</td><td class="val">${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</td></tr>
                   <tr><td class="lbl">TEMPO DE PREPARO</td><td class="val">${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' minutos' : '—'}</td></tr>
                   <tr><td class="lbl">TEMPO DE COCÇÃO</td><td class="val">${f.tempo_coccao != null && f.tempo_coccao !== '' ? esc(String(f.tempo_coccao)) + ' minutos' : '—'}</td></tr>
+                  ${f.guarnicao ? `<tr><td class="lbl">GUARNIÇÃO</td><td class="val" style="font-weight:800;color:#0f172a">${esc(f.guarnicao)}</td></tr>` : ''}
                   <tr><td class="lbl">PESO FINAL (aprox.)</td><td class="val">${esc(pesoFinalTexto)}</td></tr>
                   <tr><td class="lbl">SETOR</td><td class="val">${esc(deptLabel)}</td></tr>
                </table>
@@ -2001,15 +1981,23 @@ function FichasRunner() {
             </table>
          </div>` : ""}
 
-         <!-- BANNER E MODO DE PREPARO -->
+         <!-- BANNER MONTAGEM DO PRATO OU MODO DE PREPARO -->
          ${incluir("preparo") ? `
          <div class="sec-block">
-            <div class="sec-banner ${bannerClass}">MODO DE PREPARO</div>
+            <div class="sec-banner ${bannerClass}">${ehBase ? "MODO DE PREPARO" : (isBar ? "MONTAGEM NO COPO" : "MONTAGEM DO PRATO")}</div>
             <table class="tbl-dados">
                <tbody>
-                  ${passosRows}
+                  ${ehBase ? passosRows : montagemRows}
                </tbody>
             </table>
+         </div>` : ""}
+
+         ${!ehBase && f.guarnicao ? `
+         <div class="sec-block" style="margin-top:10px">
+            <div class="sec-banner ${bannerClass}">GUARNIÇÃO / ACOMPANHAMENTO</div>
+            <div class="box-text-content" style="font-weight:800;color:#0f172a">
+               ${esc(f.guarnicao)}
+            </div>
          </div>` : ""}
 
          <!-- 2 COLUNAS: ARMAZENAMENTO vs EQUIPAMENTOS & ALERGÊNICOS -->
@@ -3182,7 +3170,7 @@ function FichasRunner() {
 
                   {/* ABAS */}
                   <div className="bg-white border-b border-slate-100 px-4 sm:px-6 flex gap-1 overflow-x-auto">
-                     {[["ficha", "Ficha técnica"], ["preparo", "Modo de preparo"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
+                     {[["ficha", "Ficha técnica"], ["preparo", f.eh_base ? "Modo de preparo" : "Montagem e guarnição"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
                         <button key={id} onClick={() => setViewTab(id)}
                            className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
                            {rot}
@@ -3287,13 +3275,21 @@ function FichasRunner() {
                         )}
                         </>)}
 
-                        {/* ABA: MODO DE PREPARO */}
+                        {/* ABA: MODO DE PREPARO / MONTAGEM E GUARNIÇÃO */}
                         {viewTab === "preparo" && (
                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
-                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Modo de preparo</p>
+                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">
+                                 {f.eh_base ? "Modo de preparo" : "Montagem do prato e guarnição"}
+                              </p>
+                              {f.guarnicao ? (
+                                 <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Guarnição / Acompanhamento</p>
+                                    <p className="text-sm font-bold text-slate-800 mt-0.5">{f.guarnicao}</p>
+                                 </div>
+                              ) : null}
                               {(() => {
-                                 const passos = String(f.modo_preparo || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
-                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum modo de preparo cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
+                                 const passos = String(f.modo_preparo || f.padrao_montagem || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum passo de {f.eh_base ? "modo de preparo" : "montagem"} cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
                                  return (
                                     <ol className="space-y-2.5">
                                        {passos.map((p, i) => (

@@ -1850,9 +1850,9 @@ function FichasRunner() {
       ].filter(Boolean) : [];
 
       const blocoArmazenamentoLinhas = `
-         <tr><td class="lbl" style="width:45%">Armazenamento dos ingredientes</td><td class="val">${esc(arm?.recipiente || arm?.local_armazenamento || 'Conforme ficha de cada item')}</td></tr>
-         <tr><td class="lbl">Após preparo</td><td class="val">${validadesArm.length ? validadesArm.join(" · ") : 'Consumo imediato'}</td></tr>
-         <tr><td class="lbl">Observações</td><td class="val">${esc(arm?.forma || 'Manter ingredientes refrigerados e bem acondicionados.')}</td></tr>
+         <tr><td class="lbl" style="width:45%">Forma & Recipiente</td><td class="val">${esc([arm?.forma, arm?.recipiente].filter(Boolean).join(" · ") || '—')}</td></tr>
+         <tr><td class="lbl">Local & Validade</td><td class="val">${esc(arm?.local_armazenamento || "")}${validadesArm.length ? (arm?.local_armazenamento ? " · " : "") + validadesArm.join(" · ") : (arm?.local_armazenamento ? "" : "—")}</td></tr>
+         <tr><td class="lbl">Observações</td><td class="val">${esc(arm?.observacoes || '—')}</td></tr>
       `;
 
       const dept = String(f.departamento || '').toLowerCase();
@@ -1872,7 +1872,7 @@ function FichasRunner() {
          <div class="sec-block">
             <div class="sec-banner ${bannerClass}">EQUIPAMENTOS E UTENSÍLIOS</div>
             <div class="box-text-content">
-               ${equipamentosList.length ? esc(equipamentosList.join(", ")) : 'Chapa, espátula, faca, tábua de corte.'}
+               ${equipamentosList.length ? esc(equipamentosList.join(", ")) : '—'}
             </div>
          </div>
       `;
@@ -1882,8 +1882,8 @@ function FichasRunner() {
          <div class="sec-block" style="margin-top:10px">
             <div class="sec-banner ${bannerClass}">ALERGÊNICOS</div>
             <div class="box-text-content">
-               ${alergsList.length ? `<b>Contém:</b> ${esc(alergsList.join(", ").toLowerCase())}.` : '<b>Contém:</b> glúten, leite.'}
-               ${f.alergenicos_pode_conter ? `<br/><b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}` : '<br/><b>Pode conter:</b> soja, ovos.'}
+               ${alergsList.length ? `<b>Contém:</b> ${esc(alergsList.join(", ").toLowerCase())}.` : '<b>Contém:</b> Não declarado.'}
+               ${f.alergenicos_pode_conter ? `<br/><b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}` : ''}
             </div>
          </div>
       `;
@@ -2030,7 +2030,7 @@ function FichasRunner() {
                   <div class="sec-banner ${bannerClass}">INFORMAÇÕES ADICIONAIS</div>
                   <table class="tbl-dados">
                      <tr><td class="lbl" style="width:45%">Padrão de montagem</td><td class="val">${esc(f.padrao_montagem || 'Conforme foto')}</td></tr>
-                     <tr><td class="lbl">Observações</td><td class="val">${esc(f.observacoes || 'Manter padrão de gramatura e montagem para garantir a qualidade.')}</td></tr>
+                     <tr><td class="lbl">Observações</td><td class="val">${esc(f.observacoes || '—')}</td></tr>
                   </table>
                </div>
             </div>

@@ -325,7 +325,7 @@ export function montarHtmlFichaTecnica({
             ? linha("Uso", usadoPor.length ? `Ingrediente de ${usadoPor.length} receita(s)` : "Ainda não usado em receitas")
             : linha("Padrão de montagem", montagem.length ? "Conforme a seção Montagem" : "Conforme foto")}
           ${ficha.temperatura_servico ? linha("Temperatura de serviço", esc(ficha.temperatura_servico)) : ""}
-          ${linha("Observações", ou(ficha.observacoes, "Manter padrão de gramatura e montagem para garantir a qualidade."))}
+          ${linha("Observações", ou(ficha.observacoes))}
         </tbody>
       </table>
     </div>

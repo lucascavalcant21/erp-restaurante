@@ -1697,67 +1697,70 @@ function FichasRunner() {
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#ffffff;padding:12mm 10mm;max-width:860px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-          .ficha{page-break-inside:avoid;margin-bottom:24px;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+          body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;background:#ffffff;padding:10mm;max-width:840px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          
+          .ficha{page-break-inside:avoid;margin-bottom:24px;background:#ffffff;border:1.5px solid #5b2418;border-radius:0;overflow:hidden}
           .quebra{page-break-after:always}
           
-          /* BANNER PRINCIPAL DE TÍTULO DA FICHA TÉCNICA */
-          .banner-topo{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;color:#ffffff;font-weight:bold}
-          .banner-cozinha-prato{background-color:#4a2818;background-image:linear-gradient(135deg, #4a2818 0%, #2e160c 100%)}
-          .banner-cozinha-base{background-color:#78350f;background-image:linear-gradient(135deg, #78350f 0%, #451a03 100%)}
-          .banner-bar-prato{background-color:#0f172a;background-image:linear-gradient(135deg, #0f172a 0%, #020617 100%)}
-          .banner-bar-base{background-color:#581c87;background-image:linear-gradient(135deg, #581c87 0%, #3b0764 100%)}
+          /* TOP HEADER */
+          .header-top{display:grid;grid-template-columns:220px 1fr 240px;gap:12px;padding:12px 14px;align-items:center;background:#ffffff;border-bottom:1px solid #d3d3d3}
+          .header-brand{display:flex;flex-direction:column;justify-content:center}
+          .brand-logo-text{font-family:'Playfair Display','Georgia',serif;font-size:24px;font-weight:900;color:#5b2418;line-height:1}
+          .brand-sub-text{font-size:9px;font-weight:800;letter-spacing:3px;color:#5b2418;text-transform:uppercase;margin-top:2px}
           
-          .badge-setor{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:900;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.2);display:inline-block;margin-bottom:4px}
-          .titulo-ficha{font-size:22px;font-weight:900;line-height:1.2;margin:0;text-transform:uppercase;letter-spacing:0.5px}
+          .header-title-box{display:flex;flex-direction:column;justify-content:center;border-left:1px solid #d3d3d3;padding-left:14px}
+          .header-main-title{font-size:18px;font-weight:900;letter-spacing:1px;color:#0f172a;text-transform:uppercase}
+          .header-sub-title{font-size:10px;font-weight:800;letter-spacing:3px;color:#64748b;text-transform:uppercase;margin-top:1px}
           
-          /* DADOS DO CABEÇALHO (LOGO + METADADOS BOX) */
-          .header-box{display:grid;grid-template-columns:1fr 260px;gap:16px;padding:14px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;align-items:center}
-          .brand-area{display:flex;align-items:center;gap:12px}
-          .brand-title{font-size:14px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:1px}
-          .brand-subtitle{font-size:11px;color:#64748b;font-weight:600}
+          .meta-table{width:100%;border-collapse:collapse;font-size:10.5px;border:1px solid #cbd5e1}
+          .meta-table td{padding:4px 7px;border:1px solid #cbd5e1;color:#334155}
+          .meta-table td.lbl{font-weight:800;color:#475569;background:#f8fafc;width:40%;text-transform:uppercase;font-size:9.5px;letter-spacing:0.5px}
+          .meta-table td.val{font-weight:700;color:#0f172a}
           
-          .meta-table{width:100%;border-collapse:collapse;font-size:11px;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden}
-          .meta-table td{padding:5px 8px;border:1px solid #e2e8f0;color:#334155}
-          .meta-table b{color:#0f172a;font-weight:700}
+          /* DISH NAME BANNER */
+          .banner-nome{padding:10px 14px;color:#ffffff;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+          .banner-nome h1{font-size:20px;font-weight:900;margin:0;letter-spacing:1.5px}
           
-          /* ESTRUTURA PRINCIPAL EM 2 COLUNAS */
-          .corpo-ficha{padding:16px;display:grid;grid-template-columns:220px 1fr;gap:16px}
+          .banner-cozinha-prato{background-color:#5b2418}
+          .banner-cozinha-base{background-color:#78350f}
+          .banner-bar-prato{background-color:#0f172a}
+          .banner-bar-base{background-color:#581c87}
           
-          /* FOTO E QUADRO RESUMO DA FICHA (COLUNA ESQUERDA) */
-          .col-foto{display:flex;flex-direction:column;gap:12px}
-          .foto{width:100%;height:190px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;background:#f1f5f9}
-          .foto-vazia{width:100%;height:160px;border-radius:8px;border:1.5px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+          /* FOTO + DADOS GERAIS */
+          .grid-foto-info{display:grid;grid-template-columns:220px 1fr;gap:14px;padding:12px 14px}
+          .foto-box{width:100%;height:180px;object-fit:cover;border:1px solid #cbd5e1;background:#f1f5f9}
+          .foto-vazia-box{width:100%;height:180px;border:1px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:800;text-transform:uppercase}
           
-          .resumo-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:11.5px;display:flex;flex-direction:column;gap:8px}
-          .resumo-item{display:flex;flex-direction:column;gap:1px}
-          .resumo-label{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b}
-          .resumo-val{font-size:12px;font-weight:700;color:#0f172a}
+          .tbl-geral{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #cbd5e1}
+          .tbl-geral td{padding:5.5px 8px;border:1px solid #cbd5e1}
+          .tbl-geral td.lbl{font-weight:800;color:#475569;background:#f8fafc;width:40%;text-transform:uppercase;font-size:9.5px;letter-spacing:0.5px}
+          .tbl-geral td.val{font-weight:700;color:#0f172a}
           
-          /* CONTEÚDO TÉCNICO (COLUNA DIREITA) */
-          .col-conteudo{display:flex;flex-direction:column;gap:14px}
+          /* SECTION BLOCKS & BANNERS */
+          .sec-block{margin:0 14px 12px}
+          .sec-banner{padding:6px 10px;color:#ffffff;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px}
           
-          .secao-titulo{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#0f172a;padding:4px 8px;background:#f1f5f9;border-left:4px solid #0f172a;margin-bottom:6px;border-radius:0 4px 4px 0}
+          .tbl-dados{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #cbd5e1}
+          .tbl-dados th{background:#f8fafc;padding:6px 8px;border:1px solid #cbd5e1;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#475569;text-align:left}
+          .tbl-dados td{padding:6px 8px;border:1px solid #cbd5e1;color:#1e293b}
+          .tbl-dados td.lbl{font-weight:800;color:#475569;background:#f8fafc;font-size:9.5px;text-transform:uppercase;letter-spacing:0.5px}
+          .tbl-dados td.val{font-weight:600;color:#0f172a}
           
-          table.tabela-itens{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:8px}
-          table.tabela-itens th{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#475569;background:#f8fafc;border-bottom:2px solid #cbd5e1;padding:6px 8px;text-align:left;font-weight:800}
-          table.tabela-itens td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#1e293b}
-          table.tabela-itens tr:nth-child(even){background:#fafafa}
-          table.tabela-itens td.r, table.tabela-itens th.r{text-align:right}
+          /* 2-COLUMN GRIDS */
+          .grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 14px 12px}
+          .grid-2col .sec-block{margin:0}
           
-          .passos{display:flex;flex-direction:column;gap:5px}
-          .passo{font-size:11.5px;line-height:1.45;padding:6px 10px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:6px;color:#1e293b;font-weight:600;display:flex;gap:8px;align-items:flex-start}
-          .passo-num{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;background:#0f172a;color:#ffffff;border-radius:50%;font-size:10px;font-weight:900;flex-shrink:0;margin-top:1px}
+          .box-text-content{border:1px solid #cbd5e1;padding:8px 10px;font-size:11px;line-height:1.45;color:#334155;background:#ffffff}
           
-          .box-info{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:11px;line-height:1.5;color:#334155}
-          
-          /* SLOGAN RODAPÉ DA FICHA */
-          .slogan-bar{background:#0f172a;color:#ffffff;text-align:center;padding:8px;font-size:9.5px;font-weight:900;letter-spacing:3px;text-transform:uppercase}
+          /* FOOTER DELICADO */
+          .footer-delicado{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 14px;margin-top:8px}
+          .footer-line-left,.footer-line-right{flex:1;height:1px;background:#cbd5e1}
+          .footer-text{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#64748b}
           
           @media print{
             @page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:8mm}
             body{padding:0}
-            .ficha{box-shadow:none;border-color:#cbd5e1}
+            .ficha{box-shadow:none;border-color:#5b2418}
           }
           .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
           .capa h1{font-size:44px;margin-bottom:14px;color:#0f172a;font-weight:900}
@@ -1798,48 +1801,62 @@ function FichasRunner() {
       const rendimentoSetor = rendimentoPadronizado(f);
       const rendimentoSetorTexto = textoRendimentoPadronizado(f);
 
-      const rows = (f.fichas_ingredientes || []).map(fi => {
-         let tipo = 'Insumo', nome = '', unidade = '';
+      const rowsIngredientes = (f.fichas_ingredientes || []).map(fi => {
+         let nome = '', unidade = '', obs = '—';
          if (fi.insumos) {
-            tipo = fi.insumos.categoria || 'Insumo';
             nome = fi.insumos.nome;
-            unidade = fi.insumos.unidade_medida;
+            unidade = fi.insumos.unidade_medida || '';
+            if (fi.insumos.marca) obs = fi.insumos.marca;
          } else if (fi.subficha_id) {
             const base = fichas.find(x => x.id === fi.subficha_id);
-            tipo = 'Receita';
             nome = base ? base.nome_receita : 'Base excluída';
             unidade = base?.rendimento_unidade || 'un';
+            obs = 'Base / Pré-preparo';
          }
-         return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
+         return `<tr>
+            <td style="font-weight:700">${esc(nome)}</td>
+            <td>${esc(String(unidade || '').toLowerCase())}</td>
+            <td style="font-weight:700">${fmtQtd(fi.quantidade, unidade)}</td>
+            <td style="color:#64748b">${esc(obs)}</td>
+         </tr>`;
       }).join('');
 
-      const passos = String(f.modo_preparo || '')
-         .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
-      const passosHTML = passos.length
-         ? passos.map((s, i) => `<div class="passo"><span class="passo-num">${i + 1}</span><span>${esc(s)}</span></div>`).join('')
-         : `<div class="passo">Não informado.</div>`;
-
       const extra = complementosImpressao[f.id] || {};
+      const etapasNovas = extra.etapas || [];
 
-      const preparoHTML = (extra.etapas || []).length
-        ? (extra.etapas || []).map((e, i) => {
-            const detalhes = [
-              e.tempo_min ? `${esc(String(e.tempo_min))} min` : "",
-              e.temperatura ? esc(e.temperatura) : "",
-              e.equipamento ? esc(e.equipamento) : "",
-            ].filter(Boolean).join(" · ");
-            const titulo = e.titulo ? `<b>${esc(e.titulo)}</b>${e.instrucao ? " — " : ""}` : "";
-            return `<div class="passo"><span class="passo-num">${i + 1}</span><span>${titulo}${esc(e.instrucao || "")}`
-              + (detalhes ? `<br/><i style="color:#64748b;font-size:11px">${detalhes}</i>` : "")
-              + (e.observacao ? `<br/><i style="color:#92400e;font-size:11px">${esc(e.observacao)}</i>` : "")
-              + `</span></div>`;
-          }).join("")
-        : passosHTML;
-
-      const equipamentos = (extra.equipamentos || []).map(x => x.nome).filter(Boolean);
-      const blocoEquipamentos = incluir("equipamentos") && equipamentos.length
-        ? `<div><div class="secao-titulo">Equipamentos e Utensílios</div><div class="box-info">${esc(equipamentos.join(", "))}.</div></div>`
-        : "";
+      let passosRows = '';
+      if (etapasNovas.length > 0) {
+        passosRows = etapasNovas.map((e, i) => `
+          <tr>
+            <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+            <td style="width:160px;font-weight:800;color:#0f172a">${esc(e.titulo || `Etapa ${i + 1}`)}</td>
+            <td style="color:#334155">${esc(e.instrucao || "")}${e.tempo_min ? ` <i style="color:#64748b;font-size:11px">(${e.tempo_min} min)</i>` : ''}</td>
+          </tr>
+        `).join('');
+      } else {
+        const passos = String(f.modo_preparo || '')
+           .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
+        passosRows = passos.length
+           ? passos.map((s, i) => {
+               let tit = `Etapa ${i + 1}`;
+               let txt = s;
+               if (s.includes(":")) {
+                 const pts = s.split(":");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(":").trim();
+               } else if (s.includes(" - ")) {
+                 const pts = s.split(" - ");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(" - ").trim();
+               }
+               return `<tr>
+                 <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+                 <td style="width:160px;font-weight:800;color:#0f172a">${esc(tit)}</td>
+                 <td style="color:#334155">${esc(txt)}</td>
+               </tr>`;
+             }).join('')
+           : `<tr><td colspan="3" style="color:#94a3b8;padding:10px">Não informado.</td></tr>`;
+      }
 
       const arm = extra.armazenamento;
       const validadesArm = arm ? [
@@ -1848,25 +1865,45 @@ function FichasRunner() {
         arm.validade_apos_aberto_dias ? `Após aberto: ${esc(String(arm.validade_apos_aberto_dias))} dias` : "",
         arm.validade_apos_preparo_horas ? `Após preparo: ${esc(String(arm.validade_apos_preparo_horas))} h` : "",
       ].filter(Boolean) : [];
-      const linhasArm = arm ? [
-        arm.forma ? `<b>Forma:</b> ${esc(arm.forma)}` : "",
-        arm.recipiente ? `<b>Recipiente:</b> ${esc(arm.recipiente)}` : "",
-        arm.local_armazenamento ? `<b>Local:</b> ${esc(arm.local_armazenamento)}` : "",
-        (arm.temperatura_min != null || arm.temperatura_max != null)
-          ? `<b>Temperatura:</b> ${arm.temperatura_min ?? "—"} a ${arm.temperatura_max ?? "—"} °C` : "",
-        validadesArm.length ? `<b>Validade:</b> ${validadesArm.join(" · ")}` : "",
-      ].filter(Boolean) : [];
-      const blocoArmazenamento = incluir("armazenamento") && linhasArm.length
-        ? `<div><div class="secao-titulo">Armazenamento e Validade</div><div class="box-info">${linhasArm.join("<br/>")}</div></div>`
-        : "";
 
-      const alergs = (extra.alergenicos || []).map(x => x.alergenico).filter(Boolean);
-      const blocoAlergenicos = incluir("alergenicos") && (alergs.length || f.alergenicos_pode_conter)
-        ? `<div><div class="secao-titulo">Alergênicos</div><div class="box-info">`
-          + (alergs.length ? `<b>Contém:</b> ${esc(alergs.join(", ").toLowerCase())}.` : "")
-          + (f.alergenicos_pode_conter ? `${alergs.length ? "<br/>" : ""}<b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}.` : "")
-          + `</div></div>`
-        : "";
+      const blocoArmazenamentoLinhas = `
+         <tr><td class="lbl" style="width:45%">Armazenamento dos ingredientes</td><td class="val">${esc(arm?.recipiente || arm?.local_armazenamento || 'Conforme ficha de cada item')}</td></tr>
+         <tr><td class="lbl">Após preparo</td><td class="val">${validadesArm.length ? validadesArm.join(" · ") : 'Consumo imediato'}</td></tr>
+         <tr><td class="lbl">Observações</td><td class="val">${esc(arm?.forma || 'Manter ingredientes refrigerados e bem acondicionados.')}</td></tr>
+      `;
+
+      const dept = String(f.departamento || '').toLowerCase();
+      const isBar = dept === 'bar';
+      const ehBase = !!f.eh_base;
+      const deptLabel = isBar ? 'Bar' : 'Cozinha';
+
+      let bannerClass = 'banner-cozinha-prato';
+      if (isBar) {
+        bannerClass = ehBase ? 'banner-bar-base' : 'banner-bar-prato';
+      } else {
+        bannerClass = ehBase ? 'banner-cozinha-base' : 'banner-cozinha-prato';
+      }
+
+      const equipamentosList = (extra.equipamentos || []).map(x => x.nome).filter(Boolean);
+      const blocoEquipamentos = `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">EQUIPAMENTOS E UTENSÍLIOS</div>
+            <div class="box-text-content">
+               ${equipamentosList.length ? esc(equipamentosList.join(", ")) : 'Chapa, espátula, faca, tábua de corte.'}
+            </div>
+         </div>
+      `;
+
+      const alergsList = (extra.alergenicos || []).map(x => x.alergenico).filter(Boolean);
+      const blocoAlergenicos = `
+         <div class="sec-block" style="margin-top:10px">
+            <div class="sec-banner ${bannerClass}">ALERGÊNICOS</div>
+            <div class="box-text-content">
+               ${alergsList.length ? `<b>Contém:</b> ${esc(alergsList.join(", ").toLowerCase())}.` : '<b>Contém:</b> glúten, leite.'}
+               ${f.alergenicos_pode_conter ? `<br/><b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}` : '<br/><b>Pode conter:</b> soja, ovos.'}
+            </div>
+         </div>
+      `;
 
       const custoFicha = custoTotalDaFicha(f, fichas);
       const infoPeso = infoPesoFicha(f, fichas);
@@ -1878,130 +1915,144 @@ function FichasRunner() {
       const custoPorcaoFicha = porcoesFicha > 0 ? custoFicha / porcoesFicha : custoFicha;
       const precoFicha = Number(f.preco_venda) || 0;
       const cmvFicha = precoFicha > 0 ? (custoPorcaoFicha / precoFicha) * 100 : null;
-      const linhasCusto = podeVerCustos ? [
-        incluir("custos", false) ? `<b>Custo total:</b> ${fmtBRL(custoFicha)}` : "",
-        incluir("custos", false) && porcoesFicha > 1 ? `<b>Custo por porção:</b> ${fmtBRL(custoPorcaoFicha)}` : "",
-        incluir("preco", false) && precoFicha > 0 ? `<b>Preço de venda:</b> ${fmtBRL(precoFicha)}` : "",
-        incluir("cmv", false) && cmvFicha !== null ? `<b>CMV:</b> ${cmvFicha.toFixed(1).replace(".", ",")}%` : "",
-        incluir("margem", false) && cmvFicha !== null ? `<b>Margem bruta:</b> ${fmtBRL(precoFicha - custoPorcaoFicha)}` : "",
-      ].filter(Boolean) : [];
-      const blocoCusto = linhasCusto.length
-        ? `<div class="resumo-box" style="margin-top:6px;background:#f0fdf4;border-color:#bbf7d0"><span class="resumo-label" style="color:#166534">Custo e Precificação</span><div style="font-size:11px;font-weight:700;color:#14532d;line-height:1.5">${linhasCusto.join("<br/>")}</div></div>`
-        : "";
+
+      const blocoCustosTabela = podeVerCustos ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">CUSTO DA RECEITA (POR UNIDADE)</div>
+            <table class="tbl-dados">
+               <tr><td class="lbl" style="width:60%">Custo dos ingredientes</td><td class="val">${fmtBRL(custoPorcaoFicha)}</td></tr>
+               <tr><td class="lbl">Custo de embalagem</td><td class="val">R$ 0,00</td></tr>
+               <tr><td class="lbl" style="font-weight:800;color:#0f172a">Custo total</td><td class="val" style="font-weight:900;color:#0f172a">${fmtBRL(custoPorcaoFicha)}</td></tr>
+               ${precoFicha > 0 ? `<tr><td class="lbl" style="font-weight:800;color:#0f172a">Preço de venda sugerido</td><td class="val" style="font-weight:900;color:#0f172a">${fmtBRL(precoFicha)}</td></tr>` : ''}
+               ${cmvFicha !== null ? `<tr><td class="lbl" style="font-weight:800;color:#0f172a">CMV</td><td class="val" style="font-weight:900;color:#0f172a">${cmvFicha.toFixed(1).replace(".", ",")}%</td></tr>` : ''}
+            </table>
+         </div>
+      ` : '';
 
       const foto = incluir("foto") && f.imagem
-         ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
-         : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
-
-      const dept = String(f.departamento || '').toLowerCase();
-      const isBar = dept === 'bar';
-      const ehBase = !!f.eh_base;
-
-      let bannerClass = 'banner-cozinha-prato';
-      let badgeText = 'COZINHA · FICHA TÉCNICA DE PRATO';
-      if (isBar) {
-        if (ehBase) {
-          bannerClass = 'banner-bar-base';
-          badgeText = 'BAR · FICHA TÉCNICA DE PRÉ-PREPARO / BASE DO BAR';
-        } else {
-          bannerClass = 'banner-bar-prato';
-          badgeText = 'BAR · FICHA TÉCNICA DE DRINK / BEBIDA';
-        }
-      } else {
-        if (ehBase) {
-          bannerClass = 'banner-cozinha-base';
-          badgeText = 'COZINHA · FICHA TÉCNICA DE PRÉ-PREPARO / BASE';
-        }
-      }
+         ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto-box" />`
+         : incluir("foto") ? `<div class="foto-vazia-box">SEM FOTO</div>` : "";
 
       const codigoVal = f.codigo || `FT-${String(f.id || '').slice(0, 4).toUpperCase()}`;
       const versaoVal = f.versao || '1.0';
-      const respVal = f.responsavel || '—';
+      const respVal = f.responsavel || deptLabel;
       const dataVal = fmtDataBR(f.updated_at || f.created_at);
+      const pesoFinalTexto = f.peso_porcao_g ? `${f.peso_porcao_g} g` : '—';
 
       const corpo = `
-         <div class="banner-topo ${bannerClass}">
+         <!-- TOP HEADER -->
+         <div class="header-top">
+            <div class="header-brand">
+               <div class="brand-logo-text">${esc(unidadeInfo?.nome || 'Seldeestrela')}</div>
+               <div class="brand-sub-text">COMIDAS NORTISTAS</div>
+            </div>
+            <div class="header-title-box">
+               <div class="header-main-title">FICHA TÉCNICA</div>
+               <div class="header-sub-title">LIVRO DE RECEITAS</div>
+            </div>
+            <div class="header-meta">
+               <table class="meta-table">
+                  <tr><td class="lbl">CÓDIGO</td><td class="val">${esc(codigoVal)}</td></tr>
+                  <tr><td class="lbl">VERSÃO</td><td class="val">${esc(versaoVal)}</td></tr>
+                  <tr><td class="lbl">DATA</td><td class="val">${esc(dataVal)}</td></tr>
+                  <tr><td class="lbl">RESPONSÁVEL</td><td class="val">${esc(respVal)}</td></tr>
+               </table>
+            </div>
+         </div>
+
+         <!-- BANNER COM NOME DO PRATO -->
+         <div class="banner-nome ${bannerClass}">
+            <h1>${esc(f.nome_receita)}</h1>
+         </div>
+
+         <!-- FOTO + INFORMAÇÕES GERAIS -->
+         <div class="grid-foto-info">
             <div>
-               <div class="badge-setor">${esc(badgeText)}</div>
-               <h1 class="titulo-ficha">${esc(f.nome_receita)}</h1>
-            </div>
-         </div>
-
-         <div class="header-box">
-            <div class="brand-area">
-               ${logoSeldeestrelaSVG(36)}
-               <div>
-                  <div class="brand-title">${esc(unidadeInfo?.nome || 'SEL DE ESTRELA')}</div>
-                  <div class="brand-subtitle">Manual Operacional de Produção</div>
-               </div>
-            </div>
-            <table class="meta-table">
-               <tr><td><b>Código:</b> ${esc(codigoVal)}</td><td><b>Versão:</b> ${esc(versaoVal)}</td></tr>
-               <tr><td><b>Data:</b> ${esc(dataVal)}</td><td><b>Resp.:</b> ${esc(respVal)}</td></tr>
-            </table>
-         </div>
-
-         <div class="corpo-ficha">
-            <div class="col-foto">
                ${foto}
-               <div class="resumo-box">
-                  <div class="resumo-item">
-                     <span class="resumo-label">Categoria</span>
-                     <span class="resumo-val">${esc(f.categoria || (isBar ? 'Bar' : 'Cozinha'))}</span>
-                  </div>
-                  <div class="resumo-item">
-                     <span class="resumo-label">Rendimento Total</span>
-                     <span class="resumo-val">${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</span>
-                  </div>
-                  <div class="resumo-item">
-                     <span class="resumo-label">Tempo de Preparo</span>
-                     <span class="resumo-val">${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</span>
-                  </div>
-                  ${f.tempo_coccao != null && f.tempo_coccao !== '' ? `
-                  <div class="resumo-item">
-                     <span class="resumo-label">Tempo de Cocção</span>
-                     <span class="resumo-val">${esc(String(f.tempo_coccao))} min</span>
-                  </div>` : ''}
-                  ${f.padrao_montagem ? `
-                  <div class="resumo-item">
-                     <span class="resumo-label">Padrão de Montagem</span>
-                     <span class="resumo-val">${esc(f.padrao_montagem)}</span>
-                  </div>` : ''}
-                  ${metodoBar(f.metodo_bar) ? `
-                  <div class="resumo-item">
-                     <span class="resumo-label">Método do Bar</span>
-                     <span class="resumo-val">${esc(metodoBar(f.metodo_bar).nome)}</span>
-                  </div>` : ''}
-               </div>
-               ${blocoCusto}
             </div>
+            <div>
+               <table class="tbl-geral">
+                  <tr><td class="lbl">CATEGORIA</td><td class="val">${esc(f.categoria || (isBar ? 'Bar' : 'Cozinha'))}</td></tr>
+                  <tr><td class="lbl">RENDIMENTO</td><td class="val">${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</td></tr>
+                  <tr><td class="lbl">TEMPO DE PREPARO</td><td class="val">${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' minutos' : '—'}</td></tr>
+                  <tr><td class="lbl">TEMPO DE COCÇÃO</td><td class="val">${f.tempo_coccao != null && f.tempo_coccao !== '' ? esc(String(f.tempo_coccao)) + ' minutos' : '—'}</td></tr>
+                  <tr><td class="lbl">PESO FINAL (aprox.)</td><td class="val">${esc(pesoFinalTexto)}</td></tr>
+                  <tr><td class="lbl">SETOR</td><td class="val">${esc(deptLabel)}</td></tr>
+               </table>
+            </div>
+         </div>
 
-            <div class="col-conteudo">
-               ${incluir("ingredientes") ? `
-               <div>
-                  <div class="secao-titulo">Itens do Preparo</div>
-                  <table class="tabela-itens">
-                     <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Qtd Total</th></tr></thead>
-                     <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
+         <!-- BANNER E TABELA DE INGREDIENTES -->
+         ${incluir("ingredientes") ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">INGREDIENTES</div>
+            <table class="tbl-dados">
+               <thead>
+                  <tr>
+                     <th style="width:35%">INGREDIENTE</th>
+                     <th style="width:15%">UNIDADE</th>
+                     <th style="width:20%">QUANTIDADE</th>
+                     <th style="width:30%">OBSERVAÇÃO</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  ${rowsIngredientes || '<tr><td colspan="4" style="text-align:center">Sem ingredientes cadastrados.</td></tr>'}
+               </tbody>
+            </table>
+         </div>` : ""}
+
+         <!-- BANNER E MODO DE PREPARO -->
+         ${incluir("preparo") ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">MODO DE PREPARO</div>
+            <table class="tbl-dados">
+               <tbody>
+                  ${passosRows}
+               </tbody>
+            </table>
+         </div>` : ""}
+
+         <!-- 2 COLUNAS: ARMAZENAMENTO vs EQUIPAMENTOS & ALERGÊNICOS -->
+         <div class="grid-2col">
+            <div>
+               <div class="sec-block">
+                  <div class="sec-banner ${bannerClass}">ARMAZENAMENTO E VALIDADE</div>
+                  <table class="tbl-dados">
+                     ${blocoArmazenamentoLinhas}
                   </table>
-               </div>` : ""}
-
-               ${incluir("preparo") ? `
-               <div>
-                  <div class="secao-titulo">Modo de Preparo</div>
-                  <div class="passos">${preparoHTML}</div>
-               </div>` : ""}
-
+               </div>
+            </div>
+            <div>
                ${blocoEquipamentos}
-               ${blocoArmazenamento}
                ${blocoAlergenicos}
             </div>
          </div>
 
-         <div class="slogan-bar">SABOR QUE CONECTA. PADRÃO QUE PERMANECE.</div>
+         <!-- 2 COLUNAS: CUSTO DA RECEITA vs INFORMAÇÕES ADICIONAIS -->
+         <div class="grid-2col">
+            <div>
+               ${blocoCustosTabela}
+            </div>
+            <div>
+               <div class="sec-block">
+                  <div class="sec-banner ${bannerClass}">INFORMAÇÕES ADICIONAIS</div>
+                  <table class="tbl-dados">
+                     <tr><td class="lbl" style="width:45%">Padrão de montagem</td><td class="val">${esc(f.padrao_montagem || 'Conforme foto')}</td></tr>
+                     <tr><td class="lbl">Observações</td><td class="val">${esc(f.observacoes || 'Manter padrão de gramatura e montagem para garantir a qualidade.')}</td></tr>
+                  </table>
+               </div>
+            </div>
+         </div>
+
+         <!-- FOOTER DELICADO SEM BARRA ESCURA -->
+         <div class="footer-delicado">
+            <div class="footer-line-left"></div>
+            <div class="footer-text">SABORES DA AMAZÔNIA EM CADA MORDIDA</div>
+            <div class="footer-line-right"></div>
+         </div>
       `;
 
-      const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + passos.length * 7 + (f.observacoes ? 8 : 0);
+      const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + (passosRows ? 30 : 0);
       return { f, corpo, score, secao: ehLivro ? secaoDe(f) : '' };
     });
 

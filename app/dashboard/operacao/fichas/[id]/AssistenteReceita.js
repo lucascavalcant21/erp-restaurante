@@ -14,7 +14,7 @@ import { Loader2, Mic, MicOff, Send, Sparkles, X } from "lucide-react";
 import { interpretar, executar, EXEMPLOS } from "../../../../lib/ficha-assistente.mjs";
 import { criarEscuta, vozDisponivel } from "../../../../lib/hefisto-voz";
 
-export default function AssistenteReceita({ ficha, todasFichas, custos, onAplicar, onFechar }) {
+export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerCustos = true, onAplicar, onFechar }) {
   const [conversa, setConversa] = useState([]);
   const [entrada, setEntrada] = useState("");
   const [pensando, setPensando] = useState(false);
@@ -34,7 +34,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, onAplica
     setEntrada("");
     setPensando(true);
 
-    const contexto = { ficha, todasFichas, custos };
+    const contexto = { ficha, todasFichas, custos, podeVerCustos };
 
     // 1) Interpretador local — cobre as frases do dia a dia sem gastar chamada.
     let intencao = interpretar(pergunta);
@@ -117,7 +117,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, onAplica
             <div>
               <p className="text-sm text-slate-500">Pergunte sobre esta receita. Por exemplo:</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {EXEMPLOS.map(ex => (
+                {(podeVerCustos ? EXEMPLOS : EXEMPLOS.filter(e => !/cust|cmv|R\$/i.test(e))).map(ex => (
                   <button key={ex} onClick={() => responder(ex)}
                     className="rounded-xl border border-slate-200 px-2.5 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-50">
                     {ex}

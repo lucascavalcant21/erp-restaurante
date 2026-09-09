@@ -138,6 +138,21 @@ contem("preparo nao tem CMV", preparo.texto, "não é vendido");
 const semItem = executar({ tipo: "simular_preco_insumo", insumo: "bacon", preco: 60, unidade: "kg" }, ctx);
 contem("avisa item ausente", semItem.texto, "Não achei");
 
+// ── Permissão de ver custos ────────────────────────────────────────────────
+const semCusto = { ...ctx, podeVerCustos: false };
+contem("nao revela o custo sem permissao",
+  executar({ tipo: "custo_atual" }, semCusto).texto, "não tem permissão");
+contem("nao revela o item mais caro sem permissao",
+  executar({ tipo: "ingrediente_mais_caro" }, semCusto).texto, "não tem permissão");
+contem("nao simula CMV sem permissao",
+  executar({ tipo: "simular_cmv", cmv: 30 }, semCusto).texto, "não tem permissão");
+contem("nao simula preco de insumo sem permissao",
+  executar({ tipo: "simular_preco_insumo", insumo: "carne", preco: 50, unidade: "kg" }, semCusto).texto, "não tem permissão");
+// Escalar continua util: as quantidades aparecem, o custo nao.
+const escSemCusto = executar({ tipo: "escalar", alvo: 20, unidade: "porcoes" }, semCusto);
+contem("escala mostra quantidade sem permissao", escSemCusto.texto, "3000 g");
+conferir("escala esconde o custo sem permissao", escSemCusto.texto.includes("R$"), false);
+
 conferir("intencao desconhecida nao quebra", typeof executar({ tipo: "xpto" }, ctx).texto, "string");
 conferir("sem ficha nao quebra", typeof executar({ tipo: "custo_atual" }, {}).texto, "string");
 

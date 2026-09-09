@@ -183,8 +183,18 @@ export function custosPorLinha(ficha, todasFichas = []) {
 // `contexto` = { ficha, todasFichas, custos } — `custos` é o resultado de
 // custoTotalReceita já calculado pela tela, para os dois falarem o mesmo número.
 export function executar(intencao, contexto = {}) {
-  const { ficha, todasFichas = [], custos = {} } = contexto;
+  const { ficha, todasFichas = [], custos = {}, podeVerCustos = true } = contexto;
   if (!intencao || !ficha) return { texto: "Não entendi o pedido." };
+
+  // Quem não tem permissão para ver custo na ficha também não a obtém pedindo
+  // ao assistente — senão o controle de acesso vira decoração.
+  const PEDE_CUSTO = new Set([
+    "custo_atual", "ingrediente_mais_caro", "simular_cmv",
+    "simular_preco_insumo", "reduzir_custo",
+  ]);
+  if (!podeVerCustos && PEDE_CUSTO.has(intencao.tipo)) {
+    return { texto: "Você não tem permissão para ver os custos desta receita. Fale com o gerente se precisar deste acesso." };
+  }
 
   const linhas = custosPorLinha(ficha, todasFichas);
   const custoTotal = parseNumero(custos.custoTotal);
@@ -285,8 +295,11 @@ export function executar(intencao, contexto = {}) {
         const qTexto = q >= 100 ? Math.round(q) : +q.toFixed(2);
         return `• ${l.nome}: ${qTexto} ${l.unidade}`.trim();
       });
+      const cabecalho = `Para **${alvo} ${intencao.unidade === "porcoes" ? "porções" : unidade}** (${fator.toFixed(2).replace(".", ",")}× a receita atual)`;
       return {
-        texto: `Para **${alvo} ${intencao.unidade === "porcoes" ? "porções" : unidade}** (${fator.toFixed(2).replace(".", ",")}× a receita atual), o custo vai para **${brl(custoTotal * fator)}**:\n\n${itens.join("\n")}`,
+        texto: podeVerCustos
+          ? `${cabecalho}, o custo vai para **${brl(custoTotal * fator)}**:\n\n${itens.join("\n")}`
+          : `${cabecalho}:\n\n${itens.join("\n")}`,
         nota: "Isto é uma conta de produção; a ficha não foi alterada.",
       };
     }

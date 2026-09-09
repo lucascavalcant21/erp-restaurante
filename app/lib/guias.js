@@ -45,13 +45,25 @@ export async function salvarGuia(guia) {
     conteudo: guia.conteudo ?? [],
     observacoes: guia.observacoes || null,
     ordem: Number(guia.ordem) || 0,
+    imagem_url: guia.imagem_url || null,
   };
 
   if (guia.id) {
-    const { error } = await supabase.from("guias_operacionais").update(campos).eq("id", guia.id);
+    let { error } = await supabase.from("guias_operacionais").update(campos).eq("id", guia.id);
+    if (error && error.message?.includes("imagem_url")) {
+      delete campos.imagem_url;
+      const res = await supabase.from("guias_operacionais").update(campos).eq("id", guia.id);
+      error = res.error;
+    }
     return { id: guia.id, error: error ? (tabelaAusente(error) ? "sem_tabela" : error.message) : null };
   }
-  const { data, error } = await supabase.from("guias_operacionais").insert([campos]).select("id").single();
+  let { data, error } = await supabase.from("guias_operacionais").insert([campos]).select("id").single();
+  if (error && error.message?.includes("imagem_url")) {
+    delete campos.imagem_url;
+    const res = await supabase.from("guias_operacionais").insert([campos]).select("id").single();
+    data = res.data;
+    error = res.error;
+  }
   return { id: data?.id || null, error: error ? (tabelaAusente(error) ? "sem_tabela" : error.message) : null };
 }
 
@@ -75,9 +87,16 @@ export async function semearGuias(unidadeId, modelos, tipo) {
     cor: modelo.cor || null,
     conteudo: modelo.conteudo ?? [],
     observacoes: modelo.observacoes || null,
+    imagem_url: modelo.imagem_url || null,
     ordem: indice,
   }));
-  const { data, error } = await supabase.from("guias_operacionais").insert(linhas).select("*");
+  let { data, error } = await supabase.from("guias_operacionais").insert(linhas).select("*");
+  if (error && error.message?.includes("imagem_url")) {
+    const limpos = linhas.map(({ imagem_url, ...resto }) => resto);
+    const res = await supabase.from("guias_operacionais").insert(limpos).select("*");
+    data = res.data;
+    error = res.error;
+  }
   if (error) return { data: [], error: tabelaAusente(error) ? "sem_tabela" : error.message };
   return { data: data || [], error: null };
 }

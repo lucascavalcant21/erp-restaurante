@@ -932,15 +932,20 @@ function RotinaRunner() {
                                 <Clock3 size={10} /> Previsto {it.horario_previsto}
                               </span>
                             )}
+                            {it.hora_intervalo && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <Clock3 size={10} /> Pausa / Intervalo: {it.hora_intervalo}
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm font-bold leading-tight transition-all"
                             style={{ color: statusItem === "nao_conforme" ? "#DC2626" : ok ? t.cor : "var(--fg)", textDecoration: ok && statusItem !== "nao_conforme" ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
                             {it.texto}
                           </p>
                           {Number(it.tempo_minutos) > 0 && <p className="mt-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={11}/>{Number(it.tempo_minutos)} min previstos</p>}
-                          {(it.foto_antes || it.foto_final) && (
+                          {(it.foto_equipamento || it.foto_antes || it.foto_final) && (
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {[[it.foto_antes, "Inicial (Antes)"], [it.foto_final, "Foto Gabarito (Exemplo Final)"]].filter(([foto]) => foto).map(([foto, label]) => (
+                              {[[it.foto_equipamento, "Equipamento"], [it.foto_antes, "Inicial (Antes)"], [it.foto_final, "Foto Gabarito (Exemplo Final)"]].filter(([foto]) => foto).map(([foto, label]) => (
                                 <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm hover:border-emerald-400 transition-all" title={`Ver foto de referência: ${label}`}>
                                   <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-16 w-28 object-cover" />
                                   <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 px-1.5 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">{label}</span>

@@ -802,8 +802,8 @@ function GerenciarChecklistsContent() {
                           <button onClick={() => removeTarefa(it.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200 mt-1" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={16} /></button>
                         </div>
 
-                        <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                          <label className="block">
+                        <div className="mt-3 grid gap-2 sm:grid-cols-5">
+                          <label className="block sm:col-span-1">
                             <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-emerald-700">Fase do Turno</span>
                             <select
                               value={it.fase_turno || "abertura"}
@@ -824,6 +824,17 @@ function GerenciarChecklistsContent() {
                               value={it.horario_previsto || ""}
                               onChange={e => mudaTarefa(it.id, { horario_previsto: e.target.value })}
                               className="w-full rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900 outline-none focus:border-sky-500"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-amber-700">Pausa / Intervalo</span>
+                            <input
+                              type="text"
+                              placeholder="Ex: 10 min ou 15h-16h"
+                              value={it.hora_intervalo || ""}
+                              onChange={e => mudaTarefa(it.id, { hora_intervalo: e.target.value })}
+                              className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900 outline-none focus:border-amber-500"
                             />
                           </label>
 
@@ -849,8 +860,8 @@ function GerenciarChecklistsContent() {
                           </label>
                         </div>
 
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          {[["foto_antes", "Padrão Inicial (Antes)"], ["foto_final", "Foto Gabarito (Exemplo Final)"]].map(([campo, label]) => (
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          {[["foto_equipamento", "Foto do Equipamento"], ["foto_antes", "Padrão Inicial (Antes)"], ["foto_final", "Foto Gabarito (Exemplo Final)"]].map(([campo, label]) => (
                             <div key={campo} className="overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
                               {it[campo] ? (
                                 <div className="relative">

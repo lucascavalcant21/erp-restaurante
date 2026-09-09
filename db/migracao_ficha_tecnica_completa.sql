@@ -52,9 +52,24 @@ update public.fichas_tecnicas
 set status = case
   when lower(coalesce(status, '')) in ('inativa', 'inativo', 'false') then 'inativa'
   when lower(coalesce(status, '')) = 'rascunho'                       then 'rascunho'
-  when ativo is false                                                  then 'inativa'
   else 'ativa'
 end;
+
+-- A coluna booleana `ativo` existe em algumas instalações e não em outras
+-- (a listagem já trata os dois casos). Só usamos se ela estiver lá.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'fichas_tecnicas' and column_name = 'ativo'
+  ) then
+    execute $sql$
+      update public.fichas_tecnicas
+      set status = 'inativa'
+      where ativo is false and status <> 'rascunho'
+    $sql$;
+  end if;
+end $$;
 
 update public.fichas_tecnicas
 set versao = '1.0'
@@ -271,26 +286,41 @@ end $$;
 --     Numera por unidade, na ordem de criação, sem sobrescrever código já
 --     preenchido à mão.
 -- ───────────────────────────────────────────────────────────────────────────
-with numeradas as (
-  select
-    id,
-    'FT-' || lpad(
-      row_number() over (partition by unidade_id order by created_at, nome_receita)::text,
-      4, '0'
-    ) as novo_codigo
-  from public.fichas_tecnicas
-  where codigo is null or codigo = ''
-)
-update public.fichas_tecnicas f
-set codigo = n.novo_codigo
-from numeradas n
-where f.id = n.id
-  and not exists (
-    select 1 from public.fichas_tecnicas outra
-    where outra.unidade_id = f.unidade_id
-      and outra.codigo = n.novo_codigo
-      and outra.id <> f.id
-  );
+-- Ordena por data de criação quando a coluna existir; senão, por nome (que
+-- sempre existe). A numeração precisa ser estável, não cronológica.
+do $$
+declare
+  v_ordem text := 'nome_receita';
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'fichas_tecnicas' and column_name = 'created_at'
+  ) then
+    v_ordem := 'created_at, nome_receita';
+  end if;
+
+  execute format($sql$
+    with numeradas as (
+      select
+        id,
+        'FT-' || lpad(
+          row_number() over (partition by unidade_id order by %s)::text, 4, '0'
+        ) as novo_codigo
+      from public.fichas_tecnicas
+      where codigo is null or codigo = ''
+    )
+    update public.fichas_tecnicas f
+    set codigo = n.novo_codigo
+    from numeradas n
+    where f.id = n.id
+      and not exists (
+        select 1 from public.fichas_tecnicas outra
+        where outra.unidade_id is not distinct from f.unidade_id
+          and outra.codigo = n.novo_codigo
+          and outra.id <> f.id
+      )
+  $sql$, v_ordem);
+end $$;
 
 -- (`versao`, `status` e os custos indiretos já foram normalizados no passo 1,
 --  antes das constraints.)

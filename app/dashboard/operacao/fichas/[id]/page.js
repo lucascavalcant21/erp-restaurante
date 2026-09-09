@@ -12,14 +12,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  AlertTriangle, ArrowLeft, Calculator, ChevronRight, Clock, Info, Loader2,
-  Package, Percent, Save, Scale, Tag, Thermometer, TrendingUp, UtensilsCrossed,
+  AlertTriangle, ArrowLeft, Calculator, ChevronRight, Clock, Info, Layers, ListOrdered,
+  Loader2, Package, Percent, Save, Scale, Snowflake, Tag, TrendingUp, UtensilsCrossed, Wrench,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
 import {
-  fetchFichaCompleta, salvarCamposFicha, garantirCodigoFicha, STATUS_FICHA,
+  fetchFichaCompleta, salvarCamposFicha, garantirCodigoFicha, salvarComplementosFicha,
+  STATUS_FICHA,
 } from "../../../../lib/ficha-tecnica";
+import {
+  EtapasPreparo, Equipamentos, Alergenicos, Armazenamento, MontagemPassos, novaChave,
+} from "./SecoesFicha";
 import {
   custoDeProduzirFicha, custoTotalReceita, custoPorPorcao, parseNumero,
   perdaPeso, perdaPercentual, pesoPorPorcao, tempoTotal,
@@ -90,6 +94,17 @@ export default function FichaTecnicaPage() {
   const [sujo, setSujo] = useState(false);
   const [cmvSimulado, setCmvSimulado] = useState("");
 
+  // Seções que moram nas tabelas filhas (etapas, equipamentos, etc.)
+  const [etapas, setEtapas] = useState([]);
+  const [equipamentos, setEquipamentos] = useState([]);
+  const [alergenicos, setAlergenicos] = useState([]);
+  const [podeConter, setPodeConter] = useState("");
+  const [armazenamento, setArmazenamento] = useState({});
+  const [montagem, setMontagem] = useState([]);
+
+  // Toda seção nova mexe no mesmo botão SALVAR.
+  const alterarSecao = (setter) => (valor) => { setter(valor); setSujo(true); };
+
   // ── Carga ────────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
     if (!fichaId) return;
@@ -117,6 +132,16 @@ export default function FichaTecnicaPage() {
     const completa = { ...data, codigo };
     setFicha(completa);
     setForm(Object.fromEntries(CAMPOS_EDITAVEIS.map(c => [c, completa[c] ?? ""])));
+
+    // As listas ganham uma `chave` estável para o React não embaralhar as
+    // linhas quando o usuário reordena ou remove uma no meio.
+    setEtapas((completa.etapas || []).map(e => ({ ...e, chave: e.id || novaChave() })));
+    setEquipamentos((completa.equipamentos || []).map(e => e.nome).filter(Boolean));
+    setAlergenicos((completa.alergenicos || []).map(a => a.alergenico).filter(Boolean));
+    setPodeConter(completa.alergenicos_pode_conter || "");
+    setArmazenamento(completa.armazenamento || {});
+    setMontagem((completa.montagem_passos || []).map(p => ({ ...p, chave: p.id || novaChave() })));
+
     setSujo(false);
     if (migracaoPendente) {
       setAviso("Alguns campos novos ainda não existem no banco. Rode db/migracao_ficha_tecnica_completa.sql no Supabase para gravá-los.");
@@ -226,15 +251,24 @@ export default function FichaTecnicaPage() {
       if (numericos.has(campo)) payload[campo] = valor === "" || valor === null ? null : parseNumero(valor);
       else payload[campo] = valor === "" ? null : valor;
     }
+    payload.alergenicos_pode_conter = podeConter || null;
     payload.atualizado_em = new Date().toISOString();
 
     const { error, colunasIgnoradas } = await salvarCamposFicha(ficha.id, payload);
+    if (error) { setSalvando(false); setErro(error); return; }
+
+    // Seções que moram nas tabelas filhas.
+    const complementos = await salvarComplementosFicha(ficha.id, ficha.unidade_id || unidadeAtiva, {
+      etapas, equipamentos, alergenicos, montagem_passos: montagem, armazenamento,
+    });
     setSalvando(false);
 
-    if (error) { setErro(error); return; }
+    if (complementos.error) { setErro(complementos.error); return; }
+
     setSujo(false);
-    if (colunasIgnoradas?.length) {
-      setAviso(`Salvo. Estes campos ainda não existem no banco e foram ignorados: ${colunasIgnoradas.join(", ")}. Rode db/migracao_ficha_tecnica_completa.sql no Supabase.`);
+    const faltando = [...new Set([...(colunasIgnoradas || []), ...(complementos.pendentes || [])])];
+    if (faltando.length) {
+      setAviso(`Salvo o que o banco aceita. Ainda faltam no banco: ${faltando.join(", ")}. Rode db/migracao_ficha_tecnica_completa.sql no Supabase para gravar essas partes.`);
     } else {
       setAviso("Ficha salva.");
     }
@@ -512,6 +546,49 @@ export default function FichaTecnicaPage() {
           className="mt-3 flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
           Editar ingredientes na tela de fichas <ChevronRight size={16} />
         </button>
+      </Secao>
+
+      {/* ── Modo de preparo ───────────────────────────────────────────────── */}
+      <Secao icone={ListOrdered} titulo="Modo de preparo"
+        descricao="Cada etapa com o seu tempo, temperatura e equipamento.">
+        <EtapasPreparo etapas={etapas} onChange={alterarSecao(setEtapas)}
+          modoPreparoLegado={ficha.modo_preparo} />
+        {ficha.modo_preparo && etapas.length > 0 ? (
+          <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+              Texto original do modo de preparo
+            </summary>
+            <p className="mt-2 whitespace-pre-wrap text-xs text-slate-500">{ficha.modo_preparo}</p>
+          </details>
+        ) : null}
+      </Secao>
+
+      {/* ── Equipamentos ──────────────────────────────────────────────────── */}
+      <Secao icone={Wrench} titulo="Equipamentos e utensílios"
+        descricao="O que precisa estar à mão antes de começar.">
+        <Equipamentos selecionados={equipamentos} onChange={alterarSecao(setEquipamentos)} />
+      </Secao>
+
+      {/* ── Montagem ──────────────────────────────────────────────────────── */}
+      <Secao icone={Layers} titulo="Montagem e finalização"
+        descricao="A ordem exata em que o prato é montado.">
+        <MontagemPassos passos={montagem} onChange={alterarSecao(setMontagem)} />
+      </Secao>
+
+      {/* ── Armazenamento ─────────────────────────────────────────────────── */}
+      <Secao icone={Snowflake} titulo="Armazenamento e validade"
+        descricao="Como guardar e por quanto tempo.">
+        <Armazenamento dados={armazenamento} onChange={alterarSecao(setArmazenamento)} />
+      </Secao>
+
+      {/* ── Alergênicos ───────────────────────────────────────────────────── */}
+      <Secao icone={AlertTriangle} titulo="Alergênicos"
+        descricao="Declaração obrigatória (RDC 727/2022).">
+        <Alergenicos
+          selecionados={alergenicos} podeConter={podeConter}
+          onChange={alterarSecao(setAlergenicos)}
+          onPodeConterChange={(v) => { setPodeConter(v); setSujo(true); }}
+        />
       </Secao>
 
       {/* ── Custos e precificação ─────────────────────────────────────────── */}

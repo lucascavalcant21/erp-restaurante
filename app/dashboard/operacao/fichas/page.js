@@ -1922,8 +1922,8 @@ function FichasRunner() {
          <!-- TOP HEADER -->
          <div class="header-top">
             <div class="header-brand">
-               <div class="brand-logo-text">${esc(unidadeInfo?.nome || 'Seldeestrela')}</div>
-               <div class="brand-sub-text">COMIDAS NORTISTAS</div>
+               <div class="brand-logo-text">Seldeestrela</div>
+               <div class="brand-sub-text">RESTAURANTE AMAZÔNICO</div>
             </div>
             <div class="header-title-box">
                <div class="header-main-title">FICHA TÉCNICA</div>
@@ -2035,7 +2035,7 @@ function FichasRunner() {
          <!-- FOOTER DELICADO SEM BARRA ESCURA -->
          <div class="footer-delicado">
             <div class="footer-line-left"></div>
-            <div class="footer-text">SABORES DA AMAZÔNIA EM CADA MORDIDA</div>
+            <div class="footer-text">RESTAURANTE AMAZÔNICO</div>
             <div class="footer-line-right"></div>
          </div>
       `;

@@ -331,6 +331,6 @@ export function montarHtmlFichaTecnica({
     </div>
   </div>
 
-  <div class="rodape">SABORES DA AMAZÔNIA EM CADA MORDIDA</div>
+  <div class="rodape">RESTAURANTE AMAZÔNICO</div>
 </body></html>`;
 }

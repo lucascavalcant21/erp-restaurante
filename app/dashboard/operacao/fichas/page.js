@@ -2437,6 +2437,8 @@ function FichasRunner() {
                          {acoesCardAberto === f.id && (
                            <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-lg text-xs font-bold">
                              <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📖 Ver Ficha</button>
+                             {/* Ficha técnica completa: código, pesos, perdas, precificação e simulador de CMV */}
+                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📑 Ficha técnica</button>
                              {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📋 Montagem</button>}
                              <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🧮 Simular</button>
                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🖨️ Imprimir</button>

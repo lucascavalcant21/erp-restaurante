@@ -96,6 +96,8 @@ const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infus�
 // METODOS_BAR e metodoBar vivem em lib/ficha-tecnica.js: a ficha técnica grava
 // o mesmo `metodo_bar`, e duas listas separadas divergiriam nos ids.
 const CATEGORIAS_PREPARO_COZINHA = [
+  "Empanamentos e farinhas",
+  "Salmouras e marinadas",
   "Molhos e caldos",
   "Arroz, feijão e grãos",
   "Massas e recheios",
@@ -1780,10 +1782,12 @@ function FichasRunner() {
        </style></head><body>
     `;
 
-    const ORDEM_SECOES = ['Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos', 'Molhos'];
+    const ORDEM_SECOES = ['Empanamentos', 'Salmouras e Marinadas', 'Molhos', 'Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos'];
     const secaoDe = (f) => {
       const nome = String(f.nome_receita || '').toLowerCase();
       const cat = String(f.categoria || '').toLowerCase();
+      if (cat.includes('empan') || nome.includes('empan')) return 'Empanamentos';
+      if (cat.includes('salmoura') || cat.includes('marinad') || nome.includes('salmoura') || nome.includes('marinad')) return 'Salmouras e Marinadas';
       if (nome.includes('xarope') || cat.includes('xarope')) return 'Xaropes';
       if (nome.includes('espuma') || cat.includes('espuma')) return 'Espumas';
       if (nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Geleias';

@@ -11,9 +11,21 @@
 --
 -- Como rodar: cole inteiro no SQL Editor do Supabase e execute. É idempotente
 -- (rodar de novo não faz nada).
+--
+-- SEM TRANSAÇÃO, DE PROPÓSITO. Uma versão anterior envolvia tudo num
+-- `begin; … commit;` e dava deadlock no Supabase: a transação segurava
+-- AccessExclusiveLock nas tabelas novas do começo ao fim, enquanto o PostgREST
+-- recarregava o cache de schema por conta própria ao ver o DDL e pedia
+-- AccessShareLock nas mesmas tabelas. Cada comando confirmando sozinho solta o
+-- lock na hora e o impasse não se forma.
+--
+-- Como tudo aqui é "if not exists", uma execução interrompida no meio não
+-- deixa nada quebrado: é só rodar de novo.
 -- ═══════════════════════════════════════════════════════════════════════════
 
-begin;
+-- Não espera por lock preso: falha rápido e o usuário roda de novo, em vez de
+-- travar a tabela de fichas enquanto o restaurante está usando o sistema.
+set lock_timeout = '5s';
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- 1. IDENTIFICAÇÃO E PRODUÇÃO — colunas novas em fichas_tecnicas
@@ -261,24 +273,57 @@ create index if not exists idx_fichas_tec_status        on public.fichas_tecnica
 -- ───────────────────────────────────────────────────────────────────────────
 -- 9. RLS — mesma política aberta que o restante do app usa
 -- ───────────────────────────────────────────────────────────────────────────
-do $$
-declare t text;
-begin
-  foreach t in array array[
-    'fichas_etapas', 'fichas_equipamentos', 'fichas_alergenicos',
-    'fichas_armazenamento', 'fichas_montagem_passos', 'fichas_versoes'
-  ] loop
-    execute format('alter table public.%I enable row level security', t);
-    if not exists (
-      select 1 from pg_policies
-      where schemaname = 'public' and tablename = t and policyname = t || '_all'
-    ) then
-      execute format(
-        'create policy %I on public.%I for all using (true) with check (true)',
-        t || '_all', t
-      );
-    end if;
-  end loop;
+-- Um bloco por tabela, de propósito: um DO inteiro é UMA transação, então o
+-- laço antigo segurava os locks das seis tabelas ao mesmo tempo — foi
+-- exatamente aí que o deadlock com o PostgREST apareceu. Assim cada tabela
+-- trava só a si mesma, por um instante.
+
+alter table public.fichas_etapas enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public'
+                 and tablename='fichas_etapas' and policyname='fichas_etapas_all') then
+    create policy fichas_etapas_all on public.fichas_etapas for all using (true) with check (true);
+  end if;
+end $$;
+
+alter table public.fichas_equipamentos enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public'
+                 and tablename='fichas_equipamentos' and policyname='fichas_equipamentos_all') then
+    create policy fichas_equipamentos_all on public.fichas_equipamentos for all using (true) with check (true);
+  end if;
+end $$;
+
+alter table public.fichas_alergenicos enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public'
+                 and tablename='fichas_alergenicos' and policyname='fichas_alergenicos_all') then
+    create policy fichas_alergenicos_all on public.fichas_alergenicos for all using (true) with check (true);
+  end if;
+end $$;
+
+alter table public.fichas_armazenamento enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public'
+                 and tablename='fichas_armazenamento' and policyname='fichas_armazenamento_all') then
+    create policy fichas_armazenamento_all on public.fichas_armazenamento for all using (true) with check (true);
+  end if;
+end $$;
+
+alter table public.fichas_montagem_passos enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public'
+                 and tablename='fichas_montagem_passos' and policyname='fichas_montagem_passos_all') then
+    create policy fichas_montagem_passos_all on public.fichas_montagem_passos for all using (true) with check (true);
+  end if;
+end $$;
+
+alter table public.fichas_versoes enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public'
+                 and tablename='fichas_versoes' and policyname='fichas_versoes_all') then
+    create policy fichas_versoes_all on public.fichas_versoes for all using (true) with check (true);
+  end if;
 end $$;
 
 -- ───────────────────────────────────────────────────────────────────────────
@@ -324,8 +369,6 @@ end $$;
 
 -- (`versao`, `status` e os custos indiretos já foram normalizados no passo 1,
 --  antes das constraints.)
-
-commit;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- CONFERÊNCIA — o que deve aparecer depois de rodar

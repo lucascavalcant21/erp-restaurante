@@ -11,6 +11,9 @@
 //   markup          = preço de venda / custo por porção
 //   preço sugerido  = custo por porção / (CMV desejado / 100)
 
+import { precoNormalizadoDoInsumo, unidadeNormalizada as unidadeBaseDoInsumo }
+  from "./ingredientes-utils.mjs";
+
 // ─── Números e unidades ─────────────────────────────────────────────────────
 
 // Aceita "1.234,56", "1234.56", 12 e devolve número (0 quando não dá pra ler).
@@ -192,19 +195,38 @@ export function fichasQueUsam(fichaId, todasFichas = []) {
 
 // ─── Custo efetivo do insumo (espelha a tela de edição de fichas) ──────────
 
-// Empanados ganham peso (ganho_pct) e somam o custo do empanamento
-// (custo_empanado_kg, por kg final). Só faz sentido em peso; nas demais
-// unidades vale o custo base.
+// Conversão para a unidade-base do insumo, IGUAL à `converterParaBase` de
+// dashboard/operacao/fichas/page.js. Está replicada aqui de propósito: as duas
+// telas têm de dar o mesmo número, e a da listagem é a referência.
+export function converterParaBaseDoInsumo(quantidade, unidadeLida, unidadeBase) {
+  const q = parseNumero(quantidade);
+  const de = String(unidadeLida ?? "").toLowerCase();
+  const para = String(unidadeBase ?? "").toLowerCase();
+  if (de === para) return q;
+  if (de === "g" && para === "kg") return q / 1000;
+  if (de === "ml" && para === "l") return q / 1000;
+  if (de === "kg" && para === "g") return q * 1000;
+  if (de === "l" && para === "ml") return q * 1000;
+  return q; // unidades incompatíveis — usa como veio, revisável na tela
+}
+
+// Custo por unidade-base do insumo (R$/kg, R$/L).
 //
-// Mesma conta de `custoUnitEfetivo` em dashboard/operacao/fichas/page.js — as
-// duas telas precisam mostrar o mesmo custo para a mesma receita.
+// Mesma conta de `custoUnitEfetivo` em dashboard/operacao/fichas/page.js,
+// inclusive a ordem dos fallbacks: as duas telas precisam mostrar o mesmo
+// custo para a mesma receita. Se a listagem mudar, isto muda junto.
 export function custoUnitarioEfetivoInsumo(insumo) {
-  const base = parseNumero(insumo?.custo_unitario);
+  const base = precoNormalizadoDoInsumo(insumo)
+    || parseNumero(insumo?.custo_unitario)
+    || parseNumero(insumo?.custo_compra)
+    || 0;
   if (!insumo?.empanado) return base;
   const ganho = 1 + parseNumero(insumo.ganho_pct) / 100;
-  const u = unidadeNormalizada(insumo.unidade_medida);
   const empKg = parseNumero(insumo.custo_empanado_kg);
-  const empNaUnidade = u === "g" ? empKg / 1000 : u === "kg" ? empKg : 0;
+  // `base` agora vem normalizado por unidade-base (R$/kg), então o custo do
+  // empanamento entra direto em R$/kg. Converter para grama aqui o dividia por
+  // mil e o empanamento praticamente sumia da conta.
+  const empNaUnidade = unidadeBaseDoInsumo(insumo.unidade_medida) === "kg" ? empKg : 0;
   return (ganho > 0 ? base / ganho : base) + empNaUnidade;
 }
 
@@ -221,9 +243,13 @@ export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set())
   for (const fi of ficha.fichas_ingredientes || []) {
     const fc = fi.fator_correcao;
     if (fi.insumos) {
+      // O custo do insumo é por unidade-base (R$/kg, R$/L), então a quantidade
+      // da receita precisa vir para a mesma base antes de multiplicar.
+      const unBase = unidadeBaseDoInsumo(fi.insumos.unidade_medida)
+        || String(fi.insumos.unidade_medida || "un").toLowerCase();
       total += custoIngrediente({
         custoUnitario: custoUnitarioEfetivoInsumo(fi.insumos),
-        quantidade: fi.quantidade,
+        quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.insumos.unidade_medida, unBase),
         fatorCorrecao: fc,
       });
     } else if (fi.subficha_id) {

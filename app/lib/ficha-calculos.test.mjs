@@ -90,12 +90,33 @@ perto("subreceita com correcao de 10%",
 // ── Custo efetivo do insumo e custo da ficha inteira ───────────────────────
 perto("insumo comum usa o custo direto",
   custoUnitarioEfetivoInsumo({ custo_unitario: 0.04 }), 0.04);
-// Empanado: 10% de ganho de peso e R$ 8,00/kg de empanamento, insumo em g.
-perto("empanado dilui o custo pelo ganho e soma o empanamento",
+// O custo do insumo e SEMPRE normalizado por unidade-base (R$/kg, R$/L).
+// R$ 0,044/g cadastrado em gramas vale R$ 44/kg.
+perto("insumo em gramas vira custo por kg",
+  custoUnitarioEfetivoInsumo({ custo_unitario: 0.044, unidade_medida: "g" }), 44);
+// Empanado: 10% de ganho de peso e R$ 8,00/kg de empanamento.
+// 44 / 1,10 = 40, mais 8 de empanamento = 48. O empanamento entra em R$/kg
+// porque a base ja esta em R$/kg — dividir por mil aqui fazia o empanamento
+// sumir da conta (R$ 7,99 por kg a menos).
+perto("empanado dilui o custo pelo ganho e soma o empanamento por kg",
   custoUnitarioEfetivoInsumo({
     custo_unitario: 0.044, empanado: true, ganho_pct: 10,
     custo_empanado_kg: 8, unidade_medida: "g",
-  }), 0.048);
+  }), 48);
+perto("mesmo insumo cadastrado em kg da o mesmo custo",
+  custoUnitarioEfetivoInsumo({
+    custo_unitario: 44, unidade_medida: "kg", tamanho_embalagem: 1,
+    empanado: true, ganho_pct: 10, custo_empanado_kg: 8,
+  }), 48);
+// A conversao da quantidade para a unidade-base: 150 g de um insumo a R$ 40/kg.
+perto("150 g de um insumo a R$ 40/kg custa R$ 6,00",
+  custoDeProduzirFicha({
+    id: "x", rendimento_porcoes: 1,
+    fichas_ingredientes: [{
+      insumos: { custo_compra: 40, tamanho_embalagem: 1000, unidade_medida: "g" },
+      quantidade: 150, fator_correcao: 0,
+    }],
+  }, []), 6);
 
 // Cheese Burger com uma subreceita (maionese) — confere o encadeamento.
 const maionese = {

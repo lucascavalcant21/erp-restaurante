@@ -230,9 +230,11 @@ function custoUnitEfetivo(ins) {
   const base = precoNormalizadoDoInsumo(ins) || Number(ins?.custo_unitario) || Number(ins?.custo_compra) || 0;
   if (!ins?.empanado) return base;
   const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
-  const u = String(ins.unidade_medida || "").toLowerCase();
   const empKg = Number(ins.custo_empanado_kg) || 0;
-  const empNaUnidade = u === "g" ? empKg / 1000 : u === "kg" ? empKg : 0;
+  // `base` agora vem normalizado por unidade-base (R$/kg), então o custo do
+  // empanamento entra direto em R$/kg. Converter para grama aqui o dividia por
+  // mil e o empanamento praticamente sumia da conta.
+  const empNaUnidade = unidadeNormalizada(ins.unidade_medida) === "kg" ? empKg : 0;
   return base / ganho + empNaUnidade;
 }
 

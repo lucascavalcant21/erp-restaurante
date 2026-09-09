@@ -80,22 +80,40 @@ Responda ESTRITAMENTE em formato JSON sem markdown:
 
     userMessageContent.push({ type: "text", text: promptText });
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 3500,
-        messages: [{ role: "user", content: userMessageContent }],
-      }),
-    });
+    const modelosParaTestar = ["claude-opus-4-8", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"];
+    let response = null;
+    let errorDetail = "";
 
-    if (!response.ok) {
-      console.error("[IA Checklist] Erro API Anthropic:", await response.text());
+    for (const modelName of modelosParaTestar) {
+      try {
+        response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: modelName,
+            max_tokens: 3500,
+            messages: [{ role: "user", content: userMessageContent }],
+          }),
+        });
+
+        if (response.ok) {
+          break;
+        }
+
+        errorDetail = await response.text();
+        console.error(`[IA Checklist] Erro API Anthropic com modelo (${modelName}):`, errorDetail);
+      } catch (err) {
+        errorDetail = err?.message || String(err);
+        console.error(`[IA Checklist] Exceção com modelo (${modelName}):`, errorDetail);
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.error("[IA Checklist] Todos os modelos falharam. Detalhe do último erro:", errorDetail);
       return NextResponse.json({ error: "Erro ao comunicar com a IA." }, { status: 500 });
     }
 

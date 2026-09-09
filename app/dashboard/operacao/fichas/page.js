@@ -1600,33 +1600,37 @@ function FichasRunner() {
   );
 
   const gerarDocumentoConfigurado = async (acao) => {
-    const lista = listaOrdenadaPrevia();
-    if (!lista.length) return;
-    const html = montarHtmlFichas(lista, configImpressao);
-    if (acao === "pdf") {
-      baixarPdfDeHtml(html, configImpressao?.livro ? "livro-de-fichas" : "fichas-tecnicas");
-    } else {
-      const win = window.open("", "_blank");
-      if (!win) return alert("Habilite pop-ups para imprimir.");
-      win.document.write(comFecharImpressao(html));
-      win.document.close();
-      setTimeout(() => win.print(), 800);
+    try {
+      const lista = listaOrdenadaPrevia();
+      if (!lista.length) return alert("Nenhuma ficha técnica selecionada.");
+      const html = montarHtmlFichas(lista, configImpressao);
+      if (acao === "pdf") {
+        baixarPdfDeHtml(html, configImpressao?.livro ? "livro-de-fichas" : "fichas-tecnicas");
+      } else {
+        const win = window.open("", "_blank");
+        if (!win) return alert("O navegador bloqueou a janela pop-up. Habilite os pop-ups para visualizar ou imprimir.");
+        win.document.write(comFecharImpressao(html));
+        win.document.close();
+        setTimeout(() => win.print(), 800);
+      }
+      await registrarAuditoriaFichas({
+        ...usuarioAuditoria,
+        acao: configImpressao?.livro ? "livro" : acao === "pdf" ? "pdf" : "impressao",
+        fichas: lista,
+        detalhes: configImpressao,
+      });
+    } catch (err) {
+      console.error("Erro ao gerar documento:", err);
+      alert("Ocorreu um erro ao gerar o documento: " + (err?.message || err));
     }
-    await registrarAuditoriaFichas({
-      ...usuarioAuditoria,
-      acao: configImpressao?.livro ? "livro" : acao === "pdf" ? "pdf" : "impressao",
-      fichas: lista,
-      detalhes: configImpressao,
-    });
   };
 
   const salvarModeloImpressao = () => {
     try {
       localStorage.setItem("hefisto_modelo_impressao_fichas", JSON.stringify(configImpressao));
-      setMensagemLote("Modelo de impressão salvo neste dispositivo.");
-      window.setTimeout(() => setMensagemLote(""), 3000);
+      alert("Modelo de impressão salvo com sucesso!");
     } catch {
-      setMensagemLote("Não foi possível salvar o modelo.");
+      alert("Não foi possível salvar o modelo de impressão.");
     }
   };
 
@@ -1764,6 +1768,13 @@ function FichasRunner() {
          return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
       }).join('');
 
+      // Passos do modo de preparo (remove numeração já existente e re-enumera)
+      const passos = String(f.modo_preparo || '')
+         .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
+      const passosHTML = passos.length
+         ? passos.map((s, i) => `<div class="passo"><b>${i + 1}.</b> ${esc(s)}</div>`).join('')
+         : `<div class="passo">Não informado.</div>`;
+
       // Etapas, equipamentos, armazenamento e alergênicos — vêm das tabelas
       // novas. Quando não há nada (migração não rodada, ou ficha ainda sem
       // esses dados), cada bloco simplesmente não aparece.
@@ -1847,13 +1858,6 @@ function FichasRunner() {
          ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
          : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
       const deptLabel = f.departamento === 'bar' ? 'Bar' : (f.departamento === 'cozinha' ? 'Cozinha' : (f.departamento || '—'));
-
-      // Passos do modo de preparo (remove numeração já existente e re-enumera)
-      const passos = String(f.modo_preparo || '')
-         .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
-      const passosHTML = passos.length
-         ? passos.map((s, i) => `<div class="passo"><b>${i + 1}.</b> ${esc(s)}</div>`).join('')
-         : `<div class="passo">Não informado.</div>`;
 
       const corpo = `
             <div class="topo">

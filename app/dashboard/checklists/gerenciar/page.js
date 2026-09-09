@@ -206,7 +206,7 @@ function GerenciarChecklistsContent() {
     setForm(f => ({
       ...f,
       titulo: f.titulo.trim() || modelo.titulo,
-      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 })),
+      itens: modelo.itens.map((it, i) => typeof it === "string" ? { id: Date.now() + i, texto: it, fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 } : { id: Date.now() + i, fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5, ...it }),
     }));
   };
 
@@ -260,7 +260,7 @@ function GerenciarChecklistsContent() {
         departamento: dept,
         tipo,
         titulo: m.titulo,
-        itens: m.itens.map((texto, i) => ({ id: i + 1, texto, responsavel: "", tempo_minutos: 5 })),
+        itens: m.itens.map((it, i) => typeof it === "string" ? { id: i + 1, texto: it, responsavel: "", tempo_minutos: 5 } : { id: i + 1, responsavel: "", tempo_minutos: 5, ...it }),
       });
     }
     setCriandoTudo(false);
@@ -592,7 +592,7 @@ function GerenciarChecklistsContent() {
                         return (
                           <button key={tipo} disabled={jaExiste}
                             onClick={() => {
-                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, frequencia: "diario", itens: m.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "", tempo_minutos: 5 })) });
+                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, frequencia: "diario", itens: m.itens.map((it, i) => typeof it === "string" ? { id: Date.now() + i, texto: it, responsavel: "", tempo_minutos: 5 } : { id: Date.now() + i, responsavel: "", tempo_minutos: 5, ...it }) });
                               setModalModelos(false);
                               setModalNovo(true);
                             }}

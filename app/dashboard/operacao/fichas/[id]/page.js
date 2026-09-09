@@ -15,6 +15,7 @@ import {
   AlertTriangle, ArrowLeft, Calculator, ChefHat, ChevronRight, Clock, FileDown, GitBranch,
   History, Info, Layers, ListOrdered, Loader2, Package, Percent, Power, Printer, QrCode,
   Save, Scale, Snowflake, Tag, TrendingUp, UtensilsCrossed, Wine, Wrench, X, Copy,
+  Camera, ImageOff, LineChart, TrendingDown,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
@@ -24,6 +25,8 @@ import {
   METODOS_BAR, TIPOS_GELO, duplicarFicha,
 } from "../../../../lib/ficha-tecnica";
 import { CATALOGO_COPOS } from "../../../../lib/copos";
+import { comprimirFotoParaIA } from "../../../../lib/imagem";
+import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../../lib/ficha-custos";
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
 import { montarHtmlFichaTecnica } from "./imprimirFicha";
 import ModoCozinha from "./ModoCozinha";
@@ -50,6 +53,7 @@ const CAMPOS_EDITAVEIS = [
   "preco_venda", "cmv_meta", "custo_indireto_tipo", "custo_indireto_valor",
   // Só aparecem em ficha do bar; num prato ficam nulos e não atrapalham.
   "metodo_bar", "copo", "guarnicao", "tipo_gelo",
+  "imagem",
 ];
 
 function Secao({ icone: Icone, titulo, descricao, children }) {
@@ -118,6 +122,9 @@ export default function FichaTecnicaPage() {
   const [versoes, setVersoes] = useState([]);
   const [comparando, setComparando] = useState(null); // { a, b }
   const [criandoVersao, setCriandoVersao] = useState(false);
+  const [historico, setHistorico] = useState([]);
+  const [histSemTabela, setHistSemTabela] = useState(false);
+  const [registrandoCusto, setRegistrandoCusto] = useState(false);
 
   // ── Carga ────────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
@@ -155,6 +162,10 @@ export default function FichaTecnicaPage() {
     setPodeConter(completa.alergenicos_pode_conter || "");
     setArmazenamento(completa.armazenamento || {});
     setMontagem((completa.montagem_passos || []).map(p => ({ ...p, chave: p.id || novaChave() })));
+
+    const hist = await fetchHistoricoCustoFicha(data.unidade_id || unidadeAtiva, data.id);
+    setHistorico(hist.data || []);
+    setHistSemTabela(hist.error === "sem_tabela");
 
     setSujo(false);
     if (migracaoPendente) {
@@ -251,6 +262,15 @@ export default function FichaTecnicaPage() {
   const metaCmv = parseNumero(form?.cmv_meta) || 30;
   const tomCmv = !calc?.cmv ? "neutro" : calc.cmv <= metaCmv ? "bom" : calc.cmv <= metaCmv + 5 ? "atencao" : "ruim";
 
+  // Quanto o custo de hoje subiu ou caiu desde o último retrato gravado.
+  const variacaoCusto = useMemo(() => {
+    if (!historico.length || !calc?.custoTotal) return null;
+    const ultimo = parseNumero(historico[0].custo_total);
+    if (ultimo <= 0) return null;
+    const variacao = ((calc.custoTotal - ultimo) / ultimo) * 100;
+    return Math.abs(variacao) < 0.05 ? null : variacao;
+  }, [historico, calc]);
+
   const precoAlvo = useMemo(() => {
     const alvo = parseNumero(cmvSimulado);
     if (!calc || alvo <= 0) return 0;
@@ -338,6 +358,45 @@ export default function FichaTecnicaPage() {
     if (error) { setErro(error); return; }
     setAviso(`Versão ${versao} criada.`);
     carregar();
+  };
+
+  // ── Foto ─────────────────────────────────────────────────────────────────
+  // Mesma compressão da listagem (600 px, JPEG 70%): a foto vai como base64
+  // dentro da linha da ficha, então não pode ser grande.
+  const trocarFoto = async (e) => {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo) return;
+    try {
+      const base64 = await comprimirFotoParaIA(arquivo, 600, 0.7);
+      if (!base64) { setErro("Não foi possível ler esta imagem."); return; }
+      mudar("imagem", base64);
+    } catch {
+      setErro("Não foi possível processar a imagem.");
+    }
+  };
+  const removerFoto = () => {
+    if (!window.confirm("Remover a foto desta ficha?")) return;
+    mudar("imagem", "");
+  };
+
+  // ── Histórico de custos ──────────────────────────────────────────────────
+  const registrarCustoAtual = async () => {
+    setRegistrandoCusto(true);
+    const r = await registrarCustoFicha({
+      unidadeId: ficha.unidade_id || unidadeAtiva,
+      fichaId: ficha.id,
+      custoTotal: calc.custoTotal,
+      custoPorcao: calc.custoPorcao,
+      origem: "manual",
+    });
+    setRegistrandoCusto(false);
+    if (r.error === "sem_tabela") { setHistSemTabela(true); return; }
+    if (r.error) { setErro(r.error); return; }
+    if (r.pulado) { setAviso("O custo não mudou desde o último registro."); return; }
+    const hist = await fetchHistoricoCustoFicha(ficha.unidade_id || unidadeAtiva, ficha.id);
+    setHistorico(hist.data || []);
+    setAviso("Custo registrado no histórico.");
   };
 
   // ── Duplicar, etiqueta e inativar ────────────────────────────────────────
@@ -458,8 +517,9 @@ export default function FichaTecnicaPage() {
     );
   }
 
-  const foto = ficha?.imagem
-    ? (String(ficha.imagem).startsWith("data:") ? ficha.imagem : `data:image/jpeg;base64,${ficha.imagem}`)
+  const imagemAtual = form?.imagem ?? ficha?.imagem;
+  const foto = imagemAtual
+    ? (String(imagemAtual).startsWith("data:") ? imagemAtual : `data:image/jpeg;base64,${imagemAtual}`)
     : "";
 
   return (
@@ -494,10 +554,24 @@ export default function FichaTecnicaPage() {
 
       <Card className="overflow-hidden p-0">
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
-          <div className="h-32 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-28 sm:w-40">
-            {foto
-              ? <img src={foto} alt={ficha.nome_receita} className="h-full w-full object-cover" />
-              : <div className="flex h-full items-center justify-center text-slate-300"><UtensilsCrossed size={26} /></div>}
+          <div className="shrink-0">
+            <div className="relative h-32 w-full overflow-hidden rounded-2xl bg-slate-100 sm:h-28 sm:w-40">
+              {foto
+                ? <img src={foto} alt={ficha.nome_receita} className="h-full w-full object-cover" />
+                : <div className="flex h-full items-center justify-center text-slate-300"><UtensilsCrossed size={26} /></div>}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                <Camera size={13} /> {foto ? "Trocar" : "Adicionar"}
+                <input type="file" accept="image/*" className="hidden" onChange={trocarFoto} />
+              </label>
+              {foto ? (
+                <button onClick={removerFoto} title="Remover foto"
+                  className="rounded-xl border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500">
+                  <ImageOff size={14} />
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -956,6 +1030,80 @@ export default function FichaTecnicaPage() {
             </button>
           ) : null}
         </div>
+      </Secao>
+
+      {/* ── Histórico de custos ───────────────────────────────────────────── */}
+      <Secao icone={LineChart} titulo="Histórico de custos"
+        descricao="Cada linha é um retrato do custo em um momento. Nada é apagado.">
+        {histSemTabela ? (
+          <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-800">
+            O histórico precisa da tabela <code>fichas_custo_historico</code>.
+            Rode <code>db/migracao_ficha_custo_historico.sql</code> no Supabase.
+          </p>
+        ) : (
+          <>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm">
+                <span className="text-slate-500">Custo atual: </span>
+                <span className="font-bold text-slate-800">{fmtBRL(calc.custoTotal)}</span>
+                {variacaoCusto !== null ? (
+                  <span className={`ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-bold ${
+                    variacaoCusto > 0 ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+                    {variacaoCusto > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {variacaoCusto > 0 ? "+" : ""}{fmtPct(variacaoCusto)} desde o último registro
+                  </span>
+                ) : null}
+              </div>
+              <button onClick={registrarCustoAtual} disabled={registrandoCusto}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                {registrandoCusto ? <Loader2 size={14} className="animate-spin" /> : <LineChart size={14} />}
+                Registrar custo de hoje
+              </button>
+            </div>
+
+            {historico.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-400">
+                Nenhum registro ainda. O custo é gravado quando a receita muda, ou pelo botão acima.
+              </p>
+            ) : (
+              <div className="-mx-1 overflow-x-auto">
+                <table className="w-full min-w-[440px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                      <th className="px-1 pb-2 font-medium">Data</th>
+                      <th className="px-1 pb-2 text-right font-medium">Custo total</th>
+                      <th className="px-1 pb-2 text-right font-medium">Variação</th>
+                      <th className="px-1 pb-2 font-medium">Origem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historico.slice(0, 20).map(h => (
+                      <tr key={h.id} className="border-b border-slate-50 last:border-0">
+                        <td className="px-1 py-2 text-slate-600">{fmtData(h.created_at)}</td>
+                        <td className="px-1 py-2 text-right font-semibold tabular-nums text-slate-800">
+                          {fmtBRL(h.custo_total)}
+                        </td>
+                        <td className={`px-1 py-2 text-right tabular-nums font-medium ${
+                          h.diferenca_pct > 0 ? "text-rose-600" : h.diferenca_pct < 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                          {h.diferenca_pct == null ? "—"
+                            : `${h.diferenca_pct > 0 ? "+" : ""}${fmtPct(h.diferenca_pct)}`}
+                        </td>
+                        <td className="px-1 py-2 text-xs text-slate-400">
+                          {h.ingrediente_gatilho || h.origem || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {historico.length > 20 ? (
+                  <p className="pt-2 text-center text-xs text-slate-400">
+                    Mostrando os 20 registros mais recentes de {historico.length}.
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </>
+        )}
       </Secao>
 
       {/* ── Histórico de versões ──────────────────────────────────────────── */}

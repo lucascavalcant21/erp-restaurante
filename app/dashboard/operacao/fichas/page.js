@@ -378,6 +378,8 @@ function FichasRunner() {
   const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
   const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
   const [apenasAcimaMeta, setApenasAcimaMeta] = useState(false);
+  // Ficha inativada continua no banco e volta quando o usuário quiser ver.
+  const [filtroStatus, setFiltroStatus] = useState("ativas"); // ativas | inativas | todas
   const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
@@ -854,8 +856,14 @@ function FichasRunner() {
     return cmv > meta;
   };
 
+  // `status` só existe depois da migração da ficha técnica. Ficha sem status
+  // gravado conta como ativa, senão a listagem esvaziaria de uma vez.
+  const statusDaFicha = (f) => String(f.status || "ativa").toLowerCase();
+
   const passaFiltro = (f) => {
     if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
+    if (filtroStatus === "ativas" && statusDaFicha(f) === "inativa") return false;
+    if (filtroStatus === "inativas" && statusDaFicha(f) !== "inativa") return false;
     if (apenasAcimaMeta && !ehAcimaDaMeta(f)) return false;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
     if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
@@ -876,7 +884,7 @@ function FichasRunner() {
     origem: "Ação em lote — fichas técnicas",
   };
 
-  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina]);
+  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina, filtroStatus]);
   useEffect(() => {
     if (pagina > totalPaginas) setPagina(totalPaginas);
   }, [pagina, totalPaginas]);
@@ -2259,6 +2267,33 @@ function FichasRunner() {
                </button>
             </div>
          )}
+         {/* Ativas / inativas. Inativar não apaga: a ficha some da lista e
+             volta quando o usuário quiser vê-la de novo. */}
+         <div className="mb-3 flex items-center gap-1.5">
+            {[
+              { id: "ativas", rotulo: "Ativas" },
+              { id: "inativas", rotulo: "Inativas" },
+              { id: "todas", rotulo: "Todas" },
+            ].map(op => (
+              <button
+                key={op.id}
+                onClick={() => setFiltroStatus(op.id)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider transition ${
+                  filtroStatus === op.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {op.rotulo}
+              </button>
+            ))}
+            {filtroStatus !== "ativas" && (
+              <span className="text-[11px] font-bold text-slate-400">
+                {filtradas.length} ficha(s)
+              </span>
+            )}
+         </div>
+
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {
@@ -2478,6 +2513,26 @@ function FichasRunner() {
                                  <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
                                    {f.categoria || "SEM CATEGORIA"}
                                  </span>
+                                 {f.codigo && (
+                                   <span className="rounded-full bg-slate-900 px-3 py-1 font-mono text-[10px] font-black tracking-wider text-white">
+                                     {f.codigo}
+                                   </span>
+                                 )}
+                                 {f.versao && f.versao !== "1.0" && (
+                                   <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                     v{f.versao}
+                                   </span>
+                                 )}
+                                 {statusDaFicha(f) === "inativa" && (
+                                   <span className="rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                     INATIVA
+                                   </span>
+                                 )}
+                                 {statusDaFicha(f) === "rascunho" && (
+                                   <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                     RASCUNHO
+                                   </span>
+                                 )}
                                  {cmv !== null && cmv > meta && (
                                    <span className="rounded-full bg-red-100/80 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-600">
                                      CMV ALTO

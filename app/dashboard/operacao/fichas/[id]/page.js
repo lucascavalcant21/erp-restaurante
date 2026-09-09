@@ -13,15 +13,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, Calculator, ChefHat, ChevronRight, Clock, FileDown, GitBranch,
-  History, Info, Layers, ListOrdered, Loader2, Package, Percent, Printer, Save, Scale,
-  Snowflake, Tag, TrendingUp, UtensilsCrossed, Wine, Wrench, X,
+  History, Info, Layers, ListOrdered, Loader2, Package, Percent, Power, Printer, QrCode,
+  Save, Scale, Snowflake, Tag, TrendingUp, UtensilsCrossed, Wine, Wrench, X, Copy,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
 import {
   fetchFichaCompleta, salvarCamposFicha, garantirCodigoFicha, salvarComplementosFicha,
   criarVersaoFicha, fetchVersoes, compararVersoes, STATUS_FICHA,
-  METODOS_BAR, TIPOS_GELO,
+  METODOS_BAR, TIPOS_GELO, duplicarFicha,
 } from "../../../../lib/ficha-tecnica";
 import { CATALOGO_COPOS } from "../../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
@@ -340,6 +340,46 @@ export default function FichaTecnicaPage() {
     carregar();
   };
 
+  // ── Duplicar, etiqueta e inativar ────────────────────────────────────────
+  const [duplicando, setDuplicando] = useState(false);
+
+  const duplicar = async () => {
+    if (sujo && !window.confirm("Há alterações não salvas, que não vão para a cópia. Duplicar mesmo assim?")) return;
+    setDuplicando(true);
+    const { id, error } = await duplicarFicha(ficha.id);
+    setDuplicando(false);
+    if (error) { setErro(error); return; }
+    router.push(`/dashboard/operacao/fichas/${id}`);
+  };
+
+  // Leva para o módulo de Etiquetas já com o produto, a validade e a unidade
+  // que esta ficha conhece.
+  const gerarEtiqueta = () => {
+    const dias = armazenamento?.validade_refrigerado_dias
+      || armazenamento?.validade_congelado_dias
+      || ficha.validade_dias || "";
+    const parametros = new URLSearchParams({
+      dept: ficha.departamento || "cozinha",
+      produto: ficha.nome_receita || "",
+      unidade: String(ficha.rendimento_unidade || "UN").toUpperCase(),
+    });
+    if (dias) parametros.set("dias", String(dias));
+    if (armazenamento?.forma) parametros.set("conservacao", armazenamento.forma);
+    router.push(`/dashboard/operacao/etiquetas?${parametros.toString()}`);
+  };
+
+  const alternarStatus = async () => {
+    const indo = (form.status || "ativa") === "ativa" ? "inativa" : "ativa";
+    const pergunta = indo === "inativa"
+      ? "Inativar esta ficha? Ela sai das listagens, mas nada é apagado e dá para reativar depois."
+      : "Reativar esta ficha?";
+    if (!window.confirm(pergunta)) return;
+    const { error } = await salvarCamposFicha(ficha.id, { status: indo, atualizado_em: new Date().toISOString() });
+    if (error) { setErro(error); return; }
+    setAviso(indo === "inativa" ? "Ficha inativada." : "Ficha reativada.");
+    carregar();
+  };
+
   // ── Gravação ─────────────────────────────────────────────────────────────
   const salvar = async () => {
     if (!ficha || !form) return;
@@ -445,6 +485,11 @@ export default function FichaTecnicaPage() {
         <AcaoBtn icone={FileDown} onClick={gerarPdf}>PDF</AcaoBtn>
         <AcaoBtn icone={GitBranch} onClick={novaVersao} carregando={criandoVersao}>Nova versão</AcaoBtn>
         <AcaoBtn icone={History} onClick={abrirVersoes}>Histórico</AcaoBtn>
+        <AcaoBtn icone={Copy} onClick={duplicar} carregando={duplicando}>Duplicar</AcaoBtn>
+        <AcaoBtn icone={QrCode} onClick={gerarEtiqueta}>Etiqueta</AcaoBtn>
+        <AcaoBtn icone={Power} onClick={alternarStatus}>
+          {(form.status || "ativa") === "ativa" ? "Inativar" : "Reativar"}
+        </AcaoBtn>
       </div>
 
       <Card className="overflow-hidden p-0">

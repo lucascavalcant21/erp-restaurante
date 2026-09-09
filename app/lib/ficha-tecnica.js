@@ -312,6 +312,80 @@ export async function garantirCodigoFicha(unidadeId, fichaId, codigoAtual) {
   return { codigo, error: null };
 }
 
+// ─── Duplicar ───────────────────────────────────────────────────────────────
+
+// Cria uma cópia completa da ficha: capa, ingredientes (com as subfichas
+// apontando para as MESMAS bases, que continuam compartilhadas) e as seções
+// novas. A cópia nasce como rascunho, sem código e na versão 1.0 — código e
+// versão pertencem à ficha original.
+//
+// O histórico de custos e as versões NÃO são copiados: são o passado da
+// original, não da cópia.
+export async function duplicarFicha(fichaId, { sufixo = "(cópia)" } = {}) {
+  if (!isSupabaseReady() || !fichaId) return { error: "Offline" };
+
+  const { data: origem, error } = await supabase
+    .from("fichas_tecnicas").select("*").eq("id", fichaId).single();
+  if (error) return { error: erroTexto(error) };
+
+  const { id, created_at, updated_at, codigo, versao, atualizado_em, ...campos } = origem;
+  campos.nome_receita = `${origem.nome_receita} ${sufixo}`.trim();
+  campos.status = "rascunho";
+
+  let insercao = await supabase.from("fichas_tecnicas").insert([campos]).select("id").single();
+  // Se o banco recusar uma coluna que a migração ainda não criou, tira e tenta
+  // de novo — mesma ideia do retrySemColunaAusente de lib/operacao.js.
+  for (let i = 0; insercao.error && i < 30; i++) {
+    const m = insercao.error.message || "";
+    const achou = m.match(/column "?([a-z_]+)"?(?: of relation "[a-z_]+")? does not exist/i)
+      || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+    if (!achou || !(achou[1] in campos)) break;
+    delete campos[achou[1]];
+    insercao = await supabase.from("fichas_tecnicas").insert([campos]).select("id").single();
+  }
+  if (insercao.error) return { error: erroTexto(insercao.error) };
+
+  const novoId = insercao.data.id;
+
+  // Ingredientes: as subfichas continuam apontando para as bases originais,
+  // que são compartilhadas de propósito — duplicar um prato não deve clonar a
+  // maionese da casa.
+  const { data: ingredientes } = await supabase
+    .from("fichas_ingredientes").select("*").eq("ficha_id", fichaId);
+  if (ingredientes?.length) {
+    const copias = ingredientes.map(({ id: _i, created_at: _c, updated_at: _u, ...item }) => ({
+      ...item, ficha_id: novoId,
+    }));
+    const r = await supabase.from("fichas_ingredientes").insert(copias);
+    if (r.error) {
+      // Sem ingredientes a cópia não serve para nada: desfaz para não deixar
+      // uma ficha órfã e vazia na listagem.
+      await supabase.from("fichas_tecnicas").delete().eq("id", novoId);
+      return { error: `Não foi possível copiar os ingredientes: ${r.error.message}` };
+    }
+  }
+
+  // Seções novas. Se a migração ainda não rodou, simplesmente não há o que
+  // copiar — a cópia da ficha continua válida.
+  for (const tabela of ["fichas_etapas", "fichas_equipamentos", "fichas_alergenicos",
+                        "fichas_montagem_passos"]) {
+    const { data: linhas } = await supabase.from(tabela).select("*").eq("ficha_id", fichaId);
+    if (linhas?.length) {
+      await supabase.from(tabela).insert(
+        linhas.map(({ id: _i, created_at: _c, updated_at: _u, ...l }) => ({ ...l, ficha_id: novoId }))
+      );
+    }
+  }
+  const { data: armazenamento } = await supabase
+    .from("fichas_armazenamento").select("*").eq("ficha_id", fichaId).maybeSingle();
+  if (armazenamento) {
+    const { id: _i, created_at: _c, updated_at: _u, ...resto } = armazenamento;
+    await supabase.from("fichas_armazenamento").insert({ ...resto, ficha_id: novoId });
+  }
+
+  return { id: novoId, error: null };
+}
+
 // ─── Versionamento ──────────────────────────────────────────────────────────
 
 // Congela o estado atual da ficha como uma versão e sobe o número na ficha.

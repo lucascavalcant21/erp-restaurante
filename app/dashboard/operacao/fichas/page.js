@@ -47,6 +47,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
+import { METODOS_BAR, metodoBar } from "../../../lib/ficha-tecnica";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -91,14 +92,8 @@ const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infus�
 // Método do drink. Batido e mexido não são estilo: mudam o resultado no copo —
 // o shaker aera, gela e dilui mais; o mixing glass mantém o drink límpido e
 // com corpo. Quem monta no balcão precisa disso escrito, não subentendido.
-const METODOS_BAR = [
-  { id: "batido", nome: "Batido (shaker)", ajuda: "Suco, xarope, creme ou clara de ovo" },
-  { id: "mexido", nome: "Mexido (mixing glass)", ajuda: "Só destilados — límpido e sedoso" },
-  { id: "montado", nome: "Montado no copo", ajuda: "Direto no copo do cliente, sem transferir" },
-  { id: "liquidificador", nome: "Liquidificador", ajuda: "Frozen e batidas com gelo triturado" },
-  { id: "dose", nome: "Dose pura", ajuda: "Servido puro, sem preparo" },
-];
-const metodoBar = (id) => METODOS_BAR.find(m => m.id === id) || null;
+// METODOS_BAR e metodoBar vivem em lib/ficha-tecnica.js: a ficha técnica grava
+// o mesmo `metodo_bar`, e duas listas separadas divergiriam nos ids.
 const CATEGORIAS_PREPARO_COZINHA = [
   "Molhos e caldos",
   "Arroz, feijão e grãos",
@@ -235,9 +230,11 @@ function custoUnitEfetivo(ins) {
   const base = precoNormalizadoDoInsumo(ins) || Number(ins?.custo_unitario) || Number(ins?.custo_compra) || 0;
   if (!ins?.empanado) return base;
   const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
-  const u = String(ins.unidade_medida || "").toLowerCase();
   const empKg = Number(ins.custo_empanado_kg) || 0;
-  const empNaUnidade = u === "g" ? empKg / 1000 : u === "kg" ? empKg : 0;
+  // `base` agora vem normalizado por unidade-base (R$/kg), então o custo do
+  // empanamento entra direto em R$/kg. Converter para grama aqui o dividia por
+  // mil e o empanamento praticamente sumia da conta.
+  const empNaUnidade = unidadeNormalizada(ins.unidade_medida) === "kg" ? empKg : 0;
   return base / ganho + empNaUnidade;
 }
 
@@ -390,6 +387,8 @@ function FichasRunner() {
   const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
   const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
   const [apenasAcimaMeta, setApenasAcimaMeta] = useState(false);
+  // Ficha inativada continua no banco e volta quando o usuário quiser ver.
+  const [filtroStatus, setFiltroStatus] = useState("ativas"); // ativas | inativas | todas
   const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
@@ -867,8 +866,14 @@ function FichasRunner() {
     return cmv > meta;
   };
 
+  // `status` só existe depois da migração da ficha técnica. Ficha sem status
+  // gravado conta como ativa, senão a listagem esvaziaria de uma vez.
+  const statusDaFicha = (f) => String(f.status || "ativa").toLowerCase();
+
   const passaFiltro = (f) => {
     if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
+    if (filtroStatus === "ativas" && statusDaFicha(f) === "inativa") return false;
+    if (filtroStatus === "inativas" && statusDaFicha(f) !== "inativa") return false;
     if (apenasAcimaMeta && !ehAcimaDaMeta(f)) return false;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
     if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
@@ -889,7 +894,7 @@ function FichasRunner() {
     origem: "Ação em lote — fichas técnicas",
   };
 
-  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina]);
+  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina, filtroStatus]);
   useEffect(() => {
     if (pagina > totalPaginas) setPagina(totalPaginas);
   }, [pagina, totalPaginas]);
@@ -2277,6 +2282,33 @@ function FichasRunner() {
                </button>
             </div>
          )}
+         {/* Ativas / inativas. Inativar não apaga: a ficha some da lista e
+             volta quando o usuário quiser vê-la de novo. */}
+         <div className="mb-3 flex items-center gap-1.5">
+            {[
+              { id: "ativas", rotulo: "Ativas" },
+              { id: "inativas", rotulo: "Inativas" },
+              { id: "todas", rotulo: "Todas" },
+            ].map(op => (
+              <button
+                key={op.id}
+                onClick={() => setFiltroStatus(op.id)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider transition ${
+                  filtroStatus === op.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {op.rotulo}
+              </button>
+            ))}
+            {filtroStatus !== "ativas" && (
+              <span className="text-[11px] font-bold text-slate-400">
+                {filtradas.length} ficha(s)
+              </span>
+            )}
+         </div>
+
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {
@@ -2450,6 +2482,8 @@ function FichasRunner() {
                          {acoesCardAberto === f.id && (
                            <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-lg text-xs font-bold">
                              <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📖 Ver Ficha</button>
+                             {/* Ficha técnica completa: código, pesos, perdas, precificação e simulador de CMV */}
+                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📑 Ficha técnica</button>
                              {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📋 Montagem</button>}
                              <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🧮 Simular</button>
                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🖨️ Imprimir</button>
@@ -2494,6 +2528,26 @@ function FichasRunner() {
                                  <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
                                    {f.categoria || "SEM CATEGORIA"}
                                  </span>
+                                 {f.codigo && (
+                                   <span className="rounded-full bg-slate-900 px-3 py-1 font-mono text-[10px] font-black tracking-wider text-white">
+                                     {f.codigo}
+                                   </span>
+                                 )}
+                                 {f.versao && f.versao !== "1.0" && (
+                                   <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                     v{f.versao}
+                                   </span>
+                                 )}
+                                 {statusDaFicha(f) === "inativa" && (
+                                   <span className="rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                     INATIVA
+                                   </span>
+                                 )}
+                                 {statusDaFicha(f) === "rascunho" && (
+                                   <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                     RASCUNHO
+                                   </span>
+                                 )}
                                  {cmv !== null && cmv > meta && (
                                    <span className="rounded-full bg-red-100/80 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-600">
                                      CMV ALTO

@@ -138,11 +138,17 @@ function EtiquetasRunner() {
   const deptUrl = searchParams.get("dept"); // 'cozinha' | 'bar' | null (todos)
   const [produtos, setProdutos] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
-  const [form, setForm] = useState({ 
+  // A ficha técnica manda o produto pronto pela URL (botão "Gerar etiqueta"),
+  // com a validade e a unidade que ela já conhece. Sem parâmetro, nada muda.
+  const [form, setForm] = useState(() => ({
     // Peso começa vazio: quem não pesa o produto não vê "PESO:" na etiqueta.
-    produto: "", conservacao: "Congelado", quantidade: "", unidade: "UN",
-    dias: 30, lote: "", responsavel: "" 
-  });
+    produto: searchParams.get("produto") || "",
+    conservacao: searchParams.get("conservacao") || "Congelado",
+    quantidade: "",
+    unidade: (searchParams.get("unidade") || "UN").toUpperCase(),
+    dias: Number(searchParams.get("dias")) > 0 ? Number(searchParams.get("dias")) : 30,
+    lote: "", responsavel: "",
+  }));
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [momentoEtiqueta, setMomentoEtiqueta] = useState(() => new Date());
   const [aba, setAba] = useState("gerar"); // "gerar" | "geradas" (Controle de Validade)

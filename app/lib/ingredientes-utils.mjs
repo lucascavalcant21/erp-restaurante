@@ -80,18 +80,19 @@ export function compararNomes(a, b) {
 export function calcularPrecoNormalizado(quantidade, unidade, valorEmbalagem) {
   const qtd = Number(quantidade);
   const valor = Number(valorEmbalagem);
+  if (!Number.isFinite(qtd) || qtd <= 0 || !Number.isFinite(valor) || valor < 0) return 0;
   const info = UNIDADES[String(unidade || "").toLowerCase()];
-  if (!info || !Number.isFinite(qtd) || qtd <= 0 || !Number.isFinite(valor) || valor < 0) return 0;
-  const quantidadeBase = info.paraBase(qtd);
+  const quantidadeBase = info ? info.paraBase(qtd) : qtd;
   return quantidadeBase > 0 ? valor / quantidadeBase : 0;
 }
 
 export function unidadeNormalizada(unidade) {
-  const info = UNIDADES[String(unidade || "").toLowerCase()];
-  if (!info) return "";
+  const un = String(unidade || "").toLowerCase();
+  const info = UNIDADES[un];
+  if (!info) return un;
   if (info.familia === "massa") return "kg";
-  if (info.familia === "volume") return "L";
-  return "unidade";
+  if (info.familia === "volume") return "l";
+  return un;
 }
 
 export function precoNormalizadoDoInsumo(insumo) {
@@ -101,9 +102,9 @@ export function precoNormalizadoDoInsumo(insumo) {
   if (Number.isFinite(salvo) && salvo > 0) return salvo;
   const tamanho = Number(insumo?.tamanho_embalagem) || 1;
   const valorTotal = Number(insumo?.custo_compra);
-  const valor = Number.isFinite(valorTotal)
+  const valor = Number.isFinite(valorTotal) && valorTotal > 0
     ? valorTotal
-    : (Number(insumo?.custo_unitario) || 0) * tamanho;
+    : (Number(insumo?.custo_unitario) || 0) * (Number(insumo?.tamanho_embalagem) > 0 ? Number(insumo?.tamanho_embalagem) : 1);
   return calcularPrecoNormalizado(tamanho, insumo?.unidade_medida, valor);
 }
 

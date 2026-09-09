@@ -231,6 +231,9 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       Number(campos.custo_compra ?? campos.custo_unitario) || 0,
     );
     campos.preco_normalizado = normalizado;
+    if (!campos.custo_unitario || Number(campos.custo_unitario) <= 0) {
+      campos.custo_unitario = normalizado;
+    }
     campos.preco_normalizado_anterior = null;
     campos.variacao_preco_pct = null;
     campos.preco_atualizado_em = new Date().toISOString();

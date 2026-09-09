@@ -14,14 +14,16 @@ import { useParams, useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, Calculator, ChefHat, ChevronRight, Clock, FileDown, GitBranch,
   History, Info, Layers, ListOrdered, Loader2, Package, Percent, Printer, Save, Scale,
-  Snowflake, Tag, TrendingUp, UtensilsCrossed, Wrench, X,
+  Snowflake, Tag, TrendingUp, UtensilsCrossed, Wine, Wrench, X,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
 import {
   fetchFichaCompleta, salvarCamposFicha, garantirCodigoFicha, salvarComplementosFicha,
   criarVersaoFicha, fetchVersoes, compararVersoes, STATUS_FICHA,
+  METODOS_BAR, TIPOS_GELO,
 } from "../../../../lib/ficha-tecnica";
+import { CATALOGO_COPOS } from "../../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
 import { montarHtmlFichaTecnica } from "./imprimirFicha";
 import ModoCozinha from "./ModoCozinha";
@@ -32,7 +34,7 @@ import {
   custoDeProduzirFicha, custoTotalReceita, custoPorPorcao, parseNumero,
   perdaPeso, perdaPercentual, pesoPorPorcao, tempoTotal,
   cmvPercentual, margemBruta, margemBrutaPercentual, markup, precoSugerido,
-  validarFicha,
+  validarFicha, tipoDaFicha, custoPorUnidadeDeRendimento, fichasQueUsam,
 } from "../../../../lib/ficha-calculos.mjs";
 import { fmtBRL, fmtPct, fmtData, Card, Field, TextInput, NumberInput, Select, Btn } from "../../../../components/ui";
 
@@ -46,6 +48,8 @@ const CAMPOS_EDITAVEIS = [
   "peso_bruto_g", "peso_final_g",
   "tempo_preparo", "tempo_coccao_min", "temperatura_preparo", "temperatura_servico",
   "preco_venda", "cmv_meta", "custo_indireto_tipo", "custo_indireto_valor",
+  // Só aparecem em ficha do bar; num prato ficam nulos e não atrapalham.
+  "metodo_bar", "copo", "guarnicao", "tipo_gelo",
 ];
 
 function Secao({ icone: Icone, titulo, descricao, children }) {
@@ -228,8 +232,21 @@ export default function FichaTecnicaPage() {
       perdaPct: perdaPercentual(pb, pf),
       pesoPorcao: pesoPorPorcao(pf, porcoes) || parseNumero(atual.peso_porcao_g),
       tempoTotal: tempoTotal(atual.tempo_preparo, atual.tempo_coccao_min),
+      // Pré-preparo: é este número que entra no custo dos pratos que o usam.
+      custoUnidadeRendimento: custoPorUnidadeDeRendimento(custos.custoTotal, porcoes),
     };
   }, [ficha, form, todasFichas]);
+
+  // Prato, pré-preparo ou comprado pronto — a ficha muda conforme o caso.
+  const tipo = tipoDaFicha(ficha);
+  const ehPreparo = tipo === "preparo";
+  // Bar e cozinha também são documentos diferentes: drink tem método, copo,
+  // gelo e guarnição, e não tem cocção; prato tem cocção e montagem no prato.
+  const ehBar = String(ficha?.departamento || "").toLowerCase() === "bar";
+  const usadoPor = useMemo(
+    () => (ehPreparo && ficha ? fichasQueUsam(ficha.id, todasFichas) : []),
+    [ehPreparo, ficha, todasFichas]
+  );
 
   const metaCmv = parseNumero(form?.cmv_meta) || 30;
   const tomCmv = !calc?.cmv ? "neutro" : calc.cmv <= metaCmv ? "bom" : calc.cmv <= metaCmv + 5 ? "atencao" : "ruim";
@@ -260,7 +277,7 @@ export default function FichaTecnicaPage() {
     ficha: { ...ficha, ...form },
     etapas, equipamentos, alergenicos, podeConter,
     armazenamento, montagem, ingredientes: ingredientesSimples,
-    custos: calc, mostrarCustos,
+    custos: calc, usadoPor, mostrarCustos,
   });
 
   const imprimir = () => {
@@ -478,26 +495,50 @@ export default function FichaTecnicaPage() {
       ) : null}
 
       {/* ── Indicadores ───────────────────────────────────────────────────── */}
+      {/* Prato e pré-preparo medem coisas diferentes: um é vendido, o outro
+          vira ingrediente. Preço e CMV numa ficha de maionese só atrapalham. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Indicador icone={Package} rotulo="Rendimento"
+        <Indicador icone={Package} rotulo={ehPreparo ? "Rende por lote" : "Rendimento"}
           valor={`${calc.porcoes || 0} ${ficha.rendimento_unidade || ""}`.trim()} />
         <Indicador icone={Scale} rotulo="Peso final"
-          valor={calc.pesoPorcao ? `${Math.round(parseNumero(form.peso_final_g)) || 0} g` : "—"}
-          nota={calc.pesoPorcao ? `${Math.round(calc.pesoPorcao)} g por porção` : null} />
-        <Indicador icone={Calculator} rotulo="Custo total" valor={fmtBRL(calc.custoTotal)}
+          valor={parseNumero(form.peso_final_g) ? `${Math.round(parseNumero(form.peso_final_g))} g` : "—"}
+          nota={!ehPreparo && calc.pesoPorcao ? `${Math.round(calc.pesoPorcao)} g por porção` : null} />
+        <Indicador icone={Calculator} rotulo={ehPreparo ? "Custo do lote" : "Custo total"}
+          valor={fmtBRL(calc.custoTotal)}
           nota={calc.custoIndireto ? `inclui ${fmtBRL(calc.custoIndireto)} indireto` : null} />
-        <Indicador icone={Calculator} rotulo="Custo por porção" valor={fmtBRL(calc.custoPorcao)} />
-        <Indicador icone={Tag} rotulo="Preço de venda" valor={calc.preco ? fmtBRL(calc.preco) : "—"} />
-        <Indicador icone={Percent} rotulo="CMV" tom={tomCmv}
-          valor={calc.cmv ? fmtPct(calc.cmv) : "—"} nota={`meta ${fmtPct(metaCmv, 0)}`} />
-        <Indicador icone={TrendingUp} rotulo="Margem bruta"
-          tom={calc.margem > 0 ? "bom" : calc.preco ? "ruim" : "neutro"}
-          valor={calc.preco ? fmtBRL(calc.margem) : "—"}
-          nota={calc.preco ? fmtPct(calc.margemPct) : null} />
         <Indicador icone={Percent} rotulo="Perda"
           tom={calc.perdaPct > 30 ? "ruim" : calc.perdaPct > 15 ? "atencao" : "neutro"}
           valor={calc.perdaPct ? fmtPct(calc.perdaPct) : "—"}
           nota={calc.perda ? `${Math.round(calc.perda)} g` : null} />
+
+        {ehPreparo ? (
+          <>
+            <Indicador icone={Calculator} rotulo={`Custo por ${ficha.rendimento_unidade || "unidade"}`}
+              valor={calc.custoUnidadeRendimento ? fmtBRL(calc.custoUnidadeRendimento, 4) : "—"}
+              nota="é o que entra nos pratos" />
+            <Indicador icone={ChefHat} rotulo="Usado em"
+              valor={usadoPor.length ? `${usadoPor.length} receita${usadoPor.length > 1 ? "s" : ""}` : "—"}
+              nota={usadoPor.length ? "mudar o custo mexe nelas" : "nenhuma receita usa ainda"} />
+            <Indicador icone={Snowflake} rotulo="Validade"
+              valor={armazenamento?.validade_refrigerado_dias
+                ? `${armazenamento.validade_refrigerado_dias} dias`
+                : (ficha.validade_dias ? `${ficha.validade_dias} dias` : "—")}
+              nota="refrigerado" />
+            <Indicador icone={Clock} rotulo="Tempo total"
+              valor={calc.tempoTotal ? `${calc.tempoTotal} min` : "—"} />
+          </>
+        ) : (
+          <>
+            <Indicador icone={Calculator} rotulo="Custo por porção" valor={fmtBRL(calc.custoPorcao)} />
+            <Indicador icone={Tag} rotulo="Preço de venda" valor={calc.preco ? fmtBRL(calc.preco) : "—"} />
+            <Indicador icone={Percent} rotulo="CMV" tom={tomCmv}
+              valor={calc.cmv ? fmtPct(calc.cmv) : "—"} nota={`meta ${fmtPct(metaCmv, 0)}`} />
+            <Indicador icone={TrendingUp} rotulo="Margem bruta"
+              tom={calc.margem > 0 ? "bom" : calc.preco ? "ruim" : "neutro"}
+              valor={calc.preco ? fmtBRL(calc.margem) : "—"}
+              nota={calc.preco ? fmtPct(calc.margemPct) : null} />
+          </>
+        )}
       </div>
 
       {/* ── Identificação ─────────────────────────────────────────────────── */}
@@ -563,17 +604,17 @@ export default function FichaTecnicaPage() {
               ))}
             </Select>
           </Field>
-          <Field label="Peso por porção (g)">
+          <Field label={ehBar ? "Volume por dose (ml)" : "Peso por porção (g)"}>
             <NumberInput value={form.peso_porcao_g ?? ""} min="0" step="any"
               onChange={e => mudar("peso_porcao_g", e.target.value)}
               placeholder={calc.pesoPorcao ? String(Math.round(calc.pesoPorcao)) : ""} />
           </Field>
 
-          <Field label="Peso bruto inicial (g)">
+          <Field label={ehBar ? "Volume bruto (ml)" : "Peso bruto inicial (g)"}>
             <NumberInput value={form.peso_bruto_g ?? ""} min="0" step="any"
               onChange={e => mudar("peso_bruto_g", e.target.value)} />
           </Field>
-          <Field label="Peso final produzido (g)">
+          <Field label={ehBar ? "Volume final (ml)" : "Peso final produzido (g)"}>
             <NumberInput value={form.peso_final_g ?? ""} min="0" step="any"
               onChange={e => mudar("peso_final_g", e.target.value)} />
           </Field>
@@ -588,10 +629,12 @@ export default function FichaTecnicaPage() {
           <Field label="Tempo de preparo (min)">
             <TextInput value={form.tempo_preparo ?? ""} onChange={e => mudar("tempo_preparo", e.target.value)} />
           </Field>
-          <Field label="Tempo de cocção (min)">
-            <NumberInput value={form.tempo_coccao_min ?? ""} min="0" step="1"
-              onChange={e => mudar("tempo_coccao_min", e.target.value)} />
-          </Field>
+          {ehBar ? <div className="hidden sm:block" /> : (
+            <Field label="Tempo de cocção (min)">
+              <NumberInput value={form.tempo_coccao_min ?? ""} min="0" step="1"
+                onChange={e => mudar("tempo_coccao_min", e.target.value)} />
+            </Field>
+          )}
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
               <Clock size={12} /> Tempo total
@@ -601,11 +644,13 @@ export default function FichaTecnicaPage() {
             </div>
           </div>
 
-          <Field label="Temperatura de preparo">
-            <TextInput value={form.temperatura_preparo || ""} placeholder="ex.: 180 °C"
-              onChange={e => mudar("temperatura_preparo", e.target.value)} />
-          </Field>
-          <Field label="Temperatura de serviço">
+          {ehBar ? null : (
+            <Field label="Temperatura de preparo">
+              <TextInput value={form.temperatura_preparo || ""} placeholder="ex.: 180 °C"
+                onChange={e => mudar("temperatura_preparo", e.target.value)} />
+            </Field>
+          )}
+          <Field label={ehBar ? "Temperatura de serviço" : "Temperatura de serviço"}>
             <TextInput value={form.temperatura_servico || ""} placeholder="ex.: 65 °C"
               onChange={e => mudar("temperatura_servico", e.target.value)} />
           </Field>
@@ -684,11 +729,81 @@ export default function FichaTecnicaPage() {
         <Equipamentos selecionados={equipamentos} onChange={alterarSecao(setEquipamentos)} />
       </Secao>
 
-      {/* ── Montagem ──────────────────────────────────────────────────────── */}
-      <Secao icone={Layers} titulo="Montagem e finalização"
-        descricao="A ordem exata em que o prato é montado.">
-        <MontagemPassos passos={montagem} onChange={alterarSecao(setMontagem)} />
-      </Secao>
+      {/* ── Montagem (só faz sentido no prato) ────────────────────────────── */}
+      {ehPreparo ? (
+        <Secao icone={ChefHat} titulo="Onde este pré-preparo é usado"
+          descricao="Mexer no custo daqui muda o custo de todas estas receitas.">
+          {usadoPor.length === 0 ? (
+            <p className="py-4 text-center text-sm text-slate-400">
+              Nenhuma receita usa este pré-preparo ainda.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {usadoPor.map(f => (
+                <li key={f.id}>
+                  <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)}
+                    className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:bg-slate-50">
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-700">{f.nome_receita}</span>
+                      <span className="text-xs text-slate-400">{f.categoria || "Sem categoria"}</span>
+                    </span>
+                    <ChevronRight size={16} className="shrink-0 text-slate-300" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Secao>
+      ) : (
+        <>
+          {/* Serviço do drink: no bar, copo, gelo e guarnição são a receita,
+              não enfeite — o copo muda a percepção e o gelo muda a diluição. */}
+          {ehBar ? (
+            <Secao icone={Wine} titulo="Serviço do drink"
+              descricao="Método, copo, gelo e guarnição fazem parte da receita.">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Método">
+                  <Select value={form.metodo_bar || ""} onChange={e => mudar("metodo_bar", e.target.value)}>
+                    <option value="">—</option>
+                    {METODOS_BAR.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                  </Select>
+                </Field>
+                <Field label="Copo / taça">
+                  <input list="lista-copos" className="erp-input" value={form.copo || ""}
+                    placeholder="ex.: Taça coupe"
+                    onChange={e => mudar("copo", e.target.value)} />
+                  <datalist id="lista-copos">
+                    {CATALOGO_COPOS.map(c => <option key={c.id} value={c.nome} />)}
+                  </datalist>
+                </Field>
+                <Field label="Gelo">
+                  <Select value={form.tipo_gelo || ""} onChange={e => mudar("tipo_gelo", e.target.value)}>
+                    <option value="">—</option>
+                    {TIPOS_GELO.map(g => <option key={g} value={g}>{g}</option>)}
+                  </Select>
+                </Field>
+                <Field label="Guarnição">
+                  <TextInput value={form.guarnicao || ""} placeholder="ex.: twist de limão siciliano"
+                    onChange={e => mudar("guarnicao", e.target.value)} />
+                </Field>
+              </div>
+              {form.metodo_bar ? (
+                <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                  {METODOS_BAR.find(m => m.id === form.metodo_bar)?.ajuda}
+                </p>
+              ) : null}
+            </Secao>
+          ) : null}
+
+          <Secao icone={Layers}
+            titulo={ehBar ? "Montagem no copo" : "Montagem e finalização"}
+            descricao={ehBar
+              ? "A ordem em que o drink é construído."
+              : "A ordem exata em que o prato é montado."}>
+            <MontagemPassos passos={montagem} onChange={alterarSecao(setMontagem)} />
+          </Secao>
+        </>
+      )}
 
       {/* ── Armazenamento ─────────────────────────────────────────────────── */}
       <Secao icone={Snowflake} titulo="Armazenamento e validade"
@@ -707,8 +822,11 @@ export default function FichaTecnicaPage() {
       </Secao>
 
       {/* ── Custos e precificação ─────────────────────────────────────────── */}
-      <Secao icone={Calculator} titulo="Custo e precificação"
-        descricao="Os custos indiretos entram sobre o custo direto da receita.">
+      <Secao icone={Calculator}
+        titulo={ehPreparo ? "Custo do pré-preparo" : "Custo e precificação"}
+        descricao={ehPreparo
+          ? "Pré-preparo não é vendido: o que importa aqui é quanto custa cada unidade que vai para os pratos."
+          : "Os custos indiretos entram sobre o custo direto da receita."}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
             <Linha rotulo="Ingredientes" valor={fmtBRL(calc.custoIngredientes)} />
@@ -716,8 +834,13 @@ export default function FichaTecnicaPage() {
             <Linha rotulo="Embalagem" valor={fmtBRL(calc.custoEmbalagem)} />
             <Linha rotulo="Custos indiretos" valor={fmtBRL(calc.custoIndireto)} />
             <div className="mt-2 border-t border-slate-200 pt-2">
-              <Linha rotulo="Custo total" valor={fmtBRL(calc.custoTotal)} forte />
-              <Linha rotulo="Custo por porção" valor={fmtBRL(calc.custoPorcao)} forte />
+              <Linha rotulo={ehPreparo ? "Custo do lote" : "Custo total"} valor={fmtBRL(calc.custoTotal)} forte />
+              {ehPreparo ? (
+                <Linha rotulo={`Custo por ${ficha.rendimento_unidade || "unidade"}`}
+                  valor={fmtBRL(calc.custoUnidadeRendimento, 4)} forte />
+              ) : (
+                <Linha rotulo="Custo por porção" valor={fmtBRL(calc.custoPorcao)} forte />
+              )}
             </div>
           </div>
 

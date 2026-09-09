@@ -10,6 +10,7 @@ import {
   cmvPercentual, margemBruta, margemBrutaPercentual, markup, precoSugerido,
   formatarCodigoFicha, proximoCodigoFicha, proximaVersao, validarFicha,
   custoUnitarioEfetivoInsumo, custoDeProduzirFicha, arestasDeSubfichas,
+  tipoDaFicha, ehPreparo, ehProdutoPronto, custoPorUnidadeDeRendimento, fichasQueUsam,
 } from "./ficha-calculos.mjs";
 
 let falhas = 0;
@@ -123,6 +124,27 @@ perto("referencia circular nao trava",
 conferir("mapa de arestas das subfichas",
   JSON.stringify([...arestasDeSubfichas([burger, maionese])]),
   JSON.stringify([["burger", ["maionese"]], ["maionese", []]]));
+
+// ── Tipo da ficha: prato, pré-preparo ou comprado pronto ───────────────────
+conferir("prato comum", tipoDaFicha({ eh_base: false, tipo_base: null }), "prato");
+conferir("pre-preparo pelo eh_base", tipoDaFicha({ eh_base: true, tipo_base: "pre" }), "preparo");
+conferir("comprado pronto", tipoDaFicha({ eh_base: false, tipo_base: "produto_pronto" }), "produto_pronto");
+conferir("produto pronto vence o eh_base",
+  tipoDaFicha({ eh_base: true, tipo_base: "produto_pronto" }), "produto_pronto");
+conferir("ficha nula nao quebra", tipoDaFicha(null), "prato");
+conferir("ehPreparo", ehPreparo({ eh_base: true }), true);
+conferir("ehProdutoPronto", ehProdutoPronto({ tipo_base: "produto_pronto" }), true);
+
+// Custo por unidade de rendimento — o numero que entra nos pratos.
+perto("lote de 20 que rende 1000 g custa 0,02 por g",
+  custoPorUnidadeDeRendimento(20, 1000), 0.02);
+perto("rendimento zero nao divide por zero", custoPorUnidadeDeRendimento(20, 0), 0);
+
+// Quem usa este pré-preparo
+conferir("acha os pratos que usam a maionese",
+  fichasQueUsam("maionese", [burger, maionese]).map(f => f.id).join(","), "burger");
+conferir("pre-preparo sem uso devolve vazio",
+  fichasQueUsam("nao-usado", [burger, maionese]).length, 0);
 
 // ── Ciclo entre subreceitas ────────────────────────────────────────────────
 const arestas = { A: ["B"], B: ["C"], C: [] };

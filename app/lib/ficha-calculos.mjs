@@ -151,6 +151,45 @@ export function custoSubreceita({ custoTotalSubficha, rendimentoSubficha, quanti
   return (total / rend) * qtd * fator;
 }
 
+// ─── Que tipo de ficha é esta ───────────────────────────────────────────────
+
+// Três coisas diferentes moram na mesma tabela, e a ficha técnica de cada uma
+// serve a um propósito distinto:
+//
+//   'prato'           o que é vendido. Importa preço, CMV, margem e montagem.
+//   'preparo'         pré-preparo (eh_base). NÃO é vendido: vira ingrediente
+//                     de outras receitas. Importa custo por unidade de
+//                     rendimento, tamanho do lote, validade e onde é usado.
+//                     Preço e CMV aqui são ruído.
+//   'produto_pronto'  comprado pronto (cerveja, refrigerante). Não tem receita.
+export function tipoDaFicha(ficha) {
+  if (!ficha) return "prato";
+  if (ficha.tipo_base === "produto_pronto") return "produto_pronto";
+  if (ficha.eh_base) return "preparo";
+  return "prato";
+}
+
+export const ehPreparo = (ficha) => tipoDaFicha(ficha) === "preparo";
+export const ehProdutoPronto = (ficha) => tipoDaFicha(ficha) === "produto_pronto";
+
+// Custo de uma unidade do rendimento do pré-preparo — é este número que entra
+// nos pratos que o usam. Ex.: lote de R$ 20,00 que rende 1000 g → R$ 0,02/g.
+export function custoPorUnidadeDeRendimento(custoTotal, rendimento) {
+  const total = parseNumero(custoTotal);
+  const rend = parseNumero(rendimento);
+  if (total <= 0 || rend <= 0) return 0;
+  return total / rend;
+}
+
+// Quais fichas usam esta como subreceita. Serve para avisar antes de mexer
+// num pré-preparo: mudar o custo dele mexe no custo de todas elas.
+export function fichasQueUsam(fichaId, todasFichas = []) {
+  if (!fichaId) return [];
+  return todasFichas.filter(f =>
+    (f.fichas_ingredientes || []).some(fi => fi.subficha_id === fichaId)
+  );
+}
+
 // ─── Custo efetivo do insumo (espelha a tela de edição de fichas) ──────────
 
 // Empanados ganham peso (ganho_pct) e somam o custo do empanamento

@@ -9,13 +9,22 @@
 import { logoSeldeestrelaHTML } from "../../../../lib/marca";
 import {
   parseNumero, perdaPercentual, cmvPercentual, margemBruta, tempoTotal,
+  tipoDaFicha, custoPorUnidadeDeRendimento,
 } from "../../../../lib/ficha-calculos.mjs";
+import { metodoBar } from "../../../../lib/ficha-tecnica";
 
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => (
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]
 ));
 
 const brl = (v) => `R$ ${(Number(v) || 0).toFixed(2).replace(".", ",")}`;
+// Custo por unidade de pré-preparo é miúdo (R$ 0,0052/ml). Com duas casas
+// viraria "R$ 0,01" e perderia justamente a informação que interessa.
+const brlUnit = (v) => {
+  const n = Number(v) || 0;
+  const casas = n !== 0 && Math.abs(n) < 0.1 ? 4 : 2;
+  return `R$ ${n.toFixed(casas).replace(".", ",")}`;
+};
 const pct = (v) => `${(Number(v) || 0).toFixed(1).replace(".", ",")}%`;
 const dataBR = (d) => {
   if (!d) return "—";
@@ -36,8 +45,18 @@ const linha = (rotulo, valor, forte = false) =>
 export function montarHtmlFichaTecnica({
   ficha, etapas = [], equipamentos = [], alergenicos = [], podeConter = "",
   armazenamento = {}, montagem = [], ingredientes = [], custos = {},
-  mostrarCustos = true,
+  usadoPor = [], mostrarCustos = true,
 }) {
+  // Quatro documentos diferentes saem daqui: prato da cozinha, drink do bar,
+  // pré-preparo da cozinha e pré-preparo do bar. O que cada um precisa mostrar
+  // não é o mesmo, então o cabeçalho e as seções mudam.
+  const preparo = tipoDaFicha(ficha) === "preparo";
+  const bar = String(ficha.departamento || "").toLowerCase() === "bar";
+  const unidadeRend = ficha.rendimento_unidade || "unidade";
+  const tituloDoc = preparo ? "FICHA DE PRÉ-PREPARO" : bar ? "FICHA TÉCNICA DE DRINK" : "FICHA TÉCNICA";
+  // Copo, gelo e guarnição são do DRINK. Um xarope é do bar e não tem nenhum
+  // dos três — mostrar as linhas vazias só suja a folha.
+  const drink = bar && !preparo;
   const foto = ficha.imagem
     ? (String(ficha.imagem).startsWith("data:") ? ficha.imagem : `data:image/jpeg;base64,${ficha.imagem}`)
     : "";
@@ -124,11 +143,13 @@ export function montarHtmlFichaTecnica({
           ${parseNumero(custos.custoSubreceitas) ? linha("Custo de subreceitas", brl(custos.custoSubreceitas)) : ""}
           ${parseNumero(custos.custoEmbalagem) ? linha("Custo de embalagem", brl(custos.custoEmbalagem)) : ""}
           ${parseNumero(custos.custoIndireto) ? linha("Custos indiretos", brl(custos.custoIndireto)) : ""}
-          ${linha("Custo total", brl(custoTotal), true)}
-          ${porcoes > 1 ? linha("Custo por porção", brl(custoPorcao)) : ""}
-          ${preco ? linha("Preço de venda", brl(preco)) : ""}
-          ${preco ? linha("CMV", pct(cmv)) : ""}
-          ${preco ? linha("Margem bruta", brl(margemBruta(custoPorcao, preco))) : ""}
+          ${linha(preparo ? "Custo do lote" : "Custo total", brl(custoTotal), true)}
+          ${preparo
+            ? linha(`Custo por ${unidadeRend}`, brlUnit(custoPorUnidadeDeRendimento(custoTotal, porcoes)), true)
+            : `${porcoes > 1 ? linha("Custo por porção", brl(custoPorcao)) : ""}
+               ${preco ? linha("Preço de venda", brl(preco)) : ""}
+               ${preco ? linha("CMV", pct(cmv)) : ""}
+               ${preco ? linha("Margem bruta", brl(margemBruta(custoPorcao, preco))) : ""}`}
         </tbody>
       </table>
     </div>` : "";
@@ -197,7 +218,7 @@ export function montarHtmlFichaTecnica({
   <div class="topo">
     <div class="marca">${logoSeldeestrelaHTML(42)}</div>
     <div class="titulo-doc">
-      <h1>FICHA TÉCNICA</h1>
+      <h1>${tituloDoc}</h1>
       <p>LIVRO DE RECEITAS</p>
     </div>
     <table class="controle">
@@ -219,10 +240,17 @@ export function montarHtmlFichaTecnica({
         ${linha("CATEGORIA", [ou(ficha.categoria, ""), ou(ficha.subcategoria, "")].filter(t => t && t !== "—").join(" / ") || "—")}
         ${linha("RENDIMENTO", porcoes ? `${esc(String(porcoes))} ${ou(ficha.rendimento_unidade, "")}`.trim() : "—")}
         ${linha("TEMPO DE PREPARO", ou(ficha.tempo_preparo))}
-        ${linha("TEMPO DE COCÇÃO", ficha.tempo_coccao_min ? `${esc(String(ficha.tempo_coccao_min))} minutos` : "—")}
+        ${bar ? "" : linha("TEMPO DE COCÇÃO", ficha.tempo_coccao_min ? `${esc(String(ficha.tempo_coccao_min))} minutos` : "—")}
         ${total ? linha("TEMPO TOTAL", `${total} minutos`) : ""}
-        ${linha("PESO FINAL (aprox.)", pesoFinal ? `${Math.round(pesoFinal)} g` : "—")}
+        ${drink ? linha("MÉTODO", metodoBar(ficha.metodo_bar)?.nome || "—") : ""}
+        ${drink ? linha("COPO", ou(ficha.copo)) : ""}
+        ${drink ? linha("GELO", ou(ficha.tipo_gelo)) : ""}
+        ${drink ? linha("GUARNIÇÃO", ou(ficha.guarnicao)) : ""}
+        ${linha(bar ? "VOLUME FINAL (aprox.)" : "PESO FINAL (aprox.)",
+                pesoFinal ? `${Math.round(pesoFinal)} ${bar ? "ml" : "g"}` : "—")}
         ${perda ? linha("PERDA", pct(perda)) : ""}
+        ${preparo ? linha("CUSTO POR " + unidadeRend.toUpperCase(),
+                          brlUnit(custoPorUnidadeDeRendimento(custos.custoTotal, porcoes))) : ""}
         ${linha("SETOR", ou(ficha.departamento))}
       </tbody>
     </table>
@@ -237,8 +265,13 @@ export function montarHtmlFichaTecnica({
   <div class="faixa">MODO DE PREPARO</div>
   ${blocoPreparo}
 
-  ${montagem.length ? `
-    <div class="faixa">MONTAGEM</div>
+  ${preparo && usadoPor.length ? `
+    <div class="faixa">USADO NAS RECEITAS</div>
+    <div class="lista">${usadoPor.map(f => esc(f.nome_receita)).join(" &nbsp;·&nbsp; ")}</div>
+  ` : ""}
+
+  ${!preparo && montagem.length ? `
+    <div class="faixa">${bar ? "MONTAGEM NO COPO" : "MONTAGEM"}</div>
     <div class="lista">${montagem.map((m, i) => `${i + 1}. ${esc(m.descricao || m)}`).join("<br/>")}</div>
   ` : ""}
 
@@ -274,7 +307,9 @@ export function montarHtmlFichaTecnica({
       <div class="faixa">INFORMAÇÕES ADICIONAIS</div>
       <table class="t duas">
         <tbody>
-          ${linha("Padrão de montagem", montagem.length ? "Conforme a seção Montagem" : "Conforme foto")}
+          ${preparo
+            ? linha("Uso", usadoPor.length ? `Ingrediente de ${usadoPor.length} receita(s)` : "Ainda não usado em receitas")
+            : linha("Padrão de montagem", montagem.length ? "Conforme a seção Montagem" : "Conforme foto")}
           ${ficha.temperatura_servico ? linha("Temperatura de serviço", esc(ficha.temperatura_servico)) : ""}
           ${linha("Observações", ou(ficha.observacoes, "Manter padrão de gramatura e montagem para garantir a qualidade."))}
         </tbody>

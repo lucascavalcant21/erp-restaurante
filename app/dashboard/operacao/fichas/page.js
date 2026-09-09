@@ -47,6 +47,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
+import { METODOS_BAR, metodoBar } from "../../../lib/ficha-tecnica";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -87,14 +88,8 @@ const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infus�
 // Método do drink. Batido e mexido não são estilo: mudam o resultado no copo —
 // o shaker aera, gela e dilui mais; o mixing glass mantém o drink límpido e
 // com corpo. Quem monta no balcão precisa disso escrito, não subentendido.
-const METODOS_BAR = [
-  { id: "batido", nome: "Batido (shaker)", ajuda: "Suco, xarope, creme ou clara de ovo" },
-  { id: "mexido", nome: "Mexido (mixing glass)", ajuda: "Só destilados — límpido e sedoso" },
-  { id: "montado", nome: "Montado no copo", ajuda: "Direto no copo do cliente, sem transferir" },
-  { id: "liquidificador", nome: "Liquidificador", ajuda: "Frozen e batidas com gelo triturado" },
-  { id: "dose", nome: "Dose pura", ajuda: "Servido puro, sem preparo" },
-];
-const metodoBar = (id) => METODOS_BAR.find(m => m.id === id) || null;
+// METODOS_BAR e metodoBar vivem em lib/ficha-tecnica.js: a ficha técnica grava
+// o mesmo `metodo_bar`, e duas listas separadas divergiriam nos ids.
 const CATEGORIAS_PREPARO_COZINHA = [
   "Molhos e caldos",
   "Arroz, feijão e grãos",

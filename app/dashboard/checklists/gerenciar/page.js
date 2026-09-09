@@ -13,21 +13,40 @@ import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 // - Salão e Bar: abertura e fechamento
 const TIPOS_POR_DEPT = {
   cozinha: [
+    ["abertura", "Abertura / Início do Turno"],
+    ["durante_turno", "Durante o Turno (Operação)"],
+    ["fechamento", "Fechamento / Fim do Turno"],
     ["mise_en_place", "Mise en Place"],
-    ["abertura", "Abertura"],
     ["pre_preparos", "Pré-preparos p/ outro dia"],
-    ["fechamento", "Fechamento"],
     ["limpeza_organizacao", "Limpeza e Organização"],
   ],
   bar: [
-    ["abertura", "Abertura"],
+    ["abertura", "Abertura / Início do Turno"],
+    ["durante_turno", "Durante o Turno (Operação)"],
     ["limpeza_organizacao", "Limpeza e Organização"],
-    ["fechamento", "Fechamento"],
+    ["fechamento", "Fechamento / Fim do Turno"],
   ],
   salao: [
-    ["abertura", "Abertura"],
+    ["abertura", "Abertura / Início do Turno"],
+    ["durante_turno", "Durante o Turno (Operação)"],
     ["limpeza_organizacao", "Limpeza e Organização"],
-    ["fechamento", "Fechamento"],
+    ["fechamento", "Fechamento / Fim do Turno"],
+  ],
+  estoque: [
+    ["abertura", "Recebimento e Conferência"],
+    ["durante_turno", "Organização e FEFO"],
+    ["limpeza_organizacao", "Limpeza e Higienização"],
+    ["fechamento", "Inventário e Fechamento"],
+  ],
+  copa: [
+    ["abertura", "Abertura e Louça"],
+    ["durante_turno", "Higienização e Triagem"],
+    ["fechamento", "Fechamento da Copa"],
+  ],
+  caixa: [
+    ["abertura", "Abertura de Caixa & Balcão"],
+    ["durante_turno", "Operação & Delivery"],
+    ["fechamento", "Fechamento de Caixa"],
   ],
 };
 const ROTULOS_LEGADO = { operacional: "Operacional", limpeza: "Limpeza" };
@@ -42,11 +61,28 @@ const CORES_DEPT = {
   cozinha: "bg-amber-100 text-amber-700",
   bar: "bg-purple-100 text-purple-700",
   salao: "bg-sky-100 text-sky-700",
+  estoque: "bg-emerald-100 text-emerald-700",
+  copa: "bg-cyan-100 text-cyan-700",
+  caixa: "bg-orange-100 text-orange-700",
 };
 
-const NOMES_DEPT = { cozinha: "Cozinha", bar: "Bar", salao: "Salão" };
-const ESCOPO_DEPT = { cozinha: "da Cozinha", bar: "do Bar", salao: "do Salão" };
-const deptValido = (dept) => Object.prototype.hasOwnProperty.call(TIPOS_POR_DEPT, dept);
+const NOMES_DEPT = {
+  cozinha: "Cozinha",
+  bar: "Bar",
+  salao: "Salão",
+  estoque: "Estoque / Almoxarifado",
+  copa: "Copa / Louça",
+  caixa: "Caixa / Delivery",
+};
+const ESCOPO_DEPT = {
+  cozinha: "da Cozinha",
+  bar: "do Bar",
+  salao: "do Salão",
+  estoque: "do Estoque",
+  copa: "da Copa",
+  caixa: "do Caixa",
+};
+const deptValido = (dept) => Boolean(dept);
 
 function comprimirFotoReferencia(arquivo) {
   return new Promise((resolve, reject) => {
@@ -151,14 +187,15 @@ function GerenciarChecklistsContent() {
 
   const abrirNovo = () => {
     const departamento = deptFixo || (deptFiltro !== "todos" && deptValido(deptFiltro) ? deptFiltro : "cozinha");
-    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
+    const tipoPadrao = TIPOS_POR_DEPT[departamento]?.[0]?.[0] || "abertura";
+    setForm({ id: null, departamento, tipo: tipoPadrao, titulo: "", frequencia: "diario", foto_ambiente: "", itens: [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
     setContextoIA("");
     setImagemIA("");
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
     if (deptFixo && t.departamento !== deptFixo) return;
-    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", fase_turno: i.fase_turno || "abertura", horario_previsto: i.horario_previsto || "", responsavel: "", tempo_minutos: 5, ...i })) : [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
+    setForm({ frequencia: "diario", foto_ambiente: "", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", fase_turno: i.fase_turno || "abertura", horario_previsto: i.horario_previsto || "", responsavel: "", tempo_minutos: 5, ...i })) : [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
     setContextoIA("");
     setImagemIA("");
     setModalNovo(true);
@@ -280,6 +317,7 @@ function GerenciarChecklistsContent() {
       tipo: form.tipo,
       titulo: form.titulo,
       frequencia: form.frequencia || "diario",
+      foto_ambiente: form.foto_ambiente || null,
       itens: itensValidos,
     });
     setModalNovo(false);
@@ -715,6 +753,50 @@ function GerenciarChecklistsContent() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Foto Geral do Cômodo / Área */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div>
+                    <p className="font-black text-sm text-slate-800 flex items-center gap-1.5"><Camera size={16} className="text-emerald-600"/> Foto Geral do Cômodo / Área (Gabarito da Área)</p>
+                    <p className="text-[11px] font-medium text-slate-500">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
+                  </div>
+                  {form.foto_ambiente && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, foto_ambiente: "" }))} className="text-xs font-bold text-rose-600 hover:underline">Remover foto</button>
+                  )}
+                </div>
+                {form.foto_ambiente ? (
+                  <div className="relative overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                    <img src={`data:image/jpeg;base64,${form.foto_ambiente}`} alt="Foto do Cômodo" className="h-44 w-full object-cover" />
+                    <span className="absolute bottom-2 left-2 rounded bg-slate-950/80 px-2 py-1 text-[10px] font-black uppercase text-white">Foto do Padrão do Cômodo</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-white text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors shadow-sm">
+                      <Upload size={15} className="text-emerald-600"/> Galeria / PC
+                      <input type="file" accept="image/*" className="hidden" onChange={async e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const b64 = await comprimirFotoReferencia(file);
+                          setForm(f => ({ ...f, foto_ambiente: b64 }));
+                        }
+                        e.target.value = "";
+                      }} />
+                    </label>
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                      <Camera size={15}/> Tirar Foto do Cômodo
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={async e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const b64 = await comprimirFotoReferencia(file);
+                          setForm(f => ({ ...f, foto_ambiente: b64 }));
+                        }
+                        e.target.value = "";
+                      }} />
+                    </label>
+                  </div>
+                )}
               </div>
 
               <datalist id="categorias-checklist">

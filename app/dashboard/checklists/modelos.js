@@ -154,6 +154,59 @@ export const MODELOS_CHECKLIST = {
       ],
     },
   },
+  estoque: {
+    abertura: {
+      titulo: "1. Recebimento e Organização do Estoque",
+      itens: [
+        { texto: "Conferir mercadorias recebidas com a Nota Fiscal (quantidade, peso e estado das caixas)", categoria: "1. Recebimento de Mercadorias", fase_turno: "abertura", horario_previsto: "08:00", tempo_minutos: 20 },
+        { texto: "Checar data de validade e temperatura dos produtos perecíveis e congelados", categoria: "1. Recebimento de Mercadorias", fase_turno: "abertura", horario_previsto: "08:20", tempo_minutos: 15 },
+        { texto: "Armazenar os produtos nas prateleiras aplicando a regra FEFO (Primeiro que Vence, Primeiro que Sai)", categoria: "2. Armazenamento e FEFO", fase_turno: "abertura", horario_previsto: "08:35", tempo_minutos: 25 },
+        { texto: "Etiquetar caixas e frações abertas com data de entrada e validade", categoria: "2. Armazenamento e FEFO", fase_turno: "abertura", horario_previsto: "09:00", tempo_minutos: 15 },
+        { texto: "Varredura e higienização do piso e prateleiras do estoque", categoria: "3. Higienização", fase_turno: "abertura", horario_previsto: "09:15", tempo_minutos: 15 },
+      ],
+    },
+    fechamento: {
+      titulo: "2. Inventário e Fechamento do Estoque",
+      itens: [
+        { texto: "Conferir contagem física dos itens críticos (Proteínas, Bebidas, Açaí)", categoria: "1. Inventário Físico", fase_turno: "fechamento", horario_previsto: "21:00", tempo_minutos: 30 },
+        { texto: "Registrar requisições e baixas do dia no sistema ERP", categoria: "2. Controle do Sistema", fase_turno: "fechamento", horario_previsto: "21:30", tempo_minutos: 15 },
+        { texto: "Conferir fechamento e trancamento de portas e câmaras frias", categoria: "3. Segurança", fase_turno: "fechamento", horario_previsto: "21:45", tempo_minutos: 10 },
+      ],
+    },
+  },
+  copa: {
+    abertura: {
+      titulo: "1. Abertura e Higienização da Copa",
+      itens: [
+        { texto: "Abastecer sabão, secante e detergente da máquina de lavar louças", categoria: "1. Preparação da Máquina", fase_turno: "abertura", horario_previsto: "17:00", tempo_minutos: 10 },
+        { texto: "Organizar cestos de lavagem de pratos, copos e talheres", categoria: "2. Triagem e Estação", fase_turno: "abertura", horario_previsto: "17:10", tempo_minutos: 15 },
+      ],
+    },
+    fechamento: {
+      titulo: "2. Fechamento da Copa",
+      itens: [
+        { texto: "Esvaziar e higienizar os filtros da máquina de lavar louças", categoria: "1. Limpeza da Máquina", fase_turno: "fechamento", horario_previsto: "23:00", tempo_minutos: 15 },
+        { texto: "Limpar pias, bancadas de inox e ralo da copa", categoria: "2. Higienização Profunda", fase_turno: "fechamento", horario_previsto: "23:15", tempo_minutos: 20 },
+      ],
+    },
+  },
+  caixa: {
+    abertura: {
+      titulo: "1. Abertura de Caixa e Delivery",
+      itens: [
+        { texto: "Conferir fundo de troco na gaveta e abrir caixa no sistema ERP", categoria: "1. Caixa e Troco", fase_turno: "abertura", horario_previsto: "17:00", tempo_minutos: 10 },
+        { texto: "Conferir impressoras de comanda e bobinas de papel de reserva", categoria: "2. Impressoras e Papel", fase_turno: "abertura", horario_previsto: "17:10", tempo_minutos: 10 },
+        { texto: "Conferir estoque de embalagens, lacres de segurança e sacolas do delivery", categoria: "3. Embalagens", fase_turno: "abertura", horario_previsto: "17:20", tempo_minutos: 15 },
+      ],
+    },
+    fechamento: {
+      titulo: "2. Fechamento de Caixa",
+      itens: [
+        { texto: "Conferir totais de vendas em Dinheiro, Cartões, Pix e Faturado", categoria: "1. Fechamento Financeiro", fase_turno: "fechamento", horario_previsto: "23:00", tempo_minutos: 20 },
+        { texto: "Imprimir sangria/relatório de fechamento e guardar movimento na pasta", categoria: "1. Fechamento Financeiro", fase_turno: "fechamento", horario_previsto: "23:20", tempo_minutos: 10 },
+      ],
+    },
+  },
 };
 
 // Retorna os modelos disponíveis para um setor+tipo (null se não houver)

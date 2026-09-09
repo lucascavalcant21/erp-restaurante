@@ -739,6 +739,30 @@ function RotinaRunner() {
             </div>
           </div>
 
+          {/* Foto Geral do Cômodo / Área */}
+          {checklistAtual?.foto_ambiente && (
+            <div className="erp-card p-4 overflow-hidden relative border-2 border-emerald-300 bg-emerald-50/60">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <Camera size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-emerald-950 uppercase tracking-wide">Padrão de Organização do Cômodo / Área</p>
+                    <p className="text-[11px] font-medium text-emerald-800">Veja a foto de como a área inteira deve estar organizada ao final do turno.</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)} className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-black text-emerald-800 hover:bg-emerald-100 shadow-sm shrink-0">
+                  Ampliar Foto
+                </button>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl cursor-pointer" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)}>
+                <img src={`data:image/jpeg;base64,${checklistAtual.foto_ambiente}`} alt="Padrão do Cômodo" className="h-48 w-full object-cover rounded-2xl hover:scale-102 transition-all" />
+                <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] font-black uppercase text-white">Toque para ver em tela cheia</span>
+              </div>
+            </div>
+          )}
+
           {/* Distribuição da equipe */}
           <Card>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">

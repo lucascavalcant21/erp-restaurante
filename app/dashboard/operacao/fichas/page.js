@@ -1825,7 +1825,7 @@ function FichasRunner() {
          </tr>`;
       }).join('');
 
-      const extra = complementosImpressao[f.id] || {};
+      const extra = (typeof complementosImpressao !== "undefined" && complementosImpressao && complementosImpressao[f.id]) || {};
       const etapasNovas = extra.etapas || [];
 
       let passosRows = '';

@@ -921,6 +921,18 @@ function RotinaRunner() {
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            {it.fase_turno && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                                {it.fase_turno === "abertura" ? "Abertura / Início" : it.fase_turno === "durante_turno" ? "No Turno" : "Fechamento / Fim"}
+                              </span>
+                            )}
+                            {it.horario_previsto && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <Clock3 size={10} /> Previsto {it.horario_previsto}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm font-bold leading-tight transition-all"
                             style={{ color: statusItem === "nao_conforme" ? "#DC2626" : ok ? t.cor : "var(--fg)", textDecoration: ok && statusItem !== "nao_conforme" ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
                             {it.texto}
@@ -928,10 +940,10 @@ function RotinaRunner() {
                           {Number(it.tempo_minutos) > 0 && <p className="mt-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={11}/>{Number(it.tempo_minutos)} min previstos</p>}
                           {(it.foto_antes || it.foto_final) && (
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {[[it.foto_antes, "Antes"], [it.foto_final, "Final"]].filter(([foto]) => foto).map(([foto, label]) => (
-                                <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm" title={`Ver padrão ${label.toLowerCase()}`}>
-                                  <img src={`data:image/jpeg;base64,${foto}`} alt={`Padrão ${label.toLowerCase()}`} className="h-16 w-24 object-cover" />
-                                  <span className="absolute bottom-0 left-0 right-0 bg-slate-950/75 px-1.5 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">Padrão {label}</span>
+                              {[[it.foto_antes, "Inicial (Antes)"], [it.foto_final, "Foto Gabarito (Exemplo Final)"]].filter(([foto]) => foto).map(([foto, label]) => (
+                                <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm hover:border-emerald-400 transition-all" title={`Ver foto de referência: ${label}`}>
+                                  <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-16 w-28 object-cover" />
+                                  <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 px-1.5 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">{label}</span>
                                 </button>
                               ))}
                             </div>

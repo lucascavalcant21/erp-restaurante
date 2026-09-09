@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 
-// Monta um checklist completo e organizado: título + tarefas divididas em
-// CATEGORIAS (tópicos), a partir do setor, momento do dia e um contexto livre.
+// Monta ou converte um checklist completo a partir de texto (instruções, cópia/cola)
+// e/ou imagem (foto de quadro, documento ou papel anotado), dividindo as tarefas em:
+// - Abertura (Início do turno)
+// - Durante o turno
+// - Fechamento (Fim do turno)
 export async function POST(request) {
   try {
-    const { departamento, tipo, contexto, unidade_nome } = await request.json();
+    const { departamento, tipo, contexto, imagem, unidade_nome } = await request.json();
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: "Chave da IA não configurada no servidor." }, { status: 500 });
@@ -12,26 +15,70 @@ export async function POST(request) {
 
     const deptLabel = departamento === "salao" ? "Salão" : departamento === "bar" ? "Bar" : "Cozinha";
     const tipoLabel = {
-      abertura: "Abertura", fechamento: "Fechamento", mise_en_place: "Mise en Place",
-      pre_preparos: "Pré-preparos para outro dia", limpeza_organizacao: "Limpeza e Organização",
-    }[tipo] || tipo;
+      abertura: "Abertura / Início do Turno",
+      durante_turno: "Durante o Turno",
+      fechamento: "Fechamento / Fim do Turno",
+      mise_en_place: "Mise en Place",
+      pre_preparos: "Pré-preparos",
+      limpeza_organizacao: "Limpeza e Organização",
+    }[tipo] || tipo || "Rotina Geral";
 
-    const prompt = `Você é um chef/gerente experiente montando um CHECKLIST operacional de restaurante, pronto para o time executar.
+    const promptText = `Você é um chef/gerente especialista em operacional de restaurantes e food service.
+Sua missão é extrair, interpretar e criar um CHECKLIST OPERACIONAL COMPLETO e impecável para a equipe executar.
 
+${imagem ? "ATENÇÃO: Analise cuidadosamente a IMAGEM enviada (que pode ser a foto de um quadro branco, folha impressa, papel manuscrito ou documento)." : ""}
+${contexto ? `Texto / Instruções / Checklist colado pelo gestor:\n"${contexto}"\n` : ""}
 Setor: ${deptLabel}
-Momento do dia: ${tipoLabel}
-${unidade_nome ? `Restaurante: ${unidade_nome}\n` : ""}${contexto ? `Contexto/pedido do gestor: ${contexto}\n` : ""}
-Monte um checklist REAL, específico e prático para esse setor e momento. Organize as tarefas em CATEGORIAS (tópicos) claros — por exemplo, no bar: "Destilados e garrafas", "Gelo e insumos", "Limpeza da bancada", "Equipamentos", "Conferência de estoque". Cada categoria com suas tarefas objetivas (verbo no infinitivo, ex: "Conferir validade dos sucos").
+Fase foco: ${tipoLabel}
+${unidade_nome ? `Restaurante: ${unidade_nome}\n` : ""}
 
-Regras:
-- Entre 4 e 8 categorias, cada uma com 2 a 6 tarefas.
-- Tarefas concretas e verificáveis, sem repetição.
-- Informe um tempo previsto realista, em minutos, para cada tarefa.
-- Sem emojis. Português do Brasil.
-- Título curto e direto para o checklist.
+REGRAS OBRIGATÓRIAS:
+1. Extraia todas as tarefas mencionadas no texto ou na foto. Se o texto/imagem for genérico, crie o checklist completo para o setor.
+2. Divida e classifique cada tarefa estritamente em uma das 3 fases do turno:
+   - "abertura" (Início do Turno / Preparação)
+   - "durante_turno" (Durante o Turno / Operação / Manutenção)
+   - "fechamento" (Fim do Turno / Encerramento / Limpeza pesada)
+3. Defina um horário previsto sugerido realista no formato "HH:MM" para cada tarefa (ex: "08:00", "11:30", "15:00", "22:30").
+4. Agrupe por categorias claras (ex: "Equipamentos", "Higiene & Sanitização", "Estoque & Validades", "Salão & Mesas", "Bancada & Bebidas").
+5. Informe tempo estimado realista em minutos para cada tarefa.
+6. Texto claro, objetivo, iniciando com verbo no infinitivo (ex: "Sanitizar bancadas de inox").
 
-Responda ESTRITAMENTE com JSON, sem markdown:
-{ "titulo": "...", "itens": [ { "categoria": "Nome da categoria", "texto": "Tarefa a fazer", "tempo_minutos": 5 }, ... ] }`;
+Responda ESTRITAMENTE em formato JSON sem markdown:
+{
+  "titulo": "Título curto e profissional do checklist",
+  "itens": [
+    {
+      "categoria": "Nome da Categoria",
+      "texto": "Descrição objetiva da tarefa",
+      "fase_turno": "abertura | durante_turno | fechamento",
+      "horario_previsto": "08:30",
+      "tempo_minutos": 10
+    }
+  ]
+}`;
+
+    const userMessageContent = [];
+
+    // Se veio imagem (Base64 pura ou Data URL)
+    if (imagem && typeof imagem === "string") {
+      let mediaType = "image/jpeg";
+      let base64Pure = imagem;
+      if (imagem.includes(";base64,")) {
+        const parts = imagem.split(";base64,");
+        mediaType = parts[0].replace("data:", "") || "image/jpeg";
+        base64Pure = parts[1];
+      }
+      userMessageContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data: base64Pure,
+        },
+      });
+    }
+
+    userMessageContent.push({ type: "text", text: promptText });
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -40,30 +87,61 @@ Responda ESTRITAMENTE com JSON, sem markdown:
         "x-api-key": process.env.ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({ model: "claude-opus-4-8", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 3500,
+        messages: [{ role: "user", content: userMessageContent }],
+      }),
     });
 
     if (!response.ok) {
-      console.error("[IA Checklist] Erro:", await response.text());
+      console.error("[IA Checklist] Erro API Anthropic:", await response.text());
       return NextResponse.json({ error: "Erro ao comunicar com a IA." }, { status: 500 });
     }
 
     const data = await response.json();
-    let texto = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
-    texto = texto.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    let rawText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+    rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
     let obj;
-    try { obj = JSON.parse(texto); } catch { const m = texto.match(/\{[\s\S]*\}/); obj = m ? JSON.parse(m[0]) : null; }
-    if (!obj?.itens || !Array.isArray(obj.itens) || obj.itens.length === 0) {
-      return NextResponse.json({ error: "A IA não gerou o checklist. Tente novamente." }, { status: 422 });
+    try {
+      obj = JSON.parse(rawText);
+    } catch {
+      const match = rawText.match(/\{[\s\S]*\}/);
+      obj = match ? JSON.parse(match[0]) : null;
     }
+
+    if (!obj?.itens || !Array.isArray(obj.itens) || obj.itens.length === 0) {
+      return NextResponse.json({ error: "Não foi possível extrair o checklist da imagem/texto enviado." }, { status: 422 });
+    }
+
+    const fasesValidas = new Set(["abertura", "durante_turno", "fechamento"]);
 
     const itens = obj.itens
       .filter(i => i && (i.texto || "").trim())
-      .map((i, idx) => ({ id: Date.now() + idx, texto: String(i.texto).trim(), categoria: (i.categoria || "").trim(), responsavel: "", tempo_minutos: Math.max(1, Number(i.tempo_minutos) || 5) }));
+      .map((i, idx) => {
+        const fase = fasesValidas.has(String(i.fase_turno).toLowerCase())
+          ? String(i.fase_turno).toLowerCase()
+          : "abertura";
+        return {
+          id: Date.now() + idx,
+          texto: String(i.texto).trim(),
+          categoria: String(i.categoria || "Geral").trim(),
+          fase_turno: fase,
+          horario_previsto: String(i.horario_previsto || "").trim() || (fase === "abertura" ? "08:00" : fase === "durante_turno" ? "14:00" : "22:00"),
+          tempo_minutos: Math.max(1, Number(i.tempo_minutos) || 5),
+          responsavel: "",
+          foto_antes: "",
+          foto_final: "",
+        };
+      });
 
-    return NextResponse.json({ titulo: String(obj.titulo || "").trim(), itens });
+    return NextResponse.json({
+      titulo: String(obj.titulo || "").trim() || `Checklist de ${deptLabel}`,
+      itens,
+    });
   } catch (error) {
     console.error("[IA Checklist] Catch:", error);
-    return NextResponse.json({ error: "Não consegui montar o checklist." }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível processar o checklist com IA." }, { status: 500 });
   }
 }

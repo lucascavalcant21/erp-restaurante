@@ -94,9 +94,38 @@ function GerenciarChecklistsContent() {
     });
   };
 
-  // Montar por IA (organiza em título + categorias + tópicos)
+  // Montar por IA (organiza em título + categorias + tópicos + turnos)
   const [contextoIA, setContextoIA] = useState("");
+  const [imagemIA, setImagemIA] = useState("");
   const [montandoIA, setMontandoIA] = useState(false);
+
+  const handleFotoIAUpload = async (arquivo) => {
+    if (!arquivo) return;
+    try {
+      const foto = await comprimirFotoReferencia(arquivo);
+      setImagemIA(foto);
+    } catch {
+      alert("Não foi possível carregar esta imagem.");
+    }
+  };
+
+  const handlePasteIA = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.indexOf("image") !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          try {
+            const foto = await comprimirFotoReferencia(file);
+            setImagemIA(foto);
+          } catch {
+            alert("Não foi possível processar a imagem colada.");
+          }
+        }
+      }
+    }
+  };
 
   const carregar = async () => {
     const idCarga = ++cargaAtual.current;
@@ -117,24 +146,40 @@ function GerenciarChecklistsContent() {
     setDeptFiltro(deptFixo);
     setModalNovo(false);
     setModalModelos(false);
-    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", tempo_minutos: 5 }] });
+    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
   }, [deptFixo]);
 
   const abrirNovo = () => {
     const departamento = deptFixo || (deptFiltro !== "todos" && deptValido(deptFiltro) ? deptFiltro : "cozinha");
-    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", tempo_minutos: 5 }] });
+    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
     setContextoIA("");
+    setImagemIA("");
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
     if (deptFixo && t.departamento !== deptFixo) return;
-    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", tempo_minutos: 5, ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "", tempo_minutos: 5 }] });
+    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", fase_turno: i.fase_turno || "abertura", horario_previsto: i.horario_previsto || "", responsavel: "", tempo_minutos: 5, ...i })) : [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
     setContextoIA("");
+    setImagemIA("");
     setModalNovo(true);
   };
 
   // Nova tarefa herda a categoria da última (facilita montar por blocos)
-  const addTarefa = () => setForm(f => ({ ...f, itens: [...f.itens, { id: Date.now(), texto: "", categoria: f.itens[f.itens.length - 1]?.categoria || "", responsavel: "", tempo_minutos: 5 }] }));
+  const addTarefa = () => setForm(f => {
+    const ultima = f.itens[f.itens.length - 1];
+    return {
+      ...f,
+      itens: [...f.itens, {
+        id: Date.now(),
+        texto: "",
+        categoria: ultima?.categoria || "",
+        fase_turno: ultima?.fase_turno || "abertura",
+        horario_previsto: ultima?.horario_previsto || "",
+        responsavel: "",
+        tempo_minutos: 5,
+      }],
+    };
+  });
   const mudaTarefa = (id, patch) => setForm(f => ({ ...f, itens: f.itens.map(i => i.id === id ? { ...i, ...patch } : i) }));
   const removeTarefa = (id) => setForm(f => ({ ...f, itens: f.itens.filter(i => i.id !== id) }));
   const anexarFotoReferencia = async (id, campo, arquivo) => {
@@ -161,24 +206,41 @@ function GerenciarChecklistsContent() {
     setForm(f => ({
       ...f,
       titulo: f.titulo.trim() || modelo.titulo,
-      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "", tempo_minutos: 5 })),
+      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 })),
     }));
   };
 
-  // Monta o checklist inteiro por IA: título + tarefas organizadas em categorias
+  // Monta o checklist inteiro por IA a partir de texto (instruções/checklist colado) e/ou Imagem (OCR/Vision)
   const montarPorIA = async () => {
+    if (!contextoIA.trim() && !imagemIA) {
+      return alert("Cole ou digite instruções de checklist OU envie/cole uma foto (quadro branco, folha manuscrita ou impressa) para a IA processar.");
+    }
     setMontandoIA(true);
     try {
       const res = await fetch("/api/ia-checklist", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ departamento: form.departamento, tipo: form.tipo, contexto: contextoIA, unidade_nome: unidadeInfo?.nome }),
+        body: JSON.stringify({
+          departamento: form.departamento,
+          tipo: form.tipo,
+          contexto: contextoIA,
+          imagem: imagemIA,
+          unidade_nome: unidadeInfo?.nome,
+        }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao montar o checklist."); return; }
       setForm(f => ({
         ...f,
         titulo: f.titulo.trim() || data.titulo || "",
-        itens: (data.itens || []).map((i, idx) => ({ id: Date.now() + idx, texto: i.texto || "", categoria: i.categoria || "", responsavel: "", tempo_minutos: Number(i.tempo_minutos) || 5 })),
+        itens: (data.itens || []).map((i, idx) => ({
+          id: Date.now() + idx,
+          texto: i.texto || "",
+          categoria: i.categoria || "",
+          fase_turno: i.fase_turno || "abertura",
+          horario_previsto: i.horario_previsto || "",
+          responsavel: "",
+          tempo_minutos: Number(i.tempo_minutos) || 5,
+        })),
       }));
     } catch { alert("Não consegui falar com a IA."); } finally { setMontandoIA(false); }
   };
@@ -587,21 +649,54 @@ function GerenciarChecklistsContent() {
                 </button>
               )}
 
-              {/* Montar tudo por IA: organiza em título + categorias + tópicos */}
-              <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0"><Sparkles size={16} /></div>
-                  <div>
-                    <p className="font-black text-sm text-violet-900 leading-tight">Montar tudo por IA</p>
-                    <p className="text-[11px] font-medium text-violet-700">Organiza o checklist em categorias e tópicos para o {form.departamento === "bar" ? "barman/bartender" : "responsável"} executar</p>
+              {/* Montar tudo por IA: texto, cópia/cola ou foto (quadro/papel) */}
+              <div
+                onPaste={handlePasteIA}
+                className="rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/70 p-4 transition-all hover:border-violet-400"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-sm"><Sparkles size={18} /></div>
+                    <div>
+                      <p className="font-black text-sm text-violet-950 leading-tight">Gerador Inteligente por IA (Texto & Fotos)</p>
+                      <p className="text-[11px] font-medium text-violet-700">Cole um checklist, digite instruções ou envie a foto de um quadro/papel</p>
+                    </div>
                   </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-violet-600 bg-violet-100 px-2.5 py-1 rounded-full">OCR / Visão + Texto</span>
                 </div>
-                <textarea rows={2} value={contextoIA} onChange={e => setContextoIA(e.target.value)}
-                  placeholder="Opcional: detalhe o que não pode faltar (ex: conferir chopeira, repor gelo, higienizar dosadores...)"
-                  className="w-full p-3 bg-white border border-violet-200 rounded-xl font-medium text-base outline-none focus:border-violet-500 resize-none mb-2" />
+
+                <textarea
+                  rows={3}
+                  value={contextoIA}
+                  onChange={e => setContextoIA(e.target.value)}
+                  onPaste={handlePasteIA}
+                  placeholder="Cole aqui seu checklist, rotina operacional, lista do WhatsApp (ou pressione Ctrl+V com uma imagem)..."
+                  className="w-full p-3.5 bg-white border border-violet-200 rounded-xl font-medium text-base text-slate-800 outline-none focus:border-violet-500 resize-none mb-3 shadow-inner"
+                />
+
+                {imagemIA ? (
+                  <div className="relative mb-3 inline-block overflow-hidden rounded-xl border-2 border-violet-400 shadow-md">
+                    <img src={`data:image/jpeg;base64,${imagemIA}`} alt="Imagem enviada para IA" className="h-28 max-w-xs object-cover" />
+                    <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-2 py-0.5 text-[9px] font-black uppercase text-white">Foto para leitura</span>
+                    <button type="button" onClick={() => setImagemIA("")} className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-700"><X size={14} /></button>
+                  </div>
+                ) : (
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-white px-3.5 text-xs font-bold text-violet-800 border border-violet-200 hover:bg-violet-100 transition-colors shadow-sm">
+                      <Upload size={15} className="text-violet-600"/> Enviar foto (Quadro/Folha)
+                      <input type="file" accept="image/*" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-white px-3.5 text-xs font-bold text-violet-800 border border-violet-200 hover:bg-violet-100 transition-colors shadow-sm">
+                      <Camera size={15} className="text-violet-600"/> Tirar foto
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                    <span className="text-[11px] font-semibold text-violet-600">Dica: Você também pode dar <b>Ctrl + V</b> com uma imagem copiada!</span>
+                  </div>
+                )}
+
                 <button type="button" onClick={montarPorIA} disabled={montandoIA}
-                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm py-3 rounded-xl transition-colors disabled:opacity-60">
-                  {montandoIA ? <><Loader2 size={16} className="animate-spin" /> Montando checklist...</> : <><Sparkles size={16} /> Montar por IA</>}
+                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-md shadow-violet-600/20 active:scale-95 disabled:opacity-60">
+                  {montandoIA ? <><Loader2 size={18} className="animate-spin" /> Processando texto e fotos com IA...</> : <><Sparkles size={18} /> Convertendo em Checklist Organizado (Abertura, Turno, Fechamento)</>}
                 </button>
               </div>
 
@@ -628,16 +723,16 @@ function GerenciarChecklistsContent() {
 
               <div className="pt-4 border-t border-slate-100">
                 <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas do Checklist</label>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{form.itens.length} ações</span>
                     <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={12}/>{form.itens.reduce((total, tarefa) => total + (Number(tarefa.tempo_minutos) || 0), 0)} min</span>
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos</span>
+                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
                   </div>
                 </div>
                 <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
-                  <ImagePlus size={20} className="mt-0.5 shrink-0"/>
-                  <div><p className="text-xs font-black uppercase tracking-wide">Fotos-modelo pelo celular</p><p className="mt-0.5 text-xs font-medium">Em cada tarefa, envie uma foto de referência de antes e outra mostrando como deve ficar no final. Você pode escolher da galeria ou tirar a foto na hora.</p></div>
+                  <ImagePlus size={20} className="mt-0.5 shrink-0 text-emerald-600"/>
+                  <div><p className="text-xs font-black uppercase tracking-wide">Fotos Gabarito / Exemplo de Padrão</p><p className="mt-0.5 text-xs font-medium">Anexe fotos de exemplo para cada tarefa. Quem estiver executando pelo celular poderá visualizar o gabarito de como a bancada, salão ou equipamento deve ficar.</p></div>
                 </div>
                 <div className="space-y-2.5">
                   {form.itens.map((it, i) => {
@@ -707,7 +802,31 @@ function GerenciarChecklistsContent() {
                           <button onClick={() => removeTarefa(it.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200 mt-1" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={16} /></button>
                         </div>
 
-                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-emerald-700">Fase do Turno</span>
+                            <select
+                              value={it.fase_turno || "abertura"}
+                              onChange={e => mudaTarefa(it.id, { fase_turno: e.target.value })}
+                              className="w-full rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 text-sm font-bold text-emerald-900 outline-none focus:border-emerald-600"
+                            >
+                              <option value="abertura">Abertura / Início do Turno</option>
+                              <option value="durante_turno">Durante o Turno (Operação)</option>
+                              <option value="fechamento">Fechamento / Fim do Turno</option>
+                            </select>
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-sky-700">Horário Previsto</span>
+                            <input
+                              type="text"
+                              placeholder="Ex: 08:00"
+                              value={it.horario_previsto || ""}
+                              onChange={e => mudaTarefa(it.id, { horario_previsto: e.target.value })}
+                              className="w-full rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900 outline-none focus:border-sky-500"
+                            />
+                          </label>
+
                           <label className="block">
                             <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-violet-600">Grupo / etapa</span>
                             <input
@@ -716,34 +835,22 @@ function GerenciarChecklistsContent() {
                               placeholder="Ex: Bancadas"
                               value={it.categoria || ""}
                               onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
-                              className="w-full rounded-xl border border-violet-200 bg-violet-50 p-3 text-base font-bold text-slate-800 outline-none focus:border-violet-500"
+                              className="w-full rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-500"
                             />
                           </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-slate-500">Responsável</span>
-                            <div className="relative">
-                              <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                              <input
-                                type="text"
-                                placeholder="Quem executa"
-                                value={it.responsavel || ""}
-                                onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
-                                className="w-full rounded-xl border border-slate-200 bg-white p-3 pl-9 text-base font-medium outline-none focus:border-emerald-500"
-                              />
-                            </div>
-                          </label>
+
                           <label className="block">
                             <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-amber-600">Tempo previsto</span>
                             <div className="relative">
                               <Clock3 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600" />
-                              <input type="number" min="1" max="240" value={it.tempo_minutos || ""} onChange={e => mudaTarefa(it.id, { tempo_minutos: Number(e.target.value) || "" })} placeholder="Minutos" title="Tempo previsto em minutos" className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 pl-9 text-base font-black text-slate-800 outline-none focus:border-amber-500" />
+                              <input type="number" min="1" max="240" value={it.tempo_minutos || ""} onChange={e => mudaTarefa(it.id, { tempo_minutos: Number(e.target.value) || "" })} placeholder="Minutos" title="Tempo previsto em minutos" className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 pl-9 text-sm font-black text-slate-800 outline-none focus:border-amber-500" />
                               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-amber-700">min</span>
                             </div>
                           </label>
                         </div>
 
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          {[["foto_antes", "Padrão antes"], ["foto_final", "Padrão final"]].map(([campo, label]) => (
+                          {[["foto_antes", "Padrão Inicial (Antes)"], ["foto_final", "Foto Gabarito (Exemplo Final)"]].map(([campo, label]) => (
                             <div key={campo} className="overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
                               {it[campo] ? (
                                 <div className="relative">

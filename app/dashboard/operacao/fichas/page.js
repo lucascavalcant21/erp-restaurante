@@ -435,6 +435,11 @@ function FichasRunner() {
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
     id: null,
+    codigo: "",
+    versao: "",
+    responsavel: "",
+    tempo_coccao: "",
+    padrao_montagem: "",
     departamento: deptUrl,
     nome_receita: "",
     categoria: "",
@@ -931,7 +936,7 @@ function FichasRunner() {
     const categoriaInicial = criandoPreparo
       ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
       : "";
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: unidadePadraoDepartamento(deptUrl), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+    setForm({ id: null, codigo: "", versao: "", responsavel: "", tempo_coccao: "", padrao_montagem: "", departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: unidadePadraoDepartamento(deptUrl), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
@@ -1003,6 +1008,11 @@ function FichasRunner() {
     const rendimentoSetor = rendimentoPadronizado(ficha);
     setForm({
        id: ficha.id,
+       codigo: ficha.codigo || "",
+       versao: ficha.versao || "",
+       responsavel: ficha.responsavel || "",
+       tempo_coccao: ficha.tempo_coccao != null ? String(ficha.tempo_coccao) : "",
+       padrao_montagem: ficha.padrao_montagem || "",
        departamento: ficha.departamento,
        nome_receita: ficha.nome_receita,
        categoria: ficha.departamento === "bar" && ficha.eh_base ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
@@ -1327,6 +1337,11 @@ function FichasRunner() {
          {
             id: form.id,
             unidade_id: unidadeAtiva,
+            codigo: form.codigo || null,
+            versao: form.versao || null,
+            responsavel: form.responsavel || null,
+            tempo_coccao: form.tempo_coccao ? Number(form.tempo_coccao) : null,
+            padrao_montagem: form.padrao_montagem || null,
             departamento: form.departamento,
             nome_receita: form.nome_receita,
             categoria: form.categoria || null,
@@ -1375,6 +1390,11 @@ function FichasRunner() {
           const novaFichaObjeto = {
             id: fichaIdSalva,
             unidade_id: unidadeAtiva,
+            codigo: form.codigo || null,
+            versao: form.versao || null,
+            responsavel: form.responsavel || null,
+            tempo_coccao: form.tempo_coccao ? Number(form.tempo_coccao) : null,
+            padrao_montagem: form.padrao_montagem || null,
             departamento: form.departamento,
             nome_receita: form.nome_receita,
             categoria: form.categoria || null,
@@ -1677,59 +1697,86 @@ function FichasRunner() {
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:16mm 14mm;max-width:820px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-          .ficha{page-break-inside:avoid;margin-bottom:26px}
-          .ficha + .ficha{border-top:1px solid #e2e8f0;padding-top:22px}
+          body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#ffffff;padding:12mm 10mm;max-width:860px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          .ficha{page-break-inside:avoid;margin-bottom:24px;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
           .quebra{page-break-after:always}
-          /* Cabeçalho: foto quadrada à esquerda, dados à direita */
-          .topo{display:flex;gap:18px;align-items:flex-start;margin-bottom:16px}
-          .foto{width:230px;height:230px;object-fit:cover;border-radius:6px;background:#f1f5f9;border:1px solid #cbd5e1;flex-shrink:0}
-          .foto-vazia{width:230px;height:230px;border-radius:6px;background:#f1f5f9;border:1px dashed #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;font-weight:bold}
-          .cab{flex:1;min-width:0}
-          .rotulo{text-align:right;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
-          .titulo{text-align:right;font-size:22px;font-weight:800;line-height:1.15;margin:2px 0 14px;color:#0f172a}
-          /* Metadados em grade (linhas e colunas) */
-          .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px}
-          .campo{font-size:12.5px;color:#334155}
-          .campo b{color:#0f172a}
-          .campo.full{grid-column:1 / -1}
-          /* Seções e tabelas */
-          h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:18px 0 6px;text-align:right;border-bottom:2px solid #0f172a;padding-bottom:4px}
-          table{width:100%;border-collapse:collapse;font-size:13px}
-          th,td{text-align:left;padding:7px 10px}
-          thead th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1;font-weight:bold}
-          tbody td{font-weight:600;border-bottom:1px solid #eef2f7}
-          tbody tr:nth-child(even){background:#f5f7fa}
-          td.r,th.r{text-align:right}
-          .rende td,.rende th{white-space:nowrap}
-          /* Modo de preparo em passos com linhas alternadas */
-          .passos{margin-top:4px}
-          .passo{font-size:13px;line-height:1.5;padding:7px 10px;font-weight:600}
-          .passo:nth-child(even){background:#f5f7fa}
-          .passo b{color:#0f172a;margin-right:4px}
-          @media print{@page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:12mm}}
+          
+          /* BANNER PRINCIPAL DE TÍTULO DA FICHA TÉCNICA */
+          .banner-topo{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;color:#ffffff;font-weight:bold}
+          .banner-cozinha-prato{background-color:#4a2818;background-image:linear-gradient(135deg, #4a2818 0%, #2e160c 100%)}
+          .banner-cozinha-base{background-color:#78350f;background-image:linear-gradient(135deg, #78350f 0%, #451a03 100%)}
+          .banner-bar-prato{background-color:#0f172a;background-image:linear-gradient(135deg, #0f172a 0%, #020617 100%)}
+          .banner-bar-base{background-color:#581c87;background-image:linear-gradient(135deg, #581c87 0%, #3b0764 100%)}
+          
+          .badge-setor{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:900;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.2);display:inline-block;margin-bottom:4px}
+          .titulo-ficha{font-size:22px;font-weight:900;line-height:1.2;margin:0;text-transform:uppercase;letter-spacing:0.5px}
+          
+          /* DADOS DO CABEÇALHO (LOGO + METADADOS BOX) */
+          .header-box{display:grid;grid-template-columns:1fr 260px;gap:16px;padding:14px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;align-items:center}
+          .brand-area{display:flex;align-items:center;gap:12px}
+          .brand-title{font-size:14px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:1px}
+          .brand-subtitle{font-size:11px;color:#64748b;font-weight:600}
+          
+          .meta-table{width:100%;border-collapse:collapse;font-size:11px;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden}
+          .meta-table td{padding:5px 8px;border:1px solid #e2e8f0;color:#334155}
+          .meta-table b{color:#0f172a;font-weight:700}
+          
+          /* ESTRUTURA PRINCIPAL EM 2 COLUNAS */
+          .corpo-ficha{padding:16px;display:grid;grid-template-columns:220px 1fr;gap:16px}
+          
+          /* FOTO E QUADRO RESUMO DA FICHA (COLUNA ESQUERDA) */
+          .col-foto{display:flex;flex-direction:column;gap:12px}
+          .foto{width:100%;height:190px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;background:#f1f5f9}
+          .foto-vazia{width:100%;height:160px;border-radius:8px;border:1.5px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+          
+          .resumo-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:11.5px;display:flex;flex-direction:column;gap:8px}
+          .resumo-item{display:flex;flex-direction:column;gap:1px}
+          .resumo-label{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+          .resumo-val{font-size:12px;font-weight:700;color:#0f172a}
+          
+          /* CONTEÚDO TÉCNICO (COLUNA DIREITA) */
+          .col-conteudo{display:flex;flex-direction:column;gap:14px}
+          
+          .secao-titulo{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#0f172a;padding:4px 8px;background:#f1f5f9;border-left:4px solid #0f172a;margin-bottom:6px;border-radius:0 4px 4px 0}
+          
+          table.tabela-itens{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:8px}
+          table.tabela-itens th{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#475569;background:#f8fafc;border-bottom:2px solid #cbd5e1;padding:6px 8px;text-align:left;font-weight:800}
+          table.tabela-itens td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#1e293b}
+          table.tabela-itens tr:nth-child(even){background:#fafafa}
+          table.tabela-itens td.r, table.tabela-itens th.r{text-align:right}
+          
+          .passos{display:flex;flex-direction:column;gap:5px}
+          .passo{font-size:11.5px;line-height:1.45;padding:6px 10px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:6px;color:#1e293b;font-weight:600;display:flex;gap:8px;align-items:flex-start}
+          .passo-num{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;background:#0f172a;color:#ffffff;border-radius:50%;font-size:10px;font-weight:900;flex-shrink:0;margin-top:1px}
+          
+          .box-info{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:11px;line-height:1.5;color:#334155}
+          
+          /* SLOGAN RODAPÉ DA FICHA */
+          .slogan-bar{background:#0f172a;color:#ffffff;text-align:center;padding:8px;font-size:9.5px;font-weight:900;letter-spacing:3px;text-transform:uppercase}
+          
+          @media print{
+            @page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:8mm}
+            body{padding:0}
+            .ficha{box-shadow:none;border-color:#cbd5e1}
+          }
           .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
-          .capa h1{font-size:46px;margin-bottom:14px}
-          .capa p{font-size:18px;color:#64748b}
-          /* Livro: cada ficha em 1 página numerada; índice por seções */
-          .pagina-livro{page-break-after:always;display:flex;flex-direction:column;height:246mm;overflow:hidden;margin-bottom:0}
+          .capa h1{font-size:44px;margin-bottom:14px;color:#0f172a;font-weight:900}
+          .capa p{font-size:16px;color:#64748b;font-weight:600}
+          
+          .pagina-livro{page-break-after:always;display:flex;flex-direction:column;height:252mm;overflow:hidden;margin-bottom:0}
           .pagina-livro:last-child{page-break-after:auto}
           .conteudo-pg{flex:1;min-height:0}
-          .ficha-metade + .ficha-metade{border-top:2px dashed #cbd5e1;margin-top:10px;padding-top:12px}
-          .ficha-metade .foto,.ficha-metade .foto-vazia{width:150px;height:150px}
-          .rodape-livro{margin-top:auto;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#64748b;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
-          .indice{page-break-after:always;min-height:246mm;display:flex;flex-direction:column}
-          .indice h1{font-size:24px;text-transform:uppercase;letter-spacing:4px;margin-bottom:16px;border-bottom:3px solid #0f172a;padding-bottom:8px}
-          .ind-sec{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:12px 0 5px}
-          .ind-item{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:600;padding:2.5px 0;color:#334155}
+          .rodape-livro{margin-top:auto;padding:8px 0 0;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;font-size:10px;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+          
+          .indice{page-break-after:always;min-height:252mm;display:flex;flex-direction:column;padding:10px 0}
+          .indice h1{font-size:24px;text-transform:uppercase;letter-spacing:3px;margin-bottom:16px;border-bottom:3px solid #0f172a;padding-bottom:8px;font-weight:900}
+          .ind-sec{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:14px 0 6px;padding-bottom:2px;border-bottom:1px solid #e2e8f0}
+          .ind-item{display:flex;align-items:baseline;gap:6px;font-size:12.5px;font-weight:600;padding:3px 0;color:#334155}
           .ind-item .pontos{flex:1;border-bottom:2px dotted #cbd5e1}
           .ind-item .pg{font-weight:900;color:#0f172a}
        </style></head><body>
     `;
 
-    // ── LIVRO DE RECEITAS: seções, capa, índice e páginas numeradas ──────────
-    // Seções do livro (nesta ordem). No Bar, xaropes, espumas e geleias ganham
-    // capítulos próprios para facilitar a produção e a consulta da equipe.
     const ORDEM_SECOES = ['Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos', 'Molhos'];
     const secaoDe = (f) => {
       const nome = String(f.nome_receita || '').toLowerCase();
@@ -1746,13 +1793,11 @@ function FichasRunner() {
     };
     const ehLivro = !!opcoes.livro || listaDeFichas.length >= 6;
     const lista = [...listaDeFichas];
-    // Capa e índice são montados DEPOIS, quando as páginas já foram distribuídas
-    // (receitas pequenas se combinam 2 por página; as grandes se comprimem).
+
     const dados = lista.map((f) => {
       const rendimentoSetor = rendimentoPadronizado(f);
       const rendimentoSetorTexto = textoRendimentoPadronizado(f);
 
-      // Itens do preparo: Tipo | Nome | Medida | Quantidade total
       const rows = (f.fichas_ingredientes || []).map(fi => {
          let tipo = 'Insumo', nome = '', unidade = '';
          if (fi.insumos) {
@@ -1768,20 +1813,14 @@ function FichasRunner() {
          return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
       }).join('');
 
-      // Passos do modo de preparo (remove numeração já existente e re-enumera)
       const passos = String(f.modo_preparo || '')
          .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
       const passosHTML = passos.length
-         ? passos.map((s, i) => `<div class="passo"><b>${i + 1}.</b> ${esc(s)}</div>`).join('')
+         ? passos.map((s, i) => `<div class="passo"><span class="passo-num">${i + 1}</span><span>${esc(s)}</span></div>`).join('')
          : `<div class="passo">Não informado.</div>`;
 
-      // Etapas, equipamentos, armazenamento e alergênicos — vêm das tabelas
-      // novas. Quando não há nada (migração não rodada, ou ficha ainda sem
-      // esses dados), cada bloco simplesmente não aparece.
       const extra = complementosImpressao[f.id] || {};
 
-      // Modo de preparo: as etapas numeradas mandam; o texto livre antigo é o
-      // reserva, para as receitas que ainda não foram convertidas.
       const preparoHTML = (extra.etapas || []).length
         ? (extra.etapas || []).map((e, i) => {
             const detalhes = [
@@ -1790,7 +1829,7 @@ function FichasRunner() {
               e.equipamento ? esc(e.equipamento) : "",
             ].filter(Boolean).join(" · ");
             const titulo = e.titulo ? `<b>${esc(e.titulo)}</b>${e.instrucao ? " — " : ""}` : "";
-            return `<div class="passo"><span class="num">${i + 1}</span><span>${titulo}${esc(e.instrucao || "")}`
+            return `<div class="passo"><span class="passo-num">${i + 1}</span><span>${titulo}${esc(e.instrucao || "")}`
               + (detalhes ? `<br/><i style="color:#64748b;font-size:11px">${detalhes}</i>` : "")
               + (e.observacao ? `<br/><i style="color:#92400e;font-size:11px">${esc(e.observacao)}</i>` : "")
               + `</span></div>`;
@@ -1799,7 +1838,7 @@ function FichasRunner() {
 
       const equipamentos = (extra.equipamentos || []).map(x => x.nome).filter(Boolean);
       const blocoEquipamentos = incluir("equipamentos") && equipamentos.length
-        ? `<h2>Equipamentos e utensílios</h2><div class="passos">${esc(equipamentos.join(", "))}.</div>`
+        ? `<div><div class="secao-titulo">Equipamentos e Utensílios</div><div class="box-info">${esc(equipamentos.join(", "))}.</div></div>`
         : "";
 
       const arm = extra.armazenamento;
@@ -1818,21 +1857,17 @@ function FichasRunner() {
         validadesArm.length ? `<b>Validade:</b> ${validadesArm.join(" · ")}` : "",
       ].filter(Boolean) : [];
       const blocoArmazenamento = incluir("armazenamento") && linhasArm.length
-        ? `<h2>Armazenamento e validade</h2><div class="passos">${linhasArm.join("<br/>")}</div>`
+        ? `<div><div class="secao-titulo">Armazenamento e Validade</div><div class="box-info">${linhasArm.join("<br/>")}</div></div>`
         : "";
 
       const alergs = (extra.alergenicos || []).map(x => x.alergenico).filter(Boolean);
       const blocoAlergenicos = incluir("alergenicos") && (alergs.length || f.alergenicos_pode_conter)
-        ? `<h2>Alergênicos</h2><div class="passos">`
+        ? `<div><div class="secao-titulo">Alergênicos</div><div class="box-info">`
           + (alergs.length ? `<b>Contém:</b> ${esc(alergs.join(", ").toLowerCase())}.` : "")
           + (f.alergenicos_pode_conter ? `${alergs.length ? "<br/>" : ""}<b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}.` : "")
-          + `</div>`
+          + `</div></div>`
         : "";
 
-      // Custo, preço e CMV. As chaves `custos`/`preco`/`cmv`/`margem` já
-      // existiam na configuração, mas o template nunca as lia — então o livro
-      // saía sempre sem valor nenhum, mesmo com a opção ligada.
-      // Só sai para quem tem `view_costs`.
       const custoFicha = custoTotalDaFicha(f, fichas);
       const infoPeso = infoPesoFicha(f, fichas);
       const porcoesFicha = (() => {
@@ -1851,53 +1886,121 @@ function FichasRunner() {
         incluir("margem", false) && cmvFicha !== null ? `<b>Margem bruta:</b> ${fmtBRL(precoFicha - custoPorcaoFicha)}` : "",
       ].filter(Boolean) : [];
       const blocoCusto = linhasCusto.length
-        ? `<h2>Custo e precificação</h2><div class="passos">${linhasCusto.join(" &nbsp;·&nbsp; ")}</div>`
+        ? `<div class="resumo-box" style="margin-top:6px;background:#f0fdf4;border-color:#bbf7d0"><span class="resumo-label" style="color:#166534">Custo e Precificação</span><div style="font-size:11px;font-weight:700;color:#14532d;line-height:1.5">${linhasCusto.join("<br/>")}</div></div>`
         : "";
 
       const foto = incluir("foto") && f.imagem
          ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
          : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
-      const deptLabel = f.departamento === 'bar' ? 'Bar' : (f.departamento === 'cozinha' ? 'Cozinha' : (f.departamento || '—'));
+
+      const dept = String(f.departamento || '').toLowerCase();
+      const isBar = dept === 'bar';
+      const ehBase = !!f.eh_base;
+
+      let bannerClass = 'banner-cozinha-prato';
+      let badgeText = 'COZINHA · FICHA TÉCNICA DE PRATO';
+      if (isBar) {
+        if (ehBase) {
+          bannerClass = 'banner-bar-base';
+          badgeText = 'BAR · FICHA TÉCNICA DE PRÉ-PREPARO / BASE DO BAR';
+        } else {
+          bannerClass = 'banner-bar-prato';
+          badgeText = 'BAR · FICHA TÉCNICA DE DRINK / BEBIDA';
+        }
+      } else {
+        if (ehBase) {
+          bannerClass = 'banner-cozinha-base';
+          badgeText = 'COZINHA · FICHA TÉCNICA DE PRÉ-PREPARO / BASE';
+        }
+      }
+
+      const codigoVal = f.codigo || `FT-${String(f.id || '').slice(0, 4).toUpperCase()}`;
+      const versaoVal = f.versao || '1.0';
+      const respVal = f.responsavel || '—';
+      const dataVal = fmtDataBR(f.updated_at || f.created_at);
 
       const corpo = `
-            <div class="topo">
-               ${foto}
-               <div class="cab">
-                  <div class="rotulo">${ehLivro ? 'Livro de Receitas · ' + esc(secaoDe(f)) : 'Ficha Técnica'}</div>
-                  <div class="titulo">${esc(f.nome_receita)}</div>
-                  <div class="grid">
-                     ${incluir("codigo") && (f.codigo || f.versao) ? `<div class="campo"><b>Código:</b> ${esc(f.codigo || "—")}${f.versao ? ` &nbsp;·&nbsp; <b>Versão:</b> ${esc(f.versao)}` : ""}</div>` : ""}
-                     <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
-                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
-                     <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
-                     ${metodoBar(f.metodo_bar) ? `<div class="campo"><b>Método:</b> ${esc(metodoBar(f.metodo_bar).nome)}</div>` : ''}
-                     ${incluir("atualizacao") ? `<div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
-                     <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>` : ""}
-                     ${incluir("responsaveis") && f.responsavel ? `<div class="campo full"><b>Responsável:</b> ${esc(f.responsavel)}</div>` : ""}
-                     ${incluir("observacoes") && f.observacoes ? `<div class="campo full"><b>Observações:</b> ${esc(f.observacoes)}</div>` : ''}
-                  </div>
+         <div class="banner-topo ${bannerClass}">
+            <div>
+               <div class="badge-setor">${esc(badgeText)}</div>
+               <h1 class="titulo-ficha">${esc(f.nome_receita)}</h1>
+            </div>
+         </div>
+
+         <div class="header-box">
+            <div class="brand-area">
+               ${logoSeldeestrelaSVG(36)}
+               <div>
+                  <div class="brand-title">${esc(unidadeInfo?.nome || 'SEL DE ESTRELA')}</div>
+                  <div class="brand-subtitle">Manual Operacional de Produção</div>
                </div>
             </div>
-
-            <h2>Rendimento</h2>
-            <table class="rende">
-               <thead><tr><th>Quantidade total</th></tr></thead>
-               <tbody><tr><td>${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</td></tr></tbody>
+            <table class="meta-table">
+               <tr><td><b>Código:</b> ${esc(codigoVal)}</td><td><b>Versão:</b> ${esc(versaoVal)}</td></tr>
+               <tr><td><b>Data:</b> ${esc(dataVal)}</td><td><b>Resp.:</b> ${esc(respVal)}</td></tr>
             </table>
+         </div>
 
-            ${incluir("ingredientes") ? `<h2>Itens do preparo</h2>
-            <table>
-               <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Quantidade total</th></tr></thead>
-               <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
-            </table>` : ""}
+         <div class="corpo-ficha">
+            <div class="col-foto">
+               ${foto}
+               <div class="resumo-box">
+                  <div class="resumo-item">
+                     <span class="resumo-label">Categoria</span>
+                     <span class="resumo-val">${esc(f.categoria || (isBar ? 'Bar' : 'Cozinha'))}</span>
+                  </div>
+                  <div class="resumo-item">
+                     <span class="resumo-label">Rendimento Total</span>
+                     <span class="resumo-val">${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</span>
+                  </div>
+                  <div class="resumo-item">
+                     <span class="resumo-label">Tempo de Preparo</span>
+                     <span class="resumo-val">${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</span>
+                  </div>
+                  ${f.tempo_coccao != null && f.tempo_coccao !== '' ? `
+                  <div class="resumo-item">
+                     <span class="resumo-label">Tempo de Cocção</span>
+                     <span class="resumo-val">${esc(String(f.tempo_coccao))} min</span>
+                  </div>` : ''}
+                  ${f.padrao_montagem ? `
+                  <div class="resumo-item">
+                     <span class="resumo-label">Padrão de Montagem</span>
+                     <span class="resumo-val">${esc(f.padrao_montagem)}</span>
+                  </div>` : ''}
+                  ${metodoBar(f.metodo_bar) ? `
+                  <div class="resumo-item">
+                     <span class="resumo-label">Método do Bar</span>
+                     <span class="resumo-val">${esc(metodoBar(f.metodo_bar).nome)}</span>
+                  </div>` : ''}
+               </div>
+               ${blocoCusto}
+            </div>
 
-            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${preparoHTML}</div>` : ""}
-            ${blocoEquipamentos}
-            ${blocoArmazenamento}
-            ${blocoAlergenicos}
-            ${blocoCusto}`;
+            <div class="col-conteudo">
+               ${incluir("ingredientes") ? `
+               <div>
+                  <div class="secao-titulo">Itens do Preparo</div>
+                  <table class="tabela-itens">
+                     <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Qtd Total</th></tr></thead>
+                     <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
+                  </table>
+               </div>` : ""}
 
-      // Altura estimada (≈mm) para decidir se cabe DUAS na mesma página
+               ${incluir("preparo") ? `
+               <div>
+                  <div class="secao-titulo">Modo de Preparo</div>
+                  <div class="passos">${preparoHTML}</div>
+               </div>` : ""}
+
+               ${blocoEquipamentos}
+               ${blocoArmazenamento}
+               ${blocoAlergenicos}
+            </div>
+         </div>
+
+         <div class="slogan-bar">SABOR QUE CONECTA. PADRÃO QUE PERMANECE.</div>
+      `;
+
       const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + passos.length * 7 + (f.observacoes ? 8 : 0);
       return { f, corpo, score, secao: ehLivro ? secaoDe(f) : '' };
     });

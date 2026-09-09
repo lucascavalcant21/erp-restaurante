@@ -80,6 +80,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
   const [busca, setBusca] = useState("");
   const [candidatoAberto, setCandidatoAberto] = useState(null);
   const [editorPortal, setEditorPortal] = useState(null);
+  const [carregandoPortal, setCarregandoPortal] = useState(false);
   const [salvandoPortal, setSalvandoPortal] = useState(false);
   const [gerandoRequisitos, setGerandoRequisitos] = useState(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
@@ -214,8 +215,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
   };
 
   const abrirEditorPortal = async () => {
+    setCarregandoPortal(true);
     const { data, error } = await fetchPortalVagasConfig(unidadeAtiva);
+    setCarregandoPortal(false);
     if (error) return alert("Não foi possível carregar a configuração: " + error);
+    setEditorPortal(data);
   };
 
   const salvarEditorPortal = async () => {
@@ -335,9 +339,9 @@ export default function BancoTalentos({ unidadeAtiva }) {
             <button type="button" onClick={carregar} disabled={loading} className="flex items-center justify-center gap-2 bg-white text-slate-600 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 disabled:opacity-60 whitespace-nowrap">
                <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> Atualizar
             </button>
-            <button type="button" onClick={abrirEditorPortal} className="flex items-center justify-center gap-2 bg-white text-slate-700 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 whitespace-nowrap">
-               <Pencil size={18} /> Editar portal
-            </button>
+             <button type="button" onClick={abrirEditorPortal} disabled={carregandoPortal} className="flex items-center justify-center gap-2 bg-white text-slate-700 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 whitespace-nowrap disabled:opacity-60">
+                {carregandoPortal ? <Loader2 size={18} className="animate-spin" /> : <Pencil size={18} />} Editar portal
+             </button>
             <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 whitespace-nowrap">
                <ExternalLink size={18} /> Abrir portal
             </a>

@@ -15,7 +15,7 @@ import {
   AlertTriangle, ArrowLeft, Calculator, ChefHat, ChevronRight, Clock, FileDown, GitBranch,
   History, Info, Layers, ListOrdered, Loader2, Package, Percent, Power, Printer, QrCode,
   Save, Scale, Snowflake, Tag, TrendingUp, UtensilsCrossed, Wine, Wrench, X, Copy,
-  Camera, ImageOff, LineChart, TrendingDown,
+  Camera, ImageOff, LineChart, TrendingDown, Sparkles,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
@@ -30,6 +30,7 @@ import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../../lib/f
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
 import { montarHtmlFichaTecnica } from "./imprimirFicha";
 import ModoCozinha from "./ModoCozinha";
+import AssistenteReceita from "./AssistenteReceita";
 import {
   EtapasPreparo, Equipamentos, Alergenicos, Armazenamento, MontagemPassos, novaChave,
 } from "./SecoesFicha";
@@ -125,6 +126,7 @@ export default function FichaTecnicaPage() {
   const [historico, setHistorico] = useState([]);
   const [histSemTabela, setHistSemTabela] = useState(false);
   const [registrandoCusto, setRegistrandoCusto] = useState(false);
+  const [assistenteAberto, setAssistenteAberto] = useState(false);
 
   // ── Carga ────────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
@@ -540,7 +542,8 @@ export default function FichaTecnicaPage() {
 
       {/* ── Ações da ficha ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-1.5">
-        <AcaoBtn icone={ChefHat} onClick={() => setModoCozinha(true)} destaque>Modo cozinha</AcaoBtn>
+        <AcaoBtn icone={Sparkles} onClick={() => setAssistenteAberto(true)} destaque>Assistente</AcaoBtn>
+        <AcaoBtn icone={ChefHat} onClick={() => setModoCozinha(true)}>Modo cozinha</AcaoBtn>
         <AcaoBtn icone={Printer} onClick={imprimir}>Imprimir</AcaoBtn>
         <AcaoBtn icone={FileDown} onClick={gerarPdf}>PDF</AcaoBtn>
         <AcaoBtn icone={GitBranch} onClick={novaVersao} carregando={criandoVersao}>Nova versão</AcaoBtn>
@@ -1031,6 +1034,16 @@ export default function FichaTecnicaPage() {
           ) : null}
         </div>
       </Secao>
+
+      {assistenteAberto ? (
+        <AssistenteReceita
+          ficha={{ ...ficha, ...form }}
+          todasFichas={todasFichas}
+          custos={calc}
+          onAplicar={(proposta) => mudar(proposta.campo, proposta.valor)}
+          onFechar={() => setAssistenteAberto(false)}
+        />
+      ) : null}
 
       {/* ── Histórico de custos ───────────────────────────────────────────── */}
       <Secao icone={LineChart} titulo="Histórico de custos"

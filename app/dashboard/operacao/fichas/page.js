@@ -1676,11 +1676,33 @@ function FichasRunner() {
   };
 
   // PDF de verdade (download direto) — a ficha avulsa ou o Livro completo.
-  const baixarPdfFichas = (listaDeFichas, nomeArquivo) => {
-    const nome = nomeArquivo || (listaDeFichas.length === 1
-      ? (listaDeFichas[0].nome_receita || "ficha-tecnica")
-      : "livro-de-receitas");
-    baixarPdfDeHtml(montarHtmlFichas(listaDeFichas), nome);
+  const baixarPdfFichas = async (listaDeFichas, nomeArquivo) => {
+    if (!listaDeFichas || !listaDeFichas.length) return alert("Nenhuma ficha técnica selecionada.");
+    let win = null;
+    try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+    if (win) {
+      win.document.write("<!DOCTYPE html><html><head><title>Gerando PDF...</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#64748b;background:#f8fafc'><h3>Gerando PDF, aguarde um instante...</h3></body></html>");
+    }
+
+    try {
+      let complementos = complementosImpressao;
+      try {
+        const res = await fetchComplementosDeFichas(listaDeFichas.map(f => f.id));
+        if (res?.data) {
+          complementos = res.data;
+          setComplementosImpressao(res.data);
+        }
+      } catch (e) {
+        console.error("Erro ao carregar complementos:", e);
+      }
+      const nome = nomeArquivo || (listaDeFichas.length === 1
+        ? (listaDeFichas[0].nome_receita || "ficha-tecnica")
+        : "livro-de-receitas");
+      baixarPdfDeHtml(montarHtmlFichas(listaDeFichas, { complementos }), nome, { windowRef: win });
+    } catch (err) {
+      if (win) win.close();
+      alert("Ocorreu um erro ao gerar o PDF: " + (err?.message || err));
+    }
   };
 
   const montarHtmlFichas = (listaDeFichas, opcoes = {}) => {
@@ -1825,7 +1847,7 @@ function FichasRunner() {
          </tr>`;
       }).join('');
 
-      const extra = (typeof complementosImpressao !== "undefined" && complementosImpressao && complementosImpressao[f.id]) || {};
+      const extra = (opcoes?.complementos && opcoes.complementos[f.id]) || (typeof complementosImpressao !== "undefined" && complementosImpressao && complementosImpressao[f.id]) || {};
       const etapasNovas = extra.etapas || [];
 
       let passosRows = '';
@@ -2446,7 +2468,7 @@ function FichasRunner() {
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
-            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("pdf", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
             {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>}
             <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
@@ -2692,7 +2714,7 @@ function FichasRunner() {
                <div className="flex flex-wrap gap-2 xl:flex-1 xl:justify-end">
                  <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white hover:bg-emerald-800"><Printer size={15}/> Imprimir</button>
                  <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
-                 <button onClick={() => abrirPreviaImpressao("pdf")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
+                 <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
                  <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
                   <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>
                  <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-800"><X size={16}/></button>
@@ -2776,7 +2798,7 @@ function FichasRunner() {
                              {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📋 Montagem</button>}
                              <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🧮 Simular</button>
                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🖨️ Imprimir</button>
-                             <button onClick={() => abrirPreviaImpressao("pdf", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📄 PDF</button>
+                             <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📄 PDF</button>
                              <button onClick={() => excluirImediatamente([f])} className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-left">🗑️ Excluir</button>
                            </div>
                          )}

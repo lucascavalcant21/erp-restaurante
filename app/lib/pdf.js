@@ -6,9 +6,11 @@
 // estoura o limite de altura da imagem (32k px) e geraria um PDF em branco. Nesses casos,
 // usamos o gerador de PDF vetorial nativo do navegador (window.print), garantindo 100% dos
 // 120+ arquivos sem páginas em branco e com texto nítido.
-export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null } = {}) {
-  let win = null;
-  try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null, windowRef = null } = {}) {
+  let win = windowRef;
+  if (!win) {
+    try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+  }
   if (!win) { alert("Habilite os popups para baixar o PDF."); return; }
   const nome = String(nomeArquivo || "documento").replace(/[^\wÀ-ÿ \-]/g, "").trim().replace(/\s+/g, "-") || "documento";
   const fmt = Array.isArray(formatoMm) ? JSON.stringify(formatoMm) : "'a4'";
@@ -55,6 +57,7 @@ export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null } = {}) {
       setTimeout(function(){ if(!done){ window.print(); } }, 7000);
     })();<\/script>`;
 
+  try { win.document.open(); } catch (e) {}
   win.document.write(html.replace("</body>", estiloPdf + script + "</body>"));
   win.document.close();
 }

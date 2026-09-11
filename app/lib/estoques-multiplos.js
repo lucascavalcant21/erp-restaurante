@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { ehEstoquePrePreparo, ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, setorAutomaticoDoEstoque, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
+import { ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
 
 const erroMensagem = error => error?.message || null;
 
@@ -81,27 +81,16 @@ export async function movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, qu
   );
 
   // 4. Registra histórico da movimentação
-  //
-  // O `.catch()` que estava aqui não existe no supabase: o que ele devolve tem
-  // `then`, mas não tem `catch`. Chamá-lo estourava um TypeError antes de a
-  // requisição sair, e como isso acontece depois de o saldo já ter sido
-  // gravado, a entrada entrava no estoque e sumia do histórico — e a tela
-  // ainda mostrava erro. O try/catch de verdade cobre a mesma intenção:
-  // histórico é acessório, não pode derrubar a movimentação.
-  try {
-    await supabase.from("estoque_movimentacoes").insert({
-      unidade_id: unidadeId,
-      insumo_id: insumoId,
-      tipo: tipo || "entrada",
-      quantidade: q || Number(saldoContado) || 0,
-      usuario_id: usuarioId || null,
-      usuario_nome: usuarioNome || null,
-      observacao: observacao || null,
-      created_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.warn("Aviso ao gravar histórico da movimentação:", e);
-  }
+  await supabase.from("estoque_movimentacoes").insert({
+    unidade_id: unidadeId,
+    insumo_id: insumoId,
+    tipo: tipo || "entrada",
+    quantidade: q || Number(saldoContado) || 0,
+    usuario_id: usuarioId || null,
+    usuario_nome: usuarioNome || null,
+    observacao: observacao || null,
+    created_at: new Date().toISOString(),
+  }).catch(() => {});
 
   return { data: { quantidade_atual: novo }, error: null };
 }
@@ -263,74 +252,8 @@ export async function salvarEstoque(estoque) {
   return { data, error: erroMensagem(error) };
 }
 
-// Põe na prateleira do setor os produtos que já estavam no catálogo mas nunca
-// foram vinculados a ela. Existe porque o vínculo automático do cadastro ficou
-// quebrado por um tempo (ver salvarInsumo em operacao.js): quem cadastrou uma
-// bebida nesse período tem o produto no catálogo do bar e não no estoque do
-// bar. Sem isso, só os produtos cadastrados de hoje em diante apareceriam.
-//
-// É seguro rodar sempre: o ERP não tem "tirar um produto deste estoque", então
-// produto do setor fora da prateleira do setor é sempre falha, nunca escolha.
-// Depois da primeira vez não sobra nada para vincular e o custo é uma consulta.
-async function vincularProdutosDoSetorPendentes(estoque, unidadeId) {
-  const setor = setorAutomaticoDoEstoque(estoque);
-  if (!setor || !unidadeId || unidadeId === "todas" || unidadeId === "matriz") return;
-  try {
-    const [{ data: doSetor }, { data: jaNaPrateleira }] = await Promise.all([
-      supabase.from("insumos").select("id").eq("unidade_id", unidadeId).eq("departamento", setor),
-      supabase.from("estoque_itens").select("insumo_id").eq("estoque_id", estoque.id),
-    ]);
-    const vinculados = new Set((jaNaPrateleira || []).map(i => i.insumo_id));
-    let faltando = (doSetor || []).filter(i => !vinculados.has(i.id));
-    if (!faltando.length) return;
-
-    // Pré-preparo do setor não sobe para a prateleira principal. O que a ficha
-    // técnica produz ("Açaí · Freezer 1", "Xarope de gengibre - Bar") é insumo
-    // do bar como qualquer outro e viria junto nessa varredura, enchendo o
-    // estoque do Bar com item que já tem casa no Pré-preparos do Bar — e
-    // contando o mesmo saldo em dois lugares. Quem já mora num pré-preparo
-    // fica fora.
-    const { data: estoquesDaUnidade } = await supabase
-      .from("estoques").select("id, slug, nome").eq("unidade_id", unidadeId);
-    const idsPreparo = (estoquesDaUnidade || []).filter(ehEstoquePrePreparo).map(e => e.id);
-    if (idsPreparo.length) {
-      const { data: jaNoPreparo } = await supabase
-        .from("estoque_itens").select("insumo_id")
-        .in("estoque_id", idsPreparo)
-        .in("insumo_id", faltando.map(i => i.id));
-      const produzidos = new Set((jaNoPreparo || []).map(i => i.insumo_id));
-      faltando = faltando.filter(i => !produzidos.has(i.id));
-      if (!faltando.length) return;
-    }
-
-    const agora = new Date().toISOString();
-    const { error } = await supabase.from("estoque_itens").upsert(
-      faltando.map(i => ({
-        unidade_id: unidadeId,
-        estoque_id: estoque.id,
-        insumo_id: i.id,
-        quantidade_atual: 0,
-        updated_at: agora,
-      })),
-      { onConflict: "estoque_id,insumo_id" },
-    );
-    if (error) console.warn("[fetchItensEstoque] Não consegui vincular produtos do setor:", error.message);
-  } catch (e) {
-    console.warn("[fetchItensEstoque] Não consegui vincular produtos do setor:", e);
-  }
-}
-
-export async function fetchItensEstoque(estoqueId, unidadeId, estoque = null) {
+export async function fetchItensEstoque(estoqueId, unidadeId) {
   if (!isSupabaseReady() || !estoqueId) return { data: [], error: null };
-
-  // O cadastro do estoque diz de que setor ele é e se controla lote. Quem já
-  // tem o registro na mão passa adiante para não repetir a consulta.
-  let cadastroEstoque = estoque && estoque.id === estoqueId ? estoque : null;
-  if (!cadastroEstoque) {
-    const { data: achado } = await supabase.from("estoques").select("id,slug,nome").eq("id", estoqueId).maybeSingle();
-    cadastroEstoque = achado || { id: estoqueId, slug: String(estoqueId), nome: "" };
-  }
-  await vincularProdutosDoSetorPendentes(cadastroEstoque, unidadeId);
 
   let data = null;
   try {
@@ -353,7 +276,6 @@ export async function fetchItensEstoque(estoqueId, unidadeId, estoque = null) {
         id: registro.id,
         estoque_item_id: registro.id,
         insumo_id: registro.insumo_id,
-        ficha_tecnica_id: registro.ficha_tecnica_id || registro.insumo?.ficha_tecnica_id || null,
         estoque_id: registro.estoque_id,
         quantidade_atual: Number(registro.quantidade_atual) || 0,
         estoque_minimo: registro.estoque_minimo,
@@ -370,12 +292,12 @@ export async function fetchItensEstoque(estoqueId, unidadeId, estoque = null) {
 
   // Pré-preparos começam vazios e só exibem os itens vinculados a esse estoque.
   // Isso impede que o fallback legado misture o saldo dos produtos comuns.
-  // O cadastro já veio lá de cima, então aqui não se consulta o banco de novo —
-  // e a comparação passa a ignorar acento, que era como "Pré-preparos" com
-  // acento escapava do teste feito só sobre o texto cru do id.
-  const identificadorEstoque = `${cadastroEstoque.slug || ""} ${cadastroEstoque.nome || ""}`.trim().toLowerCase()
-    || String(estoqueId).toLowerCase();
-  if (ehEstoquePrePreparo(cadastroEstoque)) {
+  let identificadorEstoque = String(estoqueId).toLowerCase();
+  if (!identificadorEstoque.includes("pre-preparo") && !identificadorEstoque.includes("preparo")) {
+    const { data: cadastroEstoque } = await supabase.from("estoques").select("slug,nome").eq("id", estoqueId).maybeSingle();
+    identificadorEstoque = `${cadastroEstoque?.slug || ""} ${cadastroEstoque?.nome || ""}`.toLowerCase();
+  }
+  if (identificadorEstoque.includes("pre-preparo") || identificadorEstoque.includes("pré-preparo")) {
     return { data: [], error: null };
   }
 
@@ -421,7 +343,6 @@ export async function vincularItemEstoque({
   unidadeId,
   estoqueId,
   insumoId,
-  fichaTecnicaId = null,
   minimo = null,
   maximo = null,
   local = null,
@@ -440,7 +361,6 @@ export async function vincularItemEstoque({
     custo_unitario: custoUnitario === "" ? null : custoUnitario,
     updated_at: new Date().toISOString(),
   };
-  if (fichaTecnicaId) payload.ficha_tecnica_id = fichaTecnicaId;
   const { data, error } = await supabase.from("estoque_itens").upsert(payload, {
     onConflict: "estoque_id,insumo_id",
   }).select("*").single();
@@ -533,28 +453,12 @@ async function sincronizarSaldoLegado(unidadeId, insumoId) {
   }, { onConflict: "unidade_id,insumo_id" });
 }
 
-// Lotes por validade de um item: o que vence primeiro vem primeiro, e o lote
-// sem prazo fica no fim, igual à ordem em que o banco os consome.
-export async function fetchLotesItem(estoqueId, insumoId) {
-  if (!isSupabaseReady()) return { data: [] };
-  const { data, error } = await supabase.from("estoque_lotes")
-    .select("id, validade, quantidade, created_at")
-    .eq("estoque_id", estoqueId).eq("insumo_id", insumoId)
-    .gt("quantidade", 0)
-    .order("validade", { ascending: true, nullsFirst: false });
-  // Migração de lotes ainda não rodada: a tela some com o bloco em vez de
-  // acusar erro, porque o saldo continua correto sem ela.
-  if (error) return { data: [], error: error.message };
-  return { data: data || [], error: null };
-}
-
 export async function registrarMovimentoMulti({
   unidadeId,
   estoqueId,
   insumoId,
   tipo,
   quantidade,
-  validade = null,
   usuarioId = null,
   usuarioNome = "",
   observacao = "",
@@ -565,31 +469,18 @@ export async function registrarMovimentoMulti({
   if (!["entrada", "saida"].includes(tipo) || !Number.isFinite(valor) || valor <= 0) {
     return { error: "Informe uma movimentação válida." };
   }
-  // Com validade vai pela função de lote; sem validade, pela antiga — que
-  // depois da migração também mantém os lotes, então os dois caminhos são
-  // consistentes e o app funciona igual antes de ela rodar.
-  const comLote = !!validade;
-  const res = await comTimeout(supabase.rpc(
-    comLote ? "registrar_movimento_estoque_lote" : "registrar_movimento_estoque_multi",
-    {
-      p_unidade_id: unidadeId,
-      p_estoque_id: estoqueId,
-      p_insumo_id: insumoId,
-      p_tipo: tipo,
-      p_quantidade: valor,
-      ...(comLote ? { p_validade: validade } : {}),
-      p_usuario_id: usuarioId,
-      p_usuario_nome: usuarioNome || null,
-      p_observacao: observacao || null,
-      p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
-    }));
+  const res = await comTimeout(supabase.rpc("registrar_movimento_estoque_multi", {
+    p_unidade_id: unidadeId,
+    p_estoque_id: estoqueId,
+    p_insumo_id: insumoId,
+    p_tipo: tipo,
+    p_quantidade: valor,
+    p_usuario_id: usuarioId,
+    p_usuario_nome: usuarioNome || null,
+    p_observacao: observacao || null,
+    p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
+  }));
   if (precisaFallbackLegado(res)) {
-    // O caminho legado não sabe o que é lote. Cair nele com uma validade na
-    // mão gravaria a quantidade e jogaria a data fora sem avisar — o mesmo
-    // silêncio que a tela existe para evitar. Melhor recusar e dizer o porquê.
-    if (comLote) {
-      return { error: "A validade não pôde ser gravada porque o banco ainda não tem os lotes. Rode db/migracao_estoque_lotes.sql no Supabase e repita a entrada." };
-    }
     return movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, quantidade: valor, usuarioId, usuarioNome, observacao });
   }
   const { data, error } = res;
@@ -614,18 +505,6 @@ export async function registrarMovimentoMulti({
 // Uma única confirmação na interface pode movimentar vários itens. Cada item
 // usa o mesmo motor transacional do estoque e o retorno preserva falhas
 // individuais para não esconder uma movimentação parcial.
-// Setor do pre-preparo. Antes a conta era `=== "bar" ? "bar" : "cozinha"`, que
-// mandava tudo que nao fosse bar para a cozinha -- inclusive o salao, cujo
-// pre-preparo ia parar no estoque do setor errado e somava na contagem dele.
-const SETORES_PREPARO = ["cozinha", "bar", "salao"];
-function setorDoPreparo(departamento, ficha) {
-  const bruto = String(departamento || ficha?.departamento || "cozinha").toLowerCase().trim();
-  const semAcento = bruto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return SETORES_PREPARO.includes(semAcento) ? semAcento : "cozinha";
-}
-
-const LOCAL_PADRAO_PREPARO = { bar: "Bar", salao: "Salao", cozinha: "Freezer 1" };
-
 // Cadastra a ficha no estoque correto com saldo zero. A entrada de quantidade
 // continua acontecendo somente quando a producao for efetivamente registrada.
 export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departamento = "cozinha", local = "", custoUnitario = 0 }) {
@@ -633,64 +512,79 @@ export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departam
   if (!unidadeId || !ficha?.id || !ficha?.nome_receita) return { error: "Ficha de preparo invalida." };
 
   await garantirEstoquesPadrao(unidadeId);
-  const dept = setorDoPreparo(departamento, ficha);
+  const dept = String(departamento || ficha.departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
   const { data: estoque, error: erroEstoque } = await supabase.from("estoques").select("id,nome").eq("unidade_id", unidadeId).eq("slug", `pre-preparos-${dept}`).maybeSingle();
   if (erroEstoque || !estoque?.id) return { error: erroMensagem(erroEstoque) || "Estoque de pre-preparos nao encontrado." };
 
-  const localLimpo = String(local || LOCAL_PADRAO_PREPARO[dept] || "Freezer 1").trim();
+  const localLimpo = String(local || (dept === "bar" ? "Bar" : "Freezer 1")).trim();
   const nomeBase = String(ficha.nome_receita).trim();
+  const nomeItem = `${nomeBase} - ${localLimpo}`;
+  let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} · ${localLimpo}`, nomeBase]).limit(1).maybeSingle();
+
   const unidadeFicha = String(ficha.rendimento_unidade || "un").toLowerCase();
   const unidade = ["kg", "g", "l", "ml", "un"].includes(unidadeFicha) ? unidadeFicha : "un";
-  const categoria = ficha.categoria || (dept === "bar" ? "Xaropes e pré-preparos" : "Pré-preparos");
-  const custo = Number(custoUnitario) || 0;
-
-  // O vínculo pela ficha é a identidade do item. Nome e local podem mudar; usar
-  // essas duas informações como chave criava um novo insumo a cada edição e
-  // deixava o anterior solto no estoque.
-  let { data: insumo, error: erroBusca } = await supabase
-    .from("insumos")
-    .select("id,nome,unidade_medida,custo_unitario,ficha_tecnica_id")
-    .eq("unidade_id", unidadeId)
-    .eq("ficha_tecnica_id", ficha.id)
-    .maybeSingle();
-  if (erroBusca) return { error: erroMensagem(erroBusca) || "A migração dos pré-preparos ainda não foi aplicada." };
-
+  const categoriaPreparo = dept === "bar" ? "Xaropes e pre-preparos" : "Pre-preparos";
   if (!insumo) {
     const criado = await supabase.from("insumos").insert([{
-      unidade_id: unidadeId, nome: nomeBase, nome_interno: nomeBase, departamento: dept,
-      categoria, tipo: "ingrediente", ficha_tecnica_id: ficha.id, pre_preparo_legado: false,
+      unidade_id: unidadeId, nome: nomeItem, departamento: dept,
+      categoria: categoriaPreparo,
       unidade_medida: unidade, unidade_comercial: unidade, tamanho_embalagem: 1,
-      custo_unitario: custo, custo_compra: custo,
-    }]).select("id,nome,unidade_medida,custo_unitario,ficha_tecnica_id").single();
+      custo_unitario: Number(custoUnitario) || 0, custo_compra: Number(custoUnitario) || 0,
+    }]).select("id,nome,unidade_medida,custo_unitario").single();
     if (criado.error || !criado.data) return { error: erroMensagem(criado.error) || "Nao foi possivel criar o item de preparo." };
     insumo = criado.data;
   } else {
-    const atualizado = await supabase.from("insumos").update({
-      nome: nomeBase, nome_interno: nomeBase, departamento: dept, categoria,
-      tipo: "ingrediente", pre_preparo_legado: false,
-      unidade_medida: unidade, unidade_comercial: unidade,
-      tamanho_embalagem: 1, custo_unitario: custo, custo_compra: custo,
+    await supabase.from("insumos").update({
+      categoria: categoriaPreparo,
+      unidade_medida: unidade,
+      unidade_comercial: unidade,
+      tamanho_embalagem: 1,
+      custo_unitario: Number(custoUnitario) || 0,
+      custo_compra: Number(custoUnitario) || 0,
     }).eq("id", insumo.id);
-    if (atualizado.error) return { error: erroMensagem(atualizado.error) };
   }
 
   const { data: itemExistente } = await supabase.from("estoque_itens").select("id").eq("estoque_id", estoque.id).eq("insumo_id", insumo.id).maybeSingle();
   if (!itemExistente) {
-    const vinculo = await vincularItemEstoque({
-      unidadeId, estoqueId: estoque.id, insumoId: insumo.id,
-      fichaTecnicaId: ficha.id, local: localLimpo, custoUnitario: custo,
-    });
+    const vinculo = await vincularItemEstoque({ unidadeId, estoqueId: estoque.id, insumoId: insumo.id, local: localLimpo, custoUnitario: Number(custoUnitario) || 0 });
     if (vinculo.error) return { error: vinculo.error };
-  } else {
-    const atualizado = await supabase.from("estoque_itens").update({
-      ficha_tecnica_id: ficha.id,
-      local_interno: localLimpo,
-      custo_unitario: custo,
-      updated_at: new Date().toISOString(),
-    }).eq("id", itemExistente.id);
-    if (atualizado.error) return { error: erroMensagem(atualizado.error) };
   }
   return { data: { estoque, insumo, nome: nomeBase, local: localLimpo, unidade }, error: null };
+}
+
+// Repara unidades que já tinham fichas de pré-preparo antes da integração com
+// os estoques múltiplos. A rotina é idempotente: abrir o estoque novamente não
+// duplica nada, apenas cria os vínculos que estiverem faltando com saldo zero.
+export async function garantirFichasExistentesNoEstoquePreparo(unidadeId, departamento = "cozinha") {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const dept = String(departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+  let resposta = await supabase.from("fichas_tecnicas").select("*").eq("unidade_id", unidadeId).eq("departamento", dept);
+  if (resposta.error) {
+    // Cadastros antigos nem sempre têm departamento preenchido. Nesse caso,
+    // lemos a unidade inteira e decidimos o setor em memória.
+    resposta = await supabase.from("fichas_tecnicas").select("*").eq("unidade_id", unidadeId);
+  }
+  if (resposta.error) return { data: [], error: erroMensagem(resposta.error) };
+
+  const fichas = (resposta.data || []).filter(ficha => {
+    const setorFicha = String(ficha.departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+    const tipoBase = String(ficha.tipo_base || "").toLowerCase();
+    return setorFicha === dept && ficha.ativo !== false
+      && (ficha.eh_base === true || ["pre", "pre_preparo", "pre-preparo"].includes(tipoBase));
+  });
+  const sincronizadas = [];
+  const erros = [];
+  for (const ficha of fichas) {
+    const resultado = await garantirFichaNoEstoquePreparo({
+      unidadeId,
+      ficha,
+      departamento: dept,
+      custoUnitario: Number(ficha.custo_por_porcao || ficha.custo_unitario) || 0,
+    });
+    if (resultado.error) erros.push(`${ficha.nome_receita}: ${resultado.error}`);
+    else sincronizadas.push(resultado.data);
+  }
+  return { data: sincronizadas, error: erros.length ? erros.join("; ") : null };
 }
 
 export async function registrarProducaoNoEstoquePreparo({ unidadeId, ficha, departamento = "cozinha", quantidade, local, usuarioId = null, usuarioNome = "", custoUnitario = 0 }) {
@@ -698,11 +592,34 @@ export async function registrarProducaoNoEstoquePreparo({ unidadeId, ficha, depa
   const qtd = Number(quantidade);
   if (!ficha?.id || !ficha?.nome_receita || !Number.isFinite(qtd) || qtd <= 0) return { error: "Produção inválida." };
 
-  const preparo = await garantirFichaNoEstoquePreparo({
-    unidadeId, ficha, departamento, local, custoUnitario,
-  });
-  if (preparo.error) return preparo;
-  const { estoque, insumo, nome: nomeBase, local: localLimpo, unidade } = preparo.data;
+  await garantirEstoquesPadrao(unidadeId);
+  const dept = String(departamento || ficha.departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+  const { data: estoque, error: erroEstoque } = await supabase.from("estoques").select("id,nome").eq("unidade_id", unidadeId).eq("slug", `pre-preparos-${dept}`).maybeSingle();
+  if (erroEstoque || !estoque?.id) return { error: erroMensagem(erroEstoque) || "Estoque de pré-preparos não encontrado." };
+
+  const localLimpo = String(local || (dept === "bar" ? "Bar" : "Freezer 1")).trim();
+  const nomeBase = String(ficha.nome_receita).trim();
+  const nomeItem = `${nomeBase} · ${localLimpo}`;
+  let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} - ${localLimpo}`]).limit(1).maybeSingle();
+
+  const unidadeFicha = String(ficha.rendimento_unidade || "un").toLowerCase();
+  const unidade = ["kg", "g", "l", "ml", "un"].includes(unidadeFicha) ? unidadeFicha : "un";
+  if (!insumo) {
+    const criado = await supabase.from("insumos").insert([{
+      unidade_id: unidadeId, nome: nomeItem, departamento: dept,
+      categoria: ficha.categoria || (dept === "bar" ? "Xaropes e pré-preparos" : "Pré-preparos"),
+      unidade_medida: unidade, unidade_comercial: unidade, tamanho_embalagem: 1,
+      custo_unitario: Number(custoUnitario) || 0, custo_compra: Number(custoUnitario) || 0,
+    }]).select("id,nome,unidade_medida,custo_unitario").single();
+    if (criado.error || !criado.data) return { error: erroMensagem(criado.error) || "Não foi possível criar o item produzido." };
+    insumo = criado.data;
+  }
+
+  const { data: itemExistente } = await supabase.from("estoque_itens").select("id").eq("estoque_id", estoque.id).eq("insumo_id", insumo.id).maybeSingle();
+  if (!itemExistente) {
+    const vinculo = await vincularItemEstoque({ unidadeId, estoqueId: estoque.id, insumoId: insumo.id, local: localLimpo, custoUnitario: Number(custoUnitario) || 0 });
+    if (vinculo.error) return { error: vinculo.error };
+  }
 
   const movimento = await registrarMovimentoMulti({
     unidadeId, estoqueId: estoque.id, insumoId: insumo.id, tipo: "entrada", quantidade: qtd,
@@ -723,9 +640,6 @@ export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usu
       insumoId: item.insumoId,
       tipo,
       quantidade: Number(item.quantidade),
-      // Validade e por item: no mesmo lancamento pode entrar uma fornada de
-      // hoje e outra de ontem, cada uma no seu lote.
-      validade: tipo === "entrada" ? (item.validade || null) : null,
       usuarioId,
       usuarioNome,
       observacao,

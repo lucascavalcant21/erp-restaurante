@@ -10,28 +10,33 @@ import {
   fetchCargos, fetchHistoricoPromocoes,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
+  fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
+  fetchAtestados, salvarAtestado, removerAtestado, anexarArquivoAtestado,
+  fetchReunioesColab, inserirReuniaoColab, removerReuniaoColab,
+  fetchTreinamentosColab, inserirTreinamentoColab, removerTreinamentoColab,
   fetchFeriados, inserirFeriado, removerFeriado,
   liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
-  desligarColaborador
+  desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
-import { situacaoExperiencia, emExperiencia, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
+import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
-import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin } from "../../lib/rh";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
 import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
 import { useTempoReal } from "../../lib/realtime";
+import { supabase } from "../../lib/supabase";
 
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
 // Desconto do funcionário: ajustável em Configurações > Parâmetros (paramsSis)
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera, Award
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera, Award, Link2
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
@@ -80,13 +85,14 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_transporte: false, tipo_transporte: "", usa_vale_transporte: false, pontos_taxa: "", genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_transporte: false, tipo_transporte: "", usa_vale_transporte: false, pontos_taxa: "", genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
   const [menuAcoes, setMenuAcoes] = useState(null);
+  const [abaMenuAcoes, setAbaMenuAcoes] = useState("trabalho");
   const [detAberto, setDetAberto] = useState({}); // detalhamento salarial por card // funcionário com o menu "Ações" aberto
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
@@ -395,6 +401,11 @@ export default function RHPage() {
     setTimeout(() => win.print(), 400);
   };
 
+  // Banco de horas: intervalo de 1h não tirado acumula (limite 8h/mês)
+  const [bancoHoras, setBancoHoras] = useState([]);
+  const [modalBanco, setModalBanco] = useState(false);
+  const [funcBanco, setFuncBanco] = useState(null);
+  const [formBanco, setFormBanco] = useState({ data: "", minutos: "60", observacao: "" });
 
   const [modalConsumo, setModalConsumo] = useState(false);
   const [funcionarioConsumo, setFuncionarioConsumo] = useState(null);
@@ -408,10 +419,11 @@ export default function RHPage() {
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     const mesAtual = new Date().toISOString().slice(0, 7);
-    const [resRh, resPonto, resCargos, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
+    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchCargos(unidadeAtiva),
+      fetchBancoHoras(unidadeAtiva, mesAtual),
       fetchValesPendentes(unidadeAtiva),
       fetchPontosMesUnidade(unidadeAtiva, mesAtual),
       fetchFeriados(unidadeAtiva, mesAtual),
@@ -428,6 +440,7 @@ export default function RHPage() {
     setFuncionarios(comDocs);
     setPontosHoje(resPonto.data || []);
     setCargos(resCargos.data || []);
+    setBancoHoras(resBanco.data || []);
     setValesPendentes(resVales.data || []);
     setPontosMesUnidade(resPontosMes.data || []);
     setFeriadosMesAtual(resFeriadosMes.data || []);
@@ -551,10 +564,7 @@ export default function RHPage() {
     const taxa = Number(f.taxa_servico_mes) || 0;
     const base = fixo + va + taxa; // remuneração cheia
     const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
-    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, {
-      contratadaDoDia: (d) => jornadaContratadaMin(f, d),
-      entradaDoDia: (d) => entradaContratadaDoDia(f, d),
-    });
+    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
     const descontos = valesPendentes
       .filter(v => v.funcionario_id === f.id)
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
@@ -679,8 +689,63 @@ export default function RHPage() {
   }, [unidadeAtiva]);
 
   // Tempo real: lançamentos (ponto, vales, folgas, contas...) aparecem sozinhos
-  useTempoReal(["colaboradores", "registro_ponto", "rh_consumo_funcionarios", "rh_folgas_esporadicas", "lancamentos", "contas_pagar", "documentos_rh"], () => { if (unidadeAtiva) carregar(true); });
+  useTempoReal(["colaboradores", "registro_ponto", "rh_consumo_funcionarios", "rh_banco_horas", "rh_folgas_esporadicas", "lancamentos", "contas_pagar", "documentos_rh"], () => { if (unidadeAtiva) carregar(true); });
 
+  // --- Banco de Horas ---
+  const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
+  // Só créditos contam para as 8h — "excesso" (passou do intervalo) é ocorrência
+  const totalBancoDe = (colabId) => bancoHoras
+    .filter(b => b.colaborador_id === colabId && b.tipo !== "excesso")
+    .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+
+  const abrirModalBanco = (f) => {
+    setFuncBanco(f);
+    setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
+    setCompensarData(new Date().toISOString().split("T")[0]);
+    setModalBanco(true);
+  };
+
+  const lancarBancoHoras = async (e) => {
+    e.preventDefault();
+    const min = Number(formBanco.minutos) || 0;
+    if (min <= 0) return alert("Informe os minutos que faltaram do intervalo.");
+    if (min > 60) return alert("O lançamento é por dia e o intervalo é de 1h — máximo 60 minutos por dia.");
+    if (!formBanco.data) return alert("Informe a data.");
+    const totalAtual = totalBancoDe(funcBanco.id);
+    if (totalAtual + min > BANCO_LIMITE_MIN) {
+      return alert(`Não dá: ${funcBanco.nome} já tem ${fmtMin(totalAtual)} acumuladas neste mês. O limite é 8h — restam só ${fmtMin(BANCO_LIMITE_MIN - totalAtual)}. Programe a folga dele(a)!`);
+    }
+    const { error } = await inserirBancoHoras(unidadeAtiva, funcBanco.id, formBanco.data, min, formBanco.observacao);
+    if (error) return alert("Erro ao lançar: " + error);
+    const novoTotal = totalAtual + min;
+    if (novoTotal >= BANCO_ALERTA_MIN) {
+      alert(`Atenção: ${funcBanco.nome} chegou a ${fmtMin(novoTotal)} de banco de horas no mês (limite 8h). Programe a compensação!`);
+    }
+    setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
+    carregar();
+  };
+
+  const excluirBancoHoras = async (id) => {
+    if (!confirm("Remover este lançamento do banco de horas?")) return;
+    await removerBancoHoras(id);
+    carregar();
+  };
+
+  // Compensar o banco com uma folga: registra a folga e zera os créditos do mês
+  const [compensarData, setCompensarData] = useState("");
+  const compensarBanco = async () => {
+    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && b.tipo !== "excesso");
+    const total = creditos.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+    if (total <= 0) return alert("Não há créditos para compensar.");
+    if (!compensarData) return alert("Escolha a data da folga compensatória.");
+    if (!confirm(`Dar folga compensatória em ${compensarData.split("-").reverse().join("/")} para ${funcBanco.nome} e ZERAR ${fmtMin(total)} do banco de horas?`)) return;
+    const { error } = await inserirFolgaEsporadica(unidadeAtiva, funcBanco.id, compensarData, `Folga compensatória — banco de horas (${fmtMin(total)})`);
+    if (error) return alert("Erro ao registrar a folga: " + error);
+    for (const b of creditos) await removerBancoHoras(b.id);
+    alert(`Pronto: folga registrada e ${fmtMin(total)} compensadas. O banco de ${funcBanco.nome.split(" ")[0]} voltou a zero.`);
+    setModalBanco(false);
+    carregar();
+  };
 
   // Lança a folha do mês no Financeiro: fixo + vale alimentação + taxa de
   // serviço + adicional noturno e horas extras calculados do ponto (CLT)
@@ -698,10 +763,7 @@ export default function RHPage() {
     const folha = [];
     for (const f of fixos) {
       const { data: pontos } = await fetchPontosMes(f.id, mesISO);
-      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], {
-        contratadaDoDia: (d) => jornadaContratadaMin(f, d),
-        entradaDoDia: (d) => entradaContratadaDoDia(f, d),
-      });
+      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
       const fixo = Number(f.salario) || 0;
       const va = Number(f.vale_alimentacao) || 0;
       const taxa = Number(f.taxa_servico_mes) || 0;
@@ -812,7 +874,7 @@ export default function RHPage() {
       const jaExiste = funcionarios.find(f => (f.nome || "").toLowerCase() === d.nome.toLowerCase());
       let colabId = jaExiste?.id;
       if (!colabId) {
-        const r = await inserirColaborador({ unidade_id: unidadeAtiva, nome: d.nome, cargo: "Extra", tipo_contrato: "Freelancer", salario: d.diaria || 0, telefone: d.telefone || null, cpf: d.cpf || null, chave_pix: d.chave_pix || null, anotacoes_rh: d.observacoes || null, dias_trabalho: "" });
+        const r = await inserirColaborador({ unidade_id: unidadeAtiva, nome: d.nome, cargo: "Extra", tipo_contrato: "Freelancer", salario: d.diaria || 0, telefone: d.telefone || null, cpf: d.cpf || null, chave_pix: d.chave_pix || null, dias_trabalho: "" });
         if (r.error || !r.data?.id) { alert("Erro ao cadastrar: " + (r.error || "desconhecido")); return; }
         colabId = r.data.id;
       }
@@ -1212,6 +1274,70 @@ export default function RHPage() {
     setTimeout(() => win.print(), 500);
   };
 
+  const imprimirPerfilFuncionario = (f) => {
+    const esc = valor => String(valor ?? "").replace(/[&<>"']/g, caractere => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[caractere]));
+    const seguro = valor => esc(String(valor ?? "").trim() || "Não informado");
+    const dataBR = valor => {
+      if (!valor) return "Não informado";
+      const [ano, mes, dia] = String(valor).slice(0, 10).split("-");
+      return ano && mes && dia ? `${dia}/${mes}/${ano}` : seguro(valor);
+    };
+    const simNao = valor => valor ? "Sim" : "Não";
+    const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const diasTrabalho = String(f.dias_trabalho || "").split(",").filter(Boolean).map(dia => dias[Number(dia)]).filter(Boolean).join(", ") || "Não informado";
+    const filhos = Array.isArray(f.filhos) ? f.filhos.filter(item => item?.nome) : [];
+    const foto = f.foto ? `<img class="foto" src="data:image/jpeg;base64,${f.foto}" alt="Foto"/>` : `<div class="foto vazia">${esc((f.nome || "?")[0].toUpperCase())}</div>`;
+    const campo = (rotulo, valor) => `<div class="campo"><span>${esc(rotulo)}</span><strong>${seguro(valor)}</strong></div>`;
+    const secao = (titulo, conteudo) => `<section><h2>${esc(titulo)}</h2><div class="grade">${conteudo}</div></section>`;
+    const salario = f.tipo_contrato === "Freelancer" ? `${fmtBRL(f.salario)} / diária` : fmtBRL(f.salario);
+    const domingoDiferente = !!(f.horario_dom_entrada && f.horario_dom_saida)
+      && (f.horario_dom_entrada !== f.horario_entrada || f.horario_dom_saida !== f.horario_saida);
+    const campoHorarioDomingo = domingoDiferente
+      ? campo("Horário de domingo", `${f.horario_dom_entrada} às ${f.horario_dom_saida}`)
+      : "";
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Perfil - ${esc(f.nome)}</title><style>
+      @page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,sans-serif;color:#172033;font-size:10px;line-height:1.25}.pagina{width:100%;max-height:281mm;overflow:hidden}.cab{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:13px;background:linear-gradient(135deg,#064e3b,#059669);color:white}.foto{width:66px;height:66px;flex:0 0 66px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,255,255,.8)}.foto.vazia{display:grid;place-items:center;background:#d1fae5;color:#065f46;font-size:28px;font-weight:900}.cab h1{font-size:22px;line-height:1.05;margin:0 0 4px}.cab p{margin:1px 0;opacity:.9}.selo{margin-left:auto;text-align:right;font-size:7.5px;line-height:1.5;text-transform:uppercase;letter-spacing:.07em}.conteudo{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:0 14px}.coluna{min-width:0}section{margin-top:9px;break-inside:avoid}h2{margin:0 0 4px;padding:5px 7px;border-left:3px solid #10b981;border-radius:0 6px 6px 0;background:#ecfdf5;color:#065f46;font-size:9px;line-height:1.15;text-transform:uppercase;letter-spacing:.07em}.grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 9px}.campo{min-width:0;min-height:34px;padding:4px 2px;border-bottom:1px solid #d5dbe3}.campo span{display:block;color:#64748b;font-size:7.5px;font-weight:800;line-height:1.15;text-transform:uppercase;letter-spacing:.035em}.campo strong{display:block;margin-top:2px;font-size:10px;line-height:1.22;overflow-wrap:anywhere}.rodape{margin-top:10px;padding-top:5px;border-top:1px solid #cbd5e1;color:#64748b;font-size:7.5px;text-align:center}@media print{html,body{width:100%;height:auto;overflow:hidden}body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.pagina{break-after:avoid;page-break-after:avoid}}
+    </style></head><body><main class="pagina"><header class="cab">${foto}<div><h1>${seguro(f.nome)}</h1><p>${seguro(f.cargo)}</p><p>${seguro(f.tipo_contrato)} · ${seguro(f.status_contrato)}</p></div><div class="selo"><b>Perfil do colaborador</b><br/>${seguro(unidadeInfo?.nome || nomeDaCasa)}<br/>Emitido em ${new Date().toLocaleDateString("pt-BR")}</div></header>
+    <div class="conteudo"><div class="coluna">
+      ${secao("Contato e identificação", campo("Nome completo", f.nome) + campo("Telefone", f.telefone) + campo("E-mail", f.email) + campo("CPF", formatarCPF(f.cpf)) + campo("RG", f.rg) + campo("Data de nascimento", dataBR(f.data_nascimento)) + campo("Gênero", f.genero) + campo("Estado civil", f.estado_civil) + campo("Escolaridade", f.escolaridade) + campo("Cidade de nascimento", f.cidade_nascimento))}
+      ${secao("Endereço", campo("Rua / Avenida", f.rua_av || f.endereco) + campo("Número", f.numero_casa) + campo("Bairro", f.bairro) + campo("Cidade / UF", f.cidade_uf) + campo("CEP", f.cep))}
+    </div><div class="coluna">
+      ${secao("Contrato e valores", campo("Cargo", f.cargo) + campo("Tipo de contrato", f.tipo_contrato) + campo("Status do contrato", f.status_contrato) + campo("Data de admissão", dataBR(f.data_admissao)) + campo("Salário / diária", salario) + campo("Vale-alimentação", fmtBRL(f.vale_alimentacao)) + campo("Taxa de serviço mensal", fmtBRL(f.taxa_servico_mes)) + campo("Chave Pix", f.chave_pix))}
+      ${secao("Jornada", campo("Dias de trabalho", diasTrabalho) + campo("Horário padrão", `${f.horario_entrada || "—"} às ${f.horario_saida || "—"}`) + campo("Intervalo", `${f.intervalo_inicio || "—"} às ${f.intervalo_fim || "—"} (${f.tempo_intervalo || 60} min)`) + campoHorarioDomingo)}
+      ${secao("Família e transporte", campo("Nome da mãe", f.nome_mae) + campo("Nome do pai", f.nome_pai) + campo("Filhos", filhos.length ? filhos.map(item => `${item.nome}${item.data_nascimento ? ` (${dataBR(item.data_nascimento)})` : ""}`).join("; ") : "Nenhum informado") + campo("Possui transporte", simNao(f.tem_transporte)) + campo("Tipo de transporte", f.tipo_transporte) + campo("Usa vale-transporte", simNao(f.usa_vale_transporte)))}
+    </div></div><div class="rodape">Documento interno e confidencial · Perfil gerado pelo Hefisto</div></main></body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para abrir o perfil.");
+    win.document.write(comFecharImpressao(html));
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  };
+
+  const compartilharLinkAtualizacao = async (f) => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token;
+      if (!accessToken) return alert("Sua sessão expirou. Entre novamente para gerar o link.");
+      const resposta = await fetch("/api/rh/perfil-compartilhado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ colaboradorId: f.id }),
+      });
+      const resultado = await resposta.json();
+      if (!resposta.ok || !resultado.url) return alert(resultado.error || "Não foi possível gerar o link.");
+      const texto = `${f.nome}, use este link seguro para conferir e atualizar seus dados no RH. Ele vale por 30 dias: ${resultado.url}`;
+      if (navigator.share) {
+        try { await navigator.share({ title: "Atualização de cadastro do RH", text: texto, url: resultado.url }); return; } catch (erro) { if (erro?.name === "AbortError") return; }
+      }
+      await navigator.clipboard.writeText(texto);
+      alert("Link copiado. Agora é só colar no WhatsApp ou enviar como preferir.");
+    } catch (erro) {
+      alert("Não foi possível compartilhar o link: " + (erro?.message || "tente novamente"));
+    }
+  };
+
   const abrirModalNovo = () => {
     setEditandoId(null);
     setNovoFunc(statePadrao);
@@ -1274,7 +1400,6 @@ export default function RHPage() {
        cidade_uf: f.cidade_uf || f.cidade || "",
        chave_pix: f.chave_pix || "",
        avaliacao_estrelas: f.avaliacao_estrelas || 0,
-       anotacoes_rh: f.anotacoes_rh || "",
        data_admissao: f.data_admissao || "",
        status_contrato: f.status_contrato || "Definitivo",
        supervisor_id: f.supervisor_id || "",
@@ -1347,7 +1472,6 @@ export default function RHPage() {
       setor_entrega: novoFunc.setor_entrega || null,
       janta_ofertada: novoFunc.janta_ofertada !== false,
       avaliacao_estrelas: Number(novoFunc.avaliacao_estrelas) || 0,
-      anotacoes_rh: novoFunc.anotacoes_rh,
       data_admissao: novoFunc.data_admissao || null,
       status_contrato: novoFunc.status_contrato,
       supervisor_id: (novoFunc.supervisores_ids && novoFunc.supervisores_ids[0]) || novoFunc.supervisor_id || null,
@@ -1395,31 +1519,195 @@ export default function RHPage() {
     }
   };
 
-  // Desligamento: arquiva (não apaga) — a vida do funcionário fica preservada
+  // Desligamento & Aviso Prévio — a vida do funcionário fica preservada
   const [modalDeslig, setModalDeslig] = useState(false);
   const [funcDeslig, setFuncDeslig] = useState(null);
-  const [desligForm, setDesligForm] = useState({ data: "", tipo: "Pedido de demissão", motivo: "" });
+  const [desligForm, setDesligForm] = useState({
+    modo: "aviso", // 'aviso' ou 'imediato'
+    data: new Date().toISOString().split("T")[0],
+    inicio_aviso: new Date().toISOString().split("T")[0],
+    dias_aviso: "27",
+    tipo_aviso: "Trabalhado",
+    tipo: "Demissão sem justa causa",
+    motivo: "",
+  });
+
   const abrirDesligamento = (f) => {
     setFuncDeslig(f);
-    setDesligForm({ data: new Date().toISOString().split("T")[0], tipo: "Pedido de demissão", motivo: "" });
+    const hj = new Date().toISOString().split("T")[0];
+    const emAviso = f.em_aviso_previo || f.status_aviso === "cumprindo_aviso";
+    setDesligForm({
+      modo: emAviso ? "imediato" : "aviso",
+      data: hj,
+      inicio_aviso: f.inicio_aviso_previo || hj,
+      dias_aviso: String(f.dias_aviso_previo || 27),
+      tipo_aviso: f.tipo_aviso_previo || "Trabalhado",
+      tipo: f.tipo_desligamento || "Demissão sem justa causa",
+      motivo: f.motivo_desligamento || "",
+    });
     setModalDeslig(true);
   };
+
   const confirmarDesligamento = async (e) => {
     e.preventDefault();
-    const { error } = await desligarColaborador(funcDeslig.id, {
-      data_desligamento: desligForm.data,
-      tipo_desligamento: desligForm.tipo,
-      motivo_desligamento: desligForm.motivo,
-    });
-    if (error) return alert("Erro: " + error);
+    if (!funcDeslig?.id) return;
+    if (desligForm.modo === "aviso") {
+      const { error } = await registrarAvisoPrevio(funcDeslig.id, {
+        inicio_aviso: desligForm.inicio_aviso,
+        dias_aviso: Number(desligForm.dias_aviso) || 30,
+        tipo_aviso: desligForm.tipo_aviso,
+        motivo: desligForm.motivo,
+      });
+      if (error) return alert("Erro ao registrar aviso prévio: " + error);
+      alert(`Aviso prévio registrado para ${funcDeslig.nome}! O colaborador permanecerá na lista da equipe cumprindo os ${desligForm.dias_aviso} dias.`);
+    } else {
+      const { error } = await desligarColaborador(funcDeslig.id, {
+        data_desligamento: desligForm.data,
+        tipo_desligamento: desligForm.tipo,
+        motivo_desligamento: desligForm.motivo,
+      });
+      if (error) return alert("Erro ao desligar: " + error);
+      alert(`${funcDeslig.nome} foi desligado(a) e movido(a) para o arquivo de Ex-funcionários.`);
+    }
     setModalDeslig(false);
     carregar();
   };
 
+  const handleCancelarAviso = async (f) => {
+    if (!confirm(`Cancelar o aviso prévio de ${f.nome} e mantê-lo(a) normalmente na equipe?`)) return;
+    const { error } = await cancelarAvisoPrevio(f.id);
+    if (error) alert("Erro: " + error);
+    else carregar();
+  };
+
+  // Central de Ocorrências e Documentos do Colaborador (Lugar Exclusivo)
+  const [modalOcorrencias, setModalOcorrencias] = useState(false);
+  const [funcOcorrencias, setFuncOcorrencias] = useState(null);
+  const [abaOcorrencia, setAbaOcorrencia] = useState("atestados"); // 'atestados' | 'advertencias' | 'reunioes' | 'treinamentos' | 'documentos'
+  const [listaAtestados, setListaAtestados] = useState([]);
+  const [listaAdvertencias, setListaAdvertencias] = useState([]);
+  const [listaReunioes, setListaReunioes] = useState([]);
+  const [listaTreinamentos, setListaTreinamentos] = useState([]);
+  const [loadingOcorrencias, setLoadingOcorrencias] = useState(false);
+
+  // Forms da Central de Ocorrências
+  const [atestedoForm, setAtestadoForm] = useState({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+  const [advFormNovo, setAdvFormNovo] = useState({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
+  const [reuniaoForm, setReuniaoForm] = useState({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: "" });
+  const [treinoForm, setTreinoForm] = useState({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
+
+  const abrirOcorrencias = async (f, aba = "atestados") => {
+    setFuncOcorrencias(f);
+    setAbaOcorrencia(aba);
+    setModalOcorrencias(true);
+    const hj = new Date().toISOString().split("T")[0];
+    setAtestadoForm({ data_inicio: hj, dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+    setAdvFormNovo({ data: hj, tipo: "Advertência Escrita", motivo: "" });
+    setReuniaoForm({ data: hj, titulo: "", resumo: "", participantes: f.nome });
+    setTreinoForm({ data: hj, nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
+
+    await recarregarOcorrencias(f.id);
+  };
+
+  const recarregarOcorrencias = async (colabId) => {
+    setLoadingOcorrencias(true);
+    const [rAtest, rAdv, rReun, rTrein] = await Promise.all([
+      fetchAtestados(colabId),
+      fetchAdvertenciasColab(colabId),
+      fetchReunioesColab(colabId),
+      fetchTreinamentosColab(colabId),
+    ]);
+    setListaAtestados(rAtest.data || []);
+    setListaAdvertencias(rAdv.data || []);
+    setListaReunioes(rReun.data || []);
+    setListaTreinamentos(rTrein.data || []);
+    setLoadingOcorrencias(false);
+  };
+
+  const handleSalvarAtestado = async (e) => {
+    e.preventDefault();
+    if (!atestedoForm.data_inicio) return alert("Informe a data de início do atestado.");
+    const ini = new Date(`${atestedoForm.data_inicio}T12:00:00`);
+    const dias = (Number(atestedoForm.dias) || 1) - 1;
+    const fimDate = new Date(ini.getTime() + Math.max(0, dias) * 86400000);
+    const data_fim = fimDate.toISOString().split("T")[0];
+
+    let arquivoUrl = null;
+    if (atestedoForm.arquivo) {
+      const up = await anexarArquivoAtestado(funcOcorrencias.id, atestedoForm.arquivo);
+      if (up.error) return alert("Erro ao enviar anexo: " + up.error);
+      arquivoUrl = up.url;
+    }
+
+    const payload = {
+      unidade_id: unidadeAtiva,
+      colaborador_id: funcOcorrencias.id,
+      data_inicio: atestedoForm.data_inicio,
+      data_fim,
+      cid: atestedoForm.cid || null,
+      medico: atestedoForm.medico || null,
+      motivo: atestedoForm.motivo || null,
+      arquivo_url: arquivoUrl,
+    };
+
+    const { error } = await salvarAtestado(payload);
+    if (error) return alert("Erro ao salvar atestado: " + error);
+    alert(`Atestado médico de ${atestedoForm.dias} dia(s) registrado! O ponto do colaborador será abonado automaticamente no período.`);
+    setAtestadoForm({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
+  const handleSalvarAdvNovo = async (e) => {
+    e.preventDefault();
+    if (!advFormNovo.motivo) return alert("Informe o motivo da advertência.");
+    const payload = {
+      colaborador_id: funcOcorrencias.id,
+      data: advFormNovo.data,
+      tipo: advFormNovo.tipo,
+      motivo: advFormNovo.motivo,
+    };
+    const { error } = await inserirAdvertencia(payload);
+    if (error) return alert("Erro: " + error);
+    setAdvFormNovo({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
+  const handleSalvarReuniao = async (e) => {
+    e.preventDefault();
+    if (!reuniaoForm.titulo) return alert("Informe o título/pauta da reunião.");
+    const payload = {
+      colaborador_id: funcOcorrencias.id,
+      data: reuniaoForm.data,
+      titulo: reuniaoForm.titulo,
+      resumo: reuniaoForm.resumo,
+      participantes: reuniaoForm.participantes,
+    };
+    const { error } = await inserirReuniaoColab(payload);
+    if (error) return alert("Erro: " + error);
+    setReuniaoForm({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: funcOcorrencias.nome });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
+  const handleSalvarTreino = async (e) => {
+    e.preventDefault();
+    if (!treinoForm.nome_curso) return alert("Informe o nome do treinamento/curso.");
+    const payload = {
+      colaborador_id: funcOcorrencias.id,
+      data: treinoForm.data,
+      nome_curso: treinoForm.nome_curso,
+      instituicao: treinoForm.instituicao,
+      carga_horaria: treinoForm.carga_horaria,
+      vencimento: treinoForm.vencimento || null,
+    };
+    const { error } = await inserirTreinamentoColab(payload);
+    if (error) return alert("Erro: " + error);
+    setTreinoForm({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
+    recarregarOcorrencias(funcOcorrencias.id);
+  };
+
   const handleRemover = async (id) => {
     if(confirm("Apagar DEFINITIVAMENTE este funcionário e toda a vida dele?\n\nPara manter o histórico, use 'Desligar' — ele vai para o arquivo de ex-funcionários.")) {
-      const { error } = await removerColaborador(id);
-      if (error) return alert(`Não consegui apagar este funcionário: ${error}`);
+      await removerColaborador(id);
       carregar();
     }
   };
@@ -1431,6 +1719,16 @@ export default function RHPage() {
      const hj = new Date();
      hj.setHours(0,0,0,0);
      dAdm.setHours(0,0,0,0);
+     
+     // Aviso Prévio em andamento
+     const av = situacaoAvisoPrevio(f, hj);
+     if (av) {
+        if (av.concluido) {
+           badges.push({ text: `⚠️ Aviso Prévio Concluído (${av.diasTotal}d) · Finalizar Desligamento`, color: 'text-rose-800 bg-rose-100 border-rose-300 font-black animate-pulse' });
+        } else {
+           badges.push({ text: `⚠️ Cumprindo Aviso Prévio (${av.diasTotal} dias) · Faltam ${av.diasRestantes} dia(s) (Término ${av.fimPrevisto.toLocaleDateString("pt-BR")})`, color: 'text-amber-800 bg-amber-100 border-amber-300 font-bold' });
+        }
+     }
      
      const diffDias = Math.floor((hj - dAdm) / (1000 * 60 * 60 * 24));
      const anoAtual = hj.getFullYear();
@@ -1445,10 +1743,11 @@ export default function RHPage() {
      else if (aniv && aniv.faltam <= 15) badges.push({ text: `Aniversário em ${aniv.faltam} dia(s) · ${aniv.diaMes}`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' });
 
      if (emExperiencia(f)) {
-        // A experiência renova sozinha no 2º período até alguém efetivar.
         const s = situacaoExperiencia(f, hj);
         if (s && !s.erro) {
-           if (s.vencido) {
+           if (s.efetivadoAutomatico) {
+              badges.push({ text: `Contrato Definitivo (Efetivado após 90 dias)`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' });
+           } else if (s.vencido) {
               badges.push({ text: `Experiência encerrada — efetive ou desligue`, color: 'text-rose-700 bg-rose-50 border-rose-200' });
            } else {
               const cor = s.decidirAgora ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200';
@@ -1584,8 +1883,7 @@ export default function RHPage() {
 
   const handleApagarDoc = async (docId, url) => {
      if(confirm("Apagar este documento permanentemente?")) {
-        const { error } = await removerDocumento(docId, url);
-        if (error) return alert(`Não consegui apagar este documento: ${error}`);
+        await removerDocumento(docId, url);
         carregar();
      }
   };
@@ -1654,9 +1952,17 @@ export default function RHPage() {
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
       {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
-      <div className="pt-4 pb-4 px-4 sm:px-6 max-w-5xl mx-auto">
-         <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">RH &amp; Equipe</h1>
+      <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto">
+         <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                 <Users size={32} />
+              </div>
+              <div>
+                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
+              </div>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
                <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
@@ -1692,9 +1998,6 @@ export default function RHPage() {
                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}>
                <FileText size={14} /> Exportar AFD
             </a>
-            <button onClick={() => router.push('/dashboard/rh/organograma')} title="Quem responde para quem" className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
-               <Users size={14} /> Organograma
-            </button>
             {abaAtiva === "Freelancer" && (
                <>
                <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
@@ -1748,16 +2051,17 @@ export default function RHPage() {
                { rot: "Funcionários", val: ativos.length, sub: `${fixos.length} fixos · ${extras.length} extras` },
                { rot: "Bateram ponto hoje", val: trabalhandoAgora, sub: "presença registrada" },
                { rot: "Em experiência", val: emExperiencia, sub: "contrato de experiência" },
-               { rot: "CMO total (mês)", val: fmtBRL(total), largo: true,
-                 sub: `folha ${fmtBRL(folhaFixa)} · extras ${fmtBRL(gastoExtras)}${pct === null ? "" : ` · ${pct.toFixed(1)}% do faturamento`}` },
+               { rot: "Folha prevista (mês)", val: fmtBRL(folhaFixa), sub: `${fixos.length} fixos · salário + VA + taxa` },
+               { rot: "Gasto com extras (mês)", val: fmtBRL(gastoExtras), sub: `${extras.length} extras · diárias batidas` },
+               { rot: "CMO total", val: fmtBRL(total), sub: pct === null ? "folha + extras" : `${pct.toFixed(1)}% do faturamento` },
             ];
             return (
                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                   {cards.map(c => (
-                     <div key={c.rot} className={`bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5 ${c.largo ? "col-span-2" : ""}`}>
+                     <div key={c.rot} className="bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5">
                         <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
                         <p className="text-lg font-black text-emerald-700 mt-0.5">{c.val}</p>
-                        <p className={`text-[10px] font-bold text-slate-400 ${c.largo ? "" : "truncate"}`}>{c.sub}</p>
+                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
                      </div>
                   ))}
                   {incompletos > 0 && (
@@ -1796,12 +2100,82 @@ export default function RHPage() {
             const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
             return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                <div className="flex items-center justify-between mb-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-black bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">{alertas.slice(0, 4).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`flex items-baseline gap-2 text-left border rounded-lg px-2.5 py-1.5 transition-all hover:shadow-sm ${cores[a.nivel]}`}><span className="text-xs font-black truncate">{a.nome}</span><span className="text-[10px] font-bold opacity-80 ml-auto shrink-0">{a.texto}</span></button>)}</div>
-               {alertas.length > 4 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 4} nos cadastros abaixo.</p>}
-               <p className="text-[9px] font-medium text-slate-400 mt-2">Férias e decisões contratuais precisam do aval do responsável e da contabilidade.</p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
+               {alertas.length > 8 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
+               <p className="text-[9px] font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
             </div>;
          })()}
       </div>
+
+      {/* Composição da equipe + Ações rápidas */}
+      {funcionarios.length > 0 && (
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-4">
+         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_1.4fr] gap-3">
+            {/* Donut de composição */}
+            {(() => {
+               const todos = funcionarios;
+               const total = todos.length || 1;
+               const inativos = todos.filter(f => ehInativo(f)).length;
+               const ativos = todos.filter(f => !ehInativo(f));
+               const extras = ativos.filter(f => f.tipo_contrato === "Freelancer").length;
+               const exp = ativos.filter(f => f.tipo_contrato !== "Freelancer" && String(f.status_contrato || "").toLowerCase().includes("experi")).length;
+               const fixos = ativos.length - extras - exp;
+               const segs = [
+                  { rot: "Fixos ativos", n: fixos, cor: "#059669" },
+                  { rot: "Em experiência", n: exp, cor: "#6ee7b7" },
+                  { rot: "Extras", n: extras, cor: "#94a3b8" },
+                  { rot: "Inativos", n: inativos, cor: "#cbd5e1" },
+               ].filter(s => s.n > 0);
+               let acc = 0;
+               const stops = segs.map(s => { const ini = (acc / total) * 360; acc += s.n; const fim = (acc / total) * 360; return `${s.cor} ${ini}deg ${fim}deg`; }).join(", ");
+               return (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+                     <div className="relative w-24 h-24 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops || "#e2e8f0 0deg 360deg"})` }}>
+                        <div className="absolute inset-[14px] rounded-full bg-white flex flex-col items-center justify-center">
+                           <span className="text-xl font-black text-slate-800 leading-none">{todos.length}</span>
+                           <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Total</span>
+                        </div>
+                     </div>
+                     <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Composição da equipe</p>
+                        <div className="space-y-1">
+                           {segs.map(s => (
+                              <div key={s.rot} className="flex items-center gap-2 text-xs">
+                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.cor }} />
+                                 <span className="font-bold text-slate-600 flex-1 truncate">{s.rot}</span>
+                                 <span className="font-black text-slate-800">{s.n}</span>
+                                 <span className="text-slate-400 font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+               );
+            })()}
+
+            {/* Ações rápidas */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Ações rápidas</p>
+               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                     { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
+                     { icon: ClipboardList, rot: "Fechar folha", on: () => router.push('/dashboard/rh/fechamento') },
+                     { icon: Clock, rot: "Faltas e atrasos", on: () => imprimirFaltasAtrasos() },
+                     { icon: CalendarDays, rot: "Feriados", on: () => abrirModalFeriados() },
+                     { icon: Users, rot: "Organograma", on: () => router.push('/dashboard/rh/organograma') },
+                     { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
+                     { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
+                  ].map(a => (
+                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
+                        <a.icon size={18} className="text-emerald-600" />
+                        <span className="text-[10px] font-black text-slate-600 leading-tight">{a.rot}</span>
+                     </button>
+                  ))}
+               </div>
+            </div>
+         </div>
+      </div>
+      )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
@@ -1883,6 +2257,7 @@ export default function RHPage() {
                         if (pt.status_jornada === 4) return <span className={cls(situacao.semIntervalo ? "text-rose-700 bg-rose-100 border-rose-200" : "text-blue-700 bg-blue-100 border-blue-200")}>{situacao.texto}</span>;
                         return <span className="text-[11px] font-bold text-slate-400">--</span>;
                      })();
+                     const tb = totalBancoDe(f.id);
                      return (
                         <div key={f.id} onClick={() => abrirModalEdicao(f)}
                            className="text-left rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all p-3 cursor-pointer flex flex-col gap-2.5">
@@ -1928,11 +2303,7 @@ export default function RHPage() {
                                  (() => {
                                  // Dia a dia do mês: alimenta os cliques (extra/noturno/feriado) e os contadores
                                  const meusPontos = pontosMesUnidade.filter(x => x.colaborador_id === f.id);
-                                 // entradaDoDia: bater antes do turno não vira hora extra.
-                                 const porDia = calcularAdicionaisPorDia(meusPontos, feriadosMesAtual, {
-                                   contratadaDoDia: (d) => jornadaContratadaMin(f, d),
-                                   entradaDoDia: (d) => entradaContratadaDoDia(f, d),
-                                 });
+                                 const porDia = calcularAdicionaisPorDia(meusPontos, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
                                  const fSet = new Set((feriadosMesAtual || []).map(x => x.data || x));
                                  const diasTrab = [...new Set(meusPontos.filter(x => x.hora_entrada).map(x => x.data_referencia))];
                                  const escala = new Set(String(f.dias_trabalho || "").split(",").filter(Boolean));
@@ -1986,10 +2357,20 @@ export default function RHPage() {
                                  {f.docs?.length > 0
                                     ? <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
                                     : <span className="text-[10px] text-slate-400">Sem docs</span>}
+                                 {tb >= BANCO_ALERTA_MIN && (
+                                    <button onClick={() => abrirModalBanco(f)} className={`text-[10px] font-black px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
+                                       <Clock size={10} /> {fmtMin(tb)}{tb >= BANCO_LIMITE_MIN ? "!" : ""}
+                                    </button>
+                                 )}
                               </div>
                               <div className="flex items-center gap-1.5">
+                                 {abaAtiva !== "Ex-funcionários" && (
+                                    <button onClick={() => abrirDesligamento(f)} className="flex items-center gap-1 text-xs font-black text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
+                                       <LogOut size={12} /> Desligar
+                                    </button>
+                                 )}
                                  <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
-                                 <button onClick={() => setMenuAcoes(f)} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
+                                 <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>
                            </div>
                         </div>
@@ -2003,75 +2384,104 @@ export default function RHPage() {
 
       </div>
 
-      {/* MENU DE AÇÕES DO FUNCIONÁRIO — tudo organizado por grupo */}
+      {/* MENU DE AÇÕES DO FUNCIONÁRIO — uma categoria por vez para ficar compacto */}
       {menuAcoes && (() => {
          const f = menuAcoes;
          const fechar = () => setMenuAcoes(null);
          const ir = (fn) => { fechar(); fn(); };
-         const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 hover:bg-slate-100", onClick, children, extra }) => (
-            <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold text-sm text-left transition-colors ${bg} ${cor}`}>
-               <Icon size={16} className="shrink-0" /> <span className="flex-1">{children}</span> {extra}
+         const tb = totalBancoDe(f.id);
+         const critico = tb >= BANCO_LIMITE_MIN, alerta = tb >= BANCO_ALERTA_MIN;
+         const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 group-hover:bg-slate-100", onClick, children, extra }) => (
+            <button onClick={onClick} className="group flex min-h-[52px] w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition-all hover:border-slate-300 hover:shadow-sm sm:min-h-[56px] sm:rounded-2xl sm:px-3">
+               <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${bg} ${cor}`}><Icon size={17}/></span>
+               <span className={`min-w-0 flex-1 text-[13px] font-black leading-tight sm:text-sm ${cor}`}>{children}</span>
+               {extra}
             </button>
          );
-         const Grupo = ({ titulo, children }) => (
-            <div>
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">{titulo}</p>
-               <div className="space-y-1.5">{children}</div>
-            </div>
-         );
+         const abas = [
+            ["trabalho", "Trabalho", Clock],
+            ["financeiro", "Financeiro", CreditCard],
+            ["documentos", "Documentos", FileText],
+            ["gestao", "Gestão", ClipboardList],
+         ];
          return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>
-            <div className="bg-white rounded-[28px] w-full max-w-md md:max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-               <div className="flex items-center justify-between mb-4">
-                  <div className="min-w-0">
-                     <h2 className="font-black text-xl text-slate-800 truncate">{f.nome}</h2>
-                     <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{f.cargo || "—"}</p>
+         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-0 backdrop-blur-sm sm:items-center sm:p-3" onClick={fechar}>
+            <div className="flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-slate-50 shadow-2xl sm:max-h-[calc(100dvh-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
+               <div className="flex shrink-0 items-center gap-2.5 bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3 text-white sm:gap-3 sm:px-5 sm:py-4">
+                  {f.foto
+                     ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-white/20 object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
+                     : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black sm:h-12 sm:w-12 sm:rounded-2xl sm:text-xl">{(f.nome || "?")[0].toUpperCase()}</span>}
+                  <div className="min-w-0 flex-1">
+                     <p className="text-[8px] font-black uppercase tracking-[.16em] text-emerald-300 sm:text-[9px]">Ações do colaborador</p>
+                     <h2 className="truncate text-base font-black sm:text-lg">{f.nome}</h2>
+                     <p className="truncate text-[10px] font-bold text-slate-300 sm:text-[11px]">{f.cargo || "Sem cargo informado"}</p>
                   </div>
-                  <button onClick={fechar} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 shrink-0"><X size={17}/></button>
+                  <button onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"><X size={17}/></button>
                </div>
 
-               <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-                  <Grupo titulo="Ponto e Jornada">
-                     <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
-                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
-                     <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Linha do Tempo de Carreira</Acao>
-                  </Grupo>
+               <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-slate-200 bg-white p-1.5 sm:p-2">
+                  {abas.map(([id, rotulo, Icone]) => (
+                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-[9px] font-black transition-colors sm:min-h-11 sm:rounded-xl sm:text-[10px] ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>
+                        <Icone size={15}/><span className="truncate">{rotulo}</span>
+                     </button>
+                  ))}
+               </nav>
 
-                  <Grupo titulo="Financeiro">
-                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="text-xs font-black">{fmtBRL(t)} pend.</span> : null; })()}>Consumo / Vales</Acao>
-                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
+               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-4">
+                  {abaMenuAcoes === "trabalho" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
+                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-sky-50 group-hover:bg-sky-100"}
+                        onClick={() => ir(() => abrirModalBanco(f))}
+                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-700">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
+                        Banco de Horas
+                     </Acao>
+                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
+                     <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 group-hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
+                  </div>}
+
+                  {abaMenuAcoes === "financeiro" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 group-hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="shrink-0 text-[10px] font-black text-teal-700">{fmtBRL(t)}</span> : null; })()}>Consumo / Vales</Acao>
+                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
                      {f.tipo_contrato === "Freelancer" && (
                         <>
-                          <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
+                          <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 group-hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
                           <Acao icon={Clock} cor="text-slate-700" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
-                  </Grupo>
+                  </div>}
 
-                  <Grupo titulo="Documentos">
-                     <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
+                  {abaMenuAcoes === "documentos" && <div>
+                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={Printer} cor="text-indigo-700" bg="bg-indigo-50 group-hover:bg-indigo-100" onClick={() => ir(() => imprimirPerfilFuncionario(f))}>Perfil em PDF / imprimir</Acao>
+                     <Acao icon={Link2} cor="text-sky-700" bg="bg-sky-50 group-hover:bg-sky-100" onClick={() => ir(() => compartilharLinkAtualizacao(f))}>Link para atualizar dados</Acao>
+                     <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
                      {f.tipo_contrato === "Freelancer" && (
-                        <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Trabalho Extra</Acao>
+                        <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Trabalho Extra</Acao>
                      )}
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
-                     {(f.docs || []).map(d => (
-                        <div key={d.id} className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50">
+                     </div>
+                     {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-slate-200 pt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Arquivos anexados</p>{(f.docs || []).map(d => (
+                        <div key={d.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2">
                            <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-emerald-700 hover:underline min-w-0">
                               <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
                            </a>
                            <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14}/></button>
                         </div>
-                     ))}
-                  </Grupo>
+                     ))}</div>}
+                  </div>}
 
-                  <Grupo titulo="Gestão e Disciplina">
-                     <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
+                  {abaMenuAcoes === "gestao" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                     <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 group-hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
                      {abaAtiva !== "Ex-funcionários" && (
-                        <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar (arquiva com histórico)</Acao>
+                        <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 group-hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar e arquivar</Acao>
                      )}
                      <Acao icon={Trash2} cor="text-slate-500" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
-                  </Grupo>
+                  </div>}
+               </div>
+               <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+                  <p className="hidden text-[10px] font-bold text-slate-400 sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
+                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-slate-100 px-4 text-xs font-black text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
                </div>
             </div>
          </div>
@@ -2100,7 +2510,7 @@ export default function RHPage() {
                <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
-                    ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"], ["func-observacoes", "5. Observações"],
+                    ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"],
                   ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
                </nav>
 
@@ -2424,11 +2834,17 @@ export default function RHPage() {
                         <div>
                            <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Fase do Contrato</label>
                            <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700 appearance-none">
-                              <option value="Experiência (30 dias)">Experiência (30 dias)</option>
-                              <option value="Experiência (45 dias)">Experiência (45 dias)</option>
-                              <option value="Experiência (90 dias)">Experiência (90 dias)</option>
+                              <option value="Experiência (30 dias)">Experiência (renova a cada 30d até 90d)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
                            </select>
+                           {(() => {
+                              const info = faseContratoCalculada(novoFunc);
+                              return (
+                                 <p className="mt-2 text-xs font-bold text-indigo-700 bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100">
+                                    ℹ️ {info.fase}: {info.detalhe}
+                                 </p>
+                              );
+                           })()}
                         </div>
                      </div>
                   )}
@@ -2572,20 +2988,6 @@ export default function RHPage() {
                      </>}
                   </div>
 
-                  <div id="func-observacoes" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                     {novoFunc.tipo_contrato === "Freelancer" && (
-                        <div className="mb-4">
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Avaliação do Freelancer (Estrelas)</label>
-                           <div className="flex gap-2">
-                              {[1,2,3,4,5].map(star => (
-                                 <button key={star} type="button" onClick={() => setNovoFunc({...novoFunc, avaliacao_estrelas: star})} className={`p-2 rounded-lg transition-colors ${novoFunc.avaliacao_estrelas >= star ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}>
-                                    <Star size={24} className={novoFunc.avaliacao_estrelas >= star ? 'fill-amber-500' : ''} />
-                                 </button>
-                              ))}
-                           </div>
-                        </div>
-                     )}
-                  </div>
                </div>
 
                <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0">
@@ -3091,9 +3493,8 @@ export default function RHPage() {
 
                         <section>
                           <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
-                          {modalDiarias.func?.anotacoes_rh && <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900"><b>Anotação do cadastro:</b> {modalDiarias.func.anotacoes_rh}</p>}
                           <div className="space-y-2">
-                            {advertencias.length === 0 && !modalDiarias.func?.anotacoes_rh ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
+                            {advertencias.length === 0 ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
                               <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-black text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
                             ))}
                           </div>
@@ -3146,45 +3547,346 @@ export default function RHPage() {
          </div>
       )}
 
-      {/* MODAL: DESLIGAMENTO (arquiva o funcionário com a vida dele) */}
+      {/* MODAL: DESLIGAMENTO & AVISO PRÉVIO */}
       {modalDeslig && funcDeslig && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] overflow-y-auto">
-               <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                   <div>
-                     <h2 className="font-black text-2xl text-slate-800">Desligar Funcionário</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{funcDeslig.nome} · {funcDeslig.cargo || "—"}</p>
+                     <h2 className="font-black text-2xl text-slate-800">Desligamento / Aviso Prévio</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-0.5">{funcDeslig.nome} · {funcDeslig.cargo || "Sem cargo"}</p>
                   </div>
                   <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
-               <p className="text-xs font-medium text-slate-500 mb-4 bg-slate-50 border border-slate-100 rounded-xl p-3">Ele sai da equipe ativa e vai para o arquivo de <b>Ex-funcionários</b>. Todo o histórico (ponto, advertências, documentos, banco de horas) fica preservado.</p>
+
+               {/* Se o funcionário já está cumprindo aviso */}
+               {(funcDeslig.em_aviso_previo || funcDeslig.status_aviso === "cumprindo_aviso") && (
+                  <div className="mb-4 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4">
+                     <p className="text-xs font-black text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
+                     <p className="text-xs text-amber-800 font-medium">Início em <b>{funcDeslig.inicio_aviso_previo ? new Date(funcDeslig.inicio_aviso_previo + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</b> ({funcDeslig.dias_aviso_previo || 30} dias contratados).</p>
+                     <div className="mt-3 flex gap-2">
+                        <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-white border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
+                     </div>
+                  </div>
+               )}
+
+               {/* Alternador de Modo: Cumprir Aviso vs Desligar Imediatamente */}
+               <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-100 p-1.5 rounded-2xl">
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all ${desligForm.modo === "aviso" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                     1. Cumprindo Aviso Prévio
+                  </button>
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                     2. Desligar Imediatamente
+                  </button>
+               </div>
+
                <form onSubmit={confirmarDesligamento} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data</label>
-                        <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400"/>
+                  {desligForm.modo === "aviso" ? (
+                     <div className="space-y-3 bg-amber-50/60 border border-amber-200/80 p-4 rounded-2xl">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-amber-800">Parâmetros do Aviso Prévio</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Início do Aviso</label>
+                              <input type="date" value={desligForm.inicio_aviso} onChange={e=>setDesligForm({...desligForm, inicio_aviso: e.target.value})} className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Dias de Aviso</label>
+                              <input type="number" min="1" max="90" value={desligForm.dias_aviso} onChange={e=>setDesligForm({...desligForm, dias_aviso: e.target.value})} placeholder="Ex: 27 ou 30" className="w-full p-3 bg-white border border-amber-200 rounded-xl font-black text-amber-900 outline-none focus:border-amber-500"/>
+                           </div>
+                        </div>
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Aviso</label>
+                           <select value={desligForm.tipo_aviso} onChange={e=>setDesligForm({...desligForm, tipo_aviso: e.target.value})} className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500">
+                              <option value="Trabalhado">Trabalhado (cumpre horário no restaurante)</option>
+                              <option value="Indenizado">Indenizado (sem cumprimento presencial)</option>
+                           </select>
+                        </div>
+
+                        {/* Cálculo ao vivo do término */}
+                        {(() => {
+                           if (!desligForm.inicio_aviso || !desligForm.dias_aviso) return null;
+                           const ini = new Date(`${desligForm.inicio_aviso}T12:00:00`);
+                           const dias = Number(desligForm.dias_aviso) || 30;
+                           const fim = new Date(ini.getTime() + dias * 86400000);
+                           const hj = new Date(); hj.setHours(0,0,0,0); ini.setHours(0,0,0,0);
+                           const faltam = Math.ceil((fim - hj) / 86400000);
+                           return (
+                              <div className="bg-white border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900">
+                                 📅 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
+                                 {faltam > 0 ? <span className="block mt-0.5 text-amber-700">· Faltam <b>{faltam} dia(s)</b> de trabalho</span> : <span className="block mt-0.5 text-rose-700">· Prazo de aviso já finalizado!</span>}
+                              </div>
+                           );
+                        })()}
                      </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo</label>
-                        <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400">
-                           <option>Pedido de demissão</option>
-                           <option>Demissão sem justa causa</option>
-                           <option>Demissão por justa causa</option>
-                           <option>Fim de contrato</option>
-                           <option>Fim de experiência</option>
-                           <option>Acordo</option>
-                        </select>
+                  ) : (
+                     <div className="space-y-3 bg-rose-50/60 border border-rose-200/80 p-4 rounded-2xl">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-rose-800">Desligamento Definitivo & Arquivamento</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Data de Saída</label>
+                              <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-500"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Recisão</label>
+                              <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-500">
+                                 <option>Pedido de demissão</option>
+                                 <option>Demissão sem justa causa</option>
+                                 <option>Demissão por justa causa</option>
+                                 <option>Fim de contrato / experiência</option>
+                                 <option>Acordo entre as partes</option>
+                              </select>
+                           </div>
+                        </div>
                      </div>
-                  </div>
+                  )}
+
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Motivo / observações (opcional)</label>
-                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: reestruturação, desempenho, iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-orange-400 resize-none"/>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Motivo / Observações</label>
+                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: cumprindo aviso de 27 dias / iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-emerald-500 resize-none"/>
                   </div>
-                  <div className="flex gap-3">
+
+                  <div className="flex gap-3 pt-2">
                      <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl">Cancelar</button>
-                     <button type="submit" className="flex-1 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl flex items-center justify-center gap-2"><LogOut size={18}/> Desligar</button>
+                     <button type="submit" className={`flex-1 py-3.5 text-white font-black rounded-xl flex items-center justify-center gap-2 transition-colors ${desligForm.modo === "aviso" ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20" : "bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"}`}>
+                        <LogOut size={18}/> {desligForm.modo === "aviso" ? "Registrar Aviso Prévio" : "Desligar e Arquivar"}
+                     </button>
                   </div>
                </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL: CENTRAL EXCLUSIVA DE OCORRÊNCIAS & DOCUMENTOS */}
+      {modalOcorrencias && funcOcorrencias && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[92vh]">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
+                  </div>
+                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               {/* ABAS */}
+               <div className="flex gap-1.5 border-b border-slate-200 overflow-x-auto shrink-0 mb-4 pb-1">
+                  {[
+                     { id: "atestados", rotulo: "🏥 Atestados Médicos", count: listaAtestados.length },
+                     { id: "advertencias", rotulo: "⚠️ Advertências", count: listaAdvertencias.length },
+                     { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
+                     { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
+                  ].map(tab => (
+                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-black text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                        <span>{tab.rotulo}</span>
+                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-700"}`}>{tab.count}</span>}
+                     </button>
+                  ))}
+               </div>
+
+               <div className="flex-1 overflow-y-auto pr-1">
+                  {loadingOcorrencias ? (
+                     <div className="py-12 text-center font-bold text-slate-400">Carregando histórico do colaborador...</div>
+                  ) : (
+                     <>
+                        {/* ABA 1: ATESTADOS MÉDICOS */}
+                        {abaOcorrencia === "atestados" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarAtestado} className="bg-cyan-50/70 border border-cyan-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Início do Afastamento</label>
+                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Qtd Dias Afastado</label>
+                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-black text-slate-800 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">CID (Opcional)</label>
+                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                 </div>
+
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Médico / CRM (Opcional)</label>
+                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
+                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
+                                    </div>
+                                 </div>
+
+                                 <button type="submit" className="w-full py-3 bg-cyan-700 hover:bg-cyan-800 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Atestado e Abonar Ponto Automático
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaAtestados.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhum atestado médico cadastrado para este colaborador.</p>
+                                 ) : listaAtestados.map(a => (
+                                    <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <p className="font-black text-slate-800 text-xs">🏥 Atestado Médico · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-[11px] font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                          {a.arquivo_url && (
+                                             <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-[11px] rounded-xl hover:bg-cyan-100">Ver Anexo</a>
+                                          )}
+                                          <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {/* ABA 2: ADVERTÊNCIAS */}
+                        {abaOcorrencia === "advertencias" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarAdvNovo} className="bg-rose-50/70 border border-rose-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data da Ocorrência</label>
+                                       <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipo de Medida</label>
+                                       <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500">
+                                          <option value="Advertência Verbal">Advertência Verbal</option>
+                                          <option value="Advertência Escrita">Advertência Escrita</option>
+                                          <option value="Suspensão (1 dia)">Suspensão (1 dia)</option>
+                                          <option value="Suspensão (3 dias)">Suspensão (3 dias)</option>
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Motivo / Descrição Detalhada</label>
+                                    <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-rose-500 resize-none"/>
+                                 </div>
+                                 <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Advertência
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaAdvertencias.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhuma advertência disciplinar para este colaborador.</p>
+                                 ) : listaAdvertencias.map(a => (
+                                    <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
+                                          <p className="font-bold text-slate-800 text-xs mt-1">{a.motivo || a.descricao}</p>
+                                          <p className="text-[10px] font-bold text-slate-400 mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                                       </div>
+                                       <button type="button" onClick={async () => { if(confirm("Excluir registro?")) { await removerAdvertencia(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {/* ABA 3: REUNIÕES & FEEDBACKS */}
+                        {abaOcorrencia === "reunioes" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarReuniao} className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data</label>
+                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Título / Pauta da Reunião</label>
+                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
+                                    </div>
+                                 </div>
+                                 <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
+                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-indigo-500 resize-none"/>
+                                 </div>
+                                 <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Reunião
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaReunioes.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhuma reunião ou feedback registrado.</p>
+                                 ) : listaReunioes.map(r => (
+                                    <div key={r.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <p className="font-black text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-xs text-slate-600 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
+                                       </div>
+                                       <button type="button" onClick={async () => { if(confirm("Excluir reunião?")) { await removerReuniaoColab(r.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {/* ABA 4: TREINAMENTOS */}
+                        {abaOcorrencia === "treinamentos" && (
+                           <div className="space-y-4">
+                              <form onSubmit={handleSalvarTreino} className="bg-emerald-50/70 border border-emerald-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-black uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nome do Curso / Treinamento</label>
+                                       <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Instituição / Instrutor</label>
+                                       <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                 </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Conclusão</label>
+                                       <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Carga Horária</label>
+                                       <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                    <div>
+                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Vencimento (Opcional)</label>
+                                       <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                    </div>
+                                 </div>
+                                 <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                    Registrar Treinamento
+                                 </button>
+                              </form>
+
+                              <div className="space-y-2">
+                                 {listaTreinamentos.length === 0 ? (
+                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhum treinamento registrado para este colaborador.</p>
+                                 ) : listaTreinamentos.map(t => (
+                                    <div key={t.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
+                                       <div>
+                                          <p className="font-black text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
+                                          <p className="text-[11px] font-bold text-slate-500 mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          {t.vencimento && <p className="text-[10px] font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
+                                       </div>
+                                       <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+                     </>
+                  )}
+               </div>
             </div>
          </div>
       )}
@@ -3234,6 +3936,91 @@ export default function RHPage() {
             </div>
          </div>
       )}
+
+      {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
+      {modalBanco && funcBanco && (() => {
+         const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);
+         const total = lancs.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+         const pct = Math.min(100, (total / BANCO_LIMITE_MIN) * 100);
+         const critico = total >= BANCO_LIMITE_MIN;
+         const alerta = total >= BANCO_ALERTA_MIN;
+         return (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
+               <div className="flex justify-between items-center mb-5 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{funcBanco.nome} · mês atual</p>
+                  </div>
+                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               {/* Acumulado do mês vs limite de 8h */}
+               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
+                  <div className="flex justify-between items-baseline mb-2">
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-500"}`}>
+                        {critico ? "Limite de 8h atingido!" : alerta ? "Perto de estourar as 8h!" : "Acumulado no mês"}
+                     </span>
+                     <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-slate-400">/ 8h00</span></span>
+                  </div>
+                  <div className="h-2.5 rounded-full overflow-hidden bg-white border border-slate-200">
+                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: critico ? "#DC2626" : alerta ? "#F59E0B" : "#059669" }} />
+                  </div>
+                  {(alerta || critico) && <p className="text-[11px] font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
+               </div>
+
+               {/* Compensar tudo com uma folga (registra a folga e zera os créditos) */}
+               {total > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 shrink-0">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
+                     <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-white border border-emerald-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
+                     <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-colors">
+                        Dar folga e zerar {fmtMin(total)}
+                     </button>
+                  </div>
+               )}
+
+               {/* Lançar minutos não tirados do dia */}
+               <form onSubmit={lancarBancoHoras} className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-5 shrink-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
+                  <div className="flex flex-wrap items-end gap-3">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Dia</label>
+                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Minutos que faltaram</label>
+                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
+                     </div>
+                     <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
+                  </div>
+                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-white border border-slate-200 rounded-lg font-medium text-sm text-slate-700 outline-none focus:border-sky-500"/>
+                  <p className="text-[10px] font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
+               </form>
+
+               {/* Lançamentos do mês */}
+               <div className="overflow-y-auto space-y-2">
+                  {lancs.length === 0 ? (
+                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum lançamento neste mês.</p>
+                  ) : lancs.map(b => (
+                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`}>
+                        <div className="flex-1 min-w-0">
+                           <p className="text-sm font-bold text-slate-700">
+                              {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
+                              {b.tipo === "excesso"
+                                 ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
+                                 : <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span>}
+                           </p>
+                           {b.observacao && <p className="text-[11px] font-medium text-slate-400 truncate">{b.observacao}</p>}
+                        </div>
+                        <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+         );
+      })()}
 
       {modalFolgas && funcParaFolgas && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

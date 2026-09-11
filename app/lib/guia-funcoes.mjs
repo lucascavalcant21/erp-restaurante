@@ -107,12 +107,70 @@ export const GUIA_FUNCOES_PADRAO = [
 // Ordena por horário e mantém a pausa no lugar certo da sequência. Quem edita
 // digita o horário fora de ordem o tempo todo, e a folha impressa não pode
 // sair com 22h antes das 16h.
-export function ordenarBlocos(blocos = []) {
-  const minutos = (hora) => {
-    const [h, m] = String(hora || "").split(":").map(n => Number(n));
-    return Number.isFinite(h) ? h * 60 + (Number.isFinite(m) ? m : 0) : 24 * 60 + 1;
+const minutos = (hora) => {
+  const [h, m] = String(hora || "").split(":").map(n => Number(n));
+  return Number.isFinite(h) ? h * 60 + (Number.isFinite(m) ? m : 0) : 24 * 60 + 1;
+};
+
+// Um período maior (ex.: Abertura do Salão) contém vários horários menores.
+// Cada horário menor pode ter uma ou mais tarefas e pode ser uma faixa ou um
+// horário único.
+export function tarefasDoHorario(horario = {}) {
+  if (Array.isArray(horario.tarefas)) {
+    return horario.tarefas.map(tarefa => String(tarefa ?? ""));
+  }
+  const atividadeAntiga = String(horario.atividade || "").trim();
+  if (horario.intervalo && /^intervalo$/i.test(atividadeAntiga)) return [];
+  return atividadeAntiga ? [atividadeAntiga] : [""];
+}
+
+export function normalizarHorario(horario = {}) {
+  const normalizado = {
+    ...horario,
+    tarefas: tarefasDoHorario(horario),
   };
-  return [...blocos].sort((a, b) => minutos(a.hora) - minutos(b.hora));
+  delete normalizado.atividade;
+  delete normalizado.titulo;
+  delete normalizado.horarios;
+  return normalizado;
+}
+
+export function normalizarBloco(bloco = {}) {
+  const horarios = Array.isArray(bloco.horarios)
+    ? bloco.horarios.map(normalizarHorario)
+    : [normalizarHorario(bloco)];
+  return {
+    titulo: String(bloco.titulo || ""),
+    hora: String(bloco.hora || horarios[0]?.hora || ""),
+    fim: String(bloco.fim || horarios[horarios.length - 1]?.fim || horarios[horarios.length - 1]?.hora || ""),
+    horarios,
+  };
+}
+
+// Compatibilidade: os guias já cadastrados tinham uma linha por atividade.
+// Na primeira leitura, todas essas linhas entram dentro de um único período
+// "Rotina do turno", mantendo exatamente os horários e textos antigos.
+export function normalizarConteudo(blocos = []) {
+  if (!Array.isArray(blocos) || !blocos.length) return [];
+  if (blocos.some(bloco => Array.isArray(bloco.horarios))) {
+    return blocos.map(normalizarBloco);
+  }
+  const horarios = blocos.map(normalizarHorario);
+  return [{
+    titulo: "Rotina do turno",
+    hora: horarios[0]?.hora || "",
+    fim: horarios[horarios.length - 1]?.fim || horarios[horarios.length - 1]?.hora || "",
+    horarios,
+  }];
+}
+
+export function ordenarBlocos(blocos = []) {
+  return normalizarConteudo(blocos)
+    .sort((a, b) => minutos(a.hora) - minutos(b.hora))
+    .map(bloco => ({
+      ...bloco,
+      horarios: [...bloco.horarios].sort((a, b) => minutos(a.hora) - minutos(b.hora)),
+    }));
 }
 
 export function periodoDoBloco(bloco) {
@@ -120,4 +178,69 @@ export function periodoDoBloco(bloco) {
   const fim = String(bloco?.fim || "").trim();
   if (!inicio) return "—";
   return fim ? `${inicio} às ${fim}` : `a partir de ${inicio}`;
+}
+
+export function periodoDoHorario(horario) {
+  const inicio = String(horario?.hora || "").trim();
+  const fim = String(horario?.fim || "").trim();
+  if (!inicio) return "—";
+  return fim ? `${inicio} às ${fim}` : `às ${inicio}`;
+}
+
+export function obterStatusHorario(horario, horaAtualStr) {
+  if (!horario || !horaAtualStr) return "indefinido";
+  const mAtual = minutos(horaAtualStr);
+  const mInicio = minutos(horario.hora);
+  const mFim = horario.fim ? minutos(horario.fim) : mInicio + 30; // 30min padrão se sem fim
+
+  if (mAtual < mInicio) return "futuro";
+  if (mAtual >= mInicio && mAtual <= mFim) return "ativo";
+  return "passado";
+}
+
+export function calcularMinutosRestantes(horaFimStr, horaAtualStr) {
+  if (!horaFimStr || !horaAtualStr) return null;
+  const mAtual = minutos(horaAtualStr);
+  const mFim = minutos(horaFimStr);
+  const resta = mFim - mAtual;
+  return resta;
+}
+
+export function calcularProgressoFuncao(funcao, concluidosMap = {}) {
+  if (!funcao || !Array.isArray(funcao.blocos)) return { total: 0, concluidos: 0, pct: 0 };
+  let total = 0;
+  let concluidos = 0;
+
+  funcao.blocos.forEach(b => {
+    (b.horarios || []).forEach(h => {
+      const tarefas = tarefasDoHorario(h);
+      tarefas.forEach((_, idx) => {
+        total += 1;
+        const chave = `${funcao.id}_${b.titulo}_${h.hora}_${idx}`;
+        if (concluidosMap[chave]) concluidos += 1;
+      });
+    });
+  });
+
+  const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+  return { total, concluidos, pct };
+}
+
+export function calcularProgressoSetores(funcoes = [], concluidosMap = {}) {
+  const setores = {};
+  funcoes.forEach(f => {
+    const setor = f.setor || "Outros";
+    if (!setores[setor]) setores[setor] = { total: 0, concluidos: 0, funcoesCount: 0 };
+    const prog = calcularProgressoFuncao(f, concluidosMap);
+    setores[setor].total += prog.total;
+    setores[setor].concluidos += prog.concluidos;
+    setores[setor].funcoesCount += 1;
+  });
+
+  Object.keys(setores).forEach(key => {
+    const s = setores[key];
+    s.pct = s.total > 0 ? Math.round((s.concluidos / s.total) * 100) : 0;
+  });
+
+  return setores;
 }

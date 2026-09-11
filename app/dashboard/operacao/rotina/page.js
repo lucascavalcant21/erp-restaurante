@@ -11,7 +11,7 @@ import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, Btn, EmptyState,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes, fetchExecucoesIntervalo, formatarMinutos, tempoDoChecklist } from "../../../lib/checklists";
+import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes, fetchExecucoesIntervalo } from "../../../lib/checklists";
 import { fetchColaboradores } from "../../../lib/rh";
 import { useTempoReal } from "../../../lib/realtime";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -114,16 +114,11 @@ function RotinaRunner() {
   const deptUrl = searchParams.get("dept");
   const tipoUrl = searchParams.get("tipo");
 
-  // Sem ?dept a tela caía calada na cozinha, e quem entrava pelo menu ficava
-  // olhando os checklists do setor errado sem perceber. Agora escolhe.
-  const deptValido = TEMAS[deptUrl] ? deptUrl : null;
+  const dept = TEMAS[deptUrl] ? deptUrl : "cozinha";
   const [templates, setTemplates] = useState([]);
   const [historico, setHistorico] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Banco recusando a leitura vira "nenhum checklist" na tela, e o setor passa
-  // o dia sem executar achando que não tem nada para fazer.
-  const [erroCarga, setErroCarga] = useState("");
 
   // Produtividade individual (tarefas feitas por pessoa no mês)
   const [modalProd, setModalProd] = useState(false);
@@ -144,12 +139,7 @@ function RotinaRunner() {
   const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [registrado, setRegistrado] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  // Estação travada guarda o próprio setor: sem ?dept na URL, ele vale como
-  // escolha em vez de a tela cair na cozinha e mostrar a área errada.
-  const [areaDaEstacao, setAreaDaEstacao] = useState(null);
   const [estacaoTravada, setEstacaoTravada] = useState(false);
-  const dept = deptValido || areaDaEstacao || "cozinha";
-  const precisaEscolherArea = !deptValido && !estacaoTravada && !areaDaEstacao;
   const cargaAtual = useRef(0);
   const registroConcluido = useRef(false);
   const salvamentoEmAndamento = useRef(false);
@@ -172,7 +162,6 @@ function RotinaRunner() {
       fetchHistoricoExecucoes(unidadeAtiva, hoje, dept),
     ]);
     if (idCarga !== cargaAtual.current) return;
-    setErroCarga(resT.error ? `Não consegui carregar os checklists: ${resT.error}` : "");
     setTemplates(resT.data || []);
     setColaboradores((resC.data || []).filter(c => c.ativo !== false && String(c.status || "ativo").toLowerCase() !== "inativo"));
     setHistorico(resH.data || []);
@@ -191,11 +180,7 @@ function RotinaRunner() {
   }, [filtroTipo]);
 
   useEffect(() => {
-    try {
-      const area = localStorage.getItem("hefisto_modo_area");
-      setEstacaoTravada(Boolean(area));
-      setAreaDaEstacao(TEMAS[area] ? area : null);
-    } catch { setEstacaoTravada(false); setAreaDaEstacao(null); }
+    try { setEstacaoTravada(Boolean(localStorage.getItem("hefisto_modo_area"))); } catch { setEstacaoTravada(false); }
   }, [dept]);
 
   // Tempo real: checklist marcado em outro aparelho atualiza aqui sozinho
@@ -332,9 +317,13 @@ function RotinaRunner() {
   const mudaStatusItem = (id, status) => {
     if (registroConcluido.current || salvamentoEmAndamento.current) return;
     const atual = respostas[id] || {};
-    // Sem responsável a tarefa é marcada assim mesmo: quem está com as mãos na
-    // massa não pode ficar preso a um cadastro para registrar o que já fez.
     const responsavel = atual.feito_por || (modoAtribuicao === "uma_pessoa" ? colabSelecionado : "");
+    if (status !== "na" && !responsavel) {
+      alert(modoAtribuicao === "uma_pessoa"
+        ? "Selecione quem fará todas as atividades."
+        : "Escolha o funcionário responsável por esta atividade antes de responder.");
+      return;
+    }
     setRespostas(r => ({
       ...r,
       [id]: {
@@ -347,7 +336,18 @@ function RotinaRunner() {
       }
     }));
     if (status === "nao_conforme") setExp(id);
+    else setTimeout(() => focarProximaPendente(id), 180);
   };
+
+  function focarProximaPendente(depoisDeId = null) {
+    const lista = checklistAtual?.itens || [];
+    if (!lista.length) return;
+    const indice = lista.findIndex(item => String(item.id) === String(depoisDeId));
+    const ordenada = indice >= 0 ? [...lista.slice(indice + 1), ...lista.slice(0, indice)] : lista;
+    const proxima = ordenada.find(item => String(item.id) !== String(depoisDeId) && !respostas[item.id]?.marcado);
+    if (!proxima) return;
+    document.getElementById(`tarefa-${proxima.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   const mudaTemperatura = (id, valStr, minVal, maxVal) => {
     if (registroConcluido.current || salvamentoEmAndamento.current) return;
@@ -430,6 +430,12 @@ function RotinaRunner() {
     if (registroConcluido.current || salvamentoEmAndamento.current) return;
     const atual = respostas[id] || {};
     const responsavel = atual.feito_por || (modoAtribuicao === "uma_pessoa" ? colabSelecionado : "");
+    if (!atual.marcado && !responsavel) {
+      alert(modoAtribuicao === "uma_pessoa"
+        ? "Selecione quem fará todas as atividades."
+        : "Escolha o funcionário responsável por esta atividade antes de concluir.");
+      return;
+    }
     setRespostas(r => {
       const respostaAtual = r[id] || {};
       const marcado = !respostaAtual.marcado;
@@ -475,6 +481,9 @@ function RotinaRunner() {
   const itens = checklistAtual?.itens || [];
   const concluidas = itens.filter(i => respostas[i.id]?.marcado).length;
   const pct = itens.length > 0 ? Math.round((concluidas / itens.length) * 100) : 0;
+  const tempoPrevisto = itens.reduce((total, item) => total + (Number(item.tempo_minutos) || 0), 0);
+  const proximaPendente = itens.find(item => !respostas[item.id]?.marcado) || null;
+  const indiceProxima = proximaPendente ? itens.findIndex(item => String(item.id) === String(proximaPendente.id)) : -1;
   const naoAtribuidas = itens.filter(i => !respostas[i.id]?.feito_por).length;
   const pessoasAtribuidas = new Set(
     itens.map(i => respostas[i.id]?.feito_por).filter(Boolean)
@@ -520,10 +529,11 @@ function RotinaRunner() {
   };
 
   const finalizar = async () => {
-    // Responsável deixou de ser obrigatório: exigir nome travava o registro de
-    // um checklist que já foi feito, e a tarefa cumprida sem registro é pior
-    // para a operação do que o registro sem o nome de quem fez.
+    if (!colabSelecionado) return alert(modoAtribuicao === "uma_pessoa"
+      ? "Selecione quem fez todas as atividades."
+      : "Selecione quem conferiu e está finalizando o checklist.");
     if (pct < 100) return;
+    if (naoAtribuidas > 0) return alert(`Ainda existem ${naoAtribuidas} atividade(s) sem funcionário responsável.`);
     if (salvamentoEmAndamento.current) return;
     salvamentoEmAndamento.current = true;
     setSalvando(true);
@@ -550,7 +560,7 @@ function RotinaRunner() {
       resultado = await salvarExecucao({
         template_id: checklistAtual.id,
         unidade_id: unidadeAtiva,
-        colaborador_id: colabSelecionado || null,
+        colaborador_id: colabSelecionado,
         data_referencia: dataHojeLocal(),
         respostas: arrRespostas,
       });
@@ -570,32 +580,45 @@ function RotinaRunner() {
   };
 
   /* ─── Impressão ─── */
-  const imprimir = (tmpl, preenchido = null) => {
-    const nomePor = (id) => colaboradores.find(c => c.id === id)?.nome || "";
+  const imprimir = (tmpl) => {
     let catImpr = null;
     const itensHtml = (tmpl.itens || []).map((it, i) => {
       const cat = (it.categoria || "").trim();
-      const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="4">${cat}</td></tr>`) : "";
-      const r = preenchido ? preenchido[it.id] : null;
-      const feito = !!r?.marcado;
-      const quem = r ? (nomePor(r.feito_por) || nomePor(colabSelecionado)) : "";
+      const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
+      const horaPrevistaStr = [
+        it.horario_previsto ? `${it.horario_previsto}` : "",
+        it.hora_intervalo ? `Pausa: ${it.hora_intervalo}` : ""
+      ].filter(Boolean).join(" · ") || "—";
+
+      // Se já houver resposta registrada na tela de execução, mostra a hora real de conclusão
+      const rItem = respostas[it.id] || {};
+      const horaRealizada = rItem.concluido_em ? horaCurta(rItem.concluido_em) : "__ : __";
+
       return `${header}<tr>
         <td class="n">${i + 1}</td>
-        <td class="tarefa">${it.texto || ""}</td>
-        <td class="resp">${quem || (it.conjunto ? "Em conjunto" : it.responsavel || "")}</td>
-        <td class="check">${feito ? `<span class="box feito">&#10003;</span>` : `<span class="box"></span>`}</td>
+        <td class="hora">${horaPrevistaStr}</td>
+        <td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td>
+        <td class="resp">${rItem.feito_por_nome || it.responsavel || ""}</td>
+        <td class="check"><span class="box">${rItem.marcado ? "✓" : ""}</span></td>
+        <td class="visto">${horaRealizada}</td>
       </tr>`;
     }).join("");
-    const extras = preenchido ? "" : Array.from({ length: 3 }).map((_, i) => `
+    const extras = Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${(tmpl.itens?.length || 0) + i + 1}</td>
+        <td class="hora">—</td>
         <td class="tarefa"></td><td class="resp"></td>
-        <td class="check"><span class="box"></span></td>
+        <td class="check"><span class="box"></span></td><td class="visto">__ : __</td>
       </tr>`).join("");
 
     const deptLabel = TEMAS[tmpl.departamento]?.nome || tmpl.departamento;
     const tipoLabel = ROTULOS_TIPO[tmpl.tipo] || tmpl.tipo;
     const corDept = TEMAS[tmpl.departamento]?.cor || "#10B981";
+    const fotoAmbienteHtml = tmpl.foto_ambiente ? `
+      <div class="foto-box">
+        <img src="data:image/jpeg;base64,${tmpl.foto_ambiente}" alt="Padrão do Cômodo"/>
+        <p>PADRÃO DE ORGANIZÁÇAO DO CÔMODO / ÁREA (${String(deptLabel).toUpperCase()})</p>
+      </div>` : "";
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${tmpl.titulo}</title>
       <style>
@@ -608,17 +631,22 @@ function RotinaRunner() {
         .meta span{display:block;font-size:10px;color:#555;font-weight:normal;margin-top:2px}
         .datas{display:flex;gap:24px;font-size:12px;margin:10px 0 12px;font-weight:bold}
         .datas b{border-bottom:1px solid #999;min-width:120px;display:inline-block}
+        .foto-box{margin:8px 0 12px;border:2px solid #cbd5e1;border-radius:8px;overflow:hidden;text-align:center;background:#f8fafc}
+        .foto-box img{max-height:160px;width:100%;object-fit:cover;display:block}
+        .foto-box p{font-size:9px;font-weight:bold;color:#475569;padding:4px;text-transform:uppercase;letter-spacing:1px;background:#e2e8f0}
         table{width:100%;border-collapse:collapse}
-        th,td{border:1px solid #333;padding:8px 6px;font-size:12px;vertical-align:middle}
+        th,td{border:1px solid #333;padding:6px 6px;font-size:11px;vertical-align:middle}
         th{background:${corDept}22;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
         tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
-        td{height:32px}
-        td.n{width:5%;text-align:center;color:#666}
-        td.tarefa{width:53%}
-        td.resp{width:32%}
-        td.check{width:10%;text-align:center}
-        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:12px;font-size:12px;font-weight:bold}
-        .box.feito{background:#333;color:#fff}
+        td{height:28px}
+        td.n{width:4%;text-align:center;color:#666;font-weight:bold}
+        td.hora{width:15%;font-size:10px;color:#334155;font-weight:bold;text-align:center}
+        td.tarefa{width:43%}
+        td.tarefa .min{font-size:10px;color:#64748b;font-weight:normal}
+        td.resp{width:17%}
+        td.check{width:6%;text-align:center}
+        td.visto{width:15%;text-align:center;color:#334155;font-weight:bold;font-size:10px}
+        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:11px;text-align:center;font-weight:bold}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
@@ -628,11 +656,12 @@ function RotinaRunner() {
           <div class="tag">${deptLabel} · ${tipoLabel} · ${unidadeInfo?.nome || ""}</div>
           <h1>${tmpl.titulo}</h1>
         </div>
-        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>${preenchido ? "registro do que foi feito" : "marque ao concluir"}</span></div>
+        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e anote a hora</span></div>
       </div>
-      <div class="datas">Data: <b>${preenchido ? new Date().toLocaleDateString("pt-BR") : "&nbsp;"}</b> Entrada: <b>&nbsp;</b> Intervalo: <b>&nbsp;</b> Funcionário: <b>${preenchido ? (nomePor(colabSelecionado) || "&nbsp;") : "&nbsp;"}</b></div>
+      <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
+      ${fotoAmbienteHtml}
       <table>
-        <thead><tr><th>#</th><th>Tarefa</th><th>Quem realizou</th><th>Feito</th></tr></thead>
+        <thead><tr><th>#</th><th>Hora Prevista</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Hora Realizada</th></tr></thead>
         <tbody>${itensHtml}${extras}</tbody>
       </table>
       <div class="assin">
@@ -654,18 +683,31 @@ function RotinaRunner() {
       let catB = null;
       const linhas = (tmpl.itens || []).map((it, i) => {
         const cat = (it.categoria || "").trim();
-        const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="4">${cat}</td></tr>`) : "";
-        return `${header}<tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.conjunto ? "Em conjunto" : (it.responsavel || "")}</td><td class="check"><span class="box"></span></td></tr>`;
+        const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
+        const horaPrevistaStr = [
+          it.horario_previsto ? `${it.horario_previsto}` : "",
+          it.hora_intervalo ? `Pausa: ${it.hora_intervalo}` : ""
+        ].filter(Boolean).join(" · ") || "—";
+
+        return `${header}<tr><td class="n">${i + 1}</td><td class="hora">${horaPrevistaStr}</td><td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td><td class="visto">__ : __</td></tr>`;
       }).join("");
       const extras = Array.from({ length: 2 }).map((_, i) => `
-        <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td></tr>`).join("");
+        <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="hora">—</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td><td class="visto">__ : __</td></tr>`).join("");
+
+      const fotoAmbienteHtml = tmpl.foto_ambiente ? `
+        <div class="foto-box">
+          <img src="data:image/jpeg;base64,${tmpl.foto_ambiente}" alt="Padrão do Cômodo"/>
+          <p>PADRÃO DE ORGANIZAÇÃO DO CÔMODO / ÁREA (${t.nome.toUpperCase()})</p>
+        </div>` : "";
+
       return `<section>
         <div class="head">
           <div><div class="tag">${t.nome} · ${ROTULOS_TIPO[tmpl.tipo] || tmpl.tipo} · ${unidadeInfo?.nome || ""}</div><h1>${tmpl.titulo}</h1></div>
-          <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir</span></div>
+          <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e anote a hora</span></div>
         </div>
-        <div class="datas">Data: <b>&nbsp;</b> Entrada: <b>&nbsp;</b> Intervalo: <b>&nbsp;</b> Funcionário: <b>&nbsp;</b></div>
-        <table><thead><tr><th>#</th><th>Tarefa</th><th>Quem realizou</th><th>Feito</th></tr></thead><tbody>${linhas}${extras}</tbody></table>
+        <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
+        ${fotoAmbienteHtml}
+        <table><thead><tr><th>#</th><th>Hora Prevista</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Hora Realizada</th></tr></thead><tbody>${linhas}${extras}</tbody></table>
         <div class="assin"><div>Responsável pelo ${t.nome}</div><div>Gerente / Conferência</div></div>
       </section>`;
     };
@@ -684,9 +726,8 @@ function RotinaRunner() {
         th,td{border:1px solid #333;padding:8px 6px;font-size:12px;vertical-align:middle}
         th{background:${corDept}22;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
         tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
-        td{height:32px}td.n{width:5%;text-align:center;color:#666}td.tarefa{width:53%}td.resp{width:32%}td.check{width:10%;text-align:center}
-        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:12px;font-size:12px;font-weight:bold}
-        .box.feito{background:#333;color:#fff}
+        td{height:32px}td.n{width:5%;text-align:center;color:#666}td.tarefa{width:45%}td.resp{width:22%}td.check{width:8%;text-align:center}td.visto{width:20%}
+        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
       </style></head><body>${templatesExibidos.map(bloco).join("")}</body></html>`;
@@ -695,53 +736,17 @@ function RotinaRunner() {
     else alert("O navegador bloqueou a impressão. Habilite os popups.");
   };
 
-  /* ─── ESCOLHA DA ÁREA ─── */
-  // Mesma ideia do estoque: a área é uma decisão explícita, não um padrão
-  // silencioso. Vem antes de qualquer carregamento porque escolher aqui muda
-  // quais checklists a tela vai buscar.
-  if (precisaEscolherArea) {
-    return (
-      <div className="min-h-screen pb-28">
-        <PageHeader title="Checklists" subtitle={`Escolha a área · ${unidadeInfo?.nome || ""}`} icon={ClipboardList} back={false} />
-        <PageBody>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {["cozinha", "bar", "salao"].map((chave) => {
-              const tema = TEMAS[chave];
-              const AreaIcon = tema.Icon;
-              return (
-                <button key={chave} onClick={() => router.push(`/dashboard/operacao/rotina?dept=${chave}`)}
-                  className="erp-card flex flex-col items-center gap-3 p-7 text-center transition-all active:scale-[0.98]"
-                  style={{ border: `2px solid ${tema.corBorda}`, background: tema.corBg }}>
-                  <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white/70" style={{ color: tema.cor }}>
-                    <AreaIcon size={30} />
-                  </span>
-                  <span className="text-lg font-black" style={{ color: tema.corTexto }}>{tema.nome}</span>
-                  <span className="text-xs font-bold" style={{ color: tema.corTexto, opacity: .75 }}>
-                    Abertura, fechamento e conferências
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <button onClick={() => router.push("/dashboard/checklists/gerenciar")}
-            className="erp-btn erp-btn-ghost mt-5 !h-12 text-xs">
-            Montar e gerenciar checklists
-          </button>
-        </PageBody>
-      </div>
-    );
-  }
-
   /* ─── EXECUÇÃO DE UM CHECKLIST ─── */
   if (checklistAtual) {
     const DIcon = t.Icon;
     const tipoLabel = ROTULOS_TIPO[checklistAtual.tipo] || checklistAtual.tipo;
 
     return (
-      <div className="min-h-screen pb-28">
+      <div className="rotina-compacta min-h-screen pb-28">
+        <style>{`.rotina-compacta .erp-page-header{padding-top:12px!important;padding-bottom:10px!important}.rotina-compacta .erp-page-body{padding-top:12px!important;row-gap:12px!important}`}</style>
         <PageHeader title={checklistAtual.titulo} subtitle={`${t.nome} · ${tipoLabel} · ${unidadeInfo?.nome || ""}`} icon={DIcon} back={false}>
           <button onClick={() => setChecklistAtual(null)} className="erp-btn erp-btn-ghost !h-11 text-xs">← Voltar</button>
-          <button onClick={() => imprimir(checklistAtual)} className="erp-btn erp-btn-ghost !h-11 text-xs" title="Folha em branco para marcar à mão"><Printer size={14} /> Imprimir lista</button>
+          <button onClick={() => imprimir(checklistAtual)} className="erp-btn erp-btn-ghost !h-11 text-xs"><Printer size={14} /> Imprimir</button>
         </PageHeader>
         <PageBody>
           {/* Progresso */}
@@ -757,25 +762,41 @@ function RotinaRunner() {
               <div className="text-right">
                 <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{concluidas} de {itens.length}</p>
                 <p className="text-[10px]" style={{ color: "var(--dim)" }}>tarefas concluídas</p>
-                {/* Quanto falta de tempo previsto: soma so das tarefas que ainda
-                    nao foram marcadas. Ver "2h15" quando ja se fez metade nao
-                    ajudaria ninguem a decidir se da tempo antes de abrir. */}
-                {(() => {
-                  const restante = tempoDoChecklist(itens.filter(it => !respostas[it.id]?.marcado));
-                  if (!restante.minutos) return null;
-                  return (
-                    <p className="text-[10px] font-bold mt-1" style={{ color: "var(--dim)" }}>
-                      ~{formatarMinutos(restante.minutos)} restantes{restante.parcial ? " (parcial)" : ""}
-                    </p>
-                  );
-                })()}
+                {tempoPrevisto > 0 && <p className="mt-1 flex items-center justify-end gap-1 text-[10px] font-black" style={{ color: t.cor }}><Clock3 size={11}/>{tempoPrevisto} min previstos</p>}
               </div>
             </div>
             <div className="h-3 rounded-full overflow-hidden" style={{ background: "var(--elevated)" }}>
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${t.cor}CC, ${t.cor})` }} />
             </div>
-            {pct === 100 && <p className="text-xs font-black mt-2 flex items-center gap-1" style={{ color: t.cor }}><CheckCircle2 size={14} /> Todas concluídas!</p>}
+            <div className="mt-2 flex items-center justify-between gap-2">
+              {pct === 100 ? <p className="text-xs font-black flex items-center gap-1" style={{ color: t.cor }}><CheckCircle2 size={14} /> Todas concluídas!</p> : <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{itens.length - concluidas} pendente(s)</p>}
+              {pct < 100 && <button type="button" onClick={() => focarProximaPendente()} className="min-h-9 rounded-lg px-3 text-xs font-black text-white" style={{ background: t.cor }}>Ir para a próxima</button>}
+            </div>
           </div>
+
+          {/* Foto Geral do Cômodo / Área */}
+          {checklistAtual?.foto_ambiente && (
+            <div className="erp-card p-4 overflow-hidden relative border-2 border-emerald-300 bg-emerald-50/60">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <Camera size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-emerald-950 uppercase tracking-wide">Padrão de Organização do Cômodo / Área</p>
+                    <p className="text-[11px] font-medium text-emerald-800">Veja a foto de como a área inteira deve estar organizada ao final do turno.</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)} className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-black text-emerald-800 hover:bg-emerald-100 shadow-sm shrink-0">
+                  Ampliar Foto
+                </button>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl cursor-pointer" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)}>
+                <img src={`data:image/jpeg;base64,${checklistAtual.foto_ambiente}`} alt="Padrão do Cômodo" className="h-48 w-full object-cover rounded-2xl hover:scale-102 transition-all" />
+                <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] font-black uppercase text-white">Toque para ver em tela cheia</span>
+              </div>
+            </div>
+          )}
 
           {/* Distribuição da equipe */}
           <Card>
@@ -852,6 +873,43 @@ function RotinaRunner() {
             )}
           </Card>
 
+          {/* Modo rápido: mostra uma ação por vez, com o padrão visual em destaque. */}
+          {proximaPendente && !registrado && (
+            <section className="overflow-hidden rounded-3xl border-2 bg-white shadow-lg" style={{ borderColor: `${t.cor}75` }}>
+              <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: t.corClara }}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-black text-white" style={{ background: t.cor }}>{indiceProxima + 1}</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Próxima ação</p>
+                    <h2 className="text-lg font-black leading-tight text-slate-900 sm:text-xl">{proximaPendente.texto}</h2>
+                  </div>
+                </div>
+                {Number(proximaPendente.tempo_minutos) > 0 && <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-white px-3 py-2 text-xs font-black shadow-sm" style={{ color: t.corTexto }}><Clock3 size={14}/>{Number(proximaPendente.tempo_minutos)} min</span>}
+              </div>
+
+              {(proximaPendente.foto_antes || proximaPendente.foto_final) ? (
+                <div className="grid gap-2 p-3 sm:grid-cols-2">
+                  {[[proximaPendente.foto_antes, "Antes do expediente"], [proximaPendente.foto_final, "Como deve ficar"]].filter(([foto]) => foto).map(([foto, label]) => (
+                    <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="group relative min-h-44 overflow-hidden rounded-2xl bg-slate-100 text-left">
+                      <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-44 w-full object-cover transition group-hover:scale-105 sm:h-52" />
+                      <span className="absolute inset-x-0 bottom-0 bg-slate-950/80 px-4 py-2 text-xs font-black uppercase tracking-wide text-white">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mx-3 mt-3 flex min-h-24 items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 text-center text-sm font-bold text-slate-500">
+                  <ImageIcon size={20}/> Esta ação ainda não possui foto de referência.
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
+                <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/20"><Check size={19}/> Feito</button>
+                <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "nao_conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-rose-100 px-4 text-sm font-black text-rose-700"><X size={19}/> Problema</button>
+                <button type="button" onClick={() => { setExp(proximaPendente.id); document.getElementById(`tarefa-${proximaPendente.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 text-sm font-black text-slate-700 sm:col-span-1"><Camera size={17}/> Foto / observação</button>
+              </div>
+            </section>
+          )}
+
           {/* Itens */}
           <div>
             <SectionLabel>Tarefas</SectionLabel>
@@ -896,7 +954,7 @@ function RotinaRunner() {
                       )}
                     </div>
                   )}
-                  <div className="erp-card !p-0 overflow-hidden transition-all duration-200"
+                  <div id={`tarefa-${it.id}`} className="erp-card !p-0 scroll-mt-28 overflow-hidden transition-all duration-200"
                     style={{
                       borderColor: statusItem === "nao_conforme" ? "#EF4444" : ok ? t.cor : undefined,
                       borderWidth: ok || statusItem ? 2 : undefined,
@@ -922,37 +980,47 @@ function RotinaRunner() {
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            {it.fase_turno && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                                {it.fase_turno === "abertura" ? "Abertura / Início" : it.fase_turno === "durante_turno" ? "No Turno" : "Fechamento / Fim"}
+                              </span>
+                            )}
+                            {it.horario_previsto && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <Clock3 size={10} /> Previsto {it.horario_previsto}
+                              </span>
+                            )}
+                            {it.hora_intervalo && (
+                              <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <Clock3 size={10} /> Pausa / Intervalo: {it.hora_intervalo}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm font-bold leading-tight transition-all"
                             style={{ color: statusItem === "nao_conforme" ? "#DC2626" : ok ? t.cor : "var(--fg)", textDecoration: ok && statusItem !== "nao_conforme" ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
                             {it.texto}
                           </p>
+                          {Number(it.tempo_minutos) > 0 && <p className="mt-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={11}/>{Number(it.tempo_minutos)} min previstos</p>}
+                          {(it.foto_equipamento || it.foto_antes || it.foto_final) && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {[[it.foto_equipamento, "Equipamento"], [it.foto_antes, "Inicial (Antes)"], [it.foto_final, "Foto Gabarito (Exemplo Final)"]].filter(([foto]) => foto).map(([foto, label]) => (
+                                <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm hover:border-emerald-400 transition-all" title={`Ver foto de referência: ${label}`}>
+                                  <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-16 w-28 object-cover" />
+                                  <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 px-1.5 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">{label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                           {it.responsavel && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: it.conjunto || nomeResponsavel ? t.corTexto : "var(--dim)" }}>
-                              <User size={11} /> {it.conjunto ? "Em conjunto — todo o time" : (nomeResponsavel || "Sem funcionário atribuído")}
+                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
+                              <User size={11} /> {nomeResponsavel || "Sem funcionário atribuído"}
                             </span>
                             {ok && (
                               <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>
                                 <Clock3 size={11} /> {horaCurta(rItem.concluido_em)}
                               </span>
-                            )}
-                            {/* Tempo previsto da tarefa. E previsao, nao cronometro:
-                                serve para quem esta abrindo o salao saber se cabe no
-                                tempo que tem antes de abrir a porta. */}
-                            {Number(it.minutos) > 0 && (
-                              <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: "var(--dim)" }}>
-                                <Clock3 size={11} /> {formatarMinutos(it.minutos)}
-                              </span>
-                            )}
-                            {/* Foto do padrao da casa: como o ambiente TEM QUE FICAR.
-                                Abre em aba nova porque no celular a miniatura nao
-                                mostra o detalhe que a pessoa precisa comparar. */}
-                            {it.foto_url && (
-                              <a href={it.foto_url} target="_blank" rel="noopener noreferrer"
-                                onClick={e => e.stopPropagation()}
-                                className="text-[11px] font-bold flex items-center gap-1 underline" style={{ color: t.cor }}>
-                                <ImageIcon size={11} /> como deve ficar
-                              </a>
                             )}
                             {rItem.foto && <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
                             {rItem.plano_acao && <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">Plano de Ação</span>}
@@ -961,36 +1029,36 @@ function RotinaRunner() {
                       </div>
 
                       {/* BOTOES DE STATUS TIPO KONCLUI */}
-                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                      <div className="flex w-full flex-wrap items-center justify-end gap-1.5 shrink-0 sm:w-auto sm:self-auto">
                         <button
                           type="button"
                           onClick={() => mudaStatusItem(it.id, "conforme")}
                           disabled={registrado || salvando}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
+                          className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "conforme"
                               ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-105"
                               : "bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"
                           }`}
                         >
-                          <Check size={14} /> Conforme
+                          <Check size={14} /> Feito
                         </button>
                         <button
                           type="button"
                           onClick={() => mudaStatusItem(it.id, "nao_conforme")}
                           disabled={registrado || salvando}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
+                          className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "nao_conforme"
                               ? "bg-rose-600 text-white shadow-md shadow-rose-600/20 scale-105 animate-pulse"
                               : "bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-800"
                           }`}
                         >
-                          <X size={14} /> Não Conforme
+                          <X size={14} /> Problema
                         </button>
                         <button
                           type="button"
                           onClick={() => mudaStatusItem(it.id, "na")}
                           disabled={registrado || salvando}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          className={`min-h-10 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                             statusItem === "na"
                               ? "bg-slate-700 text-white"
                               : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -1107,32 +1175,27 @@ function RotinaRunner() {
               <CheckCircle2 size={40} style={{ color: t.cor }} />
               <p className="text-lg font-black" style={{ color: t.corTexto }}>Checklist registrado!</p>
               <p className="text-xs font-medium" style={{ color: t.corTexto }}>
-                {t.nome} · {tipoLabel} · {unidadeInfo?.nome}
-                {colabSelecionado ? <> — {modoAtribuicao === "dividir" ? "conferido por" : "feito por"} <b>{colaboradores.find(c => c.id === colabSelecionado)?.nome || ""}</b></> : " — sem responsável informado"}
+                {t.nome} · {tipoLabel} · {unidadeInfo?.nome} — {modoAtribuicao === "dividir" ? "conferido por" : "feito por"} <b>{colaboradores.find(c => c.id === colabSelecionado)?.nome || ""}</b>
               </p>
               <button onClick={compartilharWhatsApp}
                 className="mt-2 flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-95"
                 style={{ background: "#25D366", boxShadow: "0 6px 20px rgba(37,211,102,0.35)" }}>
                 <Share2 size={16} /> Enviar comprovação no WhatsApp
               </button>
-              <button onClick={() => imprimir(checklistAtual, respostas)}
-                className="mt-1 flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm border-2 transition-all active:scale-95"
-                style={{ borderColor: t.cor, color: t.cor }}>
-                <Printer size={16} /> Imprimir o que foi feito
-              </button>
               <button onClick={() => setChecklistAtual(null)} className="mt-1 text-sm font-bold underline" style={{ color: t.cor }}>← Voltar aos checklists</button>
             </div>
           ) : (
             <button className="w-full py-4 rounded-2xl font-black text-base transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-              disabled={pct < 100 || salvando}
+              disabled={pct < 100 || !colabSelecionado || naoAtribuidas > 0 || salvando}
               onClick={finalizar}
               style={{
-                background: pct === 100 ? t.cor : "var(--elevated)",
-                color: pct === 100 ? "#fff" : "var(--dim)",
-                boxShadow: pct === 100 ? `0 8px 30px ${t.cor}40` : "none",
-                cursor: pct < 100 ? "not-allowed" : "pointer",
+                background: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? t.cor : "var(--elevated)",
+                color: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? "#fff" : "var(--dim)",
+                boxShadow: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? `0 8px 30px ${t.cor}40` : "none",
+                cursor: pct < 100 || !colabSelecionado || naoAtribuidas > 0 ? "not-allowed" : "pointer",
               }}>
               {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> :
+                naoAtribuidas > 0 ? `Atribua ${naoAtribuidas} atividade(s)` :
                 pct === 100 ? "Finalizar e registrar" : `Conclua as tarefas (${itens.length - concluidas} restantes)`}
             </button>
           )}
@@ -1156,68 +1219,59 @@ function RotinaRunner() {
   const escopoTipo = filtroTipo === "limpeza" ? "Limpeza" : filtroTipo === "operacional" ? "Operação" : null;
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="rotina-compacta rotina-lista min-h-screen pb-24">
+      <style>{`.rotina-lista>.erp-page-header{display:none!important}.rotina-compacta .erp-page-body{padding-top:12px!important;row-gap:12px!important}`}</style>
       <PageHeader title={`Checklist ${tituloSetor}`} subtitle={`${t.nome}${escopoTipo ? ` · ${escopoTipo}` : ""} · ${unidadeInfo?.nome || ""} · área exclusiva`} icon={DIcon}
         onAction={estacaoTravada ? undefined : () => router.push(`/dashboard/checklists/gerenciar?dept=${dept}`)}
         actionLabel={estacaoTravada ? undefined : "Gerenciar"}>
-        <button onClick={abrirProdutividade} className="erp-btn erp-btn-ghost !h-11 text-xs"><BarChart3 size={14} /> Produtividade</button>
+        <button onClick={abrirProdutividade} className="erp-btn erp-btn-ghost !h-10 text-xs"><BarChart3 size={14} /> Produtividade</button>
         {templatesExibidos.length > 0 && (
-          <button onClick={imprimirTodos} className="erp-btn erp-btn-ghost !h-11 text-xs"><Printer size={14} /> Imprimir todos</button>
+          <button onClick={imprimirTodos} className="erp-btn erp-btn-ghost !h-10 text-xs"><Printer size={14} /> Imprimir todos</button>
         )}
       </PageHeader>
       <PageBody>
-        {/* Trocar de área sem voltar ao menu, igual à fileira do estoque.
-            Estação travada não vê: ela só pode operar o próprio setor. */}
-        {!estacaoTravada && (
-          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {["cozinha", "bar", "salao"].map((chave) => {
-              const tema = TEMAS[chave];
-              const AreaIcon = tema.Icon;
-              const ativo = chave === dept;
-              return (
-                <button key={chave} type="button"
-                  onClick={() => router.push(`/dashboard/operacao/rotina?dept=${chave}${filtroTipo ? `&tipo=${filtroTipo}` : ""}`)}
-                  className="flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black transition-all"
-                  style={ativo
-                    ? { background: tema.cor, color: "#fff", boxShadow: `0 6px 18px ${tema.cor}40` }
-                    : { border: "1px solid var(--border)", background: "var(--elevated)", color: "var(--dim)" }}>
-                  <AreaIcon size={14} /> {tema.nome}
-                </button>
-              );
-            })}
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: t.cor }}><DIcon size={20} /></span>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-black text-slate-900">Rotinas de {t.nome}</h1>
+              <p className="text-[11px] font-bold text-slate-500">{unidadeInfo?.nome || "Unidade"} · toque em preencher para começar</p>
+            </div>
           </div>
-        )}
+          <div className="flex flex-wrap gap-2">
+            <button onClick={abrirProdutividade} className="erp-btn erp-btn-ghost !h-10 flex-1 text-xs sm:flex-none"><BarChart3 size={14} /> Produtividade</button>
+            {templatesExibidos.length > 0 && <button onClick={imprimirTodos} className="erp-btn erp-btn-ghost !h-10 flex-1 text-xs sm:flex-none"><Printer size={14} /> Imprimir</button>}
+            {!estacaoTravada && <button onClick={() => router.push(`/dashboard/checklists/gerenciar?dept=${dept}`)} className="erp-btn erp-btn-primary !h-10 flex-1 text-xs sm:flex-none"><Settings size={14} /> Gerenciar</button>}
+          </div>
+        </div>
 
         {/* Resumo exclusivo do setor */}
-        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 mb-2" style={{ background: t.corBg, border: `1px solid ${t.corBorda}` }}>
-          <DIcon size={150} className="absolute -right-8 -bottom-10 opacity-[0.08]" style={{ color: t.corTexto }} />
-          <div className="relative z-[1] flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: t.cor, boxShadow: `0 10px 30px ${t.cor}35` }}>
-                <DIcon size={27} color="#fff" />
-              </div>
+        <div className="relative overflow-hidden rounded-2xl p-3 mb-1" style={{ background: t.corBg, border: `1px solid ${t.corBorda}` }}>
+          <DIcon size={100} className="absolute -right-5 -bottom-8 opacity-[0.07]" style={{ color: t.corTexto }} />
+          <div className="relative z-[1] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Rotina do setor</p>
-                <h2 className="text-xl sm:text-2xl font-black" style={{ color: t.corTexto }}>{t.nome}</h2>
-                <p className="text-xs font-medium mt-0.5" style={{ color: t.corTexto, opacity: 0.8 }}>Checklists, equipe e histórico deste setor reunidos em um só lugar.</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Resumo de hoje</p>
+                <h2 className="text-base font-black" style={{ color: t.corTexto }}>{feitosHoje} de {templatesDoDia.length} checklist(s) concluído(s)</h2>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 min-w-0 lg:min-w-[390px]">
-              <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
-                <p className="text-xl font-black" style={{ color: t.corTexto }}>{progressoHoje}%</p>
-                <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>progresso</p>
+            <div className="grid grid-cols-3 gap-2 min-w-0 lg:min-w-[330px]">
+              <div className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
+                <p className="text-lg font-black" style={{ color: t.corTexto }}>{progressoHoje}%</p>
+                <p className="text-[9px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>progresso</p>
               </div>
-              <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
-                <p className="text-xl font-black" style={{ color: t.corTexto }}>{feitosHoje}</p>
-                <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>feitos hoje</p>
+              <div className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
+                <p className="text-lg font-black" style={{ color: t.corTexto }}>{feitosHoje}</p>
+                <p className="text-[9px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>feitos hoje</p>
               </div>
-              <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
-                <p className="text-xl font-black" style={{ color: t.corTexto }}>{pendentesHoje}</p>
-                <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>pendentes</p>
+              <div className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
+                <p className="text-lg font-black" style={{ color: t.corTexto }}>{pendentesHoje}</p>
+                <p className="text-[9px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>pendentes</p>
               </div>
             </div>
           </div>
-          <div className="relative z-[1] h-2 rounded-full overflow-hidden mt-5" style={{ background: "rgba(255,255,255,.62)" }}>
+          <div className="relative z-[1] h-1.5 rounded-full overflow-hidden mt-3" style={{ background: "rgba(255,255,255,.62)" }}>
             <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressoHoje}%`, background: t.cor }} />
           </div>
         </div>
@@ -1228,32 +1282,47 @@ function RotinaRunner() {
             <Loader2 size={24} className="animate-spin" />
             <span className="font-bold text-sm">Carregando checklists...</span>
           </div>
-        ) : erroCarga ? (
-          <EmptyState icon={ClipboardList} title="Não consegui carregar os checklists"
-            hint={`${erroCarga} — não quer dizer que este setor não tenha checklist. Tente de novo daqui a pouco.`}
-            actionLabel="Tentar de novo" onAction={() => carregar()} />
         ) : templatesExibidos.length === 0 ? (
           <EmptyState icon={ClipboardList} title={`Nenhum checklist de ${t.nome}`}
             hint={estacaoTravada ? "Peça a um gerente para criar os modelos deste setor." : "Crie modelos de abertura, fechamento, mise en place etc. pelo Gerenciar."}
             actionLabel={estacaoTravada ? undefined : "Criar checklists"}
             onAction={estacaoTravada ? undefined : () => router.push(`/dashboard/checklists/gerenciar?dept=${dept}`)} />
         ) : (
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {ORDEM_TIPOS.filter(tipo => templatesExibidos.some(x => x.tipo === tipo)).map(tipo => (
               <div key={tipo}>
                 <SectionLabel>{ROTULOS_TIPO[tipo] || tipo}</SectionLabel>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {templatesExibidos.filter(x => x.tipo === tipo).sort((a, b) => (historico.some(h => h.template_id === a.id) ? 1 : 0) - (historico.some(h => h.template_id === b.id) ? 1 : 0)).map(tmpl => {
                     const execucoesHoje = historico
                       .filter(h => h.template_id === tmpl.id)
                       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
                     const execHoje = execucoesHoje[0];
                     const detalhesAbertos = historicoAberto === tmpl.id;
+                    const itensModelo = Array.isArray(tmpl.itens) ? tmpl.itens : [];
+                    const tempoModelo = itensModelo.reduce((soma, item) => soma + (Number(item.tempo_minutos) || 0), 0);
+                    const fotosModelo = itensModelo.filter(item => item.foto_antes || item.foto_final);
+                    const fotoCapa = fotosModelo.find(item => item.foto_final)?.foto_final || fotosModelo[0]?.foto_antes || fotosModelo[0]?.foto_final || "";
                     return (
                     <div key={tmpl.id} className="erp-card !p-0 overflow-hidden hover:shadow-lg transition-all duration-200"
                       style={{ borderLeft: `4px solid ${execHoje ? t.cor : t.cor}` }}>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: execHoje ? t.cor : `${t.cor}15` }}>
+                      {fotoCapa ? (
+                        <button type="button" onClick={() => setFotoAmpliada(fotoCapa)} className="relative block h-32 w-full overflow-hidden bg-slate-100 text-left sm:h-36">
+                          <img src={`data:image/jpeg;base64,${fotoCapa}`} alt={`Padrão de ${tmpl.titulo}`} className="h-full w-full object-cover" />
+                          <span className="absolute bottom-2 left-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white"><ImageIcon size={12} className="mr-1 inline"/>Padrão visual</span>
+                        </button>
+                      ) : (
+                        <div className="relative flex h-24 items-center justify-between overflow-hidden px-5" style={{ background: t.corClara }}>
+                          <div className="relative z-[1]">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>{ROTULOS_TIPO[tmpl.tipo] || "Rotina"}</p>
+                            <p className="mt-1 text-sm font-black" style={{ color: t.corTexto }}>{itensModelo.length} ações{tempoModelo > 0 ? ` · ${tempoModelo} min` : ""}</p>
+                          </div>
+                          <DIcon size={74} className="absolute -bottom-4 right-3 opacity-10" style={{ color: t.corTexto }} />
+                          <span className="relative z-[1] rounded-lg bg-white/70 px-2 py-1 text-[9px] font-black uppercase" style={{ color: t.corTexto }}>Adicione fotos no Gerenciar</span>
+                        </div>
+                      )}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-3.5">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: execHoje ? t.cor : `${t.cor}15` }}>
                           {execHoje ? <CheckCircle2 size={22} color="#fff" /> : <DIcon size={22} style={{ color: t.cor }} />}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1265,19 +1334,21 @@ function RotinaRunner() {
                             </p>
                           ) : (
                             <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
-                              {tmpl.itens?.length || 0} tarefas
+                              {itensModelo.length} tarefas
+                              {tempoModelo > 0 && <span> · {tempoModelo} min</span>}
+                              {fotosModelo.length > 0 && <span> · {fotosModelo.length} referência(s)</span>}
                               {(tmpl.itens || []).some(i => i.responsavel) && <span style={{ color: t.cor }}> · responsáveis definidos</span>}
                             </p>
                           )}
                         </div>
                         <div className="flex items-center gap-2 sm:flex-shrink-0 w-full sm:w-auto">
                           <button onClick={() => imprimir(tmpl)} title="Imprimir"
-                            className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200"
+                            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
                             style={{ background: "var(--elevated)", color: "var(--muted)" }}>
                             <Printer size={17} />
                           </button>
                           <button onClick={() => iniciar(tmpl)}
-                            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-black text-sm transition-all duration-200 active:scale-95"
+                            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl font-black text-sm transition-all duration-200 active:scale-95"
                             style={{ background: execHoje ? "var(--elevated)" : t.cor, color: execHoje ? "var(--muted)" : "#fff", boxShadow: execHoje ? "none" : `0 4px 16px ${t.cor}30` }}>
                             {execHoje ? "Refazer" : "Preencher"}
                           </button>

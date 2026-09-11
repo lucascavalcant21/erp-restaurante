@@ -216,7 +216,6 @@ export default function VidaColaboradorPage() {
                   {[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (sel.avaliacao_estrelas || 0) ? "fill-amber-500 text-amber-500" : "text-slate-300"} />)}
                 </span>
               )}
-              {sel.anotacoes_rh && <span className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{sel.anotacoes_rh}</span>}
             </div>
           </Bloco>
 

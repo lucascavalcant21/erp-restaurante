@@ -30,6 +30,14 @@ export async function salvarProduto(produto) {
 
   // `id` nulo quebra o INSERT (coluna id NOT NULL com default no Postgres)
   const { id, created_at, ...campos } = produto;
+  if (!id && !["cozinha", "bar"].includes(String(campos.departamento || "").toLowerCase())) {
+    return { error: "Escolha obrigatoriamente o setor Cozinha ou Bar." };
+  }
+  if (campos.departamento !== undefined) {
+    const departamento = String(campos.departamento || "").toLowerCase();
+    if (!["cozinha", "bar"].includes(departamento)) return { error: "Setor inválido. Use Cozinha ou Bar." };
+    campos.departamento = departamento;
+  }
 
   if (id) {
     const { error } = await supabase.from("produtos").update(campos).eq("id", id);
@@ -192,6 +200,41 @@ export async function lancarItemComanda(pedidoId, produtoId, valorUnitario, quan
   }]);
 
   return { error: error?.message };
+}
+
+// Cancela apenas uma unidade já enviada à produção. O registro não é apagado:
+// ele fica marcado como cancelado para preservar o histórico da cozinha/bar.
+export async function cancelarUnidadeEnviada(mesaId, produtoId, observacao = "") {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { data: pedidos, error: erroPedido } = await supabase.from("pedidos")
+    .select("id")
+    .eq("mesa_id", mesaId)
+    .eq("status", "aberto")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (erroPedido) return { error: erroPedido.message };
+  const pedidoId = pedidos?.[0]?.id;
+  if (!pedidoId) return { error: "Pedido de produção não encontrado." };
+
+  let consultaItem = supabase.from("pedidos_itens")
+    .select("id, quantidade, status_kds")
+    .eq("pedido_id", pedidoId)
+    .eq("produto_id", produtoId)
+    .neq("status_kds", "cancelado");
+  if (String(observacao || "").trim()) consultaItem = consultaItem.eq("observacao", String(observacao).trim());
+  const { data: itens, error: erroItem } = await consultaItem
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (erroItem) return { error: erroItem.message };
+  const item = itens?.[0];
+  if (!item) return { error: "Item enviado não encontrado na produção." };
+
+  const quantidade = Number(item.quantidade) || 0;
+  const atualizacao = quantidade > 1
+    ? { quantidade: quantidade - 1, updated_at: new Date().toISOString() }
+    : { status_kds: "cancelado", updated_at: new Date().toISOString() };
+  const { error } = await supabase.from("pedidos_itens").update(atualizacao).eq("id", item.id);
+  return { error: error?.message || null };
 }
 
 // Atualiza a quantidade de um item da comanda (usado ao clicar de novo no mesmo produto)
@@ -673,7 +716,59 @@ export async function atualizarStatusPedido(pedidoId, novoStatus) {
 }
 
 
-export async function registrarVenda() { return { success: true }; }
+export async function registrarVenda(opcoes = {}, unidadeId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const itens = Array.isArray(opcoes.itens) ? opcoes.itens : [];
+  if (!itens.length) return { error: "Adicione ao menos um item à venda." };
+
+  const subtotal = itens.reduce((total, item) => total + (Number(item.preco || item.preco_venda || 0) * Number(item.quantidade || 0)), 0);
+  const desconto = Math.min(Math.max(0, Number(opcoes.desconto) || 0), subtotal);
+  const acrescimo = Math.max(0, Number(opcoes.acrescimo) || 0);
+  const taxaServico = Math.max(0, Number(opcoes.taxa_servico) || 0);
+  const total = Math.max(0, subtotal - desconto + acrescimo + taxaServico);
+
+  const { data: venda, error: erroVenda } = await supabase.from("vendas").insert([{
+    unidade_id: unidadeId,
+    subtotal,
+    desconto,
+    total,
+    forma_pagamento: opcoes.forma_pagamento || "dinheiro",
+    cliente: opcoes.cliente || null,
+    observacao: opcoes.observacao || null,
+    status: "concluida",
+  }]).select("id").single();
+  if (erroVenda || !venda?.id) return { error: erroVenda?.message || "Não foi possível registrar a venda." };
+
+  const linhas = itens.map(item => ({
+    venda_id: venda.id,
+    cardapio_id: item.id || null,
+    nome: item.nome || item.nome_produto || "Item",
+    preco_unit: Number(item.preco || item.preco_venda || 0),
+    custo_unit: Number(item.custo || item.custo_unit || 0),
+    quantidade: Number(item.quantidade) || 1,
+    subtotal: Number(item.preco || item.preco_venda || 0) * (Number(item.quantidade) || 1),
+    unidade_id: unidadeId,
+  }));
+  const { error: erroItens } = await supabase.from("venda_itens").insert(linhas);
+  if (erroItens) {
+    await supabase.from("vendas").delete().eq("id", venda.id);
+    return { error: erroItens.message };
+  }
+
+  const { data: lancamento, error: erroLancamento } = await supabase.from("lancamentos").insert([{
+    unidade_id: unidadeId,
+    tipo: "entrada",
+    categoria: "vendas",
+    descricao: `Venda ${opcoes.cliente ? `· ${opcoes.cliente}` : "no balcão"}`,
+    valor: total,
+    data: new Date().toISOString(),
+  }]).select("id").single();
+  if (!erroLancamento && lancamento?.id) {
+    await supabase.from("vendas").update({ lancamento_id: lancamento.id }).eq("id", venda.id);
+  }
+
+  return { data: { id: venda.id, total }, error: null, avisoLancamento: erroLancamento?.message || null };
+}
 export async function fetchVendas() { return { data: [], error: null }; }
 
 // ====================================================

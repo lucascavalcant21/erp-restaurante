@@ -6,11 +6,12 @@ import { useTempoReal } from "../../../lib/realtime";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
-import { calcularConsumoProducao, fetchProducaoDeHoje, registrarProducao } from "../../../lib/estoque";
+import { calcularConsumoProducao, fetchProducoesPeriodo, registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
-import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList } from "lucide-react";
+import { fetchEstoques, fetchItensEstoque } from "../../../lib/estoques-multiplos";
+import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList, Boxes, History, Search, CheckCircle2 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -59,23 +60,14 @@ function ProducaoRunner() {
   const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept") || "cozinha";
-  // O salao tambem pre-prepara e nao tinha lugar nenhum aqui: a tela decidia
-  // tudo por "e bar? senao e cozinha", e o que ele produzia caia no setor
-  // errado. Setor passa a ser dado, com nome, local padrao e prateleiras.
-  const SETORES = {
-    cozinha: { nome: "Cozinha", responsavel: "cozinha", localPadrao: "Freezer 1",
-      locais: ["Freezer 1", "Freezer 2", "Geladeira", "Câmara fria"], exemplo: "Ex.: Freezer 3" },
-    bar: { nome: "Bar", responsavel: "produção do bar", localPadrao: "Geladeira do Bar",
-      locais: ["Geladeira do Bar", "Prateleira do Bar", "Freezer do Bar", "Câmara fria"], exemplo: "Ex.: Geladeira dos xaropes" },
-    salao: { nome: "Salão", responsavel: "produção do salão", localPadrao: "Geladeira do Salão",
-      locais: ["Geladeira do Salão", "Balcão", "Estufa", "Câmara fria"], exemplo: "Ex.: Balcão de sobremesas" },
-  };
-  const setor = SETORES[deptUrl] || SETORES.cozinha;
   
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
+  const [producoes, setProducoes] = useState([]);
+  const [saldosProntos, setSaldosProntos] = useState([]);
+  const [buscaFicha, setBuscaFicha] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [modalProduzir, setModalProduzir] = useState(false);
@@ -167,11 +159,12 @@ function ProducaoRunner() {
       </style></head><body>
       <div class="head">
         <div>
-          <div class="tag">Produção do Dia — ${setor.nome} · ${unidadeInfo?.nome || ""}</div>
+          <div class="tag">Produção do Dia — ${deptUrl === "bar" ? "Bar" : "Cozinha"} · ${unidadeInfo?.nome || ""}</div>
           <h1>O que produzir hoje</h1>
         </div>
         <div class="quando">${dataFmt}<span>${diaSemana}</span></div>
       </div>
+
       <table>
         <thead>
           <tr><th>#</th><th>Item (ficha técnica)</th><th>Quantidade</th><th>Feito por (nome)</th><th>Início</th><th>Término</th><th>OK</th></tr>
@@ -180,7 +173,7 @@ function ProducaoRunner() {
       </table>
       <div class="legenda">Quem produzir escreve o próprio nome, os horários de início/término e marca OK ao finalizar. Depois, registre no sistema (Produção do Dia) para dar baixa no estoque.</div>
       <div class="assin">
-        <div>Responsável pela ${setor.responsavel}</div>
+        <div>Responsável pela ${deptUrl === "bar" ? "produção do bar" : "cozinha"}</div>
         <div>Gerente / Conferência</div>
       </div>
       </body></html>`;
@@ -216,33 +209,29 @@ function ProducaoRunner() {
   // Memorando planejado para HOJE — a equipe abre a Produção e já vê o que
   // precisa preparar, sem depender do papel impresso ou do WhatsApp.
   const [memoHoje, setMemoHoje] = useState(null);
-  // Quem esta na bancada. Fica guardado por unidade+setor: numa estacao fixa a
-  // pessoa escolhe uma vez no comeco do turno, nao a cada producao.
-  const chaveEu = `producao_eu_${unidadeAtiva || ""}_${deptUrl}`;
-  const [euColab, setEuColab] = useState("");
-  const [producaoHoje, setProducaoHoje] = useState([]);
-  useEffect(() => {
-    try { setEuColab(localStorage.getItem(chaveEu) || ""); } catch { setEuColab(""); }
-  }, [chaveEu]);
-  useEffect(() => {
-    try { if (euColab) localStorage.setItem(chaveEu, euColab); } catch { /* aba anonima */ }
-  }, [euColab, chaveEu]);
 
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
-    const [resFichas, resProdutos, resColab, resMemo, resProducao] = await Promise.all([
+    const [resFichas, resProdutos, resColab, resMemo, resProducoes, resEstoques] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva, deptUrl),
        fetchColaboradores(unidadeAtiva),
        fetchMemorandoOperacao(unidadeAtiva, hojeISO).catch(() => ({ data: null })),
-       fetchProducaoDeHoje(unidadeAtiva, { departamento: deptUrl }).catch(() => ({ data: [] })),
+       fetchProducoesPeriodo(unidadeAtiva, 30),
+       fetchEstoques(unidadeAtiva),
     ]);
-    setProducaoHoje(resProducao?.data || []);
     setFichas(resFichas.data || []);
     setProdutos(resProdutos.data || []);
     setColaboradores((resColab.data || []).filter(c => c.ativo !== false && c.status !== "inativo"));
     setMemoHoje(resMemo?.data || null);
+    const idsDoSetor = new Set((resFichas.data || []).map(item => String(item.id)));
+    setProducoes((resProducoes.data || []).filter(item => idsDoSetor.has(String(item.ficha_id))));
+    const estoquePreparo = (resEstoques.data || []).find(item => String(item.slug || "").toLowerCase() === `pre-preparos-${deptUrl}`);
+    if (estoquePreparo?.id) {
+      const saldos = await fetchItensEstoque(estoquePreparo.id, unidadeAtiva);
+      setSaldosProntos((saldos.data || []).filter(item => Number(item.quantidade_atual || 0) > 0));
+    } else setSaldosProntos([]);
     setLoading(false);
   };
 
@@ -264,10 +253,12 @@ function ProducaoRunner() {
   const abrirProduzir = (ficha) => {
     setFichaAtual(ficha);
     setQtdProd("1");
-    // Ja escolhida na barra do turno: nao faz sentido perguntar de novo a cada
-    // producao. Continua trocavel dentro do modal.
-    setColabSelecionado(euColab || "");
-    setLocalArmazenamento(setor.localPadrao);
+    const responsavelPlanejado = plano[ficha.id]?.resp;
+    const planejado = colaboradores.find(item => item.nome === responsavelPlanejado);
+    let ultimo = "";
+    try { ultimo = localStorage.getItem(`producao_responsavel_${unidadeAtiva}`) || ""; } catch {}
+    setColabSelecionado(planejado?.id || colaboradores.find(item => String(item.id) === String(ultimo))?.id || "");
+    setLocalArmazenamento(deptUrl === "bar" ? "Geladeira do Bar" : "Freezer 1");
     setModalProduzir(true);
   };
 
@@ -295,11 +286,13 @@ function ProducaoRunner() {
       return alert("Produção não registrada. Revise a ficha técnica: " + erro.error);
     }
     if(erro.error) return alert("Falha ao registrar produção: " + erro.error);
+    try { localStorage.setItem(`producao_responsavel_${unidadeAtiva}`, String(colabSelecionado)); } catch {}
 
     alert(erro.preparo
       ? `Produção registrada!\n\nEntraram ${numQtd} ${fichaAtual.rendimento_unidade || "un"} de ${fichaAtual.nome_receita} no estoque de pré-preparos (${localArmazenamento}).`
       : "Produção registrada e estoque abatido com sucesso!");
     setModalProduzir(false);
+    await carregar(true);
   };
 
   const containerRef = useRef(null);
@@ -312,10 +305,12 @@ function ProducaoRunner() {
   };
 
   const isBar = deptUrl === 'bar';
-  const isSalao = deptUrl === 'salao';
+  const totalProduzido = producoes.reduce((total, item) => total + Number(item.quantidade_produzida || 0), 0);
+  const estoqueHref = isBar ? "/dashboard/bar/tablet" : "/dashboard/operacao/cardapio/tablet";
+  const fichasFiltradas = fichas.filter(ficha => String(ficha.nome_receita || "").toLowerCase().includes(buscaFicha.toLowerCase()));
 
   return (
-    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* TOPBAR */}
       <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
@@ -325,7 +320,7 @@ function ProducaoRunner() {
                  <ArrowLeft size={20}/>
               </button>
                <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${isBar ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'}`}>
-                 {isBar ? <Droplets size={28} /> : isSalao ? <UtensilsCrossed size={28} /> : <Flame size={28} />}
+                 {isBar ? <Droplets size={28} /> : <Flame size={28} />}
               </div>
               <div>
                   <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
@@ -353,104 +348,21 @@ function ProducaoRunner() {
          </div>
       </div>
 
-      {/* O TURNO DE QUEM ESTÁ NA BANCADA: o que já saiu, o que falta e o que
-          esta pessoa produziu. O plano do dia manda; sem plano, a barra mostra
-          só o que foi feito, que continua sendo a informação que falta hoje. */}
-      {(() => {
-         const setorChave = SETORES[deptUrl] ? deptUrl : "cozinha";
-         const plano = (memoHoje && memoHoje[setorChave]) || {};
-
-         // Somatório do que já foi produzido hoje, por ficha e por pessoa.
-         const feitoPorFicha = {};
-         const feitoPorFichaEu = {};
-         producaoHoje.forEach((registro) => {
-            const id = String(registro.ficha_id || "");
-            const qtd = Number(registro.quantidade_produzida) || 0;
-            feitoPorFicha[id] = (feitoPorFicha[id] || 0) + qtd;
-            if (euColab && String(registro.colaborador_id) === String(euColab)) {
-               feitoPorFichaEu[id] = (feitoPorFichaEu[id] || 0) + qtd;
-            }
-         });
-
-         const linhas = Object.entries(plano)
-            .map(([fichaId, dados]) => {
-               const ficha = fichas.find(f => String(f.id) === String(fichaId));
-               if (!ficha) return null;
-               const meta = Number(String(dados?.qtd || "").replace(",", ".")) || 0;
-               if (meta <= 0) return null;
-               const feito = feitoPorFicha[String(fichaId)] || 0;
-               return { ficha, meta, feito, meu: feitoPorFichaEu[String(fichaId)] || 0, falta: Math.max(0, meta - feito) };
-            })
-            .filter(Boolean);
-
-         const meuTotal = producaoHoje.filter(r => euColab && String(r.colaborador_id) === String(euColab)).length;
-         if (!linhas.length && !producaoHoje.length) return null;
-
-         const concluidas = linhas.filter(l => l.falta === 0).length;
-         return (
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
-               <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                     <div className="min-w-0">
-                        <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Meu turno em {setor.nome}</p>
-                        <p className="text-sm font-bold text-slate-600">
-                           {linhas.length
-                              ? `${concluidas} de ${linhas.length} preparação(ões) do plano concluída(s)`
-                              : `${producaoHoje.length} produção(ões) registrada(s) hoje neste setor`}
-                        </p>
-                     </div>
-                     <label className="min-w-[190px]">
-                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Quem está produzindo</span>
-                        <select value={euColab} onChange={(e) => setEuColab(e.target.value)}
-                           className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-slate-700 outline-none focus:border-emerald-500">
-                           <option value="">Selecione…</option>
-                           {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
-                     </label>
-                  </div>
-
-                  {euColab && (
-                     <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                        {meuTotal > 0
-                           ? `Você registrou ${meuTotal} produção(ões) hoje. Sua parte aparece em verde em cada linha.`
-                           : "Você ainda não registrou nenhuma produção hoje."}
-                     </p>
-                  )}
-
-                  {linhas.length > 0 && (
-                     <div className="mt-3 space-y-2">
-                        {linhas.map((l) => {
-                           const pct = Math.min(100, Math.round((l.feito / l.meta) * 100));
-                           const un = l.ficha.rendimento_unidade || "un";
-                           return (
-                              <div key={l.ficha.id} className={`rounded-xl border px-3 py-2.5 ${l.falta === 0 ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-white"}`}>
-                                 <div className="flex items-center justify-between gap-3">
-                                    <p className="min-w-0 flex-1 truncate text-[15px] font-black text-slate-800">{l.ficha.nome_receita}</p>
-                                    <p className={`shrink-0 text-sm font-black ${l.falta === 0 ? "text-emerald-700" : "text-amber-700"}`}>
-                                       {l.falta === 0 ? "Concluído" : `Faltam ${(+l.falta.toFixed(3))} ${un}`}
-                                    </p>
-                                 </div>
-                                 <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
-                                 </div>
-                                 <p className="mt-1 text-[11px] font-bold text-slate-500">
-                                    {(+l.feito.toFixed(3))} de {(+l.meta.toFixed(3))} {un}
-                                    {l.meu > 0 && <span className="text-emerald-700"> · seus {(+l.meu.toFixed(3))} {un}</span>}
-                                 </p>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  )}
-               </div>
-            </div>
-         );
-      })()}
+      <section className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:grid-cols-4">
+          {[
+            ["1", "Ver o que está pronto", `${saldosProntos.length} item(ns) disponíveis`],
+            ["2", "Planejar a produção", `${itensPlanejados.length} item(ns) no plano`],
+            ["3", "Conferir ingredientes", "Cálculo automático"],
+            ["4", "Produzir e salvar", "Baixa e histórico juntos"],
+          ].map(([numeroEtapa, titulo, texto]) => <div key={numeroEtapa} className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-100 p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600 font-black text-white">{numeroEtapa}</span><span className="min-w-0"><b className="block truncate text-xs text-slate-800 sm:text-sm">{titulo}</b><small className="block truncate font-bold text-slate-500">{texto}</small></span></div>)}
+        </div>
+      </section>
 
       {/* MEMORANDO DE HOJE: o que a gerência planejou para este setor */}
       {(() => {
          if (!memoHoje) return null;
-         const setorChave = SETORES[deptUrl] ? deptUrl : "cozinha";
+         const setorChave = deptUrl === "bar" ? "bar" : "cozinha";
          const plano = memoHoje[setorChave] || {};
          const itens = Object.entries(plano)
             .map(([fichaId, dados]) => ({ ficha: fichas.find(f => String(f.id) === String(fichaId)), ...dados }))
@@ -462,7 +374,7 @@ function ProducaoRunner() {
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
                         <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Produção planejada para hoje</p>
-                        <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {setor.nome}</p>
+                        <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {deptUrl === "bar" ? "Bar" : "Cozinha"}</p>
                      </div>
                      <button onClick={() => router.push("/dashboard/operacao/producao/memorando")}
                         className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">
@@ -491,10 +403,56 @@ function ProducaoRunner() {
          );
       })()}
 
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
+         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <button onClick={() => setModalPlanejar(true)} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-700"><ClipboardList size={17}/> Produção planejada</span>
+               <strong className="mt-2 block text-2xl font-black text-slate-900">{itensPlanejados.length} item(ns)</strong>
+               <span className="mt-1 block text-xs font-bold text-slate-600">Para {dataPlano ? dataPlano.split("-").reverse().join("/") : "a data escolhida"}</span>
+            </button>
+            <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-emerald-700"><History size={17}/> Produzido nos últimos 30 dias</span>
+               <strong className="mt-2 block text-2xl font-black text-slate-900">{totalProduzido.toLocaleString("pt-BR")} porções</strong>
+               <span className="mt-1 block text-xs font-bold text-slate-600">{producoes.length} lançamento(s) registrado(s)</span>
+            </article>
+            <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-slate-300 bg-slate-900 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-300"><Boxes size={17}/> Estoque produzido</span>
+               <strong className="mt-2 block text-xl font-black">{saldosProntos.length} item(ns) prontos</strong>
+               <span className="mt-1 block text-xs font-bold text-slate-300">Toque para ver quantidades e locais</span>
+            </button>
+         </div>
+
+         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-slate-900"><CheckCircle2 size={18} className="text-emerald-600"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-black text-emerald-700">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-black text-emerald-700">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-slate-500">{item.local_interno}</small>}</div>)}</div></div>}
+
+         {(itensPlanejados.length > 0 || producoes.length > 0) && (
+            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                     <h2 className="text-base font-black text-slate-900">O que quero produzir</h2>
+                     <button onClick={() => setModalPlanejar(true)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-black text-amber-800">Editar plano</button>
+                  </div>
+                  {itensPlanejados.length === 0 ? <p className="text-sm font-bold text-slate-500">Nenhuma produção planejada.</p> : (
+                     <div className="space-y-2">
+                        {itensPlanejados.slice(0, 6).map(item => <div key={item.ficha.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="truncate text-sm font-black text-slate-700">{item.ficha.nome_receita}</span><strong className="shrink-0 text-sm text-amber-700">{Number(String(item.qtd).replace(",", ".")).toLocaleString("pt-BR")} porções</strong></div>)}
+                     </div>
+                  )}
+               </div>
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h2 className="mb-3 text-base font-black text-slate-900">Últimas produções feitas</h2>
+                  {producoes.length === 0 ? <p className="text-sm font-bold text-slate-500">Ainda não há produção registrada.</p> : (
+                     <div className="space-y-2">
+                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-slate-700">{item.fichas_tecnicas?.nome_receita || "Pré-preparo"}</strong><small className="font-bold text-slate-400">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-emerald-700">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
+                     </div>
+                  )}
+               </div>
+            </div>
+         )}
+      </section>
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-         <div className="mb-6">
-            <h2 className="text-xl font-black text-slate-800 mb-2">O que você vai produzir agora?</h2>
-            <p className="text-slate-500 font-medium">Selecione a ficha técnica. O sistema vai calcular e retirar os ingredientes do estoque físico.</p>
+         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div><h2 className="text-xl font-black text-slate-800 mb-1">Produzir agora</h2><p className="text-slate-500 font-medium">Escolha a receita; os ingredientes e a baixa aparecem antes da confirmação.</p></div>
+            <label className="relative block w-full sm:w-80"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={buscaFicha} onChange={e => setBuscaFicha(e.target.value)} placeholder="Buscar receita..." className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 font-bold outline-none focus:border-emerald-500"/></label>
          </div>
 
          {loading ? (
@@ -505,14 +463,14 @@ function ProducaoRunner() {
                <p className="text-slate-500 mt-2 font-medium">Crie suas Fichas Técnicas primeiro para poder produzir.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-               {fichas.map(f => {
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+               {fichasFiltradas.map(f => {
                   const cmv = calcCmv(f, fichas, produtoDaFicha);
                   return (
                   <button
                      key={f.id}
                      onClick={() => abrirProduzir(f)}
-                     className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all relative group text-left flex flex-col"
+                     className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all relative group text-left flex flex-col"
                   >
                      <div className="flex justify-between items-start mb-4">
                         <span className={`w-12 h-12 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
@@ -524,12 +482,12 @@ function ProducaoRunner() {
                            </span>
                         )}
                      </div>
-                     <h3 className="text-2xl font-black text-slate-800 leading-tight mb-2">{f.nome_receita}</h3>
+                     <h3 className="text-lg font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
 
                      <div className="mt-auto pt-4 border-t border-slate-100">
                         <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-emerald-600' : 'text-emerald-600'}`}>
-                           {isBar ? <Droplets size={16}/> : isSalao ? <UtensilsCrossed size={16}/> : <Flame size={16}/>} Iniciar Produção
+                           {isBar ? <Droplets size={16}/> : <Flame size={16}/>} Iniciar Produção
                         </span>
                      </div>
                   </button>
@@ -615,11 +573,11 @@ function ProducaoRunner() {
                   {fichaAtual.eh_base && <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Onde será guardado?</label>
                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        {setor.locais.map(local => (
+                        {(isBar ? ["Geladeira do Bar", "Prateleira do Bar", "Freezer do Bar", "Câmara fria"] : ["Freezer 1", "Freezer 2", "Geladeira", "Câmara fria"]).map(local => (
                            <button type="button" key={local} onClick={() => setLocalArmazenamento(local)} className={`min-h-11 rounded-xl border px-3 text-sm font-black ${localArmazenamento === local ? "border-amber-600 bg-amber-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{local}</button>
                         ))}
                      </div>
-                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={setor.exemplo} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-600" />
+                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={isBar ? "Ex.: Geladeira dos xaropes" : "Ex.: Freezer 3"} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-600" />
                      <p className="mt-2 text-xs font-semibold text-amber-700">O saldo produzido ficará separado neste local.</p>
                   </div>}
 

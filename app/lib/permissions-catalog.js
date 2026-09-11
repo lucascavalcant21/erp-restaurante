@@ -79,6 +79,7 @@ export const PERMISSION_MODULES = [
       { id: "overview", label: "Visão do salão", route: "/dashboard/modulo/salao", actions: ["view"] },
       { id: "tables", label: "Mesas", route: "/dashboard/mesas", actions: ["view", "create", "edit", "cancel", "view_values"] },
       { id: "training", label: "Treinamentos", route: "/dashboard/salao/treinamento", actions: CRUD },
+      { id: "training", label: "Escolher área de treinamento", route: "/dashboard/treinamentos", actions: CRUD },
       { id: "notes", label: "Observações", route: "/dashboard/operacao/observacoes", actions: CRUD },
     ],
   },
@@ -117,6 +118,7 @@ export const PERMISSION_MODULES = [
   {
     id: "checklist", label: "Checklist",
     pages: [
+      { id: "execution", label: "Escolher área", route: "/dashboard/checklists", actions: ["view", "create", "edit", "confirm", "view_history"] },
       { id: "execution", label: "Execução", route: "/dashboard/operacao/rotina", actions: ["view", "create", "edit", "confirm", "view_history"] },
       { id: "templates", label: "Modelos", route: "/dashboard/checklists/gerenciar", actions: CRUD },
     ],

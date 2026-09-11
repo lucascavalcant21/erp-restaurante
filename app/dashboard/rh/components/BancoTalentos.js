@@ -80,6 +80,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
   const [busca, setBusca] = useState("");
   const [candidatoAberto, setCandidatoAberto] = useState(null);
   const [editorPortal, setEditorPortal] = useState(null);
+  const [carregandoPortal, setCarregandoPortal] = useState(false);
   const [salvandoPortal, setSalvandoPortal] = useState(false);
   const [gerandoRequisitos, setGerandoRequisitos] = useState(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
@@ -214,8 +215,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
   };
 
   const abrirEditorPortal = async () => {
+    setCarregandoPortal(true);
     const { data, error } = await fetchPortalVagasConfig(unidadeAtiva);
+    setCarregandoPortal(false);
     if (error) return alert("Não foi possível carregar a configuração: " + error);
+    setEditorPortal(data);
   };
 
   const salvarEditorPortal = async () => {
@@ -335,9 +339,9 @@ export default function BancoTalentos({ unidadeAtiva }) {
             <button type="button" onClick={carregar} disabled={loading} className="flex items-center justify-center gap-2 bg-white text-slate-600 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 disabled:opacity-60 whitespace-nowrap">
                <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> Atualizar
             </button>
-            <button type="button" onClick={abrirEditorPortal} className="flex items-center justify-center gap-2 bg-white text-slate-700 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 whitespace-nowrap">
-               <Pencil size={18} /> Editar portal
-            </button>
+             <button type="button" onClick={abrirEditorPortal} disabled={carregandoPortal} className="flex items-center justify-center gap-2 bg-white text-slate-700 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 whitespace-nowrap disabled:opacity-60">
+                {carregandoPortal ? <Loader2 size={18} className="animate-spin" /> : <Pencil size={18} />} Editar portal
+             </button>
             <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 whitespace-nowrap">
                <ExternalLink size={18} /> Abrir portal
             </a>
@@ -390,14 +394,6 @@ export default function BancoTalentos({ unidadeAtiva }) {
                          <div key={c.id} onClick={() => setCandidatoAberto(c)}
                             className={`cursor-pointer rounded-2xl border bg-white p-3 shadow-sm transition-all hover:shadow-md sm:p-4 ${selecionados[c.id] ? "border-emerald-500 ring-2 ring-emerald-200" : "border-slate-200"}`}>
                             <div className="flex flex-wrap items-center gap-3">
-                               {/* A caixa fica fora do onClick do cartão: marcar não pode
-                                   abrir a ficha, e abrir a ficha não pode marcar. */}
-                               <button type="button" aria-label={selecionados[c.id] ? `Desmarcar ${c.nome}` : `Marcar ${c.nome}`}
-                                  onClick={e => { e.stopPropagation(); alternarSelecao(c.id); }}
-                                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition-colors ${selecionados[c.id] ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-white text-transparent hover:border-emerald-400"}`}>
-                                  <Check size={13} strokeWidth={3} />
-                               </button>
-
                                <div className="min-w-0 flex-1">
                                   <p className="text-sm font-black leading-snug text-slate-800">
                                      {c.nome}

@@ -1,47 +1,60 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { calcularPrecoNormalizado } from "./ingredientes-utils.mjs";
-import { estoquePrincipalDoSetor } from "./estoques-multiplos-utils.mjs";
+import { calcularPrecoNormalizado, ehInsumoPrePreparo } from "./ingredientes-utils.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
-
-// Setor de um insumo: "cozinha", "bar" ou este, que vale para os dois.
-export const DEPARTAMENTO_COMPARTILHADO = "ambos";
 
 export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   let query = supabase.from("insumos").select("*");
   if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
-  // "ambos" é o insumo que serve às duas cozinhas — açúcar, limão, gelo. Ele
-  // aparece nos dois catálogos sendo uma linha só, com um preço e um estoque.
-  // Só cozinha e bar o recebem: "embalagens" também chega aqui como setor, e um
-  // insumo compartilhado não tem nada que fazer no catálogo de embalagens.
-  if (dept) {
-    const setores = ["cozinha", "bar"].includes(String(dept).toLowerCase())
-      ? [dept, DEPARTAMENTO_COMPARTILHADO]
-      : [dept];
-    query = setores.length > 1 ? query.in("departamento", setores) : query.eq("departamento", dept);
-  }
+  if (dept) query = query.eq("departamento", dept);
 
   const { data, error } = await query;
   if (error || !data?.length) return { data: data || [], error: error?.message };
 
-  // O insumo espelho existe apenas para o saldo físico do pré-preparo. Na ficha
-  // ele é escolhido como subficha, nunca como ingrediente cru; esconder também
-  // os legados impede que a migração deixe opções duplicadas no formulário.
-  const dadosVisiveis = data.filter(item =>
-    !item.ficha_tecnica_id && item.pre_preparo_legado !== true);
-  if (!dadosVisiveis.length) return { data: [], error: null };
+  let dadosFiltrados = data;
+  if (opcoes?.excluirPrePreparos === true) {
+    // Pré-preparos também existem como itens de estoque para receber as
+    // produções. Eles não são ingredientes comprados e não devem reaparecer
+    // no cadastro nem no seletor de ingredientes das fichas.
+    const idsPrePreparos = new Set(
+      data.filter(ehInsumoPrePreparo).map(item => String(item.id)),
+    );
+    try {
+      let estoquesQuery = supabase.from("estoques").select("id");
+      if (unidadeId && unidadeId !== "matriz" && unidadeId !== "todas") {
+        estoquesQuery = estoquesQuery.eq("unidade_id", unidadeId);
+      }
+      estoquesQuery = dept === "bar" || dept === "cozinha"
+        ? estoquesQuery.eq("slug", `pre-preparos-${dept}`)
+        : estoquesQuery.like("slug", "pre-preparos-%");
+      const { data: estoquesPreparo } = await estoquesQuery;
+      const estoqueIds = (estoquesPreparo || []).map(item => item.id).filter(Boolean);
+      if (estoqueIds.length) {
+        const { data: vinculosPreparo } = await supabase
+          .from("estoque_itens")
+          .select("insumo_id")
+          .in("estoque_id", estoqueIds);
+        for (const vinculo of vinculosPreparo || []) {
+          if (vinculo.insumo_id) idsPrePreparos.add(String(vinculo.insumo_id));
+        }
+      }
+    } catch { /* sem a estrutura de estoques: o filtro por categoria continua valendo */ }
+    dadosFiltrados = data.filter(item => !idsPrePreparos.has(String(item.id)));
+  }
+
+  if (!dadosFiltrados.length) return { data: [], error: null };
 
   // A tabela de vínculo foi adicionada depois do cadastro original. Se a
   // migração ainda não tiver sido aplicada, a listagem continua funcionando
   // com o fornecedor textual legado.
-  const ids = dadosVisiveis.map(item => item.id);
+  const ids = dadosFiltrados.map(item => item.id);
   const { data: vinculos, error: erroVinculos } = await supabase
     .from("insumos_fornecedores")
     .select("insumo_id, fornecedor_id, fornecedor:fornecedores(id,nome)")
     .in("insumo_id", ids);
-  if (erroVinculos) return { data: dadosVisiveis, error: null };
+  if (erroVinculos) return { data: dadosFiltrados, error: null };
 
   const porInsumo = new Map();
   for (const vinculo of vinculos || []) {
@@ -51,7 +64,7 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
     porInsumo.get(vinculo.insumo_id).push(fornecedor);
   }
   return {
-    data: dadosVisiveis.map(item => ({
+    data: dadosFiltrados.map(item => ({
       ...item,
       fornecedores_vinculados: porInsumo.get(item.id) || (item.fornecedor ? [{ nome: item.fornecedor }] : []),
     })),
@@ -203,36 +216,12 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       };
       const nomeNorm = norm(campos.nome);
       if (nomeNorm) {
-        // A trava tem de enxergar exatamente o que o catálogo mostra. Ela olhava
-        // a tabela crua, incluindo o que fetchInsumos esconde: os insumos espelho
-        // de pré-preparo (ficha_tecnica_id) e os legados de migração. O cadastro
-        // era barrado por uma linha que ninguém acha na busca nem consegue
-        // editar — sem saída para quem só queria cadastrar o ingrediente.
-        //
-        // A comparação também é feita aqui, e não no banco: `ilike` diferencia
-        // acento, então "Açúcar" não reconhecia um "Acucar" já gravado e a trava
-        // deixava passar a duplicata que ela existe para impedir.
-        // O que conflita é o que aparece no mesmo catálogo. Cadastrar na cozinha
-        // conflita com os da cozinha e com os compartilhados; cadastrar como
-        // compartilhado conflita com os dois setores, porque vai aparecer nos
-        // dois. "Açúcar" do bar e "Açúcar" da cozinha, esses, convivem.
-        const setoresEmConflito = campos.departamento === DEPARTAMENTO_COMPARTILHADO
-          ? ["cozinha", "bar", DEPARTAMENTO_COMPARTILHADO]
-          : [campos.departamento, DEPARTAMENTO_COMPARTILHADO];
-        const montarConsulta = (colunas) => {
-          let q = supabase.from("insumos").select(colunas);
-          if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
-          if (campos.departamento) q = q.in("departamento", setoresEmConflito.filter(Boolean));
-          return q;
-        };
-        let { data: existentes, error: erroConsulta } =
-          await montarConsulta("id, nome, ficha_tecnica_id, pre_preparo_legado");
-        // Migração ainda não rodou? Sem as colunas de espelho, todo mundo conta.
-        if (erroConsulta) ({ data: existentes } = await montarConsulta("id, nome"));
-        const conflito = (existentes || []).find(e => norm(e.nome) === nomeNorm
-          && !e.ficha_tecnica_id && e.pre_preparo_legado !== true);
-        if (conflito) {
-          return { error: `Já existe "${conflito.nome}" neste setor. Edite o existente para adicionar outro fornecedor ou preço.` };
+        let q = supabase.from("insumos").select("id, nome, departamento, unidade_id");
+        if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
+        if (campos.departamento) q = q.eq("departamento", campos.departamento);
+        const { data: existentes } = await q.ilike("nome", String(campos.nome || "").trim());
+        if ((existentes || []).some(e => norm(e.nome) === nomeNorm)) {
+          return { error: "Já existe um ingrediente com esse nome neste setor. Edite o existente para adicionar outro fornecedor ou preço." };
         }
       }
     } catch { /* falha na checagem não bloqueia o cadastro */ }
@@ -242,6 +231,9 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       Number(campos.custo_compra ?? campos.custo_unitario) || 0,
     );
     campos.preco_normalizado = normalizado;
+    if (!campos.custo_unitario || Number(campos.custo_unitario) <= 0) {
+      campos.custo_unitario = normalizado;
+    }
     campos.preco_normalizado_anterior = null;
     campos.variacao_preco_pct = null;
     campos.preco_atualizado_em = new Date().toISOString();
@@ -265,28 +257,6 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         await sincronizarFornecedores(data.id, fornecedorIds);
       } catch { /* histórico é acessório */ }
 
-      // Estoque do setor: cozinha vai para "cozinha", bar para "bar", e o
-      // compartilhado entra nos dois, porque é usado nos dois. Sem isto o
-      // ingrediente nascia visível só no estoque legado, e quem fosse contar
-      // pelo módulo de estoques não achava o que acabou de cadastrar.
-      try {
-        const dept = String(campos.departamento || "").toLowerCase();
-        const slugs = dept === "ambos" ? ["cozinha", "bar"] : (dept === "bar" ? ["bar"] : dept === "cozinha" ? ["cozinha"] : []);
-        if (campos.unidade_id && slugs.length) {
-          const { data: estoques } = await supabase.from("estoques")
-            .select("id, slug").eq("unidade_id", campos.unidade_id).in("slug", slugs);
-          for (const estoque of estoques || []) {
-            await supabase.from("estoque_itens").upsert({
-              unidade_id: campos.unidade_id,
-              estoque_id: estoque.id,
-              insumo_id: data.id,
-              quantidade_atual: 0,
-              custo_unitario: Number(campos.custo_unitario) || 0,
-            }, { onConflict: "estoque_id,insumo_id" });
-          }
-        }
-      } catch { /* o módulo de estoques pode não estar migrado: não bloqueia o cadastro */ }
-
       // Garante que o ingrediente/produto apareça imediatamente no Estoque com saldo 0
       try {
         if (campos.unidade_id) {
@@ -297,42 +267,27 @@ export async function salvarInsumo(insumo, opcoes = {}) {
             updated_at: new Date().toISOString(),
           }, { onConflict: "unidade_id,insumo_id" });
 
-          // Coloca o produto na prateleira do setor dele (Bar, Cozinha...).
-          //
-          // Duas coisas quebravam aqui e o produto do bar nunca chegava ao
-          // estoque do bar:
-          //
-          // 1. O `.catch()` no fim do upsert. O que o supabase devolve é um
-          //    "thenable" — tem `then`, não tem `catch`. Chamar `.catch()`
-          //    estourava um TypeError ANTES de a requisição sair, e o try
-          //    de fora engolia tudo num console.warn. O vínculo jamais era
-          //    gravado, sem nenhum erro na tela.
-          //
-          // 2. O `|| ests[0]`. Sem estoque do setor, o produto era jogado no
-          //    primeiro estoque que o banco devolvesse — a cerveja aparecia
-          //    na cozinha. E como a busca era por "bar" no nome, ela também
-          //    casava com "Pré-preparos do Bar" e "Embalagens do Bar".
-          //    Agora quem escolhe é estoquePrincipalDoSetor, e não achando o
-          //    estoque certo o produto fica sem vínculo em vez de ir para o
-          //    lugar errado.
-          //
-          // Pré-preparo não passa por aqui: quem a ficha técnica produz é
-          // criado direto por garantirFichaNoEstoquePreparo, que já vincula ao
-          // "Pré-preparos do Bar/Cozinha". Se um dia voltar a passar, precisa
-          // ficar de fora — senão o mesmo saldo é contado em dois estoques.
-          const { data: ests } = await supabase
-            .from("estoques").select("id, slug, nome")
-            .eq("unidade_id", campos.unidade_id);
-          const alvo = estoquePrincipalDoSetor(ests, campos.departamento);
-          if (alvo?.id) {
-            const { error: erroVinculo } = await supabase.from("estoque_itens").upsert({
-              unidade_id: campos.unidade_id,
-              estoque_id: alvo.id,
-              insumo_id: data.id,
-              quantidade_atual: 0,
-              updated_at: new Date().toISOString(),
-            }, { onConflict: "estoque_id,insumo_id" });
-            if (erroVinculo) console.warn("Aviso ao vincular novo ingrediente ao estoque:", erroVinculo.message);
+          // Tenta vincular à área de estoque correspondente (Bar, Cozinha, etc.)
+          const dept = (campos.departamento || "").toLowerCase();
+          const { data: ests } = await supabase.from("estoques").select("id, slug, nome").eq("unidade_id", campos.unidade_id);
+          if (ests?.length) {
+            const alvo = ests.find(e => {
+              const s = (e.slug || e.nome || "").toLowerCase();
+              return (dept.includes("bar") && s.includes("bar")) ||
+                     (dept.includes("limpeza") && s.includes("limpeza")) ||
+                     (dept.includes("embalag") && s.includes("embalag")) ||
+                     (dept.includes("cozinha") && s.includes("cozinha"));
+            }) || ests[0];
+
+            if (alvo?.id) {
+              await supabase.from("estoque_itens").upsert({
+                unidade_id: campos.unidade_id,
+                estoque_id: alvo.id,
+                insumo_id: data.id,
+                quantidade_atual: 0,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "estoque_id,insumo_id" }).catch(() => {});
+            }
           }
         }
       } catch (e) {
@@ -387,10 +342,7 @@ export async function removerInsumo(id) {
   }
 
   try {
-    // 4. Remover do estoque e movimentações legadas. estoque_atual é escrito
-    // no cadastro ("aparece no Estoque com saldo 0") e não era limpo aqui: a
-    // linha ficava apontando para um insumo que não existe mais.
-    await supabase.from("estoque_atual").delete().eq("insumo_id", id);
+    // 4. Remover do estoque e movimentações legadas
     await supabase.from("estoque").delete().eq("insumo_id", id);
     await supabase.from("estoque_movimentacoes").delete().eq("insumo_id", id);
   } catch (e) {
@@ -431,14 +383,14 @@ export async function fetchFichas(unidadeId, dept) {
       *,
       fichas_ingredientes!ficha_id(
         *,
-        insumos(*)
+        insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, empanado, ganho_pct, custo_empanado_kg)
       )
-    `)
-    .order("nome_receita");
+    `);
 
   if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
   if (dept) query = query.eq("departamento", dept);
   query = query.eq("ativo", true);
+  query = query.order("nome_receita");
 
   let { data, error } = await query;
   // Compatibilidade durante a publicação: se a migração de inativação ainda
@@ -449,12 +401,12 @@ export async function fetchFichas(unidadeId, dept) {
         *,
         fichas_ingredientes!ficha_id(
           *,
-          insumos(*)
+          insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, empanado, ganho_pct, custo_empanado_kg)
         )
-      `)
-      .order("nome_receita");
+      `);
     if (unidadeId && unidadeId !== "matriz") fallback = fallback.eq("unidade_id", unidadeId);
     if (dept) fallback = fallback.eq("departamento", dept);
+    fallback = fallback.order("nome_receita");
     const resposta = await fallback;
     data = resposta.data;
     error = resposta.error;
@@ -502,26 +454,9 @@ export async function fetchNomesDePratosEDrinks(unidadeId, dept = "") {
   };
 }
 
-// A mensagem crua do Postgres ("violates foreign key constraint
-// fichas_tecnicas_unidade_id_fkey") não diz a ninguém o que fazer. A causa é
-// sempre a mesma: a unidade que a tela mandou não existe na tabela `unidades`.
-function erroDeUnidade(mensagem, unidadeId) {
-  if (!/foreign key/i.test(mensagem || "") || !/unidade/i.test(mensagem || "")) return null;
-  return `A unidade "${unidadeId || "(vazia)"}" não está cadastrada em Unidades, então a ficha não pode ser gravada nela. `
-    + "Recarregue a página e confirme a loja selecionada no topo; se o aviso continuar, a unidade precisa ser cadastrada.";
-}
-
 export async function salvarFicha(ficha, ingredientes) {
   if (!isSupabaseReady()) return { error: "Offline" };
-
-  // Sem unidade de verdade não dá para gravar. "matriz" e "todas" são curingas
-  // de LEITURA ("não filtre por unidade") — gravar com eles estoura a chave
-  // estrangeira ou arquiva a ficha numa unidade que não existe.
-  const unidade = String(ficha?.unidade_id || "").trim();
-  if (!unidade || unidade === "todas" || unidade === "matriz") {
-    return { error: "Escolha a loja no topo da tela antes de salvar a ficha." };
-  }
-
+  
   let fichaId = ficha.id;
   // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
   const { id: _id, created_at, ...camposFicha } = ficha;
@@ -532,13 +467,13 @@ export async function salvarFicha(ficha, ingredientes) {
     error = await retrySemColunaAusente(error, async () => {
       const r = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId); return r.error;
     }, camposFicha);
-    if(error) return { error: erroDeUnidade(error.message, unidade) || error.message };
+    if(error) return { error: error.message };
   } else {
     let res = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single();
     let error = await retrySemColunaAusente(res.error, async () => {
       const r = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single(); res = r; return r.error;
     }, camposFicha);
-    if(error) return { error: erroDeUnidade(error.message, unidade) || error.message };
+    if(error) return { error: error.message };
     fichaId = res.data.id;
   }
 
@@ -657,21 +592,6 @@ export async function removerFicha(id) {
   return { error: error?.message };
 }
 
-// O nome da ficha-mãe entra junto: "Utilizada como componente" não dizia POR
-// QUEM, e é essa receita que perde o ingrediente se a exclusão for forçada.
-//
-// O embed do PostgREST depende do nome da chave estrangeira. Se ele não casar,
-// a consulta inteira falharia e a tela bloquearia a exclusão por "verificação
-// incompleta" — pior do que antes. Por isso o fallback: sem o nome, mas sem
-// travar nada.
-async function referenciasComNome(ids) {
-  const comNome = await supabase.from("fichas_ingredientes")
-    .select("ficha_id,subficha_id,fichas_tecnicas!ficha_id(nome_receita)")
-    .in("subficha_id", ids);
-  if (!comNome.error) return comNome;
-  return supabase.from("fichas_ingredientes").select("ficha_id,subficha_id").in("subficha_id", ids);
-}
-
 export async function verificarDependenciasFichas(fichas, unidadeId) {
   if (!isSupabaseReady()) return { porFicha: {}, error: "Offline" };
   const lista = (fichas || []).filter(item => item?.id);
@@ -683,7 +603,7 @@ export async function verificarDependenciasFichas(fichas, unidadeId) {
   const limitarUnidade = query => unidadeId && unidadeId !== "matriz" ? query.eq("unidade_id", unidadeId) : query;
   const [produtos, referencias, producoes, montagens] = await Promise.all([
     limitarUnidade(supabase.from("produtos").select("id,nome_produto,ficha_id").in("ficha_id", ids)),
-    referenciasComNome(ids),
+    supabase.from("fichas_ingredientes").select("ficha_id,subficha_id").in("subficha_id", ids),
     limitarUnidade(supabase.from("producao_diaria").select("id,ficha_id").in("ficha_id", ids)),
     nomes.length
       ? limitarUnidade(supabase.from("montagem").select("id,nome").in("nome", nomes))
@@ -697,10 +617,7 @@ export async function verificarDependenciasFichas(fichas, unidadeId) {
     porFicha[id].push(rotulo);
   };
   for (const item of produtos.data || []) adicionar(item.ficha_id, "Produto do cardápio", item.nome_produto);
-  for (const item of referencias.data || []) {
-    const mae = item.fichas_tecnicas?.nome_receita;
-    adicionar(item.subficha_id, "Outra ficha técnica", mae ? `Ingrediente de: ${mae}` : "Utilizada como componente");
-  }
+  for (const item of referencias.data || []) adicionar(item.subficha_id, "Outra ficha técnica", "Utilizada como componente");
   for (const item of producoes.data || []) adicionar(item.ficha_id, "Histórico de produção", "Registro de produção existente");
   const fichaPorNome = new Map(lista.map(item => [String(item.nome_receita || "").trim().toLocaleLowerCase("pt-BR"), item.id]));
   for (const item of montagens.data || []) {
@@ -750,79 +667,6 @@ export async function excluirFichasLote(fichas, auditoria = {}) {
   return { error: null, quantidade: lista.length };
 }
 
-// Exclusão FORÇADA: apaga a ficha e leva junto os dois vínculos que a tela
-// mostra — o produto do cardápio e o guia de montagem. É o "excluir mesmo
-// assim", para quando a ficha foi criada errada e não há nada a preservar.
-//
-// O que NÃO é apagado aqui, de propósito:
-//   - producao_diaria: é histórico do que a casa produziu, não um vínculo.
-//   - fichas_ingredientes.subficha_id é APAGADO: essa ficha é ingrediente de
-//     outra, e a receita-mãe perde essa linha. É perda de verdade, então a tela
-//     nomeia as receitas afetadas na confirmação antes de chegar aqui.
-//   - producao_diaria é PRESERVADO: a linha continua, só perde o ponteiro para
-//     a ficha. Data, quantidade e quem produziu valem sem a receita; apagar
-//     destruiria registro do que a casa produziu.
-export async function excluirFichasComVinculos(fichas, auditoria = {}) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const lista = (fichas || []).filter(item => item?.id);
-  if (!lista.length) return { error: "Nenhuma ficha para excluir." };
-  const ids = lista.map(item => item.id);
-  const nomes = lista.map(item => item.nome_receita).filter(Boolean);
-  const unidadeId = auditoria?.unidadeId;
-  const limitarUnidade = query => unidadeId && unidadeId !== "matriz" ? query.eq("unidade_id", unidadeId) : query;
-
-  // Vínculos primeiro: apagar a ficha antes deixaria produto e montagem
-  // apontando para um id que não existe mais.
-  const removidos = { produtos: 0, montagens: 0, componentes: 0, producoesDesvinculadas: 0 };
-  const p = await limitarUnidade(supabase.from("produtos").delete().in("ficha_id", ids)).select("id");
-  if (p.error) return { error: `Não consegui remover o produto do cardápio: ${p.error.message}` };
-  removidos.produtos = (p.data || []).length;
-
-  if (nomes.length) {
-    const m = await limitarUnidade(supabase.from("montagem").delete().in("nome", nomes)).select("id");
-    if (m.error) return { error: `Não consegui remover o guia de montagem: ${m.error.message}` };
-    removidos.montagens = (m.data || []).length;
-  }
-
-  // A ficha usada como ingrediente de outra: some a linha da receita-mãe.
-  const r = await supabase.from("fichas_ingredientes").delete().in("subficha_id", ids).select("id");
-  if (r.error) return { error: `Não consegui tirar a ficha das receitas que a usam: ${r.error.message}` };
-  removidos.componentes = (r.data || []).length;
-
-  // Histórico de produção: a linha FICA, só perde o ponteiro para a ficha.
-  // Apagar destruiria o registro do que a casa produziu — data, quantidade e
-  // quem produziu continuam valendo mesmo sem a receita. Assim a chave
-  // estrangeira solta sem custo nenhum de informação.
-  const h = await supabase.from("producao_diaria").update({ ficha_id: null }).in("ficha_id", ids).select("id");
-  if (h.error && !/violates not-null|null value/i.test(h.error.message || "")) {
-    return { error: `Não consegui soltar o histórico de produção: ${h.error.message}` };
-  }
-  removidos.producoesDesvinculadas = (h.data || []).length;
-
-  const { error } = await supabase.from("fichas_tecnicas").delete().in("id", ids);
-  if (error) {
-    const msg = error.message || "";
-    if (/foreign key|violates/i.test(msg)) {
-      // Nomear a tabela que segurou: "um dos dois" mandava procurar no escuro.
-      // O Postgres cita duas tabelas: `on table "fichas_tecnicas" violates ...
-      // on table "producao_diaria"`. A que segura é a ÚLTIMA; a primeira é a
-      // que se tentou apagar.
-      const citadas = [...msg.matchAll(/on table "([a-z_]+)"/gi)].map(m => m[1]);
-      const tabela = citadas.length > 1 ? citadas[citadas.length - 1] : (citadas[0] || "");
-      return {
-        error: `Cardápio, guia, receitas que a usavam e histórico de produção já foram desvinculados, `
-          + `mas a ficha continua presa${tabela ? ` a "${tabela}"` : ""}. `
-          + `Esse vínculo não é apagado automaticamente porque não estava previsto: me mande esta `
-          + `mensagem que eu trato. Enquanto isso, Inativar resolve. (${msg})`,
-      };
-    }
-    return { error: msg };
-  }
-
-  await registrarAuditoriaFichas({ ...auditoria, acao: "exclusao_forcada", fichas: lista, detalhes: removidos });
-  return { error: null, quantidade: lista.length, removidos };
-}
-
 export async function inativarFichasLote(fichas, auditoria = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const lista = (fichas || []).filter(item => item?.id);
@@ -845,4 +689,14 @@ export async function atualizarOrdemFicha(id, ordem) {
     const r = await supabase.from("fichas_tecnicas").update(campos).eq("id", id); return r.error;
   }, campos);
   return { error: error?.message };
+}
+
+// Permite organizar rapidamente cada ficha nas categorias exibidas na tela.
+export async function atualizarCategoriaFicha(id, categoria) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase
+    .from("fichas_tecnicas")
+    .update({ categoria: categoria || null })
+    .eq("id", id);
+  return { error: error?.message || null };
 }

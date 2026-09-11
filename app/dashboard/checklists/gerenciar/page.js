@@ -3,12 +3,9 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import {
-  desativarTemplate, fetchExecucoesMes, fetchTemplates, formatarMinutos, salvarFotoReferencia, salvarTemplate, tempoDoChecklist,
-} from "../../../lib/checklists";
-import { comprimirFoto } from "../../../lib/operacao-evidencias";
+import { fetchTemplates, salvarTemplate, desativarTemplate, fetchExecucoesMes } from "../../../lib/checklists";
 import { SkeletonList } from "../../../components/ui";
-import { BarChart3, Camera, CheckSquare, Clock, Edit3, Layers, Loader2, Plus, Printer, Save, Sparkles, Trash2, User, Users, X } from "lucide-react";
+import { Camera, CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2, BarChart3, ImagePlus, Clock3, Upload, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 
 // Tipos de checklist por setor:
@@ -16,21 +13,40 @@ import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 // - Salão e Bar: abertura e fechamento
 const TIPOS_POR_DEPT = {
   cozinha: [
+    ["abertura", "Abertura / Início do Turno"],
+    ["durante_turno", "Durante o Turno (Operação)"],
+    ["fechamento", "Fechamento / Fim do Turno"],
     ["mise_en_place", "Mise en Place"],
-    ["abertura", "Abertura"],
     ["pre_preparos", "Pré-preparos p/ outro dia"],
-    ["fechamento", "Fechamento"],
     ["limpeza_organizacao", "Limpeza e Organização"],
   ],
   bar: [
-    ["abertura", "Abertura"],
+    ["abertura", "Abertura / Início do Turno"],
+    ["durante_turno", "Durante o Turno (Operação)"],
     ["limpeza_organizacao", "Limpeza e Organização"],
-    ["fechamento", "Fechamento"],
+    ["fechamento", "Fechamento / Fim do Turno"],
   ],
   salao: [
-    ["abertura", "Abertura"],
+    ["abertura", "Abertura / Início do Turno"],
+    ["durante_turno", "Durante o Turno (Operação)"],
     ["limpeza_organizacao", "Limpeza e Organização"],
-    ["fechamento", "Fechamento"],
+    ["fechamento", "Fechamento / Fim do Turno"],
+  ],
+  estoque: [
+    ["abertura", "Recebimento e Conferência"],
+    ["durante_turno", "Organização e FEFO"],
+    ["limpeza_organizacao", "Limpeza e Higienização"],
+    ["fechamento", "Inventário e Fechamento"],
+  ],
+  copa: [
+    ["abertura", "Abertura e Louça"],
+    ["durante_turno", "Higienização e Triagem"],
+    ["fechamento", "Fechamento da Copa"],
+  ],
+  caixa: [
+    ["abertura", "Abertura de Caixa & Balcão"],
+    ["durante_turno", "Operação & Delivery"],
+    ["fechamento", "Fechamento de Caixa"],
   ],
 };
 const ROTULOS_LEGADO = { operacional: "Operacional", limpeza: "Limpeza" };
@@ -45,11 +61,47 @@ const CORES_DEPT = {
   cozinha: "bg-amber-100 text-amber-700",
   bar: "bg-purple-100 text-purple-700",
   salao: "bg-sky-100 text-sky-700",
+  estoque: "bg-emerald-100 text-emerald-700",
+  copa: "bg-cyan-100 text-cyan-700",
+  caixa: "bg-orange-100 text-orange-700",
 };
 
-const NOMES_DEPT = { cozinha: "Cozinha", bar: "Bar", salao: "Salão" };
-const ESCOPO_DEPT = { cozinha: "da Cozinha", bar: "do Bar", salao: "do Salão" };
-const deptValido = (dept) => Object.prototype.hasOwnProperty.call(TIPOS_POR_DEPT, dept);
+const NOMES_DEPT = {
+  cozinha: "Cozinha",
+  bar: "Bar",
+  salao: "Salão",
+  estoque: "Estoque / Almoxarifado",
+  copa: "Copa / Louça",
+  caixa: "Caixa / Delivery",
+};
+const ESCOPO_DEPT = {
+  cozinha: "da Cozinha",
+  bar: "do Bar",
+  salao: "do Salão",
+  estoque: "do Estoque",
+  copa: "da Copa",
+  caixa: "do Caixa",
+};
+const deptValido = (dept) => Boolean(dept);
+
+function comprimirFotoReferencia(arquivo) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(arquivo);
+    img.onload = () => {
+      const limite = 960;
+      const escala = Math.min(1, limite / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * escala));
+      canvas.height = Math.max(1, Math.round(img.height * escala));
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.72).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Imagem inválida")); };
+    img.src = url;
+  });
+}
 
 function GerenciarChecklistsContent() {
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -65,21 +117,57 @@ function GerenciarChecklistsContent() {
   const [modalNovo, setModalNovo] = useState(false);
   const [modalModelos, setModalModelos] = useState(false);
   const [criandoTudo, setCriandoTudo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: deptPadrao, tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
+  const [dragIndex, setDragIndex] = useState(null);
+  const [form, setForm] = useState({ id: null, departamento: deptPadrao, tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", tempo_minutos: 5 }] });
 
-  // Montar por IA (organiza em título + categorias + tópicos)
+  const moverTarefa = (origem, destino) => {
+    if (destino < 0 || destino >= form.itens.length || origem === destino) return;
+    setForm(f => {
+      const novaLista = [...f.itens];
+      const [itemRemovido] = novaLista.splice(origem, 1);
+      novaLista.splice(destino, 0, itemRemovido);
+      return { ...f, itens: novaLista };
+    });
+  };
+
+  // Montar por IA (organiza em título + categorias + tópicos + turnos)
   const [contextoIA, setContextoIA] = useState("");
+  const [imagemIA, setImagemIA] = useState("");
   const [montandoIA, setMontandoIA] = useState(false);
-  // Recusa do banco não pode passar por sucesso: um checklist que não salvou
-  // é uma tarefa que o time não vai executar, e ninguém fica sabendo.
-  const [erroBanco, setErroBanco] = useState("");
+
+  const handleFotoIAUpload = async (arquivo) => {
+    if (!arquivo) return;
+    try {
+      const foto = await comprimirFotoReferencia(arquivo);
+      setImagemIA(foto);
+    } catch {
+      alert("Não foi possível carregar esta imagem.");
+    }
+  };
+
+  const handlePasteIA = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.indexOf("image") !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          try {
+            const foto = await comprimirFotoReferencia(file);
+            setImagemIA(foto);
+          } catch {
+            alert("Não foi possível processar a imagem colada.");
+          }
+        }
+      }
+    }
+  };
 
   const carregar = async () => {
     const idCarga = ++cargaAtual.current;
     setLoading(true);
-    const { data, error } = await fetchTemplates(unidadeAtiva, deptFixo || undefined);
+    const { data } = await fetchTemplates(unidadeAtiva, deptFixo || undefined);
     if (idCarga !== cargaAtual.current) return;
-    setErroBanco(error ? `Não consegui carregar os checklists: ${error}` : "");
     setTemplates(data || []);
     setLoading(false);
   };
@@ -94,38 +182,51 @@ function GerenciarChecklistsContent() {
     setDeptFiltro(deptFixo);
     setModalNovo(false);
     setModalModelos(false);
-    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
+    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
   }, [deptFixo]);
 
   const abrirNovo = () => {
     const departamento = deptFixo || (deptFiltro !== "todos" && deptValido(deptFiltro) ? deptFiltro : "cozinha");
-    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
+    const tipoPadrao = TIPOS_POR_DEPT[departamento]?.[0]?.[0] || "abertura";
+    setForm({ id: null, departamento, tipo: tipoPadrao, titulo: "", frequencia: "diario", foto_ambiente: "", itens: [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
     setContextoIA("");
+    setImagemIA("");
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
     if (deptFixo && t.departamento !== deptFixo) return;
-    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", minutos: "", foto_url: null, conjunto: false, ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
+    setForm({ frequencia: "diario", foto_ambiente: "", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", fase_turno: i.fase_turno || "abertura", horario_previsto: i.horario_previsto || "", responsavel: "", tempo_minutos: 5, ...i })) : [{ id: 1, texto: "", categoria: "", fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 }] });
     setContextoIA("");
+    setImagemIA("");
     setModalNovo(true);
   };
 
   // Nova tarefa herda a categoria da última (facilita montar por blocos)
-  const addTarefa = () => setForm(f => ({ ...f, itens: [...f.itens, { id: Date.now(), texto: "", categoria: f.itens[f.itens.length - 1]?.categoria || "", responsavel: "", minutos: "", foto_url: null }] }));
+  const addTarefa = () => setForm(f => {
+    const ultima = f.itens[f.itens.length - 1];
+    return {
+      ...f,
+      itens: [...f.itens, {
+        id: Date.now(),
+        texto: "",
+        categoria: ultima?.categoria || "",
+        fase_turno: ultima?.fase_turno || "abertura",
+        horario_previsto: ultima?.horario_previsto || "",
+        responsavel: "",
+        tempo_minutos: 5,
+      }],
+    };
+  });
   const mudaTarefa = (id, patch) => setForm(f => ({ ...f, itens: f.itens.map(i => i.id === id ? { ...i, ...patch } : i) }));
   const removeTarefa = (id) => setForm(f => ({ ...f, itens: f.itens.filter(i => i.id !== id) }));
-
-  // Foto de como o ambiente tem que FICAR. É o padrão da casa, tirado uma vez
-  // pelo gestor — quem executa olha e compara. Não confundir com evidência do
-  // que foi feito, que é outro módulo.
-  const [subindoFoto, setSubindoFoto] = useState(null);
-  const enviarFotoTarefa = async (itemId, file) => {
-    if (!file) return;
-    setSubindoFoto(itemId);
-    const r = await salvarFotoReferencia(file, { unidadeId: unidadeAtiva, itemId });
-    setSubindoFoto(null);
-    if (r.error) return alert(r.error);
-    mudaTarefa(itemId, { foto_url: r.url });
+  const anexarFotoReferencia = async (id, campo, arquivo) => {
+    if (!arquivo) return;
+    try {
+      const foto = await comprimirFotoReferencia(arquivo);
+      mudaTarefa(id, { [campo]: foto });
+    } catch {
+      alert("Não foi possível carregar essa foto.");
+    }
   };
 
   const mudarDept = (dept) => {
@@ -142,61 +243,75 @@ function GerenciarChecklistsContent() {
     setForm(f => ({
       ...f,
       titulo: f.titulo.trim() || modelo.titulo,
-      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "", minutos: "", foto_url: null, conjunto: false })),
+      itens: modelo.itens.map((it, i) => typeof it === "string" ? { id: Date.now() + i, texto: it, fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5 } : { id: Date.now() + i, fase_turno: "abertura", horario_previsto: "08:00", responsavel: "", tempo_minutos: 5, ...it }),
     }));
   };
 
-  // Monta o checklist inteiro por IA: título + tarefas organizadas em categorias
-  // Foto do ambiente: a IA olha o que esta na imagem (equipamentos, bancadas,
-  // o que esta fora do lugar) e monta as tarefas a partir dai, em vez de sair
-  // do modelo generico de "abertura de salao".
-  const [fotoIA, setFotoIA] = useState(null);
-
+  // Monta o checklist inteiro por IA a partir de texto (instruções/checklist colado) e/ou Imagem (OCR/Vision)
   const montarPorIA = async () => {
+    if (!contextoIA.trim() && !imagemIA) {
+      return alert("Cole ou digite instruções de checklist OU envie/cole uma foto (quadro branco, folha manuscrita ou impressa) para a IA processar.");
+    }
     setMontandoIA(true);
     try {
       const res = await fetch("/api/ia-checklist", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ departamento: form.departamento, tipo: form.tipo, contexto: contextoIA, unidade_nome: unidadeInfo?.nome, foto: fotoIA?.envio || null }),
+        body: JSON.stringify({
+          departamento: form.departamento,
+          tipo: form.tipo,
+          contexto: contextoIA,
+          imagem: imagemIA,
+          unidade_nome: unidadeInfo?.nome,
+        }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao montar o checklist."); return; }
       setForm(f => ({
         ...f,
         titulo: f.titulo.trim() || data.titulo || "",
-        itens: (data.itens || []).map((i, idx) => ({ id: Date.now() + idx, texto: i.texto || "", categoria: i.categoria || "", responsavel: "", minutos: i.minutos ?? "", foto_url: null, conjunto: false })),
+        itens: (data.itens || []).map((i, idx) => ({
+          id: Date.now() + idx,
+          texto: i.texto || "",
+          categoria: i.categoria || "",
+          fase_turno: i.fase_turno || "abertura",
+          horario_previsto: i.horario_previsto || "",
+          responsavel: "",
+          tempo_minutos: Number(i.tempo_minutos) || 5,
+        })),
       }));
     } catch { alert("Não consegui falar com a IA."); } finally { setMontandoIA(false); }
   };
 
-  // Cria de uma vez TODOS os modelos de um setor que ainda não existem
-  const criarTodosDoSetor = async (dept) => {
+  // Cria de uma vez TODOS os modelos de um setor (ou recria com a estrutura completa de 18 etapas)
+  const criarTodosDoSetor = async (dept, forcar = false) => {
     if (deptFixo && dept !== deptFixo) return;
     const modelos = MODELOS_CHECKLIST[dept] || {};
-    const existentes = new Set(templates.filter(t => t.departamento === dept).map(t => (t.titulo || "").toLowerCase().trim()));
-    const paraCriar = Object.entries(modelos).filter(([, m]) => !existentes.has(m.titulo.toLowerCase().trim()));
-    if (!paraCriar.length) return alert(`Todos os checklists de ${dept} já existem.`);
-    if (!confirm(`Criar ${paraCriar.length} checklist(s) completo(s) de ${dept} (${paraCriar.map(([, m]) => m.titulo).join(", ")})?`)) return;
+    const existentesMap = new Map(templates.filter(t => t.departamento === dept).map(t => [(t.titulo || "").toLowerCase().trim(), t.id]));
+    const entradas = Object.entries(modelos);
+
+    const acaoTexto = forcar ? "Atualizar/Sobrescrever" : "Criar";
+    if (!forcar) {
+      const faltam = entradas.filter(([, m]) => !existentesMap.has(m.titulo.toLowerCase().trim()));
+      if (!faltam.length) return alert(`Todos os checklists de ${dept} já existem no sistema.`);
+    }
+
+    if (!confirm(`${acaoTexto} ${entradas.length} checklist(s) completo(s) de ${dept} com os modelos atualizados de 18 etapas?`)) return;
     setCriandoTudo(true);
-    // O lote continua mesmo se um falhar, mas os que falharam são nomeados no
-    // fim: antes o setor ficava pela metade sem ninguém perceber.
-    const falhas = [];
-    for (const [tipo, m] of paraCriar) {
-      const { error } = await salvarTemplate({
+    for (const [tipo, m] of entradas) {
+      const idExistente = existentesMap.get(m.titulo.toLowerCase().trim());
+      await salvarTemplate({
+        id: forcar && idExistente ? idExistente : undefined,
         unidade_id: unidadeAtiva,
         departamento: dept,
         tipo,
         titulo: m.titulo,
-        itens: m.itens.map((texto, i) => ({ id: i + 1, texto, responsavel: "" })),
+        frequencia: "diario",
+        itens: m.itens.map((it, i) => typeof it === "string" ? { id: i + 1, texto: it, responsavel: "", tempo_minutos: 5 } : { id: i + 1, responsavel: "", tempo_minutos: 5, ...it }),
       });
-      if (error) falhas.push(`${m.titulo} (${error})`);
     }
     setCriandoTudo(false);
     setModalModelos(false);
     carregar();
-    if (falhas.length) {
-      alert(`${paraCriar.length - falhas.length} de ${paraCriar.length} checklist(s) criados.\n\nNão entraram:\n${falhas.join("\n")}`);
-    }
   };
 
   const handleSalvar = async () => {
@@ -204,27 +319,22 @@ function GerenciarChecklistsContent() {
     const itensValidos = form.itens.filter(i => i.texto.trim() !== "");
     if (itensValidos.length === 0) return alert("Adicione pelo menos uma tarefa");
 
-    const { error } = await salvarTemplate({
+    await salvarTemplate({
       id: form.id,
       unidade_id: unidadeAtiva,
       departamento: deptFixo || form.departamento,
       tipo: form.tipo,
       titulo: form.titulo,
       frequencia: form.frequencia || "diario",
+      foto_ambiente: form.foto_ambiente || null,
       itens: itensValidos,
     });
-    // Fechar o modal com o salvamento recusado jogava fora tudo que foi
-    // digitado, e a lista recarregada só não mostrava o checklist novo.
-    if (error) return alert(`Não consegui salvar este checklist: ${error}`);
     setModalNovo(false);
     carregar();
   };
 
   const handleDesativar = async (id) => {
-    if (!confirm("Deseja apagar este checklist?")) return;
-    const { error } = await desativarTemplate(id);
-    if (error) return alert(`Não consegui apagar este checklist: ${error}`);
-    carregar();
+    if (confirm("Deseja apagar este checklist?")) { await desativarTemplate(id); carregar(); }
   };
 
   // ── Relatório mensal imprimível: o que foi feito, por quem, quantas vezes ──
@@ -315,78 +425,66 @@ function GerenciarChecklistsContent() {
     const linhas = itens.map((it, i) => {
       const cat = (it.categoria || "").trim();
       const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
-      // A marca de foto vai na propria linha da tarefa: quem esta com a folha
-      // na mao precisa saber que existe um padrao para conferir no fim.
-      const marcaFoto = it.foto_url ? ` <span class="temfoto">ver foto ${i + 1}</span>` : "";
+      const horaPrevistaStr = [
+        it.horario_previsto ? `${it.horario_previsto}` : "",
+        it.hora_intervalo ? `Pausa: ${it.hora_intervalo}` : ""
+      ].filter(Boolean).join(" · ") || "—";
+
       return `${header}<tr>
         <td class="n">${i + 1}</td>
-        <td class="tarefa">${it.texto || ""}${marcaFoto}</td>
-        <td class="tempo">${formatarMinutos(it.minutos)}</td>
-        <td class="resp">${it.conjunto ? "Em conjunto" : (it.responsavel || "")}</td>
+        <td class="hora">${horaPrevistaStr}</td>
+        <td class="tarefa"><b>${it.texto || ""}</b>${it.tempo_minutos ? `<span class="min"> (${it.tempo_minutos} min)</span>` : ""}</td>
+        <td class="resp">${it.responsavel || ""}</td>
         <td class="check"><span class="box"></span></td>
-        <td class="visto"></td>
+        <td class="visto">__ : __</td>
       </tr>`;
     }).join("");
     const extras = Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${itens.length + i + 1}</td>
+        <td class="hora">—</td>
         <td class="tarefa"></td>
-        <td class="tempo"></td>
         <td class="resp"></td>
         <td class="check"><span class="box"></span></td>
-        <td class="visto"></td>
+        <td class="visto">__ : __</td>
       </tr>`).join("");
 
-    // Galeria no fim, numerada igual as tarefas. Foto ao lado de cada linha
-    // esticaria a tabela e jogaria o checklist para tres folhas; no fim ela
-    // cabe em uma e continua servindo para conferir antes de assinar.
-    const comFoto = itens.map((it, i) => ({ ...it, n: i + 1 })).filter(it => it.foto_url);
-    const galeria = comFoto.length ? `
-      <div class="galeria">
-        <h2>Como tem que ficar</h2>
-        <div class="fotos">
-          ${comFoto.map(it => `
-            <figure>
-              <img src="${it.foto_url}" alt="Padrao da tarefa ${it.n}" />
-              <figcaption><b>${it.n}.</b> ${it.texto || ""}</figcaption>
-            </figure>`).join("")}
-        </div>
+    const deptLabel = NOMES_DEPT[t.departamento] || t.departamento;
+    const corDept = t.departamento === "bar" ? "#7c3aed" : t.departamento === "salao" ? "#0284c7" : "#059669";
+    const fotoAmbienteHtml = t.foto_ambiente ? `
+      <div class="foto-box">
+        <img src="data:image/jpeg;base64,${t.foto_ambiente}" alt="Padrão do Cômodo"/>
+        <p>PADRÃO DE ORGANIZAÇÃO DO CÔMODO / ÁREA (${deptLabel.toUpperCase()})</p>
       </div>` : "";
 
-    const tempo = tempoDoChecklist(itens);
-
-    const deptLabel = t.departamento === "salao" ? "Salão" : t.departamento === "bar" ? "Bar" : "Cozinha";
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Checklist - ${t.titulo}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:8mm 8mm}
-        .head{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end}
-        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#555;font-weight:bold}
+        .head{border-bottom:4px solid ${corDept};padding-bottom:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-end}
+        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${corDept};font-weight:bold}
         h1{font-size:21px;margin-top:2px}
         .meta{font-size:12px;font-weight:bold;text-align:right}
         .meta span{display:block;font-size:10px;color:#555;font-weight:normal;margin-top:2px}
         .datas{display:flex;gap:24px;font-size:12px;margin:8px 0 10px;font-weight:bold}
         .datas b{border-bottom:1px solid #999;min-width:110px;display:inline-block}
+        .foto-box{margin:8px 0 12px;border:2px solid #cbd5e1;border-radius:8px;overflow:hidden;text-align:center;background:#f8fafc}
+        .foto-box img{max-height:160px;width:100%;object-fit:cover;display:block}
+        .foto-box p{font-size:9px;font-weight:bold;color:#475569;padding:4px;text-transform:uppercase;letter-spacing:1px;background:#e2e8f0}
         table{width:100%;border-collapse:collapse}
-        th,td{border:1px solid #333;padding:7px 6px;font-size:12px;vertical-align:middle}
-        th{background:#eee;text-transform:uppercase;letter-spacing:.5px;font-size:9px}
-        tr.cat td{background:#f3e8ff;color:#6b21a8;font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
-        td{height:30px}
-        td.n{width:5%;text-align:center;color:#666}
-        td.tarefa{width:40%}
-        td.tempo{width:8%;text-align:center;font-weight:bold;color:#444}
-        td.resp{width:20%}
-        td.check{width:7%;text-align:center}
-        td.visto{width:20%}
-        .temfoto{font-size:9px;color:#6b21a8;font-weight:bold;white-space:nowrap}
-        .galeria{page-break-before:always;padding-top:4mm}
-        .galeria h2{font-size:15px;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:8px}
-        .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-        .fotos figure{border:1px solid #333;padding:4px;page-break-inside:avoid}
-        .fotos img{width:100%;height:46mm;object-fit:cover;display:block}
-        .fotos figcaption{font-size:9px;margin-top:3px;line-height:1.25}
+        th,td{border:1px solid #333;padding:6px 6px;font-size:11px;vertical-align:middle}
+        th{background:#ecfdf5;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
+        tr.cat td{background:#f1f5f9;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
+        td{height:28px}
+        td.n{width:4%;text-align:center;color:#666;font-weight:bold}
+        td.hora{width:15%;font-size:10px;color:#334155;font-weight:bold;text-align:center}
+        td.tarefa{width:43%}
+        td.tarefa .min{font-size:10px;color:#64748b;font-weight:normal}
+        td.resp{width:17%}
+        td.check{width:6%;text-align:center}
+        td.visto{width:15%;text-align:center;color:#94a3b8;font-weight:bold;font-size:10px}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
-        .assin{margin-top:22px;display:flex;justify-content:space-between;gap:40px}
+        .assin{margin-top:20px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
       </style></head><body>
@@ -395,18 +493,18 @@ function GerenciarChecklistsContent() {
           <div class="tag">Checklist ${deptLabel} · ${rotuloTipo(t.tipo)} · ${unidadeInfo?.nome || ""}</div>
           <h1>${t.titulo}</h1>
         </div>
-        <div class="meta">${itens.length} tarefas${tempo.minutos > 0 ? ` &middot; ${formatarMinutos(tempo.minutos)}` : ""}<span>${tempo.parcial ? `tempo de ${tempo.comTempo} de ${tempo.total} tarefas` : "marque ao concluir e vista"}</span></div>
+        <div class="meta">${itens.length} tarefas<span>marque ao concluir e anote a hora</span></div>
       </div>
       <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
+      ${fotoAmbienteHtml}
       <table>
-        <thead><tr><th>#</th><th>Tarefa</th><th>Tempo</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
+        <thead><tr><th>#</th><th>Hora Prevista</th><th>Tarefa / Ação Operacional</th><th>Responsável</th><th>Feito</th><th>Hora Realizada</th></tr></thead>
         <tbody>${linhas}${extras}</tbody>
       </table>
       <div class="assin">
         <div>Responsável pelo ${deptLabel.toLowerCase()}</div>
         <div>Gerente / Conferência</div>
       </div>
-      ${galeria}
       </body></html>`;
 
     let win = null;
@@ -464,16 +562,8 @@ function GerenciarChecklistsContent() {
         </div>
       </div>
 
-      {/* Banco recusou a leitura: a lista vazia abaixo não significa que não há
-          checklist, e o convite dos modelos criaria duplicata quando voltar. */}
-      {erroBanco && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6">
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erroBanco}</p>
-        </div>
-      )}
-
       {/* Faixa: começar rápido com os modelos completos por setor */}
-      {!loading && !erroBanco && templates.length === 0 && (
+      {!loading && templates.length === 0 && (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
@@ -502,7 +592,7 @@ function GerenciarChecklistsContent() {
         {loading ? (
           <div className="col-span-full"><SkeletonList /></div>
         ) : filtrados.length === 0 ? (
-          <p className="col-span-full font-bold text-slate-500 text-center py-10">{erroBanco ? "A lista não pôde ser carregada — veja o aviso acima." : `Nenhum checklist ${deptFiltro !== "todos" ? `de ${deptFiltro}` : ""} criado ainda. Crie um para cada momento do dia (abertura, fechamento...).`}</p>
+          <p className="col-span-full font-bold text-slate-500 text-center py-10">Nenhum checklist {deptFiltro !== "todos" ? `de ${deptFiltro}` : ""} criado ainda. Crie um para cada momento do dia (abertura, fechamento...).</p>
         ) : (
           filtrados.map(t => (
             <div key={t.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
@@ -569,7 +659,7 @@ function GerenciarChecklistsContent() {
                         return (
                           <button key={tipo} disabled={jaExiste}
                             onClick={() => {
-                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, frequencia: "diario", itens: m.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })) });
+                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, frequencia: "diario", itens: m.itens.map((it, i) => typeof it === "string" ? { id: Date.now() + i, texto: it, responsavel: "", tempo_minutos: 5 } : { id: Date.now() + i, responsavel: "", tempo_minutos: 5, ...it }) });
                               setModalModelos(false);
                               setModalNovo(true);
                             }}
@@ -593,7 +683,7 @@ function GerenciarChecklistsContent() {
 
       {modalNovo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[90dvh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-2rem)] sm:max-h-[90dvh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
 
             <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-4 border-b border-slate-100">
               <h2 className="font-black text-xl sm:text-2xl text-slate-800">
@@ -626,45 +716,54 @@ function GerenciarChecklistsContent() {
                 </button>
               )}
 
-              {/* Montar tudo por IA: organiza em título + categorias + tópicos */}
-              <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0"><Sparkles size={16} /></div>
-                  <div>
-                    <p className="font-black text-sm text-violet-900 leading-tight">Montar tudo por IA</p>
-                    <p className="text-[11px] font-medium text-violet-700">Organiza o checklist em categorias e tópicos para o {form.departamento === "bar" ? "barman/bartender" : "responsável"} executar</p>
+              {/* Montar tudo por IA: texto, cópia/cola ou foto (quadro/papel) */}
+              <div
+                onPaste={handlePasteIA}
+                className="rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/70 p-4 transition-all hover:border-violet-400"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-sm"><Sparkles size={18} /></div>
+                    <div>
+                      <p className="font-black text-sm text-violet-950 leading-tight">Gerador Inteligente por IA (Texto & Fotos)</p>
+                      <p className="text-[11px] font-medium text-violet-700">Cole um checklist, digite instruções ou envie a foto de um quadro/papel</p>
+                    </div>
                   </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-violet-600 bg-violet-100 px-2.5 py-1 rounded-full">OCR / Visão + Texto</span>
                 </div>
-                <textarea rows={2} value={contextoIA} onChange={e => setContextoIA(e.target.value)}
-                  placeholder="Opcional: detalhe o que não pode faltar (ex: conferir chopeira, repor gelo, higienizar dosadores...)"
-                  className="w-full p-3 bg-white border border-violet-200 rounded-xl font-medium text-base outline-none focus:border-violet-500 resize-none mb-2" />
-                {/* A foto do ambiente vai junto do texto. Comprimida com o mesmo
-                    comprimirFoto das evidencias: foto de celular crua passa de 5 MB
-                    e a requisicao morre no limite de tamanho. */}
-                <div className="flex items-center gap-2 mb-2">
-                  <label className="flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-700 cursor-pointer hover:border-violet-400">
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={async e => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        if (!file) return;
-                        try {
-                          const foto = await comprimirFoto(file);
-                          setFotoIA({ nome: file.name, previa: URL.createObjectURL(file), envio: { data: foto.base64, media_type: foto.mediaType } });
-                        } catch (erro) { alert(erro?.message || "Não consegui preparar a foto."); }
-                      }} />
-                    <Camera size={14} /> {fotoIA ? "Trocar foto" : "Enviar foto do ambiente"}
-                  </label>
-                  {fotoIA && (
-                    <>
-                      <img src={fotoIA.previa} alt="Ambiente" className="h-9 w-9 rounded-lg object-cover border border-violet-200" />
-                      <button type="button" onClick={() => setFotoIA(null)} className="text-[11px] font-bold text-violet-700 underline">tirar</button>
-                    </>
-                  )}
-                </div>
+
+                <textarea
+                  rows={3}
+                  value={contextoIA}
+                  onChange={e => setContextoIA(e.target.value)}
+                  onPaste={handlePasteIA}
+                  placeholder="Cole aqui seu checklist, rotina operacional, lista do WhatsApp (ou pressione Ctrl+V com uma imagem)..."
+                  className="w-full p-3.5 bg-white border border-violet-200 rounded-xl font-medium text-base text-slate-800 outline-none focus:border-violet-500 resize-none mb-3 shadow-inner"
+                />
+
+                {imagemIA ? (
+                  <div className="relative mb-3 inline-block overflow-hidden rounded-xl border-2 border-violet-400 shadow-md">
+                    <img src={`data:image/jpeg;base64,${imagemIA}`} alt="Imagem enviada para IA" className="h-28 max-w-xs object-cover" />
+                    <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-2 py-0.5 text-[9px] font-black uppercase text-white">Foto para leitura</span>
+                    <button type="button" onClick={() => setImagemIA("")} className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-700"><X size={14} /></button>
+                  </div>
+                ) : (
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-white px-3.5 text-xs font-bold text-violet-800 border border-violet-200 hover:bg-violet-100 transition-colors shadow-sm">
+                      <Upload size={15} className="text-violet-600"/> Enviar foto (Quadro/Folha)
+                      <input type="file" accept="image/*" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-white px-3.5 text-xs font-bold text-violet-800 border border-violet-200 hover:bg-violet-100 transition-colors shadow-sm">
+                      <Camera size={15} className="text-violet-600"/> Tirar foto
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                    <span className="text-[11px] font-semibold text-violet-600">Dica: Você também pode dar <b>Ctrl + V</b> com uma imagem copiada!</span>
+                  </div>
+                )}
+
                 <button type="button" onClick={montarPorIA} disabled={montandoIA}
-                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm py-3 rounded-xl transition-colors disabled:opacity-60">
-                  {montandoIA ? <><Loader2 size={16} className="animate-spin" /> Montando checklist...</> : <><Sparkles size={16} /> {fotoIA ? "Montar pela foto" : "Montar por IA"}</>}
+                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-md shadow-violet-600/20 active:scale-95 disabled:opacity-60">
+                  {montandoIA ? <><Loader2 size={18} className="animate-spin" /> Processando texto e fotos com IA...</> : <><Sparkles size={18} /> Convertendo em Checklist Organizado (Abertura, Turno, Fechamento)</>}
                 </button>
               </div>
 
@@ -685,14 +784,66 @@ function GerenciarChecklistsContent() {
                 </div>
               </div>
 
+              {/* Foto Geral do Cômodo / Área */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div>
+                    <p className="font-black text-sm text-slate-800 flex items-center gap-1.5"><Camera size={16} className="text-emerald-600"/> Foto Geral do Cômodo / Área (Gabarito da Área)</p>
+                    <p className="text-[11px] font-medium text-slate-500">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
+                  </div>
+                  {form.foto_ambiente && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, foto_ambiente: "" }))} className="text-xs font-bold text-rose-600 hover:underline">Remover foto</button>
+                  )}
+                </div>
+                {form.foto_ambiente ? (
+                  <div className="relative overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                    <img src={`data:image/jpeg;base64,${form.foto_ambiente}`} alt="Foto do Cômodo" className="h-44 w-full object-cover" />
+                    <span className="absolute bottom-2 left-2 rounded bg-slate-950/80 px-2 py-1 text-[10px] font-black uppercase text-white">Foto do Padrão do Cômodo</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-white text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors shadow-sm">
+                      <Upload size={15} className="text-emerald-600"/> Galeria / PC
+                      <input type="file" accept="image/*" className="hidden" onChange={async e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const b64 = await comprimirFotoReferencia(file);
+                          setForm(f => ({ ...f, foto_ambiente: b64 }));
+                        }
+                        e.target.value = "";
+                      }} />
+                    </label>
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                      <Camera size={15}/> Tirar Foto do Cômodo
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={async e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const b64 = await comprimirFotoReferencia(file);
+                          setForm(f => ({ ...f, foto_ambiente: b64 }));
+                        }
+                        e.target.value = "";
+                      }} />
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <datalist id="categorias-checklist">
                 {[...new Set(form.itens.map(i => (i.categoria || "").trim()).filter(Boolean))].map(c => <option key={c} value={c} />)}
               </datalist>
 
               <div className="pt-4 border-t border-slate-100">
-                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-3">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas</label>
-                  <span className="text-[10px] font-medium text-slate-400">Categoria agrupa as tarefas · responsável em branco = quem executar escreve o nome</span>
+                <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas do Checklist</label>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{form.itens.length} ações</span>
+                    <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={12}/>{form.itens.reduce((total, tarefa) => total + (Number(tarefa.tempo_minutos) || 0), 0)} min</span>
+                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
+                  </div>
+                </div>
+                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
+                  <ImagePlus size={20} className="mt-0.5 shrink-0 text-emerald-600"/>
+                  <div><p className="text-xs font-black uppercase tracking-wide">Fotos Gabarito / Exemplo de Padrão</p><p className="mt-0.5 text-xs font-medium">Anexe fotos de exemplo para cada tarefa. Quem estiver executando pelo celular poderá visualizar o gabarito de como a bancada, salão ou equipamento deve ficar.</p></div>
                 </div>
                 <div className="space-y-2.5">
                   {form.itens.map((it, i) => {
@@ -700,7 +851,18 @@ function GerenciarChecklistsContent() {
                     const catAtual = (it.categoria || "").trim();
                     const novaCategoria = catAtual && catAtual !== catAnterior;
                     return (
-                    <div key={it.id}>
+                    <div
+                      key={it.id}
+                      draggable
+                      onDragStart={() => setDragIndex(i)}
+                      onDragOver={e => { if (dragIndex !== null) e.preventDefault(); }}
+                      onDrop={() => {
+                        if (dragIndex !== null && dragIndex !== i) {
+                          moverTarefa(dragIndex, i);
+                          setDragIndex(null);
+                        }
+                      }}
+                    >
                       {novaCategoria && (
                         <div className="flex items-center gap-2 mt-4 mb-1.5">
                           <Layers size={13} className="text-violet-500 shrink-0" />
@@ -708,77 +870,128 @@ function GerenciarChecklistsContent() {
                           <div className="flex-1 h-px bg-violet-100" />
                         </div>
                       )}
-                      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] sm:flex sm:items-center gap-2 rounded-xl border border-slate-100 p-2 sm:p-0 sm:border-0">
-                        <span className="w-6 text-center font-black text-slate-400 text-sm shrink-0">{i + 1}.</span>
-                        <input
-                          type="text"
-                          placeholder="O que deve ser feito?"
-                          value={it.texto}
-                          onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
-                          className="w-full min-w-0 sm:flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
-                        />
-                        <input
-                          type="text"
-                          list="categorias-checklist"
-                          placeholder="Categoria"
-                          value={it.categoria || ""}
-                          onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
-                          className="col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-32 p-3 bg-violet-50 border border-violet-200 rounded-lg font-medium text-base outline-none focus:border-violet-500"
-                        />
-                        {/* Tarefa de uma pessoa ou do time. Marcar "em conjunto" limpa
-                            o nome: guardar os dois deixaria a folha dizendo "Todos" e o
-                            sistema cobrando de uma pessoa so. */}
-                        <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-44 flex items-center gap-1.5">
-                          {it.conjunto ? (
-                            <span className="flex-1 flex items-center gap-1.5 h-11 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-[13px] font-black text-emerald-700">
-                              <Users size={13} /> Em conjunto
+                      <div className={`rounded-2xl border p-3 shadow-sm transition-all sm:p-4 ${dragIndex === i ? "opacity-50 border-emerald-400 bg-emerald-50/40" : "border-slate-200 bg-slate-50/70 hover:shadow-md hover:border-slate-300"}`}>
+                        <div className="flex items-start gap-2.5">
+                          {/* CONTROLES DE REORDENAÇÃO (ALÇA DE ARRASTO + SETAS CIMA/BAIXO) */}
+                          <div className="flex items-center gap-1 shrink-0 pt-1">
+                            <span className="grid h-8 w-8 cursor-grab active:cursor-grabbing place-items-center rounded-xl bg-slate-200/80 text-slate-500 hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta linha">
+                              <GripVertical size={16} />
                             </span>
-                          ) : (
-                            <span className="relative flex-1">
-                              <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                              <input
-                                type="text"
-                                placeholder="Responsável"
-                                value={it.responsavel || ""}
-                                onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
-                                className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
-                              />
-                            </span>
-                          )}
-                          <button type="button"
-                            onClick={() => mudaTarefa(it.id, { conjunto: !it.conjunto, responsavel: "" })}
-                            title={it.conjunto ? "Voltar para uma pessoa" : "Marcar como tarefa do time"}
-                            className={`h-11 w-9 shrink-0 grid place-items-center rounded-lg border transition-colors ${it.conjunto ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400 hover:border-emerald-300"}`}>
-                            <Users size={15} />
-                          </button>
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                type="button"
+                                disabled={i === 0}
+                                onClick={() => moverTarefa(i, i - 1)}
+                                title="Mover para cima"
+                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-slate-700 transition-colors"
+                              >
+                                <ChevronUp size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={i === form.itens.length - 1}
+                                onClick={() => moverTarefa(i, i + 1)}
+                                title="Mover para baixo"
+                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-slate-700 transition-colors"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                            </div>
+                            <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-900 text-xs font-black text-white shadow-sm ml-0.5">{i + 1}</span>
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">Ação a executar</label>
+                            <input
+                              type="text"
+                              placeholder="O que deve ser feito?"
+                              value={it.texto}
+                              onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
+                              className="w-full rounded-xl border border-slate-200 bg-white p-3 text-base font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                            />
+                          </div>
+                          <button onClick={() => removeTarefa(it.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200 mt-1" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={16} /></button>
                         </div>
-                        <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-24">
-                          <Clock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="number" min="1" inputMode="numeric"
-                            placeholder="min"
-                            value={it.minutos ?? ""}
-                            onChange={e => mudaTarefa(it.id, { minutos: e.target.value })}
-                            className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
-                          />
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-5">
+                          <label className="block sm:col-span-1">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-emerald-700">Fase do Turno</span>
+                            <select
+                              value={it.fase_turno || "abertura"}
+                              onChange={e => mudaTarefa(it.id, { fase_turno: e.target.value })}
+                              className="w-full rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 text-sm font-bold text-emerald-900 outline-none focus:border-emerald-600"
+                            >
+                              <option value="abertura">Abertura / Início do Turno</option>
+                              <option value="durante_turno">Durante o Turno (Operação)</option>
+                              <option value="fechamento">Fechamento / Fim do Turno</option>
+                            </select>
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-sky-700">Horário Previsto</span>
+                            <input
+                              type="text"
+                              placeholder="Ex: 08:00"
+                              value={it.horario_previsto || ""}
+                              onChange={e => mudaTarefa(it.id, { horario_previsto: e.target.value })}
+                              className="w-full rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900 outline-none focus:border-sky-500"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-amber-700">Pausa / Intervalo</span>
+                            <input
+                              type="text"
+                              placeholder="Ex: 10 min ou 15h-16h"
+                              value={it.hora_intervalo || ""}
+                              onChange={e => mudaTarefa(it.id, { hora_intervalo: e.target.value })}
+                              className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900 outline-none focus:border-amber-500"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-violet-600">Grupo / etapa</span>
+                            <input
+                              type="text"
+                              list="categorias-checklist"
+                              placeholder="Ex: Bancadas"
+                              value={it.categoria || ""}
+                              onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
+                              className="w-full rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-500"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-amber-600">Tempo previsto</span>
+                            <div className="relative">
+                              <Clock3 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600" />
+                              <input type="number" min="1" max="240" value={it.tempo_minutos || ""} onChange={e => mudaTarefa(it.id, { tempo_minutos: Number(e.target.value) || "" })} placeholder="Minutos" title="Tempo previsto em minutos" className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 pl-9 text-sm font-black text-slate-800 outline-none focus:border-amber-500" />
+                              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-amber-700">min</span>
+                            </div>
+                          </label>
                         </div>
-                        <label className={`col-start-2 justify-self-start sm:col-auto sm:shrink-0 h-11 w-11 flex items-center justify-center rounded-lg border cursor-pointer transition-colors ${it.foto_url ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}
-                          title={it.foto_url ? "Trocar a foto de como deve ficar" : "Foto de como deve ficar"}>
-                          <input type="file" accept="image/*" className="hidden"
-                            onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; enviarFotoTarefa(it.id, f); }} />
-                          {subindoFoto === it.id
-                            ? <span className="text-[10px] font-black text-slate-400">...</span>
-                            : it.foto_url
-                              ? <img src={it.foto_url} alt="Como deve ficar" className="h-9 w-9 rounded object-cover" />
-                              : <Camera size={16} className="text-slate-400" />}
-                        </label>
-                        {it.foto_url && (
-                          <button type="button" onClick={() => mudaTarefa(it.id, { foto_url: null })}
-                            className="col-start-2 justify-self-start sm:col-auto text-[10px] font-bold text-slate-400 hover:text-red-600 underline">
-                            tirar foto
-                          </button>
-                        )}
-                        <button onClick={() => removeTarefa(it.id)} className="col-start-2 justify-self-end sm:col-auto w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shrink-0" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={17} /></button>
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          {[["foto_equipamento", "Foto do Equipamento"], ["foto_antes", "Padrão Inicial (Antes)"], ["foto_final", "Foto Gabarito (Exemplo Final)"]].map(([campo, label]) => (
+                            <div key={campo} className="overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
+                              {it[campo] ? (
+                                <div className="relative">
+                                  <img src={`data:image/jpeg;base64,${it[campo]}`} alt={label} className="h-28 w-full rounded-lg object-cover" />
+                                  <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-white">{label}</span>
+                                  <button type="button" onClick={() => mudaTarefa(it.id, { [campo]: "" })} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white text-rose-600 shadow" aria-label={`Remover ${label}`}><X size={14} /></button>
+                                </div>
+                              ) : (
+                                <div>
+                                  <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-600">{label}</p>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white px-2 text-[10px] font-black text-slate-700 ring-1 ring-slate-200"><Upload size={14} className="text-emerald-600"/>Galeria / PC<input type="file" accept="image/*" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
+                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-2 text-[10px] font-black text-white"><Camera size={14}/>Tirar foto<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );})}

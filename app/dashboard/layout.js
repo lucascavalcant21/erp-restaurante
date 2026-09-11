@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
-import { limparTentativas } from "../lib/erro-chunk.mjs";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
@@ -19,26 +18,32 @@ import {
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
 const SIDEBAR_MENU = [
   {
-    category: "Salão",
-    home: "/dashboard/modulo/salao",
-    icon: Users,
+    category: "Início",
+    home: "/dashboard",
+    icon: BarChart,
     items: [
-      { label: "Checklist do Salão", href: "/dashboard/operacao/rotina?dept=salao" },
-      { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=salao" },
-      { label: "Treinamentos", href: "/dashboard/salao/treinamento" }
+      { label: "Painel Geral", href: "/dashboard" }
     ]
   },
-
   {
-    category: "Checklists",
-    home: "/dashboard/operacao/rotina",
+    category: "Checklist",
+    home: "/dashboard/checklists",
     icon: ClipboardList,
     items: [
-      { label: "Escolher a área", href: "/dashboard/operacao/rotina" },
       { label: "Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Bar", href: "/dashboard/operacao/rotina?dept=bar" },
       { label: "Salão", href: "/dashboard/operacao/rotina?dept=salao" },
-      { label: "Montar e gerenciar", href: "/dashboard/checklists/gerenciar" }
+      { label: "Gerenciar modelos", href: "/dashboard/checklists/gerenciar" },
+    ]
+  },
+  {
+    category: "Treinamentos",
+    home: "/dashboard/treinamentos",
+    icon: Briefcase,
+    items: [
+      { label: "Trilhas de Cozinha", href: "/dashboard/salao/treinamento?dept=cozinha" },
+      { label: "Trilhas de Bar", href: "/dashboard/salao/treinamento?dept=bar" },
+      { label: "Trilhas de Salão", href: "/dashboard/salao/treinamento?dept=salao" },
     ]
   },
   {
@@ -71,7 +76,6 @@ const SIDEBAR_MENU = [
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
       { label: "Central Operacional", href: "/dashboard/operacao/inteligente" },
-      { label: "Checklist da Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]
   },
@@ -87,7 +91,6 @@ const SIDEBAR_MENU = [
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=bar" },
       { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=bar" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=bar" },
-      { label: "Checklist do Bar", href: "/dashboard/operacao/rotina?dept=bar" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
     ]
   },
@@ -123,13 +126,12 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "Equipe & RH",
+    category: "RH",
     home: "/dashboard/modulo/rh",
     icon: Users,
     items: [
       { label: "Painel de RH", href: "/dashboard/rh" },
       { label: "Ponto", href: "/dashboard/rh/ponto" },
-      { label: "Corrigir batida", href: "/dashboard/rh/ponto/corrigir" },
       { label: "Semana do Restaurante", href: "/dashboard/rh/semana" },
       { label: "Portal do Colaborador", href: "/dashboard/rh/colaborador" },
       { label: "Folha de Pagamento", href: "/dashboard/rh/fechamento" },
@@ -139,16 +141,11 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "Gestão & Ajustes",
+    category: "Gestão",
     home: "/dashboard/modulo/gestao",
     icon: Store,
     items: [
       { label: "Inventário", href: "/dashboard/gestao/inventario" },
-      // A tela existia e funcionava, mas não tinha link em lugar nenhum: só
-      // chegava lá quem digitasse o endereço. Fica ao lado de Manutenção
-      // porque é a mesma pergunta em dois tempos — como usar o equipamento, e
-      // quem consertou quando quebrou.
-      { label: "Guia de uso (equipamentos)", href: "/dashboard/operacao/guias" },
       { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
       { label: "Relatórios", href: "/dashboard/relatorios" },
       { label: "Configurações", href: "/dashboard/configuracoes" },
@@ -164,14 +161,14 @@ const ATALHOS_POR_PAPEL = {
   admin: [
     { label: "Início", href: "/dashboard", icon: Home },
     { label: "Cozinha", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
-    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
-    { label: "Equipe", href: "/dashboard/rh", icon: Users },
+    { label: "Bar", href: "/dashboard/operacao/fichas?dept=bar", icon: GlassWater },
+    { label: "RH", href: "/dashboard/rh", icon: Users },
   ],
   gerente: [
     { label: "Início", href: "/dashboard", icon: Home },
-    { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
-    { label: "Operação", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ChefHat },
-    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
+    { label: "Cozinha", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
+    { label: "Bar", href: "/dashboard/operacao/fichas?dept=bar", icon: GlassWater },
+    { label: "RH", href: "/dashboard/rh", icon: Users },
   ],
   financeiro: [
     { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
@@ -244,9 +241,9 @@ function moduloDaRota(pathname, dept) {
 
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
-  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
-  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento"],
-  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
+  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento", "/dashboard/salao/treinamento"],
+  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento", "/dashboard/salao/treinamento"],
+  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 
 // Nestas telas o setor é definido por ?dept=. Uma estação travada nunca pode
@@ -265,6 +262,7 @@ const ROTAS_SETORIZADAS = [
   "/dashboard/operacao/fichas",
   "/dashboard/operacao/montagem",
   "/dashboard/operacao/orcamento",
+  "/dashboard/salao/treinamento",
 ];
 
 const rotaEstoqueRapido = pathname => pathname === "/dashboard/operacao/estoque/tablet";
@@ -378,7 +376,7 @@ function SidebarSection({ section, idx, ativo, onOpen }) {
   );
 }
 
-function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao }) {
+function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao, onSair }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -462,39 +460,20 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
                 <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
              </div>
           </div>
+          <button type="button" onClick={onSair} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-rose-500/10 px-3 text-xs font-black uppercase tracking-wider text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-white">
+            <LogOut size={15} /> Sair
+          </button>
         </div>
       </aside>
     </>
   );
 }
 
-function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, onToggleDensidade }) {
-  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo, erroUnidades } = useERP();
-  const router = useRouter();
-
-  // Seletor de unidade: abre por CLIQUE e fica fixo até escolher ou clicar fora.
-  // Trocar de unidade mantém você na MESMA página (os dados recarregam sozinhos).
-  const [unidadesAberto, setUnidadesAberto] = useState(false);
-  const seletorRef = useRef(null);
-  useEffect(() => {
-    const fecharFora = (e) => {
-      if (seletorRef.current && !seletorRef.current.contains(e.target)) setUnidadesAberto(false);
-    };
-    document.addEventListener("mousedown", fecharFora);
-    document.addEventListener("touchstart", fecharFora);
-    return () => {
-      document.removeEventListener("mousedown", fecharFora);
-      document.removeEventListener("touchstart", fecharFora);
-    };
-  }, []);
-
-  const handleTrocaUnidade = (id) => {
-    setUnidadeAtiva(id);
-    setUnidadesAberto(false);
-  };
+function TopHeader({ onToggleSidebar }) {
+  const { unidadeInfo } = useERP();
 
   return (
-    <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
+    <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
 
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
          <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
@@ -505,63 +484,6 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, 
          </h1>
       </div>
 
-      {/* Qual código está no ar. Sem isso, "nada mudou" é ambíguo: pode ser o
-          conserto que não funcionou ou o deploy que não chegou — e nas últimas
-          vezes era a segunda. A Vercel injeta o SHA do commit no build; com ele
-          na tela dá para dizer em um segundo qual versão a pessoa está vendo. */}
-      <span title="Versão publicada" className="order-first shrink-0 select-all rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-400">
-        {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "dev").slice(0, 7)}
-      </span>
-
-      {/* Sem unidade o sistema não grava nada: toda tabela é escopada por loja e
-          algumas têm chave estrangeira para `unidades`. Antes o app inventava uma
-          unidade "matriz" e o erro só aparecia no save, com a mensagem crua do
-          Postgres. Aqui a causa fica na cara, no topo de todas as telas. */}
-      {(erroUnidades || unidades.length === 0) && (
-        <div className="order-last w-full basis-full rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2 text-[12px] font-bold text-red-800">
-          {erroUnidades
-            ? `Não consegui carregar as lojas: ${erroUnidades}`
-            : "Nenhuma loja cadastrada."}
-          {" "}Enquanto isso o sistema não salva ficha, estoque nem ponto — tudo é gravado por loja.
-        </div>
-      )}
-
-      <div className="flex items-center justify-end gap-1.5 sm:gap-3 min-w-0 shrink">
-         {podeTrocar && (
-           <div className="relative min-w-0" ref={seletorRef}>
-             <button onClick={() => setUnidadesAberto(a => !a)} aria-expanded={unidadesAberto}
-               className="h-11 max-w-[150px] sm:max-w-[240px] md:max-w-xs flex items-center gap-1.5 sm:gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-700 px-2.5 sm:px-3 rounded-xl transition-all shadow-sm text-[10px] sm:text-xs font-bold uppercase min-w-0">
-                <Store size={14} className="text-slate-400 shrink-0"/>
-                <span className="truncate min-w-0">{unidadeInfo?.nome || 'Nenhuma Lj.'}</span>
-                <ChevronDown size={14} className="text-slate-400 transition-transform" style={{ transform: unidadesAberto ? "rotate(180deg)" : "none" }}/>
-             </button>
-             {unidadesAberto && (
-               <div className="erp-unit-menu absolute right-0 top-full mt-2 w-[min(16rem,calc(100vw-1rem))] max-h-[min(28rem,calc(100dvh-5rem))] overflow-y-auto overscroll-contain bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in fade-in zoom-in-95 origin-top-right z-50">
-                 {unidades.map(u => (
-                   <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full min-h-12 text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center gap-3 transition-colors">
-                     <span className="min-w-0 break-words">{u.nome}</span>
-                     {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500"/>}
-                   </button>
-                 ))}
-               </div>
-             )}
-           </div>
-         )}
-
-         <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
-
-         <button onClick={onToggleDensidade}
-           className={`hidden md:flex h-11 items-center justify-center gap-2 px-3 rounded-xl transition-colors ${compacto ? "bg-emerald-50 text-emerald-700" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"}`}
-           title={compacto ? "Usar visual confortável" : "Usar visual compacto"}>
-           <SlidersHorizontal size={17} />
-           <span className="text-xs font-bold">{compacto ? "Compacto" : "Confortável"}</span>
-         </button>
-
-         <button onClick={onSair} className="w-11 h-11 sm:w-auto flex items-center justify-center gap-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 sm:px-3 rounded-xl transition-colors group shrink-0" title="Sair do Sistema">
-           <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-           <span className="text-sm font-bold hidden sm:block">Sair</span>
-         </button>
-      </div>
     </header>
   );
 }
@@ -761,20 +683,13 @@ export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [compacto, setCompacto] = useState(false);
   const interfaceTelaCheia = pathname === "/dashboard/operacao/estoque/tablet"
-    || pathname === "/dashboard/operacao/etiquetas/tablet"
-    // Modo TV fica pendurado na cozinha: menu lateral e cabeçalho do app só
-    // roubariam a área útil de uma tela que ninguém vai clicar.
-    || pathname === "/dashboard/operacao/inteligente/tv";
+    || pathname === "/dashboard/operacao/etiquetas/tablet";
 
   useEffect(() => {
     try {
       setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1");
       setCompacto(localStorage.getItem("erp_densidade") === "compacta");
     } catch (_) {}
-    // O dashboard montou: a versão nova carregou. Zerar a contagem devolve as
-    // duas chances de recarga automática para a próxima publicação — sem isso,
-    // depois de duas recargas a aba nunca mais se recuperaria sozinha.
-    try { limparTentativas(window.sessionStorage); } catch (_) {}
   }, []);
 
   useEffect(() => {
@@ -872,7 +787,7 @@ export default function DashboardLayout({ children }) {
       {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
       <div className="print:hidden h-full flex shrink-0">
          <Suspense fallback={null}>
-           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} />
+           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} onSair={sair} />
          </Suspense>
       </div>
 

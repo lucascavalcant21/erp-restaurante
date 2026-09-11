@@ -30,19 +30,27 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
-import { DEPARTAMENTO_COMPARTILHADO, fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
+import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
 import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-fornecedores";
 import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar, obterTodasCategoriasInsumo, salvarNovaCategoriaCustom } from "../../../lib/categorias-insumo";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
 import {
-  EMBALAGENS_INGREDIENTE, UNIDADES_INGREDIENTE, calcularCustoSolicitado, calcularPrecoNormalizado, ehUnidadeContada, ehUnidadeUnitaria, normalizarBusca, ordenarIngredientes, parseNumeroBR, precoNormalizadoDoInsumo, rotuloPesoUnitario, rotuloVolumeUnitario, textoPesquisavel, unidadeNormalizada, unidadesDoDepartamento,
+  UNIDADES_INGREDIENTE,
+  calcularCustoSolicitado,
+  calcularPrecoNormalizado,
+  normalizarBusca,
+  ordenarIngredientes,
+  parseNumeroBR,
+  precoNormalizadoDoInsumo,
+  textoPesquisavel,
+  unidadeNormalizada,
+  unidadesIngredientePorDepartamento,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 
-const PAGE_SIZE = 50;
-const TAMANHOS_PAGINA = [25, 50, 100, 200];
+const PAGE_SIZE = 10;
 
 const ORDENACOES = [
   { value: "nome-asc", label: "Nome A–Z" },
@@ -66,9 +74,6 @@ function novoFormulario(departamento = "cozinha") {
     codigo_interno: "",
     tamanho_embalagem: "1",
     unidade_medida: ehBar ? "ml" : "kg",
-    volume_unidade_ml: "",
-    unidade_comercial: "",
-    peso_medio_g: "",
     valor_embalagem: "",
     fornecedor_atual_id: "",
     fornecedor_ids: [],
@@ -109,6 +114,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
   const quantidade = estado?.quantidade ?? "";
   const unidade = estado?.unidade || unidadeInicial;
   const resultado = calcularCustoSolicitado(insumo, quantidade, unidade);
+  const unidadesDisponiveis = unidadesIngredientePorDepartamento(insumo.departamento);
 
   return (
     <div className="min-w-[156px]">
@@ -131,7 +137,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
           onChange={event => onChange({ quantidade, unidade: event.target.value })}
           className="min-w-[54px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-[11px] font-bold text-slate-600 outline-none"
         >
-          {UNIDADES_INGREDIENTE.map(item => (
+          {unidadesDisponiveis.map(item => (
             <option key={item.value} value={item.value}>{item.label}</option>
           ))}
         </select>
@@ -183,9 +189,7 @@ function VariacaoPreco({ insumo }) {
 
 function IngredientesRunner() {
   const searchParams = useSearchParams();
-  // Um catálogo, um setor. Sem ?dept= a listagem vinha sem filtro e misturava
-  // produtos do bar com ingredientes da cozinha na mesma tela.
-  const deptUrl = searchParams.get("dept") === "bar" ? "bar" : "cozinha";
+  const deptUrl = searchParams.get("dept");
   const { abrirMenu, unidadeAtiva, sessao } = useERP();
   const ehBar = deptUrl === "bar";
   const rotuloItem = ehBar ? "produto" : "ingrediente";
@@ -198,10 +202,8 @@ function IngredientesRunner() {
   const [categoria, setCategoria] = useState("Todas");
   const [ordenacao, setOrdenacao] = useState("nome-asc");
   const [pagina, setPagina] = useState(1);
-  const [porPagina, setPorPagina] = useState(PAGE_SIZE);
-  const [destacado, setDestacado] = useState(null); // item recém-salvo, para não sumir de vista
   const [calculos, setCalculos] = useState({});
-  const [form, setForm] = useState(() => novoFormulario(deptUrl));
+  const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalHistorico, setModalHistorico] = useState(null);
   const [historico, setHistorico] = useState([]);
@@ -288,7 +290,7 @@ function IngredientesRunner() {
     if (!unidadeAtiva) return;
     setLoading(true);
     const [resInsumos, resFornecedores] = await Promise.all([
-      fetchInsumos(unidadeAtiva, deptUrl),
+      fetchInsumos(unidadeAtiva, deptUrl, { excluirPrePreparos: true }),
       fetchFornecedores(unidadeAtiva),
     ]);
     setInsumos((resInsumos.data || []).map(item => (
@@ -372,7 +374,7 @@ function IngredientesRunner() {
     for (const item of itensMigracao) {
       const nome = String(item.nome || "").trim();
       if (!nome) continue;
-      const dept = deptUrl;
+      const dept = item.departamento || deptUrl || "cozinha";
       const qtd = parseNumeroBR(item.quantidade) || 1;
       const valor = parseNumeroBR(item.valor_total) || 0;
       const unidade = item.unidade || "kg";
@@ -427,7 +429,7 @@ function IngredientesRunner() {
       comando: origemMigracaoVoz
         ? `${migrarTexto}${comandoConfirmacao ? `; Confirmação por voz: ${comandoConfirmacao}` : ""}`
         : "Importacao de ingredientes por lista ou imagem",
-      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: deptUrl })) },
+      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: item.departamento })) },
       acao: origemMigracaoVoz ? "inventory.ingredients.voice_batch" : "inventory.ingredients.import_batch",
       modulo: "inventory",
       valorAnterior: insumos.length,
@@ -452,25 +454,11 @@ function IngredientesRunner() {
 
   useEffect(() => {
     setPagina(1);
-  }, [busca, categoria, ordenacao, deptUrl, porPagina]);
+  }, [busca, categoria, ordenacao, deptUrl]);
 
-  // porPagina 0 = "Todos": o catálogo inteiro numa página só.
-  const tamanhoPagina = porPagina > 0 ? porPagina : Math.max(1, filtrados.length);
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const paginados = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
-
-  // A lista é alfabética e paginada: um "Tomate" recém-cadastrado cai numa
-  // página que ninguém está olhando e parece ter sumido. Depois de salvar,
-  // vamos até a página onde ele está e o destacamos por alguns segundos.
-  useEffect(() => {
-    if (!destacado) return;
-    const indice = filtrados.findIndex(item => item.id === destacado);
-    if (indice < 0) return;
-    setPagina(Math.floor(indice / tamanhoPagina) + 1);
-    const limpar = setTimeout(() => setDestacado(null), 5000);
-    return () => clearTimeout(limpar);
-  }, [destacado, filtrados, tamanhoPagina]);
+  const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const estatisticas = useMemo(() => {
     const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -483,14 +471,16 @@ function IngredientesRunner() {
   }, [insumos]);
 
   const abrirNovo = () => {
-    setForm(novoFormulario(deptUrl));
+    setForm(novoFormulario(deptUrl || "cozinha"));
     setPrecosForn([]); setPrecoFornMsg("");
     setModalCadastro(true);
   };
 
   const abrirEditar = insumo => {
-    const dep = insumo.departamento === DEPARTAMENTO_COMPARTILHADO ? DEPARTAMENTO_COMPARTILHADO : deptUrl;
+    const dep = insumo.departamento || deptUrl || "cozinha";
+    const unidadesDisponiveis = unidadesIngredientePorDepartamento(dep);
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
+    if (!unidadesDisponiveis.some(item => item.value === un)) un = dep === "bar" ? "ml" : "kg";
     setForm({
       id: insumo.id,
       departamento: dep,
@@ -501,9 +491,6 @@ function IngredientesRunner() {
       codigo_interno: insumo.codigo_interno || "",
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
       unidade_medida: un,
-      volume_unidade_ml: insumo.volume_unidade_ml ? String(insumo.volume_unidade_ml) : "",
-      unidade_comercial: insumo.unidade_comercial || "",
-      peso_medio_g: insumo.peso_medio_g ? String(insumo.peso_medio_g) : "",
       valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
@@ -599,18 +586,6 @@ function IngredientesRunner() {
       codigo_interno: form.codigo_interno.trim() || null,
       tamanho_embalagem: quantidade,
       unidade_medida: form.unidade_medida,
-      // Em que a quantidade acima vem. Vazio = a granel, pesado na balanca.
-      unidade_comercial: form.unidade_comercial || null,
-      // Só faz sentido em garrafa/lata/barril. Trocar para ml zera o campo, senão
-      // ficaria um volume órfão contradizendo a unidade.
-      volume_unidade_ml: ehUnidadeContada(form.unidade_medida)
-        ? (parseNumeroBR(form.volume_unidade_ml) > 0 ? parseNumeroBR(form.volume_unidade_ml) : null)
-        : null,
-      // Mesma ideia do volume, do lado do peso: "1 un" de tomate só serve para
-      // a receita quando alguém diz quanto pesa.
-      peso_medio_g: ehUnidadeUnitaria(form.unidade_medida)
-        ? (parseNumeroBR(form.peso_medio_g) > 0 ? parseNumeroBR(form.peso_medio_g) : null)
-        : null,
       custo_compra: valor,
       custo_unitario: valor / quantidade,
       preco_normalizado: precoNormalizado,
@@ -652,61 +627,8 @@ function IngredientesRunner() {
     }
 
     setModalCadastro(false);
-    // Cadastro novo entra no fim do alfabeto ou fora do filtro ativo. Limpar
-    // busca e categoria garante que ele esteja na lista; o efeito de destaque
-    // leva até a página dele.
-    if (!form.id) { setBusca(""); setCategoria("Todas"); }
-    setDestacado(insumoId || null);
     await carregar();
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
-  };
-
-  // Seleção múltipla: apagar 40 itens um a um, com um confirm cada, é o tipo de
-  // tarefa que ninguém termina. Guardamos ids, não objetos — a lista recarrega
-  // e os objetos trocam de identidade.
-  const [selecionados, setSelecionados] = useState(() => new Set());
-  const [removendoLote, setRemovendoLote] = useState(false);
-
-  const alternarSelecao = (id) => setSelecionados(atual => {
-    const proximo = new Set(atual);
-    if (proximo.has(id)) proximo.delete(id); else proximo.add(id);
-    return proximo;
-  });
-
-  // Marca/desmarca só o que está VISÍVEL na página. Selecionar em silêncio o que
-  // o filtro escondeu é a receita para apagar o que não se viu.
-  const todosDaPaginaMarcados = paginados.length > 0 && paginados.every(i => selecionados.has(i.id));
-  const alternarPagina = () => setSelecionados(atual => {
-    const proximo = new Set(atual);
-    if (todosDaPaginaMarcados) paginados.forEach(i => proximo.delete(i.id));
-    else paginados.forEach(i => proximo.add(i.id));
-    return proximo;
-  });
-
-  const removerSelecionados = async () => {
-    const alvo = filtrados.filter(i => selecionados.has(i.id));
-    if (!alvo.length) return;
-    const nomes = alvo.slice(0, 5).map(i => i.nome).join(", ");
-    const resto = alvo.length > 5 ? ` e mais ${alvo.length - 5}` : "";
-    if (!confirm(`Remover ${alvo.length} ${alvo.length === 1 ? rotuloItem : rotuloItens} do catálogo?\n\n${nomes}${resto}\n\nEles saem também das fichas técnicas e dos estoques. Não tem volta.`)) return;
-
-    setRemovendoLote(true);
-    // Um a um de propósito: removerInsumo limpa vínculo por vínculo e devolve o
-    // motivo de cada falha. Em lote, um item preso levaria os outros junto.
-    const falhas = [];
-    for (const item of alvo) {
-      const { error } = await removerInsumo(item.id);
-      if (error) falhas.push(`${item.nome}: ${error}`);
-    }
-    setRemovendoLote(false);
-    // Quem falhou continua marcado, para a pessoa ver o que sobrou e tentar de novo.
-    setSelecionados(new Set(alvo.filter(i => falhas.some(f => f.startsWith(`${i.nome}:`))).map(i => i.id)));
-    await carregar();
-    if (falhas.length) {
-      mostrarToast(`${alvo.length - falhas.length} removido(s). Falhou: ${falhas.slice(0, 2).join(" | ")}`, "erro");
-    } else {
-      mostrarToast(`${alvo.length} ${alvo.length === 1 ? rotuloItem : rotuloItens} removido(s).`);
-    }
   };
 
   const handleRemover = async insumo => {
@@ -732,11 +654,11 @@ function IngredientesRunner() {
   };
 
   if (!unidadeAtiva) {
-    return <div className="min-h-screen bg-[var(--surface)] p-12 text-center font-bold text-slate-500">Selecione uma unidade para consultar os ingredientes.</div>;
+    return <div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-500">Selecione uma unidade para consultar os ingredientes.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-20 text-slate-800">
+    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-4 sm:px-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
@@ -847,35 +769,10 @@ function IngredientesRunner() {
           </select>
         </section>
 
-        {/* Barra da seleção: só aparece com algo marcado, e some sozinha depois.
-            Fica acima das duas listas (tabela e cards) para servir às duas. */}
-        {selecionados.size > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3">
-            <span className="text-sm font-black text-emerald-900">
-              {selecionados.size} {selecionados.size === 1 ? rotuloItem : rotuloItens} selecionado(s)
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setSelecionados(new Set())} disabled={removendoLote}
-                className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                Limpar seleção
-              </button>
-              <button type="button" onClick={removerSelecionados} disabled={removendoLote}
-                className="rounded-xl border-2 border-red-300 bg-white px-3.5 py-2 text-xs font-black text-red-700 hover:bg-red-50 disabled:opacity-50">
-                {removendoLote ? "Removendo..." : `Remover ${selecionados.size} do catálogo`}
-              </button>
-            </div>
-          </div>
-        )}
-
         <section className="mt-3 hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
           <table className="w-full min-w-[1050px] table-fixed text-left">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                <th className="w-9 pl-3 pr-0">
-                  <input type="checkbox" aria-label="Selecionar os desta página"
-                    checked={todosDaPaginaMarcados} onChange={alternarPagina}
-                    className="h-4 w-4 accent-emerald-600" />
-                </th>
                 <th className="w-[190px] px-4 py-3">{ehBar ? "Produto" : "Ingrediente"}</th>
                 <th className="w-[85px] px-2.5 py-3">Marca</th>
                 <th className="w-[80px] px-2.5 py-3">Embalagem</th>
@@ -889,22 +786,17 @@ function IngredientesRunner() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={10} className="py-16 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</td></tr>
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</td></tr>
               ) : paginados.length === 0 ? (
-                <tr><td colSpan={10} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</td></tr>
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</td></tr>
               ) : paginados.map(insumo => {
                 const vinculados = insumo.fornecedores_vinculados || [];
                 const outros = Math.max(0, vinculados.length - 1);
                 const normalizado = precoNormalizadoDoInsumo(insumo);
                 return (
-                  <tr key={insumo.id} className={`align-middle transition ${destacado === insumo.id ? "bg-emerald-100 ring-2 ring-inset ring-emerald-400" : selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
-                    <td className="w-9 pl-3 pr-0">
-                      <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
-                        checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
-                        className="h-4 w-4 accent-emerald-600" />
-                    </td>
+                  <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
                     <td className="px-4 py-2">
-                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}{insumo.departamento === DEPARTAMENTO_COMPARTILHADO && <span title="Usado no bar e na cozinha" className="ml-2 shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-black uppercase tracking-wider text-indigo-700">Bar e cozinha</span>}</p>
+                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
                       <p className="mt-0.5 truncate text-[11px] text-slate-500">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
@@ -981,13 +873,10 @@ function IngredientesRunner() {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${destacado === insumo.id ? "border-emerald-500 ring-2 ring-emerald-300" : selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
+              <article key={insumo.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
-                  <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
-                    checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-emerald-600" />
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-black text-slate-900">{insumo.nome}{insumo.departamento === DEPARTAMENTO_COMPARTILHADO && <span title="Usado no bar e na cozinha" className="ml-2 shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-black uppercase tracking-wider text-indigo-700">Bar e cozinha</span>}</h2>
+                  <div className="min-w-0">
+                    <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
                     <p className="mt-1 truncate text-xs text-slate-500">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
@@ -1049,18 +938,9 @@ function IngredientesRunner() {
         {!loading && filtrados.length > 0 && (
           <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
             <p className="text-xs font-medium text-slate-500">
-              Mostrando {(paginaAtual - 1) * tamanhoPagina + 1} a {Math.min(paginaAtual * tamanhoPagina, filtrados.length)} de {filtrados.length} {rotuloItens}
+              Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} {rotuloItens}
             </p>
             <div className="flex items-center gap-2">
-              <select
-                value={porPagina}
-                onChange={e => setPorPagina(Number(e.target.value))}
-                aria-label={`Quantidade de ${rotuloItens} por página`}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-600 outline-none"
-              >
-                {TAMANHOS_PAGINA.map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
-                <option value={0}>Todos</option>
-              </select>
               <button
                 onClick={() => setPagina(valor => Math.max(1, valor - 1))}
                 disabled={paginaAtual === 1}
@@ -1143,18 +1023,22 @@ function IngredientesRunner() {
                     </select>
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Onde é usado</span>
-                    <select
-                      value={form.departamento}
-                      onChange={event => setForm({ ...form, departamento: event.target.value })}
-                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500"
-                    >
-                      <option value={deptUrl}>Só {ehBar ? "no bar" : "na cozinha"}</option>
-                      <option value={DEPARTAMENTO_COMPARTILHADO}>Bar e cozinha</option>
+                    <span className="text-xs font-bold text-slate-600">Departamento</span>
+                    <select value={form.departamento} onChange={event => {
+                      const departamento = event.target.value;
+                      const unidades = unidadesIngredientePorDepartamento(departamento);
+                      setForm({
+                        ...form,
+                        departamento,
+                        categoria: "",
+                        unidade_medida: unidades.some(item => item.value === form.unidade_medida)
+                          ? form.unidade_medida
+                          : (departamento === "bar" ? "ml" : "kg"),
+                      });
+                    }} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                      <option value="cozinha">Cozinha</option>
+                      <option value="bar">Bar</option>
                     </select>
-                    <span className="mt-1 block text-[11px] font-medium text-slate-400">
-                      "Bar e cozinha" é uma linha só, com um preço e um estoque, que aparece nos dois catálogos.
-                    </span>
                   </label>
                 </div>
               </section>
@@ -1169,48 +1053,13 @@ function IngredientesRunner() {
                   <label>
                     <span className="text-xs font-bold text-slate-600">Unidade *</span>
                     {(() => {
-                      // O bar mede tudo em volume; garrafa/lata/barril sairam daqui
-                      // e viraram a pergunta separada "Embalado em".
-                      const lista = unidadesDoDepartamento(form.departamento);
+                      const lista = unidadesIngredientePorDepartamento(form.departamento);
                       return (
                         <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
                           {lista.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
                         </select>
                       );
                     })()}
-                  </label>
-                  {/* "un" nao tem tamanho de embalagem que revele o peso: 1 tomate
-                      nao e "1 kg de tomate". Aqui a pessoa diz quanto pesa uma peca,
-                      senao o item fica fora do rendimento da ficha. */}
-                  {ehUnidadeUnitaria(form.unidade_medida) && (
-                    <label className="col-span-2">
-                      <span className="text-xs font-bold text-slate-600">Quanto pesa 1 unidade (g)</span>
-                      <input inputMode="decimal" value={form.peso_medio_g}
-                        onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, peso_medio_g: event.target.value })}
-                        placeholder="100"
-                        className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
-                      <span className="mt-1 block text-[11px] font-medium text-slate-400">
-                        {parseNumeroBR(form.peso_medio_g) > 0
-                          ? rotuloPesoUnitario({ unidade_medida: "un", peso_medio_g: parseNumeroBR(form.peso_medio_g) })
-                          : "Tomate: 100. Ovo: 50. Sem isso a receita nao sabe quanto rende."}
-                      </span>
-                    </label>
-                  )}
-                  {/* Onde esse volume/peso esta. "500 ml" sozinho nao diz se e
-                      garrafa, lata ou barril, e era essa a informacao que faltava
-                      para a ficha tecnica somar 1 garrafa como 500 ml. */}
-                  <label className="col-span-2">
-                    <span className="text-xs font-bold text-slate-600">Embalado em</span>
-                    <select value={form.unidade_comercial || ""}
-                      onChange={event => setForm({ ...form, unidade_comercial: event.target.value })}
-                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
-                      {EMBALAGENS_INGREDIENTE.map(item => <option key={item.value || "granel"} value={item.value}>{item.label}</option>)}
-                    </select>
-                    <span className="mt-1 block text-[11px] font-medium text-slate-400">
-                      {rotuloVolumeUnitario({ unidade_medida: form.unidade_medida, tamanho_embalagem: parseNumeroBR(form.tamanho_embalagem), unidade_comercial: form.unidade_comercial })
-                        || rotuloPesoUnitario({ unidade_medida: form.unidade_medida, tamanho_embalagem: parseNumeroBR(form.tamanho_embalagem), unidade_comercial: form.unidade_comercial })
-                        || "Sem embalagem a receita nao sabe quanto rende 1 peca."}
-                    </span>
                   </label>
                   <label className="col-span-2">
                     <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>
@@ -1576,6 +1425,7 @@ function IngredientesRunner() {
                         <tr>
                           <th className="p-3">Nome</th>
                           <th className="p-3">Marca</th>
+                          <th className="p-3">Setor</th>
                           <th className="p-3">Qtd</th>
                           <th className="p-3">Unidade</th>
                           <th className="p-3">Valor Total (R$)</th>
@@ -1602,6 +1452,26 @@ function IngredientesRunner() {
                               />
                             </td>
                             <td className="p-2">
+                              <select
+                                value={item.departamento || "cozinha"}
+                                onChange={e => {
+                                  const departamento = e.target.value;
+                                  const unidades = unidadesIngredientePorDepartamento(departamento);
+                                  setItensMigracao(prev => prev.map((atual, i) => i === idx ? {
+                                    ...atual,
+                                    departamento,
+                                    unidade: unidades.some(unidade => unidade.value === atual.unidade)
+                                      ? atual.unidade
+                                      : (departamento === "bar" ? "ml" : "kg"),
+                                  } : atual));
+                                }}
+                                className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
+                              >
+                                <option value="cozinha">Cozinha</option>
+                                <option value="bar">Bar</option>
+                              </select>
+                            </td>
+                            <td className="p-2">
                               <input
                                 type="number"
                                 step="any"
@@ -1616,7 +1486,7 @@ function IngredientesRunner() {
                                 onChange={e => atualizarItemMigracao(idx, "unidade", e.target.value)}
                                 className="rounded-lg border border-slate-200 px-1 py-1 font-bold"
                               >
-                                {UNIDADES_INGREDIENTE.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                                {unidadesIngredientePorDepartamento(item.departamento).map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                               </select>
                             </td>
                             <td className="p-2">
@@ -1685,7 +1555,7 @@ function IngredientesRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--surface)] p-12 text-center font-bold text-slate-400">Carregando ingredientes...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-400">Carregando ingredientes...</div>}>
       <IngredientesRunner />
     </Suspense>
   );

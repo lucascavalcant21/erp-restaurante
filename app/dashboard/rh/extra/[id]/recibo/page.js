@@ -1,355 +1,368 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, BadgeDollarSign, CalendarDays, CheckCircle2, Clock3,
-  FileClock, Loader2, Pencil, Printer, ReceiptText, Save, Trash2, Utensils,
+  ArrowLeft, BadgeDollarSign, CheckCircle2, Clock, Clock3, Loader2, Pencil,
+  Printer, Save, Shirt, Utensils, Sliders, Sparkles, Trash2,
 } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
 import { supabase } from "../../../../../lib/supabase";
 import {
-  atualizarPagamentoRecibo, fetchRecibosPrestacao, removerReciboPrestacao,
-  salvarReciboPrestacao,
+  atualizarPagamentoRecibo, excluirReciboPrestacao, fetchRecibosPrestacao, salvarReciboPrestacao,
 } from "../../../../../lib/rh";
 import {
   RECIBO_TEXTOS_PADRAO, fetchReciboTextos, imprimirReciboExtra,
-  montarHtmlRecibo, salvarReciboTextos,
 } from "../../../../../lib/recibo-extra";
 
-const hojeISO = () => {
-  const data = new Date();
-  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
-};
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+const moeda = valor => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dataBR = valor => valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
-const moeda = (valor) => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const numero = (valor) => Number(String(valor || "").replace(",", ".")) || 0;
-const dataBR = (valor) => valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
-
-// "ter 18" — curto porque são até 31 botões lado a lado no tablet.
-const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-const diaCurto = (iso) => {
-  const d = new Date(`${String(iso).slice(0, 10)}T12:00:00`);
-  return `${DIAS_CURTOS[d.getDay()]} ${d.getDate()}`;
-};
-
-function formularioDoExtra(extra) {
-  return {
-    data_trabalho: hojeISO(), dias: "1", evento: "", funcao: extra?.cargo || "Extra",
-    entrada: extra?.horario_entrada || "", saida_final: extra?.horario_saida || "",
-    intervalo: extra?.tempo_intervalo ? `${extra.tempo_intervalo} min` : "",
-    diaria: extra?.salario ? String(extra.salario) : "", vale_transporte: extra?.vale_transporte_val != null ? String(extra.vale_transporte_val) : "",
-    adicional: "", descontos: "", forma_pagamento: extra?.forma_pagamento || "Pix",
-    pagamento_realizado: true, data_pagamento: hojeISO(), janta_ofertada: extra?.janta_ofertada !== false,
-    itens: extra?.itens_emprestados || "", observacoes: "",
-  };
-}
-
-export default function ReciboExtraPage() {
+export default function GerarPagamentoExtraPage() {
   const { id } = useParams();
   const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [extra, setExtra] = useState(null);
-  const [form, setForm] = useState(null);
   const [recibos, setRecibos] = useState([]);
+  const [textos, setTextos] = useState(RECIBO_TEXTOS_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
-  // Título e subtítulo do papel: vêm das configurações da unidade e valem para
-  // todo recibo impresso daqui, inclusive os reimpressos pelo histórico.
-  const [textos, setTextos] = useState(RECIBO_TEXTOS_PADRAO);
-  const [textosSalvando, setTextosSalvando] = useState(false);
-  const [textosAviso, setTextosAviso] = useState("");
-  // Dias do período em que não houve expediente. Ficam de fora das diárias e
-  // viram a frase "não houve expediente" no recibo.
-  const [folgas, setFolgas] = useState([]);
+  const [form, setForm] = useState({
+    valor: "", data_trabalho: hojeISO(), forma_pagamento: "Pix",
+    valor_pix: "", valor_dinheiro: "",
+    dias_contratados: "1",
+    hora_entrada: "", hora_saida: "",
+    alimentacao: true, materiais: false, descricao_materiais: "",
+    desmembrar: true, // Desmembramento automático ativado por padrão
+    taxa_servico: "", inss: "", fgts: "",
+  });
 
-  const carregarHistorico = useCallback(async () => {
+  const carregarHistorico = async () => {
     const resposta = await fetchRecibosPrestacao(id);
     setRecibos(resposta.data || []);
-    return resposta;
-  }, [id]);
+  };
 
   useEffect(() => {
-    let ativo = true;
-    setCarregando(true);
     Promise.all([
       supabase.from("colaboradores").select("*").eq("id", id).maybeSingle(),
       fetchRecibosPrestacao(id),
-    ]).then(([cadastro, historico]) => {
-      if (!ativo) return;
+      fetchReciboTextos(unidadeAtiva),
+    ]).then(([cadastro, historico, configuracao]) => {
       if (!cadastro.data || cadastro.data.tipo_contrato !== "Freelancer") {
         setErro("Este cadastro de extra não foi encontrado.");
       } else {
+        const valSalario = cadastro.data.salario ? Number(cadastro.data.salario) : 0;
         setExtra(cadastro.data);
-        setForm(formularioDoExtra(cadastro.data));
+        setForm(anterior => ({
+          ...anterior,
+          valor: valSalario ? String(valSalario) : "",
+          forma_pagamento: cadastro.data.forma_pagamento || "Pix",
+          hora_entrada: cadastro.data.horario_entrada || "",
+          hora_saida: cadastro.data.horario_saida || "",
+          alimentacao: cadastro.data.janta_ofertada !== false,
+          materiais: !!String(cadastro.data.itens_emprestados || "").trim(),
+          descricao_materiais: cadastro.data.itens_emprestados || "",
+          taxa_servico: valSalario > 0 ? (valSalario * 0.10).toFixed(2) : "",
+          inss: valSalario > 0 ? (valSalario * 0.11).toFixed(2) : "",
+          fgts: valSalario > 0 ? (valSalario * 0.08).toFixed(2) : "",
+        }));
       }
       setRecibos(historico.data || []);
+      if (configuracao.data) setTextos(configuracao.data);
       setCarregando(false);
     });
-    return () => { ativo = false; };
-  }, [id]);
+  }, [id, unidadeAtiva]);
 
-  useEffect(() => {
-    let ativo = true;
-    fetchReciboTextos(unidadeAtiva).then((resposta) => {
-      if (ativo && resposta.data) setTextos(resposta.data);
+  // Função auxiliar de atualização com cálculo automático de desmembramento (Taxa 10%, INSS 11% e FGTS 8%)
+  const set = (campo, valor) => {
+    setForm(anterior => {
+      const novo = { ...anterior, [campo]: valor };
+      if (campo === "valor" || campo === "desmembrar") {
+        const v = Number(String(campo === "valor" ? valor : anterior.valor).replace(",", ".")) || 0;
+        const ativo = campo === "desmembrar" ? valor : anterior.desmembrar;
+        if (v > 0 && ativo) {
+          novo.taxa_servico = (v * 0.10).toFixed(2);
+          novo.inss = (v * 0.11).toFixed(2);
+          novo.fgts = (v * 0.08).toFixed(2);
+        }
+      }
+      return novo;
     });
-    return () => { ativo = false; };
-  }, [unidadeAtiva]);
-
-  const salvarTextos = async () => {
-    setTextosSalvando(true);
-    setTextosAviso("");
-    const resposta = await salvarReciboTextos(unidadeAtiva, textos);
-    setTextosSalvando(false);
-    if (resposta.error) return setTextosAviso(`Não consegui salvar: ${resposta.error}`);
-    if (resposta.data) setTextos(resposta.data);
-    setTextosAviso("Textos salvos para esta unidade.");
   };
 
-  const set = (campo, valor) => setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  const montarPagamento = numero => {
+    const valor = Number(String(form.valor || "").replace(",", ".")) || 0;
+    const valPix = Number(String(form.valor_pix || "").replace(",", ".")) || 0;
+    const valDinheiro = Number(String(form.valor_dinheiro || "").replace(",", ".")) || 0;
+    const dias = Number(String(form.dias_contratados || "1").replace(",", ".")) || 1;
 
-  // Todas as datas do intervalo escolhido, para a tela poder marcar quais
-  // tiveram expediente. A folga não some do período: ela é citada no recibo.
-  const datasDoPeriodo = useMemo(() => {
-    if (!form?.data_trabalho) return [];
-    const dias = Math.max(1, Number(form.dias) || 1);
-    const inicio = new Date(`${form.data_trabalho}T12:00:00`);
-    return Array.from({ length: dias }, (_, indice) => {
-      const data = new Date(inicio);
-      data.setDate(data.getDate() + indice);
-      return data.toISOString().slice(0, 10);
-    });
-  }, [form?.data_trabalho, form?.dias]);
+    const valTaxaServico = Number(String(form.taxa_servico || "").replace(",", ".")) || (form.desmembrar ? valor * 0.10 : 0);
+    const valInss = Number(String(form.inss || "").replace(",", ".")) || (form.desmembrar ? valor * 0.11 : 0);
+    const valFgts = Number(String(form.fgts || "").replace(",", ".")) || (form.desmembrar ? valor * 0.08 : 0);
 
-  const datasTrabalhadas = useMemo(
-    () => datasDoPeriodo.filter((data) => !folgas.includes(data)),
-    [datasDoPeriodo, folgas],
-  );
-
-  const alternarDia = (data) => setFolgas((anterior) =>
-    anterior.includes(data) ? anterior.filter((d) => d !== data) : [...anterior, data]);
-
-  // Mudou o intervalo: descarta marcação de dia que não existe mais nele.
-  useEffect(() => {
-    setFolgas((anterior) => anterior.filter((data) => datasDoPeriodo.includes(data)));
-  }, [datasDoPeriodo]);
-
-  // Só dia trabalhado gera diária. Antes o total multiplicava o intervalo
-  // inteiro, e a folga vinha cobrada junto.
-  const total = useMemo(() => {
-    if (!form) return 0;
-    const dias = Math.max(1, datasTrabalhadas.length);
-    return Math.max(0, (numero(form.diaria) * dias) + numero(form.vale_transporte) + numero(form.adicional) - numero(form.descontos));
-  }, [form, datasTrabalhadas]);
-
-  const montarRecibo = (numeroRecibo) => {
-    const datasContratadas = datasTrabalhadas;
-    const dias = Math.max(1, datasContratadas.length);
-    const itens = String(form.itens || "").split(",").map((item) => item.trim()).filter(Boolean);
-    const dados = {
-      ...form,
-      nome: extra.nome || "", cpf: extra.cpf || "", rg: extra.rg || "", telefone: extra.telefone || "",
-      chave_pix: extra.chave_pix || "", endereco: extra.endereco || "", rua_av: extra.rua_av || "",
-      numero_casa: extra.numero_casa || "", bairro: extra.bairro || "", cidade_uf: extra.cidade_uf || "",
-      topicos_funcao: extra.topicos_funcao || "", setor_entrega: extra.setor_entrega || "",
-    };
+    const itens = form.materiais
+      ? String(form.descricao_materiais || "").split(",").map(item => item.trim()).filter(Boolean)
+      : [];
     return {
       unidade_id: unidadeAtiva,
       colaborador_id: extra.id,
-      numero: numeroRecibo,
+      numero,
       data_trabalho: form.data_trabalho,
-      datas_contratadas: datasContratadas,
+      datas_contratadas: [form.data_trabalho],
       dias_contratados: dias,
-      valor_diaria: numero(form.diaria),
-      valor_total: total,
-      pagamento_realizado: !!form.pagamento_realizado,
-      data_pagamento: form.pagamento_realizado ? (form.data_pagamento || hojeISO()) : null,
+      valor_diaria: valor,
+      valor_total: valor,
+      pagamento_realizado: true,
+      data_pagamento: hojeISO(),
       forma_pagamento: form.forma_pagamento,
-      hora_entrada: form.entrada || null,
+      hora_entrada: form.hora_entrada || extra?.horario_entrada || null,
       hora_saida_intervalo: null,
       hora_retorno_intervalo: null,
-      hora_saida: form.saida_final || null,
-      evento: form.evento || null,
-      funcao: form.funcao || null,
-      janta_ofertada: !!form.janta_ofertada,
+      hora_saida: form.hora_saida || extra?.horario_saida || null,
+      evento: null,
+      funcao: extra?.cargo || "Extra",
+      janta_ofertada: !!form.alimentacao,
       itens,
-      dados,
+      dados: {
+        nome: extra?.nome || "", cpf: extra?.cpf || "", rg: extra?.rg || "",
+        telefone: extra?.telefone || "", chave_pix: extra?.chave_pix || "",
+        endereco: extra?.endereco || extra?.rua_av || "", rua_av: extra?.rua_av || "",
+        numero_casa: extra?.numero_casa || "", bairro: extra?.bairro || "",
+        cidade_uf: extra?.cidade_uf || "", topicos_funcao: extra?.topicos_funcao || "",
+        setor_entrega: extra?.setor_entrega || "", alimentacao_fornecida: !!form.alimentacao,
+        materiais_fornecidos: !!form.materiais,
+        valor_pix: form.forma_pagamento.includes("Híbrido") ? valPix : (form.forma_pagamento === "Pix" ? valor : 0),
+        valor_dinheiro: form.forma_pagamento.includes("Híbrido") ? valDinheiro : (form.forma_pagamento === "Dinheiro" ? valor : 0),
+        taxa_servico: form.desmembrar ? valTaxaServico : 0,
+        inss: form.desmembrar ? valInss : 0,
+        fgts: form.desmembrar ? valFgts : 0,
+      },
     };
   };
 
-  // O recibo da prévia é montado com o que está no formulário AGORA.
-  const htmlPrevia = useMemo(() => {
-    if (!extra) return "";
-    try {
-      return montarHtmlRecibo({ extra, recibo: montarRecibo("PRÉVIA"), unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos });
-    } catch { return ""; }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extra, form, total, unidadeInfo, textos]);
-
-  const salvarRecibo = async (imprimirDepois) => {
+  const salvar = async imprimirDepois => {
+    const valor = Number(String(form.valor || "").replace(",", ".")) || 0;
+    if (valor <= 0) return setErro("Informe o valor do pagamento.");
     if (!form.data_trabalho) return setErro("Informe a data do trabalho.");
-    if (numero(form.diaria) <= 0) return setErro("Informe o valor da diária.");
+    if (form.materiais && !form.descricao_materiais.trim()) return setErro("Informe quais materiais de trabalho foram entregues.");
     if (!unidadeAtiva || unidadeAtiva === "todas") return setErro("Selecione uma unidade específica.");
+
+    if (form.forma_pagamento.includes("Híbrido")) {
+      const vPix = Number(String(form.valor_pix || "").replace(",", ".")) || 0;
+      const vDinheiro = Number(String(form.valor_dinheiro || "").replace(",", ".")) || 0;
+      if (vPix + vDinheiro !== valor) {
+        return setErro(`A soma do Pix (${moeda(vPix)}) com Dinheiro (${moeda(vDinheiro)}) deve ser igual ao valor total (${moeda(valor)}).`);
+      }
+    }
+
     setErro("");
     setSalvando(true);
-    const numeroRecibo = `EXT-${form.data_trabalho.replaceAll("-", "")}-${String(Date.now()).slice(-6)}`;
-    const payload = montarRecibo(numeroRecibo);
+    const numero = `EXT-${form.data_trabalho.replaceAll("-", "")}-${String(Date.now()).slice(-6)}`;
+    const payload = montarPagamento(numero);
     const resposta = await salvarReciboPrestacao(payload);
     setSalvando(false);
-    if (resposta.error) {
-      setErro(`Não consegui salvar o recibo: ${resposta.error}`);
-      return;
-    }
+    if (resposta.error) return setErro("Não consegui salvar o pagamento: " + resposta.error);
     const salvo = resposta.data || payload;
-    setRecibos((lista) => [salvo, ...lista]);
-    if (imprimirDepois) imprimirReciboExtra({ extra, recibo: salvo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos });
-    setForm((anterior) => ({ ...formularioDoExtra(extra), data_trabalho: anterior.data_trabalho }));
-    setFolgas([]);
+    setRecibos(lista => [salvo, ...lista]);
+    if (imprimirDepois) {
+      imprimirReciboExtra({
+        extra, recibo: salvo,
+        unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos
+      });
+    }
+    setForm(anterior => ({ ...anterior, valor: extra.salario ? String(extra.salario) : "" }));
   };
 
-  // Apagar recibo emitido errado. Confirma antes porque some de vez: o recibo
-  // sai do histórico da pessoa e do total pago do mês.
-  const excluirRecibo = async (recibo) => {
-    const quando = dataBR(recibo.data_trabalho);
-    if (!window.confirm(`Excluir o recibo de ${moeda(recibo.valor_total)} do dia ${quando}? Isso não pode ser desfeito.`)) return;
-    const resposta = await removerReciboPrestacao(recibo.id);
-    if (resposta.error) return setErro(`Não consegui excluir o recibo: ${resposta.error}`);
-    setErro("");
-    await carregarHistorico();
-  };
-
-  const alterarPagamento = async (recibo) => {
+  const alterarPagamento = async recibo => {
     const pago = !recibo.pagamento_realizado;
     const resposta = await atualizarPagamentoRecibo(recibo.id, pago, pago ? hojeISO() : null);
-    if (resposta.error) return setErro(`Não consegui atualizar o pagamento: ${resposta.error}`);
-    await carregarHistorico();
+    if (resposta.error) return setErro("Não consegui atualizar: " + resposta.error);
+    carregarHistorico();
   };
 
-  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>;
-  if (!extra || !form) return <div className="mx-auto max-w-xl p-8 text-center"><p className="font-bold text-red-700">{erro || "Extra não encontrado."}</p><button onClick={() => router.push("/dashboard/rh/extra")} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white">Voltar para Extras</button></div>;
+  const excluirRecibo = async recibo => {
+    if (!window.confirm(`Tem certeza que deseja excluir o recibo de ${dataBR(recibo.data_trabalho)} (${moeda(recibo.valor_total)})?`)) return;
+    const resposta = await excluirReciboPrestacao(recibo.id);
+    if (resposta.error) return setErro("Não consegui excluir o recibo: " + resposta.error);
+    carregarHistorico();
+  };
 
-  const campo = "mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-500";
-  const rotulo = "text-[11px] font-black uppercase tracking-wider text-slate-500";
+  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={32} /></div>;
+  if (!extra) return <div className="mx-auto max-w-xl p-8 text-center"><p className="font-bold text-red-700">{erro || "Extra não encontrado."}</p><button onClick={() => router.push("/dashboard/rh/extra")} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white">Voltar</button></div>;
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-7">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
-          <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" aria-label="Voltar à tela anterior"><ArrowLeft size={20} /></button>
-          <div className="min-w-0 flex-1"><h1 className="truncate text-xl font-black sm:text-2xl">Recibos de {extra.nome}</h1><p className="text-sm font-semibold text-slate-500">Cadastro, pagamento e recibo trabalhando juntos</p></div>
-          <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-black text-slate-700 hover:bg-slate-50"><Pencil size={16} /> Editar cadastro</button>
+    <div className="min-h-screen bg-slate-100/80 pb-16 text-slate-900">
+      {/* HEADER COMPACTO */}
+      <header className="border-b border-slate-200 bg-white px-4 py-3.5 sm:px-6">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"><ArrowLeft size={18} /></button>
+            <div>
+              <h1 className="text-xl font-black text-slate-900">Gerar Recibo Extra</h1>
+              <p className="text-xs font-semibold text-slate-500">{extra.nome} ({extra.cargo || "Extra"})</p>
+            </div>
+          </div>
+          <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><Pencil size={14} /> Editar cadastro</button>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-5 px-4 py-6 sm:px-7 lg:grid-cols-[1.35fr_.85fr]">
-        <div className="space-y-5">
-          <section className="rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><ReceiptText size={22} /></span><div><h2 className="text-lg font-black">Novo recibo</h2><p className="text-sm font-medium text-slate-500">Os dados pessoais e bancários vêm do cadastro automaticamente.</p></div></div>
+      <main className="mx-auto max-w-4xl space-y-4 p-4 sm:p-6">
+        {/* FORMULÁRIO ENXUTO E PRÁTICO */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 space-y-4">
+          {/* LINHA 1: VALORES E DATA */}
+          <div className="grid gap-3 sm:grid-cols-4">
+            <label className="sm:col-span-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valor Total a Pagar *</span>
+              <div className="mt-1 flex h-12 items-center rounded-xl border-2 border-emerald-400 bg-emerald-50/70 px-3">
+                <span className="mr-2 text-lg font-black text-emerald-700 shrink-0 whitespace-nowrap leading-none">R$</span>
+                <input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-slate-900 outline-none" placeholder="0,00" />
+              </div>
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Diárias</span>
+              <input type="number" step="0.1" min="0.1" value={form.dias_contratados} onChange={e => set("dias_contratados", e.target.value)} className="mt-1 h-12 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-black text-slate-800 outline-none" placeholder="1" />
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Data do Trabalho</span>
+              <input type="date" value={form.data_trabalho} onChange={e => set("data_trabalho", e.target.value)} className="mt-1 h-12 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold text-slate-800 outline-none" />
+            </label>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <label><span className={rotulo}>Data do trabalho *</span><input type="date" value={form.data_trabalho} onChange={(e) => set("data_trabalho", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Quantidade de dias</span><input type="number" min="1" max="31" value={form.dias} onChange={(e) => set("dias", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Função</span><input value={form.funcao} onChange={(e) => set("funcao", e.target.value)} className={campo} /></label>
-              <label className="sm:col-span-2 lg:col-span-3"><span className={rotulo}>Evento ou motivo</span><input value={form.evento} onChange={(e) => set("evento", e.target.value)} placeholder="Ex.: casamento, reforço de salão, evento empresarial" className={campo} /></label>
-              <label><span className={rotulo}>Entrada</span><input type="time" value={form.entrada} onChange={(e) => set("entrada", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Saída</span><input type="time" value={form.saida_final} onChange={(e) => set("saida_final", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Intervalo</span><input value={form.intervalo} onChange={(e) => set("intervalo", e.target.value)} placeholder="60 min" className={campo} /></label>
+          {/* LINHA 2: HORÁRIO E PAGAMENTO */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Início</span>
+              <input type="time" value={form.hora_entrada} onChange={e => set("hora_entrada", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm" placeholder="15:40" />
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Término</span>
+              <input type="time" value={form.hora_saida} onChange={e => set("hora_saida", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm" placeholder="23:40" />
+            </label>
+            <label>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Forma de Pagamento</span>
+              <select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm">
+                <option>Pix</option>
+                <option>Dinheiro</option>
+                <option>Transferência</option>
+                <option>Híbrido (Pix + Dinheiro)</option>
+              </select>
+            </label>
+          </div>
+
+          {/* DETALHAMENTO HÍBRIDO (SE SELECIONADO) */}
+          {form.forma_pagamento.includes("Híbrido") && (
+            <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 grid gap-3 sm:grid-cols-2 animate-in fade-in">
+              <label>
+                <span className="text-[11px] font-black text-emerald-800">Valor no PIX (R$)</span>
+                <input type="number" min="0" step="0.01" value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none text-sm" />
+              </label>
+              <label>
+                <span className="text-[11px] font-black text-emerald-800">Valor em DINHEIRO (R$)</span>
+                <input type="number" min="0" step="0.01" value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none text-sm" />
+              </label>
+            </div>
+          )}
+
+          {/* DESMEMBRAMENTO AUTOMÁTICO DE TAXA DE SERVIÇO, INSS E FGTS */}
+          <div className="pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Sparkles size={15} className="text-emerald-600"/> Desmembramento Automático (Taxa 10% / INSS 11% / FGTS 8%)
+              </span>
+              <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.desmembrar ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Ativado</button>
+                <button type="button" onClick={() => set("desmembrar", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.desmembrar ? "bg-slate-800 text-white" : "text-slate-600"}`}>Desativado</button>
+              </div>
             </div>
 
-            {/* Dia desmarcado não gera diária e vira "não houve expediente" no
-                recibo. É assim que a folga do restaurante aparece no papel. */}
-            {datasDoPeriodo.length > 1 && (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className={rotulo}>Dias com expediente</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Desmarque o que foi folga. Só dia marcado conta diária.</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {datasDoPeriodo.map((data) => {
-                    const trabalhou = !folgas.includes(data);
-                    return (
-                      <button key={data} type="button" onClick={() => alternarDia(data)}
-                        aria-pressed={trabalhou}
-                        className={`min-h-11 rounded-xl border-2 px-3 text-xs font-black transition ${trabalhou
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                          : "border-slate-200 bg-white text-slate-400 line-through"}`}>
-                        {diaCurto(data)}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-3 text-xs font-bold text-slate-600">
-                  {datasTrabalhadas.length} dia(s) com expediente
-                  {folgas.length > 0 && ` · ${folgas.length} de folga`}
-                </p>
+            {form.desmembrar && (
+              <div className="mt-3 p-3 rounded-2xl bg-emerald-50/40 border border-emerald-200 grid gap-3 sm:grid-cols-3 animate-in fade-in">
+                <label>
+                  <span className="text-[11px] font-black text-slate-700">Taxa de serviço (10%)</span>
+                  <input type="number" min="0" step="0.01" value={form.taxa_servico} onChange={e => set("taxa_servico", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
+                </label>
+                <label>
+                  <span className="text-[11px] font-black text-slate-700">INSS calculado (11%)</span>
+                  <input type="number" min="0" step="0.01" value={form.inss} onChange={e => set("inss", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
+                </label>
+                <label>
+                  <span className="text-[11px] font-black text-slate-700">FGTS calculado (8%)</span>
+                  <input type="number" min="0" step="0.01" value={form.fgts} onChange={e => set("fgts", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
+                </label>
               </div>
             )}
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="mb-4 flex items-center gap-2"><BadgeDollarSign className="text-emerald-600" size={22} /><h2 className="text-lg font-black">Acerto financeiro</h2></div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label><span className={rotulo}>Diária (R$) *</span><input type="number" min="0" step="0.01" value={form.diaria} onChange={(e) => set("diaria", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Vale-transporte</span><input type="number" min="0" step="0.01" value={form.vale_transporte} onChange={(e) => set("vale_transporte", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Adicional / bônus</span><input type="number" min="0" step="0.01" value={form.adicional} onChange={(e) => set("adicional", e.target.value)} className={campo} /></label>
-              <label><span className={rotulo}>Descontos</span><input type="number" min="0" step="0.01" value={form.descontos} onChange={(e) => set("descontos", e.target.value)} className={campo} /></label>
-            </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-950 p-4 text-white"><div><p className="text-xs font-black uppercase tracking-widest text-emerald-300">Total do recibo</p><p className="mt-1 text-3xl font-black">{moeda(total)}</p></div><p className="text-sm font-semibold text-emerald-100">{Math.max(1, datasTrabalhadas.length)} dia(s) × {moeda(numero(form.diaria))}</p></div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="mb-4 flex items-center gap-2"><Utensils className="text-emerald-600" size={20} /><h2 className="text-lg font-black">Pagamento e apoio</h2></div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label><span className={rotulo}>Forma de pagamento</span><select value={form.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)} className={campo}><option>Pix</option><option>Dinheiro</option><option>Transferência</option></select></label>
-              <label><span className={rotulo}>Data do pagamento</span><input type="date" disabled={!form.pagamento_realizado} value={form.data_pagamento} onChange={(e) => set("data_pagamento", e.target.value)} className={`${campo} disabled:bg-slate-100`} /></label>
-              <label className="sm:col-span-2"><span className={rotulo}>Itens emprestados (separe por vírgula)</span><input value={form.itens} onChange={(e) => set("itens", e.target.value)} placeholder="Avental, camisa, rádio" className={campo} /></label>
-              <label className="flex min-h-12 items-center gap-3 rounded-xl bg-slate-50 px-4"><input type="checkbox" checked={form.pagamento_realizado} onChange={(e) => set("pagamento_realizado", e.target.checked)} className="h-5 w-5 accent-emerald-600" /><span className="font-bold text-slate-700">Pagamento já realizado</span></label>
-              <label className="flex min-h-12 items-center gap-3 rounded-xl bg-slate-50 px-4"><input type="checkbox" checked={form.janta_ofertada} onChange={(e) => set("janta_ofertada", e.target.checked)} className="h-5 w-5 accent-emerald-600" /><span className="font-bold text-slate-700">Janta oferecida</span></label>
-            </div>
-          </section>
-
-          {erro && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button onClick={() => salvarRecibo(false)} disabled={salvando} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-200 bg-white px-6 text-base font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{salvando ? <Loader2 className="animate-spin" size={20} /> : <Save size={19} />} Somente salvar</button>
-            <button onClick={() => salvarRecibo(true)} disabled={salvando} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-60">{salvando ? <Loader2 className="animate-spin" size={20} /> : <><Save size={19} /><Printer size={19} /></>} Salvar e imprimir</button>
           </div>
-        </div>
 
-        <aside className="space-y-5">
-          {/* Pré-visualização ao vivo: acompanha cada tecla do formulário */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Como vai sair</p>
-              <span className="text-[11px] font-bold text-slate-400">atualiza enquanto você digita</span>
+          {/* LINHA 3: TOGGLES COMPACTOS (ALIMENTAÇÃO E MATERIAIS) */}
+          <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Utensils size={15} className="text-emerald-600" /> Ofereceu Alimentação?</span>
+              <div className="flex gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                <button type="button" onClick={() => set("alimentacao", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.alimentacao ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("alimentacao", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.alimentacao ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+              </div>
             </div>
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white" style={{ height: 460 }}>
-              <iframe title="Pré-visualização do recibo" srcDoc={htmlPrevia} className="origin-top-left border-0"
-                style={{ width: "210mm", height: "297mm", transform: "scale(.52)", pointerEvents: "none" }} />
-            </div>
-          </section>
 
-          {/* Cabeçalho do papel: cada casa dá um nome ao documento. Fica salvo
-              na unidade, então vale para todos os recibos, não só para este. */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2"><Pencil className="text-emerald-600" size={18} /><h2 className="text-lg font-black">Textos do recibo</h2></div>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Valem para todos os recibos desta unidade. Razão social, CNPJ e cidade vêm de Configurações.</p>
-            <div className="mt-4 space-y-3">
-              <label className="block"><span className={rotulo}>Título</span><input value={textos.titulo} onChange={(e) => setTextos((anterior) => ({ ...anterior, titulo: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.titulo} className={campo} /></label>
-              <label className="block"><span className={rotulo}>Quem assina</span><input value={textos.responsavel_nome} onChange={(e) => setTextos((anterior) => ({ ...anterior, responsavel_nome: e.target.value }))} placeholder="Nome completo do responsável" className={campo} /></label>
-              <label className="block"><span className={rotulo}>Cargo de quem assina</span><input value={textos.responsavel_cargo} onChange={(e) => setTextos((anterior) => ({ ...anterior, responsavel_cargo: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.responsavel_cargo} className={campo} /></label>
-              <label className="block"><span className={rotulo}>Motivo da folga</span><input value={textos.motivo_folga} onChange={(e) => setTextos((anterior) => ({ ...anterior, motivo_folga: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.motivo_folga} className={campo} /></label>
-              <label className="block"><span className={rotulo}>Observação de horário</span><textarea rows={3} value={textos.observacao_horario} onChange={(e) => setTextos((anterior) => ({ ...anterior, observacao_horario: e.target.value }))} placeholder="Deixe em branco para não imprimir este parágrafo" className={`${campo} h-auto py-3`} /></label>
-              <label className="block"><span className={rotulo}>Parágrafo de encerramento</span><textarea rows={3} value={textos.encerramento} onChange={(e) => setTextos((anterior) => ({ ...anterior, encerramento: e.target.value }))} placeholder="Deixe em branco para não imprimir este parágrafo" className={`${campo} h-auto py-3`} /></label>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Shirt size={15} className="text-emerald-600" /> Entregou Material/Uniforme?</span>
+              <div className="flex gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                <button type="button" onClick={() => set("materiais", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.materiais ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("materiais", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.materiais ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+              </div>
             </div>
-            {textosAviso && <p className={`mt-3 rounded-xl px-3 py-2 text-xs font-bold ${textosAviso.startsWith("Não") ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{textosAviso}</p>}
-            <button onClick={salvarTextos} disabled={textosSalvando} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{textosSalvando ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />} Salvar textos</button>
-          </section>
+          </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-black uppercase tracking-widest text-emerald-700">Dados vinculados</p><h2 className="mt-2 text-xl font-black">{extra.nome}</h2><p className="mt-1 font-bold text-slate-500">{extra.cargo || "Extra"}</p><div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600"><p>CPF: {extra.cpf || "não informado"}</p><p>PIX: {extra.chave_pix || "não informado"}</p><p>Diária padrão: {moeda(extra.salario)}</p></div></section>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><FileClock className="text-emerald-600" size={20} /><h2 className="text-lg font-black">Histórico de recibos</h2></div>
-            {recibos.length === 0 ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">O primeiro recibo desta pessoa aparecerá aqui.</p> : <div className="mt-4 space-y-3">{recibos.map((recibo) => <article key={recibo.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-slate-800">{moeda(recibo.valor_total)}</p><p className="mt-0.5 text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || 1} dia(s)</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-xs font-black text-slate-700"><Printer size={14} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />} {recibo.pagamento_realizado ? "Tornar pendente" : "Marcar pago"}</button><button onClick={() => excluirRecibo(recibo)} className="col-span-2 flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-500 hover:bg-slate-50"><Trash2 size={14} /> Excluir recibo</button></div></article>)}</div>}
-          </section>
-        </aside>
+          {form.materiais && (
+            <label className="block">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Quais materiais foram entregues?</span>
+              <input value={form.descricao_materiais} onChange={e => set("descricao_materiais", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-bold outline-none focus:border-emerald-500" placeholder="Ex.: avental, camisa da loja, rádio" />
+            </label>
+          )}
+
+          {erro && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">{erro}</p>}
+
+          {/* BOTÕES DE AÇÃO */}
+          <div className="grid gap-2.5 sm:grid-cols-2 pt-2 border-t border-slate-100">
+            <button onClick={() => salvar(false)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+              {salvando ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Salvar sem imprimir
+            </button>
+            <button onClick={() => salvar(true)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50">
+              {salvando ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /><Printer size={18} /></>} Salvar e imprimir recibo
+            </button>
+          </div>
+        </section>
+
+        {/* HISTÓRICO ANTERIOR */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-black text-slate-900">Recibos anteriores deste extra</h2>
+          {!recibos.length ? (
+            <p className="mt-2 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">Nenhum pagamento gerado anteriormente.</p>
+          ) : (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {recibos.map(recibo => (
+                <article key={recibo.id} className="rounded-2xl border border-slate-200 p-3 flex items-center justify-between gap-3 bg-slate-50/50">
+                  <div>
+                    <p className="text-base font-black text-slate-900">{moeda(recibo.valor_total)}</p>
+                    <p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · <span className={recibo.pagamento_realizado ? "text-emerald-700" : "text-amber-700"}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex h-9 items-center gap-1 rounded-xl bg-white border border-slate-200 px-3 text-xs font-black text-slate-700 hover:bg-slate-50">
+                      <Printer size={14} /> Imprimir
+                    </button>
+                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100" title="Alternar status de pagamento">
+                      {recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />}
+                    </button>
+                    <button onClick={() => excluirRecibo(recibo)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100" title="Excluir comprovante/recibo">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

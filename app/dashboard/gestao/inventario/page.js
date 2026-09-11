@@ -15,6 +15,7 @@ import {
   registrarMovimentoInventario, fetchMovimentosInventario, CATEGORIAS_INVENTARIO,
   fetchCategoriasInventario, salvarCategoriasInventario
 } from "../../../lib/inventario";
+import { fetchColaboradores } from "../../../lib/rh";
 
 const TIPOS_BAIXA = [
   { id: "quebra", label: "Quebra" },
@@ -45,7 +46,7 @@ function fileParaBase64(file) {
 }
 
 export default function InventarioPage() {
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
   const [itens, setItens] = useState([]);
   const [movimentos, setMovimentos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +58,9 @@ export default function InventarioPage() {
   const [localFiltro, setLocalFiltro] = useState("Todos");
   const [contagemAberta, setContagemAberta] = useState(false);
   const [toast, setToast] = useState("");
+  const [colaboradores, setColaboradores] = useState([]);
+  const [responsavelInventario, setResponsavelInventario] = useState("");
+  const [responsavelEscolhido, setResponsavelEscolhido] = useState("");
 
   // Modais
   const [modalItem, setModalItem] = useState(false);
@@ -78,12 +82,16 @@ export default function InventarioPage() {
 
   const carregar = async () => {
     setLoading(true);
-    const [ri, rm] = await Promise.all([
+    const [ri, rm, rc] = await Promise.all([
       fetchInventario(unidadeAtiva),
       fetchMovimentosInventario(unidadeAtiva),
+      fetchColaboradores(unidadeAtiva),
     ]);
     setItens(ri.data || []);
     setMovimentos(rm.data || []);
+    const equipeAtiva = (rc.data || []).filter(pessoa => (pessoa.status || "ativo") !== "inativo" && pessoa.ativo !== false);
+    setColaboradores(equipeAtiva);
+    if (!equipeAtiva.length) setResponsavelInventario(sessao?.nome || sessao?.email || "Usuário do sistema");
     fetchCategoriasInventario(unidadeAtiva).then(r => setCategorias(r.data));
     setLoading(false);
   };
@@ -210,7 +218,7 @@ export default function InventarioPage() {
   const supabaseMovimentoInicial = async (novoId) => {
     await registrarMovimentoInventario(
       { id: novoId, unidade_id: unidadeAtiva, quantidade: 0 },
-      { tipo: "entrada", quantidade: Number(form.quantidade) || 0, motivo: "Cadastro inicial" }
+      { tipo: "entrada", quantidade: Number(form.quantidade) || 0, motivo: "Cadastro inicial", responsavel: responsavelInventario }
     );
   };
 
@@ -290,7 +298,12 @@ export default function InventarioPage() {
 
   const abrirMov = (item, modo) => {
     setModalMov({ item, modo });
-    setMovForm({ tipo: modo === "baixa" ? "quebra" : modo, quantidade: "", motivo: "", responsavel: "" });
+    setMovForm({
+      tipo: modo === "baixa" ? "quebra" : modo,
+      quantidade: "",
+      motivo: "",
+      responsavel: responsavelInventario || sessao?.nome || sessao?.email || "Usuário do sistema",
+    });
   };
 
   const confirmarMov = async (e) => {
@@ -299,11 +312,14 @@ export default function InventarioPage() {
     if (qtd <= 0) return alert("Informe a quantidade.");
     const { item, modo } = modalMov;
     const tipo = modo === "entrada" ? "entrada" : modo === "ajuste" ? "ajuste" : movForm.tipo;
+    if (modo === "baixa" && !String(movForm.motivo || "").trim()) {
+      return alert("Informe o motivo da baixa. Ele será enviado para a Auditoria.");
+    }
     if (tipo !== "entrada" && tipo !== "ajuste" && qtd > (Number(item.quantidade) || 0)) {
       if (!confirm(`Você está dando baixa de ${qtd}, mas só há ${item.quantidade} no inventário. Continuar (o saldo vai a zero)?`)) return;
     }
     const { error, avisoAuditoria } = await registrarMovimentoInventario(item, {
-      tipo, quantidade: qtd, motivo: movForm.motivo, responsavel: movForm.responsavel,
+      tipo, quantidade: qtd, motivo: movForm.motivo, responsavel: responsavelInventario || movForm.responsavel,
     });
     if (error) return alert("Erro: " + error);
     // O movimento valeu, mas se não entrou na auditoria quem deu a baixa
@@ -375,7 +391,7 @@ export default function InventarioPage() {
       if ((Number(it.quantidade) || 0) > 0) {
         await registrarMovimentoInventario(
           { id, unidade_id: unidadeAtiva, quantidade: 0 },
-          { tipo: "entrada", quantidade: Number(it.quantidade) || 0, motivo: "Importação por IA" }
+          { tipo: "entrada", quantidade: Number(it.quantidade) || 0, motivo: "Importação por IA", responsavel: responsavelInventario }
         );
       }
       ok++;
@@ -403,7 +419,7 @@ export default function InventarioPage() {
       const { error } = await salvarItemInventario(patch);
       if (error) return false;
       const r = await registrarMovimentoInventario(existente, {
-        tipo: "ajuste", quantidade, motivo: "Contagem por voz",
+        tipo: "ajuste", quantidade, motivo: "Contagem física", responsavel: responsavelInventario,
       });
       return !r?.error;
     }
@@ -417,7 +433,7 @@ export default function InventarioPage() {
     if (quantidade > 0) {
       await registrarMovimentoInventario(
         { id, unidade_id: unidadeAtiva, quantidade: 0 },
-        { tipo: "entrada", quantidade, motivo: "Contagem por voz" },
+        { tipo: "entrada", quantidade, motivo: "Contagem física", responsavel: responsavelInventario },
       );
     }
     return true;
@@ -538,48 +554,50 @@ export default function InventarioPage() {
                 <p className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>
                   <MapPin size={11} /> {lugar} · {lista.reduce((s, i) => s + (Number(i.quantidade) || 0), 0).toLocaleString("pt-BR")} un
                 </p>
-                <div className="erp-card divide-y" style={{ borderColor: "var(--line)" }}>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {lista.map(item => {
                     const zerado = (Number(item.quantidade) || 0) <= 0;
                     return (
-                      <div key={item.id} className="px-4 py-3 flex items-center gap-3" style={{ borderColor: "var(--line-soft)" }}>
-                        {item.foto ? (
-                          <img src={`data:image/jpeg;base64,${item.foto}`} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0 border" style={{ borderColor: "var(--line)" }} />
-                        ) : (
-                          <div className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--elevated)" }}>
-                            <Boxes size={16} style={{ color: "var(--dim)" }} />
+                      <article key={item.id} className="erp-card min-w-0 p-4" style={{ borderColor: zerado ? "#FDA4AF" : "var(--line)" }}>
+                        <div className="flex min-w-0 items-start gap-3">
+                          {item.foto ? (
+                            <img src={`data:image/jpeg;base64,${item.foto}`} alt="" className="h-12 w-12 shrink-0 rounded-xl border object-cover" style={{ borderColor: "var(--line)" }} />
+                          ) : (
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--elevated)" }}>
+                              <Boxes size={18} style={{ color: "var(--dim)" }} />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-base font-black" style={{ color: "var(--fg)" }}>{item.nome}</p>
+                            <p className="mt-0.5 truncate text-[11px] font-semibold" style={{ color: "var(--dim)" }}>
+                              {item.localizacao ? `${item.localizacao} · ` : ""}
+                              {Number(item.valor_unitario) > 0 ? `${fmtBRL(item.valor_unitario)}/un` : "sem valor informado"}
+                            </p>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm truncate" style={{ color: "var(--fg)" }}>{item.nome}</p>
-                          <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>
-                            {item.localizacao ? `${item.localizacao} · ` : ""}
-                            {Number(item.valor_unitario) > 0 ? `${fmtBRL(item.valor_unitario)}/un` : "sem valor informado"}
-                          </p>
+                          <div className="shrink-0 text-right">
+                            <p className="text-2xl font-extrabold leading-none" style={{ color: zerado ? "#DC2626" : "var(--fg)" }}>{Number(item.quantidade).toLocaleString("pt-BR")}</p>
+                            <p className="mt-1 text-[9px] font-black uppercase tracking-widest" style={{ color: zerado ? "#DC2626" : "var(--dim)" }}>{zerado ? "zerado" : "un"}</p>
+                          </div>
                         </div>
-                        <div className="w-16 text-center shrink-0">
-                          <p className="text-xl font-extrabold leading-none" style={{ color: zerado ? "#DC2626" : "var(--fg)" }}>{Number(item.quantidade).toLocaleString("pt-BR")}</p>
-                          <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: zerado ? "#DC2626" : "var(--dim)" }}>{zerado ? "zerado" : "un"}</p>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="mt-4 grid grid-cols-[1fr_1fr_44px_44px] gap-2">
                           <button onClick={() => abrirMov(item, "entrada")} title="Entrada (comprei/ganhei mais)"
-                            className="px-2.5 py-2 rounded-lg font-bold text-xs flex items-center gap-1 transition-colors"
+                            className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-black transition-colors"
                             style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
                             <Plus size={13} /> Entrada
                           </button>
                           <button onClick={() => abrirMov(item, "baixa")} title="Baixa (quebra/perda/descarte)"
-                            className="px-2.5 py-2 rounded-lg font-bold text-xs flex items-center gap-1 transition-colors"
+                            className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-black transition-colors"
                             style={{ background: "var(--danger-soft)", color: "var(--danger-strong)" }}>
                             <Minus size={13} /> Baixa
                           </button>
-                          <button onClick={() => abrirEditar(item)} title="Editar" className="p-2 rounded-lg transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
+                          <button onClick={() => abrirEditar(item)} title="Editar" className="grid min-h-11 place-items-center rounded-xl transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
                             <Edit3 size={14} />
                           </button>
-                          <button onClick={() => excluirItem(item)} title="Excluir" className="p-2 rounded-lg transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
+                          <button onClick={() => excluirItem(item)} title="Excluir" className="grid min-h-11 place-items-center rounded-xl transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
                             <Trash2 size={14} />
                           </button>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -670,18 +688,29 @@ export default function InventarioPage() {
             <Field label={modalMov.modo === "ajuste" ? "Quantidade contada (nova quantidade exata)" : "Quantidade"}>
               <NumberInput value={movForm.quantidade} onChange={e => setMovForm({ ...movForm, quantidade: e.target.value })} placeholder="Ex: 3" min="0" step="1" required />
             </Field>
-            <Field label="Detalhe (opcional)">
-              <TextInput value={movForm.motivo} onChange={e => setMovForm({ ...movForm, motivo: e.target.value })} placeholder={modalMov.modo === "entrada" ? "Ex: compra no atacadão" : "Ex: caiu no salão, sumiu no evento..."} />
-            </Field>
-            <Field label="Responsável (opcional)">
-              <TextInput value={movForm.responsavel} onChange={e => setMovForm({ ...movForm, responsavel: e.target.value })} placeholder="Quem registrou / quem quebrou" />
-            </Field>
+            {modalMov.modo === "baixa" && <Field label="Detalhe da baixa (obrigatório)">
+              <TextInput required value={movForm.motivo} onChange={e => setMovForm({ ...movForm, motivo: e.target.value })} placeholder="Ex: caiu no salão, sumiu no evento..." />
+            </Field>}
+            <p className="rounded-xl p-3 text-xs font-bold" style={{ background: "var(--elevated)", color: "var(--muted)" }}>Contagem de <b style={{ color: "var(--fg)" }}>{responsavelInventario}</b>. Essa informação ficará no histórico.</p>
             <div className="mt-5 flex gap-3">
               <Btn type="button" variant="ghost" className="flex-1" onClick={() => setModalMov(null)}>Cancelar</Btn>
               <Btn type="submit" variant={modalMov.modo === "entrada" ? "primary" : "danger"} className="flex-1">Confirmar</Btn>
             </div>
           </form>
         )}
+      </Modal>
+
+      <Modal open={!loading && !responsavelInventario} onClose={() => {}} title="Quem fará a contagem?">
+        <div className="space-y-4">
+          <p className="text-sm font-semibold" style={{ color: "var(--muted)" }}>Escolha um funcionário contratado. Todas as contagens, entradas e perdas desta sessão ficarão registradas no nome dele.</p>
+          <Field label="Funcionário responsável">
+            <Select value={responsavelEscolhido} onChange={e => setResponsavelEscolhido(e.target.value)} required>
+              <option value="">Selecione...</option>
+              {colaboradores.map(pessoa => <option key={pessoa.id} value={pessoa.nome}>{pessoa.nome} {pessoa.cargo ? `· ${pessoa.cargo}` : ""}</option>)}
+            </Select>
+          </Field>
+          <Btn variant="primary" className="w-full" disabled={!responsavelEscolhido} onClick={() => setResponsavelInventario(responsavelEscolhido)}>Entrar no inventário</Btn>
+        </div>
       </Modal>
 
       {/* Modal: importação em massa via IA */}

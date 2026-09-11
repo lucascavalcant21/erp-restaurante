@@ -7,6 +7,7 @@ import { fetchMesasEComandas, gerarMesas } from "../../lib/mesas";
 import { supabase, isSupabaseReady } from "../../lib/supabase";
 import { carimbarUnidade } from "../../lib/unidades";
 import { useRouter } from "next/navigation";
+import { formatarTempoMesa } from "../../lib/vendas-pdv-utils.mjs";
 
 function fmtBRL(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
@@ -82,9 +83,24 @@ export default function MesasPDVPage() {
   const mesasFiltradas = mesas.filter(m => m.numero.toLowerCase().includes(busca.toLowerCase()));
   const mesasLivres = mesas.filter(m => (m.comandas?.length || 0) === 0).length;
   const mesasOcupadas = mesas.length - mesasLivres;
+  const quantidadeVisivel = mesasFiltradas.length;
+  // O tamanho acompanha a quantidade: mais mesas = cartões menores e mais
+  // colunas. No celular a grade continua com duas colunas para o toque não
+  // ficar apertado demais.
+  const mesaMinima = quantidadeVisivel <= 12 ? 160
+    : quantidadeVisivel <= 24 ? 120
+      : quantidadeVisivel <= 40 ? 96
+        : quantidadeVisivel <= 60 ? 82 : 72;
+  const mesaGap = quantidadeVisivel <= 12 ? 18 : quantidadeVisivel <= 24 ? 12 : 8;
+  const mesaCompacta = quantidadeVisivel > 12;
+  const mesaMuitoCompacta = quantidadeVisivel > 32;
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] bg-slate-100 relative overflow-hidden font-sans">
+      <style>{`
+        .mesas-grade-adaptativa{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--mesa-min),1fr));gap:var(--mesa-gap)}
+        @media(max-width:640px){.mesas-grade-adaptativa{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+      `}</style>
       {toast && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-sm transition-all animate-bounce">
           {toast}
@@ -131,7 +147,7 @@ export default function MesasPDVPage() {
       </div>
 
       {/* MAPA DE MESAS (GRID) */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 hide-scrollbar">
+      <div className={`flex-1 overflow-y-auto hide-scrollbar ${mesaMuitoCompacta ? "p-2 sm:p-3" : "p-3 sm:p-5"}`}>
         {loading ? (
           <div className="h-full flex items-center justify-center font-black text-2xl text-slate-500">Carregando Mapa...</div>
         ) : mesas.length === 0 ? (
@@ -146,39 +162,44 @@ export default function MesasPDVPage() {
               </button>
            </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:gap-6 pb-20">
+          <div className="mesas-grade-adaptativa pb-20" style={{ "--mesa-min": `${mesaMinima}px`, "--mesa-gap": `${mesaGap}px` }}>
             {mesasFiltradas.map(m => {
               const ocupada = (m.comandas?.length || 0) > 0;
-              const maiorTempo = ocupada ? Math.floor(m.comandas.reduce((t,c) => { const d=Date.now()-new Date(c.aberta_em).getTime(); return d>t?d:t; },0)/60000) : 0;
+              const maiorTempo = ocupada ? Math.floor(m.comandas.reduce((t,c) => {
+                const inicio = c.aberta_em || c.created_at;
+                const d = inicio ? Math.max(0, Date.now() - new Date(inicio).getTime()) : 0;
+                return d > t ? d : t;
+              },0)/60000) : 0;
+              const tempoExibido = formatarTempoMesa(maiorTempo);
               const valorTotal = ocupada ? m.comandas.reduce((t, c) => t + (c.itens||[]).reduce((s,i) => s + i.preco*i.quantidade, 0), 0) : 0;
               
               return (
                 <button
                   key={m.id}
                   onClick={() => abrirDrawer(m)}
-                  className={`relative flex flex-col p-3 sm:p-5 aspect-square rounded-2xl sm:rounded-[32px] transition-all duration-300 active:scale-95 text-left overflow-hidden group ${
+                  className={`relative flex flex-col transition-all duration-300 active:scale-95 text-left overflow-hidden group ${mesaMuitoCompacta ? "min-h-32 p-2 rounded-xl border-b-4" : mesaCompacta ? "min-h-40 p-3 rounded-2xl border-b-[6px]" : "min-h-48 p-3 sm:p-5 rounded-2xl sm:rounded-[28px] border-b-8"} ${
                     ocupada 
-                      ? 'bg-emerald-500 border-b-8 border-emerald-600 shadow-[0_12px_32px_rgba(245,158,11,0.3)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(245,158,11,0.4)]' 
-                      : 'bg-white border-b-8 border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-emerald-200'
+                      ? 'bg-emerald-500 border-emerald-600 shadow-[0_8px_20px_rgba(16,185,129,0.22)] hover:-translate-y-1'
+                      : 'bg-white border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-emerald-200'
                   }`}
                 >
                   {/* Numero da Mesa */}
-                  <h3 className={`font-black text-4xl sm:text-5xl tracking-tighter transition-colors ${ocupada ? 'text-white' : 'text-slate-800 group-hover:text-emerald-600'}`}>
+                  <h3 className={`font-black tracking-tighter leading-none transition-colors ${mesaMuitoCompacta ? "text-2xl" : mesaCompacta ? "text-3xl" : "text-4xl sm:text-5xl"} ${ocupada ? 'text-white' : 'text-slate-800 group-hover:text-emerald-600'}`}>
                     {m.numero.replace(/Mesa /i, "")}
                   </h3>
                   
                   {ocupada ? (
-                    <div className="mt-auto space-y-2 w-full">
-                       <div className="flex items-center gap-1.5 text-amber-100 font-bold text-xs uppercase tracking-widest bg-black/20 px-3 py-1.5 rounded-xl w-fit">
-                         <Clock size={12}/> {maiorTempo} min
+                    <div className={`mt-auto w-full ${mesaMuitoCompacta ? "space-y-1" : "space-y-2"}`}>
+                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-emerald-50 font-bold uppercase bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-[8px] px-1.5 py-1" : "text-xs tracking-wide px-2.5 py-1.5"}`}>
+                         {!mesaMuitoCompacta && <Clock size={12}/>} {tempoExibido}
                        </div>
-                       <div className="flex items-center gap-1.5 text-white font-black text-sm sm:text-lg bg-black/20 px-2 sm:px-3 py-1.5 rounded-xl w-fit">
-                         <Banknote size={16}/> {fmtBRL(valorTotal)}
+                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-white font-black bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-[9px] px-1.5 py-1" : "text-sm sm:text-base px-2 sm:px-3 py-1.5"}`}>
+                         {!mesaMuitoCompacta && <Banknote size={15}/>} {fmtBRL(valorTotal)}
                        </div>
                     </div>
                   ) : (
                     <div className="mt-auto w-full">
-                       <span className="inline-block px-4 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs uppercase tracking-widest group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                       <span className={`inline-block rounded-lg bg-slate-100 text-slate-500 font-bold uppercase group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-[8px]" : "px-4 py-2 text-xs tracking-widest"}`}>
                          Livre
                        </span>
                     </div>

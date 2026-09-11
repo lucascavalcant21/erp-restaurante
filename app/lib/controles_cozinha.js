@@ -19,6 +19,20 @@ export async function inserirControleLimpeza(obj) {
   return { data, error: error?.message };
 }
 
+// Permite completar o ciclo aos poucos: primeiro a chegada do produto, depois
+// o início do uso e, por último, o fim. Mantemos tudo no mesmo registro para o
+// histórico não virar três linhas soltas sem relação entre si.
+export async function atualizarControleLimpeza(id, campos) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!id) return { error: "Registro inválido." };
+  const permitidos = {};
+  for (const chave of ["produto", "volume", "inicio_uso", "fim_uso", "created_at"]) {
+    if (Object.prototype.hasOwnProperty.call(campos || {}, chave)) permitidos[chave] = campos[chave] || null;
+  }
+  const { data, error } = await supabase.from("controle_limpeza").update(permitidos).eq("id", id).select().single();
+  return { data, error: error?.message };
+}
+
 export async function finalizarControleLimpeza(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("controle_limpeza").update({ fim_uso: new Date().toISOString() }).eq("id", id);

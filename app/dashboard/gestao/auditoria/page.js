@@ -19,6 +19,11 @@ const rotuloAcao = acao => ({
   "inventory.create_withdrawal_batch": "Retirada do depósito",
   "inventory.create_entry": "Entrada no estoque",
   "inventory.create_withdrawal": "Retirada do estoque",
+  "inventory.entrada": "Entrada no inventário",
+  "inventory.quebra": "Baixa por quebra no inventário",
+  "inventory.perda": "Baixa por perda no inventário",
+  "inventory.descarte": "Baixa por descarte no inventário",
+  "inventory.ajuste": "Ajuste de contagem no inventário",
 }[acao] || acao || "Ação do assistente");
 
 const dataHoraAuditoria = valor => {
@@ -39,7 +44,7 @@ export default function AuditoriaPerdasPage() {
     setLoading(true);
     const [perdas, acoes] = await Promise.all([
       fetchRelatorioPerdas(unidadeAtiva, dias),
-      fetchAuditoriaHefisto(unidadeAtiva, 30),
+      fetchAuditoriaHefisto(unidadeAtiva, 100),
     ]);
     setRelatorio(perdas.data || []);
     setAcoesAuditadas(acoes.data || []);
@@ -152,7 +157,11 @@ export default function AuditoriaPerdasPage() {
                       <strong className="text-sm" style={{ color: "var(--fg)" }}>{rotuloAcao(registro.acao)}</strong>
                       <span className={`erp-badge ${sucesso ? "erp-badge-success" : "erp-badge-danger"}`}>{registro.resultado || "registrado"}</span>
                     </div>
-                    <p className="mt-2 break-words text-sm font-semibold" style={{ color: "var(--fg-soft)" }}>“{registro.comando || "Ação manual confirmada"}”</p>
+                    <p className="mt-2 break-words text-sm font-semibold" style={{ color: "var(--fg-soft)" }}>
+                      {registro.intencao?.item
+                        ? `${registro.intencao.item} · ${Number(registro.intencao.quantidade || 0).toLocaleString("pt-BR")} un${registro.intencao.motivo ? ` · ${registro.intencao.motivo}` : ""}`
+                        : `“${registro.comando || "Ação manual confirmada"}”`}
+                    </p>
                     {registro.erro && <p className="mt-1 text-xs text-rose-600">{registro.erro}</p>}
                   </div>
                   <div className="shrink-0 text-left text-xs sm:text-right" style={{ color: "var(--dim)" }}>

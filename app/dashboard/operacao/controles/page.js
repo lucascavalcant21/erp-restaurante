@@ -263,10 +263,10 @@ export default function ControlesCozinha() {
   }
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="controles-compactos min-h-screen pb-24">
+      <style>{`.controles-compactos .erp-page-header{padding-top:12px!important;padding-bottom:10px!important}.controles-compactos .erp-page-body{padding-top:12px!important;row-gap:12px!important}.controles-compactos .controles-vazio>.erp-card{min-height:0!important;padding:28px!important}`}</style>
       <PageHeader 
-        title={`Controles da Cozinha: ${unidadeInfo?.nome}`} 
-        subtitle="Monitore o uso e ciclo de vida de insumos de limpeza, gás e óleo." 
+        title={`Controles · ${unidadeInfo?.nome}`}
         icon={CalendarClock} 
       />
       
@@ -274,23 +274,23 @@ export default function ControlesCozinha() {
         <Toast show={!!toast}>{toast}</Toast>
 
         {/* Abas */}
-        <div className="flex gap-4 mb-6 border-b border-slate-200">
-          <button onClick={() => setAbaAtiva("limpeza")} className={`pb-3 font-bold text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${abaAtiva === "limpeza" ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+        <div className="mb-3 flex flex-wrap gap-1.5 rounded-xl bg-slate-100 p-1.5">
+          <button onClick={() => setAbaAtiva("limpeza")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "limpeza" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             <Sparkles size={16} /> Limpeza
           </button>
-          <button onClick={() => setAbaAtiva("gas")} className={`pb-3 font-bold text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${abaAtiva === "gas" ? "border-orange-500 text-orange-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setAbaAtiva("gas")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "gas" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             <Flame size={16} /> Gás
           </button>
-          <button onClick={() => setAbaAtiva("oleo")} className={`pb-3 font-bold text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${abaAtiva === "oleo" ? "border-amber-500 text-amber-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setAbaAtiva("oleo")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "oleo" ? "bg-white text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             <Droplets size={16} /> Óleo de Fritura
           </button>
-          <button onClick={() => setAbaAtiva("agenda")} className={`pb-3 font-bold text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${abaAtiva === "agenda" ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setAbaAtiva("agenda")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "agenda" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             <CalendarCheck size={16} /> Agenda de Limpezas
           </button>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-black text-slate-800">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <h2 className="text-lg font-black text-slate-800">
             {abaAtiva === "limpeza" && "Histórico de Produtos de Limpeza"}
             {abaAtiva === "gas" && "Trocas de Botijão de Gás"}
             {abaAtiva === "oleo" && "Ciclos do Óleo da Fritadeira"}
@@ -311,7 +311,7 @@ export default function ControlesCozinha() {
         {loading ? (
           <EmptyState icon={Clock} title="Carregando..." />
         ) : dados.length === 0 ? (
-          <EmptyState icon={CalendarClock} title="Nenhum registro" hint="Inicie o uso de um novo item para começar a rastrear." />
+          <div className="controles-vazio"><EmptyState icon={CalendarClock} title="Nenhum registro" hint="Inicie o uso de um novo item para começar a rastrear." /></div>
         ) : abaAtiva === "agenda" ? (
           <div className="space-y-4">
             {dados.map(item => {

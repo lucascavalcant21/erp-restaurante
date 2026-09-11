@@ -27,31 +27,36 @@ import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from "react"
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import {
-  atualizarOrdemFicha, excluirFichasComVinculos, fetchFichas, fetchInsumos,
-  registrarAuditoriaFichas, removerFicha, salvarFicha, salvarInsumo,
+  atualizarCategoriaFicha, atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
+  inativarFichasLote, registrarAuditoriaFichas, salvarFicha, salvarInsumo,
 } from "../../../lib/operacao";
 import { fetchEstoques, vincularItemEstoque } from "../../../lib/estoques-multiplos";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchEmbalagens, salvarEmbalagem } from "../../../lib/embalagens";
 import { garantirFichaNoEstoquePreparo } from "../../../lib/estoques-multiplos";
-import { chaveNomeMontagem, fetchMontagens, inserirMontagem } from "../../../lib/montagem";
+import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import {
   AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BarChart3, BookOpen, Calculator, Camera,
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
   FileDown, FolderPlus, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
-  Search, ShieldAlert, Sparkles, Trash2, UtensilsCrossed, Wine, X,
+  Search, Sparkles, Trash2, UtensilsCrossed, Wine, X,
   Clock, Thermometer, MoreVertical,
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
-import { rotuloPesoUnitario, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
-import { fetchCategoriasFichas, fetchParams, salvarCategoriasFichas } from "../../../lib/parametros";
+import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
+import { METODOS_BAR, metodoBar, fetchComplementosDeFichas } from "../../../lib/ficha-tecnica";
+import { hasPermission, permissionKey } from "../../../lib/permissions-catalog";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
 } from "../../../lib/fichas-lote-utils.mjs";
+import {
+  precoNormalizadoDoInsumo,
+  unidadeNormalizada,
+} from "../../../lib/ingredientes-utils.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -88,15 +93,11 @@ const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infus�
 // Método do drink. Batido e mexido não são estilo: mudam o resultado no copo —
 // o shaker aera, gela e dilui mais; o mixing glass mantém o drink límpido e
 // com corpo. Quem monta no balcão precisa disso escrito, não subentendido.
-const METODOS_BAR = [
-  { id: "batido", nome: "Batido (shaker)" },
-  { id: "mexido", nome: "Mexido (mixing glass)" },
-  { id: "montado", nome: "Montado no copo" },
-  { id: "liquidificador", nome: "Liquidificador" },
-  { id: "dose", nome: "Dose pura" },
-];
-const metodoBar = (id) => METODOS_BAR.find(m => m.id === id) || null;
+// METODOS_BAR e metodoBar vivem em lib/ficha-tecnica.js: a ficha técnica grava
+// o mesmo `metodo_bar`, e duas listas separadas divergiriam nos ids.
 const CATEGORIAS_PREPARO_COZINHA = [
+  "Empanamentos e farinhas",
+  "Salmouras e marinadas",
   "Molhos e caldos",
   "Arroz, feijão e grãos",
   "Massas e recheios",
@@ -225,78 +226,42 @@ const SUB_UNIDADES = {
 };
 const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] || null;
 
-// A perda informa quanto da compra não vira produto aproveitável. Por isso o
-// custo correto é dividido pelo rendimento: R$ 39,90 com 30% de perda =
-// 39,90 / 0,70 = R$ 57,00 por kg útil (e não 39,90 × 1,30).
-function multiplicadorPerda(percentual) {
-  const perda = Math.min(99.99, Math.max(0, Number(percentual) || 0));
-  return 1 / (1 - perda / 100);
-}
-
 // Custo unitário efetivo do ingrediente. Empanados ganham peso (ganho_pct) e
 // somam o custo do empanamento (custo_empanado_kg, por kg final). Só faz sentido
 // em peso (g/kg); em outras unidades usa o custo base.
-// Custo de UMA unidade-base do insumo.
-//
-// custo_unitario é o caminho normal, mas registros antigos e importados vieram
-// com 0 nessa coluna enquanto a embalagem tem preço. O catálogo já se defende
-// disso — precoNormalizadoDoInsumo cai para custo_compra ÷ tamanho quando o
-// valor salvo é zero — e a ficha não se defendia: o mesmo insumo aparecia a
-// R$ 4,00/L no catálogo e a R$ 0,00/L na ficha, o custo entrava zerado e o CMV
-// saía errado sem nenhum aviso na tela.
-function custoUnitarioDoInsumo(ins) {
-  const salvo = Number(ins?.custo_unitario);
-  if (Number.isFinite(salvo) && salvo > 0) return salvo;
-  const tamanho = Number(ins?.tamanho_embalagem) || 0;
-  const compra = Number(ins?.custo_compra) || 0;
-  return tamanho > 0 && compra > 0 ? compra / tamanho : 0;
-}
-
 function custoUnitEfetivo(ins) {
-  const base = custoUnitarioDoInsumo(ins);
+  const base = precoNormalizadoDoInsumo(ins) || Number(ins?.custo_unitario) || Number(ins?.custo_compra) || 0;
   if (!ins?.empanado) return base;
   const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
-  const u = String(ins.unidade_medida || "").toLowerCase();
   const empKg = Number(ins.custo_empanado_kg) || 0;
-  const empNaUnidade = u === "g" ? empKg / 1000 : u === "kg" ? empKg : 0;
+  // `base` agora vem normalizado por unidade-base (R$/kg), então o custo do
+  // empanamento entra direto em R$/kg. Converter para grama aqui o dividia por
+  // mil e o empanamento praticamente sumia da conta.
+  const empNaUnidade = unidadeNormalizada(ins.unidade_medida) === "kg" ? empKg : 0;
   return base / ganho + empNaUnidade;
 }
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 // guard evita loop infinito se alguém criar uma referência circular.
-// Custo da ficha aberto em duas partes.
-//
-// O card mostrava um número só e ninguém sabia quanto dele era ingrediente e
-// quanto era embalagem — que é justamente a parte que se corta quando o CMV
-// aperta. As duas contas sempre existiram aqui dentro; só a soma saía.
-//
-// Uma travessia só devolve as duas: separar em duas funções faria a mesma
-// recursão duas vezes e, pior, deixaria as regras livres para divergirem.
-function custosDaFicha(f, todasFichas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return { ingredientes: 0, agregados: 0, total: 0 };
+function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 0;
   guard.add(f.id);
-  let ingredientes = 0;
+  let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
-    // A quantidade da ficha é líquida/aproveitável; a compra bruta necessária
-    // considera o percentual que será perdido no preparo.
-    const fc = multiplicadorPerda(fi.insumos?.perda_pct || fi.fator_correcao);
+    // Fator de correção (%) do item: a quantidade BRUTA (líquida × 1+fc) é a que custa
+    const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
     if (fi.insumos) {
-      ingredientes += custoUnitEfetivo(fi.insumos) * (fi.quantidade || 0) * fc;
+      const unBase = unidadeNormalizada(fi.insumos.unidade_medida) || String(fi.insumos.unidade_medida || "un").toLowerCase();
+      const custoU = custoUnitEfetivo(fi.insumos);
+      const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
+      total += custoU * qtdBase * fc;
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      // O preparo entra pelo custo CHEIO dele: a embalagem do preparo é custo
-      // do preparo, não da ficha que o usa. Somá-la nos agregados daqui
-      // misturaria a embalagem do xarope com a do prato.
-      const custoBaseUnit = base ? custosDaFicha(base, todasFichas, new Set(guard)).total / (base.rendimento_porcoes || 1) : 0;
-      ingredientes += custoBaseUnit * (fi.quantidade || 0) * fc;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      total += custoBaseUnit * (fi.quantidade || 0) * fc;
     }
   });
-  const agregados = Number(f.custo_embalagens_total) || 0;
-  return { ingredientes, agregados, total: ingredientes + agregados };
-}
-
-function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
-  return custosDaFicha(f, todasFichas, guard).total;
+  return total + (Number(f.custo_embalagens_total) || 0);
 }
 // Custo por unidade-de-rendimento de uma base (usado quando ela vira ingrediente)
 function custoUnitBase(base, todasFichas) {
@@ -311,36 +276,21 @@ function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
   return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
 }
 
-// Base do custo por rótulo. Por dentro 1 ml conta como 1 g (densidade 1) para
-// somar líquido e sólido na mesma conta, mas escrever "1 kg custa" numa receita
-// medida em ml confunde quem lê: xarope se compra e se serve em volume. Quando
-// a ficha não diz em que mede (rende em porções), vale o padrão do setor.
-function baseCustoDaFicha(unidadeRendimento, padrao = "kg") {
-  const un = String(unidadeRendimento || "").toLowerCase();
-  if (un === "l" || un === "ml") return "L";
-  if (un === "kg" || un === "g") return "kg";
-  return padrao;
+function unidadePadraoDepartamento(departamento) {
+  return String(departamento || "").toLowerCase() === "bar" ? "l" : "kg";
 }
 
-// Cartão e imposto incidem sobre o preço de venda. O Simples Nacional é
-// apurado sobre o faturamento, e a alíquota depende do anexo e da faixa de
-// receita da loja — por isso é editável, e não um número fixo no código.
-const TAXAS_VENDA_PADRAO = { cartao: 3, imposto: 7.3, lucro: 20 };
-const chaveTaxasVenda = (unidadeId) => `erp_taxas_venda_${unidadeId || "sem-unidade"}`;
+function rendimentoPadronizado(ficha) {
+  const unidade = unidadePadraoDepartamento(ficha?.departamento);
+  const rendimento = Number(ficha?.rendimento_porcoes) || 0;
+  const pesoTotal = pesoTotalDaFicha(rendimento, ficha?.rendimento_unidade, Number(ficha?.peso_porcao_g) || 0);
+  return { unidade, valor: pesoTotal > 0 ? pesoTotal / 1000 : rendimento, totalBase: pesoTotal };
+}
 
-// Quantas embalagens a ficha consome: uma por porção servida. Quando o
-// rendimento é em peso ou volume, o número de porções só existe se a ficha
-// disser quanto pesa uma porção — 200 ml de rendimento não são 200 porções.
-// Sem esse dado a receita conta como um lote só. Antes o número cru virava a
-// quantidade de porções, e a embalagem era multiplicada pelo número de
-// mililitros: uma tampa de R$ 1,60 somava R$ 320,00 ao custo da ficha.
-function porcoesParaEmbalagem(rendimento, unidade, pesoPorcaoG) {
-  const un = String(unidade || "porcao").toLowerCase();
-  const rend = Number(rendimento) || 0;
-  if (un === "porcao" || un === "un") return Math.max(1, rend);
-  const pesoPorcao = Number(pesoPorcaoG) || 0;
-  const pesoTotal = pesoTotalDaFicha(rend, un, pesoPorcao);
-  return pesoPorcao > 0 && pesoTotal > 0 ? Math.max(1, pesoTotal / pesoPorcao) : 1;
+function textoRendimentoPadronizado(ficha) {
+  const padrao = rendimentoPadronizado(ficha);
+  const unidade = padrao.unidade === "l" ? "L" : "kg";
+  return `${padrao.valor.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${unidade}`;
 }
 
 // Info de peso de uma ficha: peso total produzido (g), custo por kg, peso por
@@ -366,53 +316,15 @@ function infoPesoFicha(f, todasFichas) {
     liquido: un === "l" || un === "ml",
   };
 }
-// Insumo medido em g ou ml custa frações de centavo por unidade: R$ 1,00 a
-// garrafa de 500 ml dá R$ 0,002/ml, que em duas casas vira "R$ 0,00" e parece
-// custo zero. Mostramos por kg/L, que é o número do catálogo de ingredientes.
-const fmtCustoUnitario = (custo, unidade) => {
-  const un = String(unidade || "").toLowerCase();
-  const valor = Number(custo) || 0;
-  if (un === "g") return `${fmtBRL(valor * 1000)}/kg`;
-  if (un === "ml") return `${fmtBRL(valor * 1000)}/L`;
-  return `${fmtBRL(valor)}/${String(unidade || "").toUpperCase()}`;
-};
-
 const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
-
-// Como escrever o rendimento de uma ficha. A cozinha pesa, o bar mede volume:
-// rendimento em medida contínua sai SEMPRE em kg na cozinha e SEMPRE em L no
-// bar, qualquer que seja a unidade cadastrada (1 ml conta como 1 g, a mesma
-// densidade que o custo já usa por dentro). Uma unidade só por setor poupa a
-// conta de cabeça entre 570 g e 1,2 kg a cada ficha da lista. Rendimento em
-// porções ou unidades não é medida contínua e continua como está.
-const MEDIDAS_CONTINUAS = ["kg", "g", "l", "ml"];
-function medidaContinua(unidade) {
-  return MEDIDAS_CONTINUAS.includes(String(unidade || "").toLowerCase());
-}
-function gramasRendimento(quantidade, unidade) {
-  const un = String(unidade || "").toLowerCase();
-  const qtd = Number(quantidade) || 0;
-  return (un === "kg" || un === "l") ? qtd * 1000 : qtd;
-}
-function unidadeRendimento(unidade, ehBar, quantidade = 0) {
-  const un = String(unidade || "porcao").toLowerCase();
-  if (medidaContinua(un)) return ehBar ? "L" : "kg";
-  const umSo = Number(quantidade) === 1;
-  return { porcao: ehBar ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), un: "un" }[un] || un;
-}
-function textoRendimento(quantidade, unidade, ehBar) {
-  const un = String(unidade || "porcao").toLowerCase();
-  const valor = medidaContinua(un) ? gramasRendimento(quantidade, un) / 1000 : (Number(quantidade) || 0);
-  return `${(+valor.toFixed(3)).toLocaleString("pt-BR")} ${unidadeRendimento(un, ehBar, quantidade)}`;
-}
 
 // Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
 // no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" entram se o
 // insumo tiver peso médio cadastrado (ex: 1 tomate ≈ 100g). Sugere a unidade
 // conforme o que domina.
-function rendimentoPelosIngredientes(ingLista) {
+function rendimentoPelosIngredientes(ingLista, departamento = "cozinha") {
   let solidosG = 0, liquidosMl = 0;
   (ingLista || []).forEach(ing => {
     const u = String(ing.unidade || "").toLowerCase();
@@ -423,16 +335,12 @@ function rendimentoPelosIngredientes(ingLista) {
     else if (u === "l") liquidosMl += q * 1000;
     else if (u === "ml") liquidosMl += q;
     else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) solidosG += q * pm;
-    // Garrafa, lata e barril contam recipientes. Valem o que cabe dentro, se o
-    // cadastro disser quanto é — 1 garrafa de 500 ml entra como 500 ml. Sem o
-    // volume o item fica de fora, como o "un" sem peso médio.
-    else if (volumeUnitarioMl(ing) > 0) liquidosMl += q * volumeUnitarioMl(ing);
+    // "un" sem peso médio cadastrado: continua de fora
   });
   const total = solidosG + liquidosMl;
   if (total <= 0) return null;
-  const ehLiquido = liquidosMl > solidosG;
-  const unidade = total >= 1000 ? (ehLiquido ? "l" : "kg") : (ehLiquido ? "ml" : "g");
-  const valor = (unidade === "kg" || unidade === "l") ? total / 1000 : total;
+  const unidade = unidadePadraoDepartamento(departamento);
+  const valor = total / 1000;
   return { totalG: total, unidade, valor: Math.round(valor * 1000) / 1000, solidosG, liquidosMl };
 }
 
@@ -448,8 +356,7 @@ function detalheIngrediente(ing) {
   else if (u === "l") { pesoG = q * 1000; liquido = true; }
   else if (u === "ml") { pesoG = q; liquido = true; }
   else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) pesoG = q * pm;
-  else if (volumeUnitarioMl(ing) > 0) { pesoG = q * volumeUnitarioMl(ing); liquido = true; }
-  const custo = (Number(ing.custo_unitario) || 0) * q * multiplicadorPerda(ing.fator);
+  const custo = (Number(ing.custo_unitario) || 0) * q;
   // Preço por grama ≥ R$1 (= R$1000/kg): quase sempre é cadastro errado
   // (preço do pacote/maço salvo como preço da grama).
   const precoSuspeito = (u === "g" || u === "ml") && (Number(ing.custo_unitario) || 0) >= 1;
@@ -475,25 +382,31 @@ function FichasRunner() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [categoriasConfig, setCategoriasConfig] = useState({});
-  // Imposto e taxa de cartão são % da VENDA e valem para a unidade inteira —
-  // ficam nos parâmetros, editáveis no Ponto de Equilíbrio. Não confundir com
-  // a embalagem, que é valor fixo POR FICHA: a caixa do açaí não é a mesma do
-  // hambúrguer, e somar as duas como percentual esconderia isso.
-  const [paramsUnidade, setParamsUnidade] = useState({});
   const [modalCategorias, setModalCategorias] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [salvandoCategoria, setSalvandoCategoria] = useState(false);
+  const [alterandoCategoriaId, setAlterandoCategoriaId] = useState("");
   const [modoFicha, setModoFicha] = useState("principais");
   const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
   const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
-  // Taxas que incidem sobre a VENDA, não sobre a mercadoria: elas não entram no
-  // CMV (que é custo de mercadoria vendida), mas comem o lucro. Ficam por
-  // unidade porque maquininha e faixa do Simples mudam de loja para loja.
-  const [taxasVenda, setTaxasVenda] = useState(TAXAS_VENDA_PADRAO);
-  const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(true);
+  const [apenasAcimaMeta, setApenasAcimaMeta] = useState(false);
+  // Ficha inativada continua no banco e volta quando o usuário quiser ver.
+  const [filtroStatus, setFiltroStatus] = useState("ativas"); // ativas | inativas | todas
+
+  // Permissão de ver custos. Falha para o lado aberto onde o controle de acesso
+  // ainda não foi ligado (`gerenciado` falso), igual ao guarda de rota do
+  // dashboard — senão ninguém veria custo nenhum nessas instalações.
+  const podeVerCustos = !sessao?.gerenciado
+    || hasPermission(sessao, permissionKey("fichas", "recipes", "view_costs"))
+    || hasPermission(sessao, permissionKey(deptUrl === "bar" ? "bar" : "cozinha", "recipes", "view_costs"));
+  const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(false);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
+  const [modalEscolhaNovo, setModalEscolhaNovo] = useState(false);
+  const [modalTitulosLote, setModalTitulosLote] = useState(false);
+  const [titulosLote, setTitulosLote] = useState("");
+  const [salvandoTitulosLote, setSalvandoTitulosLote] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
   const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
@@ -503,23 +416,32 @@ function FichasRunner() {
   const [registrandoCusto, setRegistrandoCusto] = useState(false);
   const [semeandoCustos, setSemeandoCustos] = useState(false);
   const [iaExplicacao, setIaExplicacao] = useState("");
+  const [autoSoma, setAutoSoma] = useState(true);
   const [buscaIng, setBuscaIng] = useState("");
+  const [salvandoFicha, setSalvandoFicha] = useState(false);
 
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
   const [pagina, setPagina] = useState(1);
-  const [porPagina, setPorPagina] = useState(60);
+  const [porPagina, setPorPagina] = useState(12);
   const [modalImpressao, setModalImpressao] = useState(null);
+  // Etapas, equipamentos, alergênicos e armazenamento das fichas que vão para a
+  // impressão. Ficam fora da listagem porque só a impressão precisa deles.
+  const [complementosImpressao, setComplementosImpressao] = useState({});
   const [configImpressao, setConfigImpressao] = useState(null);
   const [ordemPersonalizada, setOrdemPersonalizada] = useState([]);
   const [processandoLote, setProcessandoLote] = useState(false);
   const [mensagemLote, setMensagemLote] = useState("");
-  // Sem isso, erro e sucesso saíam iguais: verde, com ícone de check.
-  const [erroLote, setErroLote] = useState(false);
+  const [erroLote, setErroLote] = useState("");
 
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
     id: null,
+    codigo: "",
+    versao: "",
+    responsavel: "",
+    tempo_coccao: "",
+    padrao_montagem: "",
     departamento: deptUrl,
     nome_receita: "",
     categoria: "",
@@ -528,20 +450,12 @@ function FichasRunner() {
     eh_base: false,
     produto_pronto: false,
     tipo_base: null,
-    rendimento_unidade: "porcao",
+    rendimento_unidade: deptUrl === "bar" ? "l" : "kg",
     peso_porcao_g: "",
     imagem: "", // Base64 da foto
     preco_venda: "",
     cmv_meta: 30
   });
-
-  // Bar não é cozinha em miniatura: não embala nada e mede tudo em volume. A
-  // tela era escrita para prato — falava kg, porção e embalagem — e no drink
-  // isso vira ruído ou, pior, campo que ninguém sabe o que preencher.
-  // Vale o departamento da ficha aberta; a URL só decide quando é ficha nova.
-  const ehBarFicha = String(form?.departamento || deptUrl || "").toLowerCase() === "bar";
-  const unPeso = ehBarFicha ? "ml" : "g";
-  const unGrande = ehBarFicha ? "L" : "kg";
   
   const fileInputRef = useRef(null);
 
@@ -587,6 +501,8 @@ function FichasRunner() {
   };
 
   // Calculadora de desmembramento (digita uma quantidade, vê custo/peso/unidades)
+  const [calcQtd, setCalcQtd] = useState("");
+  const [calcUn, setCalcUn] = useState("g");
 
   // Ingredientes da ficha. Cada item tem `chave` (insumo_id OU subficha_id),
   // `tipo` ('insumo'|'base'), `custo_unitario` (por unidade-base) e `unidade`.
@@ -598,7 +514,12 @@ function FichasRunner() {
   // Simulação de rendimento: recalcula os ingredientes para outra quantidade
   const [modalSim, setModalSim] = useState(null); // ficha sendo simulada
   const [simAlvo, setSimAlvo] = useState("");      // rendimento desejado (mesma unidade)
-  const abrirSimulacao = (f) => { setModalSim(f); setSimAlvo(String(f.rendimento_porcoes || 1)); };
+  const abrirSimulacao = (f) => {
+    const padrao = rendimentoPadronizado(f);
+    const fichaPadronizada = { ...f, rendimento_porcoes: padrao.valor, rendimento_unidade: padrao.unidade };
+    setModalSim(fichaPadronizada);
+    setSimAlvo(String(padrao.valor || 1));
+  };
 
   // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
@@ -720,24 +641,21 @@ function FichasRunner() {
 
     const novosIngFicha = iaFResultado.itens.map(it => {
       const insumo = insumosAtivos.find(i => i.id === it.vinculoId);
-      const quantidade = converterParaBase(it.quantidade_lida, it.unidade_lida, insumo.unidade_medida);
+      const unBase = unidadeNormalizada(insumo.unidade_medida) || String(insumo.unidade_medida || "un").toLowerCase();
+      const quantidade = converterParaBase(it.quantidade_lida, it.unidade_lida, unBase);
       return {
         chave: insumo.id, tipo: "insumo", insumo_id: insumo.id,
-        nome: insumo.nome, unidade: insumo.unidade_medida,
-        custo_unitario: insumo.custo_unitario, quantidade,
+        nome: insumo.nome, unidade: unBase,
+        custo_unitario: custoUnitEfetivo(insumo), quantidade,
         peso_medio_g: insumo.peso_medio_g || null,
-        unidade_medida: insumo.unidade_medida,
-        unidade_comercial: insumo.unidade_comercial || null,
-        tamanho_embalagem: insumo.tamanho_embalagem || null,
-        volume_unidade_ml: insumo.volume_unidade_ml || null,
-        modo: getSub(insumo.unidade_medida) ? "sub" : "base",
+        modo: getSub(unBase) ? "sub" : "base",
       };
     });
 
     // Rendimento = peso total somado dos ingredientes (kg/g/l/ml), automático.
     // Usa peso médio do insumo p/ incluir itens em "un". Só cai para "porção"
     // se os ingredientes forem todos em unidades sem peso conhecido.
-    const pesoIA = rendimentoPelosIngredientes(novosIngFicha);
+    const pesoIA = rendimentoPelosIngredientes(novosIngFicha, deptUrl);
     setForm({
       id: null, departamento: deptUrl,
       nome_receita: iaFResultado.nome_receita,
@@ -747,11 +665,12 @@ function FichasRunner() {
       eh_base: false,
       produto_pronto: false,
       tipo_base: null,
-      rendimento_unidade: pesoIA ? pesoIA.unidade : "porcao",
+      rendimento_unidade: pesoIA ? pesoIA.unidade : unidadePadraoDepartamento(deptUrl),
       peso_porcao_g: "",
       preco_venda: "",
       cmv_meta: 30,
     });
+    setAutoSoma(true);
     setIngFicha(novosIngFicha);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
@@ -794,7 +713,7 @@ function FichasRunner() {
     setLoading(true);
     const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens, resEstoqueEmbalagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
-       fetchInsumos(unidadeAtiva, deptUrl),
+       fetchInsumos(unidadeAtiva, deptUrl, { excluirPrePreparos: true }),
        fetchProdutos(unidadeAtiva),
        fetchMontagens(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, "embalagens"),
@@ -809,8 +728,8 @@ function FichasRunner() {
         const embalagem = embalagensCarregadas.find(emb => String(emb.id) === String(item.embalagem_id));
         return total + (Number(embalagem?.preco_unitario) || 0) * (Number(item.qtd) || 0);
       }, 0);
-      const porcoes = porcoesParaEmbalagem(ficha.rendimento_porcoes, ficha.rendimento_unidade, ficha.peso_porcao_g);
-      return { ...ficha, custo_embalagens_total: custoPorPorcao * porcoes };
+      const rendimento = Math.max(1, Number(ficha.rendimento_porcoes) || 1);
+      return { ...ficha, custo_embalagens_total: custoPorPorcao * rendimento };
     });
     setFichas(fichasComEmbalagens);
     setInsumosAtivos(resInsumos.data || []);
@@ -826,35 +745,6 @@ function FichasRunner() {
   }, [unidadeAtiva, deptUrl]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !unidadeAtiva) return;
-    try {
-      const salvo = JSON.parse(localStorage.getItem(chaveTaxasVenda(unidadeAtiva)) || "null");
-      setTaxasVenda({
-        cartao: Number(salvo?.cartao) >= 0 ? Number(salvo.cartao) : TAXAS_VENDA_PADRAO.cartao,
-        imposto: Number(salvo?.imposto) >= 0 ? Number(salvo.imposto) : TAXAS_VENDA_PADRAO.imposto,
-        // Quem já salvou taxas antes do lucro alvo existir não tem esse campo.
-        lucro: Number(salvo?.lucro) >= 0 ? Number(salvo.lucro) : TAXAS_VENDA_PADRAO.lucro,
-      });
-    } catch { setTaxasVenda(TAXAS_VENDA_PADRAO); }
-  }, [unidadeAtiva]);
-
-  const alterarTaxaVenda = (campo, valor) => {
-    const numero = Math.min(100, Math.max(0, Number(String(valor).replace(",", ".")) || 0));
-    setTaxasVenda(atual => {
-      const proximo = { ...atual, [campo]: numero };
-      try { localStorage.setItem(chaveTaxasVenda(unidadeAtiva), JSON.stringify(proximo)); } catch { /* sem storage, vale só nesta sessão */ }
-      return proximo;
-    });
-  };
-
-  // A ficha aberta em visualização é um retrato do momento em que foi aberta.
-  // Sem reapontá-la para a versão recarregada, a tela continua mostrando os
-  // números antigos depois de salvar — parece que a gravação não pegou.
-  useEffect(() => {
-    setFichaView(aberta => (aberta ? (fichas.find(f => f.id === aberta.id) || aberta) : aberta));
-  }, [fichas]);
-
-  useEffect(() => {
     setModoFicha("principais");
     setTipoFiltro("Pratos principais");
   }, [deptUrl]);
@@ -862,7 +752,6 @@ function FichasRunner() {
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
     fetchCategoriasFichas(unidadeAtiva).then(({ data }) => setCategoriasConfig(data || {}));
-    fetchParams(unidadeAtiva).then(({ data }) => setParamsUnidade(data || {})).catch(() => {});
   }, [unidadeAtiva]);
 
   const configCategoriasDept = categoriasConfig?.[deptUrl] || {};
@@ -944,26 +833,32 @@ function FichasRunner() {
       adicionais: categoriasAdicionais.filter(item => item !== nome),
       excluidas: [...new Set([...categoriasExcluidas, nome])],
     });
-    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Preparos e receitas" : "Pratos principais");
+    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Pré-preparos" : "Pratos principais");
   };
 
-  // Rendimento automático e único: sempre que os ingredientes mudam, o
-  // rendimento passa a ser o PESO SOMADO deles, na unidade que domina
-  // (kg/g/l/ml). Sem porção, sem multiplicação. Digitar à mão não existe mais:
-  // número digitado envelhecia calado quando o preço ou a quantidade de um
-  // ingrediente mudava, e a ficha passava a mentir sem ninguém perceber.
+  const organizarFichaNaCategoria = async (ficha, categoria) => {
+    const categoriaAnterior = ficha.categoria || "";
+    setAlterandoCategoriaId(ficha.id);
+    setFichas(lista => lista.map(item => item.id === ficha.id ? { ...item, categoria: categoria || null } : item));
+    const { error } = await atualizarCategoriaFicha(ficha.id, categoria);
+    setAlterandoCategoriaId("");
+    if (error) {
+      setFichas(lista => lista.map(item => item.id === ficha.id ? { ...item, categoria: categoriaAnterior || null } : item));
+      alert("Não foi possível mudar a categoria: " + error);
+    }
+  };
+
+  // Rendimento automático: sempre que os ingredientes mudam (e não estiver no
+  // modo manual), o rendimento passa a ser o PESO SOMADO dos ingredientes, na
+  // unidade padrão do setor: cozinha em kg e bar em litros.
   useEffect(() => {
-    if (form && ingFicha.length > 0) {
-      const est = rendimentoPelosIngredientes(ingFicha);
+    if (form && autoSoma && ingFicha.length > 0) {
+      const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
       if (est && est.totalG > 0) {
-         // Só o rendimento é recalculado. O peso da porção não sai dos
-         // ingredientes — é decisão de quem monta o prato — e apagá-lo aqui
-         // limpava, ao abrir a ficha para editar, um valor que já estava salvo
-         // e que a composição por porção usa para existir.
-         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }));
+         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade, peso_porcao_g: "" }));
       }
     }
-  }, [ingFicha]);
+  }, [ingFicha, autoSoma, form.departamento, deptUrl]);
 
   // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
   // usadas dentro de outros pratos: molhos, massas, caldos...)
@@ -973,29 +868,43 @@ function FichasRunner() {
   // Produto pronto (cerveja, refrigerante) não tem receita: é compra, não
   // receituário. Fica fora do receituário inteiro — quem cuida dele é o
   // cardápio e o estoque, não a ficha técnica.
+  const ehAcimaDaMeta = (f) => {
+    if (f.eh_base) return false;
+    const peso = infoPesoFicha(f, fichas);
+    const custoTotal = custoTotalDaFicha(f, fichas);
+    const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+    const rend = Number(f.rendimento_porcoes) || 0;
+    const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+    const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+    const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+    const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
+    const meta = Number(f.cmv_meta) || 30;
+    if (preco <= 0) return false;
+    const cmv = (custoPorcao / preco) * 100;
+    return cmv > meta;
+  };
+
+  // `status` só existe depois da migração da ficha técnica. Ficha sem status
+  // gravado conta como ativa, senão a listagem esvaziaria de uma vez.
+  const statusDaFicha = (f) => String(f.status || "ativa").toLowerCase();
+
   const passaFiltro = (f) => {
     if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
-    if (tipoFiltro === "Preparos e receitas") return !!f.eh_base;
+    if (filtroStatus === "ativas" && statusDaFicha(f) === "inativa") return false;
+    if (filtroStatus === "inativas" && statusDaFicha(f) !== "inativa") return false;
+    if (apenasAcimaMeta && !ehAcimaDaMeta(f)) return false;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
-    if (tipoFiltro === "Pré-preparos") return !!f.eh_base && f.tipo_base !== "receita";
-    if (tipoFiltro === "Receitas base") return !!f.eh_base && f.tipo_base === "receita";
+    if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
     if (tipoFiltro === "Pratos") return !f.eh_base;
     if (modoFicha === "preparos") return !!f.eh_base && (f.categoria || "") === tipoFiltro;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
-    // normalizarNome nos dois lados: quem digita "acai" tem de achar "Açaí",
-    // e quem digita "á" tem de achar "Agua". Ninguém procura com acento.
     .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
     .sort(ordenarFichas);
-  // porPagina 0 = "Todas": a lista inteira numa página só.
-  const tamanhoPagina = porPagina > 0 ? porPagina : Math.max(1, filtradas.length);
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / tamanhoPagina));
-  const fichasPagina = filtradas.slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
+  const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
   const fichasSelecionadas = selecionadas.map(id => fichas.find(f => f.id === id)).filter(Boolean);
-  const papelUsuario = String(sessao?.papel || sessao?.role || "").toLowerCase();
-  const podeImprimirCustos = ["admin", "administrador", "superadmin", "gestor", "gerente", "dono"]
-    .some(papel => papelUsuario.includes(papel));
   const usuarioAuditoria = {
     unidadeId: unidadeAtiva,
     usuarioId: sessao?.id || sessao?.user?.id || null,
@@ -1003,7 +912,7 @@ function FichasRunner() {
     origem: "Ação em lote — fichas técnicas",
   };
 
-  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina]);
+  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina, filtroStatus]);
   useEffect(() => {
     if (pagina > totalPaginas) setPagina(totalPaginas);
   }, [pagina, totalPaginas]);
@@ -1029,27 +938,92 @@ function FichasRunner() {
     const categoriaInicial = criandoPreparo
       ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
       : "";
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: deptUrl === "bar" ? "ml" : "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+    setForm({ id: null, codigo: "", versao: "", responsavel: "", tempo_coccao: "", padrao_montagem: "", departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: unidadePadraoDepartamento(deptUrl), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
+    setAutoSoma(true);
+    setCalcQtd("");
     setIaExplicacao("");
     setModalNovo(true);
   };
 
+  const abrirOpcaoNovo = () => {
+    if (modoFicha === "preparos") return abrirNova();
+    setModalEscolhaNovo(true);
+  };
+
+  const salvarTitulosEmLote = async () => {
+    const existentes = new Set(fichas.map(ficha => normalizarNome(ficha.nome_receita)));
+    const vistos = new Set();
+    const titulos = String(titulosLote || "")
+      .split(/\r?\n|;/)
+      .map(titulo => titulo.trim())
+      .filter(titulo => {
+        const chave = normalizarNome(titulo);
+        if (!chave || existentes.has(chave) || vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      });
+    if (!titulos.length) return alert("Digite ao menos um título novo, usando uma linha para cada prato.");
+
+    setSalvandoTitulosLote(true);
+    const falhas = [];
+    let criados = 0;
+    for (const titulo of titulos) {
+      const resultado = await salvarFicha({
+        unidade_id: unidadeAtiva,
+        departamento: deptUrl,
+        nome_receita: titulo,
+        categoria: null,
+        rendimento_porcoes: 1,
+        rendimento_unidade: unidadePadraoDepartamento(deptUrl),
+        peso_porcao_g: null,
+        modo_preparo: "",
+        eh_base: false,
+        tipo_base: null,
+        cmv_meta: 30,
+        imagem: null,
+        tempo_preparo: null,
+        validade_dias: null,
+        observacoes: null,
+        metodo_bar: null,
+      }, []);
+      if (resultado.error) falhas.push(`${titulo}: ${resultado.error}`);
+      else criados++;
+    }
+    setSalvandoTitulosLote(false);
+    if (criados > 0) {
+      setModalTitulosLote(false);
+      setTitulosLote("");
+      setModoFicha("principais");
+      setTipoFiltro("Pratos principais");
+      setMensagemLote(`${criados} ${criados === 1 ? "título criado" : "títulos criados"}. Agora abra Editar em cada ficha para completar os dados.`);
+      await carregar();
+    }
+    if (falhas.length) alert(`Alguns títulos não foram criados:\n\n${falhas.join("\n")}`);
+  };
+
   const abrirEditar = (ficha) => {
+    setAutoSoma(false);
     const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
+    const rendimentoSetor = rendimentoPadronizado(ficha);
     setForm({
        id: ficha.id,
+       codigo: ficha.codigo || "",
+       versao: ficha.versao || "",
+       responsavel: ficha.responsavel || "",
+       tempo_coccao: ficha.tempo_coccao != null ? String(ficha.tempo_coccao) : "",
+       padrao_montagem: ficha.padrao_montagem || "",
        departamento: ficha.departamento,
        nome_receita: ficha.nome_receita,
-       categoria: ficha.departamento === "bar" && ficha.eh_base && ficha.tipo_base !== "receita" ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
-       rendimento_porcoes: ficha.rendimento_porcoes,
+       categoria: ficha.departamento === "bar" && ficha.eh_base ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
+       rendimento_porcoes: rendimentoSetor.valor,
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
        tipo_base: ficha.tipo_base || "pre",
        produto_pronto: ficha.tipo_base === "produto_pronto",
-       rendimento_unidade: ficha.rendimento_unidade || "porcao",
+       rendimento_unidade: rendimentoSetor.unidade,
        peso_porcao_g: ficha.peso_porcao_g || "",
        imagem: ficha.imagem || "",
        tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
@@ -1058,9 +1032,10 @@ function FichasRunner() {
        cmv_meta: ficha.cmv_meta != null ? Number(ficha.cmv_meta) : 30,
        preco_venda: (() => {
           const prod = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
-          return prod && Number(prod.preco_venda) > 0 ? String(prod.preco_venda) : "";
+          return (prod && Number(prod.preco_venda) > 0) ? String(prod.preco_venda) : (ficha.preco_venda && Number(ficha.preco_venda) > 0 ? String(ficha.preco_venda) : "");
        })()
     });
+    setCalcQtd("");
     // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
     const mapIng = (ficha.fichas_ingredientes || []).map(fi => {
        if (fi.subficha_id) {
@@ -1075,19 +1050,18 @@ function FichasRunner() {
              modo: getSub(base?.rendimento_unidade) ? "sub" : "base",
           };
        }
+       const unBase = unidadeNormalizada(fi.insumos.unidade_medida) || String(fi.insumos.unidade_medida || "un").toLowerCase();
+       const custoNorm = custoUnitEfetivo(fi.insumos);
+       const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
        return {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
-          nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
-          custo_unitario: custoUnitEfetivo(fi.insumos), quantidade: fi.quantidade,
+          nome: fi.insumos.nome, unidade: unBase,
+          custo_unitario: custoNorm, quantidade: qtdBase,
           // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
           fator: fi.insumos.empanado ? 0 : (Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0),
           empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
-          unidade_medida: fi.insumos.unidade_medida,
-          unidade_comercial: fi.insumos.unidade_comercial || null,
-          tamanho_embalagem: fi.insumos.tamanho_embalagem || null,
-          volume_unidade_ml: fi.insumos.volume_unidade_ml || null,
-          modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
+          modo: getSub(unBase) ? "sub" : "base",
        };
     });
     setIngFicha(mapIng);
@@ -1095,6 +1069,10 @@ function FichasRunner() {
     setNovaEmbalagem({ nome: "", custo: "" });
     setIaExplicacao("");
     setModalNovo(true);
+  };
+
+  const irSecaoEditorFicha = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // ── Histórico de custos da ficha aberta em visualização ──
@@ -1156,14 +1134,17 @@ function FichasRunner() {
 
   // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
-    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator)), 0);
+    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
   };
 
-  const numeroPorcoesFormulario = () => porcoesParaEmbalagem(
-    String(form.rendimento_porcoes || "").replace(",", "."),
-    form.rendimento_unidade,
-    form.peso_porcao_g,
-  );
+  const numeroPorcoesFormulario = () => {
+    const rendimento = Number(String(form.rendimento_porcoes || "").replace(",", ".")) || 0;
+    const unidade = String(form.rendimento_unidade || "porcao").toLowerCase();
+    if (unidade === "porcao" || unidade === "un") return rendimento;
+    const pesoPorcao = Number(form.peso_porcao_g) || 0;
+    const pesoTotal = pesoTotalDaFicha(rendimento, unidade, pesoPorcao);
+    return pesoPorcao > 0 && pesoTotal > 0 ? pesoTotal / pesoPorcao : rendimento;
+  };
 
   const custoEmbalagensPorPorcao = () => fichaEmbalagens.reduce((total, item) => {
     const embalagem = embalagensEstoque.find(emb => String(emb.id) === String(item.embalagem_id));
@@ -1221,19 +1202,17 @@ function FichasRunner() {
     }
     const insumoDb = insumosAtivos.find(i => i.id === id) || embalagensCat.find(i => i.id === id);
     if (!insumoDb) return null;
+    const unBase = unidadeNormalizada(insumoDb.unidade_medida) || String(insumoDb.unidade_medida || "un").toLowerCase();
+    const custoNorm = custoUnitEfetivo(insumoDb);
     return {
        chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
-       nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
-       custo_unitario: custoUnitEfetivo(insumoDb), quantidade,
+       nome: insumoDb.nome, unidade: unBase,
+       custo_unitario: custoNorm, quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
-       unidade_medida: insumoDb.unidade_medida,
-       unidade_comercial: insumoDb.unidade_comercial || null,
-       tamanho_embalagem: insumoDb.tamanho_embalagem || null,
-       volume_unidade_ml: insumoDb.volume_unidade_ml || null,
        // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
        fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
        empanado: !!insumoDb.empanado,
-       modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
+       modo: getSub(unBase) ? "sub" : "base",
     };
   };
 
@@ -1244,44 +1223,7 @@ function FichasRunner() {
     ...embalagensCat.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Embalagem" })),
   ], [insumosAtivos, basesDisponiveis, embalagensCat]);
 
-  // Resumo de custo do cardápio (só fichas de montagem com preço de venda).
-  // Alimenta o CMV médio do cabeçalho e o kanban de indicadores, para os dois
-  // sempre falarem o mesmo número.
-  const resumoCardapio = useMemo(() => {
-    const base = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
-    let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
-    base.forEach(f => {
-      const peso = infoPesoFicha(f, fichas);
-      const custoTotal = custoTotalDaFicha(f, fichas);
-      const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-      const rend = Number(f.rendimento_porcoes) || 0;
-      const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
-      const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-      if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
-      const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-      const preco = Number(prod?.preco_venda) || 0;
-      const meta = Number(f.cmv_meta) || 30;
-      if (preco > 0) {
-        const cmv = (custoPorcao / preco) * 100;
-        somaCmv += cmv; nCmv++; somaPreco += preco; nPreco++; somaMargem += (100 - cmv);
-        if (cmv > meta) acimaMeta++;
-      } else semPreco++;
-    });
-    return {
-      totalFichas: base.length,
-      precificadas: nCmv,
-      semPreco,
-      acimaMeta,
-      cmvMedio: nCmv ? somaCmv / nCmv : null,
-      margemMedia: nCmv ? somaMargem / nCmv : null,
-      custoMedio: nCusto ? somaCusto / nCusto : null,
-      ticketMedio: nPreco ? somaPreco / nPreco : null,
-    };
-  }, [fichas, produtos]);
-
   const sugestoesIngrediente = useMemo(() => {
-    // Sem acento dos dois lados: "a" acha "Água" e "c" acha "Açaí", porque
-    // normalizarNome tira o cedilha junto com os acentos.
     const termo = normalizarNome(buscaIng);
     if (!termo) return [];
     return opcoesIngrediente.filter(o => normalizarNome(o.nome).includes(termo)).slice(0, 8);
@@ -1293,16 +1235,19 @@ function FichasRunner() {
     if (ingFicha.find(i => i.chave === id)) return; // já existe
     const novo = construirIng(valor, 0);
     if (!novo) return;
+    setAutoSoma(true);
     setIngFicha([...ingFicha, novo]);
     setBuscaIng("");
   };
 
   // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
   const updateQtd = (chave, qtdBase) => {
+    setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
   };
 
   const toggleModo = (chave) => {
+    setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
   };
 
@@ -1312,6 +1257,7 @@ function FichasRunner() {
   };
 
   const removeIngrediente = (chave) => {
+    setAutoSoma(true);
     setIngFicha(lista => lista.filter(i => i.chave !== chave));
   };
 
@@ -1323,6 +1269,7 @@ function FichasRunner() {
     if (novoId === alvo.chave) { fecharSubstituicao(); return; }
     const novo = construirIng(substitutoValor, alvo.quantidade || 0);
     if (!novo) return;
+    setAutoSoma(true);
     setIngFicha(lista => {
       // Se o substituto já está na ficha, apenas remove o alvo (evita duplicar)
       if (lista.find(i => i.chave === novo.chave)) return lista.filter(i => i.chave !== alvo.chave);
@@ -1376,204 +1323,179 @@ function FichasRunner() {
   };
 
   const handleSalvar = async (criarOutra = false) => {
+    if (salvandoFicha) return;
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
+    const unidadeRendimento = unidadePadraoDepartamento(form.departamento);
+    const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
 
     // Filtra ingredientes que estão com qtd = 0
     const ingValidos = ingFicha.filter(i => i.quantidade > 0);
     if(ingValidos.length === 0 && !form.produto_pronto) return alert("Adicione pelo menos um ingrediente com quantidade válida.");
 
-    const erro = await salvarFicha(
-       {
-          id: form.id,
-          unidade_id: unidadeAtiva,
-          departamento: form.departamento,
-          nome_receita: form.nome_receita,
-          categoria: form.categoria || null,
-          rendimento_porcoes: Number(form.rendimento_porcoes),
-          modo_preparo: form.eh_base ? form.modo_preparo : "",
-          eh_base: !!form.eh_base,
-          tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? (form.tipo_base || "pre") : null),
-          cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
-          rendimento_unidade: form.rendimento_unidade || "porcao",
-          peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
-          imagem: form.imagem || null,
-          tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
-          validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
-          observacoes: form.observacoes || null,
-          // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
-          metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
-       },
-       ingValidos.map(i => ({
-          insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
-          subficha_id: i.tipo === "base" ? i.subficha_id : null,
-          quantidade: i.quantidade,
-          fator_correcao: Number(i.fator) || 0
-       }))
-    );
-
-    if(erro.error) return alert("Erro ao salvar: " + erro.error);
-
-    if (form.eh_base && erro.id) {
-      const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
-      const estoquePreparo = await garantirFichaNoEstoquePreparo({
-        unidadeId: unidadeAtiva,
-        ficha: { ...form, id: erro.id },
-        departamento: form.departamento,
-        custoUnitario: custoUnitarioPreparo,
-      });
-      if (estoquePreparo.error) {
-        await carregar();
-        return alert(`A ficha foi salva, mas nao entrou no estoque de preparos: ${estoquePreparo.error}`);
-      }
-    }
-
-    if (!criarOutra) setModalNovo(false);
-
-    // ── Liga as embalagens ao estoque certo (não bloqueia o salvar) ─────────
-    // O pré-preparo já foi sincronizado acima, com identidade pela ficha. Antes
-    // havia uma segunda criação aqui, por nome, que gerava itens duplicados.
-    (async () => {
-      try {
-        const fichaId = erro.id;
-        if (!fichaId) return;
-        const dept = (form.departamento || deptUrl || "cozinha").toLowerCase();
-        const { data: estoques } = await fetchEstoques(unidadeAtiva);
-        const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
-
-        // Embalagens usadas na ficha entram no estoque de Embalagens.
-        const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
-        if (estoqueEmb) {
-          const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
-          for (const item of ingValidos) {
-            if (item.tipo !== "insumo" || !idsEmbalagem.has(item.insumo_id)) continue;
-            await vincularItemEstoque({
-              unidadeId: unidadeAtiva, estoqueId: estoqueEmb.id,
-              insumoId: item.insumo_id, custoUnitario: item.custo_unitario,
-            });
-          }
-        }
-      } catch { /* integração com estoque é acessória: nunca derruba o salvar */ }
-    })();
-
-    // Registra um retrato do custo no histórico (não bloqueia o salvar).
-    const fichaIdHist = erro.id;
-    if (fichaIdHist && !form.produto_pronto) {
-      const custoTotalS = custoTotalFormulario(ingValidos);
-      const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
-      const rendS = Number(form.rendimento_porcoes) || 0;
-      const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
-      const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
-      const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
-      const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
-      registrarCustoFicha({
-        unidadeId: unidadeAtiva, fichaId: fichaIdHist, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
-        origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
-      }).catch(() => {});
-    }
-
-    // O PREÇO DE VENDA agora é definido AQUI na ficha (seção CMV e Precificação)
-    // e sincroniza com o produto do cardápio interno em toda gravação.
-    const fichaIdSalva = erro.id;
-    const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
-    if (!form.eh_base && fichaIdSalva) {
-      try {
-        const nome = form.nome_receita.trim();
-        const ehBarDept = form.departamento === "bar";
-        // A leitura vem sem filtro de departamento — igual ao carregar() — para
-        // enxergar também o produto antigo que ficou sem setor. A consulta
-        // filtrada não o encontrava, e o preço digitado na ficha era descartado
-        // em silêncio: a ficha salvava, o CMV médio não se mexia.
-        //
-        // O casamento, esse, continua respeitando o setor: "Açúcar" da cozinha e
-        // "Açúcar" do bar são dois produtos, e um nunca pode receber o preço do
-        // outro. Só o vínculo por ficha_id dispensa a checagem, porque aponta
-        // para uma ficha só. Produto sem setor é órfão de migração e é adotado
-        // pelo setor da ficha.
-        const { data: prodsAtu } = await fetchProdutos(unidadeAtiva);
-        const mesmoSetor = (p) => !p.departamento || String(p.departamento).toLowerCase() === String(form.departamento || "").toLowerCase();
-        const prodExistente = (prodsAtu || []).find(p => p.ficha_id === fichaIdSalva)
-          || (prodsAtu || []).find(p => (p.nome_produto || "").toLowerCase() === nome.toLowerCase() && mesmoSetor(p));
-        if (prodExistente) {
-          await salvarProduto({
-            id: prodExistente.id,
-            preco_venda: precoVendaNum,
-            embalagens: fichaEmbalagens,
-            // Cura o vínculo: casado pelo nome hoje, casado pelo id amanhã.
-            ...(prodExistente.ficha_id ? {} : { ficha_id: fichaIdSalva }),
-            ...(prodExistente.departamento ? {} : { departamento: form.departamento }),
-          });
-        } else {
-          // Sem produto no cardápio o preço não tem onde morar. Antes só se
-          // criava um ao cadastrar a ficha; editar uma ficha antiga e digitar o
-          // preço não gravava nada, porque não havia o que atualizar.
-          await salvarProduto({
+    setSalvandoFicha(true);
+    try {
+      const erro = await salvarFicha(
+         {
+            id: form.id,
             unidade_id: unidadeAtiva,
-            nome_produto: nome,
-            categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
+            codigo: form.codigo || null,
+            versao: form.versao || null,
+            responsavel: form.responsavel || null,
+            tempo_coccao: form.tempo_coccao ? Number(form.tempo_coccao) : null,
+            padrao_montagem: form.padrao_montagem || null,
             departamento: form.departamento,
-            tempo_preparo_base: 15,
+            nome_receita: form.nome_receita,
+            categoria: form.categoria || null,
+            rendimento_porcoes: Number(form.rendimento_porcoes),
+            modo_preparo: form.eh_base ? form.modo_preparo : "",
+            eh_base: !!form.eh_base,
+            tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
+            cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
             preco_venda: precoVendaNum,
-            ficha_id: fichaIdSalva,
-            composicao: form.produto_pronto ? [] : [{ ficha_id: fichaIdSalva, qtd: 1 }],
-            embalagens: fichaEmbalagens,
-          });
-        }
-      } catch { /* sincronização de preço não bloqueia o salvar */ }
-    }
+            rendimento_unidade: unidadeRendimento,
+            peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+            imagem: form.imagem || null,
+            tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
+            validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
+            observacoes: form.observacoes || null,
+            // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
+            metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
+         },
+         ingValidos.map(i => ({
+            insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
+            subficha_id: i.tipo === "base" ? i.subficha_id : null,
+            quantidade: i.quantidade,
+            fator_correcao: Number(i.fator) || 0
+         }))
+      );
 
-    // PRATO/DRINK novo: entra também no Guia de Montagem. O produto do cardápio
-    // já foi criado ou atualizado acima, para ficha nova e ficha antiga igual.
-    if (!form.id && !form.eh_base && fichaIdSalva) {
-      try {
-        const nome = form.nome_receita.trim();
-        const ehBarDept = form.departamento === "bar";
+      if(erro?.error) return alert("Erro ao salvar: " + erro.error);
 
-        // Guia de Montagem: entra como ficha pendente de montagem
-        if (!form.produto_pronto) {
-          const { data: monts } = await fetchMontagens(unidadeAtiva, form.departamento);
-          const jaTemMontagem = (monts || []).some(m => chaveNomeMontagem(m.nome) === chaveNomeMontagem(nome));
-          if (!jaTemMontagem) {
-            await inserirMontagem({
-              nome,
-              tipo: ehBarDept ? "drink" : "prato",
+      const fichaIdSalva = form.id || erro?.id;
+
+      if (form.eh_base && fichaIdSalva) {
+        const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
+        const estoquePreparo = await garantirFichaNoEstoquePreparo({
+          unidadeId: unidadeAtiva,
+          ficha: { ...form, id: fichaIdSalva },
+          departamento: form.departamento,
+          custoUnitario: custoUnitarioPreparo,
+        });
+        if (estoquePreparo.error) alert(`A ficha foi salva, mas não entrou no estoque de preparos: ${estoquePreparo.error}`);
+      }
+
+      if (!criarOutra) setModalNovo(false);
+      if (fichaIdSalva) {
+        setFichas(fichasAntigas => {
+          const existe = fichasAntigas.some(f => f.id === fichaIdSalva);
+          const novaFichaObjeto = {
+            id: fichaIdSalva,
+            unidade_id: unidadeAtiva,
+            codigo: form.codigo || null,
+            versao: form.versao || null,
+            responsavel: form.responsavel || null,
+            tempo_coccao: form.tempo_coccao ? Number(form.tempo_coccao) : null,
+            padrao_montagem: form.padrao_montagem || null,
+            departamento: form.departamento,
+            nome_receita: form.nome_receita,
+            categoria: form.categoria || null,
+            rendimento_porcoes: Number(form.rendimento_porcoes),
+            modo_preparo: form.eh_base ? form.modo_preparo : "",
+            eh_base: !!form.eh_base,
+            tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
+            cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            preco_venda: precoVendaNum,
+            rendimento_unidade: unidadeRendimento,
+            peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+            imagem: form.imagem || null,
+            fichas_ingredientes: ingValidos.map(i => ({
+               ficha_id: fichaIdSalva,
+               insumo_id: i.insumo_id || null,
+               subficha_id: i.subficha_id || null,
+               quantidade: i.quantidade,
+               insumos: i.insumo_id ? insumosAtivos.find(x => x.id === i.insumo_id) : null
+            })),
+          };
+          return existe ? fichasAntigas.map(f => f.id === fichaIdSalva ? { ...f, ...novaFichaObjeto } : f) : [novaFichaObjeto, ...fichasAntigas];
+        });
+      }
+      await carregar();
+
+      // As embalagens usadas na receita entram no estoque de Embalagens do setor.
+      if (fichaIdSalva) {
+        try {
+          const dept = (form.departamento || deptUrl || "cozinha").toLowerCase();
+          const { data: estoques } = await fetchEstoques(unidadeAtiva);
+          const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
+
+          const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
+          if (estoqueEmb) {
+            const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
+            for (const item of ingValidos) {
+              if (item.tipo !== "insumo" || !idsEmbalagem.has(item.insumo_id)) continue;
+              await vincularItemEstoque({
+                unidadeId: unidadeAtiva, estoqueId: estoqueEmb.id,
+                insumoId: item.insumo_id, custoUnitario: item.custo_unitario,
+              });
+            }
+          }
+        } catch { /* integração com estoque é acessória: nunca derruba o salvar */ }
+      }
+
+      // Registra um retrato do custo no histórico (não bloqueia o salvar).
+      if (fichaIdSalva && !form.produto_pronto) {
+        const custoTotalS = custoTotalFormulario(ingValidos);
+        const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
+        const rendS = Number(form.rendimento_porcoes) || 0;
+        const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
+        const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
+        const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
+        const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
+        registrarCustoFicha({
+          unidadeId: unidadeAtiva, fichaId: fichaIdSalva, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
+          origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+        }).catch(() => {});
+      }
+
+      // PREÇO DE VENDA sincroniza com o produto do cardápio interno
+      if (!form.eh_base && fichaIdSalva) {
+        try {
+          const nome = form.nome_receita.trim();
+          const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
+          const prodExistente = (prodsAtu || []).find(p =>
+            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+          );
+          if (prodExistente) {
+            await salvarProduto({ id: prodExistente.id, ficha_id: fichaIdSalva, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
+          } else {
+            const ehBarDept = form.departamento === "bar";
+            await salvarProduto({
+              unidade_id: unidadeAtiva,
+              ficha_id: fichaIdSalva,
+              nome_produto: nome,
+              preco_venda: precoVendaNum,
+              categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
               departamento: form.departamento,
-              descritivo: "",
-              foto_url: "",
-              estrutura_ia: null,
-              tempo_preparo: null,
-              rendimento: "",
               observacoes: "Criado automaticamente pela Ficha Técnica.",
             }, unidadeAtiva);
           }
-        }
-
-        alert(`"${nome}" salvo!\n\n· Preço de venda: ${precoVendaNum > 0 ? "definido na ficha" : "pendente — edite a ficha e preencha em CMV e Precificação"}${form.produto_pronto ? "\n· Produto pronto — não exige ingredientes nem montagem" : "\n· Guia de Montagem — crie o passo a passo lá"}`);
-      } catch { /* integrações não bloqueiam o salvar da ficha */ }
+        } catch { /* sincronização de preço não bloqueia o salvar */ }
+      }
+    } catch (errGlobal) {
+      console.error("[handleSalvar] Erro ao salvar ficha:", errGlobal);
+    } finally {
+      setSalvandoFicha(false);
     }
-
-    // A lista só recarrega agora, no fim. Preço de venda, embalagens e produto
-    // do cardápio são gravados nos passos acima; recarregar antes deles trazia
-    // a ficha sem essas informações e dava a impressão de que o salvar não
-    // tinha pegado — só "pegava" no segundo salvamento, quando a leitura já
-    // encontrava o que a primeira gravação tinha escrito.
-    await carregar();
 
     // "Salvar e criar outra": limpa o formulário e continua no modal
     if (criarOutra) {
-      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: unidadePadraoDepartamento(form.departamento), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
       setIngFicha([]);
       setFichaEmbalagens([]);
       setNovaEmbalagem({ nome: "", custo: "" });
+      setAutoSoma(true);
       setIaExplicacao("");
-    }
-  };
-
-  const handleRemover = async (id) => {
-    if(confirm("Deseja excluir esta ficha técnica permanentemente?")) {
-       const { error } = await removerFicha(id);
-       if (error) return alert(`Não consegui remover esta ficha: ${error}`);
-       carregar();
     }
   };
 
@@ -1599,27 +1521,28 @@ function FichasRunner() {
 
   const limparSelecaoLote = () => setSelecionadas([]);
 
-  // Excluir exclui. Antes havia um diálogo que listava vínculo por vínculo e
-  // oferecia inativar — e a ficha acabava não saindo. Uma confirmação do
-  // navegador basta: quem apertou Excluir e confirmou já decidiu.
-  //
-  // Vai direto no caminho com vínculos: produto do cardápio, guia de montagem e
-  // a linha desta ficha nas receitas que a usam saem junto. O histórico de
-  // produção é preservado — as linhas ficam, só deixam de apontar para a ficha.
-  const abrirExclusaoSegura = async (lista = fichasSelecionadas) => {
+  const excluirImediatamente = async (lista = fichasSelecionadas) => {
     if (!lista.length) return;
-    const nomes = lista.slice(0, 6).map(f => f.nome_receita).join(", ");
-    const resto = lista.length > 6 ? ` e mais ${lista.length - 6}` : "";
-    if (!confirm(`Excluir ${lista.length} ficha(s)?\n\n${nomes}${resto}\n\nSaem junto o produto do cardápio, o guia de montagem e o uso como ingrediente de outras receitas. O histórico de produção é preservado. Não tem volta.`)) return;
-
     setProcessandoLote(true);
     setMensagemLote("");
-    setErroLote(false);
-    const resposta = await excluirFichasComVinculos(lista, usuarioAuditoria);
+    setErroLote("");
+    let resposta = await excluirFichasLote(lista, usuarioAuditoria);
+    let arquivada = false;
+    // Se houver histórico ou outra receita ligada, preserva os registros e
+    // arquiva a ficha. Para o usuário ela desaparece da lista no mesmo clique.
+    if (resposta.error) {
+      resposta = await inativarFichasLote(lista, usuarioAuditoria);
+      arquivada = !resposta.error;
+    }
     setProcessandoLote(false);
-    if (resposta.error) { setErroLote(true); return setMensagemLote(resposta.error); }
+    if (resposta.error) return setErroLote(`Não foi possível excluir: ${resposta.error}`);
     setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
+    setAcoesCardAberto("");
+    setMensagemLote(arquivada
+      ? `${lista.length} ficha(s) removida(s) da lista; o histórico vinculado foi preservado.`
+      : `${lista.length} ficha(s) excluída(s) definitivamente.`);
     await carregar();
+    window.setTimeout(() => setMensagemLote(""), 3500);
   };
 
   const duplicarFichasSelecionadas = async () => {
@@ -1660,18 +1583,21 @@ function FichasRunner() {
 
   const abrirPreviaImpressao = (modo, lista = fichasSelecionadas) => {
     if (!lista.length) return;
+    // Busca em lote; a prévia abre na hora e o conteúdo novo entra quando chega.
+    setComplementosImpressao({});
+    fetchComplementosDeFichas(lista.map(f => f.id))
+      .then(r => setComplementosImpressao(r.data || {}))
+      .catch(() => setComplementosImpressao({}));
     const livroAutomatico = modo === "livro" || lista.length >= 6;
-    const modelo = modo === "livro" ? "livro" : podeImprimirCustos ? "gerencial" : "operacional";
+    const modelo = modo === "livro" ? "livro" : "operacional";
     setOrdemPersonalizada(lista.map(f => f.id));
     setConfigImpressao({
       ordem: "selecao", formato: "a4-retrato", modelo,
       foto: true, ingredientes: true,
-      custos: podeImprimirCustos && modelo !== "operacional",
-      preco: podeImprimirCustos && modelo !== "operacional",
-      cmv: podeImprimirCustos && modelo !== "operacional",
-      margem: podeImprimirCustos && modelo !== "operacional",
-      preparo: true, montagem: true, observacoes: true,
-      responsaveis: true, atualizacao: true,
+      custos: false, preco: false, cmv: false, margem: false,
+      preparo: true, montagem: false, observacoes: false,
+      responsaveis: false, atualizacao: false,
+      codigo: true, equipamentos: true, armazenamento: true, alergenicos: true,
       capa: livroAutomatico, indice: livroAutomatico, livro: livroAutomatico,
     });
     setModalImpressao({ modo, lista });
@@ -1696,33 +1622,37 @@ function FichasRunner() {
   );
 
   const gerarDocumentoConfigurado = async (acao) => {
-    const lista = listaOrdenadaPrevia();
-    if (!lista.length) return;
-    const html = montarHtmlFichas(lista, configImpressao);
-    if (acao === "pdf") {
-      baixarPdfDeHtml(html, configImpressao?.livro ? "livro-de-fichas" : "fichas-tecnicas");
-    } else {
-      const win = window.open("", "_blank");
-      if (!win) return alert("Habilite pop-ups para imprimir.");
-      win.document.write(comFecharImpressao(html));
-      win.document.close();
-      setTimeout(() => win.print(), 800);
+    try {
+      const lista = listaOrdenadaPrevia();
+      if (!lista.length) return alert("Nenhuma ficha técnica selecionada.");
+      const html = montarHtmlFichas(lista, configImpressao);
+      if (acao === "pdf") {
+        baixarPdfDeHtml(html, configImpressao?.livro ? "livro-de-fichas" : "fichas-tecnicas");
+      } else {
+        const win = window.open("", "_blank");
+        if (!win) return alert("O navegador bloqueou a janela pop-up. Habilite os pop-ups para visualizar ou imprimir.");
+        win.document.write(comFecharImpressao(html));
+        win.document.close();
+        setTimeout(() => win.print(), 800);
+      }
+      await registrarAuditoriaFichas({
+        ...usuarioAuditoria,
+        acao: configImpressao?.livro ? "livro" : acao === "pdf" ? "pdf" : "impressao",
+        fichas: lista,
+        detalhes: configImpressao,
+      });
+    } catch (err) {
+      console.error("Erro ao gerar documento:", err);
+      alert("Ocorreu um erro ao gerar o documento: " + (err?.message || err));
     }
-    await registrarAuditoriaFichas({
-      ...usuarioAuditoria,
-      acao: configImpressao?.livro ? "livro" : acao === "pdf" ? "pdf" : "impressao",
-      fichas: lista,
-      detalhes: configImpressao,
-    });
   };
 
   const salvarModeloImpressao = () => {
     try {
       localStorage.setItem("hefisto_modelo_impressao_fichas", JSON.stringify(configImpressao));
-      setMensagemLote("Modelo de impressão salvo neste dispositivo.");
-      window.setTimeout(() => setMensagemLote(""), 3000);
+      alert("Modelo de impressão salvo com sucesso!");
     } catch {
-      setMensagemLote("Não foi possível salvar o modelo.");
+      alert("Não foi possível salvar o modelo de impressão.");
     }
   };
 
@@ -1746,11 +1676,33 @@ function FichasRunner() {
   };
 
   // PDF de verdade (download direto) — a ficha avulsa ou o Livro completo.
-  const baixarPdfFichas = (listaDeFichas, nomeArquivo) => {
-    const nome = nomeArquivo || (listaDeFichas.length === 1
-      ? (listaDeFichas[0].nome_receita || "ficha-tecnica")
-      : "livro-de-receitas");
-    baixarPdfDeHtml(montarHtmlFichas(listaDeFichas), nome);
+  const baixarPdfFichas = async (listaDeFichas, nomeArquivo) => {
+    if (!listaDeFichas || !listaDeFichas.length) return alert("Nenhuma ficha técnica selecionada.");
+    let win = null;
+    try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+    if (win) {
+      win.document.write("<!DOCTYPE html><html><head><title>Gerando PDF...</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#64748b;background:#f8fafc'><h3>Gerando PDF, aguarde um instante...</h3></body></html>");
+    }
+
+    try {
+      let complementos = complementosImpressao;
+      try {
+        const res = await fetchComplementosDeFichas(listaDeFichas.map(f => f.id));
+        if (res?.data) {
+          complementos = res.data;
+          setComplementosImpressao(res.data);
+        }
+      } catch (e) {
+        console.error("Erro ao carregar complementos:", e);
+      }
+      const nome = nomeArquivo || (listaDeFichas.length === 1
+        ? (listaDeFichas[0].nome_receita || "ficha-tecnica")
+        : "livro-de-receitas");
+      baixarPdfDeHtml(montarHtmlFichas(listaDeFichas, { complementos }), nome, { windowRef: win });
+    } catch (err) {
+      if (win) win.close();
+      alert("Ocorreu um erro ao gerar o PDF: " + (err?.message || err));
+    }
   };
 
   const montarHtmlFichas = (listaDeFichas, opcoes = {}) => {
@@ -1761,208 +1713,397 @@ function FichasRunner() {
     };
     
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    const fmtBRL = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtDataBR = (d) => { if (!d) return '—'; const dt = new Date(d); return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
-    const completo = !opcoes.modelo || opcoes.modelo === "gerencial" || opcoes.modelo === "livro";
     const incluir = (campo, padrao = true) => opcoes[campo] === undefined ? padrao : !!opcoes[campo];
     const paginaPaisagem = opcoes.formato === "a4-paisagem";
-    const permitirCustos = podeImprimirCustos && completo && incluir("custos", false);
 
     let conteudoHTML = `
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:16mm 14mm;max-width:820px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-          .ficha{page-break-inside:avoid;margin-bottom:26px}
-          .ficha + .ficha{border-top:1px solid #e2e8f0;padding-top:22px}
+          body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;background:#ffffff;padding:10mm;max-width:840px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          
+          .ficha{page-break-inside:avoid;margin-bottom:24px;background:#ffffff;border:1.5px solid #5b2418;border-radius:0;overflow:hidden}
           .quebra{page-break-after:always}
-          /* Cabeçalho: foto quadrada à esquerda, dados à direita */
-          .topo{display:flex;gap:18px;align-items:flex-start;margin-bottom:16px}
-          .foto{width:230px;height:230px;object-fit:cover;border-radius:6px;background:#f1f5f9;border:1px solid #cbd5e1;flex-shrink:0}
-          .foto-vazia{width:230px;height:230px;border-radius:6px;background:#f1f5f9;border:1px dashed #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;font-weight:bold}
-          .cab{flex:1;min-width:0}
-          .rotulo{text-align:right;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
-          .titulo{text-align:right;font-size:22px;font-weight:800;line-height:1.15;margin:2px 0 14px;color:#0f172a}
-          /* Metadados em grade (linhas e colunas) */
-          .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px}
-          .campo{font-size:12.5px;color:#334155}
-          .campo b{color:#0f172a}
-          .campo.full{grid-column:1 / -1}
-          /* Seções e tabelas */
-          h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:18px 0 6px;text-align:right;border-bottom:2px solid #0f172a;padding-bottom:4px}
-          table{width:100%;border-collapse:collapse;font-size:13px}
-          th,td{text-align:left;padding:7px 10px}
-          thead th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1;font-weight:bold}
-          tbody td{font-weight:600;border-bottom:1px solid #eef2f7}
-          tbody tr:nth-child(even){background:#f5f7fa}
-          td.r,th.r{text-align:right}
-          .rende td,.rende th{white-space:nowrap}
-          /* Modo de preparo em passos com linhas alternadas */
-          .passos{margin-top:4px}
-          .passo{font-size:13px;line-height:1.5;padding:7px 10px;font-weight:600}
-          .passo:nth-child(even){background:#f5f7fa}
-          .passo b{color:#0f172a;margin-right:4px}
-          @media print{@page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:12mm}}
+          
+          /* TOP HEADER */
+          .header-top{display:grid;grid-template-columns:220px 1fr 240px;gap:12px;padding:12px 14px;align-items:center;background:#ffffff;border-bottom:1px solid #d3d3d3}
+          .header-brand{display:flex;flex-direction:column;justify-content:center}
+          .brand-logo-text{font-family:'Playfair Display','Georgia',serif;font-size:24px;font-weight:900;color:#5b2418;line-height:1}
+          .brand-sub-text{font-size:9px;font-weight:800;letter-spacing:3px;color:#5b2418;text-transform:uppercase;margin-top:2px}
+          
+          .header-title-box{display:flex;flex-direction:column;justify-content:center;border-left:1px solid #d3d3d3;padding-left:14px}
+          .header-main-title{font-size:18px;font-weight:900;letter-spacing:1px;color:#0f172a;text-transform:uppercase}
+          .header-sub-title{font-size:10px;font-weight:800;letter-spacing:3px;color:#64748b;text-transform:uppercase;margin-top:1px}
+          
+          .meta-table{width:100%;border-collapse:collapse;font-size:10.5px;border:1px solid #cbd5e1}
+          .meta-table td{padding:4px 7px;border:1px solid #cbd5e1;color:#334155}
+          .meta-table td.lbl{font-weight:800;color:#475569;background:#f8fafc;width:40%;text-transform:uppercase;font-size:9.5px;letter-spacing:0.5px}
+          .meta-table td.val{font-weight:700;color:#0f172a}
+          
+          /* DISH NAME BANNER */
+          .banner-nome{padding:10px 14px;color:#ffffff;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+          .banner-nome h1{font-size:20px;font-weight:900;margin:0;letter-spacing:1.5px}
+          
+          .banner-cozinha-prato{background-color:#5b2418}
+          .banner-cozinha-base{background-color:#78350f}
+          .banner-bar-prato{background-color:#0f172a}
+          .banner-bar-base{background-color:#581c87}
+          
+          /* FOTO + DADOS GERAIS */
+          .grid-foto-info{display:grid;grid-template-columns:220px 1fr;gap:14px;padding:12px 14px}
+          .foto-box{width:100%;height:180px;object-fit:cover;border:1px solid #cbd5e1;background:#f1f5f9}
+          .foto-vazia-box{width:100%;height:180px;border:1px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:800;text-transform:uppercase}
+          
+          .tbl-geral{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #cbd5e1}
+          .tbl-geral td{padding:5.5px 8px;border:1px solid #cbd5e1}
+          .tbl-geral td.lbl{font-weight:800;color:#475569;background:#f8fafc;width:40%;text-transform:uppercase;font-size:9.5px;letter-spacing:0.5px}
+          .tbl-geral td.val{font-weight:700;color:#0f172a}
+          
+          /* SECTION BLOCKS & BANNERS */
+          .sec-block{margin:0 14px 12px}
+          .sec-banner{padding:6px 10px;color:#ffffff;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px}
+          
+          .tbl-dados{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #cbd5e1}
+          .tbl-dados th{background:#f8fafc;padding:6px 8px;border:1px solid #cbd5e1;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#475569;text-align:left}
+          .tbl-dados td{padding:6px 8px;border:1px solid #cbd5e1;color:#1e293b}
+          .tbl-dados td.lbl{font-weight:800;color:#475569;background:#f8fafc;font-size:9.5px;text-transform:uppercase;letter-spacing:0.5px}
+          .tbl-dados td.val{font-weight:600;color:#0f172a}
+          
+          /* 2-COLUMN GRIDS */
+          .grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 14px 12px}
+          .grid-2col .sec-block{margin:0}
+          
+          .box-text-content{border:1px solid #cbd5e1;padding:8px 10px;font-size:11px;line-height:1.45;color:#334155;background:#ffffff}
+          
+          /* FOOTER DELICADO */
+          .footer-delicado{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 14px;margin-top:8px}
+          .footer-line-left,.footer-line-right{flex:1;height:1px;background:#cbd5e1}
+          .footer-text{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#64748b}
+          
+          @media print{
+            @page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:8mm}
+            body{padding:0}
+            .ficha{box-shadow:none;border-color:#5b2418}
+          }
           .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
-          .capa h1{font-size:46px;margin-bottom:14px}
-          .capa p{font-size:18px;color:#64748b}
-          /* Livro: cada ficha em 1 página numerada; índice por seções */
-          .pagina-livro{page-break-after:always;display:flex;flex-direction:column;height:246mm;overflow:hidden;margin-bottom:0}
+          .capa h1{font-size:44px;margin-bottom:14px;color:#0f172a;font-weight:900}
+          .capa p{font-size:16px;color:#64748b;font-weight:600}
+          
+          .pagina-livro{page-break-after:always;display:flex;flex-direction:column;height:252mm;overflow:hidden;margin-bottom:0}
           .pagina-livro:last-child{page-break-after:auto}
           .conteudo-pg{flex:1;min-height:0}
-          .ficha-metade + .ficha-metade{border-top:2px dashed #cbd5e1;margin-top:10px;padding-top:12px}
-          .ficha-metade .foto,.ficha-metade .foto-vazia{width:150px;height:150px}
-          .rodape-livro{margin-top:auto;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#64748b;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
-          .indice{page-break-after:always;min-height:246mm;display:flex;flex-direction:column}
-          .indice h1{font-size:24px;text-transform:uppercase;letter-spacing:4px;margin-bottom:16px;border-bottom:3px solid #0f172a;padding-bottom:8px}
-          .ind-sec{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:12px 0 5px}
-          .ind-item{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:600;padding:2.5px 0;color:#334155}
+          .rodape-livro{margin-top:auto;padding:8px 0 0;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;font-size:10px;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+          
+          .indice{page-break-after:always;min-height:252mm;display:flex;flex-direction:column;padding:10px 0}
+          .indice h1{font-size:24px;text-transform:uppercase;letter-spacing:3px;margin-bottom:16px;border-bottom:3px solid #0f172a;padding-bottom:8px;font-weight:900}
+          .ind-sec{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:14px 0 6px;padding-bottom:2px;border-bottom:1px solid #e2e8f0}
+          .ind-item{display:flex;align-items:baseline;gap:6px;font-size:12.5px;font-weight:600;padding:3px 0;color:#334155}
           .ind-item .pontos{flex:1;border-bottom:2px dotted #cbd5e1}
           .ind-item .pg{font-weight:900;color:#0f172a}
        </style></head><body>
     `;
 
-    // ── LIVRO DE RECEITAS: seções, capa, índice e páginas numeradas ──────────
-    // Seções do livro (nesta ordem). No Bar, xaropes, espumas e geleias ganham
-    // capítulos próprios para facilitar a produção e a consulta da equipe.
-    const ORDEM_SECOES = ['Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos', 'Molhos'];
+    const ORDEM_SECOES = ['Empanamentos', 'Salmouras e Marinadas', 'Molhos', 'Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos'];
     const secaoDe = (f) => {
       const nome = String(f.nome_receita || '').toLowerCase();
       const cat = String(f.categoria || '').toLowerCase();
+      if (cat.includes('empan') || nome.includes('empan')) return 'Empanamentos';
+      if (cat.includes('salmoura') || cat.includes('marinad') || nome.includes('salmoura') || nome.includes('marinad')) return 'Salmouras e Marinadas';
       if (nome.includes('xarope') || cat.includes('xarope')) return 'Xaropes';
       if (nome.includes('espuma') || cat.includes('espuma')) return 'Espumas';
       if (nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Geleias';
       if (cat.includes('mix') || cat.includes('infus') || nome.includes('infusão') || nome.includes('infusao')) return 'Mixes e Infusões';
       if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
-      if (f.eh_base && f.tipo_base !== 'receita') return 'Pré-preparos';
+      if (f.eh_base) return 'Pré-preparos';
       if (cat === 'sobremesas') return 'Sobremesas';
       if (cat === 'sucos') return 'Sucos';
       return 'Preparos';
     };
     const ehLivro = !!opcoes.livro || listaDeFichas.length >= 6;
     const lista = [...listaDeFichas];
-    // Capa e índice são montados DEPOIS, quando as páginas já foram distribuídas
-    // (receitas pequenas se combinam 2 por página; as grandes se comprimem).
-    const dados = lista.map((f) => {
-      const custoTotal = custoTotalDaFicha(f, fichas);
-      const rende = Number(f.rendimento_porcoes) || 1;
-      const peso = infoPesoFicha(f, fichas);
-      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-      const porcoesTxt = unR === 'porcao'
-         ? Number(rende).toLocaleString('pt-BR')
-         : (peso && peso.porcoes ? Number(peso.porcoes).toLocaleString('pt-BR') : '—');
-      const custoPorcaoBase = unR === 'porcao' ? rende : (peso && peso.porcoes ? peso.porcoes : 0);
-      const custoPorcao = custoPorcaoBase > 0 ? custoTotal / custoPorcaoBase : 0;
-      const produto = produtos.find(item => item.ficha_id === f.id
-        || String(item.nome_produto || "").toLocaleLowerCase("pt-BR") === String(f.nome_receita || "").toLocaleLowerCase("pt-BR"));
-      const precoVenda = Number(produto?.preco_venda) || 0;
-      const cmv = precoVenda > 0 ? (custoPorcao / precoVenda) * 100 : null;
-      const margem = cmv === null ? null : 100 - cmv;
-      const montagem = montagens.find(item =>
-        String(item.nome || "").toLocaleLowerCase("pt-BR") === String(f.nome_receita || "").toLocaleLowerCase("pt-BR"));
-      // Rendimento = só o peso em GRAMAS. Se estiver em kg (ou L), converte p/ g.
-      const pesoGramas = (peso && peso.pesoTotalG) ? peso.pesoTotalG
-         : (unR === 'kg' || unR === 'l') ? rende * 1000
-         : (unR === 'g' || unR === 'ml') ? rende
-         : 0;
 
-      // Itens do preparo: Tipo | Nome | Medida | Quantidade total
-      const rows = (f.fichas_ingredientes || []).map(fi => {
-         let tipo = 'Insumo', nome = '', unidade = '';
+    const dados = lista.map((f) => {
+      const rendimentoSetor = rendimentoPadronizado(f);
+      const rendimentoSetorTexto = textoRendimentoPadronizado(f);
+
+      const rowsIngredientes = (f.fichas_ingredientes || []).map(fi => {
+         let nome = '', unidade = '', obs = '—';
          if (fi.insumos) {
-            tipo = fi.insumos.categoria || 'Insumo';
             nome = fi.insumos.nome;
-            unidade = fi.insumos.unidade_medida;
+            unidade = fi.insumos.unidade_medida || '';
+            if (fi.insumos.marca) obs = fi.insumos.marca;
          } else if (fi.subficha_id) {
             const base = fichas.find(x => x.id === fi.subficha_id);
-            tipo = 'Receita';
             nome = base ? base.nome_receita : 'Base excluída';
             unidade = base?.rendimento_unidade || 'un';
+            obs = 'Base / Pré-preparo';
          }
-         return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
+         return `<tr>
+            <td style="font-weight:700">${esc(nome)}</td>
+            <td>${esc(String(unidade || '').toLowerCase())}</td>
+            <td style="font-weight:700">${fmtQtd(fi.quantidade, unidade)}</td>
+            <td style="color:#64748b">${esc(obs)}</td>
+         </tr>`;
       }).join('');
 
-      const foto = incluir("foto") && f.imagem
-         ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
-         : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
-      const tipoFicha = f.eh_base ? 'Receita base' : 'Produto de venda';
-      const deptLabel = f.departamento === 'bar' ? 'Bar' : (f.departamento === 'cozinha' ? 'Cozinha' : (f.departamento || '—'));
+      const extra = (opcoes?.complementos && opcoes.complementos[f.id]) || (typeof complementosImpressao !== "undefined" && complementosImpressao && complementosImpressao[f.id]) || {};
+      const etapasNovas = extra.etapas || [];
 
-      // Passos do modo de preparo (remove numeração já existente e re-enumera)
-      const passos = String(f.modo_preparo || '')
-         .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
-      const passosHTML = passos.length
-         ? passos.map((s, i) => `<div class="passo"><b>${i + 1}.</b> ${esc(s)}</div>`).join('')
-         : `<div class="passo">Não informado.</div>`;
+      let passosRows = '';
+      if (etapasNovas.length > 0) {
+        passosRows = etapasNovas.map((e, i) => `
+          <tr>
+            <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+            <td style="width:160px;font-weight:800;color:#0f172a">${esc(e.titulo || `Etapa ${i + 1}`)}</td>
+            <td style="color:#334155">${esc(e.instrucao || "")}${e.tempo_min ? ` <i style="color:#64748b;font-size:11px">(${e.tempo_min} min)</i>` : ''}</td>
+          </tr>
+        `).join('');
+      } else {
+        const passos = String(f.modo_preparo || '')
+           .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
+        passosRows = passos.length
+           ? passos.map((s, i) => {
+               let tit = `Etapa ${i + 1}`;
+               let txt = s;
+               if (s.includes(":")) {
+                 const pts = s.split(":");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(":").trim();
+               } else if (s.includes(" - ")) {
+                 const pts = s.split(" - ");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(" - ").trim();
+               }
+               return `<tr>
+                 <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+                 <td style="width:160px;font-weight:800;color:#0f172a">${esc(tit)}</td>
+                 <td style="color:#334155">${esc(txt)}</td>
+               </tr>`;
+             }).join('')
+           : `<tr><td colspan="3" style="color:#94a3b8;padding:10px">Não informado.</td></tr>`;
+      }
+
+      const montagemPassosExtra = (extra.montagem && extra.montagem.length > 0)
+        ? extra.montagem
+        : (f.montagem_passos || []);
+
+      let montagemRows = '';
+      if (montagemPassosExtra.length > 0) {
+        montagemRows = montagemPassosExtra.map((m, i) => `
+          <tr>
+            <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+            <td style="color:#0f172a;font-weight:700" colspan="2">${esc(m.descricao || m)}</td>
+          </tr>
+        `).join('');
+      } else {
+        montagemRows = passosRows;
+      }
+
+      const arm = extra.armazenamento;
+      const validadesArm = arm ? [
+        arm.validade_refrigerado_dias ? `Refrigerado: ${esc(String(arm.validade_refrigerado_dias))} dias` : "",
+        arm.validade_congelado_dias ? `Congelado: ${esc(String(arm.validade_congelado_dias))} dias` : "",
+        arm.validade_apos_aberto_dias ? `Após aberto: ${esc(String(arm.validade_apos_aberto_dias))} dias` : "",
+        arm.validade_apos_preparo_horas ? `Após preparo: ${esc(String(arm.validade_apos_preparo_horas))} h` : "",
+      ].filter(Boolean) : [];
+
+      const blocoArmazenamentoLinhas = `
+         <tr><td class="lbl" style="width:45%">Forma & Recipiente</td><td class="val">${esc([arm?.forma, arm?.recipiente].filter(Boolean).join(" · ") || '—')}</td></tr>
+         <tr><td class="lbl">Local & Validade</td><td class="val">${esc(arm?.local_armazenamento || "")}${validadesArm.length ? (arm?.local_armazenamento ? " · " : "") + validadesArm.join(" · ") : (arm?.local_armazenamento ? "" : "—")}</td></tr>
+         <tr><td class="lbl">Observações</td><td class="val">${esc(arm?.observacoes || '—')}</td></tr>
+      `;
+
+      const dept = String(f.departamento || '').toLowerCase();
+      const isBar = dept === 'bar';
+      const ehBase = !!f.eh_base;
+      const deptLabel = isBar ? 'Bar' : 'Cozinha';
+
+      let bannerClass = 'banner-cozinha-prato';
+      if (isBar) {
+        bannerClass = ehBase ? 'banner-bar-base' : 'banner-bar-prato';
+      } else {
+        bannerClass = ehBase ? 'banner-cozinha-base' : 'banner-cozinha-prato';
+      }
+
+      const equipamentosList = (extra.equipamentos || []).map(x => x.nome).filter(Boolean);
+      const blocoEquipamentos = `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">EQUIPAMENTOS E UTENSÍLIOS</div>
+            <div class="box-text-content">
+               ${equipamentosList.length ? esc(equipamentosList.join(", ")) : '—'}
+            </div>
+         </div>
+      `;
+
+      const alergsList = (extra.alergenicos || []).map(x => x.alergenico).filter(Boolean);
+      const blocoAlergenicos = `
+         <div class="sec-block" style="margin-top:10px">
+            <div class="sec-banner ${bannerClass}">ALERGÊNICOS</div>
+            <div class="box-text-content">
+               ${alergsList.length ? `<b>Contém:</b> ${esc(alergsList.join(", ").toLowerCase())}.` : '<b>Contém:</b> Não declarado.'}
+               ${f.alergenicos_pode_conter ? `<br/><b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}` : ''}
+            </div>
+         </div>
+      `;
+
+      const custoFicha = custoTotalDaFicha(f, fichas);
+      const infoPeso = infoPesoFicha(f, fichas);
+      const porcoesFicha = (() => {
+        const un = String(f.rendimento_unidade || "").toLowerCase();
+        const rend = Number(f.rendimento_porcoes) || 0;
+        return (un === "porcao" || un === "un") ? rend : (infoPeso?.porcoes || 0);
+      })();
+      const custoPorcaoFicha = porcoesFicha > 0 ? custoFicha / porcoesFicha : custoFicha;
+      const precoFicha = Number(f.preco_venda) || 0;
+      const cmvFicha = precoFicha > 0 ? (custoPorcaoFicha / precoFicha) * 100 : null;
+
+      const blocoCustosTabela = podeVerCustos ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">CUSTO DA RECEITA (POR UNIDADE)</div>
+            <table class="tbl-dados">
+               <tr><td class="lbl" style="width:60%">Custo dos ingredientes</td><td class="val">${fmtBRL(custoPorcaoFicha)}</td></tr>
+               <tr><td class="lbl">Custo de embalagem</td><td class="val">R$ 0,00</td></tr>
+               <tr><td class="lbl" style="font-weight:800;color:#0f172a">Custo total</td><td class="val" style="font-weight:900;color:#0f172a">${fmtBRL(custoPorcaoFicha)}</td></tr>
+               ${precoFicha > 0 ? `<tr><td class="lbl" style="font-weight:800;color:#0f172a">Preço de venda sugerido</td><td class="val" style="font-weight:900;color:#0f172a">${fmtBRL(precoFicha)}</td></tr>` : ''}
+               ${cmvFicha !== null ? `<tr><td class="lbl" style="font-weight:800;color:#0f172a">CMV</td><td class="val" style="font-weight:900;color:#0f172a">${cmvFicha.toFixed(1).replace(".", ",")}%</td></tr>` : ''}
+            </table>
+         </div>
+      ` : '';
+
+      const foto = incluir("foto") && f.imagem
+         ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto-box" />`
+         : incluir("foto") ? `<div class="foto-vazia-box">SEM FOTO</div>` : "";
+
+      const codigoVal = f.codigo || `FT-${String(f.id || '').slice(0, 4).toUpperCase()}`;
+      const versaoVal = f.versao || '1.0';
+      const respVal = f.responsavel || deptLabel;
+      const dataVal = fmtDataBR(f.updated_at || f.created_at);
+      const pesoFinalTexto = f.peso_porcao_g ? `${f.peso_porcao_g} g` : '—';
 
       const corpo = `
-            <div class="topo">
+         <!-- TOP HEADER -->
+         <div class="header-top">
+            <div class="header-brand">
+               <div class="brand-logo-text">Seldeestrela</div>
+               <div class="brand-sub-text">RESTAURANTE AMAZÔNICO</div>
+            </div>
+            <div class="header-title-box">
+               <div class="header-main-title">FICHA TÉCNICA</div>
+               <div class="header-sub-title">LIVRO DE RECEITAS</div>
+            </div>
+            <div class="header-meta">
+               <table class="meta-table">
+                  <tr><td class="lbl">CÓDIGO</td><td class="val">${esc(codigoVal)}</td></tr>
+                  <tr><td class="lbl">VERSÃO</td><td class="val">${esc(versaoVal)}</td></tr>
+                  <tr><td class="lbl">DATA</td><td class="val">${esc(dataVal)}</td></tr>
+                  <tr><td class="lbl">RESPONSÁVEL</td><td class="val">${esc(respVal)}</td></tr>
+               </table>
+            </div>
+         </div>
+
+         <!-- BANNER COM NOME DO PRATO -->
+         <div class="banner-nome ${bannerClass}">
+            <h1>${esc(f.nome_receita)}</h1>
+         </div>
+
+         <!-- FOTO + INFORMAÇÕES GERAIS -->
+         <div class="grid-foto-info">
+            <div>
                ${foto}
-               <div class="cab">
-                  <div class="rotulo">${ehLivro ? 'Livro de Receitas · ' + esc(secaoDe(f)) : 'Ficha Técnica'}</div>
-                  <div class="titulo">${esc(f.nome_receita)}</div>
-                  <div class="grid">
-                     <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
-                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
-                     <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
-                     ${metodoBar(f.metodo_bar) ? `<div class="campo"><b>Método:</b> ${esc(metodoBar(f.metodo_bar).nome)}</div>` : ''}
-                     ${incluir("atualizacao") ? `<div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
-                     <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>` : ""}
-                     ${incluir("responsaveis") && f.responsavel ? `<div class="campo full"><b>Responsável:</b> ${esc(f.responsavel)}</div>` : ""}
-                     ${incluir("observacoes") && f.observacoes ? `<div class="campo full"><b>Observações:</b> ${esc(f.observacoes)}</div>` : ''}
-                  </div>
+            </div>
+            <div>
+               <table class="tbl-geral">
+                  <tr><td class="lbl">CATEGORIA</td><td class="val">${esc(f.categoria || (isBar ? 'Bar' : 'Cozinha'))}</td></tr>
+                  <tr><td class="lbl">RENDIMENTO</td><td class="val">${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</td></tr>
+                  <tr><td class="lbl">TEMPO DE PREPARO</td><td class="val">${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' minutos' : '—'}</td></tr>
+                  <tr><td class="lbl">TEMPO DE COCÇÃO</td><td class="val">${f.tempo_coccao != null && f.tempo_coccao !== '' ? esc(String(f.tempo_coccao)) + ' minutos' : '—'}</td></tr>
+                  ${f.guarnicao ? `<tr><td class="lbl">GUARNIÇÃO</td><td class="val" style="font-weight:800;color:#0f172a">${esc(f.guarnicao)}</td></tr>` : ''}
+                  <tr><td class="lbl">PESO FINAL (aprox.)</td><td class="val">${esc(pesoFinalTexto)}</td></tr>
+                  <tr><td class="lbl">SETOR</td><td class="val">${esc(deptLabel)}</td></tr>
+               </table>
+            </div>
+         </div>
+
+         <!-- BANNER E TABELA DE INGREDIENTES -->
+         ${incluir("ingredientes") ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">INGREDIENTES</div>
+            <table class="tbl-dados">
+               <thead>
+                  <tr>
+                     <th style="width:35%">INGREDIENTE</th>
+                     <th style="width:15%">UNIDADE</th>
+                     <th style="width:20%">QUANTIDADE</th>
+                     <th style="width:30%">OBSERVAÇÃO</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  ${rowsIngredientes || '<tr><td colspan="4" style="text-align:center">Sem ingredientes cadastrados.</td></tr>'}
+               </tbody>
+            </table>
+         </div>` : ""}
+
+         <!-- BANNER MONTAGEM DO PRATO OU MODO DE PREPARO -->
+         ${incluir("preparo") ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">${ehBase ? "MODO DE PREPARO" : (isBar ? "MONTAGEM NO COPO" : "MONTAGEM DO PRATO")}</div>
+            <table class="tbl-dados">
+               <tbody>
+                  ${ehBase ? passosRows : montagemRows}
+               </tbody>
+            </table>
+         </div>` : ""}
+
+         ${!ehBase && f.guarnicao ? `
+         <div class="sec-block" style="margin-top:10px">
+            <div class="sec-banner ${bannerClass}">GUARNIÇÃO / ACOMPANHAMENTO</div>
+            <div class="box-text-content" style="font-weight:800;color:#0f172a">
+               ${esc(f.guarnicao)}
+            </div>
+         </div>` : ""}
+
+         <!-- 2 COLUNAS: ARMAZENAMENTO vs EQUIPAMENTOS & ALERGÊNICOS -->
+         <div class="grid-2col">
+            <div>
+               <div class="sec-block">
+                  <div class="sec-banner ${bannerClass}">ARMAZENAMENTO E VALIDADE</div>
+                  <table class="tbl-dados">
+                     ${blocoArmazenamentoLinhas}
+                  </table>
                </div>
             </div>
+            <div>
+               ${blocoEquipamentos}
+               ${blocoAlergenicos}
+            </div>
+         </div>
 
-            <h2>${f.eh_base ? "Rendimento do preparo" : "Rendimento"}</h2>
-            <table class="rende">
-               <thead><tr><th>${f.eh_base ? "Produz" : "Rende"}</th><th>Peso total</th>${f.eh_base ? "" : "<th>Porções</th>"}</tr></thead>
-               <tbody><tr>
-                 <td>${esc(textoRendimento(f.rendimento_porcoes, f.rendimento_unidade, String(f.departamento || '').toLowerCase() === 'bar'))}</td>
-                 <td>${pesoGramas > 0 ? fmtG(pesoGramas) : '—'}</td>
-                 ${f.eh_base ? "" : `<td>${porcoesTxt}</td>`}
-               </tr></tbody>
-            </table>
+         <!-- 2 COLUNAS: CUSTO DA RECEITA vs INFORMAÇÕES ADICIONAIS -->
+         <div class="grid-2col">
+            <div>
+               ${blocoCustosTabela}
+            </div>
+            <div>
+               <div class="sec-block">
+                  <div class="sec-banner ${bannerClass}">INFORMAÇÕES ADICIONAIS</div>
+                  <table class="tbl-dados">
+                     <tr><td class="lbl" style="width:45%">Padrão de montagem</td><td class="val">${esc(f.padrao_montagem || 'Conforme foto')}</td></tr>
+                     <tr><td class="lbl">Observações</td><td class="val">${esc(f.observacoes || '—')}</td></tr>
+                  </table>
+               </div>
+            </div>
+         </div>
 
-            ${incluir("ingredientes") ? `<h2>${f.eh_base ? "Itens do preparo" : "Ingredientes do prato"}</h2>
-            <table>
-               <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Quantidade total</th></tr></thead>
-               <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
-            </table>` : ""}
+         <!-- FOOTER DELICADO SEM BARRA ESCURA -->
+         <div class="footer-delicado">
+            <div class="footer-line-left"></div>
+            <div class="footer-text">RESTAURANTE AMAZÔNICO</div>
+            <div class="footer-line-right"></div>
+         </div>
+      `;
 
-            ${permitirCustos ? (f.eh_base
-              /* Preparo não se vende: preço, CMV e margem são campos vazios que
-                 na tela viravam "CMV 0,0%" e "Margem 100,0%" — informação falsa
-                 num papel que vai para a bancada. O que interessa num preparo é
-                 quanto custa produzir e quanto custa cada kg dele. */
-              ? `<h2>Custos do preparo</h2>
-            <table><thead><tr>
-              <th>Custo total da produção</th>
-              <th>Custo por ${esc(baseCustoDaFicha(unR, String(f.departamento || '').toLowerCase() === 'bar' ? 'L' : 'kg'))}</th>
-            </tr></thead><tbody><tr>
-              <td>${fmtBRL(custoTotal)}</td>
-              <td>${peso?.custoKg > 0 ? fmtBRL(peso.custoKg) : "—"}</td>
-            </tr></tbody></table>`
-              : `<h2>Custos e precificação</h2>
-            <table><thead><tr>
-              <th>Custo do produto</th>
-              ${incluir("preco", false) ? "<th>Preço de venda</th>" : ""}
-              ${incluir("cmv", false) ? "<th>CMV</th>" : ""}
-              ${incluir("margem", false) ? "<th>Lucro/porção</th>" : ""}
-            </tr></thead><tbody><tr>
-              <td>${fmtBRL(custoPorcao)}</td>
-              ${incluir("preco", false) ? `<td>${precoVenda > 0 ? fmtBRL(precoVenda) : "—"}</td>` : ""}
-              ${incluir("cmv", false) ? `<td>${cmv === null ? "—" : cmv.toFixed(1) + "%"}</td>` : ""}
-              ${incluir("margem", false) ? `<td>${precoVenda > 0
-                  ? fmtBRL(precoVenda - custoPorcao - precoVenda * ((Number(taxasVenda.cartao) || 0) + (Number(taxasVenda.imposto) || 0)) / 100)
-                  : "—"}</td>` : ""}
-            </tr></tbody></table>`) : ""}
-
-            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${passosHTML}</div>` : ""}
-            ${incluir("montagem") ? `<h2>Guia de montagem</h2><div class="passos"><div class="passo">${esc(montagem?.descritivo || montagem?.observacoes || "Não informado.")}</div></div>` : ""}`;
-
-      // Altura estimada (≈mm) para decidir se cabe DUAS na mesma página
-      const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + passos.length * 7 + (f.observacoes ? 8 : 0);
+      const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + (passosRows ? 30 : 0);
       return { f, corpo, score, secao: ehLivro ? secaoDe(f) : '' };
     });
 
@@ -2037,6 +2178,16 @@ function FichasRunner() {
     if (!win) return alert('Habilite pop-ups para imprimir.');
     const esc2 = (v) => String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const brl = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const getOrdemCategoria = (cat) => {
+      const c = String(cat || "").toLowerCase();
+      if (c.includes("entrada")) return 1;
+      if (c.includes("prato") || c.includes("massa") || c.includes("carne") || c.includes("principal")) return 2;
+      if (c.includes("sobremesa") || c.includes("doce") || c.includes("açaí") || c.includes("acai")) return 3;
+      if (c.includes("adiciona") || c.includes("adicional") || c.includes("extra") || c.includes("acompanha") || c.includes("bebida") || c.includes("suco")) return 4;
+      return 5;
+    };
+
     const linhas = fichas.filter(f => !f.eh_base).map(f => {
       const custoTotal = custoTotalDaFicha(f, fichas);
       const peso = infoPesoFicha(f, fichas);
@@ -2044,170 +2195,65 @@ function FichasRunner() {
       const porcoes = (unR === 'porcao' || unR === 'un') ? (Number(f.rendimento_porcoes) || 1) : (peso?.porcoes || 0);
       const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
       const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || '').toLowerCase() === String(f.nome_receita || '').toLowerCase());
-      const preco = Number(prod?.preco_venda) || 0;
+      const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
       const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
-      // Acima de 30% de CMV a planilha não se limita a apontar o problema: diz
-      // por quanto o prato precisaria sair para chegar lá. Sem isso, quem lê
-      // volta para a calculadora com o custo na mão.
-      const sugerido30 = cmv !== null && cmv > 30 ? custoPorcao / 0.30 : null;
-      // Lucro vem antes do CMV porque é a pergunta que se faz primeiro: quanto
-      // sobra. O CMV explica por que sobra isso. Já descontados maquininha e
-      // imposto, as duas fatias que a venda perde depois da mercadoria.
-      const taxas = preco * ((Number(taxasVenda.cartao) || 0) + (Number(taxasVenda.imposto) || 0)) / 100;
-      const lucro = preco > 0 ? preco - custoPorcao - taxas : null;
-      return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv, sugerido30, lucro };
-    }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+      return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv };
+    }).sort((a, b) => {
+      const oA = getOrdemCategoria(a.cat);
+      const oB = getOrdemCategoria(b.cat);
+      if (oA !== oB) return oA - oB;
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
+
     const comCmv = linhas.filter(l => l.cmv !== null);
     const cmvMedio = comCmv.length ? comCmv.reduce((s, l) => s + l.cmv, 0) / comCmv.length : null;
-    // "Custo total" e "Custo/porção" repetiam o mesmo valor em toda ficha que
-    // rende uma porção — a maioria. Fica a que casa com o preço de venda e
-    // forma o CMV, com o nome que a operação usa: custo do produto.
-    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoPorcao)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}${l.sugerido30 ? `<small>${brl(l.sugerido30)} (30% CMV)</small>` : ''}</td><td class="r ${l.lucro === null ? '' : l.lucro < 0 ? 'ruim' : 'bom'}">${l.lucro !== null ? brl(l.lucro) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos</title><style>
+
+    const comPreco = linhas.filter(l => l.preco > 0);
+    const ticketMedio = comPreco.length ? comPreco.reduce((s, l) => s + l.preco, 0) / comPreco.length : null;
+
+    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoTotal)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos e CMV</title><style>
       *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
       .sub{font-size:11px;color:#64748b;font-weight:bold;margin-bottom:12px}
+      .kpi-container{display:flex;gap:14px;margin-bottom:16px;margin-top:10px}
+      .kpi-card{flex:1;border:2px solid #e2e8f0;background:#f8fafc;border-radius:12px;padding:12px 16px;text-align:center}
+      .kpi-cmv{border-color:#fecaca;background:#fef2f2}
+      .kpi-ticket{border-color:#bbf7d0;background:#f0fdf4}
+      .kpi-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b;display:block}
+      .kpi-value{font-size:26px;font-weight:900;line-height:1.2;margin-top:2px;display:block}
+      .kpi-sub{font-size:10px;font-weight:700;color:#64748b;margin-top:2px;display:block}
+      .kpi-bom{color:#047857}
+      .kpi-alerta{color:#dc2626}
+      .text-emerald{color:#047857}
       table{width:100%;border-collapse:collapse;font-size:12px}
       th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left}
       th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
       td.r,th.r{text-align:right}tbody tr:nth-child(even){background:#f5f7fa}
-      td small{display:block;font-size:9px;color:#b45309;font-weight:bold;margin-top:1px}
       td.bom{color:#047857;font-weight:900}td.ruim{color:#dc2626;font-weight:900}
       tfoot td{border-top:2px solid #0f172a;font-weight:900;font-size:13px;padding-top:8px}
-      .nota{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:10px;color:#64748b;line-height:1.5}
-      .destaque{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border:2px solid #0f172a;border-radius:8px;padding:8px 12px;margin-bottom:12px}
-      .destaque span{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-weight:bold;color:#475569}
-      .destaque strong{font-size:22px}
       @media print{@page{margin:10mm}}
     </style></head><body>
       <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
       <h1>Planilha de Custos e CMV</h1>
-      <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s) · ${comCmv.length} precificada(s)</div>
-      <div class="destaque"><span>CMV médio</span><strong>${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</strong></div>
-      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo do produto</th><th class="r">Preço de venda</th><th class="r">Lucro</th><th class="r">CMV</th></tr></thead>
-      <tbody>${rows}</tbody>
-      </table>
-      <p class="nota"><b>Custo do produto</b> é o de uma porção: ingredientes mais embalagem. <b>Lucro</b> é o que sobra da venda depois dele, da maquininha (${(Number(taxasVenda.cartao) || 0).toLocaleString('pt-BR')}%) e do imposto (${(Number(taxasVenda.imposto) || 0).toLocaleString('pt-BR')}%), antes do custo fixo. <b>CMV</b> é o custo do produto dividido pela venda. Em laranja, por quanto o prato sairia para fechar 30% de CMV.</p>
-    </body></html>`);
-    win.document.close();
-    setTimeout(() => win.print(), 400);
-  };
-
-  // ── RELATÓRIO DE RENTABILIDADE: só os pratos, ordenados pelo que sobra ─────
-  // A planilha de custos responde "quanto custa"; esta responde "o que vale a
-  // pena vender". São perguntas diferentes: um prato de CMV baixo pode deixar
-  // menos dinheiro no caixa que um de CMV alto e ticket maior, e é o lucro por
-  // prato vendido que paga a conta no fim do mês.
-  const imprimirRentabilidade = () => {
-    const win = window.open("", "_blank");
-    if (!win) return alert("Habilite pop-ups para imprimir.");
-    const esc = (v) => String(v == null ? "" : v).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-    const brl = (v) => "R$ " + (Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const pctCartao = Number(taxasVenda.cartao) || 0;
-    const pctImposto = Number(taxasVenda.imposto) || 0;
-
-    // Mesmo recorte do CMV médio do cabeçalho, para os dois números baterem.
-    const linhas = fichas
-      .filter(f => !f.eh_base && f.tipo_base !== "produto_pronto")
-      .map(f => {
-        const peso = infoPesoFicha(f, fichas);
-        const custoTotal = custoTotalDaFicha(f, fichas);
-        const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-        const rend = Number(f.rendimento_porcoes) || 0;
-        const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
-        const custo = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-        const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-        const venda = Number(prod?.preco_venda) || 0;
-        const cartao = venda * pctCartao / 100;
-        const imposto = venda * pctImposto / 100;
-        return {
-          nome: f.nome_receita,
-          categoria: f.categoria || "Sem categoria",
-          custo,
-          venda,
-          cmv: venda > 0 ? (custo / venda) * 100 : null,
-          lucro: venda > 0 ? venda - custo - cartao - imposto : null,
-          lucroPct: venda > 0 ? ((venda - custo - cartao - imposto) / venda) * 100 : null,
-        };
-      });
-
-    const precificados = linhas.filter(l => l.venda > 0);
-    if (!precificados.length) return alert("Nenhum prato com preço de venda cadastrado. Defina os preços nas fichas para gerar o relatório.");
-    const semPreco = linhas.filter(l => l.venda <= 0);
-
-    const media = (arr, campo) => arr.reduce((soma, item) => soma + item[campo], 0) / arr.length;
-    const cmvMedio = media(precificados, "cmv");
-    const ticketMedio = media(precificados, "venda");
-    const custoMedio = media(precificados, "custo");
-    const lucroMedio = media(precificados, "lucro");
-    const lucroMedioPct = media(precificados, "lucroPct");
-
-    // Do que mais sobra para o que menos sobra: é a ordem da pergunta.
-    const ordenados = [...precificados].sort((a, b) => b.lucro - a.lucro);
-    const topCinco = ordenados.slice(0, 5);
-
-    const cardResumo = (rotulo, valor, nota) =>
-      `<div class="kpi"><span class="kpi-rot">${esc(rotulo)}</span><strong class="kpi-val">${esc(valor)}</strong><span class="kpi-nota">${esc(nota)}</span></div>`;
-
-    const linhaTabela = (l, i) => `<tr>
-      <td class="pos">${i + 1}</td>
-      <td>${esc(l.nome)}<small>${esc(l.categoria)}</small></td>
-      <td class="r">${brl(l.custo)}</td>
-      <td class="r">${brl(l.venda)}</td>
-      <td class="r ${l.cmv > 35 ? "ruim" : "bom"}">${l.cmv.toFixed(1)}%</td>
-      <td class="r forte ${l.lucro < 0 ? "ruim" : "bom"}">${brl(l.lucro)}</td>
-      <td class="r ${l.lucro < 0 ? "ruim" : ""}">${l.lucroPct.toFixed(1)}%</td>
-    </tr>`;
-
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Rentabilidade do Cardápio</title><style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
-      h2{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#475569;margin:16px 0 6px}
-      .sub{font-size:11px;color:#64748b;font-weight:bold;margin-bottom:12px}
-      .kpis{display:flex;gap:8px;margin-bottom:6px}
-      .kpi{flex:1;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px}
-      .kpi-rot{display:block;font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:bold}
-      .kpi-val{display:block;font-size:18px;margin-top:2px}
-      .kpi-nota{display:block;font-size:9px;color:#94a3b8;font-weight:bold}
-      table{width:100%;border-collapse:collapse;font-size:12px}
-      th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
-      th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
-      td small{display:block;font-size:9px;color:#94a3b8;font-weight:bold}
-      td.r,th.r{text-align:right}
-      td.pos{color:#94a3b8;font-weight:900;width:22px}
-      tbody tr:nth-child(even){background:#f5f7fa}
-      td.bom{color:#047857;font-weight:bold}td.ruim{color:#dc2626;font-weight:bold}td.forte{font-weight:900}
-      .aviso{margin-top:10px;font-size:10px;color:#64748b;font-weight:bold}
-      .nota{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:10px;color:#64748b;line-height:1.5}
-      @media print{@page{margin:10mm}}
-    </style></head><body>
-      <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
-      <h1>Rentabilidade do Cardápio</h1>
-      <div class="sub">${esc(unidadeInfo?.nome || "")} · ${deptUrl === "bar" ? "Bar" : "Cozinha"} · ${new Date().toLocaleDateString("pt-BR")} · ${precificados.length} prato(s) com preço</div>
-
-      <div class="kpis">
-        ${cardResumo("CMV médio", cmvMedio.toFixed(1) + "%", "mercadoria ÷ venda")}
-        ${cardResumo("Ticket médio", brl(ticketMedio), "preço de venda")}
-        ${cardResumo("Custo médio", brl(custoMedio), "por porção")}
-        ${cardResumo("Lucro médio", brl(lucroMedio), lucroMedioPct.toFixed(1) + "% da venda")}
+      <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
+      
+      <div class="kpi-container">
+        <div class="kpi-card kpi-cmv">
+          <span class="kpi-label">CMV Médio da Carta</span>
+          <span class="kpi-value ${cmvMedio !== null && cmvMedio > 35 ? 'kpi-alerta' : 'kpi-bom'}">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</span>
+          <span class="kpi-sub">${comCmv.length} receita(s) precificada(s)</span>
+        </div>
+        <div class="kpi-card kpi-ticket">
+          <span class="kpi-label">Ticket Médio (Preço de Venda)</span>
+          <span class="kpi-value text-emerald">${ticketMedio !== null ? brl(ticketMedio) : '—'}</span>
+          <span class="kpi-sub">${comPreco.length} item(ns) precificado(s)</span>
+        </div>
       </div>
-      ${semPreco.length ? `<p class="aviso">${semPreco.length} prato(s) fora da conta por não terem preço de venda: ${esc(semPreco.map(l => l.nome).join(", "))}.</p>` : ""}
 
-      <h2>Os 5 que mais deixam dinheiro</h2>
-      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo do produto</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
-      <tbody>${topCinco.map(linhaTabela).join("")}</tbody></table>
-
-      <h2>Cardápio completo, do que mais sobra ao que menos sobra</h2>
-      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo do produto</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
-      <tbody>${ordenados.map(linhaTabela).join("")}</tbody></table>
-
-      <p class="nota">
-        <b>Custo do produto</b> é o de uma porção: ingredientes mais embalagem. <b>CMV</b> é esse custo dividido pela venda.
-        <b>Lucro</b> é o que sobra da venda depois da mercadoria, da maquininha (${pctCartao.toLocaleString("pt-BR")}%) e do imposto (${pctImposto.toLocaleString("pt-BR")}%) —
-        antes de aluguel, folha, energia e o resto do custo fixo, que não pertencem a um prato específico.
-        Preparos e produtos prontos ficam de fora: não se vendem sozinhos.
-      </p>
+      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo Total</th><th class="r">Preço de Venda</th><th class="r">CMV</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="4">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 400);
@@ -2254,14 +2300,11 @@ function FichasRunner() {
         const catFicha = item.categoria === "Sobremesa" ? "Sobremesas" : item.categoria === "Suco" ? "Sucos" : "";
         const r = await salvarFicha({
           unidade_id: unidadeAtiva,
-          // O setor é o da tela. Importar o cardápio na cozinha criava fichas
-          // no bar quando a IA classificava o item como drink, e elas sumiam
-          // da lista de quem acabou de importar.
-          departamento: deptUrl,
+          departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
           nome_receita: item.nome,
           categoria: catFicha || null,
           rendimento_porcoes: 1,
-          rendimento_unidade: "porcao",
+          rendimento_unidade: item.categoria === "Drink" ? "l" : "kg",
           modo_preparo: "",
           eh_base: false,
         }, []);
@@ -2270,7 +2313,7 @@ function FichasRunner() {
             unidade_id: unidadeAtiva,
             nome_produto: item.nome,
             categoria: item.categoria === "Drink" ? "Drinks" : (catFicha || "Pratos Principais"),
-            departamento: deptUrl,
+            departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
             tempo_preparo_base: 15,
             preco_venda: item.preco,
             ficha_id: r.id,
@@ -2315,14 +2358,12 @@ function FichasRunner() {
       const foto = f.imagem
         ? `<img src="data:image/jpeg;base64,${f.imagem}" alt=""/>`
         : `<span>${(f.nome_receita || "?")[0].toUpperCase()}</span>`;
-      const peso = infoPesoFicha(f, fichas);
-      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-      const pesoG = (peso && peso.pesoTotalG) ? peso.pesoTotalG : (unR === 'kg' || unR === 'l') ? (Number(f.rendimento_porcoes) || 0) * 1000 : (unR === 'g' || unR === 'ml') ? (Number(f.rendimento_porcoes) || 0) : 0;
+      const rendimentoSetor = rendimentoPadronizado(f);
       return `
       <div class="item">
         <div class="foto">${foto}</div>
         <div class="info">
-          <h3>${f.nome_receita}${pesoG > 0 ? `<span class="peso"> · ${Math.round(pesoG).toLocaleString("pt-BR")} g</span>` : ""}</h3>
+          <h3>${f.nome_receita}${rendimentoSetor.valor > 0 ? `<span class="peso"> · ${textoRendimentoPadronizado(f)}</span>` : ""}</h3>
           <ul>${ings.map(i => `<li><b>${i.qtd}</b> ${i.nome}</li>`).join("") || "<li>Sem ingredientes cadastrados</li>"}</ul>
         </div>
       </div>`;
@@ -2383,7 +2424,27 @@ function FichasRunner() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="erp-fichas-theme min-h-screen bg-slate-50 pb-24 text-slate-800">
+      <style>{`
+        .erp-fichas-theme { font-family: Aptos, "Segoe UI Variable", "Segoe UI", Arial, sans-serif; letter-spacing: -0.006em; }
+        .erp-fichas-theme .font-black { font-weight: 700 !important; }
+        .erp-fichas-theme .font-bold { font-weight: 600 !important; }
+        .erp-fichas-theme [class*="bg-emerald-600"] { background-color: #ea580c !important; }
+        .erp-fichas-theme [class*="bg-emerald-700"] { background-color: #c2410c !important; }
+        .erp-fichas-theme [class*="hover:bg-emerald-700"]:hover, .erp-fichas-theme [class*="hover:bg-emerald-800"]:hover { background-color: #9a3412 !important; }
+        .erp-fichas-theme [class*="bg-emerald-50"] { background-color: #fff7ed !important; }
+        .erp-fichas-theme [class*="bg-emerald-100"] { background-color: #ffedd5 !important; }
+        .erp-fichas-theme [class*="text-emerald-600"] { color: #ea580c !important; }
+        .erp-fichas-theme [class*="text-emerald-700"], .erp-fichas-theme [class*="text-emerald-800"] { color: #9a3412 !important; }
+        .erp-fichas-theme [class*="border-emerald-100"], .erp-fichas-theme [class*="border-emerald-200"], .erp-fichas-theme [class*="border-emerald-300"] { border-color: #fed7aa !important; }
+        .erp-fichas-theme [class*="border-emerald-500"], .erp-fichas-theme [class*="border-emerald-600"], .erp-fichas-theme [class*="ring-emerald-500"] { border-color: #f97316 !important; --tw-ring-color: rgb(249 115 22 / .22) !important; }
+        .erp-fichas-theme [class*="shadow-emerald"] { --tw-shadow-color: rgb(234 88 12 / .22) !important; }
+        .erp-fichas-theme input[class*="accent-emerald"] { accent-color: #ea580c; }
+        .erp-fichas-theme .erp-status-ativo { background-color: #ffedd5 !important; color: #9a3412 !important; }
+        .erp-fichas-theme input, .erp-fichas-theme select, .erp-fichas-theme textarea, .erp-fichas-theme button { font-family: inherit; }
+        .erp-fichas-card { border-color: #dbe2ee; box-shadow: 0 5px 18px rgb(30 41 59 / .06); }
+        .erp-fichas-card:hover { box-shadow: 0 12px 28px rgb(154 52 18 / .10); }
+      `}</style>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -2393,62 +2454,28 @@ function FichasRunner() {
               </button>
               <div>
                 <h1 className="text-2xl font-black tracking-tight text-slate-950">{deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}</h1>
-                <p className="mt-1 text-sm font-medium text-slate-500">{modoFicha === "preparos"
-                  ? (deptUrl === "bar" ? "Produção de xaropes, espumas, infusões e bases do bar" : "Produção de molhos, caldos, massas e receitas-base da cozinha")
-                  : (deptUrl === "bar" ? "Montagem, custos e margens de drinks e bebidas" : "Montagem de pratos, rendimento, custo e CMV para o cardápio")}</p>
               </div>
+            </div>
+            <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
+              <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
+                <Search size={19} className="shrink-0 text-slate-700" />
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
+                {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
+              </label>
+              <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
+              <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>
             </div>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
-            <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Planilha de custos</button>
-            <button onClick={imprimirRentabilidade} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100"><BarChart3 size={14} /> Rentabilidade</button>
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
+            {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>}
             <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
             <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
           </div>
         </div>
       </header>
-
-      {/* A busca e o CMV médio ficam FORA do <header>. Um elemento sticky só
-          gruda enquanto o pai está na tela: dentro do cabeçalho, ele saía de
-          vista junto com o título logo na primeira rolagem. Aqui o pai é a
-          página inteira, então a faixa acompanha a lista até o fim. */}
-      {/* A faixa de busca gruda no topo com margens zeradas: a classe
-          .erp-busca-fixa nasceu para viver dentro de um container com padding e
-          traz margens negativas de 4px. Aqui ela ocupa a largura toda, e essas
-          margens empurrariam a página 8px além da tela. */}
-      <div className="erp-busca-fixa border-b border-slate-200 bg-white" style={{ marginLeft: 0, marginRight: 0 }}>
-        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-2.5 sm:flex-row sm:px-5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            {resumoCardapio.totalFichas > 0 && (() => {
-              const cmv = resumoCardapio.cmvMedio;
-              const alto = cmv != null && cmv > 35;
-              return (
-                <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} title="Ver todos os indicadores do cardápio"
-                  className={`flex h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 shadow-sm transition-colors ${alto ? "border-red-200 bg-red-50 hover:bg-red-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}>
-                  <Calculator size={18} className={`shrink-0 ${alto ? "text-red-600" : "text-emerald-700"}`} />
-                  <span className="text-left">
-                    <span className="block text-[9px] font-black uppercase tracking-wider leading-none text-slate-500">CMV médio</span>
-                    <span className={`block text-lg font-black leading-tight ${alto ? "text-red-600" : "text-emerald-700"}`}>{cmv != null ? `${cmv.toFixed(1)}%` : "—"}</span>
-                  </span>
-                  <span className="hidden text-[10px] font-bold leading-tight text-slate-400 xl:block">
-                    {resumoCardapio.precificadas} precificad{resumoCardapio.precificadas === 1 ? "a" : "as"}
-                    {resumoCardapio.semPreco > 0 && <><br />{resumoCardapio.semPreco} sem preço</>}
-                  </span>
-                </button>
-              );
-            })()}
-            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px] sm:flex-none">
-              <Search size={19} className="shrink-0 text-slate-700" />
-              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
-              {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
-            </label>
-          </div>
-          <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
-          <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
-        </div>
-      </div>
 
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
@@ -2458,19 +2485,18 @@ function FichasRunner() {
            </button>
          </div>
          {mostrarIndicadores && (() => {
+            const base = fichas.filter(f => modoFicha === "preparos"
+              ? !!f.eh_base
+              : (!f.eh_base && f.tipo_base !== "produto_pronto"));
+            if (!base.length) return null;
             if (modoFicha === "preparos") {
-              const base = fichas.filter(f => !!f.eh_base);
-              if (!base.length) return null;
-              const prePreparos = base.filter(f => f.tipo_base !== "receita").length;
-              const receitasBase = base.filter(f => f.tipo_base === "receita").length;
               const comCusto = base.filter(f => custoTotalDaFicha(f, fichas) > 0).length;
               const semModo = base.filter(f => !String(f.modo_preparo || "").trim()).length;
               const tempos = base.map(f => Number(f.tempo_preparo) || 0).filter(Boolean);
               const tempoMedio = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
               const cardsPreparo = [
                 { rot: "Preparos", val: base.length, sub: deptUrl === "bar" ? "bases do bar" : "bases da cozinha" },
-                { rot: "Pré-preparos", val: prePreparos, sub: "usados em montagens" },
-                { rot: "Receitas base", val: receitasBase, sub: "produção do dia" },
+                { rot: "Pré-preparos", val: base.length, sub: "usados em montagens" },
                 { rot: "Com custo", val: comCusto, sub: `${base.length - comCusto} sem custo` },
                 { rot: "Tempo médio", val: tempoMedio ? `${tempoMedio} min` : "—", sub: `${tempos.length} informados` },
                 { rot: "Sem instruções", val: semModo, sub: "modo de preparo", alerta: semModo > 0 },
@@ -2487,55 +2513,138 @@ function FichasRunner() {
                 </div>
               );
             }
-            const r = resumoCardapio;
-            if (!r.totalFichas) return null;
+            if (!podeVerCustos) return null; // indicadores são todos financeiros
+            let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
+            base.forEach(f => {
+               const peso = infoPesoFicha(f, fichas);
+               const custoTotal = custoTotalDaFicha(f, fichas);
+               const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+               const rend = Number(f.rendimento_porcoes) || 0;
+               const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+               const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+               if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
+               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+               const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
+               const meta = Number(f.cmv_meta) || 30;
+               if (preco > 0) {
+                  const cmv = (custoPorcao / preco) * 100;
+                  somaCmv += cmv; nCmv++; somaPreco += preco; nPreco++; somaMargem += (100 - cmv);
+                  if (cmv > meta) acimaMeta++;
+               } else semPreco++;
+            });
+            const cmvMedio = nCmv ? somaCmv / nCmv : null;
             const cards = [
-               { rot: "Fichas", val: r.totalFichas, sub: "pratos/receitas" },
-               { rot: "CMV médio", val: r.cmvMedio != null ? r.cmvMedio.toFixed(1) + "%" : "—", sub: `${r.precificadas} precificadas`, alerta: r.cmvMedio != null && r.cmvMedio > 35 },
-               { rot: "Margem média", val: r.margemMedia != null ? r.margemMedia.toFixed(1) + "%" : "—", sub: "bruta" },
-               { rot: "Custo médio/porção", val: r.custoMedio != null ? fmtBRL(r.custoMedio) : "—", sub: "por porção" },
-               { rot: "Ticket médio", val: r.ticketMedio != null ? fmtBRL(r.ticketMedio) : "—", sub: "preço de venda" },
-               { rot: "Acima da meta", val: r.acimaMeta, sub: r.semPreco ? `${r.semPreco} sem preço` : "CMV alto", alerta: r.acimaMeta > 0 },
+               { key: "fichas", rot: "Fichas", val: base.length, sub: "pratos/receitas" },
+               { key: "cmv", rot: "CMV médio", val: cmvMedio != null ? cmvMedio.toFixed(1) + "%" : "—", sub: `${nCmv} precificadas`, alerta: cmvMedio != null && cmvMedio > 35 },
+               { key: "margem", rot: "Margem média", val: nCmv ? (somaMargem / nCmv).toFixed(1) + "%" : "—", sub: "bruta" },
+               { key: "custo", rot: "Custo médio/porção", val: nCusto ? fmtBRL(somaCusto / nCusto) : "—", sub: "por porção" },
+               { key: "ticket", rot: "Ticket médio", val: nPreco ? fmtBRL(somaPreco / nPreco) : "—", sub: "preço de venda" },
+               { key: "acima_meta", rot: "Acima da meta", val: acimaMeta, sub: apenasAcimaMeta ? "Filtrado (clique p/ limpar)" : (semPreco ? `${semPreco} sem preço · clique p/ ver` : "clique para filtrar"), alerta: acimaMeta > 0, clicavel: true },
             ];
             return (
                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
-                  {cards.map(c => (
-                     <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-red-50 border-red-200" : "bg-white border-slate-200"}`}>
-                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
-                        <p className={`text-lg font-black mt-0.5 ${c.alerta ? "text-red-600" : "text-emerald-700"}`}>{c.val}</p>
-                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
-                     </div>
-                  ))}
+                  {cards.map(c => {
+                     const isAcima = c.key === "acima_meta";
+                     const ativo = isAcima && apenasAcimaMeta;
+                     return (
+                        <div
+                           key={c.rot}
+                           onClick={() => { if (isAcima) setApenasAcimaMeta(v => !v); }}
+                           title={isAcima ? (apenasAcimaMeta ? "Clique para mostrar todas as fichas" : "Clique para ver somente fichas acima da meta") : ""}
+                           className={`rounded-2xl border shadow-sm px-3 py-2.5 transition-all ${
+                              isAcima ? "cursor-pointer hover:scale-[1.02] hover:shadow-md active:scale-95" : ""
+                           } ${
+                              ativo
+                                 ? "bg-red-600 text-white border-red-700 ring-4 ring-red-500/20"
+                                 : c.alerta
+                                 ? "bg-red-50 border-red-200 hover:border-red-300"
+                                 : "bg-white border-slate-200"
+                           }`}
+                        >
+                           <p className={`text-[9px] font-black uppercase tracking-wider leading-tight flex items-center justify-between ${ativo ? "text-red-100" : "text-slate-400"}`}>
+                              <span>{c.rot}</span>
+                              {isAcima && <span className={`text-[10px] font-black ${ativo ? "text-white" : "text-red-500"}`}>{ativo ? "✓ FILTRADO" : "🔍 FILTRAR"}</span>}
+                           </p>
+                           <p className={`text-lg font-black mt-0.5 ${ativo ? "text-white" : c.alerta ? "text-red-600" : "text-emerald-700"}`}>{c.val}</p>
+                           <p className={`text-[10px] font-bold truncate ${ativo ? "text-red-100" : "text-slate-400"}`}>{c.sub}</p>
+                        </div>
+                     );
+                  })}
                </div>
             );
          })()}
+
+         {apenasAcimaMeta && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border-2 border-red-200 bg-red-50/90 p-3.5 shadow-sm">
+               <div className="flex items-center gap-3 min-w-0">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-600 text-white font-black shadow-sm">
+                     ⚠️
+                  </div>
+                  <div className="min-w-0">
+                     <p className="text-xs font-black uppercase tracking-wider text-red-900">Filtrando: Fichas Técnicas Acima da Meta</p>
+                     <p className="text-xs font-bold text-red-700 mt-0.5 truncate">{filtradas.length} receita(s) com CMV calculado maior que a meta definida.</p>
+                  </div>
+               </div>
+               <button
+                  onClick={() => setApenasAcimaMeta(false)}
+                  className="shrink-0 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs px-3.5 py-2.5 shadow-sm transition-colors cursor-pointer"
+               >
+                  Ver todas ✕
+               </button>
+            </div>
+         )}
+         {/* Ativas / inativas. Inativar não apaga: a ficha some da lista e
+             volta quando o usuário quiser vê-la de novo. */}
+         <div className="mb-3 flex items-center gap-1.5">
+            {[
+              { id: "ativas", rotulo: "Ativas" },
+              { id: "inativas", rotulo: "Inativas" },
+              { id: "todas", rotulo: "Todas" },
+            ].map(op => (
+              <button
+                key={op.id}
+                onClick={() => setFiltroStatus(op.id)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider transition ${
+                  filtroStatus === op.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {op.rotulo}
+              </button>
+            ))}
+            {filtroStatus !== "ativas" && (
+              <span className="text-[11px] font-bold text-slate-400">
+                {filtradas.length} ficha(s)
+              </span>
+            )}
+         </div>
+
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {
-                id: "Pratos principais",
-                modo: "principais",
-                titulo: deptUrl === "bar" ? "Drinks e montagens" : "Pratos principais e montagens",
-                descricao: deptUrl === "bar" ? "Monte o drink final usando insumos e preparos já cadastrados." : "Monte o prato final separando claramente cada preparo e ingrediente.",
-                quantidade: fichas.filter(f => !f.eh_base).length,
-                icone: <UtensilsCrossed size={24} />,
-              },
-              {
-                id: "Preparos e receitas",
+                id: "Pré-preparos",
                 modo: "preparos",
-                titulo: "Preparos e receitas",
-                descricao: deptUrl === "bar" ? "Xaropes, espumas, infusões e bases usadas em outras fichas." : "Molhos, caldos, massas, arroz, feijão e outras bases do prato.",
+                titulo: "Pré-preparos",
                 quantidade: fichas.filter(f => !!f.eh_base).length,
                 icone: <BookOpen size={24} />,
+              },
+              {
+                id: "Pratos principais",
+                modo: "principais",
+                titulo: deptUrl === "bar" ? "Drinks" : "Pratos",
+                quantidade: fichas.filter(f => !f.eh_base).length,
+                icone: <UtensilsCrossed size={24} />,
               },
             ].map(item => (
               <button
                 type="button"
                 key={item.id}
-                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(true); }}
-                className={`min-h-[74px] rounded-xl border p-3 text-left transition-all ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"}`}
+                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(false); }}
+                className={`min-h-[58px] rounded-xl border p-2.5 text-left transition-all sm:min-h-[66px] sm:p-3 ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-600"}`}>{item.icone}</span>
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-600"}`}>{item.icone}</span>
                   <span className="min-w-0">
                     <span className="block text-sm sm:text-base font-black leading-tight text-slate-900">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
                   </span>
@@ -2555,27 +2664,25 @@ function FichasRunner() {
                <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
              </button>
            </div>
-         {!categoriasRecolhidas && <div className="flex flex-wrap items-center gap-2">
+         {!categoriasRecolhidas && <div className="flex flex-wrap items-center justify-center gap-2 py-1">
             {categoriasDisponiveis.map(cat => {
               const n = fichasDoModo.filter(f => (f.categoria || "") === cat).length;
               return (
                 <div key={cat} className="flex items-center">
                   <button onClick={() => setTipoFiltro(cat)}
-                    className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+                    className={`min-h-10 rounded-xl px-3 py-2 font-black text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
                     {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-slate-400"}>({n})</span>
                   </button>
                 </div>
               );
             })}
             {(modoFicha === "preparos" ? [
-              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita").length],
-              ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
-              ["Preparos e receitas", "Todos os preparos", fichas.filter(f => !!f.eh_base).length],
+              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base).length],
             ] : [
               ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
             ]).map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                className={`min-h-10 rounded-xl px-3 py-2 font-black text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {label} <span className={tipoFiltro === t ? "text-white/75" : "text-slate-400"}>({n})</span>
               </button>
             ))}
@@ -2607,9 +2714,9 @@ function FichasRunner() {
                <div className="flex flex-wrap gap-2 xl:flex-1 xl:justify-end">
                  <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white hover:bg-emerald-800"><Printer size={15}/> Imprimir</button>
                  <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
-                 <button onClick={() => abrirPreviaImpressao("pdf")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
+                 <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
                  <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
-                 <button onClick={() => abrirExclusaoSegura()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> Excluir</button>
+                  <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>
                  <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-800"><X size={16}/></button>
                </div>
              </div>
@@ -2617,9 +2724,15 @@ function FichasRunner() {
          )}
 
          {mensagemLote && (
-           <div className={`mb-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold ${erroLote ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
-             <span className="flex items-center gap-2">{erroLote ? <ShieldAlert size={18}/> : <CheckCircle2 size={18}/>}{mensagemLote}</span>
+           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+             <span className="flex items-center gap-2"><CheckCircle2 size={18}/>{mensagemLote}</span>
              <button onClick={() => setMensagemLote("")}><X size={16}/></button>
+           </div>
+         )}
+         {erroLote && (
+           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+             <span className="flex items-center gap-2"><AlertTriangle size={18}/>{erroLote}</span>
+             <button onClick={() => setErroLote("")}><X size={16}/></button>
            </div>
          )}
 
@@ -2636,178 +2749,203 @@ function FichasRunner() {
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  const ehBarCard = String(f.departamento || "").toLowerCase() === "bar";
-                  return (
-                     <div key={f.id}
-                        onDragOver={e => { if (dragId) e.preventDefault(); }}
-                        onDrop={() => reordenar(dragId, f.id)}
-                        className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
-                        {/* Cabeçalho sem foto: nome e ações sempre fáceis de tocar */}
-                        <div className="border-b border-slate-100 bg-slate-50 p-3">
-                           <div className="flex items-center gap-2">
-                             <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)} title="Arraste para reordenar" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm cursor-grab active:cursor-grabbing"><GripVertical size={19} /></div>
-                             <label className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white cursor-pointer shadow-sm">
-                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="block h-5 w-5 cursor-pointer rounded accent-emerald-600"/>
-                             </label>
-                             <span className="flex-1" />
-                              <button onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)} title="Mais opções" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"><MoreVertical size={19}/></button>
-                           </div>
-                           <div className="mt-3 flex items-center gap-3">
-                             <button type="button" onClick={() => abrirFicha(f)} title="Abrir ficha" className="min-h-10 min-w-0 flex-1 text-left">
-                               <span className="block break-words text-lg font-black leading-snug text-slate-900">{f.nome_receita}</span>
-                             </button>
-                             <button onClick={() => abrirEditar(f)} className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
-                           </div>
-                           {acoesCardAberto === f.id && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-                              {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><LayoutList size={17}/> Montagem</button>}
-                              <button onClick={() => abrirSimulacao(f)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Calculator size={17}/> Simular</button>
-                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
-                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Download size={17}/> PDF</button>
-                              <button onClick={() => abrirExclusaoSegura([f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-rose-600 hover:bg-rose-50"><Trash2 size={17}/> Remover</button>
-                           </div>}
-                        </div>
-                        <div className="p-4 sm:p-5 cursor-pointer" onClick={() => abrirFicha(f)} title="Abrir ficha">
-                           {(() => {
-                              // Métricas estilo "app de gestão": custo, preço, CMV e margem
-                              const custos = custosDaFicha(f, fichas);
-                              const custoTotal = custos.total;
-                              const rend = Number(f.rendimento_porcoes) || 1;
-                              const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
-                              const porPorcao = (v) => (porcoes > 0 ? v / porcoes : v);
-                              const custoPorcao = porPorcao(custoTotal);
-                              const custoIngredientes = porPorcao(custos.ingredientes);
-                              const custoEmbalagem = porPorcao(custos.agregados);
-                              const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-                              const precoPorcao = Number(prod?.preco_venda) || 0;
-                              const meta = Number(f.cmv_meta) || 30;
-                              // Imposto e maquininha mordem uma fatia de CADA venda, então a
-                              // base deles é o preço, não o custo. Sem preço não há o que
-                              // calcular — e aí a linha nem aparece, em vez de mostrar zero
-                              // e dar a impressão de que a casa não paga nada disso.
-                              const pctAgregados = (Number(paramsUnidade.imposto_pct) || 0)
-                                + (Number(paramsUnidade.taxa_cartao_pct) || 0);
-                              const custoAgregados = precoPorcao > 0 ? precoPorcao * pctAgregados / 100 : 0;
-                              const custoCheio = custoPorcao + custoAgregados;
-                              const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
-                              const margem = cmv !== null ? 100 - cmv : null;
-                              const composicao = (f.fichas_ingredientes || []).length;
-                              const quantidadeTexto = textoRendimento(f.rendimento_porcoes, unR, ehBarCard);
-                              const unidadesDoPeso = ["kg", "g", "l", "ml"].includes(unR) && peso?.porcoes > 0
-                                ? `${Number(peso.porcoes).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${ehBarCard ? "doses" : "unidades/porções"}`
-                                : "";
-                              return (
-                                 <>
-                                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${f.eh_base ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>{f.eh_base ? "Preparo" : deptUrl === "bar" ? "Drink / produto" : "Prato"}</span>
-                                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">{f.categoria || "Sem categoria"}</span>
-                                      {cmv !== null && cmv > meta && <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase text-red-700">CMV alto</span>}
-                                    </div>
-                                    <div className="border-y border-slate-100 py-3">
-                                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Composição</p><p className="mt-1 text-sm font-black text-slate-800">{composicao} {composicao === 1 ? "item" : "itens"}</p>
-                                    </div>
 
-                                    <div className="divide-y divide-slate-100">
-                                      <div className="flex min-h-12 items-center justify-between gap-3">
-                                        <span className="text-sm font-bold text-slate-500">Quantidade</span>
-                                        <span className="text-right"><strong className="block text-base text-slate-900">{quantidadeTexto}</strong>{unidadesDoPeso && <small className="block font-bold text-slate-400">rende {unidadesDoPeso}</small>}</span>
-                                      </div>
-                                      {/* Num preparo sem porção definida, "Custo" repetia o custo
-                                          total logo abaixo — duas linhas, um número. O que interessa
-                                          num preparo é quanto custa 1 kg (ou 1 L no bar): é assim que
-                                          ele entra em outra ficha e é assim que se compara com o
-                                          insumo pronto do fornecedor. */}
-                                      {/* Ingredientes e agregados separados. Quando o CMV
-                                          aperta, é o agregado que se corta primeiro — e
-                                          antes ele vinha somado, invisível. Só aparece
-                                          quando há agregado: ficha sem embalagem não
-                                          precisa de uma linha dizendo "R$ 0,00". */}
-                                      {/* Três linhas separadas porque são três decisões
-                                          diferentes: ingrediente se muda na ficha,
-                                          embalagem se troca no fornecedor, e imposto e
-                                          maquininha se negociam ou se mudam de regime.
-                                          Somadas, o dono não sabe onde mexer. Cada uma só
-                                          aparece quando existe. */}
-                                      {!(f.eh_base && custoPorcao === custoTotal) && (
-                                        <>
-                                          {(custoEmbalagem > 0 || custoAgregados > 0) && (
-                                            <div className="flex min-h-12 items-center justify-between gap-3">
-                                              <span className="text-sm font-bold text-slate-500">Ingredientes</span>
-                                              <strong className="text-base text-slate-700">{fmtBRL(custoIngredientes)}</strong>
-                                            </div>
-                                          )}
-                                          {custoEmbalagem > 0 && (
-                                            <div className="flex min-h-12 items-center justify-between gap-3">
-                                              <span className="text-sm font-bold text-slate-500">Embalagem</span>
-                                              <strong className="text-base text-slate-700">{fmtBRL(custoEmbalagem)}</strong>
-                                            </div>
-                                          )}
-                                          {custoAgregados > 0 && (
-                                            <div className="flex min-h-12 items-center justify-between gap-3">
-                                              <span className="text-sm font-bold text-slate-500">
-                                                Agregados
-                                                <small className="block text-[10px] font-bold text-slate-400">
-                                                  imposto e cartão · {pctAgregados.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% da venda
-                                                </small>
-                                              </span>
-                                              <strong className="text-base text-slate-700">{fmtBRL(custoAgregados)}</strong>
-                                            </div>
-                                          )}
-                                          <div className="flex min-h-12 items-center justify-between gap-3">
-                                            <span className={`text-sm ${(custoEmbalagem > 0 || custoAgregados > 0) ? "font-black text-slate-600" : "font-bold text-slate-500"}`}>
-                                              {(custoEmbalagem > 0 || custoAgregados > 0) ? "Custo total" : "Custo"}
-                                            </span>
-                                            <strong className="text-base text-slate-900">{fmtBRL(custoCheio)}</strong>
-                                          </div>
-                                        </>
-                                      )}
-                                      {f.eh_base && peso?.custoKg > 0 && (
-                                        <div className="flex min-h-12 items-center justify-between gap-3">
-                                          <span className="text-sm font-bold text-slate-500">Custo por {ehBarCard ? "L" : "kg"}</span>
-                                          <strong className="text-base text-slate-900">{fmtBRL(peso.custoKg)}</strong>
-                                        </div>
-                                      )}
-                                      {/* Venda vem logo acima do CMV: é o número que explica o CMV. */}
-                                      {!f.eh_base && (
-                                        <div className="flex min-h-12 items-center justify-between gap-3">
-                                          <span className="text-sm font-bold text-slate-500">Venda</span>
-                                          {precoPorcao > 0
-                                            ? <strong className="text-base text-slate-900">{fmtBRL(precoPorcao)}</strong>
-                                            : <span className="text-sm font-bold text-slate-400">não informada</span>}
-                                        </div>
-                                      )}
-                                      {/* Lucro em reais, sobre o custo COM agregados. A
-                                          margem em % já estava no rodapé, mas ninguém
-                                          decide preço com porcentagem: o dono quer saber
-                                          quanto sobra em dinheiro por prato vendido. */}
-                                      {!f.eh_base && precoPorcao > 0 && (
-                                        <div className="flex min-h-12 items-center justify-between gap-3">
-                                          <span className="text-sm font-black text-slate-600">Lucro por {ehBarCard ? "dose" : "porção"}</span>
-                                          <strong className={`text-base ${precoPorcao - custoCheio >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                                            {fmtBRL(precoPorcao - custoCheio)}
-                                          </strong>
-                                        </div>
-                                      )}
-                                      {/* O CMV conta ingrediente + embalagem, e NÃO imposto e
-                                          cartão: é assim que a conta se compara com a meta
-                                          e com o resto do mercado. Sem dizer isso, o card
-                                          mostra "custo total R$ 7,40" ao lado de "CMV
-                                          39,8%" e parece erro de conta — 7,40 de 15,00
-                                          seriam 49%. O lucro acima é que desconta tudo. */}
-                                      <div className="flex min-h-12 items-center justify-between gap-3">
-                                        <span className="text-sm font-black text-slate-600">
-                                          {f.eh_base ? "Custo total" : "CMV"}
-                                          {!f.eh_base && custoAgregados > 0 && (
-                                            <small className="block text-[10px] font-bold text-slate-400">só ingrediente e embalagem</small>
-                                          )}
-                                        </span>
-                                        {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
-                                      </div>
-                                    </div>
-                                    {!f.eh_base && <p className="mt-1 text-xs font-bold text-slate-400">Margem {margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>}
-                                 </>
-                              );
-                           })()}
-                        </div>
+                  return (
+                     <div
+                       key={f.id}
+                       onDragOver={e => { if (dragId) e.preventDefault(); }}
+                       onDrop={() => reordenar(dragId, f.id)}
+                       className={`erp-fichas-card bg-white rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200/90'}`}
+                     >
+                       <div>
+                         {/* TOP ROW: Nome e Botão Editar verde */}
+                         <div className="flex items-start justify-between gap-3 mb-3">
+                           <div className="flex items-center gap-2 min-w-0 flex-1">
+                             <label className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="h-4 w-4 cursor-pointer rounded accent-emerald-600"/>
+                             </label>
+                             <h3
+                               onClick={() => abrirFicha(f)}
+                               className="text-xl font-black leading-snug text-slate-900 break-words cursor-pointer hover:text-emerald-700 transition-colors"
+                               title={f.nome_receita}
+                             >
+                               {f.nome_receita}
+                             </h3>
+                           </div>
+                           <div className="flex items-center gap-1.5 shrink-0">
+                             <button
+                               onClick={() => abrirEditar(f)}
+                               className="h-8 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-colors shadow-sm"
+                             >
+                               Editar
+                             </button>
+                             <button
+                               onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
+                               title="Mais opções"
+                               className="h-8 w-8 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center"
+                             >
+                               <MoreVertical size={16} />
+                             </button>
+                           </div>
+                         </div>
+
+                         {/* Menu suspenso de ações rápidas se clicado */}
+                         {acoesCardAberto === f.id && (
+                           <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-lg text-xs font-bold">
+                             <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📖 Ver Ficha</button>
+                             {/* Ficha técnica completa: código, pesos, perdas, precificação e simulador de CMV */}
+                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📑 Ficha técnica</button>
+                             {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📋 Montagem</button>}
+                             <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🧮 Simular</button>
+                             <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🖨️ Imprimir</button>
+                             <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📄 PDF</button>
+                             <button onClick={() => excluirImediatamente([f])} className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-left">🗑️ Excluir</button>
+                           </div>
+                         )}
+
+                         {/* BADGES & CONTEÚDO */}
+                         {(() => {
+                           const custoTotal = custoTotalDaFicha(f, fichas);
+                           const rend = Number(f.rendimento_porcoes) || 1;
+                           const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+                           const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+                           const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+                           const precoPorcao = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
+                           const meta = Number(f.cmv_meta) || 30;
+                           const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
+                           const margem = cmv !== null ? 100 - cmv : null;
+                           const composicaoCount = (f.fichas_ingredientes || []).length;
+                           const rendimentoTexto = textoRendimentoPadronizado(f);
+                           const lucro = precoPorcao > 0 ? precoPorcao - custoPorcao : null;
+
+                           const custoEmb = (f.embalagens || []).reduce((acc, emb) => acc + (Number(emb.custo) || Number(emb.preco_unitario) || 0) * (Number(emb.qtd) || 1), 0);
+                           const custoIngred = Math.max(0, custoPorcao - custoEmb);
+
+                           const taxaMaqPct = Number(f.taxa_maquininha ?? prod?.taxa_cartao ?? 2.5);
+                           const impostoPct = Number(f.imposto_pct ?? prod?.aliquota_imposto ?? 4.0);
+
+                           const custoMaquininha = precoPorcao > 0 ? (precoPorcao * (taxaMaqPct / 100)) : 0;
+                           const custoImposto = precoPorcao > 0 ? (precoPorcao * (impostoPct / 100)) : 0;
+
+                           const custoTotalComGastos = custoPorcao + custoMaquininha + custoImposto;
+                           const lucroReal = precoPorcao > 0 ? precoPorcao - custoTotalComGastos : null;
+
+                           return (
+                             <div>
+                               <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                                 <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${f.eh_base ? "bg-amber-100 text-amber-900" : "bg-emerald-100/80 text-emerald-800"}`}>
+                                   {f.eh_base ? "PREPARO" : "PRATO"}
+                                 </span>
+                                 <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                   {f.categoria || "SEM CATEGORIA"}
+                                 </span>
+                                 {f.codigo && (
+                                   <span className="rounded-full bg-slate-900 px-3 py-1 font-mono text-[10px] font-black tracking-wider text-white">
+                                     {f.codigo}
+                                   </span>
+                                 )}
+                                 {f.versao && f.versao !== "1.0" && (
+                                   <span className="rounded-full bg-slate-100/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                     v{f.versao}
+                                   </span>
+                                 )}
+                                 {statusDaFicha(f) === "inativa" && (
+                                   <span className="rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                     INATIVA
+                                   </span>
+                                 )}
+                                 {statusDaFicha(f) === "rascunho" && (
+                                   <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                                     RASCUNHO
+                                   </span>
+                                 )}
+                                 {podeVerCustos && cmv !== null && cmv > meta && (
+                                   <span className="rounded-full bg-red-100/80 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-600">
+                                     CMV ALTO
+                                   </span>
+                                 )}
+                               </div>
+
+                               <div className="border-t border-slate-100 pt-2 mb-2">
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">COMPOSIÇÃO</span>
+                                 <span className="text-sm font-black text-slate-900">{composicaoCount} {composicaoCount === 1 ? "item" : "itens"}</span>
+                               </div>
+
+                               {/* TABELA DE VALORES COM LINHAS DIVISORAS LIMPAS */}
+                               <div className="divide-y divide-slate-100 text-xs font-bold">
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">Quantidade</span>
+                                   <span className="text-sm font-black text-slate-900">{rendimentoTexto}</span>
+                                 </div>
+
+                                 {/* Daqui para baixo é tudo dinheiro: só para quem tem view_costs. */}
+                                 {podeVerCustos && <>
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">Custo</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoIngred)}</span>
+                                 </div>
+
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">Embalagem</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoEmb)}</span>
+                                 </div>
+
+                                 {!f.eh_base && (
+                                   <>
+                                     <div className="py-2 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Custo maquininha ({taxaMaqPct}%)</span>
+                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(custoMaquininha) : "—"}</span>
+                                     </div>
+
+                                     <div className="py-2 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Imposto ({impostoPct}%)</span>
+                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(custoImposto) : "—"}</span>
+                                     </div>
+                                   </>
+                                 )}
+
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-700 font-black">Custo total</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoTotalComGastos)}</span>
+                                 </div>
+
+                                 {!f.eh_base && (
+                                   <>
+                                     <div className="py-2 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Venda</span>
+                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
+                                     </div>
+
+                                     <div className="py-2 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Lucro por porção</span>
+                                       <span className="text-base font-black text-emerald-600">{lucroReal !== null ? fmtBRL(lucroReal) : "—"}</span>
+                                     </div>
+
+                                     <div className="pt-2 pb-1 flex flex-col items-end">
+                                       <div className="w-full flex items-center justify-between">
+                                         <span className="text-slate-600 font-bold">CMV</span>
+                                         <span className={`px-3 py-1 rounded-xl text-sm font-black ${
+                                           cmv === null
+                                             ? "bg-slate-100 text-slate-500"
+                                             : cmv > meta
+                                             ? "bg-red-100/90 text-red-600"
+                                             : "bg-emerald-100/90 text-emerald-800"
+                                         }`}>
+                                           {cmv !== null ? `${cmv.toFixed(1)}%` : "—"}
+                                         </span>
+                                       </div>
+                                       {margem !== null && (
+                                         <span className="text-[11px] font-bold text-slate-400 mt-1">Margem {margem.toFixed(1)}%</span>
+                                       )}
+                                     </div>
+                                   </>
+                                 )}
+                                 </>}
+                               </div>
+                             </div>
+                           );
+                         })()}
+                       </div>
                      </div>
                   );
                })}
@@ -2816,12 +2954,11 @@ function FichasRunner() {
          {!loading && filtradas.length > 0 && (
            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
              <p className="text-xs font-bold text-slate-500">
-               Mostrando {(pagina - 1) * tamanhoPagina + 1} a {Math.min(pagina * tamanhoPagina, filtradas.length)} de {filtradas.length} fichas
+               Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
              </p>
              <div className="flex flex-wrap items-center justify-center gap-2">
                <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 outline-none">
-                 {[12, 24, 48, 60, 120].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
-                 <option value={0}>Todas as fichas</option>
+                 {[8, 12, 24, 48].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
                </select>
                <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1} title="Página anterior" className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:opacity-30"><ChevronLeft size={17}/></button>
                <span className="min-w-24 text-center text-xs font-black text-slate-700">Página {pagina} de {totalPaginas}</span>
@@ -2854,14 +2991,17 @@ function FichasRunner() {
                         livro: modelo === "livro",
                         capa: modelo === "livro",
                         indice: modelo === "livro",
-                        custos: modelo !== "operacional" && podeImprimirCustos,
-                        preco: modelo !== "operacional" && podeImprimirCustos,
-                        cmv: modelo !== "operacional" && podeImprimirCustos,
-                        margem: modelo !== "operacional" && podeImprimirCustos,
+                        custos: false,
+                        preco: false,
+                        cmv: false,
+                        margem: false,
+                        montagem: false,
+                        observacoes: false,
+                        responsaveis: false,
+                        atualizacao: false,
                       }));
                     }} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
                       <option value="operacional">Operacional</option>
-                      {podeImprimirCustos && <option value="gerencial">Gerencial</option>}
                       <option value="resumido">Resumo rápido</option>
                       <option value="livro">Livro completo</option>
                     </select>
@@ -2883,20 +3023,19 @@ function FichasRunner() {
                   </label>
                 </div>
 
-                {!podeImprimirCustos && (
-                  <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                    <ShieldAlert size={18} className="shrink-0"/> Os custos, preços, CMV e margem ficam ocultos de acordo com a permissão do seu usuário.
-                  </div>
-                )}
-
                 <div>
                   <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Conteúdo incluído</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {[
                       ["foto", "Foto"], ["ingredientes", "Ingredientes"], ["preparo", "Preparo"],
-                      ["montagem", "Montagem"], ["observacoes", "Observações"], ["responsaveis", "Responsável"],
-                      ["atualizacao", "Atualização"], ["capa", "Capa"], ["indice", "Índice"],
-                      ...(podeImprimirCustos ? [["custos", "Custos"], ["preco", "Preço"], ["cmv", "CMV"], ["margem", "Margem"]] : []),
+                      ["codigo", "Código e versão"], ["equipamentos", "Equipamentos"],
+                      ["armazenamento", "Armazenamento"], ["alergenicos", "Alergênicos"],
+                      ["observacoes", "Observações"], ["responsaveis", "Responsável"],
+                      ["atualizacao", "Datas"],
+                      // Financeiro: só para quem pode ver custo.
+                      ...(podeVerCustos ? [["custos", "Custo"], ["preco", "Preço"],
+                                           ["cmv", "CMV"], ["margem", "Margem"]] : []),
+                      ["capa", "Capa"], ["indice", "Índice"],
                     ].map(([campo, label]) => (
                       <label key={campo} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
                         <input type="checkbox" checked={!!configImpressao[campo]} onChange={e => setConfigImpressao(atual => ({...atual, [campo]: e.target.checked, ...(campo === "capa" || campo === "indice" ? { livro: e.target.checked || atual.livro } : {})}))} className="h-4 w-4 accent-emerald-700"/>
@@ -2961,7 +3100,6 @@ function FichasRunner() {
         </div>
       )}
 
-
       {modalCategorias && (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModalCategorias(false)}>
           <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -3002,6 +3140,28 @@ function FichasRunner() {
                 );
               })}
             </div>
+
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <h4 className="text-base font-black text-slate-900">Organizar {modoFicha === "preparos" ? "receitas" : deptUrl === "bar" ? "drinks" : "pratos"}</h4>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Escolha diretamente em qual categoria cada item deve aparecer.</p>
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                {[...fichasDoModo].sort(ordenarFichas).map(ficha => (
+                  <div key={ficha.id} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+                    <p className="truncate text-sm font-black text-slate-800" title={ficha.nome_receita}>{ficha.nome_receita}</p>
+                    <select
+                      value={ficha.categoria || ""}
+                      disabled={alterandoCategoriaId === ficha.id}
+                      onChange={e => organizarFichaNaCategoria(ficha, e.target.value)}
+                      className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 disabled:opacity-60"
+                    >
+                      <option value="">Sem categoria</option>
+                      {categoriasDisponiveis.map(categoria => <option key={categoria} value={categoria}>{categoria}</option>)}
+                    </select>
+                  </div>
+                ))}
+                {fichasDoModo.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha cadastrada neste grupo.</p>}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -3012,20 +3172,19 @@ function FichasRunner() {
          const peso = infoPesoFicha(f, fichas);
          const custoTotal = custoTotalDaFicha(f, fichas);
          const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-         const ehBarView = String(f.departamento || "").toLowerCase() === "bar";
-         const labelUn = unidadeRendimento(unR, ehBarView, f.rendimento_porcoes);
-         const rend = Number(f.rendimento_porcoes) || 0;
-         const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+         const rendimentoOriginal = Number(f.rendimento_porcoes) || 0;
+         const porcoes = (unR === "porcao" || unR === "un") ? rendimentoOriginal : (peso?.porcoes || 0);
          const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-         const custoKg = peso?.pesoTotalG > 0 ? custoTotal / (peso.pesoTotalG / 1000) : null;
+         const padraoSetor = rendimentoPadronizado(f);
+         const rend = padraoSetor.valor;
+         const labelUn = padraoSetor.unidade === "l" ? "L" : "kg";
+         const custoKg = rend > 0 ? custoTotal / rend : null;
          const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
          const preco = Number(prod?.preco_venda) || 0;
          const meta = Number(f.cmv_meta) || 30;
          const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
          const margem = cmv !== null ? 100 - cmv : null;
-         // Markup saiu: "62,50×" não diz quanto entra no caixa. Lucro é o que
-         // sobra em reais de cada porção vendida — preço menos o que ela custa.
-         const lucro = preco > 0 ? preco - custoPorcao : null;
+         const markup = preco > 0 && custoPorcao > 0 ? preco / custoPorcao : null;
          const precoSugerido = meta > 0 ? custoPorcao / (meta / 100) : 0;
          const pesoPorcaoG = Number(f.peso_porcao_g) || 0;
          const simN = Number(String(simPesoView).replace(",", ".")) || 0;
@@ -3055,8 +3214,8 @@ function FichasRunner() {
                      </div>
                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                           <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">{f.nome_receita}</h2>
-                           <span className="inline-flex items-center text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">Ativo</span>
+                           <h2 className="text-lg sm:text-xl font-black text-slate-900 break-words">{f.nome_receita}</h2>
+                           <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">Ativo</span>
                         </div>
                         <p className="text-[11px] font-bold text-slate-500 mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
                      </div>
@@ -3074,7 +3233,7 @@ function FichasRunner() {
 
                   {/* ABAS */}
                   <div className="bg-white border-b border-slate-100 px-4 sm:px-6 flex gap-1 overflow-x-auto">
-                     {[["ficha", "Ficha técnica"], ["preparo", "Modo de preparo"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
+                     {[["ficha", "Ficha técnica"], ["preparo", f.eh_base ? "Modo de preparo" : "Montagem e guarnição"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
                         <button key={id} onClick={() => setViewTab(id)}
                            className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
                            {rot}
@@ -3093,13 +3252,13 @@ function FichasRunner() {
                            <div className="flex flex-col sm:flex-row gap-4">
                               <div className="grid grid-cols-2 gap-3 flex-1">
                                  {[
-                                    ["Categoria", f.categoria || "—"],
-                                    ["Setor", setorTxt],
-                                    ["Rendimento", textoRendimento(rend, unR, ehBarView)],
-                                    ["Peso líquido", peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")],
-                                    ["Unidade de venda", unR === "porcao" ? "Porção" : labelUn],
-                                    ["Porção padrão", pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"],
-                                 ].map(([rot, val]) => (
+                                     ["Categoria", f.categoria || "—"],
+                                     ["Setor", setorTxt],
+                                     ["Quantidade da receita", `${nf(rend)} ${labelUn}`],
+                                     ...(podeVerCustos ? [[`1 ${labelUn} custa`, custoKg !== null ? fmtBRL(custoKg) : "—"]] : []),
+                                     ["Unidade padrão", labelUn],
+                                     ["Custo total", fmtBRL(custoTotal)],
+                                  ].map(([rot, val]) => (
                                     <div key={rot} className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{rot}</p>
                                        <p className="text-sm font-black text-slate-800 mt-0.5 truncate">{val}</p>
@@ -3130,8 +3289,8 @@ function FichasRunner() {
                                        <th className="text-right font-black py-2 px-1">Qtd. bruta</th>
                                        <th className="text-right font-black py-2 px-1">FC %</th>
                                        <th className="text-right font-black py-2 px-1">Qtd. líq.</th>
-                                       <th className="text-right font-black py-2 px-1">Custo un.</th>
-                                       <th className="text-right font-black py-2 pl-1">Custo total</th>
+                                       {podeVerCustos && <th className="text-right font-black py-2 px-1">Custo un.</th>}
+                                       {podeVerCustos && <th className="text-right font-black py-2 pl-1">Custo total</th>}
                                     </tr>
                                  </thead>
                                  <tbody>
@@ -3147,7 +3306,7 @@ function FichasRunner() {
                                       <Fragment key={grupo.titulo}>
                                         {linhas.some(l => l.base) && linhas.some(l => !l.base) && (
                                           <tr>
-                                            <td colSpan={7} className="pt-4 pb-1.5">
+                                            <td colSpan={podeVerCustos ? 7 : 5} className="pt-4 pb-1.5">
                                               <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700">{grupo.titulo}</span>
                                             </td>
                                           </tr>
@@ -3159,8 +3318,8 @@ function FichasRunner() {
                                             <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
                                             <td className="py-3 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
                                             <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtCustoUnitario(l.custoUnit, l.un)}</td>
-                                            <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
+                                            {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>}
+                                            {podeVerCustos && <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>}
                                           </tr>
                                         ))}
                                       </Fragment>
@@ -3169,21 +3328,31 @@ function FichasRunner() {
                               </table>
                            </div>
                            <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-emerald-700 font-black text-sm px-4 py-2.5 hover:bg-emerald-50"><Plus size={16} /> Adicionar ingrediente</button>
+                           {podeVerCustos && (
                            <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
                               <span className="text-slate-500 font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
-                              {porcoes > 0 && <span className="text-slate-500 font-bold">Custo por porção{pesoPorcaoG ? ` (${nf(pesoPorcaoG)} g)` : ""}: <b className="text-emerald-700 font-black">{fmtBRL(custoPorcao)}</b></span>}
+                              {custoKg !== null && <span className="text-slate-500 font-bold">1 {labelUn} custa: <b className="text-emerald-700 font-black">{fmtBRL(custoKg)}</b></span>}
                            </div>
+                           )}
                         </div>
                         )}
                         </>)}
 
-                        {/* ABA: MODO DE PREPARO */}
+                        {/* ABA: MODO DE PREPARO / MONTAGEM E GUARNIÇÃO */}
                         {viewTab === "preparo" && (
                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
-                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Modo de preparo</p>
+                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">
+                                 {f.eh_base ? "Modo de preparo" : "Montagem do prato e guarnição"}
+                              </p>
+                              {f.guarnicao ? (
+                                 <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Guarnição / Acompanhamento</p>
+                                    <p className="text-sm font-bold text-slate-800 mt-0.5">{f.guarnicao}</p>
+                                 </div>
+                              ) : null}
                               {(() => {
-                                 const passos = String(f.modo_preparo || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
-                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum modo de preparo cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
+                                 const passos = String(f.modo_preparo || f.padrao_montagem || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum passo de {f.eh_base ? "modo de preparo" : "montagem"} cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
                                  return (
                                     <ol className="space-y-2.5">
                                        {passos.map((p, i) => (
@@ -3278,11 +3447,11 @@ function FichasRunner() {
                            <div className="grid grid-cols-2 gap-3">
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Esta receita rende</p>
-                                 <p className="text-xl font-black text-emerald-700">{textoRendimento(rend, unR, ehBarView)}</p>
+                                 <p className="text-xl font-black text-emerald-700">{nf(rend)} {labelUn}</p>
                               </div>
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Peso total</p>
-                                 <p className="text-xl font-black text-emerald-700">{peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")}</p>
+                                 <p className="text-xl font-black text-emerald-700">{padraoSetor.valor > 0 ? textoRendimentoPadronizado(f) : "—"}</p>
                               </div>
                            </div>
                            <div className="flex items-center justify-between mt-3 text-sm">
@@ -3313,8 +3482,7 @@ function FichasRunner() {
                            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Custo e precificação</p>
                            <div className="space-y-2 text-sm">
                               <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
-                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por porção</span><span className="font-black text-slate-800">{fmtBRL(custoPorcao)}</span></div>
-                              {custoKg !== null && <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por {baseCustoDaFicha(unR, unGrande)}</span><span className="font-black text-slate-800">{fmtBRL(custoKg)}</span></div>}
+                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo de 1 {labelUn}</span><span className="font-black text-slate-800">{custoKg !== null ? fmtBRL(custoKg) : "—"}</span></div>
                            </div>
                            <div className="grid grid-cols-2 gap-2 mt-3">
                               <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
@@ -3326,8 +3494,8 @@ function FichasRunner() {
                                  <p className="text-lg font-black text-emerald-700">{margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>
                               </div>
                               <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
-                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Lucro</p>
-                                 <p className="text-lg font-black text-emerald-700">{lucro !== null ? fmtBRL(lucro) : "—"}</p>
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Markup</p>
+                                 <p className="text-lg font-black text-emerald-700">{markup ? `${markup.toFixed(2)}×` : "—"}</p>
                               </div>
                               <div className="rounded-xl px-3 py-2 text-center border bg-slate-50 border-slate-200">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Preço/porção</p>
@@ -3358,6 +3526,57 @@ function FichasRunner() {
          );
       })()}
 
+      {modalEscolhaNovo && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => setModalEscolhaNovo(false)}>
+          <div className="w-full max-w-lg rounded-t-3xl bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6" onClick={evento => evento.stopPropagation()}>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.16em] text-orange-600">Nova ficha técnica</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Como deseja começar?</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Você pode completar uma ficha agora ou cadastrar vários títulos para preencher depois.</p>
+              </div>
+              <button onClick={() => setModalEscolhaNovo(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={17}/></button>
+            </div>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <button onClick={() => { setModalEscolhaNovo(false); abrirNova(); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-3 text-left text-orange-950 hover:border-orange-400">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-600 text-white"><Edit3 size={19}/></span>
+                <span><strong className="block text-sm font-black">Criar um {deptUrl === "bar" ? "drink" : "prato"}</strong><small className="mt-0.5 block font-semibold text-orange-700">Preencher a ficha completa agora</small></span>
+              </button>
+              <button onClick={() => { setModalEscolhaNovo(false); setTitulosLote(""); setModalTitulosLote(true); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left text-slate-900 hover:border-orange-300">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-800 text-white"><LayoutList size={19}/></span>
+                <span><strong className="block text-sm font-black">Adicionar vários títulos</strong><small className="mt-0.5 block font-semibold text-slate-500">Completar cada ficha depois</small></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalTitulosLote && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => !salvandoTitulosLote && setModalTitulosLote(false)}>
+          <div className="flex max-h-[100dvh] w-full max-w-xl flex-col rounded-t-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl" onClick={evento => evento.stopPropagation()}>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-4 sm:p-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.16em] text-orange-600">Cadastro rápido</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Adicionar títulos de {deptUrl === "bar" ? "drinks" : "pratos"}</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Digite um {deptUrl === "bar" ? "drink" : "prato"} por linha. Eles serão salvos para você completar depois.</p>
+              </div>
+              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 disabled:opacity-40"><X size={17}/></button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500">Títulos</label>
+              <textarea autoFocus value={titulosLote} onChange={evento => setTitulosLote(evento.target.value)} placeholder={deptUrl === "bar" ? "Ex.:\nCaipirinha de limão\nGin tônica\nMoscow mule" : "Ex.:\nAçaí de 300 ml\nAçaí de 500 ml\nBatata frita com cheddar"} className="mt-2 min-h-[220px] w-full resize-y rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-base font-semibold leading-8 text-slate-800 outline-none focus:border-orange-500"/>
+              <p className="mt-2 text-xs font-semibold text-slate-400">Títulos repetidos ou que já existem serão ignorados.</p>
+            </div>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 p-3 sm:p-4" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} className="min-h-10 rounded-xl px-4 text-sm font-black text-slate-500 hover:bg-slate-200 disabled:opacity-40">Cancelar</button>
+              <button disabled={salvandoTitulosLote || !titulosLote.trim()} onClick={salvarTitulosEmLote} className="flex min-h-11 items-center gap-2 rounded-xl bg-orange-600 px-5 text-sm font-black text-white shadow-lg shadow-orange-600/20 hover:bg-orange-700 disabled:opacity-50">
+                {salvandoTitulosLote ? <Loader2 size={17} className="animate-spin"/> : <Plus size={17}/>} {salvandoTitulosLote ? "Criando..." : "Criar títulos"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
@@ -3374,13 +3593,22 @@ function FichasRunner() {
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-white">
                   <div className="min-w-0">
-                     <p className={`text-[10px] font-black uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-emerald-700"}`}>{form.eh_base ? "Pré-preparo / receita base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                     <p className={`text-[10px] font-black uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-emerald-700"}`}>{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
                      <p className="text-sm font-bold text-slate-500 mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-emerald-600 font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
                   <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={21}/></button>
                </div>
 
+               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+                  {[
+                    ["ficha-dados", "1. Dados", !!form.nome_receita],
+                    ["ficha-ingredientes", "2. Ingredientes", form.produto_pronto || ingFicha.length > 0],
+                    ["ficha-rendimento", "3. Rendimento", !!form.rendimento_porcoes],
+                    ...(!form.eh_base && !form.produto_pronto ? [["ficha-custos", "4. Custos e preço", Number(form.preco_venda) > 0]] : []),
+                    ...(form.eh_base ? [["ficha-preparo", "4. Preparo", !!form.modo_preparo]] : []),
+                  ].map(([id, label, completo]) => <button key={id} type="button" onClick={() => irSecaoEditorFicha(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-black transition-colors ${completo ? "border-emerald-200 text-emerald-700" : "border-slate-200 text-slate-500 hover:border-emerald-300"}`}><span className={`h-2 w-2 rounded-full ${completo ? "bg-emerald-500" : "bg-slate-300"}`} />{label}</button>)}
+               </nav>
 
                {/* BODY DO MODAL COM SCROLL */}
                <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-slate-50/50 custom-scrollbar">
@@ -3420,32 +3648,31 @@ function FichasRunner() {
                      {!form.id ? <div>
                        <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">O que você vai cadastrar?</p>
                        <div className="grid grid-cols-2 gap-3">
-                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: form.tipo_base === "receita" ? "receita" : "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
-                           className={`min-h-[94px] rounded-2xl border-2 p-4 text-left transition-all ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-amber-300"}`}>
+                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-amber-300"}`}>
                            <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-slate-400"} />
                            <strong className="mt-2 block text-base">Pré-preparo</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
                          </button>
                          <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
-                           className={`min-h-[94px] rounded-2xl border-2 p-4 text-left transition-all ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"}`}>
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"}`}>
                            <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-slate-400"} />
                            <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">item final do cardápio</span>
                          </button>
                        </div>
-                       {form.eh_base && (
-                         <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-amber-50 p-2">
-                           <button type="button" onClick={() => setForm({ ...form, tipo_base: "pre" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base !== "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Pré-preparo</button>
-                           <button type="button" onClick={() => setForm({ ...form, tipo_base: "receita" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base === "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Receita base</button>
-                         </div>
-                       )}
                        {/* O botão "É um produto pronto" saiu daqui: garrafa, lata e
                            cerveja não são receituário e não aparecem mais na ficha
                            técnica. Criar por aqui só geraria registro invisível.
                            Esses itens se cadastram no Cardápio e no Estoque. */}
-                     </div> : null}
-                     {/* Ao editar havia um cartão "Tipo da ficha" que só dizia que
-                         o tipo não podia ser mudado ali. O cabeçalho do modal já
-                         mostra o tipo, então o cartão ocupava espaço para repetir
-                         o que estava logo acima e avisar que nada podia ser feito. */}
+                     </div> : (
+                       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-orange-200 bg-orange-50" : "border-emerald-200 bg-emerald-50"}`}>
+                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-orange-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
+                         <div>
+                           <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Tipo da ficha</p>
+                           <p className="text-base font-black text-slate-900">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                           <p className="text-xs font-semibold text-slate-500">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
+                         </div>
+                       </div>
+                     )}
                       {form.produto_pronto && (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
@@ -3501,10 +3728,16 @@ function FichasRunner() {
                         </div>
                      </div>
                      ) : (
-                     <div id="ficha-ingredientes" className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm flex flex-col scroll-mt-24">
-                        <div className="mb-2.5 flex items-center justify-between gap-3">
-                           <label className="text-xs font-black uppercase tracking-widest text-emerald-700">Ingredientes</label>
-                           <span className="shrink-0 text-sm font-black text-emerald-800">{ingFicha.length} · {fmtBRL(custoTotalFormulario(ingFicha))}</span>
+                     <div id="ficha-ingredientes" className="bg-white p-5 rounded-2xl border-2 border-emerald-200 shadow-sm flex flex-col scroll-mt-24">
+                        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                           <div>
+                              <label className="block text-xs font-black uppercase tracking-widest text-emerald-700">Ingredientes / composição</label>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">Comece por aqui: rendimento, CMV e preço saem desta lista.</p>
+                           </div>
+                           <span className="shrink-0 rounded-xl bg-emerald-50 px-3 py-2 text-right">
+                              <span className="block text-[10px] font-black uppercase tracking-widest text-emerald-700">{ingFicha.length} item(ns)</span>
+                              <span className="block text-sm font-black text-emerald-800">{fmtBRL(custoTotalFormulario(ingFicha))}</span>
+                           </span>
                         </div>
                      
                         {/* ADD INGREDIENTE — busca por digitação: a lista tem centenas de itens */}
@@ -3544,8 +3777,8 @@ function FichasRunner() {
                         {/* LISTA DE INGREDIENTES */}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                            {ingFicha.length === 0 && (
-                              <div className="py-4 text-center text-sm font-medium text-slate-400">
-                                 Nenhum ingrediente ainda.
+                              <div className="text-center p-6 text-slate-500 font-medium text-sm">
+                                 Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
                               </div>
                            )}
                            {ingFicha.map(ing => {
@@ -3566,28 +3799,14 @@ function FichasRunner() {
                                        {ing.nome}
                                        {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                     </p>
-                                    {/* Quanto cabe em 1 garrafa/lata/barril. É o número que
-                                        faz a receita saber o rendimento, e sem ele a linha
-                                        avisa que falta preencher no cadastro. */}
-                                    {/* Quanto rende 1 peca e em que ela vem: "500 ml por
-                                        garrafa". Sem isso o item nao entra na soma do
-                                        rendimento, e o aviso diz onde arrumar em vez de
-                                        deixar a conta errada em silencio. */}
-                                    {ing.tipo !== "base" && (() => {
-                                       const rotulo = rotuloVolumeUnitario(ing) || rotuloPesoUnitario(ing);
-                                       if (rotulo) return <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotulo}</p>;
-                                       if (["ml", "l", "g", "kg"].includes(String(ing.unidade || "").toLowerCase())) return null;
-                                       return <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem embalagem no cadastro — não entra no rendimento</p>;
-                                    })()}
-                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator))} <span className="text-slate-400 normal-case">· {fmtCustoUnitario(ing.custo_unitario, ing.unidade)}</span></p>
-                                    {/* Perda vem do cadastro do ingrediente. A quantidade
-                                        bruta é a líquida dividida pelo percentual aproveitável. */}
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
+                                    {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (
                                        <div className="flex items-center gap-1.5 mt-1">
                                           <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Perda do ingrediente</span>
                                           <span className="text-[10px] font-black text-emerald-700">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
                                           {ing.quantidade > 0 && (
-                                             <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * multiplicadorPerda(ing.fator)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
+                                             <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
                                           )}
                                        </div>
                                     )}
@@ -3639,33 +3858,23 @@ function FichasRunner() {
                      </div>
                      )}
 
-                     {/* RENDIMENTO — sempre a soma dos ingredientes (peso + custo). Não há
-                         mais como digitar à mão: o número digitado envelhecia calado quando o
-                         preço ou a quantidade de um ingrediente mudava, e a ficha passava a
-                         mentir sem ninguém perceber. Sem ingrediente nenhum o card não tem o
-                         que mostrar e some; volta sozinho no primeiro ingrediente. */}
-                     {ingFicha.length > 0 && (
+                     {/* RENDIMENTO — cozinha em kg; bar em litros */}
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantidade da receita</p>
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento da receita</p>
+                           {autoSoma
+                              ? <button type="button" onClick={() => setAutoSoma(false)} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline">ajustar manualmente</button>
+                              : <button type="button" onClick={() => setAutoSoma(true)} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 underline">← voltar ao automático</button>}
                         </div>
-                        {(() => {
-                              const est = rendimentoPelosIngredientes(ingFicha);
-                              const custoTotal = calcularCustoTotal(ingFicha);
-                              // Duas coisas diferentes davam a mesma frase. Sem ingrediente
-                              // nenhum o card nem aparece; se chegou aqui com ingrediente na
-                              // lista, o que falta é peso ou volume no cadastro deles — dizer
-                              // "adicione ingredientes" mandava procurar o problema no lugar
-                              // errado, que foi o que aconteceu com a água em garrafa.
-                              if (!est) return (
-                                 <p className="text-sm text-slate-400 font-medium py-2">
-                                    {ingFicha.length === 0
-                                       ? `Adicione ingredientes — o rendimento e o custo de 1 ${unGrande} aparecem aqui sozinhos.`
-                                       : "Nenhum ingrediente tem peso ou volume cadastrado. Abra cada um no cadastro e preencha quanto pesa ou quanto cabe em 1 unidade — o rendimento aparece aqui sozinho."}
-                                 </p>
-                              );
-                              const custoKg = custoTotal / (est.totalG / 1000);
-                              const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
+                        {autoSoma ? (
+                           (() => {
+                               const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
+                               const custoTotal = calcularCustoTotal(ingFicha);
+                               const unidadeSetor = unidadePadraoDepartamento(form.departamento || deptUrl);
+                               const unidadeLabelSetor = unidadeSetor === "l" ? "L" : "kg";
+                               if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 {unidadeLabelSetor} aparecem aqui sozinhos.</p>;
+                               const custoKg = custoTotal / (est.totalG / 1000);
+                               const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
                               return (
                                  <>
                                     <div className="grid grid-cols-2 gap-3">
@@ -3674,14 +3883,10 @@ function FichasRunner() {
                                           <p className="text-2xl font-black text-slate-800 mt-1">{est.valor.toLocaleString("pt-BR")} <span className="text-base">{unLabel}</span></p>
                                           <p className="text-[10px] font-medium text-slate-400">somado dos ingredientes</p>
                                        </div>
-                                       {/* O número grande é o que saiu do nosso bolso nesta receita.
-                                           O preço por kg/L é consequência dele e fica embaixo: era o
-                                           contrário, e o valor que a cozinha precisa ver primeiro
-                                           aparecia pequeno, embaixo do que ela não usa no dia a dia. */}
                                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Custo dos ingredientes</p>
-                                          <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoTotal)}</p>
-                                          <p className="text-[10px] font-medium text-emerald-600/70">1 {baseCustoDaFicha(est.unidade, unGrande)} custa {fmtBRL(custoKg)}</p>
+                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 {unidadeLabelSetor} custa</p>
+                                          <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoKg)}</p>
+                                          <p className="text-[10px] font-medium text-emerald-600/70">custo total {fmtBRL(custoTotal)}</p>
                                        </div>
                                     </div>
 
@@ -3734,11 +3939,130 @@ function FichasRunner() {
                                           </>
                                        );
                                     })()}
+                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                                       <span className="text-[11px] font-bold text-slate-500">Quanto custa se eu usar</span>
+                                       <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                                       <select value={unidadeSetor === "l" ? (["l","ml"].includes(calcUn) ? calcUn : "ml") : (["g","kg"].includes(calcUn) ? calcUn : "g")} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
+                                          {unidadeSetor === "l" ? <><option value="ml">ml</option><option value="l">L</option></> : <><option value="g">g</option><option value="kg">kg</option></>}
+                                       </select>
+                                       {(() => {
+                                          const q = Number(calcQtd) || 0;
+                                          let base = 0;
+                                          if (calcUn === "g" || calcUn === "ml") base = q;
+                                          else if (calcUn === "kg" || calcUn === "l") base = q * 1000;
+                                          if (base <= 0) return null;
+                                          return <span className="text-sm font-bold text-slate-600">? → <span className="font-black text-emerald-600">{fmtBRL(custoKg * (base / 1000))}</span></span>;
+                                       })()}
+                                    </div>
                                  </>
                               );
+                           })()
+                        ) : (
+                        <>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rendimento</label>
+                              <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
+                                 setForm({...form, rendimento_porcoes: e.target.value});
+                                 setAutoSoma(false);
+                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medido em</label>
+                              <select value={unidadePadraoDepartamento(form.departamento || deptUrl)} disabled className="w-full p-3 mt-1 bg-slate-100 border border-slate-200 rounded-xl font-black text-slate-700 outline-none disabled:opacity-100">
+                                 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? <option value="l">L (padrão do bar)</option> : <option value="kg">kg (padrão da cozinha)</option>}
+                              </select>
+                           </div>
+                        </div>
+
+                        {/* Resumo em UMA linha do que isso significa */}
+                        {(() => {
+                           const rendimento = Number(form.rendimento_porcoes) || 0;
+                           const pesoPorcao = Number(form.peso_porcao_g) || 0;
+                           const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
+                           const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
+                           const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao) || (est ? est.totalG : 0);
+                           const custoTotal = calcularCustoTotal(ingFicha);
+                           const porcoesRendidas = (unR === "porcao" || unR === "un")
+                              ? rendimento
+                              : (pesoPorcao > 0 && pesoTotalG > 0 ? pesoTotalG / pesoPorcao : null);
+                           const custoKg = pesoTotalG > 0 ? custoTotal / (pesoTotalG / 1000) : null;
+                           const custoPorc = porcoesRendidas > 0 ? custoTotal / porcoesRendidas : null;
+
+                           if (!pesoTotalG && !porcoesRendidas) {
+                              // Sem dados suficientes: só a sugestão pelos ingredientes, se houver
+                              return est ? (
+                                 <p className="text-[11px] font-bold text-slate-500 mt-3">
+                                    Os ingredientes somam <span className="text-slate-800">{est.valor.toLocaleString("pt-BR")} {({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade]}</span>.
+                                    <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="ml-1.5 text-emerald-600 underline hover:text-emerald-700">Usar como rendimento</button>
+                                 </p>
+                              ) : null;
+                           }
+                           return (
+                              <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
+                                 <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                                    {unR === "porcao" ? (
+                                       <>
+                                          Rende <span className="font-black text-slate-900">{rendimento} {rendimento >= 2 ? "porções" : "porção"}</span>
+                                          {pesoPorcao > 0 && <> de <span className="font-black text-slate-900">{pesoPorcao}g</span> (Total: {fmtG(pesoTotalG)})</>}
+                                       </>
+                                    ) : (
+                                       <>
+                                          Rende <span className="font-black text-slate-900">{rendimento} {unR}</span>
+                                          {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-slate-900">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
+                                       </>
+                                    )}
+                                    {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
+                                    {custoKg !== null && <> · 1 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"} custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
+                                 </p>
+                                 {est && Math.abs(est.totalG - pesoTotalG) / Math.max(est.totalG, pesoTotalG) > 0.05 && (
+                                    <p className="text-[10px] font-medium text-slate-400 mt-1">
+                                       Ingredientes somam {fmtG(est.totalG)} (diferença = água/perdas do preparo).
+                                       <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="ml-1 text-emerald-600 underline hover:text-emerald-700">Usar esse valor</button>
+                                    </p>
+                                 )}
+                              </div>
+                           );
                         })()}
+
+                        {/* Calculadora: quanto custa a quantidade que vou usar */}
+                        {(() => {
+                           const rendimento = Number(form.rendimento_porcoes) || 0;
+                           const pesoPorcao = Number(form.peso_porcao_g) || 0;
+                           const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
+                           const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao);
+                           if (!pesoTotalG) return null;
+                           const custoKg = calcularCustoTotal(ingFicha) / (pesoTotalG / 1000);
+
+                           const q = Number(calcQtd) || 0;
+                           let gramas = 0;
+                           if (calcUn === "g") gramas = q;
+                           else if (calcUn === "kg") gramas = q * 1000;
+                           else gramas = pesoPorcao > 0 ? q * pesoPorcao : 0;
+                           const custoCalc = custoKg * (gramas / 1000);
+                           const unidadesCalc = pesoPorcao > 0 ? gramas / pesoPorcao : null;
+
+                           return (
+                              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                                 <span className="text-[11px] font-bold text-slate-500">Quanto custa se eu usar</span>
+                                 <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                                 <select value={calcUn} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
+                                    <option value="g">g</option>
+                                    <option value="kg">kg</option>
+                                    {pesoPorcao > 0 && <option value="un">porções</option>}
+                                 </select>
+                                 {gramas > 0 && (
+                                    <span className="text-sm font-bold text-slate-600">
+                                       ? → <span className="font-black text-emerald-600">{fmtBRL(custoCalc)}</span>
+                                       <span className="text-slate-400 font-medium text-xs"> ({fmtG(gramas)}{unidadesCalc !== null ? ` · ${(+unidadesCalc.toFixed(1)).toLocaleString("pt-BR")} porções` : ""})</span>
+                                    </span>
+                                 )}
+                              </div>
+                           );
+                        })()}
+                        </>
+                        )}
                      </div>
-                     )}
 
                      {/* COMPOSIÇÃO DA PORÇÃO: quantas gramas de cada ingrediente vão em 1 porção */}
                      {(() => {
@@ -3806,9 +4130,9 @@ function FichasRunner() {
                      })()}
 
                      {/* CMV E PRECIFICAÇÃO — o preço de venda vive AQUI (Produtos e Preços saiu do menu) */}
-                     {!form.eh_base && !ehBarFicha && <div className="rounded-2xl border-2 border-pink-200 bg-white p-4 shadow-sm">
+                     {!form.eh_base && <div className="rounded-2xl border-2 border-pink-200 bg-white p-4 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
-                           <div><p className="text-xs font-black uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-slate-500">Selecione o que acompanha cada prato. O custo entra automaticamente no CMV.</p></div>
+                           <div><p className="text-xs font-black uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-slate-500">Selecione o que acompanha cada prato ou drink. O custo entra automaticamente no CMV.</p></div>
                            <span className="shrink-0 rounded-lg bg-pink-50 px-3 py-2 text-sm font-black text-pink-700">{fmtBRL(custoEmbalagensPorPorcao())}/porcao</span>
                         </div>
                         {embalagensEstoque.length > 0 ? <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -3830,125 +4154,39 @@ function FichasRunner() {
                         </div>
                      </div>}
 
-                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
-                     {form.departamento === "bar" && !form.eh_base && (
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
-                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-                              {METODOS_BAR.map(metodo => {
-                                 const ativo = form.metodo_bar === metodo.id;
-                                 return (
-                                    <button key={metodo.id} type="button"
-                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
-                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
-                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
-                                    </button>
-                                 );
-                              })}
-                           </div>
-                        </div>
-                     )}
-
                      {!form.eh_base && (() => {
+                        const custoTotalForm = custoTotalFormulario(ingFicha);
                         const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 0;
                         const unRF = String(form.rendimento_unidade || "porcao").toLowerCase();
                         const pesoPorcaoF = Number(form.peso_porcao_g) || 0;
                         const pesoTotalF = pesoTotalDaFicha(rendForm, unRF, pesoPorcaoF);
                         const nPorc = (unRF === "porcao" || unRF === "un") ? rendForm : (pesoPorcaoF > 0 && pesoTotalF > 0 ? pesoTotalF / pesoPorcaoF : 0);
-                        // Mercadoria e taxas são coisas diferentes: o CMV mede o que
-                        // custa PRODUZIR o que foi vendido (ingrediente + embalagem).
-                        // Maquininha e imposto incidem sobre a venda e comem o lucro,
-                        // mas não são custo de mercadoria — entram só no lucro.
-                        const porcoesEfetivas = nPorc > 0 ? nPorc : 1;
-                        const custoIngredientesPorc = calcularCustoTotal(ingFicha) / porcoesEfetivas;
-                        const custoEmbalagemPorc = custoEmbalagensPorPorcao();
-                        const custoPorc = custoIngredientesPorc + custoEmbalagemPorc;
+                        const custoPorc = nPorc > 0 ? custoTotalForm / nPorc : custoTotalForm;
                         const meta = Number(form.cmv_meta) || 30;
                         const sugerido = meta > 0 ? custoPorc / (meta / 100) : 0;
-                        // Markup divisor: cartão, imposto e lucro são fatias da VENDA, não
-                        // do custo. Somar tudo sobre a mercadoria erraria — é o preço que
-                        // precisa comportar as três fatias e ainda pagar a mercadoria:
-                        //   venda × (1 − cartão% − imposto% − lucro%) = mercadoria
-                        // O preço por CMV meta ignora cartão e imposto, e por isso promete
-                        // uma sobra que não existe: com meta de 30%, o lucro real é 30%
-                        // menos as taxas. Os dois ficam lado a lado, cada um dizendo a que
-                        // veio.
-                        const lucroAlvoPct = Number(taxasVenda.lucro) || 0;
-                        const fatiaDaVenda = 1 - ((Number(taxasVenda.cartao) || 0) + (Number(taxasVenda.imposto) || 0) + lucroAlvoPct) / 100;
-                        const sugeridoLucro = fatiaDaVenda > 0 ? custoPorc / fatiaDaVenda : null;
                         const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
-                        const custoCartao = precoNum * (Number(taxasVenda.cartao) || 0) / 100;
-                        const custoImposto = precoNum * (Number(taxasVenda.imposto) || 0) / 100;
-                        const lucro = precoNum > 0 ? precoNum - custoPorc - custoCartao - custoImposto : null;
-                        const lucroPct = lucro !== null && precoNum > 0 ? (lucro / precoNum) * 100 : null;
+                        const markup = precoNum > 0 && custoPorc > 0 ? precoNum / custoPorc : null;
+                        const lucro = precoNum > 0 ? precoNum - custoPorc : null;
+                        const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
                            <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
-                              {/* Tres cartoes de custo viraram um. O que decide preco e
-                                  o custo de UMA unidade vendida: total e custo por kg
-                                  ficavam ao lado repetindo a mesma conta por outro
-                                  caminho, e ninguem precificava por eles. */}
-                              {/* Custo aberto linha a linha. Um número só ("custo por
-                                  porção") esconde de onde ele vem: quem vê 51% de CMV
-                                  precisa saber se o peso está no ingrediente ou na
-                                  embalagem para saber o que negociar. */}
-                              <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                 <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-slate-400">Custo {ehBarFicha ? "do produto" : "por porção"}</p>
-                                 <div className="space-y-1.5 text-sm">
-                                    <div className="flex items-center justify-between gap-3">
-                                       <span className="font-bold text-slate-500">Ingredientes</span>
-                                       <span className="font-black text-slate-800">{fmtBRL(custoIngredientesPorc)}</span>
-                                    </div>
-                                    {custoEmbalagemPorc > 0 && (
-                                       <div className="flex items-center justify-between gap-3">
-                                          <span className="font-bold text-slate-500">Embalagem</span>
-                                          <span className="font-black text-slate-800">{fmtBRL(custoEmbalagemPorc)}</span>
-                                       </div>
-                                    )}
-                                    <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
-                                       <span className="font-black text-slate-600">Custo do produto</span>
-                                       <span className="text-base font-black text-slate-900">{fmtBRL(custoPorc)}</span>
-                                    </div>
-                                    {precoNum > 0 && (
-                                       <>
-                                          <div className="flex items-center justify-between gap-3">
-                                             <span className="font-bold text-slate-500">Maquininha ({Number(taxasVenda.cartao).toLocaleString("pt-BR")}%)</span>
-                                             <span className="font-black text-slate-800">{fmtBRL(custoCartao)}</span>
-                                          </div>
-                                          <div className="flex items-center justify-between gap-3">
-                                             <span className="font-bold text-slate-500">Imposto · Simples ({Number(taxasVenda.imposto).toLocaleString("pt-BR")}%)</span>
-                                             <span className="font-black text-slate-800">{fmtBRL(custoImposto)}</span>
-                                          </div>
-                                          <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
-                                             <span className="font-black text-slate-600">Custo total da venda</span>
-                                             <span className="text-base font-black text-slate-900">{fmtBRL(custoPorc + custoCartao + custoImposto)}</span>
-                                          </div>
-                                       </>
-                                    )}
+                              {/* Custos base — sempre visíveis, recalculam ao digitar */}
+                              <div className="grid grid-cols-3 gap-2 mb-3">
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo total</p>
+                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoTotalForm)}</p>
                                  </div>
-                                 <div className="mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-slate-300 pt-2.5">
-                                    <label className="block">
-                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Maquininha (%)</span>
-                                       <input type="number" min="0" max="100" step="0.01" value={taxasVenda.cartao}
-                                          onChange={e => alterarTaxaVenda("cartao", e.target.value)}
-                                          className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
-                                    </label>
-                                    <label className="block">
-                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Imposto (%)</span>
-                                       <input type="number" min="0" max="100" step="0.01" value={taxasVenda.imposto}
-                                          onChange={e => alterarTaxaVenda("imposto", e.target.value)}
-                                          className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
-                                    </label>
-                                    <label className="block">
-                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Lucro alvo (%)</span>
-                                       <input type="number" min="0" max="100" step="0.01" value={taxasVenda.lucro}
-                                          onChange={e => alterarTaxaVenda("lucro", e.target.value)}
-                                          className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
-                                    </label>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/porção</p>
+                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
                                  </div>
-                                 <p className="mt-1.5 text-[10px] font-medium text-slate-400">Valem para todas as fichas desta loja. O Simples varia por anexo e faixa de faturamento — confira a sua.</p>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/{unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"}</p>
+                                    <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
+                                 </div>
                               </div>
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
@@ -3960,40 +4198,15 @@ function FichasRunner() {
                                     <input type="text" inputMode="decimal" placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-3 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
                                  </div>
                               </div>
-                              {lucro !== null && (
-                                 <div className={`mt-2 flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${lucro >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Lucro por {ehBarFicha ? "unidade" : "porção"}</span>
-                                    <span className={`text-xl font-black ${lucro >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                                       {fmtBRL(lucro)}
-                                       {lucroPct !== null && <span className="ml-2 text-xs font-bold text-slate-400">{lucroPct.toFixed(1)}%</span>}
-                                    </span>
-                                 </div>
-                              )}
-                              {(sugerido > 0 || sugeridoLucro > 0) && (
-                                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                    {sugerido > 0 && (
-                                       <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
-                                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Para CMV de {meta}%</span>
-                                          <span className="text-lg font-black text-slate-800">{fmtBRL(sugerido)}</span>
-                                          <span className="mt-0.5 block text-[10px] font-bold text-slate-400">só mercadoria · toque para usar</span>
-                                       </button>
-                                    )}
-                                    {sugeridoLucro > 0 && (
-                                       <button type="button" onClick={() => setForm({ ...form, preco_venda: sugeridoLucro.toFixed(2) })} className="w-full text-left bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 hover:border-emerald-500 transition-colors">
-                                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest block">Para lucro de {Number(lucroAlvoPct).toLocaleString("pt-BR")}%</span>
-                                          <span className="text-lg font-black text-emerald-800">{fmtBRL(sugeridoLucro)}</span>
-                                          <span className="mt-0.5 block text-[10px] font-bold text-emerald-600">já com cartão e imposto · toque para usar</span>
-                                       </button>
-                                    )}
-                                 </div>
-                              )}
-                              {sugeridoLucro === null && (
-                                 <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[11px] font-bold text-amber-800">
-                                    Cartão, imposto e lucro alvo somam 100% ou mais da venda: não existe preço que feche essa conta. Baixe o lucro alvo.
-                                 </p>
+                              {sugerido > 0 && (
+                                 <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mt-2 w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Preço sugerido/porção (CMV {meta}%)</span>
+                                    <span className="text-lg font-black text-slate-800">{fmtBRL(sugerido)}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 ml-2">toque para usar</span>
+                                 </button>
                               )}
                               {cmvTeo !== null ? (
-                                 <div className="grid grid-cols-2 gap-2 mt-2">
+                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                                     <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">CMV teórico</p>
                                        <p className={`text-lg font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
@@ -4002,9 +4215,17 @@ function FichasRunner() {
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Margem</p>
                                        <p className="text-lg font-black text-emerald-700">{margem.toFixed(1)}%</p>
                                     </div>
+                                    <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Markup</p>
+                                       <p className="text-lg font-black text-emerald-700">{markup ? markup.toFixed(2) + "×" : "—"}</p>
+                                    </div>
+                                    <div className={`rounded-xl p-2.5 text-center border ${lucro < 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Lucro/porção</p>
+                                       <p className={`text-lg font-black ${lucro < 0 ? "text-red-600" : "text-emerald-700"}`}>{fmtBRL(lucro)}</p>
+                                    </div>
                                  </div>
                               ) : (
-                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem e lucro.</p>
+                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem, markup e lucro por porção.</p>
                               )}
                            </div>
                         );
@@ -4041,6 +4262,26 @@ function FichasRunner() {
                         <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
                      </div>}
 
+                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
+                     {form.departamento === "bar" && !form.eh_base && (
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
+                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                              {METODOS_BAR.map(metodo => {
+                                 const ativo = form.metodo_bar === metodo.id;
+                                 return (
+                                    <button key={metodo.id} type="button"
+                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
+                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
+                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
+                                       <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{metodo.ajuda}</span>
+                                    </button>
+                                 );
+                              })}
+                           </div>
+                        </div>
+                     )}
+
                   </div>
 
 
@@ -4048,11 +4289,27 @@ function FichasRunner() {
 
                {/* FOOTER DO MODAL */}
                <div className="p-3 sm:p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
-                  <button onClick={() => handleSalvar(false)} className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
-                     <Save size={20}/> {form.id ? "Salvar alterações" : form.produto_pronto ? "Salvar produto pronto" : `Salvar ficha (${fmtBRL(custoTotalFormulario(ingFicha))})`}
+                  <button
+                     type="button"
+                     onMouseDown={e => e.preventDefault()}
+                     onClick={() => handleSalvar(false)}
+                     disabled={salvandoFicha}
+                     className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                     {salvandoFicha ? (
+                        <><Loader2 size={20} className="animate-spin" /> Salvando alterações...</>
+                     ) : (
+                        <><Save size={20}/> {form.id ? "Salvar alterações" : form.produto_pronto ? "Salvar produto pronto" : `Salvar ficha (${fmtBRL(custoTotalFormulario(ingFicha))})`}</>
+                     )}
                   </button>
                   {!form.id && (
-                     <button onClick={() => handleSalvar(true)} className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                     <button
+                        type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => handleSalvar(true)}
+                        disabled={salvandoFicha}
+                        className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 disabled:opacity-50 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                     >
                         <Plus size={18}/> Salvar e criar outra
                      </button>
                   )}
@@ -4216,13 +4473,13 @@ function FichasRunner() {
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do prato (vai pro cardápio)</label>
                            <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
                            {(() => {
-                              const pesoIA = rendimentoPelosIngredientes(
-                                 iaFResultado.itens.map(it => {
-                                    const ins = insumosAtivos.find(i => i.id === it.vinculoId);
-                                    return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null,
-                                       unidade_medida: ins?.unidade_medida, volume_unidade_ml: ins?.volume_unidade_ml || null };
-                                 })
-                              );
+                               const pesoIA = rendimentoPelosIngredientes(
+                                  iaFResultado.itens.map(it => {
+                                     const ins = insumosAtivos.find(i => i.id === it.vinculoId);
+                                     return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null };
+                                  }),
+                                  deptUrl,
+                               );
                               if (pesoIA) return (
                                  <>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (peso total)</label>

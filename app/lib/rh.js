@@ -4,10 +4,11 @@ import { calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin,
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
   
-  let query = supabase.from("colaboradores").select("*").order("nome");
+  let query = supabase.from("colaboradores").select("*");
   if (unidadeId && unidadeId !== "matriz") {
     query = query.eq("unidade_id", unidadeId);
   }
+  query = query.order("nome");
 
   const { data, error } = await query;
   return { data: data || [], error: error?.message };
@@ -63,10 +64,44 @@ export async function desligarColaborador(id, { data_desligamento, motivo_deslig
   return { error: error?.message };
 }
 
+export async function registrarAvisoPrevio(id, { inicio_aviso, dias_aviso = 30, tipo_aviso = "Trabalhado", motivo = "" }) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const campos = {
+    status_aviso: "cumprindo_aviso",
+    em_aviso_previo: true,
+    inicio_aviso_previo: inicio_aviso || new Date().toISOString().split("T")[0],
+    dias_aviso_previo: Number(dias_aviso) || 30,
+    tipo_aviso_previo: tipo_aviso || "Trabalhado",
+    motivo_desligamento: motivo || null,
+  };
+  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
+  }, campos);
+  return { error: error?.message };
+}
+
+export async function cancelarAvisoPrevio(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const campos = {
+    status_aviso: null,
+    em_aviso_previo: false,
+    inicio_aviso_previo: null,
+    dias_aviso_previo: null,
+    tipo_aviso_previo: null,
+  };
+  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
+  }, campos);
+  return { error: error?.message };
+}
+
 export async function reativarColaborador(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("colaboradores").update({
     status: "ativo", data_desligamento: null, motivo_desligamento: null, tipo_desligamento: null,
+    status_aviso: null, em_aviso_previo: false, inicio_aviso_previo: null, dias_aviso_previo: null,
   }).eq("id", id);
   return { error: error?.message };
 }
@@ -236,10 +271,11 @@ export const CARGOS_PADRAO_INICIAIS = [
 export async function fetchCargos(unidadeId) {
   if (!isSupabaseReady()) return { data: CARGOS_PADRAO_INICIAIS, error: null };
   try {
-    let q = supabase.from("rh_cargos").select("*").order("nome");
+    let q = supabase.from("rh_cargos").select("*");
     if (unidadeId && unidadeId !== "todas") {
       q = q.eq("unidade_id", unidadeId);
     }
+    q = q.order("nome");
     const { data, error } = await q;
     if (error || !data || data.length === 0) {
       return { data: CARGOS_PADRAO_INICIAIS, error: null };
@@ -410,12 +446,8 @@ export async function atualizarPagamentoRecibo(id, pagamentoRealizado, dataPagam
   return { error: error?.message };
 }
 
-// Apagar um recibo emitido. Existe porque recibo sai errado: valor trocado,
-// pessoa errada, emitido duas vezes. Sem isto o histórico do extra acumulava
-// papel errado para sempre, e o total pago do mês saía inflado.
-export async function removerReciboPrestacao(id) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  if (!id) return { error: "Recibo sem identificador." };
+export async function excluirReciboPrestacao(id) {
+  if (!isSupabaseReady() || !id) return { error: "ID inválido" };
   const { error } = await supabase.from("rh_recibos_prestacao").delete().eq("id", id);
   return { error: error?.message };
 }
@@ -695,6 +727,52 @@ export async function inserirAdvertencia(adv) {
 export async function removerAdvertencia(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("rh_advertencias_colab").delete().eq("id", id);
+  return { error: error?.message };
+}
+
+// ─── REUNIÕES & FEEDBACKS DO COLABORADOR ─────────────────────────────────────
+export async function fetchReunioesColab(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase.from("rh_reunioes_colab")
+    .select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirReuniaoColab(reuniao) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  let { error } = await supabase.from("rh_reunioes_colab").insert([reuniao]);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("rh_reunioes_colab").insert([reuniao]); return r.error;
+  }, reuniao);
+  return { error: error?.message };
+}
+
+export async function removerReuniaoColab(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_reunioes_colab").delete().eq("id", id);
+  return { error: error?.message };
+}
+
+// ─── TREINAMENTOS & CERTIFICAÇÕES DO COLABORADOR ──────────────────────────────
+export async function fetchTreinamentosColab(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase.from("rh_treinamentos_colab")
+    .select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirTreinamentoColab(treino) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  let { error } = await supabase.from("rh_treinamentos_colab").insert([treino]);
+  error = await colabRetrySemColuna(error, async () => {
+    const r = await supabase.from("rh_treinamentos_colab").insert([treino]); return r.error;
+  }, treino);
+  return { error: error?.message };
+}
+
+export async function removerTreinamentoColab(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_treinamentos_colab").delete().eq("id", id);
   return { error: error?.message };
 }
 

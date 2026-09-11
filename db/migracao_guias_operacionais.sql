@@ -29,12 +29,15 @@ create table if not exists public.guias_operacionais (
   -- horário e atividade; o equipamento tem seções com passos e avisos. Impor
   -- colunas fixas para os dois faria metade delas ficar sempre nula.
   conteudo     jsonb not null default '[]'::jsonb,
+  imagem_url   text,
   observacoes  text,
   ordem        integer not null default 0,
   ativo        boolean not null default true,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+alter table public.guias_operacionais add column if not exists imagem_url text;
 
 create index if not exists idx_guias_unidade_tipo
   on public.guias_operacionais (unidade_id, tipo, ordem);

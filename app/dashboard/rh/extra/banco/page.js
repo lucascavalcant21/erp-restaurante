@@ -94,11 +94,6 @@ export default function BancoDeExtras() {
       endereco: [cadastro.endereco, cadastro.bairro, cadastro.cidade].filter(Boolean).join(", ") || null,
       chave_pix: cadastro.chave_pix || null,
       salario: Number(cadastro.valor_diaria_pretendido) || 0,
-      anotacoes_rh: [
-        cadastro.funcao_secundaria ? `Também faz: ${cadastro.funcao_secundaria}` : "",
-        cadastro.experiencia ? `Experiência: ${cadastro.experiencia}` : "",
-        `Cadastro pelo portal em ${dataBR(cadastro.created_at)}`,
-      ].filter(Boolean).join("\n"),
     });
     if (r.error) { setAprovando(null); setAviso(`Não consegui cadastrar: ${r.error}`); return; }
     await atualizarStatusExtraCadastro(cadastro.id, "aprovado", r.data?.id);

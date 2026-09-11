@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchFeriados, fetchAtestados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft, Download } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -15,10 +15,6 @@ export default function EspelhoDePonto() {
   const colabId = params.id;
   const mesParam = searchParams.get("mes") || new Date().toISOString().slice(0, 7); // ex: 2026-06
 
-  // A troca do mês vai para a URL, não para um estado da tela: assim ela
-  // sobrevive ao recarregar, o endereço pode ser copiado para outra pessoa, e
-  // o efeito que busca os dados já depende de mesParam — não há o que
-  // sincronizar à mão.
   const trocarMes = (novoMes) => {
     if (!novoMes) return;
     router.replace(`/dashboard/rh/espelho/${colabId}?mes=${novoMes}`);
@@ -27,6 +23,7 @@ export default function EspelhoDePonto() {
   const [colaborador, setColaborador] = useState(null);
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
+  const [atestadosMes, setAtestadosMes] = useState([]);
   const [feriadosMes, setFeriadosMes] = useState([]);
   const [fechamento, setFechamento] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -79,9 +76,12 @@ export default function EspelhoDePonto() {
       const { data: pts } = await fetchPontosMes(colabId, mesParam);
       setPontos(pts || []);
 
-      // Busca Folgas Esporádicas
+      // Busca Folgas Esporádicas e Atestados Médicos
       const resFolgas = await fetchFolgasEsporadicas(colabId);
       setFolgasEsporadicas(resFolgas.data || []);
+
+      const resAtestados = await fetchAtestados(colabId);
+      setAtestadosMes(resAtestados.data || []);
 
       // Banco de horas do mês (intervalos não tirados)
 
@@ -376,6 +376,13 @@ export default function EspelhoDePonto() {
                   const dataString = `${mesParam}-${dia.toString().padStart(2,'0')}`;
                   const reg = pontos.find(p => p.data_referencia === dataString);
                   
+                  // Verifica atestado médico
+                  const atestado = atestadosMes.find(a => {
+                     const ini = String(a.data_inicio).slice(0, 10);
+                     const fim = String(a.data_fim || a.data_inicio).slice(0, 10);
+                     return ini <= dataString && dataString <= fim;
+                  });
+
                   // Verifica se é folga
                   const dataObj = new Date(dataString + "T12:00:00Z");
                   const diaSemana = dataObj.getUTCDay().toString();
@@ -385,11 +392,19 @@ export default function EspelhoDePonto() {
                   const isFolga = isFolgaFixa || isFolgaEsporadica;
                   const feriado = feriadosMes.find(f => String(f.data).slice(0, 10) === dataString);
 
-                  // Tres folgas diferentes, e a casa trata cada uma de um jeito:
-                  // a semanal esta no contrato, a de domingo e a escala que roda
-                  // entre a equipe e a programada e combinada caso a caso. Escrever
-                  // "FOLGA" em todas apagava a diferenca justamente para quem
-                  // confere a folha. Feriado aparece junto, porque muda o calculo.
+                  // Se tem Atestado Médico no dia (e não bateu ponto)
+                  if (atestado && !reg) {
+                      return (
+                         <tr key={dia} className="bg-cyan-50/80">
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold text-cyan-900 text-left">{rotuloDia(dia)}</td>
+                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.15em] text-cyan-950 bg-cyan-100/60">
+                               🏥 ATESTADO MÉDICO — AUSÊNCIA ABONADA {atestado.cid ? `(CID ${atestado.cid})` : ""}
+                            </td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.10em] text-cyan-900 bg-cyan-100/60 text-[8px]">ABONADO — NÃO DESCONTAR</td>
+                         </tr>
+                      );
+                  }
+
                   const partesFolga = [];
                   if (isFolgaFixa) partesFolga.push("FOLGA SEMANAL");
                   else if (isFolgaEsporadica) partesFolga.push(diaSemana === "0" ? "FOLGA DE DOMINGO" : "FOLGA PROGRAMADA");

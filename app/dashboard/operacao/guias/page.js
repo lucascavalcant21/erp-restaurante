@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle, ArrowLeft, Beaker, Database, Loader2, Plus, Printer, Save,
-  Table, Trash2, Wrench,
+  AlertTriangle, ArrowLeft, Beaker, Camera, Database, Image as ImageIcon,
+  Loader2, Maximize2, Plus, Printer, Save, Table, Trash2, Wrench, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchGuias, removerGuia, salvarGuia, semearGuias, TIPOS_GUIA } from "../../../lib/guias";
@@ -19,6 +19,26 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const iconeDoTipo = (tipo) => (tipo === "equipamento" ? Wrench : Beaker);
+
+function comprimirFotoGuia(arquivo) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(arquivo);
+    img.onload = () => {
+      const limite = 1200;
+      const escala = Math.min(1, limite / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * escala));
+      canvas.height = Math.max(1, Math.round(img.height * escala));
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.78));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Imagem inválida")); };
+    img.src = url;
+  });
+}
 
 export default function GuiaDeUso() {
   const router = useRouter();
@@ -29,6 +49,7 @@ export default function GuiaDeUso() {
   const [editando, setEditando] = useState(false);
   const [filtro, setFiltro] = useState("todos");
   const [aviso, setAviso] = useState("");
+  const [modalImagem, setModalImagem] = useState(null);
 
   const mostrar = (texto) => { setAviso(texto); setTimeout(() => setAviso(""), 2800); };
 
@@ -69,6 +90,29 @@ export default function GuiaDeUso() {
     if (error === "sem_tabela") { setSemTabela(true); return; }
     if (error) return mostrar(`Não consegui salvar: ${error}`);
     mostrar("Guia salvo");
+  };
+
+  const uploadFotoGuia = async (guiaId, file) => {
+    if (!file) return;
+    try {
+      mostrar("Processando imagem...");
+      const base64 = await comprimirFotoGuia(file);
+      setGuias(atual => atual.map(g => g.id === guiaId ? { ...g, imagem_url: base64 } : g));
+      const guiaAlvo = guias.find(g => g.id === guiaId);
+      if (guiaAlvo) {
+        await gravar({ ...guiaAlvo, imagem_url: base64 });
+      }
+    } catch (err) {
+      mostrar("Não foi possível carregar a foto.");
+    }
+  };
+
+  const removerFotoGuia = async (guiaId) => {
+    setGuias(atual => atual.map(g => g.id === guiaId ? { ...g, imagem_url: null } : g));
+    const guiaAlvo = guias.find(g => g.id === guiaId);
+    if (guiaAlvo) {
+      await gravar({ ...guiaAlvo, imagem_url: null });
+    }
   };
 
   // Edita local e grava: esperar o banco a cada tecla deixaria o campo travado.
@@ -155,6 +199,7 @@ export default function GuiaDeUso() {
     <div class="faixa" style="background:${esc(g.cor || "#0f172a")}"></div>
     <h1>${esc(g.titulo)}</h1>
     <p class="sub">${esc(g.tipo === "equipamento" ? "Equipamento" : "Produto")}${g.setor ? ` · ${esc(g.setor)}` : ""} · ${esc(unidadeInfo?.nome || "")}</p>
+    ${g.imagem_url ? `<div style="text-align:center;margin:12px 0;"><img src="${esc(g.imagem_url)}" style="max-height:220px;max-width:100%;border-radius:10px;border:1px solid #e2e8f0;object-fit:contain;"/></div>` : ""}
     ${(g.conteudo || []).map(secao => `
       <section class="bloco ${secao.alerta ? "alerta" : ""}">
         <h2>${esc(secao.titulo || "")}</h2>
@@ -313,6 +358,30 @@ export default function GuiaDeUso() {
                             <input value={guia.setor || ""} onChange={e => alterarGuia(guia.id, "setor", e.target.value)}
                               onBlur={() => gravar(guia)} placeholder="Setor"
                               className="h-10 w-32 shrink-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500" />
+                            
+                            {/* Controle de Foto do Equipamento no Modo Edição */}
+                            {guia.imagem_url ? (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <div onClick={() => setModalImagem({ url: guia.imagem_url, titulo: guia.titulo })}
+                                  className="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-slate-100" title="Ver foto">
+                                  <img src={guia.imagem_url} alt="" className="h-full w-full object-cover" />
+                                </div>
+                                <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">
+                                  <Camera size={15} /> Trocar foto
+                                  <input type="file" accept="image/*" className="hidden" onChange={e => uploadFotoGuia(guia.id, e.target.files[0])} />
+                                </label>
+                                <button onClick={() => removerFotoGuia(guia.id)} title="Remover foto"
+                                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-red-500 hover:border-red-300 hover:bg-red-50">
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 text-xs font-bold text-slate-600 hover:border-emerald-500 hover:text-emerald-700 shrink-0">
+                                <Camera size={15} /> Add foto do equipamento
+                                <input type="file" accept="image/*" className="hidden" onChange={e => uploadFotoGuia(guia.id, e.target.files[0])} />
+                              </label>
+                            )}
+
                             <button onClick={() => excluirGuia(guia)} title="Excluir guia"
                               className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-300 hover:text-red-600">
                               <Trash2 size={16} />
@@ -337,6 +406,31 @@ export default function GuiaDeUso() {
                       </header>
 
                       <div className="space-y-3 p-4 sm:p-5">
+                        {/* Foto de Exemplo / Referência do Equipamento no Modo Leitura */}
+                        {!editando && guia.imagem_url && (
+                          <div className="mb-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3">
+                            <div
+                              onClick={() => setModalImagem({ url: guia.imagem_url, titulo: guia.titulo })}
+                              className="group relative h-40 w-full sm:w-48 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs transition-transform hover:scale-[1.01]"
+                            >
+                              <img src={guia.imagem_url} alt={guia.titulo} className="h-full w-full object-cover" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="flex items-center gap-1.5 text-xs font-black text-white">
+                                  <Maximize2 size={14} /> Ampliar
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-1 text-xs text-slate-500 leading-relaxed">
+                              <p className="font-black text-slate-700 flex items-center gap-1.5 text-xs">
+                                <ImageIcon size={14} className="text-slate-400" /> Foto do Equipamento / Produto
+                              </p>
+                              <p className="mt-1 text-slate-600 font-medium">
+                                Imagem de referência para identificação rápida do modelo e montagem correta. Clique na foto para expandir em tela cheia.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         {(guia.conteudo || []).map((secao, indiceSecao) => (
                           <div key={indiceSecao} className={`rounded-xl border p-3 ${secao.alerta ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"}`}>
                             <div className="mb-2 flex items-center gap-2">
@@ -416,6 +510,23 @@ export default function GuiaDeUso() {
           tela e na impressão — é onde mora o acidente.
         </p>
       </main>
+
+      {/* Modal Lightbox para foto ampliada */}
+      {modalImagem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs" onClick={() => setModalImagem(null)}>
+          <div className="relative max-h-[90vh] max-w-4xl overflow-hidden rounded-2xl bg-white p-2 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h3 className="text-base font-black text-slate-900">{modalImagem.titulo}</h3>
+              <button onClick={() => setModalImagem(null)} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex max-h-[75vh] items-center justify-center overflow-auto p-2 bg-slate-900">
+              <img src={modalImagem.url} alt={modalImagem.titulo} className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

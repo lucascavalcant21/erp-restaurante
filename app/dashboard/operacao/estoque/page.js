@@ -18,11 +18,11 @@ import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
-  fetchLotesItem, registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
+  registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
   transferirEntreEstoques, vincularItemEstoque, zerarEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
-  ehEstoquePrePreparo, estoqueControlaLote, filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
+  filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
   statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
@@ -50,13 +50,6 @@ const conteudoDe = (item) => Number(item?.tamanho_embalagem) || 1;
 const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 // Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.
 const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
-
-// De qual receituario vem o pre-preparo deste estoque. A tela de fichas so tem
-// cozinha e bar; o pre-preparo do salao e receita de cozinha, entao cai la.
-const setorDaFicha = (estoque) => {
-  const alvo = `${estoque?.slug || ""} ${estoque?.nome || ""}`.toLowerCase();
-  return alvo.includes("bar") ? "bar" : "cozinha";
-};
 
 const fmtEquiv = (q, un) => {
   const n = Number(q) || 0; const u = String(un || "un").toLowerCase();
@@ -386,9 +379,6 @@ function EstoqueRunner() {
   const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
   const [agruparPor, setAgruparPor] = useState("categoria");   // categoria | local
   const [modal, setModal] = useState(null);
-  // Lotes que o item já tem. Servem para repor na MESMA validade com um toque,
-  // em vez de redigitar a data e errar por um dia — o que criaria um lote novo.
-  const [lotesItem, setLotesItem] = useState([]);
   // Produto que não existe ainda: cadastra pelo próprio estoque.
   const [novoProduto, setNovoProduto] = useState(null);
   // Categorias criadas pela unidade, por departamento. As embutidas ficam no
@@ -440,12 +430,12 @@ function EstoqueRunner() {
     avisar(`Categoria "${nome}" excluída.`);
   }
   const [modalZerar, setModalZerar] = useState(null);
-  // Trocar a unidade de medida NÃO converte o saldo: 5 kg viram 5 g. Por isso
-  // fica atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
+  // Limites e unidade de medida afetam reposição e contagem. Por isso ficam
+  // atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
   const [pinGerente, setPinGerente] = useState("1234");
   const [unidadeLiberada, setUnidadeLiberada] = useState(false);
   const [pinDigitado, setPinDigitado] = useState(null); // null = não está pedindo
-  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", validade: "", modo: "unidade", fechadas: "", aberto: "" });
+  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
   const [textoImportacao, setTextoImportacao] = useState("");
@@ -486,17 +476,6 @@ function EstoqueRunner() {
   }, [estoques, moduloPref]);
 
   const estoqueAtual = useMemo(() => estoques.find(item => item.id === estoqueId) || estoquesVisiveis[0], [estoques, estoqueId, estoquesVisiveis]);
-
-  useEffect(() => {
-    const insumoId = modal?.item?.insumo_id;
-    if (!modal || modal.tipo !== "entrada" || !insumoId || !estoqueAtual?.id || !estoqueControlaLote(estoqueAtual)) {
-      setLotesItem([]);
-      return;
-    }
-    let ativo = true;
-    fetchLotesItem(estoqueAtual.id, insumoId).then((r) => { if (ativo) setLotesItem(r.data || []); });
-    return () => { ativo = false; };
-  }, [modal, estoqueAtual?.id, estoqueAtual?.controla_validade, estoqueAtual?.slug, estoqueAtual?.nome]);
 
   const carregarEstoques = useCallback(async (manterId = "") => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -549,7 +528,7 @@ function EstoqueRunner() {
     setLoading(true);
     const ehEstoqueEmbalagem = /embalage/i.test(`${estoqueAtual?.slug || ""} ${estoqueAtual?.nome || ""}`);
     const [resItens, resMovimentos, resProntos, resEmbalagens] = await Promise.all([
-      fetchItensEstoque(estoqueId, unidadeAtiva, estoqueAtual),
+      fetchItensEstoque(estoqueId, unidadeAtiva),
       fetchMovimentosMulti(unidadeAtiva, estoqueId),
       fetchNomesDePratosEDrinks(unidadeAtiva),
       ehEstoqueEmbalagem ? fetchEmbalagens(unidadeAtiva) : Promise.resolve({ data: [] }),
@@ -1049,7 +1028,6 @@ function EstoqueRunner() {
       observacao: "",
       responsavel_id: "",
       data: agoraStr,
-      validade: "",
       // Sempre começa em UNIDADE (peça inteira). Fracionar por conteúdo é a
       // exceção — quem vai servir dose escolhe na hora, sem vir marcado.
       modo: "unidade",
@@ -1120,7 +1098,6 @@ function EstoqueRunner() {
         unidadeId, estoqueId, insumoId: item?.insumo_id, tipo,
         quantidade: qtd, usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
         observacao: operacao.observacao, dataMovimento: operacao.data || null,
-        validade: tipo === "entrada" ? (operacao.validade || null) : null,
       });
 
       if (frac && modal?.tipo === "entrada") {
@@ -1153,7 +1130,6 @@ function EstoqueRunner() {
           tipo: modal?.tipo, quantidade: qtdOperacao,
           usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
           observacao: operacao.observacao, dataMovimento: operacao.data || null,
-          validade: modal?.tipo === "entrada" ? (operacao.validade || null) : null,
         });
       }
       if (resposta?.error) return avisar(resposta.error, "erro");
@@ -1189,6 +1165,11 @@ function EstoqueRunner() {
 
   const salvarConfiguracaoItem = async event => {
     event.preventDefault();
+    const minimo = Number(formItem.estoque_minimo || 0);
+    const maximo = Number(formItem.estoque_maximo || 0);
+    if (minimo > 0 && maximo > 0 && maximo < minimo) {
+      return avisar("O estoque máximo não pode ser menor que o mínimo.", "erro");
+    }
     setSalvando(true);
     const resposta = await atualizarItemEstoque(formItem.estoque_item_id, formItem);
     // Unidade comercial e "permite fracionado" ficam no insumo (valem p/ todos
@@ -1285,7 +1266,7 @@ function EstoqueRunner() {
   const ativo = estoqueAtual?.status === "ativo";
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
+    <div className="min-h-screen bg-slate-50 pb-16 text-slate-900">
       <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -1402,28 +1383,6 @@ function EstoqueRunner() {
                 <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
                 </button>
-                {/* Produto que ainda nao existe no cadastro de ingredientes. O
-                    formulario ja existia, mas escondido atras de "Nova entrada" e
-                    como link de texto no meio do modal: quem estava conferindo
-                    estoque e achava um item novo nao tinha por onde comecar.
-
-                    No pre-preparo o botao nao cria nada: item de pre-preparo nasce
-                    da ficha tecnica (garantirFichaNoEstoquePreparo), e deixar
-                    cadastrar aqui a mao criaria um segundo item com o mesmo nome,
-                    fora da receita que o produz. */}
-                {ehEstoquePrePreparo(estoqueAtual) ? (
-                  <button disabled={!ativo}
-                    onClick={() => router.push(`/dashboard/operacao/fichas?dept=${setorDaFicha(estoqueAtual)}`)}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
-                    <Plus size={16} /> Novo pré-preparo (na ficha técnica)
-                  </button>
-                ) : (
-                  <button disabled={!ativo}
-                    onClick={() => { abrirOperacao("entrada"); setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", minimo: "", maximo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false }); }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
-                    <Plus size={16} /> Cadastrar produto
-                  </button>
-                )}
                 <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
                 </button>
@@ -1565,11 +1524,11 @@ function EstoqueRunner() {
                   <TabelaItens
                     itens={aba === "alertas" ? itensFiltrados.filter(i => alertas.some(a => a.id === i.id)) : itensFiltrados}
                     estoque={estoqueAtual} loading={loading} agruparPor={agruparPor}
+                    dinheiro={dinheiro}
                     onEntrada={item => abrirOperacao("entrada", item)}
                     onSaida={item => abrirOperacao("saida", item)}
                     onEditar={abrirEdicaoItem}
                     onHistorico={item => setModal({ tipo: "historico_item", item })}
-                    dinheiro={dinheiro}
                   />
                 </>
               ) : (
@@ -1907,42 +1866,6 @@ function EstoqueRunner() {
                         <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" /></Campo>
                       )}
                     </div>
-
-                    {/* Validade desta entrada, só no pré-preparo. Repor com a mesma
-                        data soma no lote que já existe; com outra data, cria um lote
-                        novo e as duas fornadas passam a ser contadas em separado. */}
-                    {modal.tipo === "entrada" && estoqueControlaLote(estoqueAtual) && (
-                      <div className="mt-3">
-                        <Campo label="Validade desta entrada">
-                          <input type="date" value={operacao.validade || ""}
-                            onChange={e => setOperacao({ ...operacao, validade: e.target.value })}
-                            className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" />
-                        </Campo>
-                        {lotesItem.length > 0 && (
-                          <div className="mt-2.5">
-                            <p className="text-xs font-black uppercase tracking-wider text-slate-500">Já em estoque</p>
-                            <div className="mt-1.5 flex flex-wrap gap-2">
-                              {lotesItem.map((lote) => {
-                                const iso = lote.validade ? String(lote.validade).slice(0, 10) : "";
-                                const escolhido = iso && operacao.validade === iso;
-                                return (
-                                  <button key={lote.id} type="button"
-                                    onClick={() => setOperacao({ ...operacao, validade: iso })}
-                                    className={`min-h-10 rounded-xl border-2 px-3 text-xs font-black transition ${escolhido
-                                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                      : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}>
-                                    {iso ? fmtData(iso) : "Sem validade"} · {Number(lote.quantidade)}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        <p className="mt-1.5 text-xs font-semibold text-slate-500">
-                          Mesma validade soma no lote existente. Validade diferente vira outro lote, e a saída tira primeiro o que vence antes.
-                        </p>
-                      </div>
-                    )}
                     {modal.tipo === "contagem" && itemMod && (() => {
                       const custo = Number(itemMod?.preco_normalizado || itemMod?.custo_unitario || itemMod?.insumo?.preco_normalizado || 0);
                       const saldoSistema = Number(itemMod?.quantidade_atual || 0);
@@ -2065,10 +1988,9 @@ function EstoqueRunner() {
                 foi digitado nos outros campos. */}
             {pinDigitado !== null && !unidadeLiberada && (
               <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
-                <p className="text-sm font-black text-amber-900">PIN do gerente para trocar a unidade</p>
+                <p className="text-sm font-black text-amber-900">PIN do gerente para alterar limites ou unidade</p>
                 <p className="mt-1 text-xs font-semibold text-amber-800">
-                  Trocar a unidade não converte o saldo: {fmtQtd(modal?.item?.quantidade_atual)} continua {fmtQtd(modal?.item?.quantidade_atual)},
-                  só muda o nome da medida. Corrija o saldo depois, se precisar.
+                  O PIN protege o estoque mínimo, o máximo e a unidade de medida deste item.
                 </p>
                 <div className="mt-2 flex gap-2">
                   <input type="password" inputMode="numeric" autoFocus value={pinDigitado}
@@ -2083,8 +2005,13 @@ function EstoqueRunner() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
+              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></Campo>
+              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></Campo>
+              {!unidadeLiberada && (
+                <button type="button" onClick={() => setPinDigitado("")} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800">
+                  <Lock size={16} /> Liberar mínimo e máximo com PIN
+                </button>
+              )}
               <Campo label="Custo unitário">
                 <div className="relative">
                   <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
@@ -2390,11 +2317,7 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-// `dinheiro` vem por prop: ele mora em EstoqueRunner porque depende do modo
-// quiosque, e este componente e irmao, nao filho. Uma troca global de
-// fmtBRL( por dinheiro( atravessou a fronteira e derrubava a tela inteira
-// com "dinheiro is not defined" assim que a tabela renderizava.
-function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria", dinheiro = (v) => v }) {
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria", dinheiro = fmtBRL }) {
   const [colapsadas, setColapsadas] = useState({});
 
   const toggleColapso = (cat) => {
@@ -2594,15 +2517,15 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
-                        {(estoque?.locais_internos || []).length > 0 ? (
+                        {(estoqueAtual?.locais_internos || []).length > 0 ? (
                           // Realocar é escolher o lugar aqui mesmo: um toque e
                           // o produto muda de grupo na lista.
                           <select value={item.local_interno || ""} onChange={e => realocarItem(item, e.target.value)}
                             className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
                             aria-label={`Lugar de ${item.nome}`}>
                             <option value="">Sem lugar</option>
-                            {(estoque.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
-                            {item.local_interno && !(estoque.locais_internos || []).includes(item.local_interno) && (
+                            {(estoqueAtual.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
+                            {item.local_interno && !(estoqueAtual.locais_internos || []).includes(item.local_interno) && (
                               <option value={item.local_interno}>{item.local_interno}</option>
                             )}
                           </select>
@@ -2654,7 +2577,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
   );
 }
 
-function ListaMovimentos({ movimentos, modo, dinheiro = (v) => v }) {
+function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
   const [busca, setBusca] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [colabFiltro, setColabFiltro] = useState("todos");
@@ -2845,9 +2768,10 @@ export default function EstoquePage() {
 }
 
 function EstoqueUnificado() {
-  // A operação inteira fica na mesma tela rápida. O endereço antigo com
-  // ?gestao=1 também cai aqui, para ninguém voltar sem querer à gestão
-  // separada que foi substituída pelos controles dentro do próprio estoque.
+  const searchParams = useSearchParams();
+  if (searchParams.get("gestao") === "1") return <EstoqueRunner />;
+  // Mesmo respiro das rotas /tablet: sem ele o "voltar" encosta na barra de
+  // status do celular.
   return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"
     style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><TabletSetor titulo="Estoque" voltarHref="/dashboard" /></div>;
 }

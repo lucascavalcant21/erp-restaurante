@@ -171,6 +171,7 @@ export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }
   const numCasa = String(dados.numero_casa || extra?.numero_casa || "").trim();
   const bairro = String(dados.bairro || extra?.bairro || "").trim();
   const cidadeColab = String(dados.cidade_uf || extra?.cidade_uf || "").trim();
+  const cidadeUf = cidadeColab || (cidadeEmp ? (ufEmp ? `${cidadeEmp}/${ufEmp}` : cidadeEmp) : "");
 
   const partesEndereco = [];
   if (rua) partesEndereco.push(numCasa ? `${rua}, nº ${numCasa}` : rua);

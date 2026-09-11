@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, BadgeDollarSign, CheckCircle2, Clock, Clock3, Loader2, Pencil,
-  Printer, Save, Shirt, Utensils, Sliders, Sparkles,
+  Printer, Save, Shirt, Utensils, Sliders, Sparkles, Trash2,
 } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
 import { supabase } from "../../../../../lib/supabase";
 import {
-  atualizarPagamentoRecibo, fetchRecibosPrestacao, salvarReciboPrestacao,
+  atualizarPagamentoRecibo, excluirReciboPrestacao, fetchRecibosPrestacao, salvarReciboPrestacao,
 } from "../../../../../lib/rh";
 import {
   RECIBO_TEXTOS_PADRAO, fetchReciboTextos, imprimirReciboExtra,
@@ -182,6 +182,13 @@ export default function GerarPagamentoExtraPage() {
     carregarHistorico();
   };
 
+  const excluirRecibo = async recibo => {
+    if (!window.confirm(`Tem certeza que deseja excluir o recibo de ${dataBR(recibo.data_trabalho)} (${moeda(recibo.valor_total)})?`)) return;
+    const resposta = await excluirReciboPrestacao(recibo.id);
+    if (resposta.error) return setErro("Não consegui excluir o recibo: " + resposta.error);
+    carregarHistorico();
+  };
+
   if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={32} /></div>;
   if (!extra) return <div className="mx-auto max-w-xl p-8 text-center"><p className="font-bold text-red-700">{erro || "Extra não encontrado."}</p><button onClick={() => router.push("/dashboard/rh/extra")} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white">Voltar</button></div>;
 
@@ -344,8 +351,11 @@ export default function GerarPagamentoExtraPage() {
                     <button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex h-9 items-center gap-1 rounded-xl bg-white border border-slate-200 px-3 text-xs font-black text-slate-700 hover:bg-slate-50">
                       <Printer size={14} /> Imprimir
                     </button>
-                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100">
+                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100" title="Alternar status de pagamento">
                       {recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />}
+                    </button>
+                    <button onClick={() => excluirRecibo(recibo)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100" title="Excluir comprovante/recibo">
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </article>

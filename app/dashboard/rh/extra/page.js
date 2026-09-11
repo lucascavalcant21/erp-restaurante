@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Briefcase, Calendar, Check, CheckCircle2, Copy, DollarSign, ExternalLink,
-  FileClock, History, Loader2, MoreHorizontal, Pencil, Phone, Plus, Printer, ReceiptText, Search, UserPlus, UsersRound, X,
+  FileClock, History, Loader2, MoreHorizontal, Pencil, Phone, Plus, Printer, ReceiptText, Search, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
+import { fetchColaboradores, fetchRecibosPrestacaoUnidade, excluirReciboPrestacao } from "../../../lib/rh";
 import { faixaCompras, andarPeriodo, rotuloPeriodo, isoData } from "../../../lib/compras.mjs";
 import { imprimirReciboExtra } from "../../../lib/recibo-extra";
 
@@ -52,6 +52,18 @@ export default function CadastroExtrasPage() {
     });
     return () => { ativo = false; };
   }, [unidadeAtiva]);
+
+  const handleExcluirRecibo = async (r) => {
+    if (!r?.id) return;
+    if (!window.confirm(`Tem certeza que deseja excluir o recibo de ${dataBR(r.data_trabalho)} (${fmtBRL(r.valor_total)})?`)) return;
+    const res = await excluirReciboPrestacao(r.id);
+    if (res.error) {
+      alert("Erro ao excluir recibo: " + res.error);
+    } else {
+      setRecibos(lista => lista.filter(item => item.id !== r.id));
+      if (reciboAcaoModal?.id === r.id) setReciboAcaoModal(null);
+    }
+  };
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
@@ -362,6 +374,9 @@ export default function CadastroExtrasPage() {
                               <button onClick={() => imprimirReciboExtra({ extra, recibo: r, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} })} className="flex h-9 items-center gap-1 px-3 rounded-xl bg-slate-100 text-xs font-black text-slate-700 hover:bg-slate-200">
                                 <Printer size={14} /> Imprimir
                               </button>
+                              <button onClick={() => handleExcluirRecibo(r)} title="Excluir recibo" className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100">
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
                         );
@@ -431,6 +446,13 @@ export default function CadastroExtrasPage() {
                   className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all"
                 >
                   <Plus size={18} /> Gerar Novo Recibo para esta Pessoa
+                </button>
+
+                <button
+                  onClick={() => handleExcluirRecibo(recibo)}
+                  className="w-full py-3 px-4 bg-rose-50 border border-rose-200 text-rose-700 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-100 transition-all"
+                >
+                  <Trash2 size={18} /> Excluir Este Recibo
                 </button>
               </div>
 

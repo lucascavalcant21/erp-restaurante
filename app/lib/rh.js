@@ -446,6 +446,12 @@ export async function atualizarPagamentoRecibo(id, pagamentoRealizado, dataPagam
   return { error: error?.message };
 }
 
+export async function excluirReciboPrestacao(id) {
+  if (!isSupabaseReady() || !id) return { error: "ID inválido" };
+  const { error } = await supabase.from("rh_recibos_prestacao").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 export async function anexarFotoReciboAssinado(id, fotoBase64) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { data: rec } = await supabase.from("rh_recibos_prestacao").select("dados").eq("id", id).maybeSingle();

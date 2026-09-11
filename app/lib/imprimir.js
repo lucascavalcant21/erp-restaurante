@@ -14,13 +14,11 @@ export function imprimirHtml(html, { aoFalhar } = {}) {
     frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
     document.body.appendChild(frame);
 
-    const doc = frame.contentWindow?.document;
-    if (!doc) throw new Error("iframe sem documento");
-    doc.open();
-    doc.write(html);
-    doc.close();
-
+    // Trava: quem chegar primeiro imprime, e ninguém imprime duas vezes.
+    let jaDisparou = false;
     const disparar = () => {
+      if (jaDisparou) return;
+      jaDisparou = true;
       try {
         frame.contentWindow.focus();
         frame.contentWindow.print();
@@ -31,15 +29,30 @@ export function imprimirHtml(html, { aoFalhar } = {}) {
       setTimeout(() => { try { frame.remove(); } catch {} }, 60000);
     };
 
-    // Espera as imagens (QR, logo) carregarem antes de mandar imprimir.
-    if (doc.readyState === "complete") setTimeout(disparar, 300);
-    else frame.onload = () => setTimeout(disparar, 300);
+    // O load é atrelado ANTES de escrever. O código anterior só olhava o
+    // readyState DEPOIS do close() e, se ele ainda não estivesse "complete",
+    // atrelava o onload ali — tarde demais quando o about:blank do próprio
+    // iframe já tinha disparado o load. Nesse caso nada acontecia: sem
+    // impressão, sem erro e sem aviso, exatamente o sintoma relatado.
+    frame.onload = () => setTimeout(disparar, 300);
+
+    const doc = frame.contentWindow?.document;
+    if (!doc) throw new Error("iframe sem documento");
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    // E mesmo assim não dependemos do evento: document.write é síncrono, então
+    // o conteúdo já está pronto aqui. Este prazo é a garantia de que imprime
+    // mesmo que o load nunca venha.
+    setTimeout(disparar, 700);
     return true;
   } catch (e) {
     if (aoFalhar) aoFalhar(e);
     return false;
   }
 }
+
 
 // Injeta um botão "Fechar" e fecha a aba sozinha após imprimir/cancelar.
 // No celular, a aba aberta para impressão ficava presa e o usuário não

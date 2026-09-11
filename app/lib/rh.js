@@ -410,6 +410,16 @@ export async function atualizarPagamentoRecibo(id, pagamentoRealizado, dataPagam
   return { error: error?.message };
 }
 
+// Apagar um recibo emitido. Existe porque recibo sai errado: valor trocado,
+// pessoa errada, emitido duas vezes. Sem isto o histórico do extra acumulava
+// papel errado para sempre, e o total pago do mês saía inflado.
+export async function removerReciboPrestacao(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!id) return { error: "Recibo sem identificador." };
+  const { error } = await supabase.from("rh_recibos_prestacao").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 export async function anexarFotoReciboAssinado(id, fotoBase64) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { data: rec } = await supabase.from("rh_recibos_prestacao").select("dados").eq("id", id).maybeSingle();

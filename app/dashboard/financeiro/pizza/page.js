@@ -121,7 +121,13 @@ export default function PizzaDoLucroPage() {
       // Antes ela era recalculada a cada tecla: ao digitar o primeiro número
       // no Aluguel a condição "já configurado" virava verdadeira e o painel
       // fechava no meio da digitação, embaralhando o que estava sendo escrito.
-      setPainelAberto(!(
+      // Se as vendas dizem outra coisa, o painel abre: o divisor errado faz o
+      // cardapio inteiro mentir, e fechado ninguem descobre isso.
+      const medicao = mediaItensPorDia(resCaixa?.data?.vendas || []);
+      const noBanco = Number(carregados.pratos_por_dia) || 0;
+      const discorda = medicao.temDados && noBanco > 0
+        && Math.abs(Math.round(medicao.media) - noBanco) / noBanco >= 0.1;
+      setPainelAberto(discorda || !(
         Number(carregados.dias_operacao_mes) > 0
         && Number(carregados.pratos_por_dia) > 0
         && CAMPOS_FIXO.some(([chave]) => Number(carregados[chave]) > 0)
@@ -131,7 +137,7 @@ export default function PizzaDoLucroPage() {
       // sistema acabariam divergindo.
       setEquipe(resEquipe.data || []);
       setCmo(calcularCMO({ colaboradores: resEquipe.data || [], recibos: resRecibos.data || [] }));
-      setMedido(mediaItensPorDia(resCaixa?.data?.vendas || []));
+      setMedido(medicao);
       setLoading(false);
     });
     return () => { ativo = false; };
@@ -213,6 +219,14 @@ export default function PizzaDoLucroPage() {
   // Enquanto não carregou, o painel fica aberto: melhor mostrar os campos do
   // que piscar fechado e abrir.
   const abrirPainel = painelAberto !== false;
+
+  // O que as vendas dizem, arredondado para prato inteiro.
+  const medidoDia = medido?.temDados ? Math.round(medido.media) : null;
+  const usandoOutro = Number(params.pratos_por_dia) || 0;
+  // "Diferente" com folga: brigar por um prato a mais ou a menos e barulho,
+  // mas 10% de erro no divisor e 10% de erro no custo de TODO prato da casa.
+  const medidoDiverge = medidoDia != null && usandoOutro > 0
+    && Math.abs(medidoDia - usandoOutro) / usandoOutro >= 0.1;
 
   const dias = Number(params.dias_operacao_mes) || 0;
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
@@ -335,6 +349,32 @@ export default function PizzaDoLucroPage() {
               </button>
             )}
           </div>
+
+          {/* FORA do painel de propósito. Fechado — que é como ele abre quando
+              os campos já têm número —, este aviso ficava escondido justamente
+              de quem mais precisa dele: o divisor errado não estraga uma linha
+              da tela, estraga o custo de TODO prato da casa. */}
+          {medidoDiverge && (
+            <div className="mt-3 flex flex-wrap items-start gap-x-2 gap-y-1 rounded-xl bg-slate-50 px-3 py-2.5 text-[11px] font-bold text-slate-600">
+              <AlertTriangle size={13} className="mt-px shrink-0 text-slate-400" />
+              {/* `flex-1` prende o texto na MESMA linha do ícone. Sem isso, na
+                  largura do celular o texto não cabia ao lado e descia inteiro,
+                  deixando o ícone sozinho numa linha só dele. */}
+              <span className="min-w-0 flex-1">
+                A conta está dividindo o custo por <b className="text-slate-800">{usandoOutro} por dia</b>, mas
+                suas vendas dos últimos 30 dias deram{" "}
+                <b className="text-slate-800">{medidoDia} itens por dia</b>{" "}
+                ({medido.totalItens.toLocaleString("pt-BR")} itens em {medido.diasComVenda} dias com movimento).
+              </span>
+              {/* Abre o painel junto: o botao Salvar so existe com ele aberto,
+                  e adotar um numero que nao chega ao banco nao adianta nada. */}
+              <button type="button"
+                onClick={() => { editar("pratos_por_dia", medidoDia); setPainelAberto(true); }}
+                className="font-black text-emerald-700 underline underline-offset-2">
+                usar {medidoDia}
+              </button>
+            </div>
+          )}
           {abrirPainel && (<>
 
           {/* CMO não tem campo: vem pronto do RH. */}
@@ -401,23 +441,20 @@ export default function PizzaDoLucroPage() {
                   {" "}({(Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0)} pratos no mês).
                 </p>
               )}
-              {/* O número medido nas vendas. Adivinhar "pratos por dia" é o
-                  ponto mais frágil da tela, e o sistema já registra cada
-                  venda — não faz sentido perguntar. */}
+              {/* Dentro do painel, ao lado do campo: aqui a medição é conferência
+                  ("bate com o que estou usando?"). O convite para adotar fica na
+                  faixa acima, que aparece mesmo com o painel fechado. */}
               {medido?.temDados && (
                 <p className="mt-1 text-[11px] font-bold text-slate-500">
-                  Nas suas vendas dos últimos 30 dias deu{" "}
-                  <b className="text-slate-800">{Math.round(medido.media)} itens por dia</b>{" "}
-                  ({medido.totalItens.toLocaleString("pt-BR")} itens em {medido.diasComVenda} dias com movimento).
-                  {Math.round(medido.media) !== Number(params.pratos_por_dia) && (
-                    <>
-                      {" "}
-                      <button type="button" onClick={() => editar("pratos_por_dia", Math.round(medido.media))}
-                        className="font-black text-emerald-700 underline underline-offset-2">
-                        usar esse número
-                      </button>
-                    </>
-                  )}
+                  Medido nas suas vendas:{" "}
+                  <b className="text-slate-800">{medidoDia} itens por dia</b>{" "}
+                  ({medido.totalItens.toLocaleString("pt-BR")} itens em {medido.diasComVenda} dias com movimento
+                  nos últimos 30 dias).
+                </p>
+              )}
+              {medido && !medido.temDados && (
+                <p className="mt-1 text-[11px] font-bold text-slate-500">
+                  Sem vendas registradas nos últimos 30 dias, não dá para medir esse número aqui — ele fica por sua conta.
                 </p>
               )}
             </div>

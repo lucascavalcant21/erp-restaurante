@@ -29,6 +29,33 @@ const CAMPOS_VARIAVEL = [
 ];
 const CAMPOS_VOLUME = [["dias_operacao_mes", "Dias que abre no mês"], ["pratos_por_dia", "Pratos por dia"]];
 
+// Campo de número dos custos.
+//
+// Valor zero aparece VAZIO, com o zero no placeholder. Mostrar "0" de verdade
+// cria dois problemas: a tela fica coberta de zeros que não são informação, e
+// quem digita 54 num campo que já tem 0 acaba com "054" — o cursor entra
+// depois do zero. Vazio e zero significam a mesma coisa aqui: sem custo.
+function CampoNumero({ rotulo, valor, onChange, step = "0.01", destacado = false }) {
+  // Enquanto se digita, o campo mostra o TEXTO digitado, não o número que o
+  // pai guardou. Sem isso "0,5" é impossível: ao teclar o 0 o campo limparia
+  // (zero aparece vazio) e o ponto seguinte viraria NaN. Ao sair do campo,
+  // volta a mostrar o valor canônico.
+  const [texto, setTexto] = useState(null);
+  const mostrado = texto !== null ? texto : (Number(valor) ? String(valor) : "");
+  return (
+    <label className="min-w-0">
+      <span className="block truncate text-[10px] font-bold text-slate-500">{rotulo}</span>
+      <input
+        type="number" min="0" step={step} inputMode="decimal" placeholder="0"
+        value={mostrado}
+        onChange={(e) => { setTexto(e.target.value); onChange(e.target.value); }}
+        onBlur={() => setTexto(null)}
+        className={`mt-0.5 h-10 w-full min-w-0 rounded-lg border px-2 text-sm font-bold text-slate-800 outline-none placeholder:font-medium placeholder:text-slate-300 focus:border-emerald-500 ${destacado ? "border-slate-400 bg-slate-50" : "border-slate-200 bg-white"}`}
+      />
+    </label>
+  );
+}
+
 const ABAS = [
   { id: "todos", rotulo: "Tudo" },
   { id: "cozinha", rotulo: "Cozinha" },
@@ -83,7 +110,10 @@ export default function PizzaDoLucroPage() {
 
   const editar = (chave, valor) => {
     setSalvo(false);
-    setParams((p) => ({ ...p, [chave]: valor === "" ? 0 : Number(valor) }));
+    // Texto intermediário ("." , "-", vazio) vira 0 em vez de NaN: um NaN aqui
+    // contamina o custo inteiro e aparece como "R$ NaN" na tela.
+    const n = Number(valor);
+    setParams((p) => ({ ...p, [chave]: Number.isFinite(n) ? n : 0 }));
   };
 
   const salvar = async () => {
@@ -209,11 +239,7 @@ export default function PizzaDoLucroPage() {
           <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Custo fixo (por mês)</p>
           <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {CAMPOS_FIXO.map(([chave, rotulo]) => (
-              <label key={chave} className="min-w-0">
-                <span className="block truncate text-[10px] font-bold text-slate-500">{rotulo}</span>
-                <input type="number" min="0" step="0.01" value={params[chave] ?? 0} onChange={(e) => editar(chave, e.target.value)}
-                  className="mt-0.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold text-slate-800 outline-none focus:border-emerald-500" />
-              </label>
+              <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} />
             ))}
           </div>
 
@@ -222,11 +248,7 @@ export default function PizzaDoLucroPage() {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custo variável (% da venda)</p>
               <div className="mt-1.5 grid grid-cols-2 gap-2">
                 {CAMPOS_VARIAVEL.map(([chave, rotulo]) => (
-                  <label key={chave} className="min-w-0">
-                    <span className="block truncate text-[10px] font-bold text-slate-500">{rotulo}</span>
-                    <input type="number" min="0" step="0.1" value={params[chave] ?? 0} onChange={(e) => editar(chave, e.target.value)}
-                      className="mt-0.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold text-slate-800 outline-none focus:border-emerald-500" />
-                  </label>
+                  <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} step="0.1" />
                 ))}
               </div>
             </div>
@@ -234,11 +256,7 @@ export default function PizzaDoLucroPage() {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Volume (divide o fixo e o CMO)</p>
               <div className="mt-1.5 grid grid-cols-2 gap-2">
                 {CAMPOS_VOLUME.map(([chave, rotulo]) => (
-                  <label key={chave} className="min-w-0">
-                    <span className="block truncate text-[10px] font-bold text-slate-500">{rotulo}</span>
-                    <input type="number" min="0" step="1" value={params[chave] ?? 0} onChange={(e) => editar(chave, e.target.value)}
-                      className={`mt-0.5 h-10 w-full min-w-0 rounded-lg border px-2 text-sm font-bold outline-none focus:border-emerald-500 ${semVolume ? "border-slate-400 bg-slate-50 text-slate-800" : "border-slate-200 bg-white text-slate-800"}`} />
-                  </label>
+                  <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} step="1" destacado={semVolume} />
                 ))}
               </div>
             </div>
@@ -358,16 +376,10 @@ export default function PizzaDoLucroPage() {
                 </p>
 
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <label>
-                    <span className="block text-[10px] font-bold text-slate-500">Quantos vou vender no mês</span>
-                    <input type="number" min="0" step="10" value={simUnidades} onChange={(e) => setSimUnidades(Number(e.target.value) || 0)}
-                      className="mt-0.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
-                  </label>
-                  <label>
-                    <span className="block text-[10px] font-bold text-slate-500">Quero que sobre (opcional)</span>
-                    <input type="number" min="0" step="100" value={simAlvo} onChange={(e) => setSimAlvo(Number(e.target.value) || 0)}
-                      className="mt-0.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
-                  </label>
+                  <CampoNumero rotulo="Quantos vou vender no mês" step="10"
+                    valor={simUnidades} onChange={(v) => setSimUnidades(Number(v) || 0)} />
+                  <CampoNumero rotulo="Quero que sobre (opcional)" step="100"
+                    valor={simAlvo} onChange={(v) => setSimAlvo(Number(v) || 0)} />
                 </div>
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -441,9 +453,9 @@ export default function PizzaDoLucroPage() {
                   <thead>
                     <tr className="border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       <th className="py-2 pr-2">Prato</th>
-                      <th className="py-2 px-2 text-right">Venda</th>
-                      <th className="py-2 px-2 text-right">Sobra</th>
-                      <th className="py-2 pl-2 text-right">% da venda</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Venda</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Sobra</th>
+                      <th className="whitespace-nowrap py-2 pl-2 text-right">% da venda</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -455,19 +467,19 @@ export default function PizzaDoLucroPage() {
                         <tr key={x.ficha.id} onClick={() => setEscolhida(x.ficha.id)}
                           className={`cursor-pointer transition-colors ${ehAtual ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
                           <td className="py-2 pr-2 font-bold text-slate-700">
-                            {x.ficha.nome_receita}
+                            <span className="mr-1.5">{x.ficha.nome_receita}</span>
                             {duvidoso && (
-                              <span className="ml-1.5 inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500">
+                              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500">
                                 <AlertTriangle size={9} /> {x.entrada.semCusto ? "sem custo" : "sem rendimento"}
                               </span>
                             )}
                           </td>
-                          <td className="py-2 px-2 text-right font-bold text-slate-500">{fmt(x.conta.preco)}</td>
-                          <td className="py-2 px-2 text-right font-black text-slate-800">
-                            {x.conta.prejuizo > 0 ? `− ${fmt(x.conta.prejuizo)}` : fmt(x.conta.lucro)}
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.conta.preco)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-black text-slate-800">
+                            {x.conta.prejuizo > 0 ? `\u2212\u00A0${fmt(x.conta.prejuizo)}` : fmt(x.conta.lucro)}
                           </td>
-                          <td className="py-2 pl-2 text-right">
-                            <span className={`rounded-lg px-2 py-0.5 font-black ${x.conta.prejuizo > 0 ? "bg-slate-200 text-slate-700" : duvidoso ? "bg-slate-100 text-slate-500" : "bg-emerald-100 text-emerald-800"}`}>
+                          <td className="whitespace-nowrap py-2 pl-2 text-right">
+                            <span className={`inline-block whitespace-nowrap rounded-lg px-2 py-0.5 font-black ${x.conta.prejuizo > 0 ? "bg-slate-200 text-slate-700" : duvidoso ? "bg-slate-100 text-slate-500" : "bg-emerald-100 text-emerald-800"}`}>
                               {x.conta.prejuizo > 0 ? "prejuízo" : `${pct.toFixed(0)}%`}
                             </span>
                           </td>

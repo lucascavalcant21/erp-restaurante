@@ -9,7 +9,10 @@ import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { calcularCMO } from "../../../lib/cmo.mjs";
-import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio } from "../../../lib/custo-diario.mjs";
+import {
+  contasPorDia, equipePorDia, equilibrioDoCardapio,
+  simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS,
+} from "../../../lib/custo-diario.mjs";
 import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
 
@@ -77,8 +80,9 @@ export default function PizzaDoLucroPage() {
   const [cmo, setCmo] = useState(null);
   const [equipe, setEquipe] = useState([]);
   const [visao, setVisao] = useState("pratos"); // pratos | dia | simulacao
-  const [simUnidades, setSimUnidades] = useState(1000);
-  const [simAlvo, setSimAlvo] = useState(0);
+  // Cardápio montado: { fichaId: quantidade no mês }.
+  const [montado, setMontado] = useState({});
+  const [buscaMontar, setBuscaMontar] = useState("");
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState("todos");
@@ -168,7 +172,9 @@ export default function PizzaDoLucroPage() {
           ficha: f, entrada, conta, partesCmo,
           cmv: porFatia("cmv"), cmoUnit: porFatia("cmo"),
           fixoUnit: porFatia("fixo"), variavelUnit: porFatia("variavel"),
-          sugerido: precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, params: paramsComCmo }),
+          sugerido: entrada.semCusto
+            ? null
+            : precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, params: paramsComCmo }),
         };
       })
       .filter((x) => x.conta.preco > 0)
@@ -217,24 +223,54 @@ export default function PizzaDoLucroPage() {
   const rateioPorPratoTotal = pratosNoMes > 0
     ? (contasDia.totalMes + (cmo ? cmo.total : 0)) / pratosNoMes : 0;
 
-  // A simulação usa o prato que está selecionado na lista: o dono pensa em um
-  // item concreto ("se eu vender mil moquecas"), não numa margem abstrata.
-  const sim = useMemo(() => {
-    if (!atual) return null;
-    return simularMes({
-      preco: atual.entrada.preco,
-      custoCmvUnit: atual.entrada.custoIngredientes + atual.entrada.custoEmbalagem,
-      impostoPct: atual.entrada.impostoPct,
-      taxaMaquininhaPct: atual.entrada.taxaMaquininhaPct,
-      custoFixoMes: contasDia.totalMes,
-      cmoMes: cmo ? cmo.total : 0,
-      unidadesMes: simUnidades,
-    });
-  }, [atual, contasDia.totalMes, cmo, simUnidades]);
+  // O cardápio montado, com os dados que cada prato já tem na lista.
+  const itensMontados = useMemo(() => {
+    return Object.entries(montado)
+      .map(([id, quantidade]) => {
+        const linha = ranking.find((x) => x.ficha.id === id);
+        if (!linha) return null;
+        return {
+          id,
+          nome: linha.ficha.nome_receita,
+          departamento: linha.entrada.departamento,
+          preco: linha.entrada.preco,
+          custoCmvUnit: linha.entrada.custoIngredientes + linha.entrada.custoEmbalagem,
+          impostoPct: linha.entrada.impostoPct,
+          taxaMaquininhaPct: linha.entrada.taxaMaquininhaPct,
+          quantidade,
+        };
+      })
+      .filter(Boolean);
+  }, [montado, ranking]);
 
-  const paraAlvo = sim && simAlvo > 0
-    ? unidadesParaSobrar({ alvo: simAlvo, contribuicaoUnit: sim.contribuicaoUnit, fixoTotal: sim.fixoTotal })
-    : null;
+  const cardapio = useMemo(
+    () => simularCardapio({ itens: itensMontados, custoFixoMes: contasDia.totalMes, cmoMes: cmo ? cmo.total : 0 }),
+    [itensMontados, contasDia.totalMes, cmo]);
+
+  const qtdPratos = itensMontados.filter((x) => x.departamento !== "bar").length;
+  const qtdBebidas = itensMontados.filter((x) => x.departamento === "bar").length;
+
+  const podeAdicionar = (dep) => (dep === "bar" ? qtdBebidas < LIMITE_BEBIDAS : qtdPratos < LIMITE_PRATOS);
+
+  const adicionar = (linha) => {
+    if (montado[linha.ficha.id] !== undefined) return;
+    if (!podeAdicionar(linha.entrada.departamento)) return;
+    setMontado((m) => ({ ...m, [linha.ficha.id]: 100 }));
+    setBuscaMontar("");
+  };
+  const mudarQtd = (id, v) => setMontado((m) => ({ ...m, [id]: Math.max(0, Number(v) || 0) }));
+  const remover = (id) => setMontado((m) => { const p = { ...m }; delete p[id]; return p; });
+
+  // Sugestões de quem ainda não está no cardápio.
+  const sugestoes = useMemo(() => {
+    const q = buscaMontar.trim().toLowerCase();
+    if (!q) return [];
+    return ranking
+      .filter((x) => montado[x.ficha.id] === undefined
+        && String(x.ficha.nome_receita || "").toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [buscaMontar, ranking, montado]);
+
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
@@ -461,64 +497,137 @@ export default function PizzaDoLucroPage() {
             </div>
           </div>
         ) : visao === "simulacao" ? (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            {!atual ? (
-              <p className="py-10 text-center text-xs font-bold text-slate-400">Escolha um prato na aba "Pizza dos pratos" para simular.</p>
-            ) : (
-              <>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Simulando</p>
-                <p className="text-lg font-black text-slate-900">{atual.ficha.nome_receita}</p>
+          <div className="mt-4 space-y-4">
+            {/* Montar o cardápio: escolher os itens e dizer quanto vende de
+                cada um. É a pergunta que o dono faz de verdade — "com este
+                cardápio, o mês fecha?" — e que uma simulação de um prato só
+                não responde. */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monte o cardápio</p>
                 <p className="text-[11px] font-bold text-slate-500">
-                  Venda {fmt(sim.precoUnit)} · de cada venda sobram {fmt(sim.contribuicaoUnit)} ({sim.contribuicaoPct.toFixed(1)}%) para pagar o fixo e a folha.
+                  {qtdPratos}/{LIMITE_PRATOS} pratos · {qtdBebidas}/{LIMITE_BEBIDAS} bebidas
                 </p>
+              </div>
 
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <CampoNumero rotulo="Quantos vou vender no mês" step="10"
-                    valor={simUnidades} onChange={(v) => setSimUnidades(Number(v) || 0)} />
-                  <CampoNumero rotulo="Quero que sobre (opcional)" step="100"
-                    valor={simAlvo} onChange={(v) => setSimAlvo(Number(v) || 0)} />
+              <div className="relative mt-2">
+                <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
+                  <Search size={16} className="shrink-0 text-slate-400" />
+                  <input value={buscaMontar} onChange={(e) => setBuscaMontar(e.target.value)}
+                    placeholder="Buscar para adicionar ao cardápio..."
+                    className="h-10 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:font-medium placeholder:text-slate-400" />
+                  {buscaMontar && <button onClick={() => setBuscaMontar("")} className="text-slate-400 hover:text-slate-700"><X size={15} /></button>}
+                </label>
+                {!!sugestoes.length && (
+                  <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                    {sugestoes.map((x) => {
+                      const cabe = podeAdicionar(x.entrada.departamento);
+                      return (
+                        <li key={x.ficha.id}>
+                          <button type="button" onClick={() => adicionar(x)} disabled={!cabe}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50 disabled:opacity-40">
+                            <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{x.ficha.nome_receita}</span>
+                            <span className="shrink-0 font-bold text-slate-400">{fmt(x.conta.preco)}</span>
+                            {!cabe && <span className="shrink-0 text-[10px] font-black uppercase text-slate-400">limite</span>}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {!itensMontados.length ? (
+                <p className="mt-4 rounded-xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-400">
+                  Busque acima e adicione os itens. Cada um entra com 100 por mês — ajuste a quantidade depois.
+                </p>
+              ) : (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <th className="py-2 pr-2">Item</th>
+                        <th className="whitespace-nowrap py-2 px-2 text-right">Preço</th>
+                        <th className="whitespace-nowrap py-2 px-2 text-right">Qtd / mês</th>
+                        <th className="whitespace-nowrap py-2 px-2 text-right">Fatura</th>
+                        <th className="whitespace-nowrap py-2 px-2 text-right">Sobra dele</th>
+                        <th className="whitespace-nowrap py-2 px-2 text-right">% da receita</th>
+                        <th className="py-2 pl-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {cardapio.itens.map((it) => (
+                        <tr key={it.id}>
+                          <td className="py-2 pr-2 font-bold text-slate-700">
+                            {it.nome}
+                            <span className="ml-1.5 text-[10px] font-black uppercase text-slate-400">{it.departamento === "bar" ? "bebida" : "prato"}</span>
+                          </td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(it.preco)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right">
+                            <input type="number" min="0" step="10" value={it.quantidade}
+                              onChange={(e) => mudarQtd(it.id, e.target.value)}
+                              className="h-9 w-24 rounded-lg border border-slate-200 bg-white px-2 text-right text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
+                          </td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(it.receita)}</td>
+                          {/* A sobra DELE é o que esta linha deixa para pagar o
+                              fixo — não é lucro: o fixo ainda não foi tirado. */}
+                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${it.contribuicaoTotal < 0 ? "text-slate-500" : "text-slate-800"}`}>
+                            {fmt(it.contribuicaoTotal)}
+                          </td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-400">{it.pctDaReceita.toFixed(0)}%</td>
+                          <td className="py-2 pl-2 text-right">
+                            <button type="button" onClick={() => remover(it.id)} aria-label={`Tirar ${it.nome}`}
+                              className="text-slate-300 hover:text-slate-600"><X size={14} /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+              )}
+            </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {!!itensMontados.length && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resultado do mês</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-xl bg-slate-50 px-3 py-2.5">
                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fatura</p>
-                    <p className="text-lg font-black text-slate-800">{fmt(sim.receita)}</p>
+                    <p className="text-lg font-black text-slate-800">{fmt(cardapio.receita)}</p>
+                    <p className="text-[10px] font-bold text-slate-400">{cardapio.quantidadeTotal.toLocaleString("pt-BR")} itens vendidos</p>
                   </div>
                   <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fixo + folha do mês</p>
-                    <p className="text-lg font-black text-slate-800">{fmt(sim.fixoTotal)}</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">CMV + variável</p>
+                    <p className="text-lg font-black text-slate-800">{fmt(cardapio.cmvTotal + cardapio.variavelTotal)}</p>
+                    <p className="text-[10px] font-bold text-slate-400">{fmt(cardapio.cmvTotal)} de mercadoria</p>
                   </div>
-                  <div className={`rounded-xl px-3 py-2.5 ${sim.sobra >= 0 ? "bg-emerald-50" : "bg-slate-200"}`}>
-                    <p className={`text-[10px] font-black uppercase tracking-wider ${sim.sobra >= 0 ? "text-emerald-700" : "text-slate-600"}`}>
-                      {sim.sobra >= 0 ? "Sobra para você" : "Falta"}
+                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fixo + folha</p>
+                    <p className="text-lg font-black text-slate-800">{fmt(cardapio.fixoTotal)}</p>
+                    <p className="text-[10px] font-bold text-slate-400">entra uma vez, não por item</p>
+                  </div>
+                  <div className={`rounded-xl px-3 py-2.5 ${cardapio.sobra >= 0 ? "bg-emerald-50" : "bg-slate-200"}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-wider ${cardapio.sobra >= 0 ? "text-emerald-700" : "text-slate-600"}`}>
+                      {cardapio.sobra >= 0 ? "Sobra para você" : "Falta"}
                     </p>
-                    <p className={`text-lg font-black ${sim.sobra >= 0 ? "text-emerald-700" : "text-slate-800"}`}>{fmt(Math.abs(sim.sobra))}</p>
+                    <p className={`text-lg font-black ${cardapio.sobra >= 0 ? "text-emerald-700" : "text-slate-800"}`}>{fmt(Math.abs(cardapio.sobra))}</p>
+                    <p className={`text-[10px] font-bold ${cardapio.sobra >= 0 ? "text-emerald-700/70" : "text-slate-500"}`}>
+                      margem média {cardapio.margemMediaPct.toFixed(1)}%
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-sm font-bold text-slate-700">
-                  {sim.unidadesParaEmpatar === null ? (
-                    <p className="flex items-start gap-1.5 text-slate-600">
-                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                      Este prato não cobre nem o próprio custo: cada venda aumenta o buraco. Não existe quantidade que empate — o preço ou o custo precisam mudar.
-                    </p>
+                <p className="mt-3 border-t border-slate-100 pt-3 text-sm font-bold text-slate-700">
+                  {cardapio.faltaParaEmpatar > 0 ? (
+                    <>Faltam <b className="text-slate-900">{fmt(cardapio.faltaParaEmpatar)}</b> de margem para o mês empatar. Vender mais, subir preço ou baixar custo — a coluna “Sobra dele” diz quais itens puxam para cima.</>
                   ) : (
-                    <p>
-                      Para empatar o mês você precisa vender <b className="text-slate-900">{sim.unidadesParaEmpatar.toLocaleString("pt-BR")}</b> deste prato
-                      ({fmt(sim.receitaParaEmpatar)}), ou <b className="text-slate-900">{Math.ceil(sim.unidadesParaEmpatar / (dias || 1)).toLocaleString("pt-BR")}</b> por dia.
-                    </p>
+                    <>Este cardápio paga tudo e ainda deixa <b className="text-emerald-700">{fmt(cardapio.sobra)}</b> no mês.</>
                   )}
-                  {paraAlvo !== null && (
-                    <p>
-                      Para sobrar <b className="text-slate-900">{fmt(simAlvo)}</b> no fim do mês: <b className="text-slate-900">{paraAlvo.toLocaleString("pt-BR")}</b> pratos
-                      ({Math.ceil(paraAlvo / (dias || 1)).toLocaleString("pt-BR")} por dia).
-                    </p>
-                  )}
-                  <p className="text-[11px] font-bold text-slate-400">
-                    A conta supõe que o mês inteiro é vendido deste item. Serve para dimensionar, não como previsão do cardápio inteiro.
-                  </p>
-                </div>
-              </>
+                </p>
+                <p className="mt-1 text-[11px] font-bold text-slate-400">
+                  “Sobra dele” é o que cada item deixa depois do próprio custo e dos variáveis — o fixo e a folha são descontados uma vez, do total.
+                </p>
+              </div>
             )}
           </div>
         ) : !ranking.length ? (
@@ -584,7 +693,8 @@ export default function PizzaDoLucroPage() {
                           <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.conta.preco)}</td>
                           {/* Verde só quando o sugerido é MAIOR que o preço de
                               hoje: é o caso em que há dinheiro na mesa. */}
-                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${x.sugerido === null ? "text-slate-300" : x.sugerido > x.conta.preco ? "text-emerald-700" : "text-slate-400"}`}>
+                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${x.sugerido === null ? "text-slate-300" : x.sugerido > x.conta.preco ? "text-emerald-700" : "text-slate-400"}`}
+                            title={x.sugerido === null ? "Sem custo de ingrediente na ficha não dá para sugerir preço." : ""}>
                             {x.sugerido === null ? "—" : fmt(x.sugerido)}
                           </td>
                           <td className="whitespace-nowrap py-2 px-2 text-right font-black text-slate-800">

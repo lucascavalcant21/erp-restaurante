@@ -160,3 +160,61 @@ export function equilibrioDoCardapio({ params = {}, cmoMes = 0, precoMedio = 0 }
     rateavel: dias > 0,
   };
 }
+
+export const LIMITE_PRATOS = 20;
+export const LIMITE_BEBIDAS = 10;
+
+/* Simulação do cardápio montado: vários itens, cada um com sua quantidade no
+ * mês, e o resultado do conjunto.
+ *
+ * A armadilha desta conta é o custo fixo e a folha. Eles são do MÊS, não do
+ * prato: somá-los item a item multiplicaria o aluguel pelo número de linhas do
+ * cardápio. Aqui cada item contribui com o que sobra dele (preço − CMV −
+ * variável), e o fixo + folha é descontado UMA vez do total.
+ *
+ * `faltaParaEmpatar` é quanto de contribuição ainda falta. Em reais e não em
+ * pratos porque, com vários itens, não existe "quantos pratos": depende de
+ * quais. O que dá para dizer é quanto de margem falta juntar.
+ */
+export function simularCardapio({ itens = [], custoFixoMes = 0, cmoMes = 0 } = {}) {
+  const fixoTotal = Math.max(0, num(custoFixoMes)) + Math.max(0, num(cmoMes));
+
+  const calculados = (itens || []).map((it) => {
+    const preco = Math.max(0, num(it.preco));
+    const qtd = Math.max(0, num(it.quantidade));
+    const cmvUnit = Math.max(0, num(it.custoCmvUnit));
+    const variavelUnit = preco * (Math.max(0, num(it.impostoPct)) + Math.max(0, num(it.taxaMaquininhaPct))) / 100;
+    const contribuicaoUnit = preco - cmvUnit - variavelUnit;
+    return {
+      ...it,
+      preco, quantidade: qtd, contribuicaoUnit,
+      receita: preco * qtd,
+      cmvTotal: cmvUnit * qtd,
+      variavelTotal: variavelUnit * qtd,
+      contribuicaoTotal: contribuicaoUnit * qtd,
+    };
+  });
+
+  const soma = (campo) => calculados.reduce((t, x) => t + x[campo], 0);
+  const receita = soma("receita");
+  const contribuicaoTotal = soma("contribuicaoTotal");
+
+  return {
+    itens: calculados.map((x) => ({
+      ...x,
+      // Peso de cada item no faturamento: mostra quem sustenta o cardápio.
+      pctDaReceita: receita > 0 ? (x.receita / receita) * 100 : 0,
+    })),
+    quantidadeTotal: calculados.reduce((t, x) => t + x.quantidade, 0),
+    receita,
+    cmvTotal: soma("cmvTotal"),
+    variavelTotal: soma("variavelTotal"),
+    contribuicaoTotal,
+    fixoTotal,
+    sobra: contribuicaoTotal - fixoTotal,
+    // Quanto de cada real vendido sobra, no conjunto. É a margem que o
+    // cardápio inteiro entrega, não a de um prato.
+    margemMediaPct: receita > 0 ? (contribuicaoTotal / receita) * 100 : 0,
+    faltaParaEmpatar: Math.max(0, fixoTotal - contribuicaoTotal),
+  };
+}

@@ -1,6 +1,9 @@
 // Testes do custo por dia e do simulador. Rode com: node app/lib/custo-diario.test.mjs
 
-import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio } from "./custo-diario.mjs";
+import {
+  contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio,
+  simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS,
+} from "./custo-diario.mjs";
 
 let falhas = 0;
 function conferir(nome, obtido, esperado) {
@@ -126,6 +129,51 @@ conferir("embalagem cara em prato barato pesa muito",
 
 conferir("sem dias nao calcula equilibrio",
   equilibrioDoCardapio({ params: { meta_cmv: 30, dias_operacao_mes: 0 }, cmoMes: 0 }).faturamentoDia, null);
+
+// ── Simulacao do cardapio montado ─────────────────────────────────────────
+const CARDAPIO = [
+  { nome: "Pirarucu", preco: 49, custoCmvUnit: 12.38, impostoPct: 4, taxaMaquininhaPct: 2.5, quantidade: 400 },
+  { nome: "Camarao", preco: 45, custoCmvUnit: 11.24, impostoPct: 4, taxaMaquininhaPct: 2.5, quantidade: 300 },
+  { nome: "Cerveja", preco: 12, custoCmvUnit: 6, impostoPct: 4, taxaMaquininhaPct: 2.5, quantidade: 800 },
+];
+const card = simularCardapio({ itens: CARDAPIO, custoFixoMes: 8600, cmoMes: 20357.44 });
+conferir("receita do cardapio", card.receita, 42700);
+conferir("quantidade total", card.quantidadeTotal, 1500);
+// 12,38x400 + 11,24x300 + 6x800 = 4.952 + 3.372 + 4.800 = 13.124
+conferir("cmv do conjunto", r2(card.cmvTotal), 13124);
+// AQUI e o ponto da conta: fixo + folha entra UMA vez, nao por item. Somado
+// item a item (3 linhas) daria R$ 86.872 e o cardapio pareceria insalvavel.
+conferir("fixo e folha entram uma vez so", r2(card.fixoTotal), 28957.44);
+conferir("sobra do conjunto", r2(card.sobra), -2156.94);
+conferir("margem media do cardapio", r2(card.margemMediaPct), 62.76);
+// Faltando para empatar: a diferenca entre o fixo e o que se juntou de margem.
+conferir("quanto falta para empatar", r2(card.faltaParaEmpatar), 2156.94);
+
+// Peso de cada item no faturamento.
+conferir("pirarucu pesa 46% da receita", Math.round(card.itens[0].pctDaReceita), 46);
+conferir("os pesos somam 100%", Math.round(card.itens.reduce((t, x) => t + x.pctDaReceita, 0)), 100);
+
+// Vendendo mais, a sobra vira positiva e nao falta nada para empatar.
+const bom = simularCardapio({
+  itens: CARDAPIO.map((x) => ({ ...x, quantidade: x.quantidade * 2 })),
+  custoFixoMes: 8600, cmoMes: 20357.44,
+});
+conferir("dobrando a venda a sobra fica positiva", bom.sobra > 0, "true");
+conferir("com sobra positiva nao falta nada", bom.faltaParaEmpatar, 0);
+
+// Cardapio vazio nao quebra nem divide por zero.
+const vazio = simularCardapio({ itens: [], custoFixoMes: 8600, cmoMes: 0 });
+conferir("cardapio vazio tem receita zero", vazio.receita, 0);
+conferir("cardapio vazio nao inventa margem", vazio.margemMediaPct, 0);
+conferir("cardapio vazio deve o fixo inteiro", vazio.faltaParaEmpatar, 8600);
+conferir("sem argumentos nao quebra", simularCardapio().receita, 0);
+
+// Item com quantidade zero entra sem efeito.
+conferir("quantidade zero nao muda a receita",
+  simularCardapio({ itens: [{ preco: 50, quantidade: 0 }], custoFixoMes: 0 }).receita, 0);
+
+conferir("limite de pratos", LIMITE_PRATOS, 20);
+conferir("limite de bebidas", LIMITE_BEBIDAS, 10);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

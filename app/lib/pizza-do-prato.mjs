@@ -174,6 +174,18 @@ export function setorDonut(cx, cy, raioExterno, raioInterno, inicioGrau, fimGrau
  * o sistema mostra dois lucros diferentes para o mesmo prato — o pior tipo de
  * erro, porque nenhum dos dois parece errado sozinho.
  */
+// Custo de mercadoria abaixo de 1% da venda é ficha incompleta, não margem.
+// O piso em reais cobre o item barato: R$ 0,02 num produto de R$ 1 também não
+// é custo de verdade.
+const PISO_CMV_PCT = 1;
+export function ehCustoDesprezivel(custo, preco) {
+  const c = num(custo);
+  if (c <= 0) return true;
+  const p = num(preco);
+  if (p <= 0) return false;
+  return (c / p) * 100 < PISO_CMV_PCT;
+}
+
 export function pesoTotalDaFichaG(rendimento, unidade, pesoPorcaoG) {
   const un = String(unidade || "porcao").toLowerCase();
   if (un === "kg" || un === "l") return rendimento * 1000;
@@ -235,7 +247,12 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
     // Revenda (uma cerveja, um refrigerante) costuma não ter ingrediente na
     // ficha. Sem custo de produto, tudo vira "lucro" e o prato aparece com
     // 90% e poucos — número que não é dele.
-    semCusto: !semRendimento && custoIngredientes + custoEmbalagem <= 0,
+    //
+    // Custo ridículo conta como custo nenhum: um prato de R$ 58 com R$ 0,02 de
+    // ingrediente (0,03% da venda) não está custeado, está com a ficha pela
+    // metade. Zero e dois centavos mentem igual, e o segundo mente pior,
+    // porque passa por número de verdade.
+    semCusto: !semRendimento && ehCustoDesprezivel(custoIngredientes + custoEmbalagem, preco),
     departamento: String(ficha.departamento || ficha.tipo_base || "").toLowerCase(),
     // Base (pré-preparo) não se vende, então imposto e maquininha não incidem.
     impostoPct: ficha.eh_base ? 0 : num(ficha.imposto_pct ?? prod?.aliquota_imposto ?? 4),

@@ -2,7 +2,8 @@
 
 import {
   fatiasDoPrato, rateioPorPrato, pratosNoMes, setorDonut, centroDoSetor,
-  porcoesDaFicha, dadosDoPrato, precoSugerido, ingredientesDaFicha, COR_LUCRO,
+  porcoesDaFicha, dadosDoPrato, precoSugerido, ingredientesDaFicha,
+  ehCustoDesprezivel, COR_LUCRO,
 } from "./pizza-do-prato.mjs";
 
 let falhas = 0;
@@ -224,6 +225,26 @@ conferir("a abertura fecha com o total do CMV",
 conferir("ingrediente de custo zero fica de fora",
   ingredientesDaFicha({ fichas_ingredientes: [{ quantidade: 10, insumos: { nome: "Sal", unidade_medida: "g" } }] }, [], 1).length, 0);
 conferir("ficha sem ingredientes devolve lista vazia", ingredientesDaFicha(null, [], 1).length, 0);
+
+// ── Custo despreziveil conta como custo nenhum ────────────────────────────
+// Caso real: um prato vendido a R$ 58 com R$ 0,02 de ingrediente. Isso e
+// 0,03% da venda — ficha pela metade, nao margem de 99%. Antes o preco
+// sugerido saia R$ 20,44 para um prato de R$ 58, convidando a baixar o preco
+// de algo que so parecia barato porque o custo nao estava cadastrado.
+conferir("dois centavos num prato de 58 e desprezivel", ehCustoDesprezivel(0.02, 58), "true");
+conferir("custo de verdade nao e desprezivel", ehCustoDesprezivel(11.24, 45), "false");
+// O piso e relativo: 50 centavos num prato de R$ 8 sao 6% da venda, custo real.
+conferir("custo pequeno em prato barato nao e desprezivel", ehCustoDesprezivel(0.5, 8), "false");
+conferir("zero e desprezivel", ehCustoDesprezivel(0, 58), "true");
+// Sem preco nao da para julgar proporcao: so o zero conta como desprezivel.
+conferir("sem preco, custo positivo nao e desprezivel", ehCustoDesprezivel(5, 0), "false");
+
+const fichaMagra = {
+  id: "m1", rendimento_porcoes: 1, rendimento_unidade: "porcao", preco_venda: 58,
+  fichas_ingredientes: [{ quantidade: 1, insumos: { nome: "Sal", unidade_medida: "g", preco_normalizado: 20 } }],
+};
+conferir("prato de 58 com centavos de ingrediente sai marcado sem custo",
+  dadosDoPrato(fichaMagra, { fichas: [fichaMagra], produtos: [], params: {} }).semCusto, "true");
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

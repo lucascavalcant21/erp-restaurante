@@ -9,6 +9,7 @@ import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { calcularCMO } from "../../../lib/cmo.mjs";
+import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar } from "../../../lib/custo-diario.mjs";
 import { dadosDoPrato, fatiasDoPrato } from "../../../lib/pizza-do-prato.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
 
@@ -35,6 +36,10 @@ export default function PizzaDoLucroPage() {
   const [produtos, setProdutos] = useState([]);
   const [params, setParams] = useState(PARAMS_PADRAO);
   const [cmo, setCmo] = useState(null);
+  const [equipe, setEquipe] = useState([]);
+  const [visao, setVisao] = useState("pratos"); // pratos | dia | simulacao
+  const [simUnidades, setSimUnidades] = useState(1000);
+  const [simAlvo, setSimAlvo] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState("todos");
@@ -57,6 +62,7 @@ export default function PizzaDoLucroPage() {
       // Usa o cálculo que o DRE já usa: folha dos contratados + diárias de
       // extras EFETIVAMENTE PAGAS (recibo). Duas contas de CMO no mesmo
       // sistema acabariam divergindo.
+      setEquipe(resEquipe.data || []);
       setCmo(calcularCMO({ colaboradores: resEquipe.data || [], recibos: resRecibos.data || [] }));
       setLoading(false);
     });
@@ -76,10 +82,12 @@ export default function PizzaDoLucroPage() {
 
   const salvar = async () => {
     setSalvando(true);
-    // O CMO vai zerado de propósito: ele é calculado do RH toda vez que a tela
-    // abre. Gravar o valor de hoje congelaria um número que muda a cada
-    // contratação, e ninguém lembraria de voltar aqui para corrigir.
-    const resposta = await salvarParams(unidadeAtiva, { ...params, custo_cmo_mes: 0 });
+    // Grava o CMO calculado, não zero. A tela do Ponto de Equilíbrio soma
+    // custo_cmo_mes no custo fixo dela; zerar aqui derrubaria o equilíbrio de
+    // lá pelo valor inteiro da folha, sem ninguém perceber. Aqui esta tela
+    // continua recalculando ao vivo a cada abertura — o valor gravado é o
+    // retrato para quem lê o parâmetro.
+    const resposta = await salvarParams(unidadeAtiva, { ...params, custo_cmo_mes: cmo ? cmo.total : 0 });
     setSalvando(false);
     if (!resposta?.error) { setSalvo(true); setTimeout(() => setSalvo(false), 2500); }
   };
@@ -114,6 +122,31 @@ export default function PizzaDoLucroPage() {
   const contarAba = (id) => (id === "todos" ? ranking.length : ranking.filter((x) => x.entrada.departamento === id).length);
   const semVolume = !(Number(params.dias_operacao_mes) > 0 && Number(params.pratos_por_dia) > 0);
 
+  const dias = Number(params.dias_operacao_mes) || 0;
+  const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
+  const equipeDia = useMemo(() => equipePorDia(equipe, dias), [equipe, dias]);
+  const cmoDia = dias > 0 && cmo ? cmo.total / dias : 0;
+  const custoDiaTotal = contasDia.totalDia + cmoDia;
+
+  // A simulação usa o prato que está selecionado na lista: o dono pensa em um
+  // item concreto ("se eu vender mil moquecas"), não numa margem abstrata.
+  const sim = useMemo(() => {
+    if (!atual) return null;
+    return simularMes({
+      preco: atual.entrada.preco,
+      custoCmvUnit: atual.entrada.custoIngredientes + atual.entrada.custoEmbalagem,
+      impostoPct: atual.entrada.impostoPct,
+      taxaMaquininhaPct: atual.entrada.taxaMaquininhaPct,
+      custoFixoMes: contasDia.totalMes,
+      cmoMes: cmo ? cmo.total : 0,
+      unidadesMes: simUnidades,
+    });
+  }, [atual, contasDia.totalMes, cmo, simUnidades]);
+
+  const paraAlvo = sim && simAlvo > 0
+    ? unidadesParaSobrar({ alvo: simAlvo, contribuicaoUnit: sim.contribuicaoUnit, fixoTotal: sim.fixoTotal })
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
@@ -129,6 +162,15 @@ export default function PizzaDoLucroPage() {
             </h1>
             <p className="text-xs font-bold text-slate-500">Para onde vai cada real que você vende.</p>
           </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[["pratos", "Pizza dos pratos"], ["dia", "Custo por dia"], ["simulacao", "Simulação"]].map(([id, rotulo]) => (
+            <button key={id} onClick={() => setVisao(id)}
+              className={`rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-widest transition-colors ${visao === id ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}>
+              {rotulo}
+            </button>
+          ))}
         </div>
 
         {/* Custos do mês, editáveis aqui mesmo. */}
@@ -205,6 +247,143 @@ export default function PizzaDoLucroPage() {
 
         {loading ? (
           <div className="grid min-h-[40vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={32} /></div>
+        ) : visao === "dia" ? (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {/* Quanto sai do bolso antes de vender o primeiro prato. */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custo de um dia aberto</p>
+              <p className="mt-1 text-3xl font-black text-slate-900">{fmt(custoDiaTotal)}</p>
+              <p className="text-[11px] font-bold text-slate-500">
+                {dias > 0 ? `${fmt(contasDia.totalMes + (cmo ? cmo.total : 0))} por mês ÷ ${dias} dias que a casa abre` : "Preencha os dias de operação acima"}
+              </p>
+              <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 font-black text-slate-700">Gente (CMO)</span>
+                  <span className="font-black text-slate-900">{fmt(cmoDia)}</span>
+                  <span className="w-12 text-right font-bold text-slate-400">{custoDiaTotal > 0 ? `${((cmoDia / custoDiaTotal) * 100).toFixed(0)}%` : "—"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 font-black text-slate-700">Contas da casa</span>
+                  <span className="font-black text-slate-900">{fmt(contasDia.totalDia)}</span>
+                  <span className="w-12 text-right font-bold text-slate-400">{custoDiaTotal > 0 ? `${((contasDia.totalDia / custoDiaTotal) * 100).toFixed(0)}%` : "—"}</span>
+                </div>
+              </div>
+
+              <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Cada conta por dia</p>
+              <ul className="mt-1.5 space-y-1">
+                {contasDia.itens.map((i) => (
+                  <li key={i.chave} className="flex items-center gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-bold text-slate-600">{i.rotulo}</span>
+                    <span className="shrink-0 font-bold text-slate-400">{fmt(i.mes)}/mês</span>
+                    <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(i.dia)}</span>
+                  </li>
+                ))}
+                {!contasDia.itens.length && <li className="py-3 text-center text-xs font-bold text-slate-400">Nenhuma conta preenchida.</li>}
+              </ul>
+            </div>
+
+            {/* Quanto cada pessoa custa por dia. */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quanto cada pessoa custa por dia</p>
+              <p className="mt-1 text-[11px] font-bold text-slate-500">
+                Contratado: salário do mês ÷ {dias || "—"} dias. Extra: a diária inteira, no dia em que vem.
+              </p>
+              <ul className="mt-3 space-y-1">
+                {equipeDia.fixos.map((pe) => (
+                  <li key={pe.id} className="flex items-center gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{pe.nome}
+                      {pe.cargo && <span className="font-bold text-slate-400"> · {pe.cargo}</span>}</span>
+                    <span className="shrink-0 font-bold text-slate-400">{fmt(pe.mes)}/mês</span>
+                    <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(pe.dia)}</span>
+                  </li>
+                ))}
+              </ul>
+              {!!equipeDia.extras.length && (
+                <>
+                  <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Extras (só no dia que vêm)</p>
+                  <ul className="mt-1.5 space-y-1">
+                    {equipeDia.extras.map((pe) => (
+                      <li key={pe.id} className="flex items-center gap-2 text-xs">
+                        <span className="min-w-0 flex-1 truncate font-bold text-slate-600">{pe.nome}
+                          {pe.cargo && <span className="font-bold text-slate-400"> · {pe.cargo}</span>}</span>
+                        <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(pe.dia)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {!equipeDia.fixos.length && !equipeDia.extras.length && (
+                <p className="py-6 text-center text-xs font-bold text-slate-400">Nenhum colaborador ativo.</p>
+              )}
+            </div>
+          </div>
+        ) : visao === "simulacao" ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            {!atual ? (
+              <p className="py-10 text-center text-xs font-bold text-slate-400">Escolha um prato na aba "Pizza dos pratos" para simular.</p>
+            ) : (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Simulando</p>
+                <p className="text-lg font-black text-slate-900">{atual.ficha.nome_receita}</p>
+                <p className="text-[11px] font-bold text-slate-500">
+                  Venda {fmt(sim.precoUnit)} · de cada venda sobram {fmt(sim.contribuicaoUnit)} ({sim.contribuicaoPct.toFixed(1)}%) para pagar o fixo e a folha.
+                </p>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <label>
+                    <span className="block text-[10px] font-bold text-slate-500">Quantos vou vender no mês</span>
+                    <input type="number" min="0" step="10" value={simUnidades} onChange={(e) => setSimUnidades(Number(e.target.value) || 0)}
+                      className="mt-0.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
+                  </label>
+                  <label>
+                    <span className="block text-[10px] font-bold text-slate-500">Quero que sobre (opcional)</span>
+                    <input type="number" min="0" step="100" value={simAlvo} onChange={(e) => setSimAlvo(Number(e.target.value) || 0)}
+                      className="mt-0.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fatura</p>
+                    <p className="text-lg font-black text-slate-800">{fmt(sim.receita)}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fixo + folha do mês</p>
+                    <p className="text-lg font-black text-slate-800">{fmt(sim.fixoTotal)}</p>
+                  </div>
+                  <div className={`rounded-xl px-3 py-2.5 ${sim.sobra >= 0 ? "bg-emerald-50" : "bg-slate-200"}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-wider ${sim.sobra >= 0 ? "text-emerald-700" : "text-slate-600"}`}>
+                      {sim.sobra >= 0 ? "Sobra para você" : "Falta"}
+                    </p>
+                    <p className={`text-lg font-black ${sim.sobra >= 0 ? "text-emerald-700" : "text-slate-800"}`}>{fmt(Math.abs(sim.sobra))}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-sm font-bold text-slate-700">
+                  {sim.unidadesParaEmpatar === null ? (
+                    <p className="flex items-start gap-1.5 text-slate-600">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                      Este prato não cobre nem o próprio custo: cada venda aumenta o buraco. Não existe quantidade que empate — o preço ou o custo precisam mudar.
+                    </p>
+                  ) : (
+                    <p>
+                      Para empatar o mês você precisa vender <b className="text-slate-900">{sim.unidadesParaEmpatar.toLocaleString("pt-BR")}</b> deste prato
+                      ({fmt(sim.receitaParaEmpatar)}), ou <b className="text-slate-900">{Math.ceil(sim.unidadesParaEmpatar / (dias || 1)).toLocaleString("pt-BR")}</b> por dia.
+                    </p>
+                  )}
+                  {paraAlvo !== null && (
+                    <p>
+                      Para sobrar <b className="text-slate-900">{fmt(simAlvo)}</b> no fim do mês: <b className="text-slate-900">{paraAlvo.toLocaleString("pt-BR")}</b> pratos
+                      ({Math.ceil(paraAlvo / (dias || 1)).toLocaleString("pt-BR")} por dia).
+                    </p>
+                  )}
+                  <p className="text-[11px] font-bold text-slate-400">
+                    A conta supõe que o mês inteiro é vendido deste item. Serve para dimensionar, não como previsão do cardápio inteiro.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         ) : !ranking.length ? (
           <p className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm font-bold text-slate-400">
             Nenhum prato com preço de venda ainda. Defina o preço nas fichas para ver a pizza.

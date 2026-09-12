@@ -40,7 +40,7 @@ import {
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
   FileDown, FolderPlus, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
   Search, Sparkles, Trash2, UtensilsCrossed, Wine, X,
-  Clock, Thermometer, MoreVertical,
+  Clock, Thermometer, MoreVertical, PieChart,
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
@@ -2480,6 +2480,12 @@ function FichasRunner() {
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
             {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>}
+            {podeVerCustos && (
+              <button onClick={() => setVerPizza(v => !v)} title="Mostra em cada ficha para onde vai cada real da venda"
+                className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${verPizza ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"}`}>
+                <PieChart size={14} /> {verPizza ? "Ver números" : "Pizza do lucro"}
+              </button>
+            )}
             <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
             <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
@@ -2974,17 +2980,9 @@ function FichasRunner() {
          )}
          {!loading && filtradas.length > 0 && (
            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-             <div className="flex flex-wrap items-center gap-3">
-               <p className="text-xs font-bold text-slate-500">
-                 Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
-               </p>
-               {podeVerCustos && (
-                 <button type="button" onClick={() => setVerPizza(v => !v)}
-                   className={`rounded-xl px-3 py-2 text-xs font-black transition-colors ${verPizza ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
-                   {verPizza ? "Ver números" : "Ver pizza do lucro"}
-                 </button>
-               )}
-             </div>
+             <p className="text-xs font-bold text-slate-500">
+               Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
+             </p>
              <div className="flex flex-wrap items-center justify-center gap-2">
                <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 outline-none">
                  {[8, 12, 24, 48].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}

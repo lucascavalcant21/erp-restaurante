@@ -2,7 +2,7 @@
 
 import {
   fatiasDoPrato, rateioPorPrato, pratosNoMes, setorDonut, centroDoSetor,
-  porcoesDaFicha, dadosDoPrato, COR_LUCRO,
+  porcoesDaFicha, dadosDoPrato, precoSugerido, COR_LUCRO,
 } from "./pizza-do-prato.mjs";
 
 let falhas = 0;
@@ -163,6 +163,35 @@ conferir("departamento vem na saida",
   dadosDoPrato({ id: "x", departamento: "Bar", rendimento_porcoes: 1, rendimento_unidade: "un" }, {}).departamento, "bar");
 conferir("sem departamento cai no tipo_base",
   dadosDoPrato({ id: "y", tipo_base: "cozinha", rendimento_porcoes: 1, rendimento_unidade: "un" }, {}).departamento, "cozinha");
+
+// ── Preco sugerido ────────────────────────────────────────────────────────
+// Custo direto = 11,24 (cmv) + 6,3862 (cmo) + 3,3077 (fixo) = 20,9339
+// Sobra = 100 - 4 - 2,5 - 20 = 73,5%  ->  20,9339 / 0,735 = 28,48
+const sug = precoSugerido({
+  custoIngredientes: 11.24, custoEmbalagem: 0, impostoPct: 4,
+  taxaMaquininhaPct: 2.5, margemAlvoPct: 20, params: PARAMS,
+});
+conferir("preco sugerido cobre tudo e deixa a margem", r2(sug), 28.48);
+
+// A prova de que a conta de tras para frente esta certa: vendendo pelo preco
+// sugerido, o que sobra e EXATAMENTE a margem pedida.
+const conferindo = fatiasDoPrato({
+  preco: sug, custoIngredientes: 11.24, custoEmbalagem: 0,
+  impostoPct: 4, taxaMaquininhaPct: 2.5, params: PARAMS,
+});
+conferir("vendendo pelo sugerido sobra a margem pedida",
+  Math.round((conferindo.lucro / sug) * 100), 20);
+
+// Margem maior exige preco maior.
+conferir("margem de 40% pede preco maior",
+  precoSugerido({ custoIngredientes: 11.24, impostoPct: 4, taxaMaquininhaPct: 2.5, margemAlvoPct: 40, params: PARAMS })
+    > sug, "true");
+
+// Variavel + margem chegando a 100%: nao existe preco que feche.
+conferir("sem espaco para a margem nao ha preco",
+  precoSugerido({ custoIngredientes: 10, impostoPct: 50, taxaMaquininhaPct: 30, margemAlvoPct: 20, params: PARAMS }), null);
+conferir("custo zero nao sugere preco",
+  precoSugerido({ custoIngredientes: 0, margemAlvoPct: 20, params: { dias_operacao_mes: 0, pratos_por_dia: 0 } }), null);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

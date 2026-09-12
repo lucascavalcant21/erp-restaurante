@@ -10,7 +10,7 @@ import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/r
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { calcularCMO } from "../../../lib/cmo.mjs";
 import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio } from "../../../lib/custo-diario.mjs";
-import { dadosDoPrato, fatiasDoPrato } from "../../../lib/pizza-do-prato.mjs";
+import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -26,6 +26,8 @@ const CAMPOS_VARIAVEL = [
   // estimativas do cardápio inteiro: a pizza de cada prato usa o CMV e a
   // embalagem REAIS da ficha, não estes.
   ["meta_cmv", "Meta de CMV (%)"], ["embalagem_pct", "Embalagem (%)"],
+  // Quanto o dono quer que sobre. É o alvo do preço sugerido.
+  ["margem_alvo_pct", "Margem que quero (%)"],
 ];
 const CAMPOS_VOLUME = [["dias_operacao_mes", "Dias que abre no mês"], ["pratos_por_dia", "Pratos por dia"]];
 
@@ -77,6 +79,7 @@ export default function PizzaDoLucroPage() {
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState("todos");
   const [escolhida, setEscolhida] = useState(null);
+  const [verSemRendimento, setVerSemRendimento] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   // null = decide sozinho. Quem ainda não preencheu precisa ver os campos;
@@ -136,20 +139,26 @@ export default function PizzaDoLucroPage() {
       .filter((f) => !f.eh_base)
       .map((f) => {
         const entrada = dadosDoPrato(f, { fichas, produtos, params: paramsComCmo });
-        return { ficha: f, entrada, conta: fatiasDoPrato(entrada) };
+        const conta = fatiasDoPrato(entrada);
+        // Os mesmos valores da pizza, prontos para as colunas da lista.
+        const porFatia = (id) => conta.fatias.find((x) => x.id === id)?.valor || 0;
+        return {
+          ficha: f, entrada, conta,
+          cmv: porFatia("cmv"), cmoUnit: porFatia("cmo"),
+          fixoUnit: porFatia("fixo"), variavelUnit: porFatia("variavel"),
+          sugerido: precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, params: paramsComCmo }),
+        };
       })
       .filter((x) => x.conta.preco > 0)
       .sort((a, b) => {
-        // Ordem de quem precisa de decisão: prejuízo, depois o que não dá para
-        // confiar, e só então o ranking de lucro de verdade.
-        const problema = (x) => (x.conta.prejuizo > 0 ? 0 : (x.entrada.semRendimento || x.entrada.semCusto) ? 1 : 2);
-        if (problema(a) !== problema(b)) return problema(a) - problema(b);
-        if (a.conta.prejuizo > 0 && b.conta.prejuizo > 0) return b.conta.prejuizo - a.conta.prejuizo;
-        return (b.conta.lucro / b.conta.preco) - (a.conta.lucro / a.conta.preco);
+        // Do que mais sobra para o que menos sobra. Quem dá prejuízo tem sobra
+        // negativa e cai no fim sozinho, sem precisar de regra.
+        const sobra = (x) => (x.conta.prejuizo > 0 ? -x.conta.prejuizo : x.conta.lucro) / x.conta.preco;
+        return sobra(b) - sobra(a);
       });
   }, [fichas, produtos, paramsComCmo]);
 
-  const filtrado = useMemo(() => {
+  const daAba = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return ranking.filter((x) => {
       if (aba !== "todos" && x.entrada.departamento !== aba) return false;
@@ -157,8 +166,16 @@ export default function PizzaDoLucroPage() {
     });
   }, [ranking, busca, aba]);
 
+  // Ficha sem rendimento não entra no ranking: sem saber em quantas porções
+  // rende, o "lucro" dela é um número que não existe.
+  const ocultos = daAba.filter((x) => x.entrada.semRendimento);
+  const filtrado = verSemRendimento ? daAba : daAba.filter((x) => !x.entrada.semRendimento);
+
   const atual = escolhida ? ranking.find((x) => x.ficha.id === escolhida) : filtrado[0];
-  const contarAba = (id) => (id === "todos" ? ranking.length : ranking.filter((x) => x.entrada.departamento === id).length);
+  // Conta o que a lista realmente mostra: um número de aba que não bate com
+  // as linhas embaixo dele faz o usuário procurar o que não existe.
+  const contarAba = (id) => ranking.filter((x) =>
+    (id === "todos" || x.entrada.departamento === id) && (verSemRendimento || !x.entrada.semRendimento)).length;
   const semVolume = !(Number(params.dias_operacao_mes) > 0 && Number(params.pratos_por_dia) > 0);
   const jaConfigurado = !semVolume && CAMPOS_FIXO.some(([chave]) => Number(params[chave]) > 0);
   const abrirPainel = painelAberto !== null ? painelAberto : !jaConfigurado;
@@ -453,7 +470,7 @@ export default function PizzaDoLucroPage() {
             Nenhum prato com preço de venda ainda. Defina o preço nas fichas para ver a pizza.
           </p>
         ) : (
-          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="mt-4 space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
                 {ABAS.map((a) => (
@@ -477,7 +494,12 @@ export default function PizzaDoLucroPage() {
                   <thead>
                     <tr className="border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       <th className="py-2 pr-2">Prato</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">CMV</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">CMO</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Fixo</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Variável</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">Venda</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Sugerido</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">Sobra</th>
                       <th className="whitespace-nowrap py-2 pl-2 text-right">% da venda</th>
                     </tr>
@@ -498,7 +520,16 @@ export default function PizzaDoLucroPage() {
                               </span>
                             )}
                           </td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.cmv)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.cmoUnit)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.fixoUnit)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.variavelUnit)}</td>
                           <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-slate-500">{fmt(x.conta.preco)}</td>
+                          {/* Verde só quando o sugerido é MAIOR que o preço de
+                              hoje: é o caso em que há dinheiro na mesa. */}
+                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${x.sugerido === null ? "text-slate-300" : x.sugerido > x.conta.preco ? "text-emerald-700" : "text-slate-400"}`}>
+                            {x.sugerido === null ? "—" : fmt(x.sugerido)}
+                          </td>
                           <td className="whitespace-nowrap py-2 px-2 text-right font-black text-slate-800">
                             {x.conta.prejuizo > 0 ? `\u2212\u00A0${fmt(x.conta.prejuizo)}` : fmt(x.conta.lucro)}
                           </td>
@@ -514,9 +545,21 @@ export default function PizzaDoLucroPage() {
                 </table>
                 {!filtrado.length && <p className="py-8 text-center text-xs font-bold text-slate-400">Nenhum prato aqui.</p>}
               </div>
+
+              {/* Fora do ranking, mas não escondido: é cadastro faltando, e
+                  quem não souber que existe nunca vai completar. */}
+              {!!ocultos.length && (
+                <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
+                  {ocultos.length} ficha(s) fora da conta: não dizem em quantas porções rendem, então não há custo por porção.{" "}
+                  <button type="button" onClick={() => setVerSemRendimento((v) => !v)}
+                    className="font-black text-emerald-700 underline underline-offset-2">
+                    {verSemRendimento ? "esconder" : "ver quais são"}
+                  </button>
+                </p>
+              )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4 lg:self-start">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               {atual ? (
                 <>
                   <p className="mb-1 truncate text-sm font-black text-slate-800">{atual.ficha.nome_receita}</p>
@@ -528,7 +571,9 @@ export default function PizzaDoLucroPage() {
                         : "A ficha não diz em quantas porções rende, então não dá para saber o custo de uma porção. Defina o peso da porção na ficha."}
                     </p>
                   )}
-                  <PizzaDoPrato {...atual.entrada} />
+                  <div className="sm:mx-auto sm:max-w-md">
+                    <PizzaDoPrato {...atual.entrada} />
+                  </div>
                 </>
               ) : (
                 <p className="py-10 text-center text-xs font-bold text-slate-400">Escolha um prato na lista.</p>

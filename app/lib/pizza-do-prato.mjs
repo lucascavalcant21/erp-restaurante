@@ -216,3 +216,28 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
     params,
   };
 }
+
+/* Preço sugerido: por quanto vender para cobrir TUDO e ainda sobrar a margem
+ * que o dono quer.
+ *
+ * A conta é de trás para frente porque imposto e maquininha são percentuais
+ * SOBRE O PREÇO — que é justamente o que estamos procurando. Somar um markup
+ * em cima do custo erra: o imposto do preço final é maior que o imposto
+ * estimado em cima do custo.
+ *
+ *   P = custoDireto / (1 − variável% − margem%)
+ *
+ * custoDireto é o que não depende do preço: CMV + CMO + custo fixo rateado.
+ * Quando variável% + margem% chega a 100 não existe preço que feche a conta —
+ * devolve null, em vez de um número gigante ou negativo.
+ */
+export function precoSugerido({
+  custoIngredientes = 0, custoEmbalagem = 0, impostoPct = 0, taxaMaquininhaPct = 0,
+  margemAlvoPct = 0, params = {},
+} = {}) {
+  const { fixo, cmo } = rateioPorPrato(params);
+  const custoDireto = Math.max(0, num(custoIngredientes)) + Math.max(0, num(custoEmbalagem)) + fixo + cmo;
+  const sobraPct = 100 - Math.max(0, num(impostoPct)) - Math.max(0, num(taxaMaquininhaPct)) - Math.max(0, num(margemAlvoPct));
+  if (sobraPct <= 0 || custoDireto <= 0) return null;
+  return custoDireto / (sobraPct / 100);
+}

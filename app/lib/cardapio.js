@@ -129,6 +129,7 @@ export async function salvarFichaCompleta(prato_id, dados_prato, itens, unidade_
         prato_id: pratoIdFinal,
         nome: dados_prato.nome,
         custo_total: dados_prato.custoTotal,
+        versao: "1.0",
         unidade_id
       }]).select().single();
       if (errFicha) throw errFicha;

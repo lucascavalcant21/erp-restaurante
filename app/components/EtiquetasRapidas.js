@@ -288,9 +288,6 @@ export default function EtiquetasRapidas() {
       return setAviso({ tipo: "erro", texto: "Revise a quantidade de cópias e a validade." });
     }
     const pronto = { ...item, modeloEtiqueta, tipoEtiqueta, codigo: item.codigo || gerarCodigo() };
-    setItem(null);
-    setCriandoLivre(false);
-    setNomeLivre("");
     await imprimirFila("", [pronto]);
   }
 

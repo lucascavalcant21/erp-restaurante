@@ -25,6 +25,8 @@ export const COR_LUCRO = "#10B981";
 // medida contra todos estes degraus (ΔE mínimo 15,6).
 export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B"];
 
+import { custoDeProduzirFicha } from "./ficha-calculos.mjs";
+
 const num = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -146,4 +148,54 @@ export function setorDonut(cx, cy, raioExterno, raioInterno, inicioGrau, fimGrau
   const p = (r, a) => `${(cx + r * Math.cos(a)).toFixed(3)} ${(cy + r * Math.sin(a)).toFixed(3)}`;
   return `M ${p(raioExterno, i)} A ${raioExterno} ${raioExterno} 0 ${grande} 1 ${p(raioExterno, f)}`
        + ` L ${p(raioInterno, f)} A ${raioInterno} ${raioInterno} 0 ${grande} 0 ${p(raioInterno, i)} Z`;
+}
+
+/* Tira de uma ficha tudo que a pizza precisa.
+ *
+ * Existe para as duas telas (o cartão das Fichas e o módulo do lucro) fazerem
+ * a MESMA conta. Duas derivações separadas divergem na primeira mudança, e aí
+ * o sistema mostra dois lucros diferentes para o mesmo prato — o pior tipo de
+ * erro, porque nenhum dos dois parece errado sozinho.
+ */
+export function pesoTotalDaFichaG(rendimento, unidade, pesoPorcaoG) {
+  const un = String(unidade || "porcao").toLowerCase();
+  if (un === "kg" || un === "l") return rendimento * 1000;
+  if (un === "g" || un === "ml") return rendimento;
+  return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
+}
+
+// Quantas porções a ficha rende: direto, quando o rendimento já é em porções
+// ou unidades; pelo peso, quando é em kg/l/g/ml.
+export function porcoesDaFicha(ficha = {}) {
+  const rendimento = num(ficha.rendimento_porcoes) || 0;
+  const pesoPorcao = num(ficha.peso_porcao_g) || 0;
+  const un = String(ficha.rendimento_unidade || "porcao").toLowerCase();
+  if (un === "porcao" || un === "un") return rendimento;
+  const total = pesoTotalDaFichaG(rendimento, un, pesoPorcao);
+  return pesoPorcao > 0 && total > 0 ? total / pesoPorcao : 0;
+}
+
+export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = {} } = {}) {
+  const custoTotal = custoDeProduzirFicha(ficha, fichas);
+  const porcoes = porcoesDaFicha(ficha);
+  const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+
+  // O preço mandado é o do produto de venda; a ficha só responde quando não há
+  // produto ligado a ela.
+  const prod = produtos.find((x) => x.ficha_id === ficha.id
+    || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
+  const preco = (prod && num(prod.preco_venda) > 0) ? num(prod.preco_venda) : num(ficha.preco_venda);
+
+  const custoEmbalagem = (ficha.embalagens || []).reduce(
+    (acc, e) => acc + (num(e.custo) || num(e.preco_unitario)) * (num(e.qtd) || 1), 0);
+
+  return {
+    preco,
+    custoIngredientes: Math.max(0, custoPorcao - custoEmbalagem),
+    custoEmbalagem,
+    // Base (pré-preparo) não se vende, então imposto e maquininha não incidem.
+    impostoPct: ficha.eh_base ? 0 : num(ficha.imposto_pct ?? prod?.aliquota_imposto ?? 4),
+    taxaMaquininhaPct: ficha.eh_base ? 0 : num(ficha.taxa_maquininha ?? prod?.taxa_cartao ?? 2.5),
+    params,
+  };
 }

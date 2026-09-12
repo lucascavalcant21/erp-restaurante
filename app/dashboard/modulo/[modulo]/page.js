@@ -10,6 +10,7 @@ import {
   GraduationCap, Landmark, LayoutDashboard, LayoutList, ListChecks, Network, Package,
   PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck, ShoppingCart,
   Tag, Target, Users, UserRoundCheck, Utensils, Wallet, Wine, Wrench, CalendarClock, Clock,
+  PieChart,
 } from "lucide-react";
 import ModuleHub from "../../../components/ModuleHub";
 
@@ -96,6 +97,7 @@ const MODULOS = {
       { title: "Custos e Metas", subtitle: "Rentabilidade e segurança", icon: Calculator, accent: "#0891b2", items: [
         { label: "CMV", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
         { label: "Margens", desc: "Rentabilidade por produto", href: "/dashboard/financeiro/margem", icon: BarChart3 },
+        { label: "Pizza do Lucro", desc: "Para onde vai cada real", href: "/dashboard/financeiro/pizza", icon: PieChart },
         { label: "Ponto de Equilíbrio", desc: "Metas e segurança", href: "/dashboard/financeiro/equilibrio", icon: Target },
       ]},
       { title: "Fiscal e Documentos", subtitle: "Obrigações e arquivos", icon: ShieldCheck, accent: "#ea580c", items: [

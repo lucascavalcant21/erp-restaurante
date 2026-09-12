@@ -1,6 +1,9 @@
 // Testes da pizza do prato. Rode com: node app/lib/pizza-do-prato.test.mjs
 
-import { fatiasDoPrato, rateioPorPrato, pratosNoMes, setorDonut, centroDoSetor, COR_LUCRO } from "./pizza-do-prato.mjs";
+import {
+  fatiasDoPrato, rateioPorPrato, pratosNoMes, setorDonut, centroDoSetor,
+  porcoesDaFicha, dadosDoPrato, COR_LUCRO,
+} from "./pizza-do-prato.mjs";
 
 let falhas = 0;
 function conferir(nome, obtido, esperado) {
@@ -104,6 +107,38 @@ conferir("setor de 360 recua para fechar", setorDonut(50, 50, 40, 24, 0, 360) ==
 // cai na direita, na metade entre o raio interno e o externo.
 conferir("centro do setor de 0 a 90 fica a direita", Math.round(centroDoSetor(50, 50, 40, 24, 0, 90).x), 73);
 conferir("centro do setor de 0 a 90 fica na altura do meio", Math.round(centroDoSetor(50, 50, 40, 24, 0, 90).y), 27);
+
+// ── Tirar os dados da ficha ───────────────────────────────────────────────
+// Rendimento em porcoes: o numero e direto.
+conferir("porcoes direto do rendimento",
+  porcoesDaFicha({ rendimento_porcoes: 8, rendimento_unidade: "porcao" }), 8);
+// Rendimento em kg: 2kg = 2000g, porcao de 250g -> 8 porcoes.
+conferir("porcoes derivadas do peso",
+  porcoesDaFicha({ rendimento_porcoes: 2, rendimento_unidade: "kg", peso_porcao_g: 250 }), 8);
+conferir("sem peso da porcao nao inventa porcao",
+  porcoesDaFicha({ rendimento_porcoes: 2, rendimento_unidade: "kg", peso_porcao_g: 0 }), 0);
+
+// O preco do PRODUTO manda; a ficha so responde quando nao ha produto ligado.
+const fichaX = { id: "f1", nome_receita: "Moqueca", rendimento_porcoes: 4, rendimento_unidade: "porcao", preco_venda: 30 };
+conferir("preco do produto ganha do da ficha",
+  dadosDoPrato(fichaX, { produtos: [{ ficha_id: "f1", preco_venda: 45 }] }).preco, 45);
+conferir("sem produto vale o preco da ficha", dadosDoPrato(fichaX, { produtos: [] }).preco, 30);
+conferir("produto casado pelo nome tambem vale",
+  dadosDoPrato(fichaX, { produtos: [{ nome_produto: "moqueca", preco_venda: 50 }] }).preco, 50);
+
+// Base (pre-preparo) nao se vende: imposto e maquininha nao incidem.
+const base = dadosDoPrato({ id: "b1", eh_base: true, rendimento_porcoes: 1, rendimento_unidade: "porcao" }, {});
+conferir("base nao paga imposto", base.impostoPct, 0);
+conferir("base nao paga maquininha", base.taxaMaquininhaPct, 0);
+// Prato normal usa os padroes da casa quando a ficha nao diz.
+const normal = dadosDoPrato({ id: "n1", rendimento_porcoes: 1, rendimento_unidade: "porcao" }, {});
+conferir("prato usa imposto padrao 4%", normal.impostoPct, 4);
+conferir("prato usa maquininha padrao 2,5%", normal.taxaMaquininhaPct, 2.5);
+
+// Embalagem sai do custo da porcao e vira parcela propria.
+const comEmbalagem = dadosDoPrato(
+  { id: "e1", rendimento_porcoes: 1, rendimento_unidade: "porcao", embalagens: [{ custo: 1.5, qtd: 2 }] }, {});
+conferir("embalagem soma custo x quantidade", comEmbalagem.custoEmbalagem, 3);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

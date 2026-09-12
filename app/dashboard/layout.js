@@ -103,6 +103,7 @@ const SIDEBAR_MENU = [
       { label: "Ponto de Equilíbrio", href: "/dashboard/financeiro/equilibrio" },
       { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
       { label: "CMV", href: "/dashboard/financeiro/cmv" },
+      { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" },
       { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
     ]
   },

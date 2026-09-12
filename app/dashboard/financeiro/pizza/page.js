@@ -187,6 +187,9 @@ export default function PizzaDoLucroPage() {
   const equilibrio = useMemo(
     () => equilibrioDoCardapio({ params, cmoMes: cmo ? cmo.total : 0 }), [params, cmo]);
   const custoDiaTotal = contasDia.totalDia + cmoDia;
+  const pratosNoMes = (Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0);
+  const rateioPorPratoTotal = pratosNoMes > 0
+    ? (contasDia.totalMes + (cmo ? cmo.total : 0)) / pratosNoMes : 0;
 
   // A simulação usa o prato que está selecionado na lista: o dono pensa em um
   // item concreto ("se eu vender mil moquecas"), não numa margem abstrata.
@@ -299,6 +302,17 @@ export default function PizzaDoLucroPage() {
                   <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} step="1" destacado={semVolume} />
                 ))}
               </div>
+              {/* Mostra o que o rateio PRODUZ, enquanto se digita. Estes dois
+                  campos são silenciosos demais: trocar 100 por 1 multiplica o
+                  custo de cada prato por cem e faz o cardápio inteiro virar
+                  prejuízo, sem nada na tela dizendo o porquê. Vendo o valor
+                  por prato, o erro salta. */}
+              {!semVolume && (
+                <p className="mt-1.5 text-[11px] font-bold text-slate-500">
+                  Cada prato carrega <b className="text-slate-800">{fmt(rateioPorPratoTotal)}</b> de custo fixo e folha
+                  {" "}({(Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0)} pratos no mês).
+                </p>
+              )}
             </div>
           </div>
 

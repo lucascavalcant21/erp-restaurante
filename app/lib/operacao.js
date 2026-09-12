@@ -460,6 +460,9 @@ export async function salvarFicha(ficha, ingredientes) {
   let fichaId = ficha.id;
   // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
   const { id: _id, created_at, ...camposFicha } = ficha;
+  if (!camposFicha.versao) {
+    camposFicha.versao = "1.0";
+  }
 
   // 1. Salva a Capa da Ficha (retry tira colunas ainda não migradas: categoria, ordem)
   if (fichaId) {

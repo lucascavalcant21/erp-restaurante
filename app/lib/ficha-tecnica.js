@@ -373,6 +373,7 @@ export async function duplicarFicha(fichaId, { sufixo = "(cópia)" } = {}) {
   const { id, created_at, updated_at, codigo, versao, atualizado_em, ...campos } = origem;
   campos.nome_receita = `${origem.nome_receita} ${sufixo}`.trim();
   campos.status = "rascunho";
+  campos.versao = origem.versao || "1.0";
 
   let insercao = await supabase.from("fichas_tecnicas").insert([campos]).select("id").single();
   // Se o banco recusar uma coluna que a migração ainda não criou, tira e tenta

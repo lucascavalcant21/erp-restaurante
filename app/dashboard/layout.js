@@ -100,7 +100,6 @@ const SIDEBAR_MENU = [
     icon: Wallet,
     items: [
       { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
-      { label: "Ponto de Equilíbrio", href: "/dashboard/financeiro/equilibrio" },
       { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
       { label: "CMV", href: "/dashboard/financeiro/cmv" },
       { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" },

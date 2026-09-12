@@ -1,6 +1,6 @@
 // Testes do custo por dia e do simulador. Rode com: node app/lib/custo-diario.test.mjs
 
-import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar } from "./custo-diario.mjs";
+import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio } from "./custo-diario.mjs";
 
 let falhas = 0;
 function conferir(nome, obtido, esperado) {
@@ -91,6 +91,31 @@ conferir("quantos pratos para sobrar 10 mil",
   unidadesParaSobrar({ alvo: 10000, contribuicaoUnit: 30.835, fixoTotal: 26297.44 }), 1178);
 conferir("sem contribuicao nao existe alvo alcancavel",
   unidadesParaSobrar({ alvo: 10000, contribuicaoUnit: -1, fixoTotal: 1000 }), null);
+
+// ── Equilibrio do cardapio inteiro ────────────────────────────────────────
+// Fixo 8.600 + CMO 17.697,44 = 26.297,44 no mes; /26 = 1.011,44 por dia.
+// Variavel = 30 (meta cmv) + 4 (imposto) + 2,5 (cartao) + 3 (embalagem) = 39,5
+// Margem = 60,5%  ->  1.011,44 / 0,605 = 1.671,80 por dia.
+const eqC = equilibrioDoCardapio({
+  params: { ...PARAMS, meta_cmv: 30, imposto_pct: 4, taxa_cartao_pct: 2.5, embalagem_pct: 3 },
+  cmoMes: 17697.44,
+});
+conferir("fixo do mes inclui o cmo", r2(eqC.fixoMes), 26297.44);
+conferir("fixo por dia", r2(eqC.fixoDia), 1011.44);
+conferir("percentual variavel", eqC.variavelPct, 39.5);
+conferir("margem sobre a venda", eqC.margemPct, 60.5);
+conferir("faturamento por dia para empatar", r2(eqC.faturamentoDia), 1671.8);
+conferir("faturamento do mes para empatar", r2(eqC.faturamentoMes), 43466.84);
+
+// Margem zero ou negativa: nenhum faturamento empata, e a conta precisa dizer
+// isso em vez de devolver Infinity ou um numero gigante.
+const semMargem = equilibrioDoCardapio({ params: { ...PARAMS, meta_cmv: 90, imposto_pct: 8, taxa_cartao_pct: 5 }, cmoMes: 1000 });
+conferir("margem negativa nao tem equilibrio", semMargem.faturamentoDia, null);
+conferir("e a margem aparece negativa", semMargem.margemPct < 0, "true");
+
+// Sem dias de operacao nao da para dividir.
+conferir("sem dias nao calcula equilibrio",
+  equilibrioDoCardapio({ params: { meta_cmv: 30, dias_operacao_mes: 0 }, cmoMes: 0 }).faturamentoDia, null);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

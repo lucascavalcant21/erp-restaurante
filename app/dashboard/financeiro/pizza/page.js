@@ -9,7 +9,7 @@ import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { calcularCMO } from "../../../lib/cmo.mjs";
-import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar } from "../../../lib/custo-diario.mjs";
+import { contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio } from "../../../lib/custo-diario.mjs";
 import { dadosDoPrato, fatiasDoPrato } from "../../../lib/pizza-do-prato.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
 
@@ -20,7 +20,13 @@ const CAMPOS_FIXO = [
   ["custo_aluguel_mes", "Aluguel"], ["custo_luz_mes", "Luz"], ["custo_gas_mes", "Gás"],
   ["custo_agua_mes", "Água"], ["custo_limpeza_mes", "Limpeza"], ["custo_outros_mes", "Outros"],
 ];
-const CAMPOS_VARIAVEL = [["imposto_pct", "Imposto (%)"], ["taxa_cartao_pct", "Maquininha (%)"]];
+const CAMPOS_VARIAVEL = [
+  ["imposto_pct", "Imposto (%)"], ["taxa_cartao_pct", "Maquininha (%)"],
+  // Estes dois vieram da tela Ponto de Equilíbrio, absorvida por esta. São
+  // estimativas do cardápio inteiro: a pizza de cada prato usa o CMV e a
+  // embalagem REAIS da ficha, não estes.
+  ["meta_cmv", "Meta de CMV (%)"], ["embalagem_pct", "Embalagem (%)"],
+];
 const CAMPOS_VOLUME = [["dias_operacao_mes", "Dias que abre no mês"], ["pratos_por_dia", "Pratos por dia"]];
 
 const ABAS = [
@@ -69,8 +75,8 @@ export default function PizzaDoLucroPage() {
     return () => { ativo = false; };
   }, [unidadeAtiva]);
 
-  // O CMO NÃO é digitado: sai do RH (folha dos fixos) mais os extras que
-  // bateram ponto no mês. Digitar de novo um número que o sistema já sabe é
+  // O CMO NÃO é digitado: sai do RH (folha dos contratados) mais as diárias de
+  // extras com recibo pago. Digitar de novo um número que o sistema já sabe é
   // pedir para os dois ficarem diferentes.
   const paramsComCmo = useMemo(
     () => ({ ...params, custo_cmo_mes: cmo ? cmo.total : 0 }), [params, cmo]);
@@ -82,11 +88,10 @@ export default function PizzaDoLucroPage() {
 
   const salvar = async () => {
     setSalvando(true);
-    // Grava o CMO calculado, não zero. A tela do Ponto de Equilíbrio soma
-    // custo_cmo_mes no custo fixo dela; zerar aqui derrubaria o equilíbrio de
-    // lá pelo valor inteiro da folha, sem ninguém perceber. Aqui esta tela
-    // continua recalculando ao vivo a cada abertura — o valor gravado é o
-    // retrato para quem lê o parâmetro.
+    // Grava o CMO calculado, não zero. Esta tela recalcula ao vivo a cada
+    // abertura, mas o parâmetro custo_cmo_mes é lido por outras contas do
+    // sistema: gravar zero derrubaria o custo fixo delas pelo valor inteiro da
+    // folha, sem ninguém perceber. O valor gravado é o retrato para quem lê.
     const resposta = await salvarParams(unidadeAtiva, { ...params, custo_cmo_mes: cmo ? cmo.total : 0 });
     setSalvando(false);
     if (!resposta?.error) { setSalvo(true); setTimeout(() => setSalvo(false), 2500); }
@@ -126,6 +131,8 @@ export default function PizzaDoLucroPage() {
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
   const equipeDia = useMemo(() => equipePorDia(equipe, dias), [equipe, dias]);
   const cmoDia = dias > 0 && cmo ? cmo.total / dias : 0;
+  const equilibrio = useMemo(
+    () => equilibrioDoCardapio({ params, cmoMes: cmo ? cmo.total : 0 }), [params, cmo]);
   const custoDiaTotal = contasDia.totalDia + cmoDia;
 
   // A simulação usa o prato que está selecionado na lista: o dono pensa em um
@@ -267,6 +274,27 @@ export default function PizzaDoLucroPage() {
                   <span className="font-black text-slate-900">{fmt(contasDia.totalDia)}</span>
                   <span className="w-12 text-right font-bold text-slate-400">{custoDiaTotal > 0 ? `${((contasDia.totalDia / custoDiaTotal) * 100).toFixed(0)}%` : "—"}</span>
                 </div>
+              </div>
+
+              {/* Ponto de equilíbrio do cardápio inteiro. Veio da tela que
+                  esta absorveu: responde em REAIS por dia, sem depender de
+                  qual prato saiu. */}
+              <div className="mt-4 rounded-xl bg-emerald-50 px-3 py-2.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Quanto faturar por dia para empatar</p>
+                {equilibrio.faturamentoDia === null ? (
+                  <p className="mt-0.5 text-[11px] font-bold text-slate-600">
+                    {!equilibrio.rateavel
+                      ? "Preencha os dias de operação acima."
+                      : `Com ${equilibrio.variavelPct.toFixed(1)}% de custo variável não sobra nada de cada venda — nenhum faturamento empata. Reveja a meta de CMV, o imposto, a maquininha e a embalagem.`}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-2xl font-black text-emerald-800">{fmt(equilibrio.faturamentoDia)}</p>
+                    <p className="text-[11px] font-bold text-emerald-700/80">
+                      {fmt(equilibrio.faturamentoMes)} no mês · de cada real vendido sobram {equilibrio.margemPct.toFixed(1)}% para pagar o fixo. Acima disso é lucro.
+                    </p>
+                  </>
+                )}
               </div>
 
               <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Cada conta por dia</p>

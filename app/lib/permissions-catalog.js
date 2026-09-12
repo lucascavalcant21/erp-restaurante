@@ -101,7 +101,9 @@ export const PERMISSION_MODULES = [
     id: "financeiro", label: "Financeiro",
     pages: [
       { id: "cashflow", label: "Fluxo de caixa", route: "/dashboard/financeiro", actions: [...CRUD, "approve", "reject", "view_values", "export"] },
-      { id: "breakeven", label: "Ponto de equilíbrio", route: "/dashboard/financeiro/equilibrio", actions: VIEW_EXPORT },
+      // A tela foi absorvida pela Pizza do Lucro; a rota segue viva como
+      // redirecionamento, entao continua no catalogo para nao virar 403.
+      { id: "breakeven", label: "Ponto de equilíbrio (redireciona)", route: "/dashboard/financeiro/equilibrio", actions: VIEW_EXPORT },
       { id: "dre", label: "Resultado (DRE)", route: "/dashboard/financeiro/dre", actions: [...VIEW_EXPORT, "confirm", "view_values", "view_margin"] },
       { id: "cmv", label: "CMV", route: "/dashboard/financeiro/cmv", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },
       { id: "pizza_lucro", label: "Pizza do Lucro", route: "/dashboard/financeiro/pizza", actions: [...VIEW_EXPORT, "view_costs", "view_margin"] },

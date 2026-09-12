@@ -123,3 +123,33 @@ export function unidadesParaSobrar({ alvo = 0, contribuicaoUnit = 0, fixoTotal =
   if (c <= 0) return null;
   return Math.ceil((num(fixoTotal) + Math.max(0, num(alvo))) / c);
 }
+
+/* Ponto de equilíbrio do CARDÁPIO INTEIRO — quanto faturar por dia para pagar
+ * tudo. Veio da tela Ponto de Equilíbrio, que foi absorvida por esta.
+ *
+ * Diferente do simularMes, que responde por um prato concreto. Aqui a conta é
+ * do salão todo, usando a META de CMV: não interessa qual prato saiu, e sim
+ * que em média X% de cada real vendido volta como custo de mercadoria.
+ *
+ * A maquininha e o imposto entram porque saem de CADA venda. Fora da conta, o
+ * equilíbrio sai otimista e a casa "empata" num número que não paga as contas.
+ */
+export function equilibrioDoCardapio({ params = {}, cmoMes = 0 } = {}) {
+  const dias = Math.max(0, num(params.dias_operacao_mes));
+  const fixoMes = CONTAS_FIXAS.reduce((s, [chave]) => s + num(params[chave]), 0) + Math.max(0, num(cmoMes));
+  const fixoDia = dias > 0 ? fixoMes / dias : 0;
+
+  // Tudo que é percentual sobre a venda: mercadoria, imposto, cartão, embalagem.
+  const variavelPct = num(params.meta_cmv) + num(params.imposto_pct)
+    + num(params.taxa_cartao_pct) + num(params.embalagem_pct);
+  const margemPct = 100 - variavelPct;
+
+  return {
+    fixoMes, fixoDia, variavelPct, margemPct,
+    // Margem zero ou negativa: cada venda já nasce sem sobra, então nenhum
+    // faturamento empata. null em vez de Infinity, para a tela dizer o porquê.
+    faturamentoDia: margemPct > 0 && dias > 0 ? fixoDia / (margemPct / 100) : null,
+    faturamentoMes: margemPct > 0 && dias > 0 ? (fixoDia / (margemPct / 100)) * dias : null,
+    rateavel: dias > 0,
+  };
+}

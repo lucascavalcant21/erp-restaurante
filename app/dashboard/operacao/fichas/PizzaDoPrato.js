@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { fatiasDoPrato, setorDonut, centroDoSetor } from "../../../lib/pizza-do-prato.mjs";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -19,10 +20,14 @@ const tintaDaFatia = (id) => (id === "lucro" ? "#0F172A" : "#FFFFFF");
  * número que a pessoa veio buscar — quanto sobra — sem competir com as fatias.
  */
 export default function PizzaDoPrato({
-  preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params, compacta = false,
+  preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params,
+  partesCmv = null, partesCmo = null, compacta = false,
 }) {
   const [emFoco, setEmFoco] = useState(null);
-  const dados = fatiasDoPrato({ preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params });
+  // Qual segmento está aberto. Um por vez: abrir todos de uma vez devolve a
+  // parede de números que a rosca existe para evitar.
+  const [aberto, setAberto] = useState(null);
+  const dados = fatiasDoPrato({ preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params, partesCmv, partesCmo });
   const { fatias, prejuizo, lucro, preco: precoVenda, rateavel } = dados;
 
   if (!fatias.length) {
@@ -100,15 +105,24 @@ export default function PizzaDoPrato({
             <li key={f.id}
               onMouseEnter={() => setEmFoco(f.id)} onMouseLeave={() => setEmFoco(null)}
               className={`rounded-md px-1 py-0.5 transition-colors ${emFoco === f.id ? "bg-slate-50" : ""}`}>
-              <div className="flex items-center gap-2 text-[11px]">
+              <button type="button" disabled={!f.partes.length}
+                onClick={() => setAberto(aberto === f.id ? null : f.id)}
+                aria-expanded={aberto === f.id}
+                className="flex w-full items-center gap-2 text-left text-[11px] disabled:cursor-default">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.cor }} />
-                <span className={`min-w-0 flex-1 truncate font-black ${f.id === "lucro" ? "text-emerald-700" : "text-slate-700"}`}>{f.rotulo}</span>
+                <span className={`min-w-0 flex-1 truncate font-black ${f.id === "lucro" ? "text-emerald-700" : "text-slate-700"}`}>
+                  {f.rotulo}
+                  {!!f.partes.length && (
+                    <ChevronDown size={11} className={`ml-1 inline shrink-0 text-slate-400 transition-transform ${aberto === f.id ? "" : "-rotate-90"}`} />
+                  )}
+                </span>
                 <span className="shrink-0 font-black text-slate-800">{fmt(f.valor)}</span>
                 <span className="w-11 shrink-0 text-right font-black text-slate-500">{f.pct.toFixed(1)}%</span>
-              </div>
-              {/* Do que o segmento é feito. Só quando há mais de uma parte:
-                  repetir "CMO 100%" embaixo de "CMO" não informa nada. */}
-              {f.partes.length > 1 && (
+              </button>
+              {/* Do que o segmento é feito — só quando a pessoa pede. Aberto
+                  sempre, isto vira uma parede de vinte linhas num prato com
+                  muitos ingredientes. */}
+              {aberto === f.id && !!f.partes.length && (
                 <ul className="mt-0.5 space-y-0.5 border-l border-slate-200 pl-2 ml-[5px]">
                   {f.partes.map((x) => (
                     <li key={x.rotulo} className="flex items-center gap-2 text-[10px]">

@@ -152,11 +152,20 @@ export default function PizzaDoLucroPage() {
       .filter((f) => !f.eh_base)
       .map((f) => {
         const entrada = dadosDoPrato(f, { fichas, produtos, params: paramsComCmo });
-        const conta = fatiasDoPrato(entrada);
+        // A abertura do CMO vem do RH: folha dos contratados e diárias de
+        // extras, rateadas pelo mesmo volume que o resto da tela usa.
+        const pratos = (Number(paramsComCmo.dias_operacao_mes) || 0) * (Number(paramsComCmo.pratos_por_dia) || 0);
+        const partesCmo = cmo && pratos > 0
+          ? [
+              { rotulo: "Folha dos contratados", valor: cmo.folha / pratos },
+              { rotulo: "Extras (diárias pagas)", valor: cmo.extras / pratos },
+            ].filter((x) => x.valor > 0)
+          : null;
+        const conta = fatiasDoPrato({ ...entrada, partesCmo });
         // Os mesmos valores da pizza, prontos para as colunas da lista.
         const porFatia = (id) => conta.fatias.find((x) => x.id === id)?.valor || 0;
         return {
-          ficha: f, entrada, conta,
+          ficha: f, entrada, conta, partesCmo,
           cmv: porFatia("cmv"), cmoUnit: porFatia("cmo"),
           fixoUnit: porFatia("fixo"), variavelUnit: porFatia("variavel"),
           sugerido: precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, params: paramsComCmo }),
@@ -602,7 +611,7 @@ export default function PizzaDoLucroPage() {
                                 </p>
                               )}
                               <div className="mx-auto max-w-md">
-                                <PizzaDoPrato {...x.entrada} />
+                                <PizzaDoPrato {...x.entrada} partesCmo={x.partesCmo} />
                               </div>
                             </td>
                           </tr>

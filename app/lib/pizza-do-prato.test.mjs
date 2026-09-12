@@ -2,7 +2,7 @@
 
 import {
   fatiasDoPrato, rateioPorPrato, pratosNoMes, setorDonut, centroDoSetor,
-  porcoesDaFicha, dadosDoPrato, precoSugerido, COR_LUCRO,
+  porcoesDaFicha, dadosDoPrato, precoSugerido, ingredientesDaFicha, COR_LUCRO,
 } from "./pizza-do-prato.mjs";
 
 let falhas = 0;
@@ -194,6 +194,36 @@ conferir("sem espaco para a margem nao ha preco",
   precoSugerido({ custoIngredientes: 10, impostoPct: 50, taxaMaquininhaPct: 30, margemAlvoPct: 20, params: PARAMS }), null);
 conferir("custo zero nao sugere preco",
   precoSugerido({ custoIngredientes: 0, margemAlvoPct: 20, params: { dias_operacao_mes: 0, pratos_por_dia: 0 } }), null);
+
+// ── Abertura do CMV por ingrediente ───────────────────────────────────────
+// Ficha de 4 porcoes: 500g de camarao a R$80/kg, 200ml de leite de coco a
+// R$15/l e 50g de tempero de um pacote de 1kg por R$30.
+const FICHA_CMV = {
+  id: "fc", rendimento_porcoes: 4, rendimento_unidade: "porcao",
+  fichas_ingredientes: [
+    { quantidade: 500, insumos: { nome: "Camarão", unidade_medida: "g", preco_normalizado: 80 } },
+    { quantidade: 200, insumos: { nome: "Leite de coco", unidade_medida: "ml", preco_normalizado: 15 } },
+    { quantidade: 50, insumos: { nome: "Temperos", unidade_medida: "g", custo_compra: 30, tamanho_embalagem: 1000 } },
+  ],
+};
+const partes = ingredientesDaFicha(FICHA_CMV, [FICHA_CMV], 4);
+conferir("abre em tres ingredientes", partes.length, 3);
+conferir("do mais caro para o mais barato", partes.map(x => x.rotulo).join(","), "Camarão,Leite de coco,Temperos");
+// 500g a R$80/kg = R$40 no lote, /4 porcoes = R$10.
+conferir("camarao por porcao", r2(partes[0].valor), 10);
+
+// O QUE IMPORTA: a soma da abertura tem que dar o total que a tela mostra
+// logo acima dela. Existem DUAS funcoes chamadas unidadeNormalizada no
+// projeto; pegar a que nao converte "g" em "kg" multiplica tudo por mil e a
+// abertura passa a contradizer o proprio total.
+const dadosCmv = dadosDoPrato(FICHA_CMV, { fichas: [FICHA_CMV], produtos: [], params: {} });
+conferir("a abertura fecha com o total do CMV",
+  r2(dadosCmv.partesCmv.reduce((t, x) => t + x.valor, 0)), r2(dadosCmv.custoIngredientes));
+
+// Ingrediente sem custo nao vira linha vazia na abertura.
+conferir("ingrediente de custo zero fica de fora",
+  ingredientesDaFicha({ fichas_ingredientes: [{ quantidade: 10, insumos: { nome: "Sal", unidade_medida: "g" } }] }, [], 1).length, 0);
+conferir("ficha sem ingredientes devolve lista vazia", ingredientesDaFicha(null, [], 1).length, 0);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

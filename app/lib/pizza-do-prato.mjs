@@ -25,7 +25,15 @@ export const COR_LUCRO = "#10B981";
 // medida contra todos estes degraus (ΔE mínimo 15,6).
 export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B"];
 
-import { custoDeProduzirFicha } from "./ficha-calculos.mjs";
+import {
+  custoDeProduzirFicha, custoIngrediente, custoSubreceita,
+  converterParaBaseDoInsumo, custoUnitarioEfetivoInsumo,
+} from "./ficha-calculos.mjs";
+// ATENÇÃO: existem DUAS `unidadeNormalizada` no projeto. A de ficha-calculos
+// só arruma maiúsculas e ponto final; a que converte "g" em "kg" — que é a
+// usada no cálculo de custo — mora aqui. Pegar a errada multiplica o custo de
+// cada ingrediente por mil, e a abertura do CMV contradiz o próprio total.
+import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
 
 const num = (v) => {
   const n = Number(v);
@@ -76,6 +84,9 @@ export function rateioPorPrato(params = {}) {
 export function fatiasDoPrato({
   preco = 0, custoIngredientes = 0, custoEmbalagem = 0,
   impostoPct = 0, taxaMaquininhaPct = 0, params = {},
+  // Aberturas vindas da ficha e do RH. Sem elas, cada segmento cai na
+  // separação genérica e nada quebra.
+  partesCmv = null, partesCmo = null,
 } = {}) {
   const precoVenda = Math.max(0, num(preco));
   const { fixo, cmo, itensFixo, rateavel } = rateioPorPrato(params);
@@ -86,10 +97,16 @@ export function fatiasDoPrato({
   const maquininha = precoVenda * (Math.max(0, num(taxaMaquininhaPct)) / 100);
 
   const segmentos = [
+    // Com a lista de ingredientes, o CMV abre item a item; sem ela, fica a
+    // separação grossa entre ingrediente e embalagem.
     { id: "cmv",      rotulo: "CMV",            valor: ingredientes + embalagem,
-      partes: [{ rotulo: "Ingredientes", valor: ingredientes }, { rotulo: "Embalagem", valor: embalagem }] },
+      partes: (Array.isArray(partesCmv) && partesCmv.length)
+        ? [...partesCmv, { rotulo: "Embalagem", valor: embalagem }]
+        : [{ rotulo: "Ingredientes", valor: ingredientes }, { rotulo: "Embalagem", valor: embalagem }] },
     { id: "cmo",      rotulo: "CMO",            valor: cmo,
-      partes: [{ rotulo: "Mão de obra rateada", valor: cmo }] },
+      partes: (Array.isArray(partesCmo) && partesCmo.length)
+        ? partesCmo
+        : [{ rotulo: "Mão de obra rateada", valor: cmo }] },
     { id: "fixo",     rotulo: "Custo fixo",     valor: fixo, partes: itensFixo },
     { id: "variavel", rotulo: "Custo variável", valor: imposto + maquininha,
       partes: [{ rotulo: "Imposto", valor: imposto }, { rotulo: "Maquininha", valor: maquininha }] },
@@ -202,9 +219,15 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
 
   const custoIngredientes = Math.max(0, custoPorcao - custoEmbalagem);
 
+  // Abertura do CMV: cada ingrediente da ficha, já por porção. Quando não dá
+  // para saber as porções, o rendimento inteiro conta como uma — o mesmo
+  // critério usado no custo, para os dois números não se contradizerem.
+  const partesCmv = ingredientesDaFicha(ficha, fichas, semRendimento ? 1 : porcoes);
+
   return {
     preco,
     custoIngredientes,
+    partesCmv,
     custoEmbalagem,
     // Duas situações em que a pizza sai bonita e mentindo, e a tela precisa
     // avisar em vez de exibir um lucro alto com ar de verdade:
@@ -244,4 +267,46 @@ export function precoSugerido({
   const sobraPct = 100 - Math.max(0, num(impostoPct)) - Math.max(0, num(taxaMaquininhaPct)) - Math.max(0, num(margemAlvoPct));
   if (sobraPct <= 0 || custoDireto <= 0) return null;
   return custoDireto / (sobraPct / 100);
+}
+
+/* O CMV aberto ingrediente a ingrediente, já POR PORÇÃO.
+ *
+ * Espelha o laço de custoDeProduzirFicha — a soma destes itens tem que dar o
+ * mesmo número que ela devolve, senão a abertura contradiz o total logo acima
+ * dela na tela. Por isso a mesma conversão de unidade e o mesmo fator de
+ * correção: quantidade da receita trazida para a base do insumo (R$/kg, R$/L)
+ * antes de multiplicar.
+ */
+export function ingredientesDaFicha(ficha, todasFichas = [], porcoes = 1) {
+  const divisor = porcoes > 0 ? porcoes : 1;
+  const itens = [];
+  for (const fi of ficha?.fichas_ingredientes || []) {
+    if (fi.insumos) {
+      const unBase = unidadeBaseDoInsumo(fi.insumos.unidade_medida)
+        || String(fi.insumos.unidade_medida || "un").toLowerCase();
+      itens.push({
+        rotulo: fi.insumos.nome || fi.insumos.nome_insumo || "Ingrediente",
+        valor: custoIngrediente({
+          custoUnitario: custoUnitarioEfetivoInsumo(fi.insumos),
+          quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.insumos.unidade_medida, unBase),
+          fatorCorrecao: fi.fator_correcao,
+        }) / divisor,
+      });
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find((x) => x.id === fi.subficha_id);
+      if (!base) continue;
+      itens.push({
+        rotulo: base.nome_receita || "Pré-preparo",
+        valor: custoSubreceita({
+          custoTotalSubficha: custoDeProduzirFicha(base, todasFichas),
+          rendimentoSubficha: base.rendimento_porcoes,
+          quantidade: fi.quantidade,
+          fatorCorrecao: fi.fator_correcao,
+        }) / divisor,
+      });
+    }
+  }
+  // Do mais caro para o mais barato: numa receita de vinte itens, o que decide
+  // o custo são os três primeiros.
+  return itens.filter((x) => x.valor > 0).sort((a, b) => b.valor - a.valor);
 }

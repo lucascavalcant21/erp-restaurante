@@ -5,16 +5,17 @@
 // PREÇO DE VENDA, e não o custo: uma pizza que soma custo não tem fatia de
 // lucro, que é justamente a que interessa.
 //
-// As seis fatias são exclusivas entre si (nada é contado duas vezes):
-//   CMV .......... ingredientes + embalagem (o que entra no prato)
-//   CMO .......... folha do mês rateada por prato
-//   Custo fixo ... aluguel, luz, gás, água, limpeza e outros, rateados
-//   Imposto ...... % sobre a venda
-//   Maquininha ... % sobre a venda
-//   Lucro ........ o que sobra
+// Os cinco segmentos são exclusivos entre si (nada é contado duas vezes), e
+// cada um mostra por dentro do que é feito:
+//   CMV ............. ingredientes + embalagem
+//   CMO ............. folha do mês rateada por prato
+//   Custo fixo ...... aluguel, luz, gás, água, limpeza e outros, rateados
+//   Custo variável .. imposto + maquininha (o que varia com a venda)
+//   Lucro ........... o que sobra
 //
-// Imposto e maquininha SÃO os custos variáveis, junto com a embalagem. Não
-// existe uma fatia "custo variável" separada porque ela repetiria esses três.
+// Imposto e maquininha ficam DENTRO do custo variável em vez de virarem fatias
+// soltas: eles são o custo variável, e repetir os dois por fora faria a pizza
+// passar de 100%.
 
 export const COR_LUCRO = "#10B981";
 
@@ -22,7 +23,7 @@ export const COR_LUCRO = "#10B981";
 // É sequencial de propósito: as fatias estão ordenadas por tamanho típico, e
 // uma rampa se lê como rampa. O verde do lucro foi escolhido por separação
 // medida contra todos estes degraus (ΔE mínimo 15,6).
-export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B", "#94A3B8"];
+export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B"];
 
 const num = (v) => {
   const n = Number(v);
@@ -37,14 +38,26 @@ export function pratosNoMes(params = {}) {
   return dias * porDia;
 }
 
-// Custo fixo e mão de obra que cabem a UM prato.
+// Custo fixo e mão de obra que cabem a UM prato. `itensFixo` guarda a conta
+// aberta para a tela poder mostrar o que forma o custo fixo por dentro.
 export function rateioPorPrato(params = {}) {
   const pratos = pratosNoMes(params);
-  if (pratos <= 0) return { fixo: 0, cmo: 0, rateavel: false };
-  const fixoMes = num(params.custo_aluguel_mes) + num(params.custo_luz_mes)
-    + num(params.custo_gas_mes) + num(params.custo_agua_mes)
-    + num(params.custo_limpeza_mes) + num(params.custo_outros_mes);
-  return { fixo: fixoMes / pratos, cmo: num(params.custo_cmo_mes) / pratos, rateavel: true };
+  const linhas = [
+    { rotulo: "Aluguel", mes: num(params.custo_aluguel_mes) },
+    { rotulo: "Luz", mes: num(params.custo_luz_mes) },
+    { rotulo: "Gás", mes: num(params.custo_gas_mes) },
+    { rotulo: "Água", mes: num(params.custo_agua_mes) },
+    { rotulo: "Limpeza", mes: num(params.custo_limpeza_mes) },
+    { rotulo: "Outros", mes: num(params.custo_outros_mes) },
+  ];
+  if (pratos <= 0) return { fixo: 0, cmo: 0, itensFixo: [], rateavel: false };
+  const itensFixo = linhas.filter((l) => l.mes > 0).map((l) => ({ rotulo: l.rotulo, valor: l.mes / pratos }));
+  return {
+    fixo: itensFixo.reduce((t, l) => t + l.valor, 0),
+    cmo: num(params.custo_cmo_mes) / pratos,
+    itensFixo,
+    rateavel: true,
+  };
 }
 
 /* Monta as fatias de um prato.
@@ -63,24 +76,24 @@ export function fatiasDoPrato({
   impostoPct = 0, taxaMaquininhaPct = 0, params = {},
 } = {}) {
   const precoVenda = Math.max(0, num(preco));
-  const { fixo, cmo, rateavel } = rateioPorPrato(params);
+  const { fixo, cmo, itensFixo, rateavel } = rateioPorPrato(params);
 
-  const cmv = Math.max(0, num(custoIngredientes)) + Math.max(0, num(custoEmbalagem));
+  const ingredientes = Math.max(0, num(custoIngredientes));
+  const embalagem = Math.max(0, num(custoEmbalagem));
   const imposto = precoVenda * (Math.max(0, num(impostoPct)) / 100);
   const maquininha = precoVenda * (Math.max(0, num(taxaMaquininhaPct)) / 100);
 
-  // Rótulo curto e detalhe separado: na legenda dentro do cartão o nome longo
-  // era cortado no meio ("CMV (ingrediente + embalag..."), que é pior do que
-  // não explicar. O detalhe aparece ao passar o mouse na fatia.
-  const custos = [
-    { id: "cmv",        rotulo: "CMV",        detalhe: "ingrediente + embalagem",      valor: cmv },
-    { id: "cmo",        rotulo: "CMO",        detalhe: "mão de obra rateada",          valor: cmo },
-    { id: "fixo",       rotulo: "Custo fixo", detalhe: "aluguel, luz, gás, água, etc", valor: fixo },
-    { id: "imposto",    rotulo: "Imposto",    detalhe: "sobre a venda",                valor: imposto },
-    { id: "maquininha", rotulo: "Maquininha", detalhe: "sobre a venda",                valor: maquininha },
+  const segmentos = [
+    { id: "cmv",      rotulo: "CMV",            valor: ingredientes + embalagem,
+      partes: [{ rotulo: "Ingredientes", valor: ingredientes }, { rotulo: "Embalagem", valor: embalagem }] },
+    { id: "cmo",      rotulo: "CMO",            valor: cmo,
+      partes: [{ rotulo: "Mão de obra rateada", valor: cmo }] },
+    { id: "fixo",     rotulo: "Custo fixo",     valor: fixo, partes: itensFixo },
+    { id: "variavel", rotulo: "Custo variável", valor: imposto + maquininha,
+      partes: [{ rotulo: "Imposto", valor: imposto }, { rotulo: "Maquininha", valor: maquininha }] },
   ].map((c, i) => ({ ...c, cor: CORES_CUSTO[i] }));
 
-  const custoTotal = custos.reduce((s, c) => s + c.valor, 0);
+  const custoTotal = segmentos.reduce((t, c) => t + c.valor, 0);
 
   if (precoVenda <= 0) {
     return { fatias: [], preco: 0, custoTotal, lucro: 0, prejuizo: 0, rateavel };
@@ -91,12 +104,35 @@ export function fatiasDoPrato({
   // Com prejuízo não há fatia de lucro: o todo passa a ser o custo.
   const todo = prejuizo > 0 ? custoTotal : precoVenda;
 
-  const fatias = custos.filter((c) => c.valor > 0).map((c) => ({ ...c, pct: (c.valor / todo) * 100 }));
+  // `pct` é a fatia sobre o todo; `pctNoSegmento` é quanto a parte pesa DENTRO
+  // do seu segmento. São leituras diferentes: "imposto é 4% da venda" e
+  // "imposto é 61% do meu custo variável".
+  const comPartes = (seg) => ({
+    ...seg,
+    pct: (seg.valor / todo) * 100,
+    partes: (seg.partes || []).filter((x) => x.valor > 0).map((x) => ({
+      ...x,
+      pct: (x.valor / todo) * 100,
+      pctNoSegmento: seg.valor > 0 ? (x.valor / seg.valor) * 100 : 0,
+    })),
+  });
+
+  const fatias = segmentos.filter((c) => c.valor > 0).map(comPartes);
   if (prejuizo === 0 && lucro > 0) {
-    fatias.push({ id: "lucro", rotulo: "Lucro", detalhe: "o que sobra para você", valor: lucro, pct: (lucro / todo) * 100, cor: COR_LUCRO });
+    fatias.push({
+      id: "lucro", rotulo: "Lucro", valor: lucro, pct: (lucro / todo) * 100, cor: COR_LUCRO,
+      partes: [{ rotulo: "O que sobra para você", valor: lucro, pct: (lucro / todo) * 100, pctNoSegmento: 100 }],
+    });
   }
 
   return { fatias, preco: precoVenda, custoTotal, lucro: Math.max(0, lucro), prejuizo, rateavel };
+}
+
+// Ponto no meio da faixa da rosca, onde cabe o rótulo de porcentagem.
+export function centroDoSetor(cx, cy, raioExterno, raioInterno, inicioGrau, fimGrau) {
+  const meio = ((inicioGrau + fimGrau) / 2 - 90) * (Math.PI / 180);
+  const r = (raioExterno + raioInterno) / 2;
+  return { x: cx + r * Math.cos(meio), y: cy + r * Math.sin(meio) };
 }
 
 // Caminho do setor de uma rosca (donut). Ângulos em graus, 0 no topo.

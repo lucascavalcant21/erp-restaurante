@@ -10,6 +10,20 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const p2 = (n) => String(n).padStart(2, "0");
+
+// Data no fuso de quem está olhando a tela, no formato AAAA-MM-DD. Mesma
+// convenção do `isoData` de compras.mjs: dia do calendário local, não UTC.
+const diaLocal = (iso) => {
+  // O texto vazio precisa ser barrado ANTES do `new Date`: `new Date(null)` e
+  // `new Date("")` não dão data inválida, dão 1º de janeiro de 1970 — uma
+  // venda sem data viraria um dia de movimento em 1970 e entraria na média.
+  if (!iso || typeof iso !== "string") return "";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+};
+
 const ehExtra = (c) => String(c?.tipo_contrato || "") === "Freelancer";
 const ativo = (c) => (c?.status || "ativo") !== "inativo" && c?.ativo !== false;
 
@@ -216,5 +230,42 @@ export function simularCardapio({ itens = [], custoFixoMes = 0, cmoMes = 0 } = {
     // cardápio inteiro entrega, não a de um prato.
     margemMediaPct: receita > 0 ? (contribuicaoTotal / receita) * 100 : 0,
     faltaParaEmpatar: Math.max(0, fixoTotal - contribuicaoTotal),
+  };
+}
+
+/* Quantos itens a casa vende por dia, MEDIDO nas vendas — em vez de chutado.
+ *
+ * Este número divide o custo fixo e a folha por prato, então errá-lo estraga
+ * a tela inteira: trocar 100 por 1 multiplica por cem o custo de cada prato.
+ * Pedir para o dono adivinhar é pedir o número mais perigoso da conta a quem
+ * não tem como saber — e o sistema já registra cada venda.
+ *
+ * Divide pelos DIAS EM QUE HOUVE VENDA, não pelos dias do período. Um mês com
+ * dez dias de movimento e vinte fechados não vende "a metade por dia": vende
+ * o que vende nos dias em que abre, e é essa média que rateia o custo dos
+ * dias abertos.
+ */
+export function mediaItensPorDia(vendas = []) {
+  const porDia = new Map();
+  for (const v of vendas || []) {
+    // O dia é o do RELÓGIO DA CASA, não o do UTC gravado no banco. Cortar a
+    // string do `created_at` jogaria a virada para as 21h de Brasília — no
+    // meio do jantar —, partindo uma noite de serviço em dois "dias" e
+    // derrubando a média justamente no número que esta conta existe para
+    // acertar.
+    const dia = diaLocal(v?.created_at);
+    if (!dia) continue;
+    const itens = (v.itens || []).reduce((t, i) => t + Math.max(0, num(i.quantidade)), 0);
+    porDia.set(dia, (porDia.get(dia) || 0) + itens);
+  }
+  const dias = [...porDia.values()].filter((n) => n > 0);
+  const total = dias.reduce((t, n) => t + n, 0);
+  return {
+    totalItens: total,
+    diasComVenda: dias.length,
+    media: dias.length > 0 ? total / dias.length : 0,
+    // Sem venda nenhuma no período não há o que medir, e a tela precisa dizer
+    // isso em vez de sugerir zero prato por dia.
+    temDados: dias.length > 0,
   };
 }

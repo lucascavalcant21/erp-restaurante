@@ -2,7 +2,7 @@
 
 import {
   contasPorDia, equipePorDia, simularMes, unidadesParaSobrar, equilibrioDoCardapio,
-  simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS,
+  simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS, mediaItensPorDia,
 } from "./custo-diario.mjs";
 
 let falhas = 0;
@@ -174,6 +174,58 @@ conferir("quantidade zero nao muda a receita",
 
 conferir("limite de pratos", LIMITE_PRATOS, 20);
 conferir("limite de bebidas", LIMITE_BEBIDAS, 10);
+
+// ── Media de itens por dia, medida nas vendas ───────────────────────
+// As datas sao montadas com `new Date(ano, mes, dia, hora)` de proposito: isso
+// fixa a HORA LOCAL da maquina, e o `.toISOString()` devolve o UTC equivalente.
+// Assim o teste vale em qualquer fuso, e nao passa a depender de o servidor
+// rodar em UTC.
+const emCasa = (dia, hora) => new Date(2026, 8, dia, hora, 0, 0).toISOString();
+
+const VENDAS = [
+  { created_at: emCasa(1, 20), itens: [{ quantidade: 3 }, { quantidade: 2 }] }, // dia 1: 5
+  { created_at: emCasa(1, 21), itens: [{ quantidade: 5 }] },                     // dia 1: +5 = 10
+  { created_at: emCasa(2, 20), itens: [{ quantidade: 8 }] },                     // dia 2: 8
+  { created_at: emCasa(4, 20), itens: [{ quantidade: 6 }] },                     // dia 4: 6
+];
+const med = mediaItensPorDia(VENDAS);
+conferir("soma os itens de todas as vendas", med.totalItens, 24);
+// Tres dias COM venda, nao quatro dias de calendario: o dia 3 nao existiu.
+conferir("conta so os dias que tiveram venda", med.diasComVenda, 3);
+conferir("media por dia aberto", med.media, 8);
+conferir("tem dados", med.temDados, "true");
+
+// Varias vendas no mesmo dia somam no mesmo dia, nao viram dias diferentes.
+conferir("duas vendas no mesmo dia nao viram dois dias",
+  mediaItensPorDia([
+    { created_at: emCasa(1, 18), itens: [{ quantidade: 1 }] },
+    { created_at: emCasa(1, 22), itens: [{ quantidade: 1 }] },
+  ]).diasComVenda, 1);
+
+// O DIA E O DA CASA, NAO O DO UTC. Uma noite de servico que comeca as 18h e
+// termina as 23h e um dia so. Cortando a string do `created_at` (que vem em
+// UTC), em Brasilia a virada cairia as 21h e essa mesma noite viraria dois
+// dias, com metade dos itens em cada um.
+const noite = mediaItensPorDia([
+  { created_at: emCasa(10, 18), itens: [{ quantidade: 20 }] },
+  { created_at: emCasa(10, 23), itens: [{ quantidade: 20 }] },
+]);
+conferir("uma noite de servico e um dia so", noite.diasComVenda, 1);
+conferir("a noite inteira entra na media do dia", noite.media, 40);
+
+// Sem venda nao se inventa media.
+conferir("sem vendas nao tem dados", mediaItensPorDia([]).temDados, "false");
+conferir("sem vendas a media e zero", mediaItensPorDia([]).media, 0);
+conferir("sem argumento nao quebra", mediaItensPorDia().totalItens, 0);
+// Venda sem item nao conta como dia de movimento.
+conferir("venda sem item nao vira dia de movimento",
+  mediaItensPorDia([{ created_at: emCasa(1, 20), itens: [] }]).diasComVenda, 0);
+// Data invalida ou ausente nao inventa um dia.
+conferir("venda sem data e ignorada",
+  mediaItensPorDia([
+    { created_at: null, itens: [{ quantidade: 9 }] },
+    { created_at: emCasa(1, 20), itens: [{ quantidade: 4 }] },
+  ]).totalItens, 4);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

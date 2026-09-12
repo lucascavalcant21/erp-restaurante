@@ -8,9 +8,10 @@ import { fetchFichas } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { fetchPainelCaixa } from "../../../lib/financeiro";
 import { calcularCMO } from "../../../lib/cmo.mjs";
 import {
-  contasPorDia, equipePorDia, equilibrioDoCardapio,
+  contasPorDia, equipePorDia, equilibrioDoCardapio, mediaItensPorDia,
   simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS,
 } from "../../../lib/custo-diario.mjs";
 import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
@@ -83,6 +84,10 @@ export default function PizzaDoLucroPage() {
   // Cardápio montado: { fichaId: quantidade no mês }.
   const [montado, setMontado] = useState({});
   const [buscaMontar, setBuscaMontar] = useState("");
+  // Média real de itens vendidos por dia, medida nas vendas dos últimos 30
+  // dias. Existe para o dono não ter que adivinhar o número que mais pesa
+  // na conta.
+  const [medido, setMedido] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState("todos");
@@ -101,7 +106,12 @@ export default function PizzaDoLucroPage() {
     Promise.all([
       fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchParams(unidadeAtiva),
       fetchColaboradores(unidadeAtiva), fetchRecibosPrestacaoUnidade(unidadeAtiva),
-    ]).then(([resFichas, resProdutos, resParams, resEquipe, resRecibos]) => {
+      (() => {
+        const fim = new Date();
+        const inicio = new Date(fim.getTime() - 30 * 86400000);
+        return fetchPainelCaixa(unidadeAtiva, inicio.toISOString(), fim.toISOString());
+      })(),
+    ]).then(([resFichas, resProdutos, resParams, resEquipe, resRecibos, resCaixa]) => {
       if (!ativo) return;
       setFichas(resFichas.data || []);
       setProdutos(resProdutos.data || []);
@@ -121,6 +131,7 @@ export default function PizzaDoLucroPage() {
       // sistema acabariam divergindo.
       setEquipe(resEquipe.data || []);
       setCmo(calcularCMO({ colaboradores: resEquipe.data || [], recibos: resRecibos.data || [] }));
+      setMedido(mediaItensPorDia(resCaixa?.data?.vendas || []));
       setLoading(false);
     });
     return () => { ativo = false; };
@@ -388,6 +399,25 @@ export default function PizzaDoLucroPage() {
                 <p className="mt-1.5 text-[11px] font-bold text-slate-500">
                   Cada prato carrega <b className="text-slate-800">{fmt(rateioPorPratoTotal)}</b> de custo fixo e folha
                   {" "}({(Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0)} pratos no mês).
+                </p>
+              )}
+              {/* O número medido nas vendas. Adivinhar "pratos por dia" é o
+                  ponto mais frágil da tela, e o sistema já registra cada
+                  venda — não faz sentido perguntar. */}
+              {medido?.temDados && (
+                <p className="mt-1 text-[11px] font-bold text-slate-500">
+                  Nas suas vendas dos últimos 30 dias deu{" "}
+                  <b className="text-slate-800">{Math.round(medido.media)} itens por dia</b>{" "}
+                  ({medido.totalItens.toLocaleString("pt-BR")} itens em {medido.diasComVenda} dias com movimento).
+                  {Math.round(medido.media) !== Number(params.pratos_por_dia) && (
+                    <>
+                      {" "}
+                      <button type="button" onClick={() => editar("pratos_por_dia", Math.round(medido.media))}
+                        className="font-black text-emerald-700 underline underline-offset-2">
+                        usar esse número
+                      </button>
+                    </>
+                  )}
                 </p>
               )}
             </div>

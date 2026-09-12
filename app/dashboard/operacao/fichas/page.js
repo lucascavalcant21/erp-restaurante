@@ -46,7 +46,8 @@ import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
-import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
+import { fetchCategoriasFichas, salvarCategoriasFichas, fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import PizzaDoPrato from "./PizzaDoPrato";
 import { METODOS_BAR, metodoBar, fetchComplementosDeFichas } from "../../../lib/ficha-tecnica";
 import { hasPermission, permissionKey } from "../../../lib/permissions-catalog";
 import {
@@ -422,6 +423,12 @@ function FichasRunner() {
 
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
+  // Pizza do prato: vale para a grade inteira, nao por cartao. O gestor quer
+  // comparar a fatia de lucro de um prato com a do outro lado a lado.
+  const [verPizza, setVerPizza] = useState(false);
+  // Custo fixo e CMO vem dos parametros do Ponto de Equilibrio; sem eles a
+  // pizza mostra so o que a propria ficha sabe.
+  const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(12);
   const [modalImpressao, setModalImpressao] = useState(null);
@@ -752,6 +759,9 @@ function FichasRunner() {
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
     fetchCategoriasFichas(unidadeAtiva).then(({ data }) => setCategoriasConfig(data || {}));
+    // Rateio do custo fixo e da mao de obra. Se nao vier nada, ficam os
+    // padroes e a pizza avisa na propria legenda que faltam preencher.
+    fetchParams(unidadeAtiva).then(({ data }) => setParamsSis({ ...PARAMS_PADRAO, ...(data || {}) }));
   }, [unidadeAtiva]);
 
   const configCategoriasDept = categoriasConfig?.[deptUrl] || {};
@@ -2879,7 +2889,18 @@ function FichasRunner() {
                                  </div>
 
                                  {/* Daqui para baixo é tudo dinheiro: só para quem tem view_costs. */}
-                                 {podeVerCustos && <>
+                                 {podeVerCustos && verPizza && (
+                                   <div className="py-3">
+                                     <PizzaDoPrato compacta
+                                       preco={precoPorcao}
+                                       custoIngredientes={custoIngred}
+                                       custoEmbalagem={custoEmb}
+                                       impostoPct={f.eh_base ? 0 : impostoPct}
+                                       taxaMaquininhaPct={f.eh_base ? 0 : taxaMaqPct}
+                                       params={paramsSis} />
+                                   </div>
+                                 )}
+                                 {podeVerCustos && !verPizza && <>
                                  <div className="py-2 flex items-center justify-between">
                                    <span className="text-slate-600 font-bold">Custo</span>
                                    <span className="text-sm font-black text-slate-900">{fmtBRL(custoIngred)}</span>
@@ -2953,9 +2974,17 @@ function FichasRunner() {
          )}
          {!loading && filtradas.length > 0 && (
            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-             <p className="text-xs font-bold text-slate-500">
-               Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
-             </p>
+             <div className="flex flex-wrap items-center gap-3">
+               <p className="text-xs font-bold text-slate-500">
+                 Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
+               </p>
+               {podeVerCustos && (
+                 <button type="button" onClick={() => setVerPizza(v => !v)}
+                   className={`rounded-xl px-3 py-2 text-xs font-black transition-colors ${verPizza ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+                   {verPizza ? "Ver números" : "Ver pizza do lucro"}
+                 </button>
+               )}
+             </div>
              <div className="flex flex-wrap items-center justify-center gap-2">
                <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 outline-none">
                  {[8, 12, 24, 48].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}

@@ -540,15 +540,22 @@ function EtiquetasRunner() {
     setTimeout(() => setSalvou(""), 2500);
   }
 
+  const novaEtiqueta = () => {
+    setCodigo(gerarCodigo());
+    setCodigoSalvo(null);
+    setAssinaturaSalva(null);
+    setMomentoEtiqueta(new Date());
+    setForm((f) => ({ ...f, produto: "", quantidade: "", lote: "" }));
+    setSalvou("Nova etiqueta pronta!");
+    setTimeout(() => setSalvou(""), 2000);
+  };
+
   async function salvar(modoImpressao = "") {
     if (salvando) return;
     if (codigoSalvo === codigo && assinaturaSalva !== assinaturaConteudo) {
       setCodigo(gerarCodigo());
       setCodigoSalvo(null);
       setAssinaturaSalva(null);
-      setSalvou("O conteúdo mudou. Um novo código foi preparado; confirme a impressão novamente.");
-      setTimeout(() => setSalvou(""), 3500);
-      return;
     }
     const etiquetaJaRegistrada = codigoSalvo === codigo;
     const momentoImpressao = etiquetaJaRegistrada ? momentoEtiqueta : new Date();
@@ -718,11 +725,7 @@ function EtiquetasRunner() {
       }
       setTimeout(() => {
         setSalvou("");
-        setCodigo(gerarCodigo());
-        setCodigoSalvo(null);
-        setAssinaturaSalva(null);
-        setMomentoEtiqueta(new Date());
-      }, 2500);
+      }, 4000);
     } catch (erro) {
       setSalvou(etiquetaRegistrada
         ? `Etiqueta salva, mas a impressão não foi confirmada: ${erro?.message || "erro inesperado"}. Confira o papel antes de tentar novamente.`
@@ -1146,14 +1149,17 @@ function EtiquetasRunner() {
             </div>
 
             {/* Ações principais */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "..." : "Salvar"}</Btn>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={15} /> {salvando ? "..." : "Salvar"}</Btn>
               {/* Um único botão Imprimir: usa a TP20 se estiver conectada; senão, impressão comum */}
               <Btn variant="primary" disabled={salvando} onClick={() => salvar(impressoraStatus === "conectada" ? "tp20" : "navegador")}>
-                <Printer size={16} /> {salvando ? "..." : "Imprimir"}
+                <Printer size={15} /> {salvando ? "..." : "Imprimir"}
               </Btn>
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta — imprima o PDF em 'Tamanho real / 100%' para não sair miniatura">
-                <Printer size={16} /> PDF exato
+              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta">
+                <Printer size={15} /> PDF exato
+              </Btn>
+              <Btn variant="ghost" disabled={salvando} onClick={novaEtiqueta} title="Limpa o formulário e prepara uma nova etiqueta em branco">
+                <RefreshCw size={15} /> Nova etiqueta
               </Btn>
             </div>
             <button type="button" onClick={imprimirTeste}

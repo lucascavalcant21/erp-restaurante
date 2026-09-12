@@ -26,7 +26,8 @@ export const PARAMS_PADRAO = {
   custo_outros_mes: 0,
   imposto_pct: 0,          // % de imposto sobre a venda
   taxa_cartao_pct: 0,      // % que a maquininha fica, sobre a venda
-  embalagem_pct: 0,        // % de embalagem sobre a venda
+  embalagem_pct: 0,        // % de embalagem sobre a venda (antigo; ver embalagem_valor)
+  embalagem_valor: 0,      // R$ de embalagem por prato — substitui o percentual
   margem_alvo_pct: 20,     // % que o dono quer que sobre, usado no preço sugerido
   dias_operacao_mes: 26,   // dias que a loja abre no mês
   pratos_por_dia: 100,     // média de pratos vendidos por dia (rateio dos fixos)

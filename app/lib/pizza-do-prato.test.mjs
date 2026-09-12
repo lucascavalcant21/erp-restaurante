@@ -145,8 +145,10 @@ conferir("embalagem soma custo x quantidade", comEmbalagem.custoEmbalagem, 3);
 // porcoes saem. Cobrar o lote inteiro de uma porcao dava "prejuizo" de R$ 85
 // num drink de R$ 40 — numero inventado, com cara de real.
 const semRend = dadosDoPrato({ id: "d1", rendimento_porcoes: 300, rendimento_unidade: "ml", preco_venda: 40 }, {});
-conferir("sem rendimento e marcado", semRend.semRendimento, "true");
-conferir("sem rendimento nao inventa custo", semRend.custoIngredientes, 0);
+conferir("sem rendimento continua marcado", semRend.semRendimento, "true");
+// Mas segue na conta: o rendimento inteiro vale como uma porcao. Tirar esses
+// itens da tela apagaria quase todo o cardapio de uma base real.
+conferir("sem rendimento ainda entra na conta", semRend.preco, 40);
 
 // Revenda (cerveja) sem ingrediente na ficha: custo zero vira "94% de lucro".
 const revenda = dadosDoPrato({ id: "r1", rendimento_porcoes: 1, rendimento_unidade: "un", preco_venda: 12 }, {});

@@ -179,13 +179,17 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
   const custoTotal = custoDeProduzirFicha(ficha, fichas);
   const porcoes = porcoesDaFicha(ficha);
 
-  // Sem saber em quantas porções a receita rende, NÃO existe custo por porção.
-  // Cobrar o lote inteiro de uma porção só (o que o código fazia) inventa um
-  // custo absurdo: um drink de R$ 40 aparecia com R$ 125 de custo e "prejuízo"
-  // de R$ 85. Melhor dizer que não dá para calcular do que dar um número que
-  // parece real e manda tomar a decisão errada.
+  // Quando a ficha não diz em quantas porções rende, o rendimento inteiro vale
+  // como uma porção. Não é chute: é assim que a maioria desses itens se vende
+  // — "Banco de frutos do mar 1 kg" a R$ 395 é vendido como aquele 1 kg.
+  //
+  // A flag continua, porque o caso oposto existe: uma receita de 1 litro que
+  // rende dez drinks aparece com o custo do lote inteiro num copo. Quem abrir
+  // a pizza desse item vê o aviso e sabe que o número depende de completar a
+  // ficha. O que NÃO se faz é tirar o item da tela por isso: numa base real
+  // são quase todas as fichas, e a tela fica vazia.
   const semRendimento = !(porcoes > 0);
-  const custoPorcao = semRendimento ? 0 : custoTotal / porcoes;
+  const custoPorcao = semRendimento ? custoTotal : custoTotal / porcoes;
 
   // O preço mandado é o do produto de venda; a ficha só responde quando não há
   // produto ligado a ela.

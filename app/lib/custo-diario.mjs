@@ -134,18 +134,25 @@ export function unidadesParaSobrar({ alvo = 0, contribuicaoUnit = 0, fixoTotal =
  * A maquininha e o imposto entram porque saem de CADA venda. Fora da conta, o
  * equilíbrio sai otimista e a casa "empata" num número que não paga as contas.
  */
-export function equilibrioDoCardapio({ params = {}, cmoMes = 0 } = {}) {
+export function equilibrioDoCardapio({ params = {}, cmoMes = 0, precoMedio = 0 } = {}) {
   const dias = Math.max(0, num(params.dias_operacao_mes));
   const fixoMes = CONTAS_FIXAS.reduce((s, [chave]) => s + num(params[chave]), 0) + Math.max(0, num(cmoMes));
   const fixoDia = dias > 0 ? fixoMes / dias : 0;
 
-  // Tudo que é percentual sobre a venda: mercadoria, imposto, cartão, embalagem.
+  // A embalagem é um valor em REAIS por prato — uma caixa custa o que custa,
+  // não uma fatia do preço. Para entrar numa conta que roda sobre faturamento
+  // ela vira percentual pelo preço médio do cardápio: R$ 1,50 de caixa num
+  // prato de R$ 45 pesa 3,3% da venda. Sem preço médio (nenhum prato com
+  // preço) ela fica de fora, em vez de ser chutada.
+  const pm = Math.max(0, num(precoMedio));
+  const embalagemPct = pm > 0 ? (Math.max(0, num(params.embalagem_valor)) / pm) * 100 : 0;
+
   const variavelPct = num(params.meta_cmv) + num(params.imposto_pct)
-    + num(params.taxa_cartao_pct) + num(params.embalagem_pct);
+    + num(params.taxa_cartao_pct) + embalagemPct;
   const margemPct = 100 - variavelPct;
 
   return {
-    fixoMes, fixoDia, variavelPct, margemPct,
+    fixoMes, fixoDia, variavelPct, margemPct, embalagemPct,
     // Margem zero ou negativa: cada venda já nasce sem sobra, então nenhum
     // faturamento empata. null em vez de Infinity, para a tela dizer o porquê.
     faturamentoDia: margemPct > 0 && dias > 0 ? fixoDia / (margemPct / 100) : null,

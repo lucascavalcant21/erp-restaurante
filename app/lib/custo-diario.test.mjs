@@ -97,9 +97,12 @@ conferir("sem contribuicao nao existe alvo alcancavel",
 // Variavel = 30 (meta cmv) + 4 (imposto) + 2,5 (cartao) + 3 (embalagem) = 39,5
 // Margem = 60,5%  ->  1.011,44 / 0,605 = 1.671,80 por dia.
 const eqC = equilibrioDoCardapio({
-  params: { ...PARAMS, meta_cmv: 30, imposto_pct: 4, taxa_cartao_pct: 2.5, embalagem_pct: 3 },
-  cmoMes: 17697.44,
+  // Embalagem de R$ 1,35 num prato medio de R$ 45 pesa 3% da venda — os
+  // mesmos 3% que antes eram digitados a mao como percentual.
+  params: { ...PARAMS, meta_cmv: 30, imposto_pct: 4, taxa_cartao_pct: 2.5, embalagem_valor: 1.35 },
+  cmoMes: 17697.44, precoMedio: 45,
 });
+conferir("embalagem em reais vira % pelo preco medio", r2(eqC.embalagemPct), 3);
 conferir("fixo do mes inclui o cmo", r2(eqC.fixoMes), 26297.44);
 conferir("fixo por dia", r2(eqC.fixoDia), 1011.44);
 conferir("percentual variavel", eqC.variavelPct, 39.5);
@@ -114,6 +117,13 @@ conferir("margem negativa nao tem equilibrio", semMargem.faturamentoDia, null);
 conferir("e a margem aparece negativa", semMargem.margemPct < 0, "true");
 
 // Sem dias de operacao nao da para dividir.
+// Sem preco medio a embalagem fica de fora, em vez de ser chutada.
+conferir("sem preco medio a embalagem nao entra",
+  equilibrioDoCardapio({ params: { ...PARAMS, meta_cmv: 30, embalagem_valor: 5 }, cmoMes: 0, precoMedio: 0 }).embalagemPct, 0);
+// Embalagem cara num prato barato pesa muito: R$ 2 numa venda de R$ 8 e 25%.
+conferir("embalagem cara em prato barato pesa muito",
+  r2(equilibrioDoCardapio({ params: { ...PARAMS, embalagem_valor: 2 }, cmoMes: 0, precoMedio: 8 }).embalagemPct), 25);
+
 conferir("sem dias nao calcula equilibrio",
   equilibrioDoCardapio({ params: { meta_cmv: 30, dias_operacao_mes: 0 }, cmoMes: 0 }).faturamentoDia, null);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, PieChart, Search, Loader2, X, Save, AlertTriangle, Check, ChevronDown } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
@@ -25,10 +25,14 @@ const CAMPOS_VARIAVEL = [
   // Estes dois vieram da tela Ponto de Equilíbrio, absorvida por esta. São
   // estimativas do cardápio inteiro: a pizza de cada prato usa o CMV e a
   // embalagem REAIS da ficha, não estes.
-  ["meta_cmv", "Meta de CMV (%)"], ["embalagem_pct", "Embalagem (%)"],
+  ["meta_cmv", "Meta de CMV (%)"],
   // Quanto o dono quer que sobre. É o alvo do preço sugerido.
   ["margem_alvo_pct", "Margem que quero (%)"],
 ];
+// Embalagem fica fora do grupo de percentuais: uma caixa custa o que custa,
+// não uma fatia do preço. Na conta do equilíbrio ela vira percentual pelo
+// preço médio do cardápio.
+const CAMPOS_REAIS = [["embalagem_valor", "Embalagem (R$ por prato)"]];
 const CAMPOS_VOLUME = [["dias_operacao_mes", "Dias que abre no mês"], ["pratos_por_dia", "Pratos por dia"]];
 
 // Campo de número dos custos.
@@ -79,7 +83,6 @@ export default function PizzaDoLucroPage() {
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState("todos");
   const [escolhida, setEscolhida] = useState(null);
-  const [verSemRendimento, setVerSemRendimento] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   // null = decide sozinho. Quem ainda não preencheu precisa ver os campos;
@@ -98,7 +101,17 @@ export default function PizzaDoLucroPage() {
       if (!ativo) return;
       setFichas(resFichas.data || []);
       setProdutos(resProdutos.data || []);
-      setParams({ ...PARAMS_PADRAO, ...(resParams.data || {}) });
+      const carregados = { ...PARAMS_PADRAO, ...(resParams.data || {}) };
+      setParams(carregados);
+      // A decisão de abrir ou não é tomada UMA VEZ, com o que veio do banco.
+      // Antes ela era recalculada a cada tecla: ao digitar o primeiro número
+      // no Aluguel a condição "já configurado" virava verdadeira e o painel
+      // fechava no meio da digitação, embaralhando o que estava sendo escrito.
+      setPainelAberto(!(
+        Number(carregados.dias_operacao_mes) > 0
+        && Number(carregados.pratos_por_dia) > 0
+        && CAMPOS_FIXO.some(([chave]) => Number(carregados[chave]) > 0)
+      ));
       // Usa o cálculo que o DRE já usa: folha dos contratados + diárias de
       // extras EFETIVAMENTE PAGAS (recibo). Duas contas de CMO no mesmo
       // sistema acabariam divergindo.
@@ -166,26 +179,30 @@ export default function PizzaDoLucroPage() {
     });
   }, [ranking, busca, aba]);
 
-  // Ficha sem rendimento não entra no ranking: sem saber em quantas porções
-  // rende, o "lucro" dela é um número que não existe.
-  const ocultos = daAba.filter((x) => x.entrada.semRendimento);
-  const filtrado = verSemRendimento ? daAba : daAba.filter((x) => !x.entrada.semRendimento);
+  const filtrado = daAba;
 
   const atual = escolhida ? ranking.find((x) => x.ficha.id === escolhida) : filtrado[0];
-  // Conta o que a lista realmente mostra: um número de aba que não bate com
-  // as linhas embaixo dele faz o usuário procurar o que não existe.
-  const contarAba = (id) => ranking.filter((x) =>
-    (id === "todos" || x.entrada.departamento === id) && (verSemRendimento || !x.entrada.semRendimento)).length;
+  const contarAba = (id) => ranking.filter((x) => id === "todos" || x.entrada.departamento === id).length;
   const semVolume = !(Number(params.dias_operacao_mes) > 0 && Number(params.pratos_por_dia) > 0);
-  const jaConfigurado = !semVolume && CAMPOS_FIXO.some(([chave]) => Number(params[chave]) > 0);
-  const abrirPainel = painelAberto !== null ? painelAberto : !jaConfigurado;
+  // Enquanto não carregou, o painel fica aberto: melhor mostrar os campos do
+  // que piscar fechado e abrir.
+  const abrirPainel = painelAberto !== false;
 
   const dias = Number(params.dias_operacao_mes) || 0;
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
   const equipeDia = useMemo(() => equipePorDia(equipe, dias), [equipe, dias]);
   const cmoDia = dias > 0 && cmo ? cmo.total / dias : 0;
+  // Preço médio do que se vende de verdade, para converter a embalagem em
+  // reais num percentual sobre a venda.
+  const precoMedio = useMemo(() => {
+    const comPreco = ranking.filter((x) => x.conta.preco > 0);
+    if (!comPreco.length) return 0;
+    return comPreco.reduce((soma, x) => soma + x.conta.preco, 0) / comPreco.length;
+  }, [ranking]);
+
   const equilibrio = useMemo(
-    () => equilibrioDoCardapio({ params, cmoMes: cmo ? cmo.total : 0 }), [params, cmo]);
+    () => equilibrioDoCardapio({ params, cmoMes: cmo ? cmo.total : 0, precoMedio }),
+    [params, cmo, precoMedio]);
   const custoDiaTotal = contasDia.totalDia + cmoDia;
   const pratosNoMes = (Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0);
   const rateioPorPratoTotal = pratosNoMes > 0
@@ -293,6 +310,21 @@ export default function PizzaDoLucroPage() {
                 {CAMPOS_VARIAVEL.map(([chave, rotulo]) => (
                   <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} step="0.1" />
                 ))}
+                {CAMPOS_REAIS.map(([chave, rotulo]) => (
+                  <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} step="0.01" />
+                ))}
+                {/* Quem já tinha embalagem em % não pode ver a conta mudar em
+                    silêncio: a tela converte o valor antigo e oferece. */}
+                {Number(params.embalagem_pct) > 0 && !Number(params.embalagem_valor) && precoMedio > 0 && (
+                  <p className="col-span-2 text-[11px] font-bold text-slate-500">
+                    Você tinha {Number(params.embalagem_pct)}% de embalagem aqui. No prato médio de {fmt(precoMedio)} isso dava{" "}
+                    <button type="button" onClick={() => editar("embalagem_valor", (precoMedio * Number(params.embalagem_pct)) / 100)}
+                      className="font-black text-emerald-700 underline underline-offset-2">
+                      {fmt((precoMedio * Number(params.embalagem_pct)) / 100)} por prato
+                    </button>
+                    {" "}— toque para usar esse valor.
+                  </p>
+                )}
               </div>
             </div>
             <div>
@@ -365,6 +397,7 @@ export default function PizzaDoLucroPage() {
                     <p className="text-2xl font-black text-emerald-800">{fmt(equilibrio.faturamentoDia)}</p>
                     <p className="text-[11px] font-bold text-emerald-700/80">
                       {fmt(equilibrio.faturamentoMes)} no mês · de cada real vendido sobram {equilibrio.margemPct.toFixed(1)}% para pagar o fixo. Acima disso é lucro.
+                      {equilibrio.embalagemPct > 0 && ` Embalagem de ${fmt(params.embalagem_valor)} pesa ${equilibrio.embalagemPct.toFixed(1)}% num prato médio de ${fmt(precoMedio)}.`}
                     </p>
                   </>
                 )}
@@ -521,16 +554,17 @@ export default function PizzaDoLucroPage() {
                   <tbody className="divide-y divide-slate-100">
                     {filtrado.map((x) => {
                       const ehAtual = atual && atual.ficha.id === x.ficha.id;
-                      const duvidoso = x.entrada.semRendimento || x.entrada.semCusto;
+                      const duvidoso = x.entrada.semCusto;
                       const pct = x.conta.preco > 0 ? (x.conta.lucro / x.conta.preco) * 100 : 0;
                       return (
-                        <tr key={x.ficha.id} onClick={() => setEscolhida(x.ficha.id)}
+                        <Fragment key={x.ficha.id}>
+                        <tr onClick={() => setEscolhida(escolhida === x.ficha.id ? null : x.ficha.id)}
                           className={`cursor-pointer transition-colors ${ehAtual ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
                           <td className="py-2 pr-2 font-bold text-slate-700">
                             <span className="mr-1.5">{x.ficha.nome_receita}</span>
-                            {duvidoso && (
+                            {x.entrada.semCusto && (
                               <span className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-500">
-                                <AlertTriangle size={9} /> {x.entrada.semCusto ? "sem custo" : "sem rendimento"}
+                                <AlertTriangle size={9} /> sem custo
                               </span>
                             )}
                           </td>
@@ -553,45 +587,33 @@ export default function PizzaDoLucroPage() {
                             </span>
                           </td>
                         </tr>
+                        {/* A pizza abre AQUI, colada na linha que foi clicada.
+                            Num cartão separado embaixo da lista ela ficava a
+                            cem linhas de distância do prato que explica. */}
+                        {ehAtual && (
+                          <tr>
+                            <td colSpan={9} className="bg-slate-50 px-3 py-4">
+                              {(x.entrada.semCusto || x.entrada.semRendimento) && (
+                                <p className="mx-auto mb-3 flex max-w-xl items-start gap-1.5 rounded-lg bg-white px-2.5 py-2 text-[10px] font-bold text-slate-600">
+                                  <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                                  {x.entrada.semCusto
+                                    ? "Este item não tem custo de produto na ficha (revenda, por exemplo). O lucro está alto porque falta o custo, não porque ele é bom."
+                                    : "A ficha não diz em quantas porções rende, então o rendimento inteiro está valendo como uma porção. Se ela rende mais de uma, defina o peso da porção na ficha."}
+                                </p>
+                              )}
+                              <div className="mx-auto max-w-md">
+                                <PizzaDoPrato {...x.entrada} />
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
                   </tbody>
                 </table>
                 {!filtrado.length && <p className="py-8 text-center text-xs font-bold text-slate-400">Nenhum prato aqui.</p>}
               </div>
-
-              {/* Fora do ranking, mas não escondido: é cadastro faltando, e
-                  quem não souber que existe nunca vai completar. */}
-              {!!ocultos.length && (
-                <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
-                  {ocultos.length} ficha(s) fora da conta: não dizem em quantas porções rendem, então não há custo por porção.{" "}
-                  <button type="button" onClick={() => setVerSemRendimento((v) => !v)}
-                    className="font-black text-emerald-700 underline underline-offset-2">
-                    {verSemRendimento ? "esconder" : "ver quais são"}
-                  </button>
-                </p>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              {atual ? (
-                <>
-                  <p className="mb-1 truncate text-sm font-black text-slate-800">{atual.ficha.nome_receita}</p>
-                  {(atual.entrada.semCusto || atual.entrada.semRendimento) && (
-                    <p className="mb-3 flex items-start gap-1.5 rounded-lg bg-slate-100 px-2.5 py-2 text-[10px] font-bold text-slate-600">
-                      <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-                      {atual.entrada.semCusto
-                        ? "Este item não tem custo de produto na ficha (revenda, por exemplo). O lucro abaixo está alto porque falta o custo, não porque ele é bom."
-                        : "A ficha não diz em quantas porções rende, então não dá para saber o custo de uma porção. Defina o peso da porção na ficha."}
-                    </p>
-                  )}
-                  <div className="sm:mx-auto sm:max-w-md">
-                    <PizzaDoPrato {...atual.entrada} />
-                  </div>
-                </>
-              ) : (
-                <p className="py-10 text-center text-xs font-bold text-slate-400">Escolha um prato na lista.</p>
-              )}
             </div>
           </div>
         )}

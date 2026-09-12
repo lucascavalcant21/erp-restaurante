@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, PieChart, Search, Loader2, X, Save, AlertTriangle, Check } from "lucide-react";
+import { ArrowLeft, PieChart, Search, Loader2, X, Save, AlertTriangle, Check, ChevronDown } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
@@ -79,6 +79,10 @@ export default function PizzaDoLucroPage() {
   const [escolhida, setEscolhida] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  // null = decide sozinho. Quem ainda não preencheu precisa ver os campos;
+  // quem já preencheu não quer a configuração ocupando o topo das três abas
+  // toda vez que abre a tela.
+  const [painelAberto, setPainelAberto] = useState(null);
 
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -156,6 +160,8 @@ export default function PizzaDoLucroPage() {
   const atual = escolhida ? ranking.find((x) => x.ficha.id === escolhida) : filtrado[0];
   const contarAba = (id) => (id === "todos" ? ranking.length : ranking.filter((x) => x.entrada.departamento === id).length);
   const semVolume = !(Number(params.dias_operacao_mes) > 0 && Number(params.pratos_por_dia) > 0);
+  const jaConfigurado = !semVolume && CAMPOS_FIXO.some(([chave]) => Number(params[chave]) > 0);
+  const abrirPainel = painelAberto !== null ? painelAberto : !jaConfigurado;
 
   const dias = Number(params.dias_operacao_mes) || 0;
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
@@ -213,13 +219,30 @@ export default function PizzaDoLucroPage() {
         {/* Custos do mês, editáveis aqui mesmo. */}
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custos do mês</p>
-            <button onClick={salvar} disabled={salvando}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50">
-              {salvando ? <Loader2 size={14} className="animate-spin" /> : salvo ? <Check size={14} /> : <Save size={14} />}
-              {salvando ? "Salvando..." : salvo ? "Salvo" : "Salvar"}
+            <button type="button" onClick={() => setPainelAberto(!abrirPainel)}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              aria-expanded={abrirPainel}>
+              <ChevronDown size={16} className={`shrink-0 text-slate-400 transition-transform ${abrirPainel ? "" : "-rotate-90"}`} />
+              <span className="min-w-0">
+                <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Custos do mês</span>
+                {/* Fechado, a linha precisa dizer o suficiente para ninguém
+                    abrir só para conferir se está preenchido. */}
+                {!abrirPainel && (
+                  <span className="block truncate text-[11px] font-bold text-slate-500">
+                    {fmt(contasDia.totalMes)} de contas + {fmt(cmo ? cmo.total : 0)} de folha · {dias || 0} dias · toque para editar
+                  </span>
+                )}
+              </span>
             </button>
+            {abrirPainel && (
+              <button onClick={salvar} disabled={salvando}
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                {salvando ? <Loader2 size={14} className="animate-spin" /> : salvo ? <Check size={14} /> : <Save size={14} />}
+                {salvando ? "Salvando..." : salvo ? "Salvo" : "Salvar"}
+              </button>
+            )}
           </div>
+          {abrirPainel && (<>
 
           {/* CMO não tem campo: vem pronto do RH. */}
           <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2.5">
@@ -268,6 +291,7 @@ export default function PizzaDoLucroPage() {
               Sem dias de operação e pratos por dia não dá para dividir o fixo nem o CMO por prato — e o lucro aparece maior do que é.
             </p>
           )}
+          </>)}
         </div>
 
         {loading ? (

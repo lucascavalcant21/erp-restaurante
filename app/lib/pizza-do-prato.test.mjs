@@ -140,5 +140,29 @@ const comEmbalagem = dadosDoPrato(
   { id: "e1", rendimento_porcoes: 1, rendimento_unidade: "porcao", embalagens: [{ custo: 1.5, qtd: 2 }] }, {});
 conferir("embalagem soma custo x quantidade", comEmbalagem.custoEmbalagem, 3);
 
+// ── Os dois casos em que a pizza mentiria ─────────────────────────────────
+// Drink com rendimento em ml e sem peso da porcao: nao da para saber quantas
+// porcoes saem. Cobrar o lote inteiro de uma porcao dava "prejuizo" de R$ 85
+// num drink de R$ 40 — numero inventado, com cara de real.
+const semRend = dadosDoPrato({ id: "d1", rendimento_porcoes: 300, rendimento_unidade: "ml", preco_venda: 40 }, {});
+conferir("sem rendimento e marcado", semRend.semRendimento, "true");
+conferir("sem rendimento nao inventa custo", semRend.custoIngredientes, 0);
+
+// Revenda (cerveja) sem ingrediente na ficha: custo zero vira "94% de lucro".
+const revenda = dadosDoPrato({ id: "r1", rendimento_porcoes: 1, rendimento_unidade: "un", preco_venda: 12 }, {});
+conferir("sem custo e marcado", revenda.semCusto, "true");
+conferir("quem tem rendimento nao e marcado como sem rendimento", revenda.semRendimento, "false");
+
+// Prato normal com custo nao dispara nenhum dos dois avisos.
+const ok = dadosDoPrato(
+  { id: "o1", rendimento_porcoes: 1, rendimento_unidade: "porcao", preco_venda: 45, embalagens: [{ custo: 2, qtd: 1 }] }, {});
+conferir("prato com custo nao e marcado", `${ok.semRendimento},${ok.semCusto}`, "false,false");
+
+// O departamento sai junto, para a tela poder separar bar de cozinha.
+conferir("departamento vem na saida",
+  dadosDoPrato({ id: "x", departamento: "Bar", rendimento_porcoes: 1, rendimento_unidade: "un" }, {}).departamento, "bar");
+conferir("sem departamento cai no tipo_base",
+  dadosDoPrato({ id: "y", tipo_base: "cozinha", rendimento_porcoes: 1, rendimento_unidade: "un" }, {}).departamento, "cozinha");
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

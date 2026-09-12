@@ -178,7 +178,14 @@ export function porcoesDaFicha(ficha = {}) {
 export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = {} } = {}) {
   const custoTotal = custoDeProduzirFicha(ficha, fichas);
   const porcoes = porcoesDaFicha(ficha);
-  const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+
+  // Sem saber em quantas porções a receita rende, NÃO existe custo por porção.
+  // Cobrar o lote inteiro de uma porção só (o que o código fazia) inventa um
+  // custo absurdo: um drink de R$ 40 aparecia com R$ 125 de custo e "prejuízo"
+  // de R$ 85. Melhor dizer que não dá para calcular do que dar um número que
+  // parece real e manda tomar a decisão errada.
+  const semRendimento = !(porcoes > 0);
+  const custoPorcao = semRendimento ? 0 : custoTotal / porcoes;
 
   // O preço mandado é o do produto de venda; a ficha só responde quando não há
   // produto ligado a ela.
@@ -189,10 +196,20 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
   const custoEmbalagem = (ficha.embalagens || []).reduce(
     (acc, e) => acc + (num(e.custo) || num(e.preco_unitario)) * (num(e.qtd) || 1), 0);
 
+  const custoIngredientes = Math.max(0, custoPorcao - custoEmbalagem);
+
   return {
     preco,
-    custoIngredientes: Math.max(0, custoPorcao - custoEmbalagem),
+    custoIngredientes,
     custoEmbalagem,
+    // Duas situações em que a pizza sai bonita e mentindo, e a tela precisa
+    // avisar em vez de exibir um lucro alto com ar de verdade:
+    semRendimento,
+    // Revenda (uma cerveja, um refrigerante) costuma não ter ingrediente na
+    // ficha. Sem custo de produto, tudo vira "lucro" e o prato aparece com
+    // 90% e poucos — número que não é dele.
+    semCusto: !semRendimento && custoIngredientes + custoEmbalagem <= 0,
+    departamento: String(ficha.departamento || ficha.tipo_base || "").toLowerCase(),
     // Base (pré-preparo) não se vende, então imposto e maquininha não incidem.
     impostoPct: ficha.eh_base ? 0 : num(ficha.imposto_pct ?? prod?.aliquota_imposto ?? 4),
     taxaMaquininhaPct: ficha.eh_base ? 0 : num(ficha.taxa_maquininha ?? prod?.taxa_cartao ?? 2.5),

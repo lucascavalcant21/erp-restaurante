@@ -15,142 +15,87 @@ import {
   Loader2, CheckCircle2, AlertTriangle, Tag, WifiOff
 } from "lucide-react";
 
-// NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
+// ESTRUTURA UNIFICADA DA SIDEBAR (6 MÓDULOS PRINCIPAIS)
 const SIDEBAR_MENU = [
   {
     category: "Início",
     home: "/dashboard",
     icon: BarChart,
     items: [
-      { label: "Painel Geral", href: "/dashboard" }
+      { label: "Painel Geral", href: "/dashboard" },
+      { label: "Central Operacional", href: "/dashboard/operacao/inteligente" }
     ]
   },
   {
-    category: "Checklist",
-    home: "/dashboard/checklists",
-    icon: ClipboardList,
-    items: [
-      { label: "Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
-      { label: "Bar", href: "/dashboard/operacao/rotina?dept=bar" },
-      { label: "Salão", href: "/dashboard/operacao/rotina?dept=salao" },
-      { label: "Gerenciar modelos", href: "/dashboard/checklists/gerenciar" },
-    ]
-  },
-  {
-    category: "Treinamentos",
-    home: "/dashboard/treinamentos",
-    icon: Briefcase,
-    items: [
-      { label: "Trilhas de Cozinha", href: "/dashboard/salao/treinamento?dept=cozinha" },
-      { label: "Trilhas de Bar", href: "/dashboard/salao/treinamento?dept=bar" },
-      { label: "Trilhas de Salão", href: "/dashboard/salao/treinamento?dept=salao" },
-    ]
-  },
-  {
-    category: "Estoque",
-    home: "/dashboard/operacao/estoque",
-    icon: Package,
-    items: [
-      { label: "Estoque", href: "/dashboard/operacao/estoque" }
-    ]
-  },
-  {
-    category: "Etiquetas",
-    home: "/dashboard/operacao/etiquetas",
-    icon: Tag,
-    items: [
-      { label: "Etiquetas", href: "/dashboard/operacao/etiquetas" }
-    ]
-  },
-  {
-    category: "Cozinha",
-    home: "/dashboard/modulo/cozinha",
+    category: "Operação",
+    home: "/dashboard/operacao/fichas?dept=cozinha",
     icon: ChefHat,
     items: [
-      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Fichas Técnicas (Cozinha)", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Fichas de Drinks (Bar)", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
-      { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
-      { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
-      { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=cozinha" },
-      { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" },
+      { label: "Ingredientes & Produtos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
+      { label: "Checklists & Rotinas", href: "/dashboard/checklists" },
+      { label: "Treinamentos & Trilhas", href: "/dashboard/treinamentos" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
-      { label: "Central Operacional", href: "/dashboard/operacao/inteligente" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]
   },
   {
-    category: "Bar",
-    home: "/dashboard/modulo/bar",
-    icon: GlassWater,
+    category: "Estoque & Compras",
+    home: "/dashboard/operacao/estoque",
+    icon: Package,
     items: [
-      { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
-      { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
-      { label: "Produtos", href: "/dashboard/operacao/ingredientes?dept=bar" },
-      { label: "Compras", href: "/dashboard/operacao/compras?dept=bar" },
-      { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=bar" },
-      { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=bar" },
-      { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=bar" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
+      { label: "Visão Geral do Estoque", href: "/dashboard/operacao/estoque" },
+      { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" },
+      { label: "Pedidos de Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
+      { label: "Entrada de Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha" },
+      { label: "Gestão de Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" }
     ]
   },
   {
-    category: "Financeiro",
-    home: "/dashboard/modulo/financeiro",
-    icon: Wallet,
-    items: [
-      { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
-      { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
-      { label: "CMV", href: "/dashboard/financeiro/cmv" },
-      { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" },
-      { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
-    ]
-  },
   {
-    category: "Extras",
-    home: "/dashboard/rh/extra",
-    icon: UserRound,
-    items: [
-      { label: "Cadastro e Recibos", href: "/dashboard/rh/extra" },
-      { label: "Banco de extras", href: "/dashboard/rh/extra/banco" },
-      { label: "Cadastro facial do ponto", href: "/dashboard/rh/facial" }
-    ]
-  },
-  {
-    category: "Portal de Vagas",
-    home: "/dashboard/rh/recrutamento",
-    icon: Briefcase,
-    items: [
-      { label: "Candidatos e vagas", href: "/dashboard/rh/recrutamento" },
-      { label: "Ver o portal", href: "/vagas" }
-    ]
-  },
-  {
-    category: "RH",
-    home: "/dashboard/modulo/rh",
+    category: "RH & Pessoas",
+    home: "/dashboard/rh",
     icon: Users,
     items: [
       { label: "Painel de RH", href: "/dashboard/rh" },
-      { label: "Ponto", href: "/dashboard/rh/ponto" },
-      { label: "Semana do Restaurante", href: "/dashboard/rh/semana" },
-      { label: "Portal do Colaborador", href: "/dashboard/rh/colaborador" },
+      { label: "Registro de Ponto", href: "/dashboard/rh/ponto" },
+      { label: "Extras & Banco de Horas", href: "/dashboard/rh/extra" },
+      { label: "Ponto Facial", href: "/dashboard/rh/facial" },
+      { label: "Recrutamento & Vagas", href: "/dashboard/rh/recrutamento" },
       { label: "Folha de Pagamento", href: "/dashboard/rh/fechamento" },
+      { label: "Semana do Restaurante", href: "/dashboard/rh/semana" },
       { label: "Organograma", href: "/dashboard/rh/organograma" },
       { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
       { label: "Compras do Mês", href: "/dashboard/rh/gastos-admin" }
     ]
   },
   {
-    category: "Gestão",
-    home: "/dashboard/modulo/gestao",
+    category: "Financeiro & Fiscal",
+    home: "/dashboard/financeiro",
+    icon: Wallet,
+    items: [
+      { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
+      { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
+      { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" },
+      { label: "Ponto de Equilíbrio", href: "/dashboard/financeiro/equilibrio" },
+      { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" },
+      { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
+    ]
+  },
+  {
+    category: "Gestão & Ajustes",
+    home: "/dashboard/gestao/inventario",
     icon: Store,
     items: [
-      { label: "Inventário", href: "/dashboard/gestao/inventario" },
+      { label: "Inventário Físico", href: "/dashboard/gestao/inventario" },
       { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
       { label: "Relatórios", href: "/dashboard/relatorios" },
       { label: "Configurações", href: "/dashboard/configuracoes" },
-      { label: "Usuários e acessos", href: "/dashboard/configuracoes/usuarios" },
-      { label: "Perfis de acesso", href: "/dashboard/configuracoes/perfis" }
+      { label: "Usuários e Acessos", href: "/dashboard/configuracoes/usuarios" },
+      { label: "Perfis de Acesso", href: "/dashboard/configuracoes/perfis" }
     ]
   }
 ];
@@ -357,21 +302,78 @@ function ProtecaoPermissao({ sessao, children }) {
   return children;
 }
 
-function SidebarSection({ section, idx, ativo, onOpen }) {
+function SidebarSection({ section, idx, isExpanded, onToggle, pathname, dept, setMobileOpen, router }) {
+  const Icon = section.icon;
+  const isSingleItem = section.items.length === 1;
+
+  const hasActiveItem = section.items.some(item => {
+    const [base, queryStr] = item.href.split("?");
+    const itemDept = new URLSearchParams(queryStr || "").get("dept");
+    const pathMatch = pathname === base || (base !== "/dashboard" && pathname.startsWith(base + "/"));
+    if (!pathMatch) return false;
+    if (itemDept) return dept === itemDept;
+    return true;
+  });
+
   return (
-    <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
+    <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 40}ms`, animationFillMode: 'both' }}>
       <button
-        onClick={onOpen}
-        className={`w-full min-h-10 px-2.5 py-2 text-[11px] xl:text-[10px] font-black uppercase tracking-wider flex items-center justify-between rounded-lg transition-colors group outline-none text-left ${ativo
-          ? "bg-emerald-500/10 text-emerald-300"
-          : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"}`}
+        type="button"
+        onClick={() => {
+          if (isSingleItem) {
+            setMobileOpen(false);
+            router.push(ajustarHrefParaAreaTravada(section.items[0].href));
+          } else {
+            onToggle();
+          }
+        }}
+        className={`w-full min-h-10 px-3 py-2 text-xs font-bold flex items-center justify-between rounded-xl transition-all group outline-none text-left ${
+          hasActiveItem
+            ? "bg-emerald-500/15 text-emerald-300 font-black border border-emerald-500/20"
+            : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+        }`}
       >
-        <div className="flex items-center gap-2">
-           <section.icon size={16} className={`transition-colors shrink-0 xl:w-[13px] xl:h-[13px] ${ativo ? "text-emerald-400" : "text-slate-600 group-hover:text-slate-400"}`} />
-           {section.category}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Icon size={17} className={`transition-colors shrink-0 ${hasActiveItem ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+          <span className="truncate tracking-tight">{section.category}</span>
         </div>
-        <ChevronDown size={16} className="-rotate-90 text-slate-600 shrink-0" />
+        {!isSingleItem && (
+          <ChevronDown
+            size={15}
+            className={`text-slate-500 transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-180 text-emerald-400" : ""}`}
+          />
+        )}
       </button>
+
+      {!isSingleItem && isExpanded && (
+        <div className="mt-1 ml-3 pl-3 border-l border-slate-800/80 space-y-0.5 overflow-hidden transition-all">
+          {section.items.map((item, itemIdx) => {
+            const [base, queryStr] = item.href.split("?");
+            const itemDept = new URLSearchParams(queryStr || "").get("dept");
+            const isItemActive = (pathname === base || (base !== "/dashboard" && pathname.startsWith(base + "/"))) &&
+              (!itemDept || dept === itemDept);
+
+            return (
+              <button
+                key={itemIdx}
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  router.push(ajustarHrefParaAreaTravada(item.href));
+                }}
+                className={`w-full min-h-8 px-2.5 py-1.5 text-[12px] font-medium flex items-center gap-2 rounded-lg transition-colors text-left truncate ${
+                  isItemActive
+                    ? "bg-emerald-500/20 text-emerald-300 font-bold"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isItemActive ? "bg-emerald-400 shadow-sm shadow-emerald-400" : "bg-slate-600"}`} />
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -380,8 +382,10 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const dept = searchParams.get("dept");
 
-  // Acesso restrito: mostra só os itens cujas rotas estão liberadas.
+  const [expandedSections, setExpandedSections] = useState({});
+
   const menu = Array.isArray(rotasPermitidas)
     ? SIDEBAR_MENU.map((sec) => ({
         ...sec,
@@ -391,11 +395,25 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         }),
       })).filter((sec) => sec.items.length > 0)
     : SIDEBAR_MENU;
-  const moduloAtivo = moduloDaRota(pathname, searchParams.get("dept"));
+
+  useEffect(() => {
+    const activeSec = menu.find(sec =>
+      sec.items.some(item => {
+        const base = item.href.split("?")[0];
+        return pathname === base || (base !== "/dashboard" && pathname.startsWith(base + "/"));
+      })
+    );
+    if (activeSec) {
+      setExpandedSections(prev => ({ ...prev, [activeSec.category]: true }));
+    }
+  }, [pathname, menu]);
+
+  const toggleSection = (cat) => {
+    setExpandedSections(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
 
   return (
     <>
-      {/* Overlay no celular E no tablet (a sidebar abre por cima do conteúdo) */}
       {mobileOpen && (
         <button type="button" aria-label="Fechar menu"
           className="fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm xl:hidden"
@@ -403,20 +421,14 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         />
       )}
 
-      {/* Sidebar Container
-          Celular/Tablet (< xl): fixa, entra/sai deslizando (overlay) — nunca
-          fica "meio aparecendo" na lateral.
-          Desktop (xl+): encaixada no layout; recolhe para largura 0 e o
-          conteúdo cresce para ocupar o espaço. */}
       <aside className={`
         erp-sidebar fixed inset-y-0 left-0 z-50 bg-[#0A1128] border-r border-slate-800/50
         flex flex-col transition-all duration-300 ease-in-out shadow-2xl whitespace-nowrap overflow-hidden
         xl:static xl:z-auto xl:shadow-none
-        ${mobileOpen ? "translate-x-0 w-[min(16rem,calc(100vw-2rem))]" : "-translate-x-full w-[min(16rem,calc(100vw-2rem))]"}
-        ${collapsed ? "xl:translate-x-0 xl:w-0 xl:border-r-0" : "xl:translate-x-0 xl:w-[180px]"}
-      `} aria-label="Menu principal">
+        ${mobileOpen ? "translate-x-0 w-[min(17rem,calc(100vw-2rem))]" : "-translate-x-full w-[min(17rem,calc(100vw-2rem))]"}` +
+        `${collapsed ? " xl:translate-x-0 xl:w-0 xl:border-r-0" : " xl:translate-x-0 xl:w-[230px]"}`} aria-label="Menu principal">
         {/* Logo Area */}
-        <div className="erp-sidebar-logo min-h-14 flex items-center justify-between px-3 sm:px-4 shrink-0 relative overflow-hidden">
+        <div className="erp-sidebar-logo min-h-14 flex items-center justify-between px-3 sm:px-4 shrink-0 relative overflow-hidden border-b border-slate-800/50">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-transparent pointer-events-none" />
           
           <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2.5 relative z-10 hover:opacity-80 transition-opacity text-left">
@@ -426,42 +438,41 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
             <span className="text-lg font-black text-white tracking-tight">Hefisto</span>
           </button>
           
-          {/* Fechar: no celular fecha o overlay */}
           <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white relative z-10 rounded-xl xl:hidden">
             <X size={20} />
           </button>
         </div>
 
         {/* Scrollable Menu */}
-        <div className="erp-sidebar-scroll flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-2.5 sm:px-3 py-2 space-y-2">
+        <div className="erp-sidebar-scroll flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-2.5 sm:px-3 py-3 space-y-1.5">
           {menu.map((section, idx) => (
-            <SidebarSection key={idx} section={section} idx={idx} ativo={moduloAtivo.category === section.category}
-              onOpen={() => {
-                const homeBase = baseDaRota(section.home);
-                const homePermitida = !Array.isArray(rotasPermitidas) || !section.home || rotasPermitidas.some((rota) => {
-                  const permitida = baseDaRota(rota);
-                  return homeBase === permitida || homeBase.startsWith(`${permitida}/`);
-                });
-                const destino = homePermitida && section.home ? section.home : (section.items[0]?.href || "/dashboard");
-                setMobileOpen(false);
-                router.push(ajustarHrefParaAreaTravada(destino));
-              }} />
+            <SidebarSection
+              key={idx}
+              section={section}
+              idx={idx}
+              isExpanded={!!expandedSections[section.category]}
+              onToggle={() => toggleSection(section.category)}
+              pathname={pathname}
+              dept={dept}
+              setMobileOpen={setMobileOpen}
+              router={router}
+            />
           ))}
         </div>
         
         {/* User Profile Footer */}
-        <div className="erp-sidebar-footer p-2 sm:p-3 border-t border-slate-800/50 shrink-0">
-          <div className="bg-slate-800/30 rounded-lg p-2.5 flex items-center gap-2.5 border border-slate-700/50 group">
-             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-600 flex items-center justify-center text-slate-200 text-sm font-bold shadow-inner group-hover:scale-105 transition-transform">
+        <div className="erp-sidebar-footer p-2.5 sm:p-3 border-t border-slate-800/50 shrink-0">
+          <div className="bg-slate-800/40 rounded-xl p-2.5 flex items-center gap-2.5 border border-slate-700/40 group">
+             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white text-xs font-black shadow-inner group-hover:scale-105 transition-transform">
                {String(sessao?.nome || sessao?.email || "U").trim().charAt(0).toUpperCase()}
              </div>
              <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-200 leading-tight truncate">{sessao?.nome || "Usuário"}</p>
-                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
+                <p className="text-xs font-bold text-slate-100 leading-tight truncate">{sessao?.nome || "Usuário"}</p>
+                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
              </div>
           </div>
-          <button type="button" onClick={onSair} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-rose-500/10 px-3 text-xs font-black uppercase tracking-wider text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-white">
-            <LogOut size={15} /> Sair
+          <button type="button" onClick={onSair} className="mt-2 flex min-h-9 w-full items-center justify-center gap-2 rounded-xl bg-rose-500/10 px-3 text-xs font-bold uppercase tracking-wider text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-white">
+            <LogOut size={14} /> Sair
           </button>
         </div>
       </aside>
@@ -474,7 +485,6 @@ function TopHeader({ onToggleSidebar }) {
 
   return (
     <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
-
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
          <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
             <Menu size={22} />
@@ -483,95 +493,12 @@ function TopHeader({ onToggleSidebar }) {
             {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
          </h1>
       </div>
-
     </header>
   );
 }
 
-function ModuleBar({ rotasPermitidas }) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const dept = searchParams.get("dept");
-  const [aberto, setAberto] = useState(false);
-
-  const modulo = moduloDaRota(pathname, dept);
-  const itens = Array.isArray(rotasPermitidas)
-    ? modulo.items.filter((item) => {
-        const base = baseDaRota(item.href);
-        return rotasPermitidas.some((rota) => {
-          const permitida = baseDaRota(rota);
-          return base === permitida || base.startsWith(`${permitida}/`);
-        });
-      })
-    : modulo.items;
-  const itemAtivo = itens
-    .filter((item) => correspondeRota(pathname, baseDaRota(item.href)))
-    .sort((a, b) => baseDaRota(b.href).length - baseDaRota(a.href).length)[0] || itens[0];
-
-  useEffect(() => { setAberto(false); }, [pathname]);
-
-  if (pathname === "/dashboard/modulo" || pathname.startsWith("/dashboard/modulo/")) return null;
-
-  // Ingredientes, fichas e montagem formam um fluxo próprio e compartilham um
-  // cabeçalho operacional mais completo. Evita duas barras de navegação iguais.
-  if ([
-    "/dashboard/operacao/ingredientes",
-    "/dashboard/operacao/fichas",
-    "/dashboard/operacao/montagem",
-  ].some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))) return null;
-
-  if (itens.length <= 1) return null;
-  const Icone = modulo.icon;
-
-  return (
-    <nav aria-label={`Menu do módulo ${modulo.category}`}
-      className="print:hidden shrink-0 border-b border-slate-200/70 bg-white px-3 sm:px-5 py-2.5 shadow-sm">
-      <div className="mx-auto max-w-[1600px]">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="w-10 h-10 rounded-xl bg-slate-900 text-emerald-300 flex items-center justify-center shrink-0 shadow-sm">
-            <Icone size={18} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 break-words">Módulo · {modulo.category}</p>
-            <p className="text-xs sm:text-sm font-black text-slate-800 break-words">{itemAtivo?.label || modulo.category}</p>
-          </div>
-          <span className="hidden md:block text-[10px] font-bold text-slate-400">{itens.length} submódulos conectados</span>
-          <button type="button" onClick={() => setAberto((valor) => !valor)} aria-expanded={aberto}
-            className={`min-h-10 flex items-center gap-2 rounded-xl px-3 sm:px-4 text-xs font-black transition-all ${aberto ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
-            <Menu size={15} /> <span className="hidden sm:inline">{aberto ? "Fechar mapa" : "Explorar módulo"}</span>
-            <ChevronDown size={14} className={`transition-transform ${aberto ? "rotate-180" : ""}`} />
-          </button>
-        </div>
-
-        <div className={`grid transition-all duration-300 ${aberto ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}>
-          <div className="min-h-0 overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 sm:p-3">
-              {itens.map((item, index) => {
-                const base = baseDaRota(item.href);
-                const ativo = pathname === base || pathname.startsWith(`${base}/`);
-                return (
-                  <button key={item.href} type="button" onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
-                    className={`group min-w-0 flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${ativo
-                      ? "border-emerald-300 bg-white shadow-sm ring-2 ring-emerald-100"
-                      : "border-transparent bg-white/70 hover:border-slate-200 hover:bg-white hover:shadow-sm"}`}>
-                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xs font-black ${ativo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className={`block text-[9px] font-black uppercase tracking-widest ${ativo ? "text-emerald-600" : "text-slate-400"}`}>{ativo ? "Tela atual" : modulo.category}</span>
-                      <span className="block text-xs font-black leading-tight text-slate-800 break-words">{item.label}</span>
-                    </span>
-                    <ChevronDown size={14} className="-rotate-90 shrink-0 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
+function ModuleBar() {
+  return null;
 }
 
 function MobileBottomNav({ sessao, onMenu }) {

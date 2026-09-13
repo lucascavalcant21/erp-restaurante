@@ -24,18 +24,18 @@ export function fmtData(iso) { return iso ? new Date(iso).toLocaleDateString("pt
 export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel = "Novo", back = true, children }) {
   const router = useRouter();
   return (
-    <div className="erp-page-header sticky top-0 z-20 border-b px-3 sm:px-4 pt-3 sm:pt-4 md:pt-8 lg:pt-12 pb-3 flex flex-col md:flex-row md:items-center gap-3 glass-panel min-w-0"
+    <div className="erp-page-header sticky top-0 z-20 border-b px-3 sm:px-5 py-3 sm:py-4 flex flex-col md:flex-row md:items-center gap-3 glass-panel min-w-0"
       style={{ borderColor: "var(--line-soft)" }}>
       <div className="erp-page-header-main flex items-center gap-2.5 sm:gap-3 w-full md:w-auto min-w-0">
         {back && (
           <button onClick={() => router.back()}
             aria-label="Voltar"
-            className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center erp-card active:scale-95 transition-transform flex-shrink-0">
+            className="w-9 h-9 rounded-xl flex items-center justify-center erp-card active:scale-95 transition-transform flex-shrink-0">
             <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
           </button>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg md:text-xl font-bold leading-tight flex items-center gap-2 min-w-0" style={{ color: "var(--fg)" }}>
+          <h1 className="text-lg md:text-xl font-black leading-tight flex items-center gap-2 min-w-0" style={{ color: "var(--fg)" }}>
             {Icon && (
               <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
                 <Icon size={16} style={{ color: "var(--accent-strong)" }} />
@@ -43,7 +43,7 @@ export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel 
             )}
             <span className="erp-page-title min-w-0">{title}</span>
           </h1>
-          {subtitle && <p className="erp-page-subtitle text-[11px] md:text-xs font-medium mt-0.5" style={{ color: "var(--dim)" }}>{subtitle}</p>}
+          {subtitle && <p className="erp-page-subtitle text-xs md:text-sm font-semibold mt-0.5" style={{ color: "var(--dim)" }}>{subtitle}</p>}
         </div>
       </div>
       <div className="erp-page-header-actions flex flex-wrap items-center gap-2 w-full md:w-auto md:ml-auto min-w-0">
@@ -61,7 +61,7 @@ export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel 
 
 // ── Container de conteúdo ──────────────────────────────────────
 export function PageBody({ children, className = "", ...rest }) {
-  return <div className={`erp-page-body w-full min-w-0 px-3 sm:px-4 md:px-5 pt-4 pb-28 space-y-4 md:space-y-6 ${className}`} {...rest}>{children}</div>;
+  return <div className={`erp-page-body w-full min-w-0 px-3 sm:px-4 md:px-6 pt-4 pb-12 md:pb-16 space-y-4 md:space-y-6 ${className}`} {...rest}>{children}</div>;
 }
 
 // ── Cartão genérico ────────────────────────────────────────────
@@ -91,15 +91,15 @@ export function Kpi({ icon: Icon, label, value, onClick, active = false, note })
           : ""
       } ${active ? "ring-2 ring-emerald-500 bg-emerald-50/20" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-4 min-w-0">
-        <p className="text-[10px] sm:text-xs md:text-sm font-bold tracking-widest uppercase min-w-0 break-words" style={{ color: "var(--muted)" }}>{label}</p>
-        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-[16px] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" style={{ background: "var(--accent-soft)" }}>
-          {Icon && <Icon size={22} style={{ color: "var(--accent-strong)" }} />}
+      <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
+        <p className="text-xs font-bold tracking-wider uppercase min-w-0 break-words" style={{ color: "var(--muted)" }}>{label}</p>
+        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105" style={{ background: "var(--accent-soft)" }}>
+          {Icon && <Icon size={20} style={{ color: "var(--accent-strong)" }} />}
         </div>
       </div>
       <div>
-        <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
-        {note && <p className="text-xs font-semibold text-slate-500 mt-1">{note}</p>}
+        <p className="text-2xl sm:text-3xl font-black tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
+        {note && <p className="text-xs font-medium text-slate-500 mt-1">{note}</p>}
       </div>
     </div>
   );

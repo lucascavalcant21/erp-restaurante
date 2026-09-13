@@ -6,6 +6,8 @@
 // pagamento, DRE e a tela de usuários e acessos, porque /dashboard é prefixo
 // de todas as rotas e o guard aceitava QUALQUER entrada que casasse.
 
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { canAccessRoute, hasPermission, pageForRoute, permissionMatches } from "./permissions-catalog.mjs";
 
 let falhas = 0;
@@ -61,13 +63,43 @@ conferir("sub-tela do financeiro herda do financeiro",
 conferir("garcom NAO entra na sub-tela do financeiro",
   canAccessRoute(garcom, "/dashboard/financeiro/custos-fixos", ""), "false");
 
-// ── Telas sem entrada nenhuma continuam abertas a quem vê a inicial ───────
-// São 26 telas operacionais (Produção do Dia, Validade, Limpeza, Guias...)
-// que ainda não estão no catálogo. Fechá-las aqui pararia o restaurante sem
-// dar ao dono uma forma de liberar. Ficam como estão, de propósito, até
-// ganharem entrada própria.
-conferir("tela ainda sem entrada segue aberta a quem ve a inicial",
-  canAccessRoute(garcom, "/dashboard/operacao/validade", ""), "true");
+// ── As 26 telas que caiam na entrada generica agora tem a sua ────────────
+// Antes, Producao do Dia, Validade, Limpeza, Guias e companhia nao existiam
+// no catalogo: casavam so com /dashboard e abriam para qualquer um que
+// entrasse no sistema. Cada uma ganhou entrada propria (ou herda de um pai de
+// verdade), entao agora exigem a permissao que lhes corresponde.
+const soCozinha = { gerenciado: true, papel: "colaborador", permissions: ["cozinha.*"] };
+conferir("validade exige permissao de cozinha, nao a da tela inicial",
+  canAccessRoute(garcom, "/dashboard/operacao/validade", ""), "false");
+conferir("cozinha.* abre a validade", canAccessRoute(soCozinha, "/dashboard/operacao/validade", ""), "true");
+conferir("garcom NAO entra nas mesas do salao", canAccessRoute(garcom, "/dashboard/salao/mesas", ""), "false");
+
+// ── TRAVA: nenhuma tela pode cair na entrada generica /dashboard ─────────
+// Esta e a regressao que deixou o sistema inteiro aberto. Como /dashboard e
+// prefixo de tudo, uma tela nova sem entrada no catalogo casa com ela e herda
+// a permissao que todo funcionario tem. Se este caso falhar, a tela nova
+// precisa de entrada em PERMISSION_MODULES — nao de um remendo no guard.
+const rotasDoPainel = [];
+(function varrer(dir) {
+  for (const nome of readdirSync(dir)) {
+    const caminho = join(dir, nome);
+    if (statSync(caminho).isDirectory()) {
+      // Rotas com parametro ([id], [modulo]) sempre se abrem de dentro de
+      // outra tela e herdam a permissao do pai; nao entram na conta.
+      if (!nome.startsWith("[")) varrer(caminho);
+    } else if (nome === "page.js") {
+      rotasDoPainel.push(dir.replace(/^app/, ""));
+    }
+  }
+})("app/dashboard");
+
+const orfas = rotasDoPainel.filter(
+  // pageForRoute devolve { module, page, parsed } — a rota esta em .page.route.
+  // Ler .route direto aqui dava sempre undefined e a trava nunca acusava nada.
+  (r) => r !== "/dashboard" && pageForRoute(r, "")?.page?.route === "/dashboard"
+);
+conferir(`nenhuma das ${rotasDoPainel.length} telas cai na entrada generica${orfas.length ? ` (${orfas.join(", ")})` : ""}`,
+  orfas.length, 0);
 
 // ── Portas que não podem se abrir ────────────────────────────────────────
 conferir("sem permissao nenhuma NAO entra na folha", canAccessRoute(semNada, "/dashboard/rh/fechamento", ""), "false");

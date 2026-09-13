@@ -39,6 +39,9 @@ export const PERMISSION_MODULES = [
     id: "ponto", label: "Ponto eletrônico",
     pages: [
       { id: "clock", label: "Relógio de ponto", route: "/dashboard/rh/ponto", actions: ["view", "create", "edit", "delete", "view_history", "export"] },
+      // Tela de bater ponto do colaborador (usa geolocalizacao), diferente do
+      // painel de ponto do gestor acima.
+      { id: "kiosk", label: "Bater ponto (quiosque)", route: "/dashboard/ponto", actions: ["view", "create"] },
     ],
   },
   {
@@ -62,6 +65,16 @@ export const PERMISSION_MODULES = [
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=cozinha", actions: [...CRUD, "print"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=cozinha", actions: ["view", "create", "edit", "confirm", "cancel", "print"] },
       { id: "cleaning", label: "Controles de limpeza", route: "/dashboard/operacao/controles", actions: CRUD },
+      // A entrada de producao acima traz ?dept=cozinha. Quando a URL vem SEM
+      // dept, o filtro descarta as duas variantes e a rota caia na entrada
+      // generica /dashboard. Esta entrada sem dept cobre esse caso e, por
+      // prefixo, o memorando.
+      { id: "production_all", label: "Produção do dia (todos os setores)", route: "/dashboard/operacao/producao", actions: ["view", "create", "edit", "confirm", "cancel", "print"] },
+      { id: "expiry", label: "Controle de validade", route: "/dashboard/operacao/validade", actions: [...CRUD, "print"] },
+      { id: "guides", label: "Guias de uso e função", route: "/dashboard/operacao/guias", actions: ["view", "print"] },
+      { id: "kds", label: "KDS — telão da cozinha", route: "/dashboard/kds", actions: ["view", "confirm", "cancel"] },
+      // Cobre por prefixo /dashboard/cozinha/kds e /dashboard/cozinha/producao.
+      { id: "sector", label: "Operação da cozinha (tablet)", route: "/dashboard/cozinha", actions: ["view", "create", "edit", "confirm"] },
     ],
   },
   {
@@ -71,6 +84,9 @@ export const PERMISSION_MODULES = [
       { id: "recipes", label: "Fichas de drinks", route: "/dashboard/operacao/fichas?dept=bar", actions: [...CRUD, "view_costs", "print"] },
       { id: "assembly", label: "Guia de montagem", route: "/dashboard/operacao/montagem?dept=bar", actions: [...CRUD, "print"] },
       { id: "production", label: "Produção do dia", route: "/dashboard/operacao/producao?dept=bar", actions: ["view", "create", "edit", "confirm", "cancel"] },
+      // Cobre por prefixo /dashboard/bar/producao e /dashboard/bar/tablet.
+      { id: "sector", label: "Operação do bar (tablet)", route: "/dashboard/bar", actions: ["view", "create", "edit", "confirm"] },
+      { id: "drinks_legacy", label: "Drinks (redireciona para as fichas)", route: "/dashboard/operacao/drinks", actions: ["view"] },
     ],
   },
   {
@@ -79,8 +95,10 @@ export const PERMISSION_MODULES = [
       { id: "overview", label: "Visão do salão", route: "/dashboard/modulo/salao", actions: ["view"] },
       { id: "tables", label: "Mesas", route: "/dashboard/mesas", actions: ["view", "create", "edit", "cancel", "view_values"] },
       { id: "training", label: "Treinamentos", route: "/dashboard/salao/treinamento", actions: CRUD },
-      { id: "training", label: "Escolher área de treinamento", route: "/dashboard/treinamentos", actions: CRUD },
+      { id: "training_pick", label: "Escolher área de treinamento", route: "/dashboard/treinamentos", actions: CRUD },
       { id: "notes", label: "Observações", route: "/dashboard/operacao/observacoes", actions: CRUD },
+      // Cobre por prefixo /dashboard/salao/mesas e /dashboard/salao/online.
+      { id: "sector", label: "Operação do salão", route: "/dashboard/salao", actions: ["view", "create", "edit", "confirm", "view_values"] },
     ],
   },
   {
@@ -121,7 +139,7 @@ export const PERMISSION_MODULES = [
   {
     id: "checklist", label: "Checklist",
     pages: [
-      { id: "execution", label: "Escolher área", route: "/dashboard/checklists", actions: ["view", "create", "edit", "confirm", "view_history"] },
+      { id: "pick_area", label: "Escolher área", route: "/dashboard/checklists", actions: ["view", "create", "edit", "confirm", "view_history"] },
       { id: "execution", label: "Execução", route: "/dashboard/operacao/rotina", actions: ["view", "create", "edit", "confirm", "view_history"] },
       { id: "templates", label: "Modelos", route: "/dashboard/checklists/gerenciar", actions: CRUD },
     ],
@@ -170,6 +188,7 @@ export const PERMISSION_MODULES = [
     pages: [
       { id: "events", label: "Eventos", route: "/dashboard/eventos", actions: [...CRUD, "approve", "cancel", "view_values", "view_costs", "print", "export"] },
       { id: "budget", label: "Orçamentos", route: "/dashboard/operacao/orcamento", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
+      { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
     ],
   },
   {
@@ -192,6 +211,10 @@ export const PERMISSION_MODULES = [
       { id: "units", label: "Gestão de unidades", route: "/dashboard/rede/gestao", actions: [...CRUD, "settings"] },
       { id: "network", label: "Visão da rede", route: "/dashboard/rede", actions: ["view", "view_values", "export"] },
       { id: "ai", label: "Assistente Heitor", route: "/dashboard/ia/heitor", actions: ["view", "create"] },
+      // Cobre por prefixo processos, rankings, nao-conformidades e a TV.
+      { id: "operational_center", label: "Central Operacional", route: "/dashboard/operacao/inteligente", actions: [...CRUD, "confirm", "approve", "export"] },
+      { id: "cleaning_supplies", label: "Produtos de limpeza na despensa", route: "/dashboard/operacao/limpeza", actions: [...CRUD, "adjust_stock"] },
+      { id: "areas", label: "Áreas de trabalho", route: "/dashboard/area", actions: ["view"] },
     ],
   },
   {
@@ -201,6 +224,8 @@ export const PERMISSION_MODULES = [
       { id: "users", label: "Usuários e acessos", route: "/dashboard/configuracoes/usuarios", actions: [...CRUD, "settings", "view_history"] },
       { id: "profiles", label: "Perfis de acesso", route: "/dashboard/configuracoes/perfis", actions: [...CRUD, "settings"] },
       { id: "units", label: "Empresas e unidades", route: "/dashboard/configuracoes", actions: [...CRUD, "settings"] },
+      { id: "stores", label: "Lojas", route: "/dashboard/lojas", actions: [...CRUD, "settings"] },
+      { id: "departments", label: "Departamentos", route: "/dashboard/departamentos", actions: [...CRUD, "settings"] },
     ],
   },
 ];

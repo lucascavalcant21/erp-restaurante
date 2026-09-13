@@ -34,6 +34,9 @@ import {
 // usada no cálculo de custo — mora aqui. Pegar a errada multiplica o custo de
 // cada ingrediente por mil, e a abertura do CMV contradiz o próprio total.
 import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
+// O peso total da ficha era calculado aqui tambem, identico ao que a tela de
+// fichas fazia. Tres copias da mesma conta; agora uma so, com teste.
+import { pesoTotalDaFicha } from "./ficha-calculos.mjs";
 
 const num = (v) => {
   const n = Number(v);
@@ -186,12 +189,6 @@ export function ehCustoDesprezivel(custo, preco) {
   return (c / p) * 100 < PISO_CMV_PCT;
 }
 
-export function pesoTotalDaFichaG(rendimento, unidade, pesoPorcaoG) {
-  const un = String(unidade || "porcao").toLowerCase();
-  if (un === "kg" || un === "l") return rendimento * 1000;
-  if (un === "g" || un === "ml") return rendimento;
-  return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
-}
 
 // Quantas porções a ficha rende: direto, quando o rendimento já é em porções
 // ou unidades; pelo peso, quando é em kg/l/g/ml.
@@ -200,7 +197,7 @@ export function porcoesDaFicha(ficha = {}) {
   const pesoPorcao = num(ficha.peso_porcao_g) || 0;
   const un = String(ficha.rendimento_unidade || "porcao").toLowerCase();
   if (un === "porcao" || un === "un") return rendimento;
-  const total = pesoTotalDaFichaG(rendimento, un, pesoPorcao);
+  const total = pesoTotalDaFicha(rendimento, un, pesoPorcao);
   return pesoPorcao > 0 && total > 0 ? total / pesoPorcao : 0;
 }
 

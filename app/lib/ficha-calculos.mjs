@@ -467,3 +467,61 @@ export function validarFicha(ficha = {}, ingredientes = []) {
 
   return erros;
 }
+
+// ── Rendimento: quanto a ficha produz ────────────────────────────────────
+// Estas quatro moravam dentro de app/dashboard/operacao/fichas/page.js, e o
+// peso total tinha ainda uma TERCEIRA cópia em pizza-do-prato.mjs. São conta,
+// não tela: o lugar delas é aqui, onde há teste.
+
+// Peso total produzido, em gramas, a partir do rendimento declarado.
+// Uma ficha pode render "2 kg", "500 g" ou "8 porções" — só no último caso o
+// peso depende de quanto pesa cada porção.
+export function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
+  const un = String(unidade || "porcao").toLowerCase();
+  const rend = parseNumero(rendimento);
+  if (un === "kg" || un === "l") return rend * 1000;
+  if (un === "g" || un === "ml") return rend;
+  const peso = parseNumero(pesoPorcaoG);
+  return peso > 0 ? rend * peso : 0; // porções ou unidades
+}
+
+// A cozinha pensa em quilo, o bar em litro. É só isso.
+export function unidadePadraoDepartamento(departamento) {
+  return String(departamento || "").toLowerCase() === "bar" ? "l" : "kg";
+}
+
+// O rendimento levado para a unidade padrão do setor, para que duas fichas
+// possam ser comparadas sem que uma esteja em gramas e a outra em porções.
+export function rendimentoPadronizado(ficha) {
+  const unidade = unidadePadraoDepartamento(ficha?.departamento);
+  const rendimento = parseNumero(ficha?.rendimento_porcoes);
+  const pesoTotal = pesoTotalDaFicha(rendimento, ficha?.rendimento_unidade, parseNumero(ficha?.peso_porcao_g));
+  return { unidade, valor: pesoTotal > 0 ? pesoTotal / 1000 : rendimento, totalBase: pesoTotal };
+}
+
+// Rendimento ESTIMADO pela soma dos ingredientes, para quando o rendimento não
+// foi declarado. Sólidos e líquidos somam juntos de propósito: 800 g de carne
+// com 200 ml de caldo rendem 1 kg de molho, e é esse número que interessa.
+// Ingrediente em "un" sem peso médio cadastrado fica de fora — entrar com 0
+// seria pior que não entrar, porque some sem avisar.
+export function rendimentoPelosIngredientes(ingLista, departamento = "cozinha") {
+  let solidosG = 0, liquidosMl = 0;
+  for (const ing of ingLista || []) {
+    const u = String(ing?.unidade || "").toLowerCase();
+    const q = parseNumero(ing?.quantidade);
+    const pm = parseNumero(ing?.peso_medio_g); // peso de 1 unidade, se conhecido
+    if (u === "kg") solidosG += q * 1000;
+    else if (u === "g") solidosG += q;
+    else if (u === "l") liquidosMl += q * 1000;
+    else if (u === "ml") liquidosMl += q;
+    else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) solidosG += q * pm;
+  }
+  const total = solidosG + liquidosMl;
+  if (total <= 0) return null;
+  return {
+    totalG: total,
+    unidade: unidadePadraoDepartamento(departamento),
+    valor: Math.round((total / 1000) * 1000) / 1000,
+    solidosG, liquidosMl,
+  };
+}

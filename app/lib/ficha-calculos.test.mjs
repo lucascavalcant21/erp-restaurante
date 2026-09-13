@@ -10,6 +10,7 @@ import {
   cmvPercentual, margemBruta, margemBrutaPercentual, markup, precoSugerido,
   formatarCodigoFicha, proximoCodigoFicha, proximaVersao, validarFicha,
   custoUnitarioEfetivoInsumo, custoDeProduzirFicha, arestasDeSubfichas,
+  pesoTotalDaFicha, unidadePadraoDepartamento, rendimentoPadronizado, rendimentoPelosIngredientes,
   tipoDaFicha, ehPreparo, ehProdutoPronto, custoPorUnidadeDeRendimento, fichasQueUsam,
 } from "./ficha-calculos.mjs";
 
@@ -253,6 +254,59 @@ conferir("acusa CMV invalido",
     .some(e => /CMV/i.test(e)), true);
 conferir("subreceita nao exige unidade",
   validarFicha({ nome_receita: "X", rendimento_porcoes: 1 }, [{ nome: "Maionese", quantidade: 30, subficha_id: "abc" }]).length, 0);
+
+// ── Rendimento ───────────────────────────────────────────────────────────
+// Estas quatro vieram de dentro da tela de fichas, e o peso total tinha ainda
+// uma terceira copia em pizza-do-prato.mjs.
+
+// Uma ficha que rende "2 kg" produz 2.000 g — nao depende do peso da porcao.
+conferir("rende em kg", pesoTotalDaFicha(2, "kg", 0), 2000);
+conferir("rende em litro", pesoTotalDaFicha(1.5, "l", 0), 1500);
+conferir("rende em grama", pesoTotalDaFicha(800, "g", 0), 800);
+conferir("rende em ml", pesoTotalDaFicha(250, "ml", 0), 250);
+// Ja em porcoes, o peso so existe se alguem disser quanto pesa uma porcao.
+conferir("8 porcoes de 250g", pesoTotalDaFicha(8, "porcao", 250), 2000);
+conferir("porcao sem peso cadastrado nao inventa peso", pesoTotalDaFicha(8, "porcao", 0), 0);
+conferir("unidade ausente cai em porcao", pesoTotalDaFicha(8, null, 100), 800);
+// parseNumero aceita a virgula decimal que vem dos formularios.
+conferir("aceita virgula decimal", pesoTotalDaFicha("2,5", "kg", 0), 2500);
+
+conferir("cozinha pensa em quilo", unidadePadraoDepartamento("cozinha"), "kg");
+conferir("bar pensa em litro", unidadePadraoDepartamento("bar"), "l");
+conferir("departamento vazio cai na cozinha", unidadePadraoDepartamento(""), "kg");
+conferir("maiuscula nao atrapalha", unidadePadraoDepartamento("BAR"), "l");
+
+const padraoKg = rendimentoPadronizado({ departamento: "cozinha", rendimento_porcoes: 8, rendimento_unidade: "porcao", peso_porcao_g: 250 });
+conferir("padronizado: unidade da cozinha", padraoKg.unidade, "kg");
+conferir("padronizado: 8x250g viram 2kg", padraoKg.valor, 2);
+conferir("padronizado: guarda o total em gramas", padraoKg.totalBase, 2000);
+// Sem peso de porcao nao da para converter: devolve o proprio rendimento.
+const padraoSemPeso = rendimentoPadronizado({ departamento: "bar", rendimento_porcoes: 10, rendimento_unidade: "porcao", peso_porcao_g: 0 });
+conferir("sem peso de porcao devolve o rendimento cru", padraoSemPeso.valor, 10);
+conferir("sem peso de porcao usa a unidade do bar", padraoSemPeso.unidade, "l");
+
+// Soma dos ingredientes: solidos e liquidos somam juntos de proposito —
+// 800g de carne com 200ml de caldo rendem 1kg de molho.
+const rend = rendimentoPelosIngredientes([
+  { unidade: "kg", quantidade: 0.8 },
+  { unidade: "ml", quantidade: 200 },
+], "cozinha");
+conferir("soma solidos e liquidos", rend.totalG, 1000);
+conferir("separa os solidos", rend.solidosG, 800);
+conferir("separa os liquidos", rend.liquidosMl, 200);
+conferir("converte para a unidade do setor", rend.valor, 1);
+conferir("unidade do setor", rend.unidade, "kg");
+
+// Item em "un" entra so com peso medio cadastrado. Sem ele, ficaria valendo
+// zero e sumiria da conta sem avisar.
+conferir("un com peso medio entra",
+  rendimentoPelosIngredientes([{ unidade: "un", quantidade: 3, peso_medio_g: 100 }]).totalG, 300);
+conferir("un sem peso medio fica de fora",
+  rendimentoPelosIngredientes([{ unidade: "un", quantidade: 3 }]), null);
+conferir("lista vazia nao inventa rendimento", rendimentoPelosIngredientes([]), null);
+conferir("sem argumento nao quebra", rendimentoPelosIngredientes(), null);
+conferir("bar sugere litro",
+  rendimentoPelosIngredientes([{ unidade: "l", quantidade: 2 }], "bar").unidade, "l");
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

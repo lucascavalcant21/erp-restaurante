@@ -75,6 +75,10 @@ import {
   converterParaBaseDoInsumo as converterParaBase,
   custoUnitarioEfetivoInsumo as custoUnitEfetivo,
   custoDeProduzirFicha as custoTotalDaFicha,
+  pesoTotalDaFicha,
+  unidadePadraoDepartamento,
+  rendimentoPadronizado,
+  rendimentoPelosIngredientes,
 } from "../../../lib/ficha-calculos.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
@@ -240,25 +244,6 @@ function custoUnitBase(base, todasFichas) {
   return custoTotalDaFicha(base, todasFichas) / (base.rendimento_porcoes || 1);
 }
 
-// Peso total produzido (g) a partir do rendimento + unidade + peso da porção
-function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
-  const un = String(unidade || "porcao").toLowerCase();
-  if (un === "kg" || un === "l") return rendimento * 1000;
-  if (un === "g" || un === "ml") return rendimento;
-  return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
-}
-
-function unidadePadraoDepartamento(departamento) {
-  return String(departamento || "").toLowerCase() === "bar" ? "l" : "kg";
-}
-
-function rendimentoPadronizado(ficha) {
-  const unidade = unidadePadraoDepartamento(ficha?.departamento);
-  const rendimento = Number(ficha?.rendimento_porcoes) || 0;
-  const pesoTotal = pesoTotalDaFicha(rendimento, ficha?.rendimento_unidade, Number(ficha?.peso_porcao_g) || 0);
-  return { unidade, valor: pesoTotal > 0 ? pesoTotal / 1000 : rendimento, totalBase: pesoTotal };
-}
-
 function textoRendimentoPadronizado(ficha) {
   const padrao = rendimentoPadronizado(ficha);
   const unidade = padrao.unidade === "l" ? "L" : "kg";
@@ -291,30 +276,6 @@ function infoPesoFicha(f, todasFichas) {
 const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
-
-// Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
-// no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" entram se o
-// insumo tiver peso médio cadastrado (ex: 1 tomate ≈ 100g). Sugere a unidade
-// conforme o que domina.
-function rendimentoPelosIngredientes(ingLista, departamento = "cozinha") {
-  let solidosG = 0, liquidosMl = 0;
-  (ingLista || []).forEach(ing => {
-    const u = String(ing.unidade || "").toLowerCase();
-    const q = Number(ing.quantidade) || 0;
-    const pm = Number(ing.peso_medio_g) || 0; // peso de 1 unidade, se conhecido
-    if (u === "kg") solidosG += q * 1000;
-    else if (u === "g") solidosG += q;
-    else if (u === "l") liquidosMl += q * 1000;
-    else if (u === "ml") liquidosMl += q;
-    else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) solidosG += q * pm;
-    // "un" sem peso médio cadastrado: continua de fora
-  });
-  const total = solidosG + liquidosMl;
-  if (total <= 0) return null;
-  const unidade = unidadePadraoDepartamento(departamento);
-  const valor = total / 1000;
-  return { totalG: total, unidade, valor: Math.round(valor * 1000) / 1000, solidosG, liquidosMl };
-}
 
 // Detalhe por ingrediente: quanto de peso e custo cada um contribui na soma.
 // pesoG = null quando o item não tem peso conhecido (fica fora do rendimento).

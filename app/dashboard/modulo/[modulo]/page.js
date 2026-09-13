@@ -9,7 +9,7 @@ import {
   CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText, FlaskConical,
   GraduationCap, Landmark, LayoutDashboard, LayoutList, ListChecks, Network, Package,
   PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck, ShoppingCart,
-  Tag, Target, Users, UserRoundCheck, Utensils, Wallet, Wine, Wrench, CalendarClock, Clock,
+  Store, Tag, Target, Users, UserRoundCheck, Utensils, Wallet, Wine, Wrench, CalendarClock, Clock,
   PieChart,
 } from "lucide-react";
 import ModuleHub from "../../../components/ModuleHub";
@@ -18,131 +18,138 @@ import ModuleHub from "../../../components/ModuleHub";
 // componente (ModuleHub) para todos. As rotas e permissões são as existentes.
 const MODULOS = {
   cozinha: {
-    title: "Operação da Cozinha", subtitle: "Cadastros, estoque, produção, qualidade e rotinas da cozinha", icon: Utensils,
+    title: "Cozinha", subtitle: "Fichas, ingredientes, estoque e o que produzir hoje", icon: Utensils,
     columns: [
-      { title: "Cadastros", subtitle: "Base da cozinha", icon: FlaskConical, accent: "#059669", items: [
+      { title: "Cadastros", subtitle: "Ingredientes, receitas e fornecedores", icon: FlaskConical, accent: "#059669", items: [
         { label: "Ingredientes", desc: "Matérias-primas e itens", href: "/dashboard/operacao/ingredientes?dept=cozinha", icon: FlaskConical, countKey: "insumos" },
         { label: "Fichas Técnicas", desc: "Receitas e composições", href: "/dashboard/operacao/fichas?dept=cozinha", icon: LayoutList, countKey: "fichas" },
         { label: "Fornecedores", desc: "Contatos e compras", href: "/dashboard/operacao/fornecedores", icon: Users, countKey: "fornecedores" },
       ]},
-      { title: "Estoque e Compras", subtitle: "Movimentações e abastecimento", icon: PackageSearch, accent: "#0891b2", items: [
-        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Boxes, countKey: "estoque" },
+      { title: "Estoque e compras", subtitle: "O que tem, o que falta e o que chegou", icon: PackageSearch, accent: "#0891b2", items: [
+        { label: "Estoque", desc: "O que tem e o que está acabando", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Boxes, countKey: "estoque" },
         { label: "Compras", desc: "Solicitações e pedidos", href: "/dashboard/operacao/compras?dept=cozinha", icon: ShoppingCart },
-        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=cozinha", icon: ReceiptText, countKey: "notas" },
+        { label: "Entrada de Notas", desc: "Lançar nota do fornecedor", href: "/dashboard/operacao/notas?dept=cozinha", icon: ReceiptText, countKey: "notas" },
       ]},
-      { title: "Produção", subtitle: "Produção e fichas técnicas", icon: ClipboardList, accent: "#7c3aed", items: [
+      { title: "Produção", subtitle: "O que preparar hoje e como montar", icon: ClipboardList, accent: "#7c3aed", items: [
         { label: "Guia de Montagem", desc: "Passo a passo das receitas", href: "/dashboard/operacao/montagem?dept=cozinha", icon: LayoutList, countKey: "montagens" },
-        { label: "Produção do Dia", desc: "Produção diária", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
-        { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", icon: CalendarClock },
+        { label: "Produção do Dia", desc: "O que preparar e quanto sai do estoque", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
+        { label: "Orçamento de Eventos", desc: "Montar preço de festa e buffet", href: "/dashboard/operacao/orcamento?dept=cozinha", icon: CalendarClock },
       ]},
-      { title: "Controle e Qualidade", subtitle: "Qualidade e conformidade", icon: ShieldCheck, accent: "#ea580c", items: [
-        { label: "Controle de Validade", desc: "Vencimentos", href: "/dashboard/operacao/validade", icon: CalendarClock },
+      { title: "Controle", subtitle: "Validade, limpeza e checklists", icon: ShieldCheck, accent: "#ea580c", items: [
+        { label: "Controle de Validade", desc: "O que vence hoje e amanhã", href: "/dashboard/operacao/validade", icon: CalendarClock },
         { label: "Checklist da Cozinha", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ClipboardCheck },
         { label: "Controles de Limpeza", desc: "Higiene e conformidade", href: "/dashboard/operacao/controles", icon: ShieldCheck },
         { label: "Guia de Uso", desc: "Como usar e higienizar produtos e equipamentos", href: "/dashboard/operacao/guias", icon: BookOpen },
       ]},
-      { title: "Ferramentas", subtitle: "Utilitários", icon: Settings, accent: "#0f766e", items: [
+      { title: "Custos", subtitle: "Quanto a cozinha consome", icon: Settings, accent: "#0f766e", items: [
         { label: "CMV da Cozinha", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
       ]},
     ],
   },
   bar: {
-    title: "Operação do Bar", subtitle: "Drinks, produtos, estoque e rotinas do bar", icon: Wine,
+    title: "Bar", subtitle: "Drinks, produtos, estoque e o que produzir hoje", icon: Wine,
     columns: [
-      { title: "Cadastros", subtitle: "Base do bar", icon: FlaskConical, accent: "#059669", items: [
+      { title: "Cadastros", subtitle: "Produtos e receitas de drinks", icon: FlaskConical, accent: "#059669", items: [
         { label: "Produtos", desc: "Bebidas e ingredientes do bar", href: "/dashboard/operacao/ingredientes?dept=bar", icon: FlaskConical, countKey: "insumos" },
-        { label: "Fichas de Drinks", desc: "Receitas dos drinks", href: "/dashboard/operacao/fichas?dept=bar", icon: Wine, countKey: "fichas" },
+        { label: "Fichas de Drinks", desc: "Dose, custo e preço de cada drink", href: "/dashboard/operacao/fichas?dept=bar", icon: Wine, countKey: "fichas" },
       ]},
-      { title: "Estoque e Compras", subtitle: "Abastecimento", icon: PackageSearch, accent: "#0891b2", items: [
-        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=bar", icon: Boxes, countKey: "estoque" },
+      { title: "Estoque e compras", subtitle: "O que tem, o que falta e o que chegou", icon: PackageSearch, accent: "#0891b2", items: [
+        { label: "Estoque", desc: "O que tem e o que está acabando", href: "/dashboard/operacao/estoque?dept=bar", icon: Boxes, countKey: "estoque" },
         { label: "Compras", desc: "Solicitações e pedidos", href: "/dashboard/operacao/compras?dept=bar", icon: ShoppingCart },
-        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=bar", icon: ReceiptText, countKey: "notas" },
+        { label: "Entrada de Notas", desc: "Lançar nota do fornecedor", href: "/dashboard/operacao/notas?dept=bar", icon: ReceiptText, countKey: "notas" },
       ]},
-      { title: "Produção", subtitle: "Montagem e produção", icon: ClipboardList, accent: "#7c3aed", items: [
-        { label: "Guia de Drinks", desc: "Montagem dos drinks", href: "/dashboard/operacao/montagem?dept=bar", icon: LayoutList, countKey: "montagens" },
-        { label: "Produção do Dia", desc: "Produção diária", href: "/dashboard/operacao/producao?dept=bar", icon: Package },
-        { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=bar", icon: CalendarClock },
+      { title: "Produção", subtitle: "O que preparar hoje e como montar", icon: ClipboardList, accent: "#7c3aed", items: [
+        { label: "Guia de Drinks", desc: "Copo, gelo e ordem de montagem", href: "/dashboard/operacao/montagem?dept=bar", icon: LayoutList, countKey: "montagens" },
+        { label: "Produção do Dia", desc: "O que preparar e quanto sai do estoque", href: "/dashboard/operacao/producao?dept=bar", icon: Package },
+        { label: "Orçamento de Eventos", desc: "Montar preço de festa e buffet", href: "/dashboard/operacao/orcamento?dept=bar", icon: CalendarClock },
       ]},
-      { title: "Controle e Qualidade", subtitle: "Qualidade e rotinas", icon: ShieldCheck, accent: "#ea580c", items: [
+      { title: "Controle", subtitle: "Checklist de abertura e fechamento", icon: ShieldCheck, accent: "#ea580c", items: [
         { label: "Checklist do Bar", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=bar", icon: ClipboardCheck },
       ]},
     ],
   },
   salao: {
-    title: "Operação do Salão", subtitle: "Atendimento, mesas, treinamento e rotinas do salão", icon: Armchair,
+    title: "Salão", subtitle: "Mesas, pedidos, iFood e o treino da equipe", icon: Armchair,
     columns: [
-      { title: "Atendimento", subtitle: "Operação em tempo real", icon: Armchair, accent: "#0284c7", items: [
+      { title: "Atendimento", subtitle: "Mesas, iFood, cupons e ocorrências", icon: Armchair, accent: "#0284c7", items: [
         { label: "Mesas", desc: "Operação e comandas", href: "/dashboard/mesas", icon: Armchair },
         { label: "Observações", desc: "Ocorrências do atendimento", href: "/dashboard/operacao/observacoes", icon: ClipboardList },
+        { label: "Canal iFood", desc: "Integração e pedidos", href: "/dashboard/canais/ifood", icon: Store },
+        { label: "Cupons", desc: "Promoções e descontos", href: "/dashboard/marketing/cupons", icon: Tag },
       ]},
-      { title: "Rotinas", subtitle: "Abertura e fechamento", icon: CalendarCheck, accent: "#7c3aed", items: [
+      { title: "Rotinas", subtitle: "Checklists e tarefas do turno", icon: CalendarCheck, accent: "#7c3aed", items: [
         { label: "Checklist do Salão", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=salao", icon: ClipboardCheck },
         { label: "Checklists", desc: "Modelos e acompanhamento", href: "/dashboard/checklists?dept=salao", icon: ClipboardCheck },
         { label: "Tarefas da equipe", desc: "Responsáveis e prioridades", href: "/dashboard/tarefas", icon: ListChecks },
       ]},
-      { title: "Desenvolvimento", subtitle: "Padrão de serviço", icon: GraduationCap, accent: "#ea580c", items: [
+      { title: "Treinamento", subtitle: "Trilhas da equipe de salão", icon: GraduationCap, accent: "#ea580c", items: [
         { label: "Treinamentos", desc: "Padrão de serviço", href: "/dashboard/salao/treinamento", icon: GraduationCap },
       ]},
     ],
   },
   financeiro: {
-    title: "Financeiro", subtitle: "Caixa, resultado, custos, metas e obrigações fiscais", icon: Wallet,
+    title: "Financeiro", subtitle: "Quanto entrou, quanto saiu e quanto sobrou", icon: Wallet,
     columns: [
-      { title: "Caixa e Resultado", subtitle: "Entradas, saídas e lucro", icon: Wallet, accent: "#4f46e5", items: [
+      { title: "Caixa e resultado", subtitle: "Entradas, saídas, contas e o DRE", icon: Wallet, accent: "#4f46e5", items: [
         { label: "Fluxo de Caixa", desc: "Entradas e saídas", href: "/dashboard/financeiro", icon: Wallet },
         { label: "Fluxo detalhado", desc: "Movimentações e histórico", href: "/dashboard/financeiro/fluxo", icon: Landmark },
         { label: "Resultado (DRE)", desc: "Receita, custos e lucro", href: "/dashboard/financeiro/dre", icon: FileBarChart },
-        { label: "Contas", desc: "Compromissos financeiros", href: "/dashboard/financeiro/contas", icon: ReceiptText, countKey: "contasPendentes" },
+        { label: "Contas", desc: "O que há para pagar e receber", href: "/dashboard/financeiro/contas", icon: ReceiptText, countKey: "contasPendentes" },
       ]},
-      { title: "Custos e Metas", subtitle: "Rentabilidade e segurança", icon: Calculator, accent: "#0891b2", items: [
+      { title: "Custos e margem", subtitle: "Para onde vai cada real da venda", icon: Calculator, accent: "#0891b2", items: [
         { label: "CMV", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
         { label: "Margens", desc: "Rentabilidade por produto", href: "/dashboard/financeiro/margem", icon: BarChart3 },
         { label: "Pizza do Lucro", desc: "Para onde vai cada real", href: "/dashboard/financeiro/pizza", icon: PieChart },
       ]},
-      { title: "Fiscal e Documentos", subtitle: "Obrigações e arquivos", icon: ShieldCheck, accent: "#ea580c", items: [
+      { title: "Fiscal e documentos", subtitle: "Notas, impostos e arquivos", icon: ShieldCheck, accent: "#ea580c", items: [
         { label: "Dados Fiscais", desc: "Cadastros e obrigações", href: "/dashboard/gestao/fiscal", icon: ShieldCheck },
-        { label: "Documentos", desc: "Arquivos financeiros", href: "/dashboard/financeiro/documentos", icon: FileText },
+        { label: "Documentos", desc: "Notas, contratos e comprovantes", href: "/dashboard/financeiro/documentos", icon: FileText },
       ]},
     ],
   },
   rh: {
-    title: "RH", subtitle: "Equipe, ponto, folha, documentos e desenvolvimento", icon: Users,
+    title: "RH", subtitle: "Quem trabalha, quanto bateu ponto e quanto recebe", icon: Users,
     columns: [
-      { title: "Jornada e Folha", subtitle: "Ponto e pagamento", icon: UserRoundCheck, accent: "#e11d48", items: [
+      { title: "Jornada e folha", subtitle: "Ponto, pagamento e compras do mês", icon: UserRoundCheck, accent: "#e11d48", items: [
         { label: "Painel de RH", desc: "Equipe e indicadores", href: "/dashboard/rh", icon: LayoutDashboard },
         { label: "Ponto", desc: "Jornada e registros", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
         { label: "Folha de Pagamento", desc: "Fechamento e valores", href: "/dashboard/rh/fechamento", icon: ReceiptText },
         { label: "Compras do Mês", desc: "Quanto entrou de mercadoria", href: "/dashboard/rh/gastos-admin", icon: Calculator },
       ]},
-      { title: "Pessoas", subtitle: "Estrutura e desenvolvimento", icon: Users, accent: "#7c3aed", items: [
+      { title: "Pessoas", subtitle: "Cargos, organograma e contratação", icon: Users, accent: "#7c3aed", items: [
         { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },
         { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users, countKey: "colaboradores" },
         { label: "Organograma", desc: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
         { label: "Guia de Funções", desc: "A rotina de cada função, hora a hora", href: "/dashboard/rh/funcoes", icon: Clock },
         { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
       ]},
-      { title: "Apoio", subtitle: "Rotinas e registros", icon: ScrollText, accent: "#0891b2", items: [
+      { title: "Apoio", subtitle: "Atas, refeitório e regulamento", icon: ScrollText, accent: "#0891b2", items: [
         { label: "Atas de Reunião", desc: "Decisões e alinhamentos", href: "/dashboard/rh/atas", icon: ScrollText },
+        { label: "Refeitório", desc: "Cardápio da equipe", href: "/dashboard/rh/cardapio-funcionarios", icon: Utensils },
+        { label: "Bônus e Regulamento", desc: "Regras de RH", href: "/dashboard/rh/configuracoes", icon: Settings },
       ]},
     ],
   },
   gestao: {
-    title: "Gestão", subtitle: "Patrimônio, manutenção, auditoria, documentos e configurações", icon: Settings,
+    title: "Gestão", subtitle: "Equipamentos, conferências, relatórios e acessos", icon: Settings,
     columns: [
-      { title: "Patrimônio", subtitle: "Bens e manutenção", icon: PackageSearch, accent: "#d97706", items: [
+      { title: "Patrimônio", subtitle: "Inventário, manutenção e suprimentos", icon: PackageSearch, accent: "#d97706", items: [
         { label: "Inventário", desc: "Bens e equipamentos", href: "/dashboard/gestao/inventario", icon: PackageSearch, countKey: "inventario" },
         { label: "Manutenção", desc: "Chamados e prevenção", href: "/dashboard/gestao/manutencao", icon: Wrench, countKey: "manutencoes" },
         { label: "Suprimentos", desc: "Recursos e abastecimento", href: "/dashboard/gestao/suprimentos", icon: ClipboardList },
       ]},
-      { title: "Controle", subtitle: "Conferências e histórico", icon: ShieldCheck, accent: "#0891b2", items: [
+      { title: "Controle", subtitle: "Auditoria, tarefas e dados fiscais", icon: ShieldCheck, accent: "#0891b2", items: [
         { label: "Auditoria", desc: "Conferências e histórico", href: "/dashboard/gestao/auditoria", icon: ShieldCheck },
-        { label: "Tarefas de Gestão", desc: "Pendências administrativas", href: "/dashboard/gestao/tarefas", icon: ListChecks },
-        { label: "Dados Fiscais", desc: "Informações legais", href: "/dashboard/gestao/fiscal", icon: Landmark },
+        { label: "Tarefas de Gestão", desc: "O que está em aberto na gestão", href: "/dashboard/gestao/tarefas", icon: ListChecks },
+        { label: "Dados Fiscais", desc: "CNPJ, regime e impostos", href: "/dashboard/gestao/fiscal", icon: Landmark },
       ]},
-      { title: "Relatórios e Ajustes", subtitle: "Visão e configuração", icon: Settings, accent: "#4f46e5", items: [
-        { label: "Relatórios", desc: "Visão consolidada", href: "/dashboard/relatorios", icon: FileBarChart },
+      { title: "Relatórios e ajustes", subtitle: "Relatórios, lojas, acessos e o assistente", icon: Settings, accent: "#4f46e5", items: [
+        { label: "Relatórios", desc: "Números do mês em uma página", href: "/dashboard/relatorios", icon: FileBarChart },
         { label: "Documentos", desc: "Arquivos da gestão", href: "/dashboard/gestao/documentos", icon: FileText },
         { label: "Configurações", desc: "Unidades, acessos e regras", href: "/dashboard/configuracoes", icon: Settings },
+        { label: "Lojas", desc: "Unidades e endereços", href: "/dashboard/lojas", icon: Store },
+        { label: "Gestão da Rede", desc: "Comparar e administrar as lojas", href: "/dashboard/rede/gestao", icon: Network },
+        { label: "Assistente Hefisto", desc: "Perguntas sobre a operação", href: "/dashboard/ia/heitor", icon: Target },
       ]},
     ],
   },

@@ -36,6 +36,8 @@ const SIDEBAR_MENU = [
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes & Produtos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
+      { label: "Mesas & Pagamentos", href: "/dashboard/salao/mesas" },
+      { label: "KDS da Cozinha", href: "/dashboard/cozinha/kds" },
       { label: "Checklists & Rotinas", href: "/dashboard/checklists" },
       { label: "Treinamentos & Trilhas", href: "/dashboard/treinamentos" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
@@ -51,7 +53,8 @@ const SIDEBAR_MENU = [
       { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" },
       { label: "Pedidos de Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
       { label: "Entrada de Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha" },
-      { label: "Gestão de Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" }
+      { label: "Gestão de Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" },
+      { label: "Produtos de Limpeza", href: "/dashboard/operacao/limpeza" }
     ]
   },
   {
@@ -61,6 +64,8 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Painel de RH", href: "/dashboard/rh" },
       { label: "Registro de Ponto", href: "/dashboard/rh/ponto" },
+      { label: "Corrigir Batida", href: "/dashboard/rh/ponto/corrigir" },
+      { label: "Quiosque de Ponto", href: "/dashboard/ponto" },
       { label: "Extras & Banco de Horas", href: "/dashboard/rh/extra" },
       { label: "Ponto Facial", href: "/dashboard/rh/facial" },
       { label: "Recrutamento & Vagas", href: "/dashboard/rh/recrutamento" },
@@ -79,7 +84,6 @@ const SIDEBAR_MENU = [
       { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
       { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
       { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" },
-      { label: "Ponto de Equilíbrio", href: "/dashboard/financeiro/equilibrio" },
       { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" },
       { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
     ]
@@ -92,6 +96,7 @@ const SIDEBAR_MENU = [
       { label: "Inventário Físico", href: "/dashboard/gestao/inventario" },
       { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
       { label: "Relatórios", href: "/dashboard/relatorios" },
+      { label: "Clientes (CRM)", href: "/dashboard/clientes" },
       { label: "Configurações", href: "/dashboard/configuracoes" },
       { label: "Usuários e Acessos", href: "/dashboard/configuracoes/usuarios" },
       { label: "Perfis de Acesso", href: "/dashboard/configuracoes/perfis" }

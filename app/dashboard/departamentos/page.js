@@ -1,51 +1,29 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Wine, ChefHat, Beer } from "lucide-react";
-import { useERP } from "../../context/ERPContext";
-import { DEPARTAMENTOS } from "../../lib/unidades";
-import { PageHeader, PageBody, Card } from "../../components/ui";
+import { Loader2 } from "lucide-react";
 
-export default function DepartamentosPage() {
-  const { unidadeAtiva, unidadeInfo, setDepartamento } = useERP();
+/* Esta tela era um passo a mais para escolher entre Bar, Cozinha e Cervejas.
+ * O menu lateral e o hub de modulos ja fazem isso direto, sem a parada no meio.
+ *
+ * A rota continua viva de proposito: quem tem o link salvo ou anotado nao pode
+ * cair numa pagina quebrada. Ela leva para a tela que ficou.
+ */
+export default function DepartamentosRedirecionaPage() {
   const router = useRouter();
 
-  if (unidadeAtiva === "todas") {
-    return (
-      <div className="min-h-screen">
-        <PageHeader title="Selecione um Restaurante" subtitle="Escolha uma unidade para começar" back={false} />
-        <PageBody>
-          <p style={{ color: "var(--dim)" }}>Selecione um restaurante no menu lateral para acessar seus departamentos.</p>
-        </PageBody>
-      </div>
-    );
-  }
-
-  const departamentos = [
-    { id: "bar", label: "🍹 Bar", desc: "Bebidas, Drinks, Coquetéis, Cervejas", href: "/dashboard/bar" },
-    { id: "cozinha", label: "👨‍🍳 Cozinha", desc: "Cardápio, Estoque, Ingredientes, Fichas", href: "/dashboard/cozinha" },
-    { id: "cervejas", label: "🍺 Cervejas", desc: "Catálogo e Estoque de Cervejas", href: "/dashboard/cervejas" },
-  ];
+  useEffect(() => {
+    router.replace("/dashboard");
+  }, [router]);
 
   return (
-    <div className="min-h-screen">
-      <PageHeader title={unidadeInfo.nome} subtitle="Escolha um departamento" back={true} />
-      <PageBody>
-        <div className="space-y-3">
-          {departamentos.map((dept) => (
-            <Card key={dept.id} className="!p-3 sm:!p-4 cursor-pointer hover:opacity-80 transition" onClick={() => { setDepartamento(dept.id); router.push(dept.href); }}>
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="text-2xl sm:text-3xl flex-shrink-0">{dept.label.split(" ")[0]}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base sm:text-lg font-bold break-words" style={{ color: "var(--fg)" }}>{dept.label}</p>
-                  <p className="text-xs sm:text-sm break-words" style={{ color: "var(--dim)" }}>{dept.desc}</p>
-                </div>
-                <div style={{ color: "var(--muted)" }}>→</div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </PageBody>
+    <div className="grid min-h-[60vh] place-items-center px-6 text-center">
+      <div>
+        <Loader2 className="mx-auto animate-spin text-emerald-600" size={28} />
+        <p className="mt-3 text-sm font-bold text-slate-800">A escolha de departamento agora esta no proprio menu.</p>
+        <p className="mt-1 text-2xs font-bold text-slate-500">Levando voce para la.</p>
+      </div>
     </div>
   );
 }

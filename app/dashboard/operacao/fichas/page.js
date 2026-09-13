@@ -55,9 +55,27 @@ import {
   ordenarFichasDocumento,
 } from "../../../lib/fichas-lote-utils.mjs";
 import {
-  precoNormalizadoDoInsumo,
   unidadeNormalizada,
 } from "../../../lib/ingredientes-utils.mjs";
+/* O calculo de custo mora na lib, com testes. Esta tela mantinha copias
+ * proprias das mesmas contas — a tela de DETALHE da ficha ja importava daqui,
+ * entao o mesmo prato tinha duas rotas de calculo dependendo de onde voce
+ * estava olhando.
+ *
+ * Conferido antes de trocar: 800 fichas geradas (com subfichas encadeadas)
+ * deram o MESMO custo nas duas implementacoes, ate o centavo. A unica
+ * divergencia aparece com fator_correcao negativo — peso bruto menor que o
+ * liquido, dado impossivel —, onde a copia da tela reduzia o custo e a lib
+ * ignora a correcao. Se alguma ficha sua tiver esse valor, a lista e o detalhe
+ * mostravam custos diferentes ate hoje; agora mostram o da lib.
+ *
+ * Os apelidos preservam os nomes usados nesta tela: sao 22 pontos de chamada,
+ * e renomear todos e como se cria `ReferenceError` de identificador orfao. */
+import {
+  converterParaBaseDoInsumo as converterParaBase,
+  custoUnitarioEfetivoInsumo as custoUnitEfetivo,
+  custoDeProduzirFicha as custoTotalDaFicha,
+} from "../../../lib/ficha-calculos.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -208,16 +226,6 @@ function normalizarNome(s) {
   return semAcento.trim();
 }
 
-// Converte uma quantidade lida (na unidade da receita) para a unidade-base do insumo vinculado
-function converterParaBase(quantidadeLida, unidadeLida, unidadeBaseInsumo) {
-  if (unidadeLida === unidadeBaseInsumo) return quantidadeLida;
-  if (unidadeLida === "g" && unidadeBaseInsumo === "kg") return quantidadeLida / 1000;
-  if (unidadeLida === "ml" && unidadeBaseInsumo === "l") return quantidadeLida / 1000;
-  if (unidadeLida === "kg" && unidadeBaseInsumo === "g") return quantidadeLida * 1000;
-  if (unidadeLida === "l" && unidadeBaseInsumo === "ml") return quantidadeLida * 1000;
-  return quantidadeLida; // unidades incompatíveis — usa como veio, revisável na tela
-}
-
 // Sub-unidades para lançamento em ficha. O custo do insumo é por unidade-base
 // (R$/kg, R$/L). Em receita pensamos em g/ml, então convertemos: 1 base = `f` sub.
 // Ex: kg → g (f=1000). Insumos em "un" não têm sub-unidade.
@@ -227,43 +235,6 @@ const SUB_UNIDADES = {
 };
 const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] || null;
 
-// Custo unitário efetivo do ingrediente. Empanados ganham peso (ganho_pct) e
-// somam o custo do empanamento (custo_empanado_kg, por kg final). Só faz sentido
-// em peso (g/kg); em outras unidades usa o custo base.
-function custoUnitEfetivo(ins) {
-  const base = precoNormalizadoDoInsumo(ins) || Number(ins?.custo_unitario) || Number(ins?.custo_compra) || 0;
-  if (!ins?.empanado) return base;
-  const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
-  const empKg = Number(ins.custo_empanado_kg) || 0;
-  // `base` agora vem normalizado por unidade-base (R$/kg), então o custo do
-  // empanamento entra direto em R$/kg. Converter para grama aqui o dividia por
-  // mil e o empanamento praticamente sumia da conta.
-  const empNaUnidade = unidadeNormalizada(ins.unidade_medida) === "kg" ? empKg : 0;
-  return base / ganho + empNaUnidade;
-}
-
-// Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
-// guard evita loop infinito se alguém criar uma referência circular.
-function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
-  let total = 0;
-  (f.fichas_ingredientes || []).forEach(fi => {
-    // Fator de correção (%) do item: a quantidade BRUTA (líquida × 1+fc) é a que custa
-    const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
-    if (fi.insumos) {
-      const unBase = unidadeNormalizada(fi.insumos.unidade_medida) || String(fi.insumos.unidade_medida || "un").toLowerCase();
-      const custoU = custoUnitEfetivo(fi.insumos);
-      const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
-      total += custoU * qtdBase * fc;
-    } else if (fi.subficha_id) {
-      const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
-      total += custoBaseUnit * (fi.quantidade || 0) * fc;
-    }
-  });
-  return total + (Number(f.custo_embalagens_total) || 0);
-}
 // Custo por unidade-de-rendimento de uma base (usado quando ela vira ingrediente)
 function custoUnitBase(base, todasFichas) {
   return custoTotalDaFicha(base, todasFichas) / (base.rendimento_porcoes || 1);

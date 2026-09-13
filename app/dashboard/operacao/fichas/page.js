@@ -2462,8 +2462,24 @@ function FichasRunner() {
               <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900" title="Voltar ao menu">
                 <ArrowLeft size={19} />
               </button>
-              <div>
-                <h1 className="text-2xl font-black tracking-tight text-slate-950">{deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">Fichas Técnicas</h1>
+                <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/80">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
+                    className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${deptUrl !== "bar" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                  >
+                    👨‍🍳 Cozinha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")}
+                    className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${deptUrl === "bar" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                  >
+                    🍹 Bar
+                  </button>
+                </div>
               </div>
             </div>
             <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">

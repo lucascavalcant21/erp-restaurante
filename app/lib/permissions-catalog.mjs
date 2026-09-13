@@ -48,6 +48,11 @@ export const PERMISSION_MODULES = [
     id: "estoque", label: "Estoque",
     pages: [
       { id: "overview", label: "Visão geral", route: "/dashboard/operacao/estoque", actions: ["view", "create", "edit", "delete", "adjust_stock", "view_values", "view_costs", "export"] },
+      // Entrada propria de proposito, e ela e o ponto da separacao: a tela de
+      // operacao (10 campos, linguagem de cozinha) herdava a permissao da
+      // visao geral, que mostra custo e valor de estoque. Sem separar, dar ao
+      // cozinheiro a tela simples obrigava a dar junto a tela com dinheiro.
+      { id: "operation", label: "Estoque — modo operação", route: "/dashboard/operacao/estoque/tablet", actions: ["view", "create", "adjust_stock"] },
       { id: "products", label: "Produtos", route: "/dashboard/operacao/ingredientes", actions: [...CRUD, "import", "export", "view_costs"] },
       { id: "entries", label: "Entrada de estoque", route: "/dashboard/operacao/notas", actions: [...CRUD, "confirm", "cancel", "view_costs"] },
       { id: "outputs", label: "Saída de estoque", route: "/dashboard/operacao/estoque", actions: ["view", "create", "confirm", "cancel", "adjust_stock"] },

@@ -101,6 +101,26 @@ const orfas = rotasDoPainel.filter(
 conferir(`nenhuma das ${rotasDoPainel.length} telas cai na entrada generica${orfas.length ? ` (${orfas.join(", ")})` : ""}`,
   orfas.length, 0);
 
+// ── Operador x gerente: a mesma area, duas telas ─────────────────────────
+// O estoque tem duas telas: a completa, com custo e valor, e a de operacao,
+// com 10 campos e linguagem de cozinha ("Alimentos da cozinha", "Quem esta
+// movimentando?"). Antes as duas dividiam a permissao `estoque.overview`, o
+// que obrigava a dar a tela com dinheiro para quem so precisa dar baixa.
+const cozinheiro = {
+  gerenciado: true, papel: "colaborador",
+  permissions: ["dashboard.overview.view", "estoque.operation.view", "estoque.operation.adjust_stock"],
+};
+conferir("cozinheiro entra na tela de operacao",
+  canAccessRoute(cozinheiro, "/dashboard/operacao/estoque/tablet", ""), "true");
+conferir("cozinheiro NAO entra na tela de estoque com custo",
+  canAccessRoute(cozinheiro, "/dashboard/operacao/estoque", ""), "false");
+// E o caminho contrario tambem vale: quem administra o estoque completo nao
+// perde a tela de operacao, porque a entrada dela e filha da area.
+const gerente = { gerenciado: true, papel: "colaborador", permissions: ["estoque.*"] };
+conferir("gerente de estoque entra nas duas",
+  canAccessRoute(gerente, "/dashboard/operacao/estoque", "") === true
+  && canAccessRoute(gerente, "/dashboard/operacao/estoque/tablet", "") === true, "true");
+
 // ── Portas que não podem se abrir ────────────────────────────────────────
 conferir("sem permissao nenhuma NAO entra na folha", canAccessRoute(semNada, "/dashboard/rh/fechamento", ""), "false");
 conferir("sem permissao nenhuma NAO entra nem na inicial", canAccessRoute(semNada, "/dashboard", ""), "false");

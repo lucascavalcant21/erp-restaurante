@@ -1299,8 +1299,17 @@ function EstoqueRunner() {
                   title="Esconde custo e valor de estoque — para o tablet no salão">
                   <Lock size={18} /> Modo quiosque
                 </button>
-                <button onClick={() => router.push("/dashboard/operacao/estoque")} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 font-black text-white shadow-sm hover:bg-indigo-700">
-                  <Tablet size={18} /> Voltar ao Estoque
+                {/* Esta e a porta da tela de operacao — a versao de 10 campos,
+                    em que o funcionario escolhe "Alimentos da cozinha" e da
+                    baixa, sem precisar classificar o tipo de movimentacao nem
+                    conhecer unidade-base. Ela existia e nao tinha link nenhum:
+                    so se chegava nela digitando a URL. Este botao apontava para
+                    /dashboard/operacao/estoque, que e ESTA pagina — sobra de
+                    copia da tela de tablet, um botao grande que nao fazia nada. */}
+                <button onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 font-bold text-accent-fg shadow-sm hover:opacity-90"
+                  title="Tela simples para dar entrada e baixa no dia a dia">
+                  <Tablet size={18} /> Modo operação
                 </button>
                 <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50">
                   <Settings2 size={18} /> Gerenciar estoques

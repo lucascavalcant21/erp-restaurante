@@ -50,6 +50,9 @@ const SIDEBAR_MENU = [
     icon: Package,
     items: [
       { label: "Visão Geral do Estoque", href: "/dashboard/operacao/estoque" },
+      // A tela de 10 campos, em linguagem de cozinha. Estava sem link nenhum:
+      // so se chegava nela digitando a URL.
+      { label: "Estoque — modo operação", href: "/dashboard/operacao/estoque/tablet" },
       { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" },
       { label: "Pedidos de Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
       { label: "Entrada de Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha" },

@@ -19,6 +19,7 @@ import { fetchManutencoes } from "../lib/controles_cozinha";
 import { fetchCampanhas } from "../lib/clientes";
 import { fetchTemplates, fetchHistoricoExecucoes } from "../lib/checklists";
 import { fetchParams, PARAMS_PADRAO } from "../lib/parametros";
+import { lacunasDoCusto } from "../lib/lacunas-custo.mjs";
 import { useTempoReal } from "../lib/realtime";
 
 // Meta de CMV: ajustável em Configurações > Parâmetros (metaCmv)
@@ -375,6 +376,14 @@ export default function DashboardGestao() {
 
   const cmvBom = m.cmvMedio <= metaCmv;
 
+  /* Quanto do cardapio a media de CMV realmente cobre.
+   *
+   * Um produto sem ficha ligada nao entra na conta: nao da erro, so some. O
+   * painel entao mostra a media dos que entraram — "34,2%" — sem dizer que sao
+   * 34 pratos de um cardapio de 101. Quem decide preco em cima disso decide
+   * sobre um terco da casa achando que ve a casa toda. */
+  const lacunas = lacunasDoCusto({ fichas: dados.fichas, produtos: dados.produtos });
+
   /* O que pede atenção hoje, montado dos números que a tela já calcula.
    *
    * O painel antigo tinha cinco cartões de mesmo tamanho informando o estado
@@ -418,6 +427,17 @@ export default function DashboardGestao() {
         titulo: `${l.equipamento || l.nome || "Limpeza"} ${l.dias < 0 ? "está atrasada" : l.dias === 0 ? "é hoje" : `vence em ${l.dias} dia${l.dias > 1 ? "s" : ""}`}`,
         detalhe: "Manutenção e limpeza programada",
         ir: "/dashboard/gestao/manutencao",
+      });
+    }
+    // O buraco silencioso vem antes dos avisos de rotina: enquanto ele existe,
+    // todo numero de custo desta tela esta olhando so um pedaco da casa.
+    const foraDaConta = lacunas.produtosSemFicha.length + lacunas.produtosComFichaQuebrada.length;
+    if (foraDaConta > 0) {
+      avisos.push({
+        grave: lacunas.cobertura.total > 0 && lacunas.cobertura.pct < 70,
+        titulo: `${foraDaConta} ${foraDaConta > 1 ? "itens do cardápio estão" : "item do cardápio está"} fora da conta do CMV`,
+        detalhe: `Sem ficha ligada · começa por ${(lacunas.produtosSemFicha[0] || lacunas.produtosComFichaQuebrada[0]).nome}`,
+        ir: "/dashboard/financeiro/pizza?ver=conferir",
       });
     }
     if (m.semEstoque.length) {
@@ -521,6 +541,15 @@ export default function DashboardGestao() {
               {m.cmvAcima > 0
                 ? `${m.cmvAcima} de ${m.cmvCount} pratos acima da meta.`
                 : `Os ${m.cmvCount} pratos precificados estão dentro da meta.`}
+              {lacunas.cobertura.total > lacunas.cobertura.cobertos && (
+                <>
+                  {" "}
+                  <b style={{ color: "var(--danger-strong)" }}>
+                    Esta média cobre {lacunas.cobertura.cobertos} de {lacunas.cobertura.total} itens do cardápio
+                  </b>
+                  {" "}— o resto está sem ficha ligada e fica fora da conta.
+                </>
+              )}
             </p>
           </>
         ) : (

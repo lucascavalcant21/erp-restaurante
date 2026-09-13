@@ -15,6 +15,7 @@ import {
   simularCardapio, LIMITE_PRATOS, LIMITE_BEBIDAS,
 } from "../../../lib/custo-diario.mjs";
 import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
+import { lacunasDoCusto } from "../../../lib/lacunas-custo.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -80,7 +81,14 @@ export default function PizzaDoLucroPage() {
   const [params, setParams] = useState(PARAMS_PADRAO);
   const [cmo, setCmo] = useState(null);
   const [equipe, setEquipe] = useState([]);
-  const [visao, setVisao] = useState("pratos"); // pratos | dia | simulacao
+  // A visao pode vir pela URL: o aviso do painel manda ?ver=conferir para cair
+  // direto no que esta faltando, em vez de largar a pessoa na aba de pratos e
+  // esperar que ela ache a aba certa.
+  const [visao, setVisao] = useState(() => {
+    if (typeof window === "undefined") return "pratos";
+    const ver = new URLSearchParams(window.location.search).get("ver");
+    return ["pratos", "dia", "simulacao", "conferir"].includes(ver) ? ver : "pratos";
+  }); // pratos | dia | simulacao | conferir
   // Cardápio montado: { fichaId: quantidade no mês }.
   const [montado, setMontado] = useState({});
   const [buscaMontar, setBuscaMontar] = useState("");
@@ -228,6 +236,10 @@ export default function PizzaDoLucroPage() {
   const medidoDiverge = medidoDia != null && usandoOutro > 0
     && Math.abs(medidoDia - usandoOutro) / usandoOutro >= 0.1;
 
+  // O que impede os numeros desta tela de estarem certos. Sai de fichas e
+  // produtos, que a tela ja carregou — nenhuma consulta a mais.
+  const lacunas = useMemo(() => lacunasDoCusto({ fichas, produtos }), [fichas, produtos]);
+
   const dias = Number(params.dias_operacao_mes) || 0;
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
   const equipeDia = useMemo(() => equipePorDia(equipe, dias), [equipe, dias]);
@@ -315,7 +327,7 @@ export default function PizzaDoLucroPage() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {[["pratos", "Pizza dos pratos"], ["dia", "Custo por dia"], ["simulacao", "Simulação"]].map(([id, rotulo]) => (
+          {[["pratos", "Pizza dos pratos"], ["dia", "Custo por dia"], ["simulacao", "Simulação"], ["conferir", "O que falta"]].map(([id, rotulo]) => (
             <button key={id} onClick={() => setVisao(id)}
               className={`rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${visao === id ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}>
               {rotulo}
@@ -701,6 +713,83 @@ export default function PizzaDoLucroPage() {
           <p className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm font-bold text-slate-400">
             Nenhum prato com preço de venda ainda. Defina o preço nas fichas para ver a pizza.
           </p>
+        ) : visao === "conferir" ? (
+          /* O QUE FALTA
+           *
+           * Todo numero desta tela depende de quatro coisas ligadas, e elas
+           * moram em tres telas: o insumo precisa de preco, a ficha precisa de
+           * ingredientes e rendimento, e o produto do cardapio precisa de preco
+           * E de estar LIGADO a uma ficha.
+           *
+           * O quarto e o que ninguem adivinha. Sem a ligacao, o prato nao entra
+           * na conta — sem erro, sem aviso. A media aparece bonita cobrindo um
+           * terco da casa. Aqui o buraco fica visivel, com o caminho de onde se
+           * resolve cada um. */
+          <div className="mt-4 space-y-4">
+            <div className="rounded-2xl border border-line bg-card p-4">
+              <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Quanto do cardápio entra na conta</p>
+              <p className="mt-1.5 text-4xl font-bold tracking-tight"
+                style={{ fontVariantNumeric: "tabular-nums", color: lacunas.cobertura.pct >= 90 ? "var(--accent)" : "var(--danger-strong)" }}>
+                {lacunas.cobertura.total ? `${Math.round(lacunas.cobertura.pct)}%` : "—"}
+              </p>
+              <p className="mt-1 text-2xs font-bold text-muted">
+                {lacunas.cobertura.total
+                  ? `${lacunas.cobertura.cobertos} de ${lacunas.cobertura.total} itens com preço estão ligados a uma ficha.`
+                  : "Nenhum item do cardápio tem preço de venda ainda."}
+              </p>
+              {lacunas.pendencias === 0 && lacunas.cobertura.total > 0 && (
+                <p className="mt-3 rounded-xl bg-accent-soft px-3 py-2 text-2xs font-bold" style={{ color: "var(--accent-strong)" }}>
+                  Nada faltando. Os números desta tela cobrem o cardápio inteiro.
+                </p>
+              )}
+            </div>
+
+            {[
+              ["Sem ficha ligada — ficam fora do CMV", lacunas.produtosSemFicha,
+               "O produto tem preço mas não aponta para nenhuma ficha, então o custo dele não existe para o sistema.",
+               "/dashboard/operacao/produtos", "Abrir Produtos", true],
+              ["Apontam para uma ficha que não existe mais", lacunas.produtosComFichaQuebrada,
+               "Pior que não ligado: parece configurado e custa zero.",
+               "/dashboard/operacao/produtos", "Abrir Produtos", true],
+              ["Ingredientes sem preço", lacunas.ingredientesSemPreco,
+               "Entram na ficha valendo zero e derrubam o CMV de todo prato que os usa. O primeiro da lista é o que trava mais fichas.",
+               `/dashboard/operacao/ingredientes?dept=${aba === "bar" ? "bar" : "cozinha"}`, "Abrir Ingredientes", true],
+              ["Fichas sem rendimento", lacunas.fichasSemRendimento,
+               "Sem saber quanto rende, não dá para dividir o custo por porção.",
+               `/dashboard/operacao/fichas?dept=${aba === "bar" ? "bar" : "cozinha"}`, "Abrir Fichas", false],
+              ["Fichas sem ingrediente", lacunas.fichasSemIngrediente,
+               "A ficha existe e custa zero. Produto pronto não entra aqui — ele não precisa de receita.",
+               `/dashboard/operacao/fichas?dept=${aba === "bar" ? "bar" : "cozinha"}`, "Abrir Fichas", false],
+              ["Com ficha e sem preço de venda", lacunas.produtosSemPreco,
+               "Dá para saber o custo, não dá para saber se o preço cobre.",
+               "/dashboard/operacao/produtos", "Abrir Produtos", false],
+            ].filter(([, lista]) => lista.length > 0).map(([titulo, lista, porque, href, acao, grave]) => (
+              <div key={titulo} className="overflow-hidden rounded-2xl border border-line bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="w-1 self-stretch rounded-full" style={{ background: grave ? "var(--danger-strong)" : "var(--subtle)" }} />
+                    <p className="text-sm font-bold text-fg">{titulo} <span className="text-muted">({lista.length})</span></p>
+                  </div>
+                  <button onClick={() => router.push(href)}
+                    className="shrink-0 text-2xs font-bold text-accent underline underline-offset-2">{acao} →</button>
+                </div>
+                <p className="px-4 pb-2 text-2xs font-medium text-muted">{porque}</p>
+                <ul className="border-t border-line-soft">
+                  {lista.slice(0, 8).map((item) => (
+                    <li key={item.id} className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-2 last:border-b-0">
+                      <span className="min-w-0 flex-1 truncate text-2xs font-bold text-fg-soft">{item.nome}</span>
+                      <span className="shrink-0 text-3xs font-bold text-muted">
+                        {item.fichas ? `em ${item.fichas} ficha${item.fichas > 1 ? "s" : ""}` : item.preco ? fmt(item.preco) : item.departamento || ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {lista.length > 8 && (
+                  <p className="px-4 py-2 text-3xs font-bold text-subtle">e mais {lista.length - 8}.</p>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="mt-4 space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

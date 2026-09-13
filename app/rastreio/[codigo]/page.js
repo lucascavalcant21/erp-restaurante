@@ -55,8 +55,8 @@ export default function RastreioPage() {
               <p className="text-xl font-bold" style={{ color: vencido ? "#DC2626" : "var(--accent-fg)" }}>{vencido ? "VENCIDO" : "DENTRO DA VALIDADE"}</p>
               <p className="text-[13px] font-bold mt-1" style={{ color: vencido ? "#DC2626" : "var(--accent-fg)" }}>{textoDias}</p>
               <p className="text-2xl font-bold mt-2" style={{ color: "var(--fg)" }}>{et.produto}</p>
-              {et.status === "baixa" && <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>✔ Baixa registrada (consumido)</p>}
-              {et.status === "perda" && <p className="text-[11px] mt-1" style={{ color: "#DC2626" }}>⚠ Registrado como PERDA</p>}
+              {et.status === "baixa" && <p className="text-2xs mt-1" style={{ color: "var(--dim)" }}>✔ Baixa registrada (consumido)</p>}
+              {et.status === "perda" && <p className="text-2xs mt-1" style={{ color: "#DC2626" }}>⚠ Registrado como PERDA</p>}
             </div>
             {/* Detalhes */}
             <div className="p-4 space-y-0">
@@ -70,7 +70,7 @@ export default function RastreioPage() {
             </div>
           </div>
         )}
-        <p className="text-[11px] text-center mt-4" style={{ color: "var(--elevated)" }}>Rastreabilidade de alimentos · Cerebro ERP</p>
+        <p className="text-2xs text-center mt-4" style={{ color: "var(--elevated)" }}>Rastreabilidade de alimentos · Cerebro ERP</p>
       </div>
     </div>
   );
@@ -79,7 +79,7 @@ export default function RastreioPage() {
 function Linha({ k, v, forte, cor }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 py-2.5 min-w-0" style={{ borderBottom: "1px solid var(--line)" }}>
-      <span className="text-[12px] font-medium shrink-0" style={{ color: "var(--dim)" }}>{k}</span>
+      <span className="text-xs font-medium shrink-0" style={{ color: "var(--dim)" }}>{k}</span>
       <span className="text-sm break-words sm:text-right min-w-0" style={{ color: cor || "var(--fg)", fontWeight: forte ? 700 : 500 }}>{v}</span>
     </div>
   );

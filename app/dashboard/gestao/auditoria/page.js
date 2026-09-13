@@ -116,7 +116,7 @@ export default function AuditoriaPerdasPage() {
             <TrendingDown size={22} style={{ color: "#EF4444", flexShrink: 0, marginTop: 2 }} />
             <div className="min-w-0">
               <p className="text-sm font-bold" style={{ color: "#DC2626" }}>Alerta Crítico: Desperdício Acima da Média!</p>
-              <p className="text-[12px]" style={{ color: "var(--fg-soft)" }}>A taxa média de perdas da sua operação está em <b style={{ color: "#DC2626" }}>{resumo.taxaGeral.toFixed(1)}%</b> (o normal é manter abaixo de 3~5%). Faça uma contagem urgente dos insumos com selo vermelho.</p>
+              <p className="text-xs" style={{ color: "var(--fg-soft)" }}>A taxa média de perdas da sua operação está em <b style={{ color: "#DC2626" }}>{resumo.taxaGeral.toFixed(1)}%</b> (o normal é manter abaixo de 3~5%). Faça uma contagem urgente dos insumos com selo vermelho.</p>
             </div>
           </Card>
         )}
@@ -209,22 +209,22 @@ export default function AuditoriaPerdasPage() {
 
                   <div className="grid grid-cols-2 gap-3 w-full md:w-auto md:grid-cols-4 md:gap-6 md:items-center">
                     <div className="text-left md:text-right min-w-0">
-                      <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>Vendas (Teórico)</p>
+                      <p className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>Vendas (Teórico)</p>
                       <p className="text-lg font-black" style={{ color: "var(--fg)" }}>{item.teorico_vendas}</p>
                     </div>
 
                     <div className="text-left md:text-right min-w-0">
-                      <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>Baixa Manual</p>
+                      <p className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>Baixa Manual</p>
                       <p className="text-lg font-black" style={{ color: critico ? "#EF4444" : "var(--fg)" }}>{item.perda_manual}</p>
                     </div>
 
                     <div className="text-left md:text-right bg-black/20 px-3 py-1.5 rounded-lg border border-white/5 min-w-0">
-                      <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>Taxa %</p>
+                      <p className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>Taxa %</p>
                       <p className="text-xl font-black" style={{ color: corStatus }}>{item.taxa_perda.toFixed(1)}%</p>
                     </div>
 
                     <div className="text-left md:text-right bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-full md:w-28 min-w-0">
-                      <p className="text-[10px] font-bold uppercase text-slate-600">Ralo Financeiro</p>
+                      <p className="text-3xs font-bold uppercase text-slate-600">Ralo Financeiro</p>
                       <p className="text-lg font-black text-slate-600">{fmtBRL(item.prejuizo)}</p>
                     </div>
                   </div>

@@ -52,7 +52,7 @@ function FormCerveja({ inicial, onSalvar, onCancelar }) {
       </div>
       {precoV > 0 && (
         <div className="erp-panel p-3 mb-3 flex justify-between items-center">
-          <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>CMV {fmtPct(cmv)} · Margem {fmtPct(margem)}</span>
+          <span className="text-2xs font-bold" style={{ color: "var(--muted)" }}>CMV {fmtPct(cmv)} · Margem {fmtPct(margem)}</span>
           <span className="text-sm font-bold" style={{ color: margem >= 30 ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(precoV - precoC)}</span>
         </div>
       )}
@@ -151,21 +151,21 @@ function CatalogoCervejas() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-bold" style={{ color: "var(--fg)" }}>{c.marca}</p>
-                          <span className="erp-badge text-[10px]" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{c.estilo}</span>
-                          {c.origem === "Importada" && <span className="erp-badge text-[10px]" style={{ background: "#D4AF37", color: "#000" }}>Importada</span>}
+                          <span className="erp-badge text-3xs" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{c.estilo}</span>
+                          {c.origem === "Importada" && <span className="erp-badge text-3xs" style={{ background: "#D4AF37", color: "#000" }}>Importada</span>}
                         </div>
-                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>{c.volume_ml}mL {c.alcool ? `· ${c.alcool}%` : ""} · Est: {c.quantidade}/{c.minimo}</p>
+                        <p className="text-2xs" style={{ color: "var(--dim)" }}>{c.volume_ml}mL {c.alcool ? `· ${c.alcool}%` : ""} · Est: {c.quantidade}/{c.minimo}</p>
                         <div className="flex items-center gap-3 mt-2">
                           <div>
-                            <p className="text-[10px]" style={{ color: "var(--dim)" }}>Venda</p>
+                            <p className="text-3xs" style={{ color: "var(--dim)" }}>Venda</p>
                             <p className="font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(precoV)}</p>
                           </div>
                           <div>
-                            <p className="text-[10px]" style={{ color: "var(--dim)" }}>Compra</p>
+                            <p className="text-3xs" style={{ color: "var(--dim)" }}>Compra</p>
                             <p className="text-sm" style={{ color: "var(--muted)" }}>{fmtBRL(precoC)}</p>
                           </div>
                           <div style={{ borderLeft: "1px solid var(--line)", paddingLeft: 12 }}>
-                            <p className="text-[10px] font-bold" style={{ color: cmv <= 40 ? "var(--accent-fg)" : "#DC2626" }}>CMV {fmtPct(cmv)}</p>
+                            <p className="text-3xs font-bold" style={{ color: cmv <= 40 ? "var(--accent-fg)" : "#DC2626" }}>CMV {fmtPct(cmv)}</p>
                             <p className="text-sm font-bold" style={{ color: cmv <= 40 ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(precoV - precoC)}</p>
                           </div>
                         </div>

@@ -87,7 +87,7 @@ export default function ModalImportar({ open, onClose, tipo, eventoId, existente
 
   return (
     <Modal open={open} onClose={onClose} title={config.titulo}>
-      <p className="text-[12px] mb-3" style={{ color: "var(--dim)" }}>{config.subtitulo}</p>
+      <p className="text-xs mb-3" style={{ color: "var(--dim)" }}>{config.subtitulo}</p>
 
       <div className="relative mb-3">
         <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--muted)" }} />
@@ -106,12 +106,12 @@ export default function ModalImportar({ open, onClose, tipo, eventoId, existente
       ) : (
         <>
           <div className="flex items-center justify-between mb-2">
-            <button onClick={toggleAll} className="text-[11px] flex items-center gap-1" style={{ color: "var(--accent-fg)", background: "transparent", border: "none", cursor: "pointer" }}>
+            <button onClick={toggleAll} className="text-2xs flex items-center gap-1" style={{ color: "var(--accent-fg)", background: "transparent", border: "none", cursor: "pointer" }}>
               {selecionados.size === disponiveis.length && disponiveis.length > 0
                 ? <><CheckSquare size={12} /> Desmarcar todos</>
                 : <><Square size={12} /> Selecionar todos disponíveis</>}
             </button>
-            <span className="text-[11px]" style={{ color: "var(--dim)" }}>
+            <span className="text-2xs" style={{ color: "var(--dim)" }}>
               {selecionados.size}/{disponiveis.length} selecionado{selecionados.size !== 1 ? "s" : ""}
             </span>
           </div>
@@ -132,7 +132,7 @@ export default function ModalImportar({ open, onClose, tipo, eventoId, existente
                     disabled={jaExiste}
                     onChange={() => !jaExiste && toggleItem(item.id)}
                   />
-                  <div className="flex-1 text-[12px]">
+                  <div className="flex-1 text-xs">
                     <strong style={{ color: "var(--fg)" }}>{item.nome}</strong>
                     {tipo === "pratos" && item.categoria && (
                       <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>· {item.categoria}</span>

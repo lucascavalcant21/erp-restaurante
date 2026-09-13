@@ -333,11 +333,11 @@ function ProducaoRunner() {
                </button>
                <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-lg">
                   <ClipboardList size={18}/> <span className="hidden sm:inline">Planejar & Imprimir o Dia</span><span className="sm:hidden">Planejar</span>
-                  {itensPlanejados.length > 0 && <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{itensPlanejados.length}</span>}
+                  {itensPlanejados.length > 0 && <span className="bg-emerald-500 text-white text-3xs font-bold px-1.5 py-0.5 rounded-full">{itensPlanejados.length}</span>}
                </button>
                {cmvMedio !== null && (
                   <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
-                     <p className={`text-[9px] font-black uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
+                     <p className={`text-3xs font-bold uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
                      <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
                   </div>
                )}
@@ -373,11 +373,11 @@ function ProducaoRunner() {
                <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Produção planejada para hoje</p>
+                        <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Produção planejada para hoje</p>
                         <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {deptUrl === "bar" ? "Bar" : "Cozinha"}</p>
                      </div>
                      <button onClick={() => router.push("/dashboard/operacao/producao/memorando")}
-                        className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">
+                        className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
                         Abrir memorando
                      </button>
                   </div>
@@ -387,7 +387,7 @@ function ProducaoRunner() {
                            <div className="min-w-0">
                               <p className="text-[15px] font-black text-slate-800 truncate">{item.ficha.nome_receita}</p>
                               {(item.responsavel || item.observacao) && (
-                                 <p className="text-[12px] font-bold text-slate-500 truncate">
+                                 <p className="text-xs font-bold text-slate-500 truncate">
                                     {item.responsavel || ""}{item.responsavel && item.observacao ? " · " : ""}{item.observacao || ""}
                                  </p>
                               )}
@@ -406,30 +406,30 @@ function ProducaoRunner() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <button onClick={() => setModalPlanejar(true)} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-700"><ClipboardList size={17}/> Produção planejada</span>
+               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-amber-700"><ClipboardList size={17}/> Produção planejada</span>
                <strong className="mt-2 block text-2xl font-black text-slate-900">{itensPlanejados.length} item(ns)</strong>
                <span className="mt-1 block text-xs font-bold text-slate-600">Para {dataPlano ? dataPlano.split("-").reverse().join("/") : "a data escolhida"}</span>
             </button>
             <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-emerald-700"><History size={17}/> Produzido nos últimos 30 dias</span>
+               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-emerald-700"><History size={17}/> Produzido nos últimos 30 dias</span>
                <strong className="mt-2 block text-2xl font-black text-slate-900">{totalProduzido.toLocaleString("pt-BR")} porções</strong>
                <span className="mt-1 block text-xs font-bold text-slate-600">{producoes.length} lançamento(s) registrado(s)</span>
             </article>
             <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-slate-300 bg-slate-900 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-               <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-300"><Boxes size={17}/> Estoque produzido</span>
+               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-slate-300"><Boxes size={17}/> Estoque produzido</span>
                <strong className="mt-2 block text-xl font-black">{saldosProntos.length} item(ns) prontos</strong>
                <span className="mt-1 block text-xs font-bold text-slate-300">Toque para ver quantidades e locais</span>
             </button>
          </div>
 
-         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-slate-900"><CheckCircle2 size={18} className="text-emerald-600"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-black text-emerald-700">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-black text-emerald-700">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-slate-500">{item.local_interno}</small>}</div>)}</div></div>}
+         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-slate-900"><CheckCircle2 size={18} className="text-emerald-600"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-bold text-emerald-700">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-bold text-emerald-700">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-slate-500">{item.local_interno}</small>}</div>)}</div></div>}
 
          {(itensPlanejados.length > 0 || producoes.length > 0) && (
             <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="mb-3 flex items-center justify-between gap-3">
                      <h2 className="text-base font-black text-slate-900">O que quero produzir</h2>
-                     <button onClick={() => setModalPlanejar(true)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-black text-amber-800">Editar plano</button>
+                     <button onClick={() => setModalPlanejar(true)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-800">Editar plano</button>
                   </div>
                   {itensPlanejados.length === 0 ? <p className="text-sm font-bold text-slate-500">Nenhuma produção planejada.</p> : (
                      <div className="space-y-2">
@@ -477,7 +477,7 @@ function ProducaoRunner() {
                            {f.departamento === 'bar' ? <Wine size={20}/> : <UtensilsCrossed size={20}/>}
                         </span>
                         {cmv !== null && (
-                           <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
+                           <span className={`px-2.5 py-1 rounded-lg text-3xs font-bold ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
                               CMV {cmv.toFixed(1)}%
                            </span>
                         )}
@@ -511,10 +511,10 @@ function ProducaoRunner() {
 
                <div className="p-4 sm:p-8 pt-4 sm:pt-5 overflow-y-auto space-y-3">
                   <div className="flex items-center gap-3">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Data da produção</label>
+                     <label className="text-3xs font-bold uppercase tracking-widest text-slate-500">Data da produção</label>
                      <input type="date" value={dataPlano} onChange={e=>setDataPlano(e.target.value)} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-emerald-500"/>
                      {itensPlanejados.length > 0 && (
-                        <button onClick={() => { if (confirm("Limpar o planejamento do dia?")) setPlano({}); }} className="ml-auto text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar tudo</button>
+                        <button onClick={() => { if (confirm("Limpar o planejamento do dia?")) setPlano({}); }} className="ml-auto text-3xs font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar tudo</button>
                      )}
                   </div>
 
@@ -527,7 +527,7 @@ function ProducaoRunner() {
                            <div className="flex items-center gap-2">
                               <input type="number" min="0" placeholder="0" value={item.qtd || ""} onChange={e=>setPlanoItem(f.id, { qtd: e.target.value })}
                                  className="w-20 p-2.5 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">porç.</span>
+                              <span className="text-3xs font-bold text-slate-400 uppercase">porç.</span>
                               <select value={item.resp || ""} onChange={e=>setPlanoItem(f.id, { resp: e.target.value })}
                                  className="p-2.5 bg-white border border-slate-200 rounded-lg font-bold text-xs text-slate-600 outline-none focus:border-emerald-500 max-w-[170px]">
                                  <option value="">Nome em branco (escrever à mão)</option>
@@ -605,13 +605,13 @@ function ProducaoRunner() {
                      return (
                         <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center justify-between gap-4">
                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Valor Total Médio desta Produção</p>
-                              <p className="text-[10px] font-bold text-emerald-700/70 mt-0.5">{fmtBRL(custoPorcao)} / porção × {qtdProd || 0}</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Valor Total Médio desta Produção</p>
+                              <p className="text-3xs font-bold text-emerald-700/70 mt-0.5">{fmtBRL(custoPorcao)} / porção × {qtdProd || 0}</p>
                               <p className="text-3xl font-black text-emerald-700 mt-1">{fmtBRL(valorTotalProducao)}</p>
                            </div>
                            {cmv !== null && (
                               <div className={`px-3 py-2 rounded-xl border shrink-0 text-center ${cores.bg} ${cores.border}`}>
-                                 <p className={`text-[9px] font-black uppercase tracking-widest ${cores.text}`}>CMV</p>
+                                 <p className={`text-3xs font-bold uppercase tracking-widest ${cores.text}`}>CMV</p>
                                  <p className={`text-xl font-black ${cores.text}`}>{cmv.toFixed(1)}%</p>
                               </div>
                            )}
@@ -621,7 +621,7 @@ function ProducaoRunner() {
 
                   {/* Preview da Baixa */}
                   <div className="pt-2">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Previsão de Baixa no Estoque:</p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Previsão de Baixa no Estoque:</p>
                      <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
                         {calcularConsumoProducao(fichaAtual, Number(qtdProd), fichas).itens.map(item => {
                            return (

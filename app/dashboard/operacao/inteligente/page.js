@@ -140,7 +140,7 @@ export default function CentralOperacional() {
                   onClick={() => c.filtro === null ? router.push("/dashboard/operacao/inteligente/nao-conformidades") : setFiltroStatus(c.filtro)}
                   className={`rounded-2xl border p-3 text-left shadow-sm transition-all hover:border-emerald-300 ${c.alerta ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"}`}>
                   <c.icone size={16} className={c.alerta ? "text-red-500" : "text-emerald-600"} />
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                  <p className="mt-1 text-3xs font-bold uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
                   <p className={`text-xl font-black ${c.alerta ? "text-red-600" : "text-slate-800"}`}>{c.val}</p>
                 </button>
               ))}
@@ -150,7 +150,7 @@ export default function CentralOperacional() {
               <div className="grid grid-cols-3 gap-2.5">
                 {[["Pontualidade", score.pontualidade], ["Execução", score.execucao], ["Qualidade", score.qualidade]].map(([rot, val]) => (
                   <div key={rot} className="rounded-2xl border border-slate-200 bg-white p-3">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{rot}</p>
+                    <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">{rot}</p>
                     <p className="text-lg font-black text-emerald-700">{val}%</p>
                   </div>
                 ))}
@@ -160,9 +160,9 @@ export default function CentralOperacional() {
             {/* Acontecendo agora */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-xs font-black uppercase tracking-widest text-emerald-700">Acontecendo hoje</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-700">Acontecendo hoje</h2>
                 {filtroStatus && (
-                  <button onClick={() => setFiltroStatus("")} className="text-[12px] font-black text-emerald-700">Ver todos</button>
+                  <button onClick={() => setFiltroStatus("")} className="text-xs font-bold text-emerald-700">Ver todos</button>
                 )}
               </div>
 
@@ -189,7 +189,7 @@ export default function CentralOperacional() {
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px] font-black text-slate-900">{e.processo?.nome || "Processo"}</span>
-                          <span className="block truncate text-[12px] font-bold text-slate-500">
+                          <span className="block truncate text-xs font-bold text-slate-500">
                             {e.processo?.setor || "geral"}
                             {e.responsavel_nome ? ` · ${e.responsavel_nome}` : ""}
                             {e.total_itens ? ` · ${e.itens_respondidos}/${e.total_itens} itens` : ""}
@@ -200,7 +200,7 @@ export default function CentralOperacional() {
                             </span>
                           )}
                         </span>
-                        <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-black ${info.cor}`}>{info.rotulo}</span>
+                        <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-2xs font-bold ${info.cor}`}>{info.rotulo}</span>
                       </button>
                     );
                   })}
@@ -212,16 +212,16 @@ export default function CentralOperacional() {
             {ncs.length > 0 && (
               <section className="rounded-2xl border-2 border-red-200 bg-red-50/50 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-xs font-black uppercase tracking-widest text-red-700">Não conformidades abertas</h2>
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-red-700">Não conformidades abertas</h2>
                   <button onClick={() => router.push("/dashboard/operacao/inteligente/nao-conformidades")}
-                    className="text-[12px] font-black text-red-700">Ver todas</button>
+                    className="text-xs font-bold text-red-700">Ver todas</button>
                 </div>
                 <div className="space-y-2">
                   {ncs.slice(0, 5).map(nc => (
                     <div key={nc.id} className="rounded-xl border border-red-100 bg-white p-3">
                       <p className="text-[14px] font-black text-slate-800">{nc.titulo}</p>
-                      {nc.descricao && <p className="mt-0.5 whitespace-pre-line text-[12px] font-medium text-slate-500 line-clamp-2">{nc.descricao}</p>}
-                      <p className="mt-1 text-[11px] font-bold text-slate-400">
+                      {nc.descricao && <p className="mt-0.5 whitespace-pre-line text-xs font-medium text-slate-500 line-clamp-2">{nc.descricao}</p>}
+                      <p className="mt-1 text-2xs font-bold text-slate-400">
                         {nc.setor || "geral"} · {nc.criticidade === "critica" ? "crítica" : nc.criticidade} · {new Date(nc.created_at).toLocaleString("pt-BR")}
                       </p>
                     </div>

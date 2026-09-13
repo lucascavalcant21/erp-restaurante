@@ -85,7 +85,7 @@ export default function CustosFixosPage() {
           <>
             {/* O número que importa */}
             <section className="rounded-2xl border-2 border-emerald-200 bg-white p-5 text-center shadow-sm sm:p-6">
-              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Custo fixo por dia</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Custo fixo por dia</p>
               <p className="mt-1 text-4xl font-black text-slate-900 sm:text-5xl">{brl(custoDia)}</p>
               <p className="mt-2 text-sm font-bold text-slate-500">
                 {brl(total)} no mês ÷ {dias} dias
@@ -111,7 +111,7 @@ export default function CustosFixosPage() {
             {/* A lista */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-700">O que sai todo mês</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">O que sai todo mês</p>
                 <button onClick={adicionar} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-white px-3.5 font-black text-emerald-700 hover:bg-emerald-50">
                   <Plus size={16} /> Custo
                 </button>

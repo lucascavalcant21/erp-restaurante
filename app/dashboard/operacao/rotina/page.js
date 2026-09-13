@@ -756,21 +756,21 @@ function RotinaRunner() {
             </div>
             <div className="flex items-end justify-between mb-3 relative z-[1]">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: t.cor }}>{t.nome} · {tipoLabel}</p>
+                <p className="text-3xs font-bold uppercase tracking-widest mb-1" style={{ color: t.cor }}>{t.nome} · {tipoLabel}</p>
                 <p className="text-5xl font-black leading-none" style={{ color: pct === 100 ? t.cor : "var(--fg)" }}>{pct}%</p>
               </div>
               <div className="text-right">
-                <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{concluidas} de {itens.length}</p>
-                <p className="text-[10px]" style={{ color: "var(--dim)" }}>tarefas concluídas</p>
-                {tempoPrevisto > 0 && <p className="mt-1 flex items-center justify-end gap-1 text-[10px] font-black" style={{ color: t.cor }}><Clock3 size={11}/>{tempoPrevisto} min previstos</p>}
+                <p className="text-2xs font-bold" style={{ color: "var(--dim)" }}>{concluidas} de {itens.length}</p>
+                <p className="text-3xs" style={{ color: "var(--dim)" }}>tarefas concluídas</p>
+                {tempoPrevisto > 0 && <p className="mt-1 flex items-center justify-end gap-1 text-3xs font-bold" style={{ color: t.cor }}><Clock3 size={11}/>{tempoPrevisto} min previstos</p>}
               </div>
             </div>
             <div className="h-3 rounded-full overflow-hidden" style={{ background: "var(--elevated)" }}>
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${t.cor}CC, ${t.cor})` }} />
             </div>
             <div className="mt-2 flex items-center justify-between gap-2">
-              {pct === 100 ? <p className="text-xs font-black flex items-center gap-1" style={{ color: t.cor }}><CheckCircle2 size={14} /> Todas concluídas!</p> : <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{itens.length - concluidas} pendente(s)</p>}
-              {pct < 100 && <button type="button" onClick={() => focarProximaPendente()} className="min-h-9 rounded-lg px-3 text-xs font-black text-white" style={{ background: t.cor }}>Ir para a próxima</button>}
+              {pct === 100 ? <p className="text-xs font-bold flex items-center gap-1" style={{ color: t.cor }}><CheckCircle2 size={14} /> Todas concluídas!</p> : <p className="text-2xs font-bold" style={{ color: "var(--dim)" }}>{itens.length - concluidas} pendente(s)</p>}
+              {pct < 100 && <button type="button" onClick={() => focarProximaPendente()} className="min-h-9 rounded-lg px-3 text-xs font-bold text-white" style={{ background: t.cor }}>Ir para a próxima</button>}
             </div>
           </div>
 
@@ -783,17 +783,17 @@ function RotinaRunner() {
                     <Camera size={16} />
                   </div>
                   <div>
-                    <p className="text-xs font-black text-emerald-950 uppercase tracking-wide">Padrão de Organização do Cômodo / Área</p>
-                    <p className="text-[11px] font-medium text-emerald-800">Veja a foto de como a área inteira deve estar organizada ao final do turno.</p>
+                    <p className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Padrão de Organização do Cômodo / Área</p>
+                    <p className="text-2xs font-medium text-emerald-800">Veja a foto de como a área inteira deve estar organizada ao final do turno.</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)} className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-black text-emerald-800 hover:bg-emerald-100 shadow-sm shrink-0">
+                <button type="button" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)} className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100 shadow-sm shrink-0">
                   Ampliar Foto
                 </button>
               </div>
               <div className="relative overflow-hidden rounded-2xl cursor-pointer" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)}>
                 <img src={`data:image/jpeg;base64,${checklistAtual.foto_ambiente}`} alt="Padrão do Cômodo" className="h-48 w-full object-cover rounded-2xl hover:scale-102 transition-all" />
-                <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-[10px] font-black uppercase text-white">Toque para ver em tela cheia</span>
+                <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-3xs font-bold uppercase text-white">Toque para ver em tela cheia</span>
               </div>
             </div>
           )}
@@ -807,10 +807,10 @@ function RotinaRunner() {
                 </div>
                 <div>
                   <p className="text-sm font-black" style={{ color: "var(--fg)" }}>Como as atividades serão divididas?</p>
-                  <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>Escolha antes de iniciar. Você pode alterar durante a execução.</p>
+                  <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>Escolha antes de iniciar. Você pode alterar durante a execução.</p>
                 </div>
               </div>
-              <span className="self-start sm:self-auto px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
+              <span className="self-start sm:self-auto px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-wider"
                 style={{ background: `${t.cor}12`, color: t.corTexto }}>
                 {naoAtribuidas === 0 ? `${pessoasAtribuidas} pessoa(s)` : `${naoAtribuidas} sem responsável`}
               </span>
@@ -828,7 +828,7 @@ function RotinaRunner() {
                   <UserCheck size={18} style={{ color: modoAtribuicao === "uma_pessoa" ? t.cor : "var(--muted)" }} />
                   <span className="text-sm font-black" style={{ color: "var(--fg)" }}>Uma pessoa faz tudo</span>
                 </div>
-                <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Um funcionário fica responsável por todas as atividades.</p>
+                <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>Um funcionário fica responsável por todas as atividades.</p>
               </button>
               <button type="button" onClick={() => trocarModoAtribuicao("dividir")} disabled={registrado || salvando || concluidas > 0}
                 aria-pressed={modoAtribuicao === "dividir"}
@@ -841,7 +841,7 @@ function RotinaRunner() {
                   <Users size={18} style={{ color: modoAtribuicao === "dividir" ? t.cor : "var(--muted)" }} />
                   <span className="text-sm font-black" style={{ color: "var(--fg)" }}>Dividir entre a equipe</span>
                 </div>
-                <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Cada atividade ou categoria pode ficar com uma pessoa.</p>
+                <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>Cada atividade ou categoria pode ficar com uma pessoa.</p>
               </button>
             </div>
 
@@ -851,7 +851,7 @@ function RotinaRunner() {
               </div>
             ) : modoAtribuicao === "uma_pessoa" ? (
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.cor }}>Pessoa responsável por tudo</label>
+                <label className="text-3xs font-bold uppercase tracking-widest" style={{ color: t.cor }}>Pessoa responsável por tudo</label>
                 <select value={colabSelecionado} onChange={e => atribuirTodos(e.target.value)} disabled={registrado || salvando || concluidas > 0}
                   className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
                   style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
@@ -861,14 +861,14 @@ function RotinaRunner() {
               </div>
             ) : (
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.cor }}>Quem confere e finaliza?</label>
+                <label className="text-3xs font-bold uppercase tracking-widest" style={{ color: t.cor }}>Quem confere e finaliza?</label>
                 <select value={colabSelecionado} onChange={e => setColabSelecionado(e.target.value)} disabled={registrado || salvando}
                   className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
                   style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
                   <option value="">-- Selecione quem vai conferir --</option>
                   {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
                 </select>
-                <p className="text-[10px] font-medium mt-1.5" style={{ color: "var(--dim)" }}>O responsável de cada atividade é escolhido logo abaixo. Esta pessoa apenas confere e encerra o checklist.</p>
+                <p className="text-3xs font-medium mt-1.5" style={{ color: "var(--dim)" }}>O responsável de cada atividade é escolhido logo abaixo. Esta pessoa apenas confere e encerra o checklist.</p>
               </div>
             )}
           </Card>
@@ -880,11 +880,11 @@ function RotinaRunner() {
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-black text-white" style={{ background: t.cor }}>{indiceProxima + 1}</span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Próxima ação</p>
+                    <p className="text-3xs font-bold uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Próxima ação</p>
                     <h2 className="text-lg font-black leading-tight text-slate-900 sm:text-xl">{proximaPendente.texto}</h2>
                   </div>
                 </div>
-                {Number(proximaPendente.tempo_minutos) > 0 && <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-white px-3 py-2 text-xs font-black shadow-sm" style={{ color: t.corTexto }}><Clock3 size={14}/>{Number(proximaPendente.tempo_minutos)} min</span>}
+                {Number(proximaPendente.tempo_minutos) > 0 && <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-white px-3 py-2 text-xs font-bold shadow-sm" style={{ color: t.corTexto }}><Clock3 size={14}/>{Number(proximaPendente.tempo_minutos)} min</span>}
               </div>
 
               {(proximaPendente.foto_antes || proximaPendente.foto_final) ? (
@@ -892,7 +892,7 @@ function RotinaRunner() {
                   {[[proximaPendente.foto_antes, "Antes do expediente"], [proximaPendente.foto_final, "Como deve ficar"]].filter(([foto]) => foto).map(([foto, label]) => (
                     <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="group relative min-h-44 overflow-hidden rounded-2xl bg-slate-100 text-left">
                       <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-44 w-full object-cover transition group-hover:scale-105 sm:h-52" />
-                      <span className="absolute inset-x-0 bottom-0 bg-slate-950/80 px-4 py-2 text-xs font-black uppercase tracking-wide text-white">{label}</span>
+                      <span className="absolute inset-x-0 bottom-0 bg-slate-950/80 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white">{label}</span>
                     </button>
                   ))}
                 </div>
@@ -943,7 +943,7 @@ function RotinaRunner() {
                   <div key={it.id}>
                   {mostrarCat && (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-5 mb-2 px-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.cor }}>{cat}</p>
+                      <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: t.cor }}>{cat}</p>
                       {modoAtribuicao === "dividir" && (
                         <select value={responsavelCategoria} onChange={e => atribuirCategoria(cat, e.target.value)} disabled={registrado || salvando}
                           className="w-full sm:w-auto min-w-[220px] p-2.5 text-base font-bold rounded-lg outline-none focus-visible:ring-2"
@@ -975,24 +975,24 @@ function RotinaRunner() {
                             </div>
                           ) : (
                             <div className="w-8 h-8 rounded-lg flex items-center justify-center border-2" style={{ borderColor: "var(--faint)", color: "var(--dim)" }}>
-                              <span className="text-xs font-black">{i + 1}</span>
+                              <span className="text-xs font-bold">{i + 1}</span>
                             </div>
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5 mb-1">
                             {it.fase_turno && (
-                              <span className="text-[9px] font-black uppercase tracking-wider text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                              <span className="text-3xs font-bold uppercase tracking-wider text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
                                 {it.fase_turno === "abertura" ? "Abertura / Início" : it.fase_turno === "durante_turno" ? "No Turno" : "Fechamento / Fim"}
                               </span>
                             )}
                             {it.horario_previsto && (
-                              <span className="text-[9px] font-black uppercase tracking-wider text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span className="text-3xs font-bold uppercase tracking-wider text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
                                 <Clock3 size={10} /> Previsto {it.horario_previsto}
                               </span>
                             )}
                             {it.hora_intervalo && (
-                              <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span className="text-3xs font-bold uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md flex items-center gap-1">
                                 <Clock3 size={10} /> Pausa / Intervalo: {it.hora_intervalo}
                               </span>
                             )}
@@ -1001,29 +1001,29 @@ function RotinaRunner() {
                             style={{ color: statusItem === "nao_conforme" ? "#DC2626" : ok ? t.cor : "var(--fg)", textDecoration: ok && statusItem !== "nao_conforme" ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
                             {it.texto}
                           </p>
-                          {Number(it.tempo_minutos) > 0 && <p className="mt-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={11}/>{Number(it.tempo_minutos)} min previstos</p>}
+                          {Number(it.tempo_minutos) > 0 && <p className="mt-1 flex items-center gap-1 text-3xs font-bold uppercase tracking-wide text-amber-700"><Clock3 size={11}/>{Number(it.tempo_minutos)} min previstos</p>}
                           {(it.foto_equipamento || it.foto_antes || it.foto_final) && (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {[[it.foto_equipamento, "Equipamento"], [it.foto_antes, "Inicial (Antes)"], [it.foto_final, "Foto Gabarito (Exemplo Final)"]].filter(([foto]) => foto).map(([foto, label]) => (
                                 <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm hover:border-emerald-400 transition-all" title={`Ver foto de referência: ${label}`}>
                                   <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-16 w-28 object-cover" />
-                                  <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 px-1.5 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">{label}</span>
+                                  <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 px-1.5 py-0.5 text-center text-3xs font-bold uppercase tracking-wide text-white">{label}</span>
                                 </button>
                               ))}
                             </div>
                           )}
-                          {it.responsavel && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
+                          {it.responsavel && <p className="text-2xs font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
+                            <span className="text-2xs font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
                               <User size={11} /> {nomeResponsavel || "Sem funcionário atribuído"}
                             </span>
                             {ok && (
-                              <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>
+                              <span className="text-2xs font-bold flex items-center gap-1" style={{ color: t.cor }}>
                                 <Clock3 size={11} /> {horaCurta(rItem.concluido_em)}
                               </span>
                             )}
-                            {rItem.foto && <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
-                            {rItem.plano_acao && <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">Plano de Ação</span>}
+                            {rItem.foto && <span className="text-2xs font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
+                            {rItem.plano_acao && <span className="text-3xs font-bold uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">Plano de Ação</span>}
                           </div>
                         </div>
                       </div>
@@ -1034,7 +1034,7 @@ function RotinaRunner() {
                           type="button"
                           onClick={() => mudaStatusItem(it.id, "conforme")}
                           disabled={registrado || salvando}
-                          className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 sm:flex-none ${
+                          className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "conforme"
                               ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-105"
                               : "bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"
@@ -1046,7 +1046,7 @@ function RotinaRunner() {
                           type="button"
                           onClick={() => mudaStatusItem(it.id, "nao_conforme")}
                           disabled={registrado || salvando}
-                          className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 sm:flex-none ${
+                          className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "nao_conforme"
                               ? "bg-rose-600 text-white shadow-md shadow-rose-600/20 scale-105 animate-pulse"
                               : "bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-800"
@@ -1088,12 +1088,12 @@ function RotinaRunner() {
                         />
                         <span className="font-black text-amber-900">°C</span>
                         {(minTemp !== undefined || maxTemp !== undefined) && (
-                          <span className="text-[10px] font-bold text-amber-800 ml-auto">
+                          <span className="text-3xs font-bold text-amber-800 ml-auto">
                             Faixa Ideal: {minTemp !== undefined ? minTemp + "°C" : ""} {maxTemp !== undefined ? "até " + maxTemp + "°C" : ""}
                           </span>
                         )}
                         {rItem.temp_alerta && (
-                          <span className="w-full mt-1 font-black text-[10px] uppercase text-rose-700 bg-rose-100 border border-rose-200 rounded-md p-1 text-center">
+                          <span className="w-full mt-1 font-bold text-3xs uppercase text-rose-700 bg-rose-100 border border-rose-200 rounded-md p-1 text-center">
                             ⚠️ Alerta Koncluí: Temperatura fora dos limites permitidos!
                           </span>
                         )}
@@ -1104,10 +1104,10 @@ function RotinaRunner() {
                     {(statusItem === "nao_conforme" || rItem.temp_alerta) && (
                       <div className="mx-4 mb-3 bg-rose-50 border-2 border-rose-200 rounded-2xl p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-black text-rose-900 flex items-center gap-1">
+                          <span className="text-xs font-bold text-rose-900 flex items-center gap-1">
                             ⚠️ Plano de Ação / Tratativa de Não Conformidade (Koncluí)
                           </span>
-                          <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">Obrigatório</span>
+                          <span className="text-3xs font-bold uppercase text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">Obrigatório</span>
                         </div>
                         <textarea
                           rows={2}
@@ -1121,7 +1121,7 @@ function RotinaRunner() {
                     )}
                     {modoAtribuicao === "dividir" && (
                       <div className="px-4 pb-3">
-                        <label className="block text-[11px] font-black uppercase tracking-wider mb-1" style={{ color: t.cor }}>Funcionário desta atividade</label>
+                        <label className="block text-2xs font-bold uppercase tracking-wider mb-1" style={{ color: t.cor }}>Funcionário desta atividade</label>
                         <select value={responsavelAtual} onChange={e => mudaFeitoPor(it.id, e.target.value)} disabled={registrado || salvando || ok}
                           className="w-full p-3 text-base font-bold rounded-xl outline-none focus-visible:ring-2"
                           style={{ background: `${t.cor}08`, border: `1px solid ${responsavelAtual ? t.cor : `${t.cor}45`}`, color: t.corTexto }}>
@@ -1236,7 +1236,7 @@ function RotinaRunner() {
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: t.cor }}><DIcon size={20} /></span>
             <div className="min-w-0">
               <h1 className="truncate text-lg font-black text-slate-900">Rotinas de {t.nome}</h1>
-              <p className="text-[11px] font-bold text-slate-500">{unidadeInfo?.nome || "Unidade"} · toque em preencher para começar</p>
+              <p className="text-2xs font-bold text-slate-500">{unidadeInfo?.nome || "Unidade"} · toque em preencher para começar</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1252,22 +1252,22 @@ function RotinaRunner() {
           <div className="relative z-[1] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Resumo de hoje</p>
+                <p className="text-3xs font-bold uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Resumo de hoje</p>
                 <h2 className="text-base font-black" style={{ color: t.corTexto }}>{feitosHoje} de {templatesDoDia.length} checklist(s) concluído(s)</h2>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 min-w-0 lg:min-w-[330px]">
               <div className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
                 <p className="text-lg font-black" style={{ color: t.corTexto }}>{progressoHoje}%</p>
-                <p className="text-[9px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>progresso</p>
+                <p className="text-3xs font-bold uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>progresso</p>
               </div>
               <div className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
                 <p className="text-lg font-black" style={{ color: t.corTexto }}>{feitosHoje}</p>
-                <p className="text-[9px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>feitos hoje</p>
+                <p className="text-3xs font-bold uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>feitos hoje</p>
               </div>
               <div className="rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
                 <p className="text-lg font-black" style={{ color: t.corTexto }}>{pendentesHoje}</p>
-                <p className="text-[9px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>pendentes</p>
+                <p className="text-3xs font-bold uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>pendentes</p>
               </div>
             </div>
           </div>
@@ -1309,16 +1309,16 @@ function RotinaRunner() {
                       {fotoCapa ? (
                         <button type="button" onClick={() => setFotoAmpliada(fotoCapa)} className="relative block h-32 w-full overflow-hidden bg-slate-100 text-left sm:h-36">
                           <img src={`data:image/jpeg;base64,${fotoCapa}`} alt={`Padrão de ${tmpl.titulo}`} className="h-full w-full object-cover" />
-                          <span className="absolute bottom-2 left-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white"><ImageIcon size={12} className="mr-1 inline"/>Padrão visual</span>
+                          <span className="absolute bottom-2 left-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-3xs font-bold uppercase tracking-wide text-white"><ImageIcon size={12} className="mr-1 inline"/>Padrão visual</span>
                         </button>
                       ) : (
                         <div className="relative flex h-24 items-center justify-between overflow-hidden px-5" style={{ background: t.corClara }}>
                           <div className="relative z-[1]">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>{ROTULOS_TIPO[tmpl.tipo] || "Rotina"}</p>
+                            <p className="text-3xs font-bold uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>{ROTULOS_TIPO[tmpl.tipo] || "Rotina"}</p>
                             <p className="mt-1 text-sm font-black" style={{ color: t.corTexto }}>{itensModelo.length} ações{tempoModelo > 0 ? ` · ${tempoModelo} min` : ""}</p>
                           </div>
                           <DIcon size={74} className="absolute -bottom-4 right-3 opacity-10" style={{ color: t.corTexto }} />
-                          <span className="relative z-[1] rounded-lg bg-white/70 px-2 py-1 text-[9px] font-black uppercase" style={{ color: t.corTexto }}>Adicione fotos no Gerenciar</span>
+                          <span className="relative z-[1] rounded-lg bg-white/70 px-2 py-1 text-3xs font-bold uppercase" style={{ color: t.corTexto }}>Adicione fotos no Gerenciar</span>
                         </div>
                       )}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-3.5">
@@ -1328,12 +1328,12 @@ function RotinaRunner() {
                         <div className="flex-1 min-w-0">
                           <h3 className="text-base font-black leading-tight break-words sm:truncate" style={{ color: "var(--fg)" }}>{tmpl.titulo}</h3>
                           {execHoje ? (
-                            <p className="text-[11px] font-bold mt-0.5" style={{ color: t.cor }}>
+                            <p className="text-2xs font-bold mt-0.5" style={{ color: t.cor }}>
                               ✓ Feito hoje por {execHoje.colaboradores?.nome || "colaborador"} · {horaCurta(execHoje.created_at)}
                               {execucoesHoje.length > 1 ? ` · ${execucoesHoje.length} execuções` : ""}
                             </p>
                           ) : (
-                            <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
+                            <p className="text-2xs font-medium mt-0.5" style={{ color: "var(--dim)" }}>
                               {itensModelo.length} tarefas
                               {tempoModelo > 0 && <span> · {tempoModelo} min</span>}
                               {fotosModelo.length > 0 && <span> · {fotosModelo.length} referência(s)</span>}
@@ -1357,7 +1357,7 @@ function RotinaRunner() {
                       {execHoje && (
                         <div style={{ borderTop: "1px solid var(--line)" }}>
                           <button type="button" onClick={() => setHistoricoAberto(detalhesAbertos ? null : tmpl.id)}
-                            className="w-full px-4 sm:px-5 py-3 flex items-center justify-between text-xs font-black"
+                            className="w-full px-4 sm:px-5 py-3 flex items-center justify-between text-xs font-bold"
                             style={{ color: t.corTexto, background: `${t.cor}08` }}>
                             <span className="flex items-center gap-2"><Clock3 size={14} /> Histórico detalhado de hoje</span>
                             <ChevronDown size={15} style={{ transform: detalhesAbertos ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
@@ -1367,8 +1367,8 @@ function RotinaRunner() {
                               {execucoesHoje.map((execucao, execIndex) => (
                                 <div key={execucao.id || execIndex} className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${t.cor}25`, background: "var(--card-bg)" }}>
                                   <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1" style={{ background: `${t.cor}0C` }}>
-                                    <span className="text-xs font-black" style={{ color: t.corTexto }}>Execução {execucoesHoje.length - execIndex} · {horaCurta(execucao.created_at)}</span>
-                                    <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Conferido por {execucao.colaboradores?.nome || "colaborador"}</span>
+                                    <span className="text-xs font-bold" style={{ color: t.corTexto }}>Execução {execucoesHoje.length - execIndex} · {horaCurta(execucao.created_at)}</span>
+                                    <span className="text-3xs font-bold" style={{ color: "var(--dim)" }}>Conferido por {execucao.colaboradores?.nome || "colaborador"}</span>
                                   </div>
                                   <div className="divide-y" style={{ borderColor: "var(--line)" }}>
                                     {(Array.isArray(execucao.respostas) ? execucao.respostas : []).filter(r => r.marcado).map((resposta, respostaIndex) => (
@@ -1376,11 +1376,11 @@ function RotinaRunner() {
                                         <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.cor }}><Check size={14} color="#fff" /></div>
                                         <div className="flex-1 min-w-0">
                                           <p className="text-xs font-bold" style={{ color: "var(--fg)" }}>{resposta.texto_tarefa || "Atividade concluída"}</p>
-                                          <p className="text-[11px] font-bold mt-1 flex flex-wrap gap-x-3 gap-y-1" style={{ color: t.corTexto }}>
+                                          <p className="text-2xs font-bold mt-1 flex flex-wrap gap-x-3 gap-y-1" style={{ color: t.corTexto }}>
                                             <span className="flex items-center gap-1"><User size={10} /> {resposta.feito_por_nome || execucao.colaboradores?.nome || "Sem identificação"}</span>
                                             <span className="flex items-center gap-1"><Clock3 size={10} /> {horaCurta(resposta.concluido_em || execucao.created_at)}</span>
                                           </p>
-                                          {resposta.obs && <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>Observação: {resposta.obs}</p>}
+                                          {resposta.obs && <p className="text-2xs mt-1" style={{ color: "var(--dim)" }}>Observação: {resposta.obs}</p>}
                                         </div>
                                         {resposta.foto && (
                                           <button type="button" onClick={() => setFotoAmpliada(resposta.foto)} className="rounded-xl shrink-0 focus-visible:ring-2" title="Ampliar foto">
@@ -1458,10 +1458,10 @@ function RotinaRunner() {
                     <div key={i}>
                       <div className="flex justify-between items-baseline text-sm mb-1">
                         <span className="font-bold text-slate-700 truncate flex items-center gap-1.5">
-                          {i === 0 && <span className="text-[9px] font-black uppercase tracking-widest rounded px-1.5 py-0.5" style={{ color: t.corTexto, background: t.corBg, border: `1px solid ${t.corBorda}` }}>top</span>}
+                          {i === 0 && <span className="text-3xs font-bold uppercase tracking-widest rounded px-1.5 py-0.5" style={{ color: t.corTexto, background: t.corBg, border: `1px solid ${t.corBorda}` }}>top</span>}
                           {p.nome}
                         </span>
-                        <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-[10px] font-bold text-slate-400">tarefa(s) · {p.checklists} check.</span></span>
+                        <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-3xs font-bold text-slate-400">tarefa(s) · {p.checklists} check.</span></span>
                       </div>
                       <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(4, (p.tarefas / max) * 100)}%`, background: t.cor }} />

@@ -121,7 +121,7 @@ export default function CorrigirPontoPage() {
   };
 
   const campo = "mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-500";
-  const rotulo = "text-[11px] font-black uppercase tracking-wider text-slate-500";
+  const rotulo = "text-2xs font-black uppercase tracking-wider text-slate-500";
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
@@ -160,7 +160,7 @@ export default function CorrigirPontoPage() {
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {TIPOS.map(([id, nome]) => (
                     <div key={id} className="rounded-lg bg-white px-3 py-2 text-center">
-                      <p className="text-[10px] font-black uppercase text-slate-400">{nome.split(" ")[0]}</p>
+                      <p className="text-3xs font-bold uppercase text-slate-400">{nome.split(" ")[0]}</p>
                       <p className="text-base font-black text-slate-800">{horaDe(diaDoMes?.[CAMPO_POR_TIPO[id]]) || "--:--"}</p>
                     </div>
                   ))}

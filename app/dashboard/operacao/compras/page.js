@@ -119,7 +119,7 @@ export default function ComprasPage() {
                    <p className="text-xs text-slate-400 font-bold">Baseado no consumo médio das produções</p>
                  </div>
                </div>
-               <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 text-xs font-black">
+               <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 text-xs font-bold">
                  {resultadoRecorrencia.alertas.length} insumos em alerta
                </span>
              </div>
@@ -130,7 +130,7 @@ export default function ComprasPage() {
                    <div>
                      <div className="flex items-start justify-between gap-2">
                        <strong className="text-base font-black text-white">{alerta.nome}</strong>
-                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${alerta.nivel_urgencia === "critico" ? "bg-red-500/20 text-red-400 border border-red-500/40" : "bg-amber-500/20 text-amber-300 border border-amber-500/40"}`}>
+                       <span className={`px-2.5 py-0.5 rounded-full text-3xs font-bold uppercase tracking-wider ${alerta.nivel_urgencia === "critico" ? "bg-red-500/20 text-red-400 border border-red-500/40" : "bg-amber-500/20 text-amber-300 border border-amber-500/40"}`}>
                          {alerta.dias_cobertura <= 0 ? "Esgotado" : `Resta ${alerta.dias_cobertura} dia(s)`}
                        </span>
                      </div>
@@ -145,7 +145,7 @@ export default function ComprasPage() {
 
                    <button
                      onClick={() => abrirCompraSugerida(alerta)}
-                     className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                     className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                    >
                      <ShoppingCart size={15} /> Sugestão: +{alerta.qtd_sugerida_compra} {alerta.unidade_medida}
                    </button>
@@ -177,7 +177,7 @@ export default function ComprasPage() {
                      <div key={ins.insumo_id || ins.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
                         <p className="font-bold text-slate-700 leading-tight mb-2">{ins.nome}</p>
                         <div className="flex justify-between items-end mt-auto">
-                           <span className="text-[10px] uppercase font-black text-slate-500">{ins.departamento}</span>
+                           <span className="text-3xs uppercase font-bold text-slate-500">{ins.departamento}</span>
                            <span className="text-lg font-black text-emerald-600">{ins.quantidade_atual} {ins.unidade_medida}</span>
                         </div>
                      </div>

@@ -134,14 +134,14 @@ export default function NotificacoesPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="erp-badge" style={{ background: cfg.cor + "22", color: cfg.cor }}>{cfg.label}</span>
-                            <span className="text-[10px] whitespace-nowrap" style={{ color: "var(--dim)" }}>{tempoRel(n.data)}</span>
+                            <span className="text-3xs whitespace-nowrap" style={{ color: "var(--dim)" }}>{tempoRel(n.data)}</span>
                           </div>
                           <p className="text-sm font-bold mt-1" style={{ color: n.lida ? "var(--muted)" : "var(--fg)" }}>{n.titulo}</p>
-                          <p className="text-[11px] mt-0.5 break-words" style={{ color: "var(--subtle)" }}>{n.corpo}</p>
+                          <p className="text-2xs mt-0.5 break-words" style={{ color: "var(--subtle)" }}>{n.corpo}</p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
-                            {cfg.href && <button onClick={() => router.push(cfg.href)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "var(--muted)" }}>Ver módulo <ChevronRight size={12} /></button>}
-                            {!n.lida && <button onClick={() => marcarLida(n.id)} className="text-[11px] font-bold" style={{ color: "var(--accent-fg)" }}>Marcar lida</button>}
-                            <button onClick={() => removerNotificacao(n.id)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "#DC2626" }}><Trash2 size={11} /> Remover</button>
+                            {cfg.href && <button onClick={() => router.push(cfg.href)} className="text-2xs font-bold flex items-center gap-0.5" style={{ color: "var(--muted)" }}>Ver módulo <ChevronRight size={12} /></button>}
+                            {!n.lida && <button onClick={() => marcarLida(n.id)} className="text-2xs font-bold" style={{ color: "var(--accent-fg)" }}>Marcar lida</button>}
+                            <button onClick={() => removerNotificacao(n.id)} className="text-2xs font-bold flex items-center gap-0.5" style={{ color: "#DC2626" }}><Trash2 size={11} /> Remover</button>
                           </div>
                         </div>
                       </div>
@@ -151,7 +151,7 @@ export default function NotificacoesPage() {
               </div>
             )}
             {notificacoes.some((n) => n.lida) && (
-              <button onClick={limparLidas} className="w-full mt-3 py-2.5 rounded-xl text-[11px] font-bold" style={{ border: "1px solid var(--line)", color: "var(--dim)" }}>
+              <button onClick={limparLidas} className="w-full mt-3 py-2.5 rounded-xl text-2xs font-bold" style={{ border: "1px solid var(--line)", color: "var(--dim)" }}>
                 Limpar notificações lidas
               </button>
             )}

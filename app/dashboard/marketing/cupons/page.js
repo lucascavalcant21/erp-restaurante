@@ -128,7 +128,7 @@ export default function CuponsPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${!cupom.ativo ? 'bg-slate-100 text-slate-500' : expirado ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${!cupom.ativo ? 'bg-slate-100 text-slate-500' : expirado ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
                     {cupom.ativo ? (expirado ? 'Expirado' : 'Ativo') : 'Inativo'}
                   </div>
                 </div>

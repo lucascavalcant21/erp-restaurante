@@ -139,7 +139,7 @@ export default function CadastroFacialPage() {
                   <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
                     <div className="min-w-0">
                       <p className="text-[15px] font-black text-slate-800 truncate">{c.nome}</p>
-                      <p className="text-[12px] font-bold text-slate-500 truncate">
+                      <p className="text-xs font-bold text-slate-500 truncate">
                         {c.cargo || "Equipe"}
                         {temRosto(c) && <span className="ml-2 text-emerald-700">· rosto cadastrado</span>}
                       </p>
@@ -165,7 +165,7 @@ export default function CadastroFacialPage() {
         ) : !consentiu ? (
           /* Termo — biometria exige consentimento específico (LGPD art. 5º, II) */
           <div className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm">
-            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Autorização do funcionário</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Autorização do funcionário</p>
             <h2 className="mt-1 text-xl font-black text-slate-900">{pessoa.nome}</h2>
             <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-[13px] font-medium leading-relaxed text-slate-700">
               <p>Eu autorizo o uso do meu reconhecimento facial <b>exclusivamente para registrar meu ponto</b> nesta empresa.</p>

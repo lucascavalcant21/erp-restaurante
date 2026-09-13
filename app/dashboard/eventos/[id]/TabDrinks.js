@@ -97,7 +97,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
 
       {Number(f.custo_unit) > 0 && Number(f.peso_unit) > 0 && (
         <div className="erp-panel p-2 mb-3" style={{ background: "var(--elevated)", borderRadius: 6 }}>
-          <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <p className="text-2xs" style={{ color: "var(--muted)" }}>
             Você pagou <strong style={{ color: "var(--fg)" }}>R$ {Number(f.custo_unit).toFixed(2)}</strong>{" "}
             por <strong style={{ color: "var(--fg)" }}>{f.peso_unit} {f.unidade}</strong>{" "}
             = <strong style={{ color: "var(--accent-fg)" }}>R$ {(Number(f.custo_unit) / Number(f.peso_unit)).toFixed(2)}/{f.unidade}</strong>
@@ -170,14 +170,14 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
           return (
             <div key={ing.id} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
               <input type="checkbox" checked={!!sel} onChange={() => toggleIng(ing.id)} />
-              <div className="flex-1 text-[12px]">
+              <div className="flex-1 text-xs">
                 <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
                 <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : "L"}</span>
               </div>
               {sel && (
                 <div className="flex items-center gap-1">
                   <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, e.target.value)} style={{ width: 70 }} step="1" />
-                  <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
+                  <span className="text-3xs" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
                 </div>
               )}
             </div>
@@ -186,7 +186,7 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
       </div>
 
       <div className="erp-panel p-3 mb-3 flex justify-between">
-        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>
+        <span className="text-2xs font-bold" style={{ color: "var(--muted)" }}>
           Custo total: {fmtBRL(custoTotal)} · Custo por {f.unidade}: {fmtBRL(custoPorUnit)}
         </span>
       </div>
@@ -240,11 +240,11 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <label className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: "var(--elevated)" }}>
           <input type="checkbox" checked={f.has_alcohol} onChange={(e) => set("has_alcohol", e.target.checked)} />
-          <span className="text-[12px]" style={{ color: "var(--fg)" }}>Com álcool</span>
+          <span className="text-xs" style={{ color: "var(--fg)" }}>Com álcool</span>
         </label>
         <label className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: "var(--elevated)" }}>
           <input type="checkbox" checked={f.is_extra} onChange={(e) => set("is_extra", e.target.checked)} />
-          <span className="text-[12px]" style={{ color: "var(--fg)" }}>Drink extra (vende à parte)</span>
+          <span className="text-xs" style={{ color: "var(--fg)" }}>Drink extra (vende à parte)</span>
         </label>
       </div>
 
@@ -264,21 +264,21 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
       <div className="space-y-1" style={{ maxHeight: 280, overflowY: "auto", marginBottom: 12 }}>
         {preparos.length > 0 && (
           <>
-            <p className="text-[10px] font-bold" style={{ color: "var(--muted)", textTransform: "uppercase", padding: "4px 8px" }}>Preparos</p>
+            <p className="text-3xs font-bold" style={{ color: "var(--muted)", textTransform: "uppercase", padding: "4px 8px" }}>Preparos</p>
             {preparos.map((prep) => {
               const sel = f.ingredients.find((i) => i.id === prep.id && i.type === "prep");
               const unitCost = custoPreparoUnit(prep, ingredientes);
               return (
                 <div key={`prep-${prep.id}`} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
                   <input type="checkbox" checked={!!sel} onChange={() => toggleItem(prep.id, "prep")} />
-                  <div className="flex-1 text-[12px]">
+                  <div className="flex-1 text-xs">
                     <strong style={{ color: "var(--fg)" }}>{prep.nome}</strong>
                     <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL(unitCost)}/{prep.unidade}</span>
                   </div>
                   {sel && (
                     <div className="flex items-center gap-1">
                       <NumberInput value={sel.qty} onChange={(e) => setQty(prep.id, "prep", e.target.value)} style={{ width: 70 }} step="1" />
-                      <span className="text-[10px]" style={{ color: "var(--dim)" }}>{prep.unidade}</span>
+                      <span className="text-3xs" style={{ color: "var(--dim)" }}>{prep.unidade}</span>
                     </div>
                   )}
                 </div>
@@ -286,7 +286,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
             })}
           </>
         )}
-        <p className="text-[10px] font-bold" style={{ color: "var(--muted)", textTransform: "uppercase", padding: "4px 8px" }}>Ingredientes do bar</p>
+        <p className="text-3xs font-bold" style={{ color: "var(--muted)", textTransform: "uppercase", padding: "4px 8px" }}>Ingredientes do bar</p>
         {ingredientes.length === 0 ? (
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Cadastre ingredientes de bar primeiro</p>
         ) : ingredientes.map((ing) => {
@@ -297,14 +297,14 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
             <div key={`bar-${ing.id}`} className="p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
               <div className="flex items-center gap-2 mb-1">
                 <input type="checkbox" checked={!!sel} onChange={() => toggleItem(ing.id, "bar")} />
-                <div className="flex-1 text-[12px]">
+                <div className="flex-1 text-xs">
                   <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
                   <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}</span>
                 </div>
               </div>
               {sel && (
                 <div style={{ paddingLeft: 26, marginTop: 6 }}>
-                  <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+                  <p className="text-2xs mb-2" style={{ color: "var(--muted)" }}>
                     Quanto vou usar <strong style={{ color: "var(--fg)" }}>por drink</strong>?
                     {sug && sug.unidade === ing.unidade && (
                       <span style={{ color: "#10B981", marginLeft: 6 }}>
@@ -327,7 +327,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
 
                     {sug && sug.unidade === ing.unidade && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px]" style={{ color: "var(--dim)" }}>Rápido:</span>
+                        <span className="text-3xs" style={{ color: "var(--dim)" }}>Rápido:</span>
                         <button
                           type="button"
                           onClick={() => setQty(ing.id, "bar", sug.min)}
@@ -361,7 +361,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
       </div>
 
       <div className="erp-panel p-3 mb-3 flex justify-between">
-        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>
+        <span className="text-2xs font-bold" style={{ color: "var(--muted)" }}>
           Custo: {fmtBRL(custo)}
           {f.is_extra && precoV > 0 && <> · Margem: <span style={{ color: margem >= 30 ? "var(--accent-fg)" : "#EF4444" }}>{fmtPct(margem)}</span></>}
         </span>
@@ -412,7 +412,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
     <div className="space-y-4">
       {/* Alerta de fluxo */}
       <Card className="!p-3" style={{ background: "linear-gradient(135deg, #8B5CF622, #F59E0B22)", borderLeft: "3px solid #8B5CF6" }}>
-        <p className="text-[12px]" style={{ color: "var(--fg)" }}>
+        <p className="text-xs" style={{ color: "var(--fg)" }}>
           <strong>Fluxo do Bar:</strong> 1⃣ Cadastre <strong>ingredientes</strong> (bebidas, destilados, xaropes) → 2⃣ Crie <strong>preparos</strong> (opcional, ex: xarope caseiro) → 3⃣ Monte os <strong>drinks</strong>
         </p>
       </Card>
@@ -430,7 +430,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
         {ingBar.length === 0 ? (
           <div className="text-center" style={{ padding: 20 }}>
             <p style={{ color: "var(--muted)", marginBottom: 8 }}>Nenhum ingrediente do bar cadastrado.</p>
-            <p className="text-[12px]" style={{ color: "var(--dim)" }}>
+            <p className="text-xs" style={{ color: "var(--dim)" }}>
               Comece pelas bebidas (gin, vodka, vinho, tônica, xaropes).
               Serão usados em <strong>preparos</strong> e <strong>drinks</strong>, e aparecerão na <strong>Lista de Compras</strong>.
             </p>
@@ -452,7 +452,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
                       <div style={{ padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: cat.cor + "22", color: cat.cor }}>
                         {cat.label}
                       </div>
-                      <span className="text-[10px]" style={{ color: "var(--dim)" }}>{porCat[cat.id].length} item{porCat[cat.id].length !== 1 ? "s" : ""}</span>
+                      <span className="text-3xs" style={{ color: "var(--dim)" }}>{porCat[cat.id].length} item{porCat[cat.id].length !== 1 ? "s" : ""}</span>
                     </div>
                     <div className="space-y-1">
                       {porCat[cat.id].map((ing) => {
@@ -493,7 +493,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                              <p className="text-2xs" style={{ color: "var(--dim)" }}>
                                 {fmtBRL(ing.custo_unit)} / {p.v}{p.u} · <strong style={{ color: "var(--accent-fg)" }}>{precoBase}</strong>
                               </p>
                             </div>
@@ -533,7 +533,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
                 <div key={prep.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
                   <div>
                     <strong style={{ color: "var(--fg)", fontSize: 13 }}>{prep.nome}</strong>
-                    <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                    <p className="text-2xs" style={{ color: "var(--dim)" }}>
                       Rendimento: {prep.rendimento}{prep.unidade} · {fmtBRL(unitCost)}/{prep.unidade}
                     </p>
                   </div>
@@ -576,14 +576,14 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
                         {drink.has_alcohol ? (
-                          <span className="erp-badge text-[10px]" style={{ background: "#F59E0B33", color: "#F59E0B" }}>Com álcool</span>
+                          <span className="erp-badge text-3xs" style={{ background: "#F59E0B33", color: "#F59E0B" }}>Com álcool</span>
                         ) : (
-                          <span className="erp-badge text-[10px]" style={{ background: "#10B98133", color: "#10B981" }}>Sem álcool</span>
+                          <span className="erp-badge text-3xs" style={{ background: "#10B98133", color: "#10B981" }}>Sem álcool</span>
                         )}
-                        {drink.is_extra && <span className="erp-badge text-[10px]" style={{ background: "#8B5CF633", color: "#8B5CF6" }}>Extra</span>}
+                        {drink.is_extra && <span className="erp-badge text-3xs" style={{ background: "#8B5CF633", color: "#8B5CF6" }}>Extra</span>}
                       </div>
-                      {drink.descricao && <p className="text-[11px]" style={{ color: "var(--dim)" }}>{drink.descricao}</p>}
-                      <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+                      {drink.descricao && <p className="text-2xs" style={{ color: "var(--dim)" }}>{drink.descricao}</p>}
+                      <p className="text-2xs mt-1" style={{ color: "var(--muted)" }}>
                         Custo: <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL(cmv)}</strong>
                         {drink.is_extra && precoV > 0 && (
                           <> · Venda: {fmtBRL(precoV)} · Margem: <strong style={{ color: margem >= 30 ? "var(--accent-fg)" : "#EF4444" }}>{fmtPct(margem)}</strong></>

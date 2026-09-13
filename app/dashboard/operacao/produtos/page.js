@@ -530,12 +530,12 @@ function CardapioRunner() {
      return (
      <div key={p.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col h-full">
         <div className="flex justify-between items-start mb-2 gap-2">
-           <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest">
+           <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-bold text-3xs uppercase tracking-widest">
               {p.departamento}
            </span>
            <div className="flex items-center gap-2">
               {cmv !== null && (
-                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
+                 <span className={`px-2.5 py-1 rounded-lg text-3xs font-bold ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
                     CMV {cmv.toFixed(1)}%
                  </span>
               )}
@@ -571,25 +571,25 @@ function CardapioRunner() {
 
         <div className="flex justify-between items-end mt-auto pt-4 border-t border-slate-100">
            <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço de Venda</p>
+              <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest mb-1">Preço de Venda</p>
               {Number(p.preco_venda) > 0 ? (
                  <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
               ) : (
-                 <button onClick={() => abrirEditar(p)} className="font-black text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 hover:bg-amber-100 transition-colors uppercase tracking-widest">
+                 <button onClick={() => abrirEditar(p)} className="font-bold text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 hover:bg-amber-100 transition-colors uppercase tracking-widest">
                     Definir preço
                  </button>
               )}
            </div>
            <div className="text-right">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
+              <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
               {(() => {
                  const comps = componentesDoProduto(p);
-                 if (!comps.length) return <p className="font-bold text-[10px] uppercase text-red-500">Não vinculada</p>;
+                 if (!comps.length) return <p className="font-bold text-3xs uppercase text-red-500">Não vinculada</p>;
                  if (comps.length === 1) {
                     const f = fichas.find(x => x.id === comps[0].ficha_id);
-                    return <p className="font-bold text-[10px] uppercase text-emerald-600">{(f?.nome_receita || p.fichas_tecnicas?.nome_receita || 'Ficha').substring(0, 15)}</p>;
+                    return <p className="font-bold text-3xs uppercase text-emerald-600">{(f?.nome_receita || p.fichas_tecnicas?.nome_receita || 'Ficha').substring(0, 15)}</p>;
                  }
-                 return <p className="font-bold text-[10px] uppercase text-emerald-600" title={comps.map(c => fichas.find(x => x.id === c.ficha_id)?.nome_receita).filter(Boolean).join(' + ')}>{comps.length} componentes</p>;
+                 return <p className="font-bold text-3xs uppercase text-emerald-600" title={comps.map(c => fichas.find(x => x.id === c.ficha_id)?.nome_receita).filter(Boolean).join(' + ')}>{comps.length} componentes</p>;
               })()}
            </div>
         </div>
@@ -612,13 +612,13 @@ function CardapioRunner() {
               </div>
               <div>
                   <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Cardápio</h1>
-                  <p className="text-slate-700 font-bold uppercase tracking-wide sm:tracking-widest text-[10px] sm:text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
+                  <p className="text-slate-700 font-bold uppercase tracking-wide sm:tracking-widest text-3xs sm:text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
                {cmvMedio !== null && (
                   <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
-                     <p className={`text-[9px] font-black uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
+                     <p className={`text-3xs font-bold uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
                      <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
                   </div>
                )}
@@ -672,7 +672,7 @@ function CardapioRunner() {
                      {/* Cabeçalho da seção de categoria */}
                      <div className="flex items-center gap-3 mb-4">
                         <h2 className="text-xl font-black text-slate-800 tracking-tight">{g.categoria}</h2>
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">{g.itens.length} {g.itens.length === 1 ? 'item' : 'itens'}</span>
+                        <span className="text-3xs font-bold uppercase tracking-widest bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">{g.itens.length} {g.itens.length === 1 ? 'item' : 'itens'}</span>
                         <div className="flex-1 h-px bg-slate-200" />
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -764,14 +764,14 @@ function CardapioRunner() {
                         <option value="">{form.departamento === "bar" ? "Selecione o drink..." : "Selecione o prato..."}</option>
                         {fichas.filter(f => f.departamento === form.departamento && !f.eh_base).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                      </select>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Fichas Técnicas. Aqui você só precifica.</p>
+                     <p className="text-3xs text-slate-400 font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Fichas Técnicas. Aqui você só precifica.</p>
                   </div>
 
                   {/* Compatibilidade: produto antigo montado com VÁRIOS componentes
                       aqui no cardápio — continua funcionando e editável */}
                   {(form.composicao || []).length > 1 && (
                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Produto antigo com múltiplos componentes — o custo soma todos</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Produto antigo com múltiplos componentes — o custo soma todos</p>
                         {(form.composicao || []).map((c, idx) => {
                            const f = fichas.find(x => x.id === c.ficha_id);
                            const custoUnit = f ? custoTotalDaFicha(f, fichas) / porcoesDaFicha(f) : 0;
@@ -780,15 +780,15 @@ function CardapioRunner() {
                                  <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-700 text-sm truncate">{f?.nome_receita || "Ficha removida"}</p>
                                      {f?.peso_porcao_g ? (
-                                        <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit / (f.peso_porcao_g / 1000))} / kg</p>
+                                        <p className="text-3xs font-bold text-emerald-600">{fmtBRL(custoUnit / (f.peso_porcao_g / 1000))} / kg</p>
                                      ) : (
-                                        <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / porção</p>
+                                        <p className="text-3xs font-bold text-emerald-600">{fmtBRL(custoUnit)} / porção</p>
                                      )}
                                  </div>
                                  <div className="text-center flex gap-2">
                                     {f?.peso_porcao_g ? (
                                        <div className="text-center">
-                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Gramas</label>
+                                          <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Gramas</label>
                                           <input type="number" min="0" step="1" 
                                              value={c.qtd !== "" && c.qtd != null ? Math.round(Number(c.qtd) * f.peso_porcao_g) : ""} 
                                              onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value === "" ? "" : Number(e.target.value) / f.peso_porcao_g } : x) })} 
@@ -797,7 +797,7 @@ function CardapioRunner() {
                                        </div>
                                     ) : (
                                        <div className="text-center">
-                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Porções</label>
+                                          <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Porções</label>
                                           <input type="number" min="0" step="0.5" value={c.qtd} 
                                              onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
                                              className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
@@ -821,19 +821,19 @@ function CardapioRunner() {
                      return (
                         <div className="grid grid-cols-3 gap-3">
                            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-center">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{form.departamento === "bar" ? "Custo do drink" : "Custo do prato"}</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">{form.departamento === "bar" ? "Custo do drink" : "Custo do prato"}</p>
                               <p className="text-xl font-black text-slate-800 mt-1">{(form.composicao || []).length ? fmtBRL(custoLive) : "—"}</p>
-                              <p className="text-[9px] font-medium text-slate-400">automático da montagem</p>
+                              <p className="text-3xs font-medium text-slate-400">automático da montagem</p>
                            </div>
                            <div className="p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-center">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Preço de venda (R$)</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Preço de venda (R$)</p>
                               <input type="number" step="0.01" placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-emerald-600 text-xl outline-none"/>
-                              <p className="text-[9px] font-medium text-emerald-600/70">você define</p>
+                              <p className="text-3xs font-medium text-emerald-600/70">você define</p>
                            </div>
                            <div className={`p-4 rounded-2xl border text-center ${cmvLive !== null ? `${cores.bg} ${cores.border}` : "border-slate-200 bg-slate-50"}`}>
-                              <p className={`text-[10px] font-black uppercase tracking-widest ${cmvLive !== null ? cores.text : "text-slate-500"}`}>CMV</p>
+                              <p className={`text-3xs font-bold uppercase tracking-widest ${cmvLive !== null ? cores.text : "text-slate-500"}`}>CMV</p>
                               <p className={`text-xl font-black mt-1 ${cmvLive !== null ? cores.text : "text-slate-400"}`}>{cmvLive !== null ? `${cmvLive.toFixed(1)}%` : "—"}</p>
-                              <p className={`text-[9px] font-medium ${cmvLive !== null ? cores.text : "text-slate-400"}`}>muda automático</p>
+                              <p className={`text-3xs font-medium ${cmvLive !== null ? cores.text : "text-slate-400"}`}>muda automático</p>
                            </div>
                         </div>
                      );
@@ -874,7 +874,7 @@ function CardapioRunner() {
                                  setLoading(false);
                               }}/>
                            </label>
-                           <p className="text-[11px] font-medium text-slate-400 mt-2 ml-1">Formatos: JPG, PNG, WEBP. A imagem será recortada como um quadrado.</p>
+                           <p className="text-2xs font-medium text-slate-400 mt-2 ml-1">Formatos: JPG, PNG, WEBP. A imagem será recortada como um quadrado.</p>
                         </div>
                      </div>
                   </div>
@@ -905,7 +905,7 @@ function CardapioRunner() {
 
                      {form.embalagens && form.embalagens.length > 0 && (
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo e baixa somam todos ao vender</p>
+                           <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Custo e baixa somam todos ao vender</p>
                            {form.embalagens.map((emb, idx) => {
                               const eDB = embalagensDB.find(x => x.id === emb.embalagem_id);
                               const custoUnit = eDB ? Number(eDB.preco_unitario) : 0;
@@ -913,11 +913,11 @@ function CardapioRunner() {
                                  <div key={emb.embalagem_id} className="flex items-center gap-2 bg-white border border-slate-100 rounded-xl p-2.5">
                                     <div className="flex-1 min-w-0">
                                        <p className="font-bold text-slate-700 text-sm truncate">{eDB?.nome || "Embalagem excluída"}</p>
-                                       <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / unidade</p>
+                                       <p className="text-3xs font-bold text-emerald-600">{fmtBRL(custoUnit)} / unidade</p>
                                     </div>
                                     <div className="text-center flex gap-2">
                                        <div className="text-center">
-                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Qtd (Un)</label>
+                                          <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Qtd (Un)</label>
                                           <input type="number" min="1" step="1" value={emb.qtd} 
                                              onChange={e => setForm({ ...form, embalagens: form.embalagens.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
                                              className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
@@ -960,7 +960,7 @@ function CardapioRunner() {
 
                <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
                   {componentesDoProduto(guiaProduto).length === 0 && (
-                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-700">
+                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-2xs font-bold text-amber-700">
                         Este produto não tem Ficha Técnica vinculada — a IA vai montar o guia só pelo nome. Para quantidades exatas, vincule uma ficha.
                      </div>
                   )}
@@ -978,7 +978,7 @@ function CardapioRunner() {
                         </div>
                         {ingredientesDoProduto(guiaProduto).length > 0 && (
                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Ingredientes por porção (da ficha)</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Ingredientes por porção (da ficha)</p>
                               <p className="text-xs text-slate-500 font-medium">{ingredientesDoProduto(guiaProduto).map(i => `${i.nome} ${i.quantidade}${i.unidade}`).join(" · ")}</p>
                            </div>
                         )}
@@ -989,11 +989,11 @@ function CardapioRunner() {
                   ) : (
                      <div className="space-y-4">
                         {guiaResultado.louca && (
-                           <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Louça / recipiente</p><p className="font-bold text-slate-800">{guiaResultado.louca}</p></div>
+                           <div><p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Louça / recipiente</p><p className="font-bold text-slate-800">{guiaResultado.louca}</p></div>
                         )}
                         {(guiaResultado.porcionamento || []).length > 0 && (
                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Porcionamento</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Porcionamento</p>
                               <div className="space-y-1">
                                  {guiaResultado.porcionamento.map((p, i) => (
                                     <div key={i} className="flex justify-between text-sm bg-slate-50 rounded-lg px-3 py-2"><span className="font-bold text-slate-700">{p.item}</span><span className="font-black text-emerald-600">{p.quantidade}</span></div>
@@ -1003,19 +1003,19 @@ function CardapioRunner() {
                         )}
                         {(guiaResultado.montagem || []).length > 0 && (
                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Ordem de montagem</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Ordem de montagem</p>
                               <ol className="list-decimal ml-5 space-y-1 text-sm font-medium text-slate-700">{guiaResultado.montagem.map((m, i) => <li key={i}>{m}</li>)}</ol>
                            </div>
                         )}
                         {guiaResultado.finalizacao && (
-                           <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Finalização</p><p className="text-sm font-medium text-slate-700">{guiaResultado.finalizacao}</p></div>
+                           <div><p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Finalização</p><p className="text-sm font-medium text-slate-700">{guiaResultado.finalizacao}</p></div>
                         )}
                         {guiaResultado.visual && (
-                           <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Visual esperado</p><p className="text-sm font-medium text-slate-700">{guiaResultado.visual}</p></div>
+                           <div><p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Visual esperado</p><p className="text-sm font-medium text-slate-700">{guiaResultado.visual}</p></div>
                         )}
                         {(guiaResultado.dicas || []).length > 0 && (
                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Dicas de padronização</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700 mb-1">Dicas de padronização</p>
                               <ul className="list-disc ml-4 text-sm font-medium text-emerald-800 space-y-0.5">{guiaResultado.dicas.map((d, i) => <li key={i}>{d}</li>)}</ul>
                            </div>
                         )}

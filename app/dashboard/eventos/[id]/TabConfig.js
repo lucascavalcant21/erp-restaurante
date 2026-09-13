@@ -145,7 +145,7 @@ export default function TabConfig({ evento, onChange }) {
           <Field label="Taxa débito (%)"><NumberInput value={f.debito_rate} onChange={(e) => set("debito_rate", e.target.value)} step="0.01" /></Field>
           <Field label="Mix crédito (%)"><NumberInput value={f.credito_mix} onChange={(e) => set("credito_mix", e.target.value)} step="1" /></Field>
         </div>
-        <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+        <p className="text-2xs" style={{ color: "var(--dim)" }}>
           PIX = 0% · Maquininha estimada = mix × crédito + (1-mix) × débito
         </p>
       </Card>

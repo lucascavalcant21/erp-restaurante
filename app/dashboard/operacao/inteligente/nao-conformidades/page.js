@@ -120,12 +120,12 @@ export default function NaoConformidades() {
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-black text-slate-900">{nc.titulo}</span>
                 {nc.descricao && <span className="mt-0.5 block whitespace-pre-line text-[13px] font-medium text-slate-500 line-clamp-2">{nc.descricao}</span>}
-                <span className="mt-1 block text-[11px] font-bold text-slate-400">
+                <span className="mt-1 block text-2xs font-bold text-slate-400">
                   {nc.setor || "geral"} · {new Date(nc.created_at).toLocaleString("pt-BR")}
                   {nc.criticidade === "critica" ? " · crítica" : ""}
                 </span>
               </span>
-              <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-black ${COR(nc.status)}`}>{ROTULO[nc.status]}</span>
+              <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-2xs font-bold ${COR(nc.status)}`}>{ROTULO[nc.status]}</span>
             </button>
 
             {aberta?.id === nc.id && (
@@ -133,13 +133,13 @@ export default function NaoConformidades() {
                 <div className="flex flex-wrap gap-2">
                   {["EM_ANALISE", "EM_CORRECAO", "RESOLVIDA", "CANCELADA"].map(s => (
                     <button key={s} onClick={() => mudarStatus(nc, s)}
-                      className={`min-h-10 rounded-xl px-3 text-[12px] font-black ${nc.status === s ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+                      className={`min-h-10 rounded-xl px-3 text-xs font-bold ${nc.status === s ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
                       {ROTULO[s]}
                     </button>
                   ))}
                 </div>
 
-                <p className="mt-4 text-[11px] font-black uppercase tracking-widest text-emerald-700">Ações corretivas</p>
+                <p className="mt-4 text-2xs font-bold uppercase tracking-widest text-emerald-700">Ações corretivas</p>
                 {acoes.length === 0 ? (
                   <p className="mt-1.5 text-[13px] font-medium text-slate-500">Nenhuma ação definida ainda.</p>
                 ) : (
@@ -148,14 +148,14 @@ export default function NaoConformidades() {
                       <div key={a.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
                         <span className="min-w-0 flex-1">
                           <span className="block text-[14px] font-bold text-slate-800">{a.descricao}</span>
-                          <span className="block text-[11px] font-bold text-slate-400">
+                          <span className="block text-2xs font-bold text-slate-400">
                             {a.responsavel_nome || "sem responsável"}{a.prazo ? ` · até ${new Date(`${a.prazo}T12:00:00`).toLocaleDateString("pt-BR")}` : ""}
                           </span>
                         </span>
                         {a.status === "CONCLUIDA" ? (
-                          <span className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700"><Check size={13} /> Feita</span>
+                          <span className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-2xs font-bold text-emerald-700"><Check size={13} /> Feita</span>
                         ) : (
-                          <button onClick={() => concluirAcao(a)} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-[12px] font-black text-emerald-700 hover:bg-emerald-50">Concluir</button>
+                          <button onClick={() => concluirAcao(a)} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Concluir</button>
                         )}
                       </div>
                     ))}

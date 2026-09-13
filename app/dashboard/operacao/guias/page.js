@@ -292,13 +292,13 @@ export default function GuiaDeUso() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setEditando(v => !v)}
-              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-black transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
               <Save size={15} /> {editando ? "Concluir edição" : "Editar"}
             </button>
-            <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
+            <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50">
               <Table size={15} /> Planilha
             </button>
-            <button onClick={imprimirCartazes} title="Um guia por página, para o lado do equipamento" className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
+            <button onClick={imprimirCartazes} title="Um guia por página, para o lado do equipamento" className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-800">
               <Printer size={15} /> Cartaz
             </button>
           </div>
@@ -306,7 +306,7 @@ export default function GuiaDeUso() {
       </div>
 
       <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-        {aviso && <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">{aviso}</div>}
+        {aviso && <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{aviso}</div>}
 
         {semTabela ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -324,14 +324,14 @@ export default function GuiaDeUso() {
             <div className="mb-4 flex flex-wrap items-center gap-2">
               {[{ id: "todos", rotulo: "Todos" }, ...TIPOS_USO].map(opcao => (
                 <button key={opcao.id} onClick={() => setFiltro(opcao.id)}
-                  className={`h-9 rounded-xl px-3.5 text-xs font-black transition-colors ${filtro === opcao.id ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+                  className={`h-9 rounded-xl px-3.5 text-xs font-bold transition-colors ${filtro === opcao.id ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
                   {opcao.rotulo}
                 </button>
               ))}
               <span className="flex-1" />
               {editando && TIPOS_USO.map(opcao => (
                 <button key={opcao.id} onClick={() => novoGuia(opcao.id)}
-                  className="flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-400 hover:text-emerald-700">
+                  className="flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white px-3 text-xs font-bold text-slate-600 hover:border-emerald-400 hover:text-emerald-700">
                   <Plus size={14} /> {opcao.rotulo}
                 </button>
               ))}
@@ -394,11 +394,11 @@ export default function GuiaDeUso() {
                             </span>
                             <div className="min-w-0 flex-1">
                               <h2 className="text-base font-black text-slate-900 sm:text-lg">{guia.titulo}</h2>
-                              <p className="text-[11px] font-bold text-slate-400">
+                              <p className="text-2xs font-bold text-slate-400">
                                 {guia.tipo === "equipamento" ? "Equipamento" : "Produto"}{guia.setor ? ` · ${guia.setor}` : ""}
                               </p>
                             </div>
-                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-3xs font-bold text-slate-500">
                               {totalPassos(guia.conteudo)} passo{totalPassos(guia.conteudo) === 1 ? "" : "s"}
                             </span>
                           </>
@@ -415,13 +415,13 @@ export default function GuiaDeUso() {
                             >
                               <img src={guia.imagem_url} alt={guia.titulo} className="h-full w-full object-cover" />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                                <span className="flex items-center gap-1.5 text-xs font-black text-white">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-white">
                                   <Maximize2 size={14} /> Ampliar
                                 </span>
                               </div>
                             </div>
                             <div className="flex-1 text-xs text-slate-500 leading-relaxed">
-                              <p className="font-black text-slate-700 flex items-center gap-1.5 text-xs">
+                              <p className="font-bold text-slate-700 flex items-center gap-1.5 text-xs">
                                 <ImageIcon size={14} className="text-slate-400" /> Foto do Equipamento / Produto
                               </p>
                               <p className="mt-1 text-slate-600 font-medium">
@@ -439,10 +439,10 @@ export default function GuiaDeUso() {
                                 <>
                                   <input value={secao.titulo || ""} onChange={e => alterarSecao(guia.id, indiceSecao, "titulo", e.target.value)}
                                     onBlur={() => gravar(guia)} placeholder="Título da seção"
-                                    className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black uppercase tracking-wider text-slate-700 outline-none focus:border-emerald-500" />
+                                    className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 outline-none focus:border-emerald-500" />
                                   <button onClick={() => { alterarSecao(guia.id, indiceSecao, "alerta", !secao.alerta); }}
                                     title="Marcar como 'nunca faça'"
-                                    className={`h-9 shrink-0 rounded-lg border px-2.5 text-[10px] font-black ${secao.alerta ? "border-red-300 bg-red-100 text-red-700" : "border-slate-200 bg-white text-slate-400"}`}>
+                                    className={`h-9 shrink-0 rounded-lg border px-2.5 text-3xs font-bold ${secao.alerta ? "border-red-300 bg-red-100 text-red-700" : "border-slate-200 bg-white text-slate-400"}`}>
                                     Nunca faça
                                   </button>
                                   <button onClick={() => removerSecao(guia.id, indiceSecao)} title="Remover seção"
@@ -451,7 +451,7 @@ export default function GuiaDeUso() {
                                   </button>
                                 </>
                               ) : (
-                                <h3 className={`text-[10px] font-black uppercase tracking-widest ${secao.alerta ? "text-red-700" : "text-slate-500"}`}>
+                                <h3 className={`text-3xs font-bold uppercase tracking-widest ${secao.alerta ? "text-red-700" : "text-slate-500"}`}>
                                   {secao.titulo}
                                 </h3>
                               )}
@@ -459,7 +459,7 @@ export default function GuiaDeUso() {
                             <ol className="space-y-1.5">
                               {(secao.passos || []).map((passo, indicePasso) => (
                                 <li key={indicePasso} className="flex items-start gap-2">
-                                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-black ${secao.alerta ? "bg-red-200 text-red-800" : "bg-white text-slate-500"}`}>
+                                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-3xs font-bold ${secao.alerta ? "bg-red-200 text-red-800" : "bg-white text-slate-500"}`}>
                                     {indicePasso + 1}
                                   </span>
                                   {editando ? (
@@ -479,7 +479,7 @@ export default function GuiaDeUso() {
                               ))}
                             </ol>
                             {editando && (
-                              <button onClick={() => adicionarPasso(guia.id, indiceSecao)} className="mt-2 flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-2.5 text-[11px] font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
+                              <button onClick={() => adicionarPasso(guia.id, indiceSecao)} className="mt-2 flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-2.5 text-2xs font-bold text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
                                 <Plus size={13} /> Passo
                               </button>
                             )}
@@ -487,10 +487,10 @@ export default function GuiaDeUso() {
                         ))}
                         {editando && (
                           <div className="flex flex-wrap gap-2">
-                            <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
+                            <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-bold text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
                               <Plus size={14} /> Seção
                             </button>
-                            <button onClick={() => gravar(guia)} className="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-black text-white hover:bg-emerald-700">
+                            <button onClick={() => gravar(guia)} className="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700">
                               <Save size={14} /> Salvar este guia
                             </button>
                           </div>
@@ -504,7 +504,7 @@ export default function GuiaDeUso() {
           </>
         )}
 
-        <p className="mt-5 text-[11px] font-medium leading-relaxed text-slate-400">
+        <p className="mt-5 text-2xs font-medium leading-relaxed text-slate-400">
           Os guias ficam no banco, iguais em todos os aparelhos da loja: o tablet da cozinha e o computador da
           gerência leem a mesma versão. As seções marcadas como <b>nunca faça</b> saem destacadas em vermelho na
           tela e na impressão — é onde mora o acidente.

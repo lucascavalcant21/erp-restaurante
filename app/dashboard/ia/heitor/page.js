@@ -355,11 +355,11 @@ export default function HeitorPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">Hefisto AI</h1>
-                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 border border-slate-700">
+                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 text-3xs font-bold uppercase tracking-widest flex items-center gap-1 border border-slate-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs font-medium text-slate-500 flex items-start sm:items-center gap-1 mt-0.5 min-w-0 leading-snug">
+              <p className="text-2xs sm:text-xs font-medium text-slate-500 flex items-start sm:items-center gap-1 mt-0.5 min-w-0 leading-snug">
                 <Cpu size={12}/> Analisando dados da unidade <span className="text-white font-bold">{unidadeInfo.nome}</span>
               </p>
             </div>
@@ -388,14 +388,14 @@ export default function HeitorPage() {
             
             {m.role === "user" && (
               <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 ml-3 mt-1">
-                <span className="text-[10px] font-black text-slate-500">VC</span>
+                <span className="text-3xs font-bold text-slate-500">VC</span>
               </div>
             )}
           </div>
         ))}
         {acaoPendente && (
           <div className="ml-0 sm:ml-11 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 sm:p-5 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-widest text-amber-700">Confirmação necessária</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Confirmação necessária</p>
             <p className="mt-1.5 text-sm font-bold text-slate-700">
               {acaoPendente.tipo === "ingrediente"
                 ? `Cadastrar ${acaoPendente.nome} no setor ${acaoPendente.departamento}`
@@ -471,8 +471,8 @@ export default function HeitorPage() {
               <Send size={18} color="#fff" className="ml-1" />
             </button>
           </div>
-          {escutando && <p className="text-center text-xs font-black text-rose-600 mt-2 animate-pulse">Ouvindo… diga seu comando</p>}
-          <p className="hidden sm:block text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3">
+          {escutando && <p className="text-center text-xs font-bold text-rose-600 mt-2 animate-pulse">Ouvindo… diga seu comando</p>}
+          <p className="hidden sm:block text-center text-3xs font-bold text-slate-500 uppercase tracking-widest mt-3">
             Hefisto AI processa os dados em tempo real.
           </p>
         </div>

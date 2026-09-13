@@ -85,11 +85,11 @@ export default function InstallPrompt() {
             Instalar o Hefisto
           </p>
           {ehIOS ? (
-            <p className="text-[11px] font-medium leading-tight mt-0.5 flex items-center gap-1" style={{ color: "var(--muted, #94a3b8)" }}>
+            <p className="text-2xs font-medium leading-tight mt-0.5 flex items-center gap-1" style={{ color: "var(--muted, #94a3b8)" }}>
               Toque em <Share size={11} className="inline" /> e depois em "Adicionar à Tela de Início"
             </p>
           ) : (
-            <p className="text-[11px] font-medium leading-tight mt-0.5" style={{ color: "var(--muted, #94a3b8)" }}>
+            <p className="text-2xs font-medium leading-tight mt-0.5" style={{ color: "var(--muted, #94a3b8)" }}>
               Use como app no celular, tablet ou computador
             </p>
           )}

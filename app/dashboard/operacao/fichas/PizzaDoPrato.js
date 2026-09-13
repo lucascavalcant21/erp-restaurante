@@ -32,7 +32,7 @@ export default function PizzaDoPrato({
 
   if (!fatias.length) {
     return (
-      <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-[11px] font-bold text-slate-400">
+      <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-2xs font-bold text-slate-400">
         Sem preço de venda: não dá para dividir a pizza.
       </p>
     );
@@ -86,14 +86,14 @@ export default function PizzaDoPrato({
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           {prejuizo > 0 ? (
             <>
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Prejuízo</span>
+              <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Prejuízo</span>
               <span className="text-sm font-black text-slate-800">{fmt(prejuizo)}</span>
             </>
           ) : (
             <>
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Sobra</span>
+              <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Sobra</span>
               <span className="text-lg font-black text-emerald-600">{pctLucro.toFixed(0)}%</span>
-              <span className="text-[10px] font-bold text-slate-500">{fmt(lucro)}</span>
+              <span className="text-3xs font-bold text-slate-500">{fmt(lucro)}</span>
             </>
           )}
         </div>
@@ -108,7 +108,7 @@ export default function PizzaDoPrato({
               <button type="button" disabled={!f.partes.length}
                 onClick={() => setAberto(aberto === f.id ? null : f.id)}
                 aria-expanded={aberto === f.id}
-                className="flex w-full items-center gap-2 text-left text-[11px] disabled:cursor-default">
+                className="flex w-full items-center gap-2 text-left text-2xs disabled:cursor-default">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.cor }} />
                 <span className={`min-w-0 flex-1 truncate font-black ${f.id === "lucro" ? "text-emerald-700" : "text-slate-700"}`}>
                   {f.rotulo}
@@ -125,7 +125,7 @@ export default function PizzaDoPrato({
               {aberto === f.id && !!f.partes.length && (
                 <ul className="mt-0.5 space-y-0.5 border-l border-slate-200 pl-2 ml-[5px]">
                   {f.partes.map((x) => (
-                    <li key={x.rotulo} className="flex items-center gap-2 text-[10px]">
+                    <li key={x.rotulo} className="flex items-center gap-2 text-3xs">
                       <span className="min-w-0 flex-1 truncate font-bold text-slate-400">{x.rotulo}</span>
                       <span className="shrink-0 font-bold text-slate-500">{fmt(x.valor)}</span>
                       <span className="w-11 shrink-0 text-right font-bold text-slate-400">{x.pctNoSegmento.toFixed(0)}%</span>
@@ -136,13 +136,13 @@ export default function PizzaDoPrato({
             </li>
           ))}
         </ul>
-        <p className="mt-2 border-t border-slate-100 pt-1.5 text-[10px] font-bold text-slate-400">
+        <p className="mt-2 border-t border-slate-100 pt-1.5 text-3xs font-bold text-slate-400">
           {prejuizo > 0
             ? `As fatias dividem o custo de ${fmt(dados.custoTotal)}: ele passou da venda de ${fmt(precoVenda)}.`
             : `As fatias dividem a venda de ${fmt(precoVenda)}. Dentro de cada uma, o % é do próprio segmento.`}
         </p>
         {!rateavel && (
-          <p className="mt-1 text-[10px] font-bold text-slate-400">
+          <p className="mt-1 text-3xs font-bold text-slate-400">
             Custo fixo e CMO ficam de fora até preencher dias de operação e pratos por dia no Ponto de Equilíbrio.
           </p>
         )}

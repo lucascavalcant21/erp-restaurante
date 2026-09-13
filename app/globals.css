@@ -799,10 +799,15 @@ button,
    livros) usa estilo inline e janelas próprias, e continua intacta.
    ═════════════════════════════════════════════════════════════════════════ */
 @media screen and (max-width: 1279px) {
-  .erp-app-shell .text-\[9px\]   { font-size: 11.5px; letter-spacing: 0.04em; }
-  .erp-app-shell .text-\[10px\]  { font-size: 12px; }
-  .erp-app-shell .text-\[11px\]  { font-size: 13px; }
-  .erp-app-shell .text-\[12px\]  { font-size: 13.5px; }
+  /* Os tamanhos miudos deixaram de ser valores avulsos e viraram degraus
+     nomeados (text-3xs, text-2xs) — ver fontSize no tailwind.config.js. As
+     regras abaixo acompanham o rename: sem elas, o piso de leitura que esta
+     secao existe para garantir simplesmente deixaria de valer, e o texto
+     ENCOLHERIA no celular em vez de crescer.
+     text-3xs absorveu os antigos 9px (11,5px aqui) e 10px (12px aqui). Os dois
+     passam a 12px: meio pixel de diferenca entre eles nao valia dois degraus. */
+  .erp-app-shell .text-3xs       { font-size: 12px; }
+  .erp-app-shell .text-2xs       { font-size: 13px; }
   .erp-app-shell .text-\[13px\]  { font-size: 14px; }
   .erp-app-shell .text-xs        { font-size: 13.5px; line-height: 1.45; }
   .erp-app-shell .text-sm        { font-size: 15px;   line-height: 1.5; }

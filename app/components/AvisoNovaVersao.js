@@ -79,7 +79,7 @@ export default function AvisoNovaVersao() {
       <div className="flex max-w-[calc(100vw-1.5rem)] items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 py-2.5 pl-4 pr-2.5 shadow-2xl">
         <span className="min-w-0 text-sm font-bold text-white">
           Nova versão disponível
-          <span className="ml-2 hidden font-mono text-[10px] font-bold text-slate-400 sm:inline">
+          <span className="ml-2 hidden font-mono text-3xs font-bold text-slate-400 sm:inline">
             {shaPublicado.slice(0, 7)}
           </span>
         </span>

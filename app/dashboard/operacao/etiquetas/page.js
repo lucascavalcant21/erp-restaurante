@@ -69,7 +69,7 @@ function EtiquetasSalvas({ unidadeAtiva }) {
 
   return (
     <div>
-      <p className="text-[12px] font-medium mb-4" style={{ color: "var(--dim)" }}>
+      <p className="text-xs font-medium mb-4" style={{ color: "var(--dim)" }}>
         Etiquetas apenas <b>salvas</b> (ainda não geradas). Você pode gerar (envia para “Etiquetas geradas”), excluir, deixar aqui, ou simular no telefone como o QR apareceria ao ser lido.
       </p>
       {loading ? (
@@ -82,16 +82,16 @@ function EtiquetasSalvas({ unidadeAtiva }) {
             <div key={e.id} className="rounded-2xl border p-3 flex flex-wrap items-center gap-3" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black truncate" style={{ color: "var(--fg)" }}>{e.produto}</p>
-                <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                <p className="text-2xs" style={{ color: "var(--dim)" }}>
                   {e.quantidade} {e.unidade} · vence {fmtDH(e.validade_em)} · #{e.codigo}
                   {e.responsavel ? ` · ${e.responsavel}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                <button onClick={() => setSim(e)} title="Simular no telefone" className="h-9 px-3 rounded-lg text-[11px] font-bold flex items-center gap-1.5" style={{ background: "var(--panel)", color: "var(--accent-fg)", border: "1px solid var(--line)" }}>
+                <button onClick={() => setSim(e)} title="Simular no telefone" className="h-9 px-3 rounded-lg text-2xs font-bold flex items-center gap-1.5" style={{ background: "var(--panel)", color: "var(--accent-fg)", border: "1px solid var(--line)" }}>
                   <Smartphone size={14} /> Simular
                 </button>
-                <button onClick={() => gerar(e)} title="Gerar (enviar para Geradas)" className="h-9 px-3 rounded-lg text-[11px] font-bold flex items-center gap-1.5 text-white" style={{ background: "var(--accent-strong)" }}>
+                <button onClick={() => gerar(e)} title="Gerar (enviar para Geradas)" className="h-9 px-3 rounded-lg text-2xs font-bold flex items-center gap-1.5 text-white" style={{ background: "var(--accent-strong)" }}>
                   <Check size={14} /> Gerar
                 </button>
                 <button onClick={() => remover(e)} title="Excluir" className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: "var(--panel)", color: "#DC2626", border: "1px solid var(--line)" }}>
@@ -123,7 +123,7 @@ function EtiquetasSalvas({ unidadeAtiva }) {
             <div className="mx-auto rounded-[34px] border-[10px] border-slate-900 bg-slate-900 shadow-xl overflow-hidden" style={{ width: molduraTel.w, maxWidth: "100%", height: molduraTel.h, maxHeight: "62vh" }}>
               <iframe title={`Simulação ${sim.codigo}`} src={`${origem}/rastreio/${sim.codigo}`} className="w-full h-full bg-white border-0" />
             </div>
-            <p className="text-[11px] text-center text-slate-400 mt-3">É exatamente a página que abre quando alguém aponta a câmera para o QR desta etiqueta.</p>
+            <p className="text-2xs text-center text-slate-400 mt-3">É exatamente a página que abre quando alguém aponta a câmera para o QR desta etiqueta.</p>
           </div>
         </div>
       )}
@@ -821,7 +821,7 @@ function EtiquetasRunner() {
                       className="flex flex-col items-center gap-1 py-3 rounded-xl transition-all"
                       style={{ border: `1.5px solid ${sel ? c.cor : "var(--line)"}`, background: sel ? c.cor + "22" : "var(--panel)" }}>
                       <Icon size={18} style={{ color: sel ? c.cor : "var(--muted)" }} />
-                      <span className="text-[12px] font-bold" style={{ color: sel ? "var(--fg)" : "var(--muted)" }}>{c.id}</span>
+                      <span className="text-xs font-bold" style={{ color: sel ? "var(--fg)" : "var(--muted)" }}>{c.id}</span>
                     </button>
                   );
                 })}
@@ -836,7 +836,7 @@ function EtiquetasRunner() {
               </div>
               <div className="mb-2 flex gap-1.5">
                 {[["dias", "Daqui a X dias"], ["data", "Escolher a data"]].map(([m, l]) => (
-                  <button key={m} onClick={() => { setValidadeModo(m); if (m === "data") setCategoriaValidade(""); }} className="flex-1 py-2 rounded-lg text-[12px] font-bold transition-all"
+                  <button key={m} onClick={() => { setValidadeModo(m); if (m === "data") setCategoriaValidade(""); }} className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
                     style={validadeModo === m ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--panel)", color: "var(--muted)", border: "1px solid var(--line)" }}>{l}</button>
                 ))}
               </div>
@@ -854,7 +854,7 @@ function EtiquetasRunner() {
                 </Select>
               </Field>
               <button type="button" onClick={() => router.push("/dashboard/configuracoes")}
-                className="text-[11px] font-bold flex items-center gap-1.5 mb-3" style={{ color: "var(--accent-fg)" }}>
+                className="text-2xs font-bold flex items-center gap-1.5 mb-3" style={{ color: "var(--accent-fg)" }}>
                 <Settings size={13} /> Gerenciar categorias e prazos nas Configurações
               </button>
               <Field label="Lote / SIF (opcional)"><TextInput value={form.lote} onChange={(e) => set("lote", e.target.value)} placeholder="SIF 1234" /></Field>
@@ -873,15 +873,15 @@ function EtiquetasRunner() {
                 <div className="min-w-0 flex-1">
                   <SectionLabel>Dados automáticos da unidade</SectionLabel>
                   <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{unidadeInfo.nome}</p>
-                  <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>CNPJ: {cnpjUnidade ? fmtCNPJ(cnpjUnidade) : "não cadastrado"}</p>
-                  <p className="text-[11px]" style={{ color: "var(--muted)" }}>{enderecoUnidade || "Endereço não cadastrado"}</p>
-                  <p className="text-[11px]" style={{ color: "var(--muted)" }}>{localizacaoUnidade || "Cidade, UF e CEP não cadastrados"}</p>
+                  <p className="text-2xs mt-1" style={{ color: "var(--muted)" }}>CNPJ: {cnpjUnidade ? fmtCNPJ(cnpjUnidade) : "não cadastrado"}</p>
+                  <p className="text-2xs" style={{ color: "var(--muted)" }}>{enderecoUnidade || "Endereço não cadastrado"}</p>
+                  <p className="text-2xs" style={{ color: "var(--muted)" }}>{localizacaoUnidade || "Cidade, UF e CEP não cadastrados"}</p>
                 </div>
                 <button type="button" onClick={() => router.push("/dashboard/configuracoes")}
-                  className="text-[11px] font-bold px-3 py-2 rounded-lg" style={{ border: "1px solid var(--line)", color: "var(--muted)" }}>Editar</button>
+                  className="text-2xs font-bold px-3 py-2 rounded-lg" style={{ border: "1px solid var(--line)", color: "var(--muted)" }}>Editar</button>
               </div>
               {!cadastroUnidadeCompleto && (
-                <div className="mt-3 flex items-center gap-2 text-[11px] font-bold text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                <div className="mt-3 flex items-center gap-2 text-2xs font-bold text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
                   <AlertTriangle size={14} /> Complete CNPJ, CEP, endereço, cidade e UF para a etiqueta sair completa.
                 </div>
               )}
@@ -918,12 +918,12 @@ function EtiquetasRunner() {
                   </Select>
                 </Field>
               )}
-              {impressoraErro && <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-2">{impressoraErro}</p>}
-              <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>
+              {impressoraErro && <p className="text-2xs font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-2">{impressoraErro}</p>}
+              <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>
                 Perfil {PERFIS_TP20[tamanho]?.descricao || tamanho}. A guilhotina permanece desligada para proteger a bobina adesiva.
               </p>
               <a href="https://qz.io/download/" target="_blank" rel="noreferrer"
-                className="inline-block text-[10px] font-bold mt-1.5" style={{ color: "var(--accent-fg)" }}>
+                className="inline-block text-3xs font-bold mt-1.5" style={{ color: "var(--accent-fg)" }}>
                 Instalar o assistente QZ Tray neste computador
               </a>
             </Card>
@@ -949,18 +949,18 @@ function EtiquetasRunner() {
                       {btNome ? "Trocar" : "Conectar"}
                     </button>
                   </div>
-                  {btErro && <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-2">{btErro}</p>}
+                  {btErro && <p className="text-2xs font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-2">{btErro}</p>}
                   {btNome && (
                     <Btn variant="primary" className="w-full mt-3" disabled={salvando} onClick={() => salvar("bluetooth")}>
                       <Printer size={15} /> Imprimir por Bluetooth
                     </Btn>
                   )}
-                  <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>
+                  <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>
                     Imprime direto do tablet, sem computador e sem driver. Ligue a impressora e toque em Conectar.
                   </p>
                 </>
               ) : (
-                <p className="text-[11px] font-medium mt-1" style={{ color: "var(--muted)" }}>
+                <p className="text-2xs font-medium mt-1" style={{ color: "var(--muted)" }}>
                   {motivoBluetoothIndisponivel()}
                 </p>
               )}
@@ -974,7 +974,7 @@ function EtiquetasRunner() {
             <div className="flex gap-1.5 mb-2">
               {[["validade", "Validade completa"], ["nome", "Só o nome"]].map(([v, l]) => (
                 <button key={v} onClick={() => setModelo(v)}
-                  className="flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all"
                   style={modelo === v ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
                   {l}
                 </button>
@@ -988,20 +988,20 @@ function EtiquetasRunner() {
                 <>
                   <img src={logoEtiqueta} alt="Logo da etiqueta" className="h-8 w-auto max-w-[90px] object-contain" />
                   <button onClick={() => setMostrarLogo(v => !v)}
-                    className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+                    className="rounded-lg px-3 py-1.5 text-2xs font-bold"
                     style={mostrarLogo ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
                     {mostrarLogo ? "Na etiqueta" : "Fora da etiqueta"}
                   </button>
-                  <button onClick={() => inputLogoRef.current?.click()} className="rounded-lg border px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>Trocar</button>
-                  <button onClick={removerLogo} className="rounded-lg border px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>Remover</button>
+                  <button onClick={() => inputLogoRef.current?.click()} className="rounded-lg border px-3 py-1.5 text-2xs font-bold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>Trocar</button>
+                  <button onClick={removerLogo} className="rounded-lg border px-3 py-1.5 text-2xs font-bold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>Remover</button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => inputLogoRef.current?.click()} className="rounded-lg px-3 py-1.5 text-[11px] font-bold" style={{ background: "var(--accent-strong)", color: "#fff" }}>Adicionar logo</button>
-                  <span className="text-[11px] font-medium" style={{ color: "var(--subtle)" }}>Sai no topo da etiqueta, na impressão pelo navegador e no PDF. Vale para esta loja.</span>
+                  <button onClick={() => inputLogoRef.current?.click()} className="rounded-lg px-3 py-1.5 text-2xs font-bold" style={{ background: "var(--accent-strong)", color: "#fff" }}>Adicionar logo</button>
+                  <span className="text-2xs font-medium" style={{ color: "var(--subtle)" }}>Sai no topo da etiqueta, na impressão pelo navegador e no PDF. Vale para esta loja.</span>
                 </>
               )}
-              {erroLogo && <span className="w-full text-[11px] font-bold text-red-600">{erroLogo}</span>}
+              {erroLogo && <span className="w-full text-2xs font-bold text-red-600">{erroLogo}</span>}
             </div>
 
             <div className="flex items-center justify-between mb-2">
@@ -1009,7 +1009,7 @@ function EtiquetasRunner() {
               <div className="flex gap-1.5">
                 {["80x40", "60x40", "60x60", "80x60", "100x60"].map((t) => (
                   <button key={t} onClick={() => setTamanho(t)}
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
+                    className="text-2xs font-bold px-3 py-1.5 rounded-lg transition-all"
                     style={tamanho === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
                     {t.replace("x", "×")}mm
                   </button>
@@ -1105,15 +1105,15 @@ function EtiquetasRunner() {
                 ))}
               </div>
             </div>
-            <p className="text-[11px] text-center mt-3 flex items-center justify-center gap-1.5" style={{ color: "var(--dim)" }}>
+            <p className="text-2xs text-center mt-3 flex items-center justify-center gap-1.5" style={{ color: "var(--dim)" }}>
               <QrCode size={13} /> {tamanho.replace("x", "×")}mm · código {codigo}
             </p>
             {/* Como o navegador manda para o driver: tira única ou 1 por página */}
             <div className="flex items-center justify-center gap-1.5 mt-2">
-              <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Impressão:</span>
+              <span className="text-3xs font-bold" style={{ color: "var(--dim)" }}>Impressão:</span>
               {[["tira", "Tira contínua"], ["paginas", "Uma por página"]].map(([v, l]) => (
                 <button key={v} onClick={() => setModoTira(v)}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                  className="text-3xs font-bold px-2.5 py-1 rounded-lg transition-all"
                   style={modoTira === v ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
                   {l}
                 </button>
@@ -1121,16 +1121,16 @@ function EtiquetasRunner() {
             </div>
             {/* Correção de orientação: use quando a etiqueta sair deitada */}
             <div className="flex items-center justify-center gap-1.5 mt-2">
-              <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Orientação:</span>
+              <span className="text-3xs font-bold" style={{ color: "var(--dim)" }}>Orientação:</span>
               {[[false, "Normal"], [true, "Girar 90°"]].map(([v, l]) => (
                 <button key={String(v)} onClick={() => setGirar(v)}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                  className="text-3xs font-bold px-2.5 py-1 rounded-lg transition-all"
                   style={girar === v ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
                   {l}
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-center mt-1.5" style={{ color: "var(--dim)" }}>
+            <p className="text-3xs text-center mt-1.5" style={{ color: "var(--dim)" }}>
               Saiu deitada ou passando para a próxima etiqueta? Alterne aqui e imprima o teste de novo.
             </p>
 
@@ -1142,7 +1142,7 @@ function EtiquetasRunner() {
                 ["Saída", modoTira === "tira" ? "Tira" : "Página"],
               ].map(([rot, val]) => (
                 <div key={rot} className="rounded-xl px-2 py-2 text-center" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
-                  <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: "var(--dim)" }}>{rot}</p>
+                  <p className="text-3xs font-bold uppercase tracking-wider" style={{ color: "var(--dim)" }}>{rot}</p>
                   <p className="text-sm font-black" style={{ color: "var(--accent-strong)" }}>{val}</p>
                 </div>
               ))}
@@ -1163,13 +1163,13 @@ function EtiquetasRunner() {
               </Btn>
             </div>
             <button type="button" onClick={imprimirTeste}
-              className="mt-2 w-full rounded-xl border border-dashed py-2.5 text-[12px] font-bold"
+              className="mt-2 w-full rounded-xl border border-dashed py-2.5 text-xs font-bold"
               style={{ borderColor: "var(--line)", color: "var(--muted)" }}
               title="Imprime uma etiqueta de teste no tamanho escolhido, sem depender de produto">
               Imprimir etiqueta de teste ({tamanho.replace("x", "×")}mm)
             </button>
             {impressoraStatus !== "conectada" && (
-              <p className="text-[11px] mt-2 px-3 py-2 rounded-xl" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
+              <p className="text-2xs mt-2 px-3 py-2 rounded-xl" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
                 Saindo <b>miniatura</b> ou borrado? O navegador imprime em ~96dpi e o driver costuma forçar A4. Para etiqueta nítida no tamanho certo: use o <b>PDF exato</b> (e imprima em "Tamanho real / 100%"), ou conecte a <b>impressora térmica</b> no botão acima (qualidade nativa 203dpi).
               </p>
             )}
@@ -1178,7 +1178,7 @@ function EtiquetasRunner() {
             <Card className="!p-4 mt-3">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <SectionLabel>Fila de impressão (vários produtos)</SectionLabel>
-                {fila.length > 0 && <button onClick={() => setFila([])} className="text-[10px] font-bold" style={{ color: "#DC2626" }}>Limpar fila</button>}
+                {fila.length > 0 && <button onClick={() => setFila([])} className="text-3xs font-bold" style={{ color: "#DC2626" }}>Limpar fila</button>}
               </div>
               <Btn variant="ghost" className="w-full" disabled={salvando} onClick={adicionarNaFila}>
                 <Tag size={15} /> Adicionar à fila: {nomeProduto || "produto"} × {quantidadeCopias}
@@ -1199,7 +1199,7 @@ function EtiquetasRunner() {
                   <Btn variant="primary" className="w-full mt-3" onClick={imprimirFila}>
                     <Printer size={15} /> Imprimir fila ({fila.reduce((s, f) => s + f.copias, 0)} etiquetas)
                   </Btn>
-                  <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Sai tudo numa tira contínua, uma etiqueta colada na outra, pela impressão do navegador. Cada produto já fica registrado no Controle de Validade ao entrar na fila.</p>
+                  <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Sai tudo numa tira contínua, uma etiqueta colada na outra, pela impressão do navegador. Cada produto já fica registrado no Controle de Validade ao entrar na fila.</p>
                 </>
               )}
             </Card>

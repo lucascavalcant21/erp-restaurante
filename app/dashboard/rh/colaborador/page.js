@@ -199,14 +199,14 @@ export default function VidaColaboradorPage() {
           {/* Dados cadastrais */}
           <Bloco icon={User} titulo="Dados do colaborador">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3 text-sm">
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Telefone</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.telefone || "—"}</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CPF</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.cpf || "—"}</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Chave PIX</p><p className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{sel.chave_pix || "—"}</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>{isFree ? "Diária base" : "Salário base"}</p><p className="font-bold" style={{ color: "var(--accent-strong)" }}>{fmtBRL(sel.salario)}</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Horário</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.horario_entrada || "—"} às {sel.horario_saida || "—"}</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Dias de trabalho</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{diasTrab || "—"}</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Intervalo</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.tempo_intervalo || 60} min</p></div>
-              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Admissão</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.data_admissao ? fmtData(sel.data_admissao) : "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Telefone</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.telefone || "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>CPF</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.cpf || "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Chave PIX</p><p className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{sel.chave_pix || "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>{isFree ? "Diária base" : "Salário base"}</p><p className="font-bold" style={{ color: "var(--accent-strong)" }}>{fmtBRL(sel.salario)}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Horário</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.horario_entrada || "—"} às {sel.horario_saida || "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Dias de trabalho</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{diasTrab || "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Intervalo</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.tempo_intervalo || 60} min</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Admissão</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.data_admissao ? fmtData(sel.data_admissao) : "—"}</p></div>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--line-soft)" }}>
               <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--muted)" }}><Network size={12} /> Supervisor: {supervisor?.nome || "topo da hierarquia"}</span>
@@ -233,7 +233,7 @@ export default function VidaColaboradorPage() {
                 const totalMes = fixo + va + taxa + ad.valorNoturno + ad.valorExtra + ad.valorFeriado;
                 const Linha = ({ rotulo, valor, dica }) => (
                   <div className="flex justify-between items-baseline py-1.5 border-b" style={{ borderColor: "var(--line-soft)" }}>
-                    <span className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{rotulo}{dica && <span className="text-[10px] font-medium ml-1.5" style={{ color: "var(--dim)" }}>{dica}</span>}</span>
+                    <span className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{rotulo}{dica && <span className="text-3xs font-medium ml-1.5" style={{ color: "var(--dim)" }}>{dica}</span>}</span>
                     <span className="text-sm font-black" style={{ color: "var(--fg)" }}>{fmtBRL(valor)}</span>
                   </div>
                 );
@@ -246,7 +246,7 @@ export default function VidaColaboradorPage() {
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} após 23h30 · 20% CLT`} />
                     <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} após 00h00 · +50% CLT`} />
                     <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +100% CLT`} />
-                    <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
+                    <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
                   </Bloco>
                 );
               })()}
@@ -270,18 +270,18 @@ export default function VidaColaboradorPage() {
                           <div key={p.id} className="flex items-center justify-between text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
                             <div className="min-w-0">
                               <p className="font-bold" style={{ color: "var(--fg-soft)" }}>{p.data_referencia?.split("-").reverse().join("/")}</p>
-                              <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{horaDe(p.hora_entrada)} às {horaDe(p.hora_saida)}</p>
+                              <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>{horaDe(p.hora_entrada)} às {horaDe(p.hora_saida)}</p>
                             </div>
                             <span className="font-black shrink-0 ml-2" style={{ color: "var(--accent-strong)" }}>{fmtBRL(diaria)}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-2 border-t text-[11px] font-bold" style={{ borderColor: "var(--line-soft)", color: "var(--dim)" }}>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-2 border-t text-2xs font-bold" style={{ borderColor: "var(--line-soft)", color: "var(--dim)" }}>
                       <span>Recibos pagos: <b style={{ color: "#15803D" }}>{pagos}</b></span>
                       <span>Total pago: <b style={{ color: "#15803D" }}>{fmtBRL(totalPago)}</b></span>
                     </div>
-                    <p className="text-[10px] font-medium mt-1" style={{ color: "var(--dim)" }}>Diária base {fmtBRL(diaria)} × dias com ponto. Advertências e recibos completos nos blocos ao lado.</p>
+                    <p className="text-3xs font-medium mt-1" style={{ color: "var(--dim)" }}>Diária base {fmtBRL(diaria)} × dias com ponto. Advertências e recibos completos nos blocos ao lado.</p>
                   </Bloco>
                 );
               })()}
@@ -301,7 +301,7 @@ export default function VidaColaboradorPage() {
                 return (
                   <Bloco icon={CalendarHeart} titulo={`Calendário de ${agora.toLocaleDateString("pt-BR", { month: "long" })}`}>
                     <div className="grid grid-cols-7 gap-1 text-center mb-1">
-                      {DIAS_SEMANA.map(d => <span key={d} className="text-[9px] font-black uppercase" style={{ color: "var(--dim)" }}>{d}</span>)}
+                      {DIAS_SEMANA.map(d => <span key={d} className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>{d}</span>)}
                     </div>
                     <div className="grid grid-cols-7 gap-1">
                       {Array.from({ length: offset }).map((_, i) => <span key={`v${i}`} />)}
@@ -322,13 +322,13 @@ export default function VidaColaboradorPage() {
                           <div key={d} className="relative rounded-lg py-1.5 text-center"
                             style={{ background: bg, outline: ehHoje ? "2px solid var(--accent)" : "none" }}
                             title={`${dataISO.split("-").reverse().join("/")}${ehFeriado ? " · Feriado" : ""}${ehFolgaEsp ? " · Folga marcada" : ""}${ehFolgaSemanal ? " · Folga semanal" : ""}${bateu ? " · trabalhou" : ""}`}>
-                            <span className="text-[11px] font-black" style={{ color: fg }}>{d}</span>
+                            <span className="text-2xs font-bold" style={{ color: fg }}>{d}</span>
                             {bateu && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: "var(--accent)" }} />}
                           </div>
                         );
                       })}
                     </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-[9px] font-bold" style={{ color: "var(--dim)" }}>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-3xs font-bold" style={{ color: "var(--dim)" }}>
                       <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: "rgba(239,68,68,0.3)" }} /> Feriado (+100%)</span>
                       <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: "rgba(244,114,182,0.35)" }} /> Folga marcada</span>
                       <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: "var(--line-soft)" }} /> Folga semanal</span>
@@ -347,21 +347,21 @@ export default function VidaColaboradorPage() {
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                     {vida.advertencias.map(a => (
                       <div key={a.id} className="flex items-center gap-2 text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
-                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
+                        <span className={`text-3xs font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
                         <span className="font-bold truncate flex-1" style={{ color: "var(--fg-soft)" }}>{a.motivo}</span>
                         <span className="font-medium shrink-0" style={{ color: "var(--dim)" }}>{a.data ? a.data.split("-").reverse().join("/") : ""}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
+                <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
               </Bloco>
               {/* Atestados médicos. Fica antes do ponto de propósito: quem abre
                   a ficha para conferir uma falta precisa ver o atestado antes
                   de olhar o dia em branco e concluir a coisa errada. */}
               <Bloco icon={FileText} titulo="Atestados médicos"
                 extra={<button onClick={() => setFormAtestado({ data_inicio: "", data_fim: "", parcial: false, cid: "", medico: "", observacao: "" })}
-                  className="text-[10px] font-bold" style={{ color: "var(--accent-strong)" }}>Registrar</button>}>
+                  className="text-3xs font-bold" style={{ color: "var(--accent-strong)" }}>Registrar</button>}>
                 {formAtestado && (
                   <div className="mb-3 rounded-xl border p-3" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
                     <div className="grid grid-cols-2 gap-2">
@@ -384,7 +384,7 @@ export default function VidaColaboradorPage() {
                     <div className="mt-3 flex gap-2">
                       <button onClick={() => setFormAtestado(null)} className="h-10 flex-1 rounded-lg border text-xs font-bold" style={{ borderColor: "var(--line)" }}>Cancelar</button>
                       <button onClick={salvarAtestadoDoColaborador} disabled={salvandoAtestado}
-                        className="h-10 flex-1 rounded-lg text-xs font-black text-white disabled:opacity-60" style={{ background: "var(--accent-strong)" }}>
+                        className="h-10 flex-1 rounded-lg text-xs font-bold text-white disabled:opacity-60" style={{ background: "var(--accent-strong)" }}>
                         {salvandoAtestado ? "Salvando..." : "Salvar atestado"}
                       </button>
                     </div>
@@ -397,18 +397,18 @@ export default function VidaColaboradorPage() {
                     {vida.atestados.map(a => (
                       <div key={a.id} className="flex items-center justify-between gap-2 rounded-lg p-2.5" style={{ background: "var(--elevated)" }}>
                         <div className="min-w-0">
-                          <p className="text-xs font-black" style={{ color: "var(--fg)" }}>
+                          <p className="text-xs font-bold" style={{ color: "var(--fg)" }}>
                             {String(a.data_inicio).split("-").reverse().join("/")}
                             {a.data_fim && a.data_fim !== a.data_inicio ? ` até ${String(a.data_fim).split("-").reverse().join("/")}` : ""}
                             {a.parcial ? " · parcial" : ""}
                           </p>
-                          <p className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>
+                          <p className="text-3xs font-bold" style={{ color: "var(--dim)" }}>
                             {[a.cid && `CID ${a.cid}`, a.medico, a.observacao].filter(Boolean).join(" · ") || "Sem detalhes"}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
-                          {a.arquivo_url && <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="text-[10px] font-black" style={{ color: "var(--accent-strong)" }}>Ver anexo</a>}
-                          <button onClick={() => excluirAtestado(a.id)} className="text-[10px] font-bold text-rose-600">Excluir</button>
+                          {a.arquivo_url && <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="text-3xs font-bold" style={{ color: "var(--accent-strong)" }}>Ver anexo</a>}
+                          <button onClick={() => excluirAtestado(a.id)} className="text-3xs font-bold text-rose-600">Excluir</button>
                         </div>
                       </div>
                     ))}
@@ -418,10 +418,10 @@ export default function VidaColaboradorPage() {
 
               {/* Ponto */}
               <Bloco icon={Clock} titulo="Ponto — últimos dias"
-                extra={<button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: "var(--accent-strong)" }}>Espelho completo <ChevronRight size={11} /></button>}>
+                extra={<button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="text-3xs font-bold flex items-center gap-0.5" style={{ color: "var(--accent-strong)" }}>Espelho completo <ChevronRight size={11} /></button>}>
                 {vida.ponto.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Sem batidas registradas ainda.</p> : (
                   <div className="space-y-1">
-                    <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 text-[9px] font-black uppercase tracking-widest text-center" style={{ color: "var(--dim)" }}>
+                    <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 text-3xs font-bold uppercase tracking-widest text-center" style={{ color: "var(--dim)" }}>
                       <span className="text-left">Dia</span><span>Entrada</span><span>Int. saída</span><span>Int. volta</span><span>Saída</span>
                     </div>
                     {vida.ponto.map(h => {
@@ -430,14 +430,14 @@ export default function VidaColaboradorPage() {
                       return (
                       <div key={h.id} className="rounded-lg py-1.5" style={{ background: "var(--elevated)" }}>
                         <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 items-center text-center">
-                          <span className="text-[11px] font-black text-left pl-2" style={{ color: "var(--muted)" }}>{h.data_referencia?.slice(5).split("-").reverse().join("/")}</span>
+                          <span className="text-2xs font-bold text-left pl-2" style={{ color: "var(--muted)" }}>{h.data_referencia?.slice(5).split("-").reverse().join("/")}</span>
                           {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
                             <span key={c} className="text-xs font-bold" style={{ color: h[c] ? "var(--fg-soft)" : "var(--dim)" }}>{horaDe(h[c])}</span>
                           ))}
                         </div>
                         {atestado && (
                           <div className="mt-1.5 px-2">
-                            <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-black"
+                            <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs font-bold"
                               style={{ background: CORES_TOM.atestado.fundo, color: CORES_TOM.atestado.cor }}>
                               Atestado médico{atestado.cid ? ` · CID ${atestado.cid}` : ""}
                             </span>
@@ -448,7 +448,7 @@ export default function VidaColaboradorPage() {
                         {marcas.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1 px-2">
                             {marcas.map((m, i) => (
-                              <span key={i} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-black"
+                              <span key={i} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs font-bold"
                                 style={{ background: m.valido === false ? "rgba(244,63,94,.12)" : "rgba(16,185,129,.12)", color: m.valido === false ? "#BE123C" : "#047857" }}
                                 title={m.latitude != null ? `${m.latitude}, ${m.longitude}` : "Sem coordenada"}>
                                 <MapPin size={9} />
@@ -481,7 +481,7 @@ export default function VidaColaboradorPage() {
                     ))}
                   </div>
                 )}
-                {excessos.length > 0 && <p className="text-[10px] font-bold mt-2" style={{ color: "#B45309" }}>{excessos.length} ocorrência(s) de intervalo passado do horário.</p>}
+                {excessos.length > 0 && <p className="text-3xs font-bold mt-2" style={{ color: "#B45309" }}>{excessos.length} ocorrência(s) de intervalo passado do horário.</p>}
               </Bloco>
 
               {/* Folgas */}
@@ -500,14 +500,14 @@ export default function VidaColaboradorPage() {
 
               {/* Consumo / vales */}
               <Bloco icon={ShoppingBag} titulo="Consumo e vales"
-                extra={consumoPendente > 0 && <span className="text-xs font-black" style={{ color: "#DC2626" }}>{fmtBRL(consumoPendente)} pendente</span>}>
+                extra={consumoPendente > 0 && <span className="text-xs font-bold" style={{ color: "#DC2626" }}>{fmtBRL(consumoPendente)} pendente</span>}>
                 {vida.consumo.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum consumo registrado.</p> : (
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                     {vida.consumo.map(x => (
                       <div key={x.id} className="flex justify-between items-center text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
                         <div className="min-w-0">
                           <p className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{x.descricao}</p>
-                          <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{x.data_consumo ? fmtData(x.data_consumo) : "—"} · {x.forma_pagamento || "—"} · {x.status_pagamento || "—"}</p>
+                          <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>{x.data_consumo ? fmtData(x.data_consumo) : "—"} · {x.forma_pagamento || "—"} · {x.status_pagamento || "—"}</p>
                         </div>
                         <span className="font-black shrink-0 ml-2" style={{ color: "var(--fg)" }}>{fmtBRL(x.valor_final ?? x.valor_original)}</span>
                       </div>
@@ -525,12 +525,12 @@ export default function VidaColaboradorPage() {
                       const recebido = h.detalhes?.recebimento_confirmado;
                       return <div key={h.id} className="p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
                         <div className="flex justify-between items-center gap-3">
-                          <div><p className="text-sm font-black" style={{ color: "var(--fg)" }}>{String(h.mes).padStart(2,"0")}/{h.ano}</p><p className="text-[10px] font-bold" style={{ color: recebido ? "#15803D" : "var(--dim)" }}>{recebido ? `Recebido em ${new Date(h.detalhes.recebido_em).toLocaleDateString("pt-BR")}` : "Aguardando confirmação"}</p></div>
-                          <div className="text-right"><p className="text-sm font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(h.liquido)}</p><p className="text-[10px]" style={{ color: "var(--dim)" }}>líquido</p></div>
+                          <div><p className="text-sm font-black" style={{ color: "var(--fg)" }}>{String(h.mes).padStart(2,"0")}/{h.ano}</p><p className="text-3xs font-bold" style={{ color: recebido ? "#15803D" : "var(--dim)" }}>{recebido ? `Recebido em ${new Date(h.detalhes.recebido_em).toLocaleDateString("pt-BR")}` : "Aguardando confirmação"}</p></div>
+                          <div className="text-right"><p className="text-sm font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(h.liquido)}</p><p className="text-3xs" style={{ color: "var(--dim)" }}>líquido</p></div>
                         </div>
                         <div className="flex gap-2 mt-2">
-                          <button onClick={() => imprimirHolerite(h, sel)} className="erp-btn erp-btn-ghost !h-8 text-[10px]"><Printer size={12}/> Imprimir / PDF</button>
-                          {!recebido && <button onClick={() => confirmarHolerite(h)} className="erp-btn erp-btn-primary !h-8 text-[10px]">Confirmar recebimento</button>}
+                          <button onClick={() => imprimirHolerite(h, sel)} className="erp-btn erp-btn-ghost !h-8 text-3xs"><Printer size={12}/> Imprimir / PDF</button>
+                          {!recebido && <button onClick={() => confirmarHolerite(h)} className="erp-btn erp-btn-primary !h-8 text-3xs">Confirmar recebimento</button>}
                         </div>
                       </div>;
                     })}
@@ -585,7 +585,7 @@ export default function VidaColaboradorPage() {
             if (a !== "Todos" && n === 0) return null;
             return (
               <button key={a} onClick={() => setAreaFiltro(a)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : ""}`}
+                className={`px-3 py-1.5 rounded-full text-2xs font-bold whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : ""}`}
                 style={areaFiltro === a ? {} : { background: "var(--elevated)", color: "var(--muted)" }}>
                 {a} <span className={areaFiltro === a ? "opacity-60" : ""} style={areaFiltro === a ? {} : { color: "var(--dim)" }}>({n})</span>
               </button>
@@ -609,11 +609,11 @@ export default function VidaColaboradorPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
-                    <p className="text-[11px] font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
+                    <p className="text-2xs font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
                       {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}
                     </p>
                     {st && (
-                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black" style={{ background: st.fundo, color: st.cor }}>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-3xs font-bold" style={{ background: st.fundo, color: st.cor }}>
                         {st.rotulo}
                       </span>
                     )}

@@ -458,7 +458,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 w-full lg:w-auto">
             <button
               onClick={imprimirMuralCarreiras}
-              className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm px-5 py-3.5 rounded-2xl transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
+              className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm px-5 py-3.5 rounded-2xl transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
             >
               <Printer size={18} /> Imprimir Mural (PDF)
             </button>
@@ -491,36 +491,36 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Folha Total Mensal</span>
+            <span className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Folha Total Mensal</span>
             <p className="text-xl font-black text-slate-900">{fmtBRL(resumoFinanceiroFolha.totalGeral)}</p>
-            <p className="text-[11px] font-bold text-slate-500">Média: {fmtBRL(resumoFinanceiroFolha.mediaPorPessoa)} / colab</p>
+            <p className="text-2xs font-bold text-slate-500">Média: {fmtBRL(resumoFinanceiroFolha.mediaPorPessoa)} / colab</p>
           </div>
 
           <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-100 space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest">🍳 Cozinha</span>
+              <span className="text-3xs font-bold text-amber-800 uppercase tracking-widest">🍳 Cozinha</span>
               <span className="text-xs font-bold text-amber-700">{resumoFinanceiroFolha.porDepto.Cozinha.qtd} colabs</span>
             </div>
             <p className="text-lg font-black text-amber-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Cozinha.total)}</p>
-            <p className="text-[11px] font-medium text-amber-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Cozinha.base)}</p>
+            <p className="text-2xs font-medium text-amber-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Cozinha.base)}</p>
           </div>
 
           <div className="bg-purple-50/60 rounded-2xl p-4 border border-purple-100 space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black text-purple-800 uppercase tracking-widest">🍸 Bar</span>
+              <span className="text-3xs font-bold text-purple-800 uppercase tracking-widest">🍸 Bar</span>
               <span className="text-xs font-bold text-purple-700">{resumoFinanceiroFolha.porDepto.Bar.qtd} colabs</span>
             </div>
             <p className="text-lg font-black text-purple-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Bar.total)}</p>
-            <p className="text-[11px] font-medium text-purple-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Bar.base)}</p>
+            <p className="text-2xs font-medium text-purple-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Bar.base)}</p>
           </div>
 
           <div className="bg-sky-50/60 rounded-2xl p-4 border border-sky-100 space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black text-sky-800 uppercase tracking-widest">🍽️ Salão</span>
+              <span className="text-3xs font-bold text-sky-800 uppercase tracking-widest">🍽️ Salão</span>
               <span className="text-xs font-bold text-sky-700">{resumoFinanceiroFolha.porDepto.Salão.qtd} colabs</span>
             </div>
             <p className="text-lg font-black text-sky-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Salão.total)}</p>
-            <p className="text-[11px] font-medium text-sky-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Salão.base)}</p>
+            <p className="text-2xs font-medium text-sky-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Salão.base)}</p>
           </div>
         </div>
       </div>
@@ -531,7 +531,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
           <button
             key={dep}
             onClick={() => setDepartamentoFiltro(dep)}
-            className={`px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${
+            className={`px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${
               departamentoFiltro === dep
                 ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
                 : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
@@ -571,10 +571,10 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <div>
                   {/* TOPO: DEPARTAMENTO & NÍVEL */}
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100">
+                    <span className="text-3xs font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100">
                       {c.departamento || "Geral"}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                    <span className="text-3xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                       {c.nivel || "Geral"}
                     </span>
                   </div>
@@ -594,10 +594,10 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   {/* REQUISITOS DE PROMOÇÃO (ITEM 1) */}
                   {reqs.length > 0 && (
                     <div className="mt-3 bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 space-y-1">
-                      <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest flex items-center gap-1">
+                      <span className="text-3xs font-bold text-emerald-800 uppercase tracking-widest flex items-center gap-1">
                         <CheckSquare size={12} /> Requisitos para subir de nível:
                       </span>
-                      <ul className="text-[11px] font-medium text-slate-700 space-y-0.5 pt-1">
+                      <ul className="text-2xs font-medium text-slate-700 space-y-0.5 pt-1">
                         {reqs.map((r, idx) => (
                           <li key={idx} className="flex items-start gap-1.5">
                             <span className="text-emerald-600 font-bold">•</span>
@@ -627,7 +627,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                       </div>
                     )}
                     <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700">Remuneração Total:</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Remuneração Total:</span>
                       <span className="text-base font-black text-emerald-600">{fmtBRL(remTotal)}</span>
                     </div>
                   </div>
@@ -636,7 +636,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 {/* COLABORADORES ATUAIS NO CARGO & AÇÕES */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+                    <span className="text-2xs font-bold text-slate-500 flex items-center gap-1.5">
                       <Users size={14} className="text-slate-400" />
                       Contratados: <b className="text-slate-800">{contratados.length}</b>
                     </span>
@@ -654,9 +654,9 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                       {contratados.map(f => (
                         <div
                           key={f.id}
-                          className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-200"
+                          className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-2xs font-bold px-2 py-1 rounded-lg border border-slate-200"
                         >
-                          <div className="w-4 h-4 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center text-[9px] font-black">
+                          <div className="w-4 h-4 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center text-3xs font-bold">
                             {(f.nome || "?")[0].toUpperCase()}
                           </div>
                           <span className="truncate max-w-[110px]">{f.nome}</span>
@@ -762,7 +762,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                  <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">
                     Salário Base (R$)
                   </label>
                   <input
@@ -776,7 +776,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                  <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">
                     Vale Alim. (R$)
                   </label>
                   <input
@@ -790,7 +790,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                  <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">
                     Taxa Serv. (R$)
                   </label>
                   <input
@@ -858,7 +858,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Alocação / Promoção</span>
+                <span className="text-3xs font-bold uppercase tracking-widest text-emerald-600">Alocação / Promoção</span>
                 <h3 className="text-lg font-black text-slate-900">Vincular a: {cargoAlocar.nome}</h3>
               </div>
               <button onClick={() => setModalAlocar(false)} className="text-slate-400 hover:text-slate-600 font-black">
@@ -907,7 +907,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <p>• Salário base ajustado para <b>{fmtBRL(cargoAlocar.salario_base)}</b>.</p>
                 {cargoAlocar.vale_alimentacao > 0 && <p>• Vale Alimentação: <b>{fmtBRL(cargoAlocar.vale_alimentacao)}</b>.</p>}
                 {cargoAlocar.taxa_servico > 0 && <p>• Taxa de Serviço estimada: <b>{fmtBRL(cargoAlocar.taxa_servico)}</b>.</p>}
-                <p className="pt-1 text-[11px] text-emerald-700 font-bold">• 📜 O Certificado Oficial em PDF poderá ser impresso em seguida.</p>
+                <p className="pt-1 text-2xs text-emerald-700 font-bold">• 📜 O Certificado Oficial em PDF poderá ser impresso em seguida.</p>
               </div>
 
               <div className="pt-2 flex gap-3">

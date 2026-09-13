@@ -60,17 +60,17 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
                     <span className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400"><MapPin size={22} /></span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                    <p className="text-2xs font-bold uppercase tracking-wider text-slate-500">
                       {evidencia.tipo === "gps" ? "Localização" : "Foto"} · {evidencia.usuario || "sem nome"}
                     </p>
                     {evidencia.latitude != null && (
-                      <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-slate-500">
+                      <p className="mt-1 flex items-center gap-1 text-2xs font-bold text-slate-500">
                         <MapPin size={12} /> {Number(evidencia.latitude).toFixed(5)}, {Number(evidencia.longitude).toFixed(5)}
                         {evidencia.precisao_gps != null && ` · ±${Math.round(evidencia.precisao_gps)}m`}
                       </p>
                     )}
                     {veredito && (
-                      <p className={`mt-2 rounded-lg border px-2 py-1.5 text-[12px] font-bold ${veredito.classe}`}>
+                      <p className={`mt-2 rounded-lg border px-2 py-1.5 text-xs font-bold ${veredito.classe}`}>
                         <Sparkles size={12} className="mr-1 inline" />
                         {veredito.rotulo}
                         {evidencia.ia_confianca != null && ` (${evidencia.ia_confianca}%)`}
@@ -108,7 +108,7 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
       )}
 
       {item.exige_gps && pedeFoto && (
-        <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500">
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-2xs font-bold text-slate-500">
           <MapPin size={12} /> A localização do aparelho é gravada junto com a foto.
         </p>
       )}
@@ -329,7 +329,7 @@ export default function ExecucaoGuiada() {
           <button onClick={() => router.push("/dashboard/operacao/inteligente")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-black text-slate-900">{processo?.nome}</p>
-            <p className="text-[11px] font-bold text-slate-500">Item {Math.min(indice + 1, itens.length)} de {itens.length} · {progresso}% concluído</p>
+            <p className="text-2xs font-bold text-slate-500">Item {Math.min(indice + 1, itens.length)} de {itens.length} · {progresso}% concluído</p>
           </div>
         </div>
         <div className="mx-auto mt-2.5 h-1.5 w-full max-w-2xl overflow-hidden rounded-full bg-slate-100">
@@ -345,16 +345,16 @@ export default function ExecucaoGuiada() {
           </div>
         ) : (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">{item.secao}</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">{item.secao}</p>
             <h2 className="mt-1 text-xl font-black leading-snug text-slate-900">{item.titulo}</h2>
             {item.instrucao && <p className="mt-2 text-[15px] font-medium leading-relaxed text-slate-600">{item.instrucao}</p>}
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {item.obrigatorio && <span className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Obrigatório</span>}
-              {item.critico && <span className="rounded-lg bg-red-50 px-2 py-1 text-[11px] font-black text-red-700">Item crítico</span>}
-              {item.exige_foto && <span className="rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">Foto obrigatória</span>}
+              {item.obrigatorio && <span className="rounded-lg bg-slate-100 px-2 py-1 text-2xs font-bold text-slate-600">Obrigatório</span>}
+              {item.critico && <span className="rounded-lg bg-red-50 px-2 py-1 text-2xs font-bold text-red-700">Item crítico</span>}
+              {item.exige_foto && <span className="rounded-lg bg-emerald-50 px-2 py-1 text-2xs font-bold text-emerald-700">Foto obrigatória</span>}
               {(item.valor_min != null || item.valor_max != null) && (
-                <span className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">
+                <span className="rounded-lg bg-slate-100 px-2 py-1 text-2xs font-bold text-slate-600">
                   Padrão: {item.valor_min ?? "—"} a {item.valor_max ?? "—"}{item.unidade_medida || ""}
                 </span>
               )}
@@ -438,7 +438,7 @@ export default function ExecucaoGuiada() {
                   da resposta, sem virar uma etapa separada no meio do corredor. */}
               {!TIPOS_FOTO.includes(tipo) && precisaEvidencia && (
                 <div className="mt-4">
-                  <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-500">Evidência</p>
+                  <p className="mb-2 text-2xs font-bold uppercase tracking-wider text-slate-500">Evidência</p>
                   <CapturaEvidencia item={item} evidencias={evidenciasDoItem} ocupado={capturando}
                     erro={erroEvidencia} onCapturar={capturarEvidencia} onDescartar={descartar} />
                 </div>
@@ -447,7 +447,7 @@ export default function ExecucaoGuiada() {
 
             {/* Comentário */}
             <label className="mt-4 block">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">
                 Observação {item.exige_comentario ? "(obrigatória)" : "(opcional)"}
               </span>
               <textarea rows={2} value={rascunho.comentario} onChange={e => setRascunho(r => ({ ...r, comentario: e.target.value }))}

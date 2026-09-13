@@ -159,12 +159,12 @@ export default function CalendarioEstoque() {
           <>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
-                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-emerald-700"><ArrowUpRight size={13} /> Entrou</p>
+                <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-emerald-700"><ArrowUpRight size={13} /> Entrou</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{fmtQtd(totais.qtdE)}</p>
                 <p className="text-xs font-bold text-slate-500">{totais.entradas} movimentação(ões)</p>
               </div>
               <div className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm">
-                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-rose-700"><ArrowDownRight size={13} /> Saiu</p>
+                <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-rose-700"><ArrowDownRight size={13} /> Saiu</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{fmtQtd(totais.qtdS)}</p>
                 <p className="text-xs font-bold text-slate-500">{totais.saidas} movimentação(ões)</p>
               </div>
@@ -187,7 +187,7 @@ export default function CalendarioEstoque() {
                     <p className="text-sm font-black capitalize text-slate-800">
                       {new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}
                     </p>
-                    <p className="flex gap-3 text-xs font-black">
+                    <p className="flex gap-3 text-xs font-bold">
                       <span className="text-emerald-700">+{fmtQtd(entrou)}</span>
                       <span className="text-rose-700">−{fmtQtd(saiu)}</span>
                     </p>
@@ -203,7 +203,7 @@ export default function CalendarioEstoque() {
                           </span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[15px] font-black text-slate-900">{m.insumo?.nome || "Produto removido"}</p>
-                            <p className="truncate text-[11px] font-bold text-slate-500">
+                            <p className="truncate text-2xs font-bold text-slate-500">
                               {hora}
                               {m.estoque?.nome ? ` · ${m.estoque.nome}` : ""}
                               {m.destino?.nome ? ` → ${m.destino.nome}` : ""}

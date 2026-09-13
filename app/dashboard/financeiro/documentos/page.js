@@ -126,19 +126,19 @@ export default function DocumentosPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>{d.tipo}</span>
+                        <span className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>{d.tipo}</span>
                         <span className={`erp-badge ${STATUS_STYLE[d.status] || ""}`}>{d.status}</span>
                       </div>
                       <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{d.descricao}</p>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{d.categoria} · vence {fmtData(d.vencimento)}</p>
+                      <p className="text-2xs" style={{ color: "var(--dim)" }}>{d.categoria} · vence {fmtData(d.vencimento)}</p>
                     </div>
                     <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(d.valor)}</span>
                   </div>
                   <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 8 }}>
                     {d.status !== "Pago" && (
-                      <button onClick={() => marcarPago(d)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold rounded-lg erp-badge-ok"><CheckCircle size={13} /> Marcar pago</button>
+                      <button onClick={() => marcarPago(d)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-2xs font-bold rounded-lg erp-badge-ok"><CheckCircle size={13} /> Marcar pago</button>
                     )}
-                    <button onClick={() => remover(d.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold rounded-lg erp-badge-danger"><Trash2 size={13} /> Remover</button>
+                    <button onClick={() => remover(d.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-2xs font-bold rounded-lg erp-badge-danger"><Trash2 size={13} /> Remover</button>
                   </div>
                 </Card>
               ))}

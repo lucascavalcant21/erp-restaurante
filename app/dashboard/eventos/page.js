@@ -252,14 +252,14 @@ export default function EventosPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          {e.tag && <span className="erp-badge text-[10px]" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{e.tag}</span>}
+                          {e.tag && <span className="erp-badge text-3xs" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{e.tag}</span>}
                           <p className="font-bold" style={{ color: "var(--fg)" }}>{e.nome}</p>
-                          {e.status === "ativo" && <span className="erp-badge text-[10px]" style={{ background: "#10B98133", color: "#10B981" }}>ativo</span>}
-                          {e.status === "encerrado" && <span className="erp-badge text-[10px]" style={{ background: "var(--elevated)", color: "var(--muted)" }}>encerrado</span>}
-                          {e.status === "cancelado" && <span className="erp-badge text-[10px]" style={{ background: "#EF444433", color: "#EF4444" }}>cancelado</span>}
+                          {e.status === "ativo" && <span className="erp-badge text-3xs" style={{ background: "#10B98133", color: "#10B981" }}>ativo</span>}
+                          {e.status === "encerrado" && <span className="erp-badge text-3xs" style={{ background: "var(--elevated)", color: "var(--muted)" }}>encerrado</span>}
+                          {e.status === "cancelado" && <span className="erp-badge text-3xs" style={{ background: "#EF444433", color: "#EF4444" }}>cancelado</span>}
                         </div>
-                        {e.subtitulo && <p className="text-[12px]" style={{ color: "var(--dim)" }}>{e.subtitulo}</p>}
-                        <div className="flex items-center gap-3 mt-2 text-[11px] flex-wrap" style={{ color: "var(--muted)" }}>
+                        {e.subtitulo && <p className="text-xs" style={{ color: "var(--dim)" }}>{e.subtitulo}</p>}
+                        <div className="flex items-center gap-3 mt-2 text-2xs flex-wrap" style={{ color: "var(--muted)" }}>
                           <span><CalendarDays size={11} style={{ display: "inline", marginRight: 4 }} />{new Date(e.data_evento + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                           {dias !== null && !passou && (
                             <span style={{ color: proximo ? "#F59E0B" : "var(--accent-fg)", fontWeight: 600 }}>
@@ -292,7 +292,7 @@ export default function EventosPage() {
       <Modal open={!!duplicando} onClose={() => setDuplicando(null)} title="Duplicar evento">
         {duplicando && (
           <>
-            <p className="text-[12px] mb-3" style={{ color: "var(--dim)" }}>
+            <p className="text-xs mb-3" style={{ color: "var(--dim)" }}>
               Vai duplicar <strong style={{ color: "var(--fg)" }}>{duplicando.evento.nome}</strong> com
               todos os pratos, drinks, ingredientes, preparos e custos fixos. As reservas <strong>não</strong> são copiadas.
             </p>

@@ -115,7 +115,7 @@ export default function ModuleHub({ config, counts = {} }) {
                     )}
                     <div className="min-w-0">
                       <p className="font-black text-sm leading-tight truncate" style={{ color: accent }}>{col.title}</p>
-                      {col.subtitle && <p className="text-[11px] font-medium truncate" style={{ color: "var(--dim, #94a3b8)" }}>{col.subtitle}</p>}
+                      {col.subtitle && <p className="text-2xs font-medium truncate" style={{ color: "var(--dim, #94a3b8)" }}>{col.subtitle}</p>}
                     </div>
                   </div>
 
@@ -139,12 +139,12 @@ export default function ModuleHub({ config, counts = {} }) {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                               <p className="font-bold text-sm leading-tight truncate" style={{ color: "var(--fg, #0f172a)" }}>{it.label}</p>
-                              {it.badge && <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0" style={{ background: accent + "1a", color: accent }}>{it.badge}</span>}
+                              {it.badge && <span className="text-3xs font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0" style={{ background: accent + "1a", color: accent }}>{it.badge}</span>}
                             </div>
-                            {it.desc && <p className="text-[11px] font-medium truncate" style={{ color: "var(--dim, #94a3b8)" }}>{it.desc}</p>}
+                            {it.desc && <p className="text-2xs font-medium truncate" style={{ color: "var(--dim, #94a3b8)" }}>{it.desc}</p>}
                           </div>
                           {(contador !== undefined && contador !== null && contador !== "") && (
-                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full shrink-0" style={{ background: accent + "1a", color: accent }}>{contador}</span>
+                            <span className="text-2xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: accent + "1a", color: accent }}>{contador}</span>
                           )}
                         </button>
                       );

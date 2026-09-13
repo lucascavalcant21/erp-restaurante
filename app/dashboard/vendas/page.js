@@ -51,8 +51,8 @@ function ControleAjuste({ label, valor, onChange, percentual = false, disabled =
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-2.5">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</span>
-        <button type="button" disabled={disabled} onClick={() => onChange(0)} className="text-[11px] font-black uppercase text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40">Tirar</button>
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</span>
+        <button type="button" disabled={disabled} onClick={() => onChange(0)} className="text-2xs font-bold uppercase text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40">Tirar</button>
       </div>
       <div className="flex items-center gap-2">
         <button type="button" disabled={disabled} onClick={() => onChange(Math.max(0, numero - 1))} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"><Minus size={16} /></button>
@@ -537,7 +537,7 @@ function VendasPDVContent() {
                <button 
                  key={c} 
                  onClick={() => setCategoriaSelecionada(c)} 
-                  className={`flex-shrink-0 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition-all duration-200 ${
+                  className={`flex-shrink-0 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-all duration-200 ${
                    categoriaSelecionada === c 
                      ? 'bg-emerald-600 text-white shadow-lg shadow-blue-600/30 transform scale-105' 
                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -610,7 +610,7 @@ function VendasPDVContent() {
                     <div className="flex justify-between items-start">
                        <div className="min-w-0 flex-1 pr-2">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight">{item.nome}</p>
-                         {item.observacao && <p className="mt-1 rounded-lg bg-amber-100 px-2 py-1 text-xs font-black leading-snug text-amber-800">OBS: {item.observacao}</p>}
+                         {item.observacao && <p className="mt-1 rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold leading-snug text-amber-800">OBS: {item.observacao}</p>}
                        </div>
                        <p className="whitespace-nowrap font-black text-emerald-600 text-[15px]">{fmtBRL(item.preco * item.quantidade)}</p>
                     </div>
@@ -707,13 +707,13 @@ function VendasPDVContent() {
           <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-600">Adicionar produto</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">Adicionar produto</p>
                 <h2 className="mt-1 text-2xl font-black text-slate-800">{produtoSelecionado.nome}</h2>
               </div>
               <button type="button" onClick={() => setProdutoSelecionado(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X size={20} /></button>
             </div>
             <div className="max-h-[70vh] overflow-y-auto p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-500">Mensagens prontas</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Mensagens prontas</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {MENSAGENS_PRONTAS.map(mensagem => {
                   const ativa = mensagensSelecionadas.includes(mensagem);
@@ -721,7 +721,7 @@ function VendasPDVContent() {
                 })}
               </div>
               <label className="mt-5 block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Outra observação</span>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">Outra observação</span>
                 <textarea rows={3} value={observacaoProduto} onChange={e => setObservacaoProduto(e.target.value)} placeholder="Escreva somente o que vale para este produto" className="w-full resize-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-500" />
               </label>
               <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -744,11 +744,11 @@ function VendasPDVContent() {
               <button type="button" onClick={() => setAutorizacao(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X size={20} /></button>
             </div>
             <label className="mt-5 block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-widest text-slate-500">PIN do gerente</span>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-500">PIN do gerente</span>
               <input type="password" inputMode="numeric" autoFocus value={pinInformado} onChange={e => { setPinInformado(e.target.value); setErroAutorizacao(""); }} className="h-12 w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 text-center text-xl font-black tracking-[0.35em] text-slate-800 outline-none focus:border-emerald-500" />
             </label>
             <label className="mt-3 block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-widest text-slate-500">Motivo obrigatório</span>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-500">Motivo obrigatório</span>
               <textarea rows={3} value={motivoAutorizacao} onChange={e => { setMotivoAutorizacao(e.target.value); setErroAutorizacao(""); }} placeholder="Explique por que esta alteração é necessária" className="w-full resize-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-500" />
             </label>
             {erroAutorizacao && <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm font-black text-rose-600">{erroAutorizacao}</p>}
@@ -783,8 +783,8 @@ function VendasPDVContent() {
                </div>
 
                <div className="mb-2 flex items-center justify-between gap-3">
-                 <span className="text-xs font-black uppercase tracking-widest text-slate-500">Ajustes protegidos</span>
-                 <button type="button" onClick={solicitarLiberacaoAjustes} className={`rounded-lg px-3 py-2 text-xs font-black ${ajustesAutorizados ? "bg-emerald-100 text-emerald-700" : "bg-slate-800 text-white"}`}>
+                 <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Ajustes protegidos</span>
+                 <button type="button" onClick={solicitarLiberacaoAjustes} className={`rounded-lg px-3 py-2 text-xs font-bold ${ajustesAutorizados ? "bg-emerald-100 text-emerald-700" : "bg-slate-800 text-white"}`}>
                    {ajustesAutorizados ? "Liberados" : "Liberar com PIN"}
                  </button>
                </div>
@@ -839,7 +839,7 @@ function VendasPDVContent() {
               <button type="button" onClick={finalizarPosPagamento} className="min-h-12 rounded-xl bg-slate-100 px-3 text-sm font-black text-slate-700 hover:bg-slate-200">Não imprimir</button>
               <button type="button" onClick={imprimirCupomConcluido} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700"><Printer size={17} /> Imprimir</button>
             </div>
-            <p className="mt-4 text-[11px] font-medium leading-relaxed text-slate-500">A impressão atual é um comprovante da venda. A emissão fiscal oficial exige integração NFC-e/SAT.</p>
+            <p className="mt-4 text-2xs font-medium leading-relaxed text-slate-500">A impressão atual é um comprovante da venda. A emissão fiscal oficial exige integração NFC-e/SAT.</p>
           </div>
         </div>
       )}

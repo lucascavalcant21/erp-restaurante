@@ -189,7 +189,7 @@ function KDSRunner() {
           </div>
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 truncate">Cozinha — KDS</h1>
-            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wide sm:tracking-widest truncate">{deptUrl === "todos" ? "Todos os setores" : deptUrl} • Tempo real</p>
+            <p className="text-3xs sm:text-2xs font-bold text-slate-400 uppercase tracking-wide sm:tracking-widest truncate">{deptUrl === "todos" ? "Todos os setores" : deptUrl} • Tempo real</p>
           </div>
         </div>
 
@@ -203,7 +203,7 @@ function KDSRunner() {
           ].map((k, idx) => (
             <div key={idx} className="px-3 py-1.5 bg-slate-50 rounded-xl text-center min-w-[74px] border border-slate-100">
               <p className="text-lg font-black text-slate-800 leading-none">{k.v}</p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center justify-center gap-1">{k.i}{k.l}</p>
+              <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center justify-center gap-1">{k.i}{k.l}</p>
             </div>
           ))}
           <button onClick={toggleFullscreen} className="p-2.5 ml-1 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tela cheia">
@@ -240,11 +240,11 @@ function KDSRunner() {
                     <div key={p.pedidoId} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                       <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-100">
                         <button onClick={() => abrirDetalhe(p)} className="flex items-center gap-2 min-w-0 group/head">
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>
+                          <span className={`text-3xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>
                           <span className="font-black text-slate-800 text-sm truncate group-hover/head:underline">{identificacao(p)}</span>
                         </button>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1"><Clock size={12} />{minPedido}m</span>
+                          <span className="text-2xs font-bold text-slate-400 flex items-center gap-1"><Clock size={12} />{minPedido}m</span>
                           <button onClick={() => imprimirVia(p)} title="Imprimir via" className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"><Printer size={14} /></button>
                           {col.id === "fila" && (
                             <div className="flex flex-col">
@@ -278,7 +278,7 @@ function KDSRunner() {
                         {p.itens.some(i => i.observacao) && (
                           <div className="px-1 pt-1 space-y-0.5">
                             {p.itens.filter(i => i.observacao).map(i => (
-                              <p key={i.id} className="text-[11px] font-bold text-amber-700">Obs: {i.observacao}</p>
+                              <p key={i.id} className="text-2xs font-bold text-amber-700">Obs: {i.observacao}</p>
                             ))}
                           </div>
                         )}
@@ -337,7 +337,7 @@ function KDSRunner() {
             <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="p-5 border-b border-slate-100 flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>
+                  <span className={`text-3xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>
                   <div>
                     <h3 className="font-black text-slate-900 text-lg leading-tight">{identificacao(p)}</h3>
                     <p className="text-xs font-bold text-slate-400">Feito às {horario}</p>
@@ -354,12 +354,12 @@ function KDSRunner() {
                   </div>
                 )}
                 <div>
-                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Itens</p>
+                  <p className="text-2xs font-bold text-slate-400 uppercase tracking-widest mb-2">Itens</p>
                   <div className="space-y-1.5">
                     {p.itens.filter(i => i.status_kds !== "entregue").map(it => (
                       <div key={it.id} className="flex justify-between items-start bg-slate-50 rounded-lg px-3 py-2">
-                        <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-[11px] font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
-                        <span className="text-[10px] font-black uppercase text-slate-400 shrink-0 ml-2">{it.status_kds}</span>
+                        <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-2xs font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
+                        <span className="text-3xs font-bold uppercase text-slate-400 shrink-0 ml-2">{it.status_kds}</span>
                       </div>
                     ))}
                   </div>

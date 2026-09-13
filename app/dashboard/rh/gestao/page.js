@@ -91,7 +91,7 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
             <Upload size={20} className="text-white" />
           </div>
         </div>
-        <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>
+        <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>
           {uploading ? "Enviando..." : "Foto 3x4 (Opcional)"}
         </p>
         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFotoUpload} />
@@ -303,8 +303,8 @@ export default function GestaoRhPage() {
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{f.nome}</p>
                         {f.ativo === false && <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--subtle)" }}>Inativo</span>}
                       </div>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{f.cargo || "Sem cargo"} · {f.turno || "Sem turno"}</p>
-                      {isAdmin && unidadeAtiva === "todas" && <p className="text-[10px] text-[var(--accent-fg)] truncate mt-0.5">{unidades.find(u => u.id === f.unidade_id)?.nome}</p>}
+                      <p className="text-2xs" style={{ color: "var(--dim)" }}>{f.cargo || "Sem cargo"} · {f.turno || "Sem turno"}</p>
+                      {isAdmin && unidadeAtiva === "todas" && <p className="text-3xs text-[var(--accent-fg)] truncate mt-0.5">{unidades.find(u => u.id === f.unidade_id)?.nome}</p>}
                     </div>
                     
                     <button onClick={() => router.push(`/dashboard/rh/funcionario/${f.id}`)} title="Gerenciar (holerites, docs, avisos...)" className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-soft)" }}><Settings2 size={14} style={{ color: "var(--accent-fg)" }} /></button>

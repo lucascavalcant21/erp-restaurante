@@ -67,7 +67,7 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><ScanFace size={20} /></div>
           <div className="min-w-0 flex-1">
             <p className="font-black text-slate-900">Ponto por reconhecimento</p>
-            <p className="text-[11px] font-bold text-slate-400">{cadastrados.length} funcionário(s) com rosto cadastrado</p>
+            <p className="text-2xs font-bold text-slate-400">{cadastrados.length} funcionário(s) com rosto cadastrado</p>
           </div>
           <button onClick={onFechar} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600"><X size={20} /></button>
         </div>
@@ -81,9 +81,9 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
           )}
           {achado && (
             <div className="absolute inset-x-0 bottom-0 bg-emerald-600/95 px-4 py-3 text-white">
-              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-100">Reconhecido</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-emerald-100">Reconhecido</p>
               <p className="text-lg font-black leading-tight">{achado.pessoa.nome}</p>
-              <p className="text-[12px] font-bold text-emerald-100">{achado.pessoa.cargo || "Equipe"}</p>
+              <p className="text-xs font-bold text-emerald-100">{achado.pessoa.cargo || "Equipe"}</p>
             </div>
           )}
         </div>
@@ -105,7 +105,7 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
               {lendo ? <><Loader2 size={19} className="animate-spin" /> Reconhecendo...</> : <><ScanFace size={19} /> Reconhecer meu rosto</>}
             </button>
           )}
-          <p className="mt-3 text-center text-[11px] font-medium text-slate-400">
+          <p className="mt-3 text-center text-2xs font-medium text-slate-400">
             Fique de frente, com o rosto iluminado e sozinho na câmera.
           </p>
         </div>

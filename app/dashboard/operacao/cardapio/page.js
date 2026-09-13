@@ -62,7 +62,7 @@ export default function CardapioGeradorPage() {
                </p>
 
                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mb-6">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block">Link Oficial</label>
+                  <label className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Link Oficial</label>
                   <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
                      <input type="text" readOnly value={urlPublica} className="flex-1 bg-transparent text-sm font-bold text-slate-600 outline-none truncate"/>
                      <button onClick={copiarLink} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 transition-colors" title="Copiar"><Copy size={16}/></button>

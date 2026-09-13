@@ -190,16 +190,16 @@ export default function MesasPDVPage() {
                   
                   {ocupada ? (
                     <div className={`mt-auto w-full ${mesaMuitoCompacta ? "space-y-1" : "space-y-2"}`}>
-                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-emerald-50 font-bold uppercase bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-[8px] px-1.5 py-1" : "text-xs tracking-wide px-2.5 py-1.5"}`}>
+                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-emerald-50 font-bold uppercase bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-3xs px-1.5 py-1" : "text-xs tracking-wide px-2.5 py-1.5"}`}>
                          {!mesaMuitoCompacta && <Clock size={12}/>} {tempoExibido}
                        </div>
-                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-white font-black bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-[9px] px-1.5 py-1" : "text-sm sm:text-base px-2 sm:px-3 py-1.5"}`}>
+                       <div className={`relative z-10 flex max-w-full items-center gap-1 whitespace-nowrap text-white font-bold bg-black/20 rounded-lg w-fit ${mesaMuitoCompacta ? "text-3xs px-1.5 py-1" : "text-sm sm:text-base px-2 sm:px-3 py-1.5"}`}>
                          {!mesaMuitoCompacta && <Banknote size={15}/>} {fmtBRL(valorTotal)}
                        </div>
                     </div>
                   ) : (
                     <div className="mt-auto w-full">
-                       <span className={`inline-block rounded-lg bg-slate-100 text-slate-500 font-bold uppercase group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-[8px]" : "px-4 py-2 text-xs tracking-widest"}`}>
+                       <span className={`inline-block rounded-lg bg-slate-100 text-slate-500 font-bold uppercase group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-3xs" : "px-4 py-2 text-xs tracking-widest"}`}>
                          Livre
                        </span>
                     </div>

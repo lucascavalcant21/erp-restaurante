@@ -142,7 +142,7 @@ export function Chips({ options, value, onChange }) {
         const ativo = v === value;
         return (
           <button key={v} onClick={() => onChange(v)}
-            className="flex-shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
+            className="flex-shrink-0 text-2xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
             style={ativo
               ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
               : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>

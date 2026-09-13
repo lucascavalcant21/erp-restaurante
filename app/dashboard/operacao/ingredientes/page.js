@@ -135,7 +135,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
           aria-label={`Unidade para ${insumo.nome}`}
           value={unidade}
           onChange={event => onChange({ quantidade, unidade: event.target.value })}
-          className="min-w-[54px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-[11px] font-bold text-slate-600 outline-none"
+          className="min-w-[54px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-2xs font-bold text-slate-600 outline-none"
         >
           {unidadesDisponiveis.map(item => (
             <option key={item.value} value={item.value}>{item.label}</option>
@@ -154,9 +154,9 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
         )}
       </div>
       {resultado.erro ? (
-        <p className="mt-1 max-w-[190px] text-[10px] font-semibold leading-tight text-amber-700">{resultado.erro}</p>
+        <p className="mt-1 max-w-[190px] text-3xs font-semibold leading-tight text-amber-700">{resultado.erro}</p>
       ) : (
-        <p className="mt-0.5 text-[11px] font-bold text-slate-500">
+        <p className="mt-0.5 text-2xs font-bold text-slate-500">
           {resultado.valor === null ? "Informe uma quantidade" : `= ${fmtBRL(resultado.valor)}`}
         </p>
       )}
@@ -170,7 +170,7 @@ function VariacaoPreco({ insumo }) {
     return (
       <div className="min-w-[98px] text-xs">
         <p className="font-bold text-slate-500">Primeiro valor</p>
-        <p className="mt-1 text-[10px] text-slate-400">Sem comparação</p>
+        <p className="mt-1 text-3xs text-slate-400">Sem comparação</p>
       </div>
     );
   }
@@ -182,7 +182,7 @@ function VariacaoPreco({ insumo }) {
         {subiu ? <ArrowUp size={12} /> : caiu ? <ArrowDown size={12} /> : null}
         {variacao > 0 ? "+" : ""}{variacao.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
       </p>
-      <p className="mt-1 text-[10px] text-slate-400">Preço normalizado</p>
+      <p className="mt-1 text-3xs text-slate-400">Preço normalizado</p>
     </div>
   );
 }
@@ -738,7 +738,7 @@ function IngredientesRunner() {
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-slate-500">{card.label}</p>
                   <p className="text-xl font-black leading-tight text-slate-900">{card.value}</p>
-                  <p className="hidden text-[11px] font-semibold text-emerald-600 sm:block">{card.note}</p>
+                  <p className="hidden text-2xs font-semibold text-emerald-600 sm:block">{card.note}</p>
                 </div>
               </button>
             );
@@ -751,7 +751,7 @@ function IngredientesRunner() {
               <button
                 key={item}
                 onClick={() => setCategoria(item)}
-                className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition ${
+                className={`shrink-0 rounded-lg px-2.5 py-1.5 text-2xs font-bold transition ${
                   categoria === item ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                 }`}
               >
@@ -772,7 +772,7 @@ function IngredientesRunner() {
         <section className="mt-3 hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
           <table className="w-full min-w-[1050px] table-fixed text-left">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-slate-200 bg-slate-50 text-2xs font-bold uppercase tracking-wide text-slate-500">
                 <th className="w-[190px] px-4 py-3">{ehBar ? "Produto" : "Ingrediente"}</th>
                 <th className="w-[85px] px-2.5 py-3">Marca</th>
                 <th className="w-[80px] px-2.5 py-3">Embalagem</th>
@@ -797,7 +797,7 @@ function IngredientesRunner() {
                   <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
                     <td className="px-4 py-2">
                       <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
-                      <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                      <p className="mt-0.5 truncate text-2xs text-slate-500">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
                         {insumo.categoria ? ` · ${insumo.categoria}` : ""}
@@ -809,11 +809,11 @@ function IngredientesRunner() {
                     </td>
                     <td className="px-2.5 py-2">
                       <p className="truncate text-xs font-bold text-slate-700">{nomeFornecedorAtual(insumo)}</p>
-                      {outros > 0 && <p className="mt-1 text-[11px] font-bold text-emerald-600">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
+                      {outros > 0 && <p className="mt-1 text-2xs font-bold text-emerald-600">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
                     </td>
                     <td className="px-2.5 py-2">
                       <p className="text-sm font-black text-slate-900">{fmtBRL(insumo.custo_compra ?? 0)}</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                      <p className="mt-0.5 text-2xs font-medium text-slate-500">
                         {fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}
                       </p>
                       {(() => {
@@ -823,7 +823,7 @@ function IngredientesRunner() {
                           const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
                           const pesoF = pG || (1000 / pK);
                           return (
-                            <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                            <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-3xs font-bold text-emerald-800 border border-emerald-200">
                               ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
                             </span>
                           );
@@ -842,7 +842,7 @@ function IngredientesRunner() {
                     <td className="px-2.5 py-2">
                       <button
                         onClick={() => abrirHistorico(insumo)}
-                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
                       >
                         Ver histórico
                       </button>
@@ -881,20 +881,20 @@ function IngredientesRunner() {
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-black text-slate-600">{insumo.marca || "Sem marca"}</span>
+                  <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</span>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Embalagem</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Embalagem</p>
                     <p className="mt-1 font-bold">{fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Fornecedor</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Fornecedor</p>
                     <p className="mt-1 truncate font-bold">{nomeFornecedorAtual(insumo)}</p>
-                    {vinculados.length > 1 && <p className="text-[10px] font-bold text-emerald-600">+{vinculados.length - 1} outro(s)</p>}
+                    {vinculados.length > 1 && <p className="text-3xs font-bold text-emerald-600">+{vinculados.length - 1} outro(s)</p>}
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Valor atual</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Valor atual</p>
                     <p className="mt-1 font-black">{fmtBRL(insumo.custo_compra ?? 0)}</p>
                     <p className="text-xs text-slate-500">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
                     {(() => {
@@ -904,7 +904,7 @@ function IngredientesRunner() {
                         const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
                         const pesoF = pG || (1000 / pK);
                         return (
-                          <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                          <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-3xs font-bold text-emerald-800 border border-emerald-200">
                             ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
                           </span>
                         );
@@ -913,12 +913,12 @@ function IngredientesRunner() {
                     })()}
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Variação</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Variação</p>
                     <div className="mt-1"><VariacaoPreco insumo={insumo} /></div>
                   </div>
                 </div>
                 <div className="mt-3 border-t border-slate-100 pt-3">
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Calcular quantidade</p>
+                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-slate-400">Calcular quantidade</p>
                   <CalculadoraRapida
                     insumo={insumo}
                     estado={calculos[insumo.id]}
@@ -949,7 +949,7 @@ function IngredientesRunner() {
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="px-2 text-xs font-black text-slate-600">{paginaAtual} / {totalPaginas}</span>
+              <span className="px-2 text-xs font-bold text-slate-600">{paginaAtual} / {totalPaginas}</span>
               <button
                 onClick={() => setPagina(valor => Math.min(totalPaginas, valor + 1))}
                 disabled={paginaAtual === totalPaginas}
@@ -976,7 +976,7 @@ function IngredientesRunner() {
 
             <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7">
               <section>
-                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Identificação</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Identificação</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="text-xs font-bold text-slate-600">Nome original/oficial do {rotuloItem} *</span>
@@ -1012,7 +1012,7 @@ function IngredientesRunner() {
                             setForm({ ...form, categoria: cat });
                           }
                         }}
-                        className="text-[10px] font-bold text-emerald-600 hover:underline"
+                        className="text-3xs font-bold text-emerald-600 hover:underline"
                       >
                         + Criar categoria
                       </button>
@@ -1044,7 +1044,7 @@ function IngredientesRunner() {
               </section>
 
               <section>
-                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Embalagem e valor</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Embalagem e valor</h3>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <label>
                     <span className="text-xs font-bold text-slate-600">Quantidade *</span>
@@ -1080,7 +1080,7 @@ function IngredientesRunner() {
 
                 {/* Porcionamento & Custo por Peça (Ex: R$ 90/kg, 150g/peça -> R$ 13,50/un) */}
                 <div className="mt-4 border-t border-slate-100 pt-3 space-y-3">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                     <Calculator size={14} className="text-emerald-600" />
                     Porcionamento por Peça / Unidade (Opcional)
                   </h4>
@@ -1144,7 +1144,7 @@ function IngredientesRunner() {
 
               {!ehBar && (
                 <section>
-                  <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Perda e rendimento</h3>
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Perda e rendimento</h3>
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     <label>
                       <span className="text-xs font-bold text-slate-600">Peso bruto (g)</span>
@@ -1177,12 +1177,12 @@ function IngredientesRunner() {
                       </label>
                     </div>
                   )}
-                  <p className="mt-2 text-[11px] font-medium text-slate-400">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
+                  <p className="mt-2 text-2xs font-medium text-slate-400">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
                 </section>
               )}
 
               <section>
-                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Fornecedores</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Fornecedores</h3>
                 <label>
                   <span className="text-xs font-bold text-slate-600">Fornecedor do valor atual</span>
                   <select value={form.fornecedor_atual_id} onChange={event => selecionarFornecedorAtual(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
@@ -1190,7 +1190,7 @@ function IngredientesRunner() {
                     {fornecedores.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
                   </select>
                 </label>
-                {precoFornMsg && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] font-medium text-amber-800">{precoFornMsg}</p>}
+                {precoFornMsg && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800">{precoFornMsg}</p>}
                 {form.id && form.fornecedor_ids.length > 0 && !precoFornMsg && (
                   <div className="mt-4">
                     <p className="mb-2 text-xs font-bold text-slate-600">Preço por fornecedor</p>
@@ -1202,18 +1202,18 @@ function IngredientesRunner() {
                         const atual = form.fornecedor_atual_id === fid;
                         return (
                           <div key={fid} className={`flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${atual ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}>
-                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-slate-700">{forn.nome}{atual && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">Em uso</span>}</span>
+                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-slate-700">{forn.nome}{atual && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-white">Em uso</span>}</span>
                             <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-2">
                               <span className="mr-1 text-xs font-bold text-slate-400">R$</span>
                               <input inputMode="decimal" value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-emerald-700 outline-none" />
                             </div>
-                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-white px-3 text-xs font-black text-emerald-700 hover:bg-emerald-50">Usar</button>}
+                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Usar</button>}
                             <button type="button" onClick={() => abrirHistorico({ id: form.id, nome: form.nome, fornecedor_id: fid })} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">Histórico</button>
                           </div>
                         );
                       })}
                     </div>
-                    <p className="mt-2 text-[11px] font-medium text-slate-400">O preço do fornecedor "Em uso" vira o custo do ingrediente nas fichas. Salve para guardar os preços e o histórico.</p>
+                    <p className="mt-2 text-2xs font-medium text-slate-400">O preço do fornecedor "Em uso" vira o custo do ingrediente nas fichas. Salve para guardar os preços e o histórico.</p>
                   </div>
                 )}
                 {fornecedores.length > 0 && (
@@ -1280,14 +1280,14 @@ function IngredientesRunner() {
                         <p className="mt-1 text-xs text-slate-500">{fmtDataHoraBR(registro.created_at)} · {registro.usuario_nome || "Usuário do sistema"}</p>
                       </div>
                       {percentual !== null && (
-                        <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${subiu ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
+                        <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${subiu ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
                           {Number(percentual) > 0 ? "+" : ""}{Number(percentual).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
                         </span>
                       )}
                     </div>
                     <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Embalagem anterior</p>
+                        <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Embalagem anterior</p>
                         <p className="mt-1 text-xs font-bold text-slate-600">
                           {registro.embalagem_quantidade_anterior
                             ? `${fmtQuantidade(registro.embalagem_quantidade_anterior)} ${unidadeLabel(registro.embalagem_unidade_anterior)} por ${fmtBRL(registro.valor_anterior)}`
@@ -1296,7 +1296,7 @@ function IngredientesRunner() {
                         {normalizadoAnterior !== null && <p className="mt-1 text-xs text-slate-500">{fmtBRL(normalizadoAnterior)}/{unidadeNormalizada(registro.embalagem_unidade_anterior || modalHistorico.unidade_medida)}</p>}
                       </div>
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Nova embalagem</p>
+                        <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Nova embalagem</p>
                         <p className="mt-1 text-xs font-bold text-slate-700">
                           {fmtQuantidade(registro.embalagem_quantidade_nova || modalHistorico.tamanho_embalagem)} {unidadeLabel(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)} por {fmtBRL(registro.valor_novo ?? modalHistorico.custo_compra)}
                         </p>
@@ -1308,7 +1308,7 @@ function IngredientesRunner() {
                         Diferença normalizada: {Number(registro.diferenca_valor) > 0 ? "+" : ""}{fmtBRL(registro.diferenca_valor)}
                       </p>
                     )}
-                    <p className="mt-2 text-[10px] font-medium text-slate-400">Origem: {registro.origem || "Cadastro de ingredientes"}</p>
+                    <p className="mt-2 text-3xs font-medium text-slate-400">Origem: {registro.origem || "Cadastro de ingredientes"}</p>
                   </article>
                 );
               })}
@@ -1362,7 +1362,7 @@ function IngredientesRunner() {
                     {migrarArquivos.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
                         {migrarArquivos.map((file, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                          <span key={idx} className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2.5 py-1 text-2xs font-bold text-emerald-800">
                             <Camera size={12} /> {file.name}
                             <button
                               type="button"
@@ -1381,7 +1381,7 @@ function IngredientesRunner() {
                 <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4">
                   <label className="text-xs font-bold text-slate-600 mb-1.5 flex items-center justify-between">
                     <span>Texto / Lista Copiada</span>
-                    <span className="text-[10px] text-slate-400">Opcional</span>
+                    <span className="text-3xs text-slate-400">Opcional</span>
                   </label>
                   <textarea
                     rows={4}
@@ -1390,7 +1390,7 @@ function IngredientesRunner() {
                     placeholder="Cole aqui nomes, valores, quantidades de produtos..."
                     className="w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
                   />
-                  {origemMigracaoVoz && <div className="mt-2"><p className="rounded-lg bg-violet-50 px-3 py-2 text-[11px] font-bold text-violet-700">{respostaVozIngredientes || "Use o microfone para ditar a lista."}</p><button type="button" onClick={ouvindoIngredientes ? () => escutaIngredientesRef.current?.parar?.() : () => iniciarCadastroPorVoz(false)} className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-black text-white ${ouvindoIngredientes ? "bg-rose-600" : "bg-violet-600"}`}>{ouvindoIngredientes ? <><MicOff size={16}/> Parar de ouvir</> : <><Mic size={16}/> Falar ou confirmar por voz</>}</button></div>}
+                  {origemMigracaoVoz && <div className="mt-2"><p className="rounded-lg bg-violet-50 px-3 py-2 text-2xs font-bold text-violet-700">{respostaVozIngredientes || "Use o microfone para ditar a lista."}</p><button type="button" onClick={ouvindoIngredientes ? () => escutaIngredientesRef.current?.parar?.() : () => iniciarCadastroPorVoz(false)} className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-bold text-white ${ouvindoIngredientes ? "bg-rose-600" : "bg-violet-600"}`}>{ouvindoIngredientes ? <><MicOff size={16}/> Parar de ouvir</> : <><Mic size={16}/> Falar ou confirmar por voz</>}</button></div>}
                 </div>
               </div>
 
@@ -1414,7 +1414,7 @@ function IngredientesRunner() {
                     <h3 className="text-sm font-black text-slate-800">
                       Itens Extraídos ({itensMigracao.length})
                     </h3>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-800">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-2xs font-bold text-emerald-800">
                       Duplicados consolidados pelo maior valor
                     </span>
                   </div>

@@ -107,7 +107,7 @@ function EngenhariaRunner() {
                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{grupo.length} ITENS</p>
                                 </div>
                              </div>
-                             <span className="text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md text-right" style={{backgroundColor: cfg.bg, color: cfg.cor}}>
+                             <span className="text-3xs sm:text-xs font-bold px-2 py-1 rounded-md text-right" style={{backgroundColor: cfg.bg, color: cfg.cor}}>
                                 {tipo === "Estrela" ? "++ Volume / ++ Margem" : tipo === "Burro de Carga" ? "++ Volume / -- Margem" : tipo === "Quebra-Cabeça" ? "-- Volume / ++ Margem" : "-- Volume / -- Margem"}
                              </span>
                           </div>
@@ -121,11 +121,11 @@ function EngenhariaRunner() {
                                    <div key={it.id} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
                                       <div>
                                          <p className="font-bold text-slate-800 text-sm">{it.nome}</p>
-                                         <p className="text-[11px] font-medium text-slate-500">Custo: {fmtBRL(it.custo)} • Preço: {fmtBRL(it.preco)}</p>
+                                         <p className="text-2xs font-medium text-slate-500">Custo: {fmtBRL(it.custo)} • Preço: {fmtBRL(it.preco)}</p>
                                       </div>
                                       <div className="text-right">
                                          <p className="text-sm font-black text-slate-900" style={{color: cfg.cor}}>{it.volume} un</p>
-                                         <p className="text-[11px] font-bold text-slate-500 uppercase mt-0.5">+{fmtBRL(it.margem)} l.b.</p>
+                                         <p className="text-2xs font-bold text-slate-500 uppercase mt-0.5">+{fmtBRL(it.margem)} l.b.</p>
                                       </div>
                                    </div>
                                 ))

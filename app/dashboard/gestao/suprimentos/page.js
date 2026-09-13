@@ -203,13 +203,13 @@ export default function GestaoSuprimentosCentral() {
                 <Card key={i.id} className="!p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>{i.categoria}</p>
+                      <p className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>{i.categoria}</p>
                       <p className="font-bold text-base" style={{ color: "var(--fg)" }}>{i.nome}</p>
                       <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Custo Global: {fmtBRL(i.custo_unitario)} {i.fornecedor ? `· Fornecedor: ${i.fornecedor}` : ""}</p>
                     </div>
                     
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase mb-1" style={{ color: "var(--dim)" }}>Depósito Central</p>
+                      <p className="text-3xs font-bold uppercase mb-1" style={{ color: "var(--dim)" }}>Depósito Central</p>
                       <div className="inline-flex items-end gap-1">
                         <span className="text-2xl font-black leading-none" style={{ color: zerado ? "#EF4444" : "var(--fg)" }}>{central}</span>
                         <span className="text-xs font-bold leading-tight" style={{ color: "var(--dim)" }}>{i.unidade_medida}</span>
@@ -222,17 +222,17 @@ export default function GestaoSuprimentosCentral() {
                     if (lojasDoItem.length === 0) return null;
                     return (
                       <div className="mt-4 pt-3 border-t" style={{ borderColor: "var(--line)" }}>
-                        <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--dim)" }}>Estoque nas Lojas</p>
+                        <p className="text-3xs font-bold uppercase mb-2" style={{ color: "var(--dim)" }}>Estoque nas Lojas</p>
                         <div className="flex flex-wrap gap-2">
                           {lojasDoItem.map(lu => {
                             const uNome = unidades.find(x => x.id === lu.unidade_id)?.nome || lu.unidade_id;
                             const isBaixo = Number(lu.quantidade) <= Number(lu.minimo);
                             return (
                               <div key={lu.id} className="flex flex-col px-3 py-2 rounded-lg border" style={{ background: "var(--elevated)", borderColor: isBaixo ? "#EF4444" : "var(--line)" }}>
-                                <span className="text-[9px] uppercase font-bold whitespace-nowrap" style={{ color: "var(--dim)" }}>{uNome}</span>
+                                <span className="text-3xs uppercase font-bold whitespace-nowrap" style={{ color: "var(--dim)" }}>{uNome}</span>
                                 <div className="flex items-baseline gap-1 mt-1">
                                   <span className="text-sm font-black" style={{ color: isBaixo ? "#EF4444" : "var(--fg)" }}>{lu.quantidade}</span>
-                                  <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>{i.unidade_medida}</span>
+                                  <span className="text-3xs font-bold" style={{ color: "var(--dim)" }}>{i.unidade_medida}</span>
                                 </div>
                               </div>
                             )

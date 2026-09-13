@@ -114,11 +114,11 @@ export default function CampanhasPage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>{c.tipo}</span>
+                          <span className="text-3xs font-bold uppercase" style={{ color: "var(--dim)" }}>{c.tipo}</span>
                           <span className={`erp-badge ${STATUS_STYLE[c.status] || ""}`}>{c.status}</span>
                         </div>
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
-                        {c.cupom && <p className="text-[11px] flex items-center gap-1 mt-0.5" style={{ color: "var(--accent-fg)" }}><Ticket size={11} />{c.cupom} · {c.desconto}%</p>}
+                        {c.cupom && <p className="text-2xs flex items-center gap-1 mt-0.5" style={{ color: "var(--accent-fg)" }}><Ticket size={11} />{c.cupom} · {c.desconto}%</p>}
                       </div>
                     </div>
                     {meta > 0 && (
@@ -126,15 +126,15 @@ export default function CampanhasPage() {
                         <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--accent)" }} />
                         </div>
-                        <div className="flex justify-between text-[10px] mb-2" style={{ color: "var(--dim)" }}>
+                        <div className="flex justify-between text-3xs mb-2" style={{ color: "var(--dim)" }}>
                           <span className="flex items-center gap-1"><Target size={10} />{at}/{meta} clientes</span>
                           <span>{fmtPct(pct)}</span>
                         </div>
                       </>
                     )}
                     <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-                      {c.status !== "ativa" && <button onClick={() => mudarStatus(c, "ativa")} className="flex-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-ok">Ativar</button>}
-                      {c.status === "ativa" && <button onClick={() => mudarStatus(c, "encerrada")} className="flex-1 py-1.5 text-[11px] font-bold rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }}>Encerrar</button>}
+                      {c.status !== "ativa" && <button onClick={() => mudarStatus(c, "ativa")} className="flex-1 py-1.5 text-2xs font-bold rounded-lg erp-badge-ok">Ativar</button>}
+                      {c.status === "ativa" && <button onClick={() => mudarStatus(c, "encerrada")} className="flex-1 py-1.5 text-2xs font-bold rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }}>Encerrar</button>}
                     </div>
                   </Card>
                 );

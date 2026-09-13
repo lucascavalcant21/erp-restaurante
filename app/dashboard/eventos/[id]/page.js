@@ -321,7 +321,7 @@ export default function EventoPage() {
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><FileText size={16} style={{ display: "inline", marginRight: 6 }} />Orçamento para o Cliente</h3>
-                  <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                  <p className="text-2xs" style={{ color: "var(--dim)" }}>
                     Documento comercial: menu incluído ({pratos.length} prato{pratos.length !== 1 ? "s" : ""}, {drinks.filter((d) => !d.is_extra).length} drink{drinks.filter((d) => !d.is_extra).length !== 1 ? "s" : ""}), serviços adicionais cobrados ({custosFixos.filter((c) => c.cobrar_cliente).length}) e valor por {calc.unitName} — sem custos internos.
                   </p>
                 </div>
@@ -366,7 +366,7 @@ export default function EventoPage() {
                     background: reservas.length >= calc.breakeven ? "#10B981" : "linear-gradient(90deg, #F59E0B, #EF4444)",
                   }} />
                 </div>
-                <div className="grid grid-cols-2 gap-3 mt-3 text-[11px]">
+                <div className="grid grid-cols-2 gap-3 mt-3 text-2xs">
                   <div><p style={{ color: "var(--dim)" }}>CMV por {calc.unitName}</p><strong style={{ color: "var(--fg)" }}>{fmtBRL(calc.cmvUnit)}</strong></div>
                   <div><p style={{ color: "var(--dim)" }}>Contribuição por {calc.unitName}</p><strong style={{ color: calc.contributionPerUnit > 0 ? "#10B981" : "#EF4444" }}>{fmtBRL(calc.contributionPerUnit)}</strong></div>
                   <div><p style={{ color: "var(--dim)" }}>Custos fixos</p><strong style={{ color: "var(--fg)" }}>{fmtBRL(calc.totalFixos)}</strong></div>
@@ -387,7 +387,7 @@ export default function EventoPage() {
                   const pct = calc.totalExpenses > 0 ? (item.valor / calc.totalExpenses) * 100 : 0;
                   return (
                     <div key={item.nome}>
-                      <div className="flex justify-between text-[12px] mb-1">
+                      <div className="flex justify-between text-xs mb-1">
                         <span style={{ color: "var(--muted)" }}>{item.nome}</span>
                         <strong style={{ color: "var(--fg)" }}>{fmtBRL(item.valor)} <span style={{ color: "var(--dim)", marginLeft: 6 }}>({fmtPct(pct)})</span></strong>
                       </div>

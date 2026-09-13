@@ -305,7 +305,7 @@ export default function FinanceiroPage() {
       <div className="mx-auto max-w-[1500px]">
         <header className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-700">Financeiro · {unidadeInfo?.nome}</p>
+            <p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-700">Financeiro · {unidadeInfo?.nome}</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Fluxo de caixa do balcão</h1>
             <p className="mt-1 font-medium text-slate-500">Vendas, recebimentos, despesas e ponto de equilíbrio diário.</p>
           </div>
@@ -326,7 +326,7 @@ export default function FinanceiroPage() {
                 <Target size={24} />
               </div>
               <div>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase tracking-wider text-emerald-800">
                   Meta Diária de Sobrevivência e Lucro
                 </span>
                 <h2 className="text-xl font-black text-slate-900 sm:text-2xl mt-0.5">Ponto de Equilíbrio Diário</h2>
@@ -337,7 +337,7 @@ export default function FinanceiroPage() {
               <button
                 type="button"
                 onClick={() => setModalPE(true)}
-                className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-black text-emerald-700 shadow-sm hover:bg-emerald-50 transition-all"
+                className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 transition-all"
               >
                 <Settings2 size={16} /> Ajustar Custos Fixos & Dias
               </button>
@@ -348,7 +348,7 @@ export default function FinanceiroPage() {
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* CARD 1: META DIÁRIA */}
             <div className="rounded-2xl border-2 border-emerald-300 bg-white p-5 shadow-sm">
-              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Venda Diária Necessária</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-emerald-700">Venda Diária Necessária</span>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">{fmtBRL(calculoPE.metaVendaDiaria)}</p>
               <p className="mt-2 text-xs font-bold text-slate-500">
                 Para cobrir <b className="text-slate-800">{fmtBRL(calculoPE.custoFixoDiario)}/dia</b> de custos fixos + CMO ({calculoPE.dias} dias úteis)
@@ -358,7 +358,7 @@ export default function FinanceiroPage() {
             {/* CARD 2: REALIZADO HOJE VS META */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Vendido Hoje</span>
+                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Vendido Hoje</span>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
@@ -366,11 +366,11 @@ export default function FinanceiroPage() {
                       setFormVenda({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
                       setModalVenda(true);
                     }}
-                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-[11px] font-black text-white hover:bg-emerald-700 transition shadow-sm cursor-pointer"
+                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-2xs font-bold text-white hover:bg-emerald-700 transition shadow-sm cursor-pointer"
                   >
                     <Plus size={13} /> Lançar Venda
                   </button>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-3xs font-bold ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
                     {calculoPE.progressoHojePct.toFixed(0)}% da meta
                   </span>
                 </div>
@@ -396,7 +396,7 @@ export default function FinanceiroPage() {
 
             {/* CARD 3: META MENSAL TOTAL */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Ponto de Equilíbrio Mensal</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Ponto de Equilíbrio Mensal</span>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-900">{fmtBRL(calculoPE.metaVendaMensal)}</p>
               <p className="mt-2 text-xs font-bold text-slate-500">
                 Faturamento no mês em {calculoPE.dias} dias de trabalho ({fmtBRL(calculoPE.custoFixoTotalMensal)} de custo fixo mensal)
@@ -406,7 +406,7 @@ export default function FinanceiroPage() {
 
           {/* DISCRIMINAÇÃO DOS CUSTOS DIVIDIDOS */}
           <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
               Detalhamento da Composição dos Custos & Margem
             </h3>
 
@@ -419,11 +419,11 @@ export default function FinanceiroPage() {
                 className="rounded-xl border border-orange-200 bg-orange-50/60 p-3 text-left transition-all hover:border-orange-300 hover:bg-orange-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-[10px] font-black uppercase tracking-wider text-orange-700">1. CMV Médio 🔗</span>
-                  <span className="rounded-md bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-[10px] font-black text-orange-800">{calculoPE.cmvPct.toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-orange-700">1. CMV Médio 🔗</span>
+                  <span className="rounded-md bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-3xs font-bold text-orange-800">{calculoPE.cmvPct.toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-orange-950">{calculoPE.cmvPct.toFixed(1)}%</span>
-                <span className="text-[10px] font-semibold text-slate-500">Baseado nas Fichas Técnicas</span>
+                <span className="text-3xs font-semibold text-slate-500">Baseado nas Fichas Técnicas</span>
               </button>
 
               {/* CMO */}
@@ -434,11 +434,11 @@ export default function FinanceiroPage() {
                 className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-left transition-all hover:border-blue-300 hover:bg-blue-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-[10px] font-black uppercase tracking-wider text-blue-700">2. CMO (Mão de Obra) 🔗</span>
-                  <span className="rounded-md bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-[10px] font-black text-blue-800">{calculoPE.cmoPct.toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-blue-700">2. CMO (Mão de Obra) 🔗</span>
+                  <span className="rounded-md bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-3xs font-bold text-blue-800">{calculoPE.cmoPct.toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-blue-950">{fmtBRL(calculoPE.cmoDiario)}<small className="text-xs text-slate-500">/dia</small></span>
-                <span className="text-[10px] font-semibold text-slate-500">{fmtBRL(calculoPE.cmoMensal)} / mês</span>
+                <span className="text-3xs font-semibold text-slate-500">{fmtBRL(calculoPE.cmoMensal)} / mês</span>
               </button>
 
               {/* OPERACIONAIS FIXOS */}
@@ -449,11 +449,11 @@ export default function FinanceiroPage() {
                 className="rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-left transition-all hover:border-purple-300 hover:bg-purple-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-[10px] font-black uppercase tracking-wider text-purple-700">3. Operacional Fixo ✏️</span>
-                  <span className="rounded-md bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-[10px] font-black text-purple-800">{calculoPE.operacaoPct.toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-purple-700">3. Operacional Fixo ✏️</span>
+                  <span className="rounded-md bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-3xs font-bold text-purple-800">{calculoPE.operacaoPct.toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-purple-950">{fmtBRL(calculoPE.operacaoDiaria)}<small className="text-xs text-slate-500">/dia</small></span>
-                <span className="text-[10px] font-semibold text-slate-500">{fmtBRL(calculoPE.operacionaisMensais)} / mês</span>
+                <span className="text-3xs font-semibold text-slate-500">{fmtBRL(calculoPE.operacionaisMensais)} / mês</span>
               </button>
 
               {/* TAXAS & IMPOSTOS */}
@@ -464,11 +464,11 @@ export default function FinanceiroPage() {
                 className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-left transition-all hover:border-amber-300 hover:bg-amber-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-[10px] font-black uppercase tracking-wider text-amber-700">4. Impostos + Taxas ✏️</span>
-                  <span className="rounded-md bg-amber-100 border border-amber-200 px-1.5 py-0.5 text-[10px] font-black text-amber-800">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-amber-700">4. Impostos + Taxas ✏️</span>
+                  <span className="rounded-md bg-amber-100 border border-amber-200 px-1.5 py-0.5 text-3xs font-bold text-amber-800">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-amber-950">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
-                <span className="text-[10px] font-semibold text-slate-500">({calculoPE.impostoPct}% imp + {calculoPE.taxaCartaoPct}% maq)</span>
+                <span className="text-3xs font-semibold text-slate-500">({calculoPE.impostoPct}% imp + {calculoPE.taxaCartaoPct}% maq)</span>
               </button>
 
               {/* MARGEM CONTRIBUIÇÃO */}
@@ -479,11 +479,11 @@ export default function FinanceiroPage() {
                 className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-left transition-all hover:border-emerald-300 hover:bg-emerald-100/80 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-800">5. Margem Contribuição ✏️</span>
-                  <span className="rounded-md bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-emerald-800">5. Margem Contribuição ✏️</span>
+                  <span className="rounded-md bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 text-3xs font-bold text-emerald-800">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-emerald-950">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
-                <span className="text-[10px] font-semibold text-slate-500">100% - Deduções Totais</span>
+                <span className="text-3xs font-semibold text-slate-500">100% - Deduções Totais</span>
               </button>
             </div>
 
@@ -493,13 +493,13 @@ export default function FinanceiroPage() {
               const calcPct = (v) => ((Number(v) || 0) / metaM * 100).toFixed(1);
               return (
                 <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-600">
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Luz" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-amber-50 hover:text-amber-900 transition-all cursor-pointer border border-transparent hover:border-amber-200"><Zap size={14} className="text-amber-500"/> Luz: <b>{fmtBRL(paramsPE.luz)}</b> <span className="text-[10px] font-black text-amber-700 bg-amber-100/80 px-1 rounded">({calcPct(paramsPE.luz)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-blue-50 hover:text-blue-900 transition-all cursor-pointer border border-transparent hover:border-blue-200"><Droplets size={14} className="text-blue-500"/> Água: <b>{fmtBRL(paramsPE.agua)}</b> <span className="text-[10px] font-black text-blue-700 bg-blue-100/80 px-1 rounded">({calcPct(paramsPE.agua)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-indigo-50 hover:text-indigo-900 transition-all cursor-pointer border border-transparent hover:border-indigo-200"><Wifi size={14} className="text-indigo-500"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b> <span className="text-[10px] font-black text-indigo-700 bg-indigo-100/80 px-1 rounded">({calcPct(paramsPE.internet)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Gás" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-900 transition-all cursor-pointer border border-transparent hover:border-rose-200"><Flame size={14} className="text-rose-500"/> Gás: <b>{fmtBRL(paramsPE.gas)}</b> <span className="text-[10px] font-black text-rose-700 bg-rose-100/80 px-1 rounded">({calcPct(paramsPE.gas)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-cyan-50 hover:text-cyan-900 transition-all cursor-pointer border border-transparent hover:border-cyan-200"><Sparkles size={14} className="text-cyan-500"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b> <span className="text-[10px] font-black text-cyan-700 bg-cyan-100/80 px-1 rounded">({calcPct(paramsPE.limpeza)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer border border-transparent hover:border-slate-200"><Wrench size={14} className="text-slate-500"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b> <span className="text-[10px] font-black text-slate-700 bg-slate-200/80 px-1 rounded">({calcPct(paramsPE.manutencao)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar Gastos Extras" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 transition-all cursor-pointer border border-transparent hover:border-emerald-200"><PackagePlus size={14} className="text-emerald-500"/> Extras: <b>{fmtBRL(paramsPE.gastosExtras)}</b> <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-1 rounded">({calcPct(paramsPE.gastosExtras)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Luz" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-amber-50 hover:text-amber-900 transition-all cursor-pointer border border-transparent hover:border-amber-200"><Zap size={14} className="text-amber-500"/> Luz: <b>{fmtBRL(paramsPE.luz)}</b> <span className="text-3xs font-bold text-amber-700 bg-amber-100/80 px-1 rounded">({calcPct(paramsPE.luz)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-blue-50 hover:text-blue-900 transition-all cursor-pointer border border-transparent hover:border-blue-200"><Droplets size={14} className="text-blue-500"/> Água: <b>{fmtBRL(paramsPE.agua)}</b> <span className="text-3xs font-bold text-blue-700 bg-blue-100/80 px-1 rounded">({calcPct(paramsPE.agua)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-indigo-50 hover:text-indigo-900 transition-all cursor-pointer border border-transparent hover:border-indigo-200"><Wifi size={14} className="text-indigo-500"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b> <span className="text-3xs font-bold text-indigo-700 bg-indigo-100/80 px-1 rounded">({calcPct(paramsPE.internet)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Gás" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-900 transition-all cursor-pointer border border-transparent hover:border-rose-200"><Flame size={14} className="text-rose-500"/> Gás: <b>{fmtBRL(paramsPE.gas)}</b> <span className="text-3xs font-bold text-rose-700 bg-rose-100/80 px-1 rounded">({calcPct(paramsPE.gas)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-cyan-50 hover:text-cyan-900 transition-all cursor-pointer border border-transparent hover:border-cyan-200"><Sparkles size={14} className="text-cyan-500"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b> <span className="text-3xs font-bold text-cyan-700 bg-cyan-100/80 px-1 rounded">({calcPct(paramsPE.limpeza)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer border border-transparent hover:border-slate-200"><Wrench size={14} className="text-slate-500"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b> <span className="text-3xs font-bold text-slate-700 bg-slate-200/80 px-1 rounded">({calcPct(paramsPE.manutencao)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar Gastos Extras" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 transition-all cursor-pointer border border-transparent hover:border-emerald-200"><PackagePlus size={14} className="text-emerald-500"/> Extras: <b>{fmtBRL(paramsPE.gastosExtras)}</b> <span className="text-3xs font-bold text-emerald-700 bg-emerald-100/80 px-1 rounded">({calcPct(paramsPE.gastosExtras)}%)</span></button>
                 </div>
               );
             })()}
@@ -509,7 +509,7 @@ export default function FinanceiroPage() {
         {/* CARDS RESUMO FINANCEIRO E FATURAMENTOS */}
         <section className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`rounded-2xl border p-4 text-left shadow-sm transition ${periodo === p.id ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"}`}>
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Faturamento · {p.label}</span>
+            <span className="text-2xs font-bold uppercase tracking-widest text-slate-500">Faturamento · {p.label}</span>
             <strong className="mt-2 block break-words text-xl font-black text-slate-900 sm:text-2xl">{fmtBRL(faturamentos[p.id] || 0)}</strong>
           </button>)}
         </section>
@@ -524,7 +524,7 @@ export default function FinanceiroPage() {
             [Wallet, "Resultado", resumo.resultado, resumo.resultado >= 0 ? "text-emerald-700" : "text-rose-700", "bg-slate-200"],
           ].map(([Icon, label, valor, cor, fundo]) => <div key={label} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className={`mb-3 grid h-10 w-10 place-items-center rounded-xl ${fundo} ${cor}`}><Icon size={20} /></div>
-            <p className="text-xs font-black uppercase tracking-wider text-slate-500">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
             <p className={`mt-1 break-words text-xl font-black sm:text-2xl ${cor}`}>{fmtBRL(valor)}</p>
             {label === "Faturamento" && <p className="mt-1 text-xs font-bold text-slate-400">{resumo.vendas.length} venda(s)</p>}
           </div>)}
@@ -560,7 +560,7 @@ export default function FinanceiroPage() {
             return <div key={id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
                 <div className="min-w-0"><h3 className="truncate font-black text-slate-900">{categoria?.label || id}</h3><p className="text-sm font-bold text-slate-500">{fmtBRL(total)} · {quantidade} lançamento(s)</p></div>
-                {automatico ? <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">Automático</span> : <button onClick={() => abrirDespesa(id)} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white"><Plus size={18} /> Adicionar</button>}
+                {automatico ? <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Automático</span> : <button onClick={() => abrirDespesa(id)} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white"><Plus size={18} /> Adicionar</button>}
               </div>
               <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
                 {id === "cmo" && <><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Funcionários contratados</p><p className="text-xs font-semibold text-slate-500">Salários e benefícios do período</p></div><b>{fmtBRL(resumo.automaticos.folha)}</b></div><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Extras pagos</p><p className="text-xs font-semibold text-slate-500">{resumo.automaticos.recibosExtras.length} recibo(s) pago(s)</p></div><b>{fmtBRL(resumo.automaticos.extras)}</b></div></>}
@@ -584,7 +584,7 @@ export default function FinanceiroPage() {
           <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
             <div className="flex items-center justify-between bg-slate-900 p-5 text-white">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Configuração Financeira</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Configuração Financeira</p>
                 <h2 className="text-xl font-black">Ajustar Custos Fixos & Dias de Trabalho</h2>
               </div>
               <button type="button" onClick={() => setModalPE(false)} className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20">
@@ -598,7 +598,7 @@ export default function FinanceiroPage() {
               </p>
 
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                   Dias de Funcionamento no Mês
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -607,7 +607,7 @@ export default function FinanceiroPage() {
                       key={dias}
                       type="button"
                       onClick={() => setParamsPE(p => ({ ...p, diasTrabalho: dias }))}
-                      className={`h-9 px-3 rounded-lg text-xs font-black transition ${Number(paramsPE.diasTrabalho) === dias ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}
+                      className={`h-9 px-3 rounded-lg text-xs font-bold transition ${Number(paramsPE.diasTrabalho) === dias ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}
                     >
                       {dias} dias
                     </button>
@@ -625,7 +625,7 @@ export default function FinanceiroPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">⚡ Luz / Energia (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">⚡ Luz / Energia (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.luz}
                     onChange={e => setParamsPE({ ...paramsPE, luz: e.target.value })}
@@ -633,7 +633,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">💧 Água (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">💧 Água (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.agua}
                     onChange={e => setParamsPE({ ...paramsPE, agua: e.target.value })}
@@ -641,7 +641,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">🌐 Internet / Telefone (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🌐 Internet / Telefone (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.internet}
                     onChange={e => setParamsPE({ ...paramsPE, internet: e.target.value })}
@@ -649,7 +649,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">🔥 Gás (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🔥 Gás (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.gas}
                     onChange={e => setParamsPE({ ...paramsPE, gas: e.target.value })}
@@ -657,7 +657,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">🧹 Material de Limpeza (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🧹 Material de Limpeza (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.limpeza}
                     onChange={e => setParamsPE({ ...paramsPE, limpeza: e.target.value })}
@@ -665,7 +665,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">🛠️ Manutenção (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🛠️ Manutenção (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.manutencao}
                     onChange={e => setParamsPE({ ...paramsPE, manutencao: e.target.value })}
@@ -673,7 +673,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">📦 Gastos Extras (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">📦 Gastos Extras (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.gastosExtras}
                     onChange={e => setParamsPE({ ...paramsPE, gastosExtras: e.target.value })}
@@ -681,7 +681,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">🏛️ Imposto Fiscais (%)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🏛️ Imposto Fiscais (%)</label>
                   <input
                     type="number" step="0.1" value={paramsPE.impostoPct}
                     onChange={e => setParamsPE({ ...paramsPE, impostoPct: e.target.value })}
@@ -689,7 +689,7 @@ export default function FinanceiroPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1">💳 Taxa Maquininha Cartão (%)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">💳 Taxa Maquininha Cartão (%)</label>
                   <input
                     type="number" step="0.1" value={paramsPE.taxaCartaoPct}
                     onChange={e => setParamsPE({ ...paramsPE, taxaCartaoPct: e.target.value })}
@@ -718,14 +718,14 @@ export default function FinanceiroPage() {
       {/* MODAL DE ADICIONAR DESPESA */}
       {modal && <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-3 pt-8 backdrop-blur-sm sm:items-center sm:pt-3">
         <form onSubmit={salvarDespesa} className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-          <div className="flex items-center justify-between bg-slate-900 p-5 text-white"><div><p className="text-xs font-black uppercase tracking-widest text-slate-400">Financeiro</p><h2 className="text-xl font-black">Nova despesa</h2></div><button type="button" onClick={() => setModal(false)} className="grid h-11 w-11 place-items-center rounded-xl bg-white/10"><X /></button></div>
+          <div className="flex items-center justify-between bg-slate-900 p-5 text-white"><div><p className="text-xs font-bold uppercase tracking-widest text-slate-400">Financeiro</p><h2 className="text-xl font-black">Nova despesa</h2></div><button type="button" onClick={() => setModal(false)} className="grid h-11 w-11 place-items-center rounded-xl bg-white/10"><X /></button></div>
           <div className="space-y-4 p-5">
-            <label className="block"><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Descrição</span><input required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: energia elétrica" /></label>
+            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Descrição</span><input required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: energia elétrica" /></label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Valor</span><input required min="0.01" step="0.01" type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-black outline-none focus:border-emerald-500" placeholder="0,00" /></label>
-              <label><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" /></label>
+              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Valor</span><input required min="0.01" step="0.01" type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-black outline-none focus:border-emerald-500" placeholder="0,00" /></label>
+              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" /></label>
             </div>
-            <label className="block"><span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
+            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
             <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-slate-100 font-black text-slate-600">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-emerald-600 font-black text-white disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
           </div>
         </form>
@@ -737,7 +737,7 @@ export default function FinanceiroPage() {
           <form onSubmit={salvarVendaManual} className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
             <div className="flex items-center justify-between bg-emerald-950 p-5 text-white">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Ponto de Equilíbrio</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Ponto de Equilíbrio</p>
                 <h2 className="text-xl font-black">Lançar Venda de Hoje</h2>
               </div>
               <button type="button" onClick={() => setModalVenda(false)} className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20">
@@ -746,7 +746,7 @@ export default function FinanceiroPage() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">Valor da Venda (R$)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Valor da Venda (R$)</label>
                 <input
                   required
                   autoFocus
@@ -760,7 +760,7 @@ export default function FinanceiroPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">Forma de Pagamento</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Forma de Pagamento</label>
                 <select
                   value={formVenda.forma_pagamento}
                   onChange={e => setFormVenda({ ...formVenda, forma_pagamento: e.target.value })}
@@ -773,7 +773,7 @@ export default function FinanceiroPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 mb-1.5">Identificação / Descrição (opcional)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Identificação / Descrição (opcional)</label>
                 <input
                   type="text"
                   placeholder="Ex.: Vendas do Almoço, Fechamento do caixa, etc."

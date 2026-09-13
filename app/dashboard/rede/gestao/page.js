@@ -110,7 +110,7 @@ export default function GestaoUnidadesPage() {
 
         <div className="flex justify-between items-center mb-4">
           <p className="erp-label">Lojas Cadastradas ({unidades.length})</p>
-          <Btn variant="primary" className="!h-8 text-[11px]" onClick={() => abrirModal()}>
+          <Btn variant="primary" className="!h-8 text-2xs" onClick={() => abrirModal()}>
             <Plus size={14} /> Nova Loja
           </Btn>
         </div>

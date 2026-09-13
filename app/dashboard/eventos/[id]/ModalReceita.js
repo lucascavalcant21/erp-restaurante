@@ -180,7 +180,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
       {/* ETAPA 1: COLAR RECEITA */}
       {etapa === "colar" && (
         <>
-          <p className="text-[12px] mb-3" style={{ color: "var(--dim)" }}>
+          <p className="text-xs mb-3" style={{ color: "var(--dim)" }}>
             Cole a receita completa (com ingredientes e modo de preparo). O sistema vai detectar tudo e verificar quais ingredientes você já tem cadastrados.
           </p>
 
@@ -188,7 +188,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent-fg)", fontWeight: 600 }}>
               Ver exemplo de formato suportado
             </summary>
-            <div className="mt-2 p-3 rounded text-[10px]" style={{ background: "var(--elevated)", maxHeight: 200, overflowY: "auto" }}>
+            <div className="mt-2 p-3 rounded text-3xs" style={{ background: "var(--elevated)", maxHeight: 200, overflowY: "auto" }}>
               <code style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", color: "var(--fg)" }}>{EXEMPLO}</code>
             </div>
           </details>
@@ -223,22 +223,22 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <div style={{ padding: 10, background: "var(--elevated)", borderRadius: 6 }}>
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>TOTAL DE INGREDIENTES</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>TOTAL DE INGREDIENTES</p>
               <strong style={{ fontSize: 22, color: "var(--fg)" }}>{totalIngs}</strong>
             </div>
             <div style={{ padding: 10, background: "#10B98122", borderRadius: 6, borderLeft: "3px solid #10B981" }}>
-              <p className="text-[10px]" style={{ color: "#10B981" }}>JÁ TENHO</p>
+              <p className="text-3xs" style={{ color: "#10B981" }}>JÁ TENHO</p>
               <strong style={{ fontSize: 22, color: "#10B981" }}>{existemCount}</strong>
             </div>
             <div style={{ padding: 10, background: "#EF444422", borderRadius: 6, borderLeft: "3px solid #EF4444" }}>
-              <p className="text-[10px]" style={{ color: "#EF4444" }}>FALTAM</p>
+              <p className="text-3xs" style={{ color: "#EF4444" }}>FALTAM</p>
               <strong style={{ fontSize: 22, color: "#EF4444" }}>{faltamCount}</strong>
             </div>
           </div>
 
           {receita.titulo && (
             <div className="mb-3 p-2 rounded" style={{ background: "var(--elevated)" }}>
-              <p className="text-[10px]" style={{ color: "var(--dim)", textTransform: "uppercase", fontWeight: 700 }}>Título</p>
+              <p className="text-3xs" style={{ color: "var(--dim)", textTransform: "uppercase", fontWeight: 700 }}>Título</p>
               <strong style={{ color: "var(--fg)", fontSize: 14 }}>{receita.titulo}</strong>
               {receita.rendimento && <span style={{ color: "var(--dim)", marginLeft: 8, fontSize: 12 }}>· {receita.rendimento} porções</span>}
             </div>
@@ -259,7 +259,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                     <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
                     {ing.aGosto && <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 999, background: "var(--elevated)", color: "var(--muted)" }}>a gosto</span>}
                   </div>
-                  <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>
+                  <p className="text-2xs mt-1" style={{ color: "var(--dim)" }}>
                     {ing.aGosto ? "Quantidade livre" : `Precisa: ${ing.qty.toFixed(ing.qty < 1 ? 2 : 0)}${ing.unidade}`}
                     {ing.existe && ing.ingredienteCadastrado && (
                       <span style={{ color: "#10B981", marginLeft: 6 }}>
@@ -277,7 +277,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent-fg)", fontWeight: 600 }}>
                 Modo de preparo detectado
               </summary>
-              <div className="mt-2 p-2 rounded text-[11px] whitespace-pre-wrap" style={{ background: "var(--elevated)", color: "var(--dim)" }}>
+              <div className="mt-2 p-2 rounded text-2xs whitespace-pre-wrap" style={{ background: "var(--elevated)", color: "var(--dim)" }}>
                 {receita.modo_preparo}
               </div>
             </details>
@@ -301,7 +301,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
       {/* ETAPA 3: CADASTRAR FALTANTES */}
       {etapa === "cadastrar" && (
         <>
-          <p className="text-[12px] mb-3" style={{ color: "var(--dim)" }}>
+          <p className="text-xs mb-3" style={{ color: "var(--dim)" }}>
             Preencha os <strong>preços</strong> e <strong>quantidades</strong> de cada ingrediente faltante.
             O sistema tem boas sugestões mas ajuste conforme o que pagou.
           </p>
@@ -324,7 +324,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] mb-2" style={{ color: "var(--dim)" }}>
+                  <p className="text-3xs mb-2" style={{ color: "var(--dim)" }}>
                     Receita pede: <strong style={{ color: "var(--fg)" }}>{f._qtdUsada.toFixed(f._qtdUsada < 1 ? 2 : 0)}{f._unidadeUsada}</strong>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -378,7 +378,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
       {/* ETAPA 4: CRIAR PRATO COM CALCULADORA DE PROPORÇÃO */}
       {etapa === "criar-prato" && (
         <>
-          <p className="text-[12px] mb-3" style={{ color: "#10B981" }}>
+          <p className="text-xs mb-3" style={{ color: "#10B981" }}>
             Todos os ingredientes cadastrados! Agora ajuste a quantidade que vai fazer.
           </p>
 
@@ -429,7 +429,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
 
             {/* Botões rápidos */}
             <div className="flex gap-1 flex-wrap mb-2">
-              <span className="text-[10px]" style={{ color: "var(--dim)" }}>Rápido:</span>
+              <span className="text-3xs" style={{ color: "var(--dim)" }}>Rápido:</span>
               {[
                 { label: "½ receita",   v: Math.max(1, Math.round(porcoesOriginais / 2)) },
                 { label: "Original",    v: porcoesOriginais },
@@ -467,8 +467,8 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                 const mudou = Math.abs(qtyOriginal - qtyAjustado) > 0.01;
                 return (
                   <div key={idx} className="flex items-center justify-between py-1" style={{ borderBottom: "1px dashed var(--line)" }}>
-                    <span className="text-[11px]" style={{ color: "var(--fg)" }}>{ing.nome}</span>
-                    <span className="text-[11px]">
+                    <span className="text-2xs" style={{ color: "var(--fg)" }}>{ing.nome}</span>
+                    <span className="text-2xs">
                       {mudou && (
                         <span style={{ color: "var(--dim)", textDecoration: "line-through", marginRight: 6 }}>
                           {fmtNum(qtyOriginal)}{ing.unidade}
@@ -483,8 +483,8 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               })}
               {ingsCruzados.filter((i) => i.aGosto).map((ing, idx) => (
                 <div key={`g${idx}`} className="flex items-center justify-between py-1">
-                  <span className="text-[11px]" style={{ color: "var(--fg)" }}>{ing.nome}</span>
-                  <span className="text-[10px]" style={{ color: "var(--dim)" }}>a gosto</span>
+                  <span className="text-2xs" style={{ color: "var(--fg)" }}>{ing.nome}</span>
+                  <span className="text-3xs" style={{ color: "var(--dim)" }}>a gosto</span>
                 </div>
               ))}
             </div>

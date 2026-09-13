@@ -204,7 +204,7 @@ function AreaRunner() {
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{area.nome}</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">{unidadeInfo?.nome || ""} · estação de trabalho</p>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-3xs">{unidadeInfo?.nome || ""} · estação de trabalho</p>
             </div>
           </div>
           <button onClick={() => setPedindoSenha(true)} title="Sair da área (senha)"
@@ -219,7 +219,7 @@ function AreaRunner() {
             <div key={col.titulo} className="rounded-2xl sm:rounded-3xl p-3 sm:p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="w-2 h-2 rounded-full" style={{ background: area.cor }} />
-                <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">{col.titulo}</p>
+                <p className="text-2xs font-bold uppercase tracking-widest text-slate-400">{col.titulo}</p>
               </div>
               <div className="space-y-2.5">
                 {col.itens.map(item => (
@@ -237,7 +237,7 @@ function AreaRunner() {
           ))}
         </div>
 
-        <p className="text-[11px] font-medium text-slate-600 mt-8 text-center">
+        <p className="text-2xs font-medium text-slate-600 mt-8 text-center">
           Esta estação está travada na área {area.nome}. Os módulos abertos daqui voltam para cá; sair exige a senha da área.
         </p>
       </div>

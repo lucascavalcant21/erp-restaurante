@@ -106,7 +106,7 @@ export default function EditarPortalExtras() {
           <>
             {/* Textos */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Textos da página</p>
+              <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Textos da página</p>
               <label className="block">
                 <span className={rotulo}>Título</span>
                 <input value={config.titulo} onChange={e => set("titulo", e.target.value)} className={campo} />
@@ -128,7 +128,7 @@ export default function EditarPortalExtras() {
 
             {/* Funções */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Funções oferecidas</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Funções oferecidas</p>
               <p className="mb-3 mt-1 text-sm font-medium text-slate-500">
                 O candidato escolhe uma principal e, se quiser, uma segunda. A principal vira a categoria no seu banco.
               </p>
@@ -155,7 +155,7 @@ export default function EditarPortalExtras() {
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Perguntas do cadastro</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Perguntas do cadastro</p>
                   <p className="mt-1 text-sm font-medium text-slate-500">Cada pergunta precisa de pelo menos duas opções.</p>
                 </div>
                 <button onClick={addPergunta} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-white px-3.5 font-black text-emerald-700 hover:bg-emerald-50">

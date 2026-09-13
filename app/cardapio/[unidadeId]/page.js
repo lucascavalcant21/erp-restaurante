@@ -202,10 +202,10 @@ export default function CardapioPublicoPage() {
                <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center relative">
                      <ShoppingBag size={24} />
-                     <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-black">{carrinho.length}</span>
+                     <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">{carrinho.length}</span>
                   </div>
                   <div className="text-left">
-                     <p className="text-[10px] uppercase font-bold text-indigo-200 tracking-widest">Seu Pedido</p>
+                     <p className="text-3xs uppercase font-bold text-indigo-200 tracking-widest">Seu Pedido</p>
                      <p className="font-black text-xl">{fmtBRL(totalCarrinho)}</p>
                   </div>
                </div>

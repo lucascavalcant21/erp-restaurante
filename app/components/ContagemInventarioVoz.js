@@ -278,12 +278,12 @@ export default function ContagemInventarioVoz({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Lugar de agora</span>
+              <span className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Lugar de agora</span>
               <input value={local} onChange={e => setLocal(e.target.value)} list="lugares-contagem"
                 placeholder="Cozinha, Bar, Depósito..."
                 className={`${inputCls} flex-1 min-w-[140px]`} style={inputStyle} />
               <datalist id="lugares-contagem">{lugares.map(l => <option key={l} value={l} />)}</datalist>
-              <button onClick={adicionar} className="flex items-center gap-1.5 rounded-lg border-2 border-dashed px-3 py-2 text-xs font-black"
+              <button onClick={adicionar} className="flex items-center gap-1.5 rounded-lg border-2 border-dashed px-3 py-2 text-xs font-bold"
                 style={{ borderColor: "var(--line)", color: "var(--muted)" }}><Plus size={14} /> Linha manual</button>
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function ContagemInventarioVoz({
               <p className="erp-label mb-2">{cat}</p>
               {porLugar.map(([lugar, lista]) => (
                 <div key={lugar} className="mb-3">
-                  <p className="mb-1.5 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>
+                  <p className="mb-1.5 text-2xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>
                     {lugar} · {lista.reduce((s, l) => s + (Number(l.quantidade) || 0), 0).toLocaleString("pt-BR")} un
                   </p>
                   <div className="space-y-2">
@@ -338,7 +338,7 @@ export default function ContagemInventarioVoz({
                                   list="lugares-contagem" placeholder="Onde fica"
                                   className={`${inputCls} w-full text-xs sm:min-w-[120px] sm:flex-1`} style={inputStyle} />
                               </div>
-                              <p className="text-[11px] font-bold" style={{ color: dif == null ? "var(--accent-strong)" : dif === 0 ? "var(--dim)" : "#B45309" }}>
+                              <p className="text-2xs font-bold" style={{ color: dif == null ? "var(--accent-strong)" : dif === 0 ? "var(--dim)" : "#B45309" }}>
                                 {dif == null
                                   ? "Item novo — será cadastrado"
                                   : dif === 0

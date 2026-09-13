@@ -202,7 +202,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
           transition: "width 200ms",
         }} />
       </div>
-      <div className="flex justify-between text-[10px] mb-3" style={{ color: "var(--dim)" }}>
+      <div className="flex justify-between text-3xs mb-3" style={{ color: "var(--dim)" }}>
         <span>{sinalPct >= 100 ? "Pago total" : `Faltam ${fmtBRL(restante)}`}</span>
         <span>50% sugerido: {fmtBRL(totalValor / 2)} · Total: {fmtBRL(totalValor)}</span>
       </div>
@@ -210,7 +210,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
       {/* ─── Resumo CMV do casal ───────────────────────────────────────────── */}
       {cmvCasal > 0 && (
         <div className="erp-panel p-3 mb-3" style={{ background: "var(--elevated)", borderRadius: 8 }}>
-          <div className="flex justify-between items-center text-[11px]">
+          <div className="flex justify-between items-center text-2xs">
             <span style={{ color: "var(--muted)" }}>
               <strong>CMV deste {evento.charge_mode === "couple" ? "casal" : "pessoa"}:</strong>{" "}
               {fmtBRL(cmvCasal)}
@@ -222,7 +222,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
               </span>
             </span>
           </div>
-          <div className="text-[10px] mt-1" style={{ color: "var(--dim)" }}>
+          <div className="text-3xs mt-1" style={{ color: "var(--dim)" }}>
             Pratos: {fmtBRL(cmvPratos)} · Drinks: {fmtBRL(cmvDrinks)}
             {cmvExtras > 0 && <> · Extras: {fmtBRL(cmvExtras)}</>}
           </div>
@@ -250,7 +250,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
               </span>
             </div>
             {pratosCat.length === 0 ? (
-              <p className="text-[11px] text-center" style={{ color: "var(--dim)", padding: 8 }}>
+              <p className="text-2xs text-center" style={{ color: "var(--dim)", padding: 8 }}>
                 Nenhum prato cadastrado em <strong>{categoria}</strong>. Adicione no Cardápio.
               </p>
             ) : (
@@ -261,7 +261,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
                   return (
                     <label key={prato.id} className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
                       <input type="checkbox" checked={sel} onChange={() => toggleMenuComLimite(prato)} />
-                      <div className="flex-1 text-[12px]">
+                      <div className="flex-1 text-xs">
                         <strong style={{ color: "var(--fg)" }}>{prato.nome}</strong>
                         {(prato.tags || []).map((t) => (
                           <span key={t} style={{ color: "var(--dim)", marginLeft: 4, fontSize: 9 }}>· {t}</span>
@@ -296,7 +296,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
             </span>
           </div>
           {drinksMenu.length === 0 ? (
-            <p className="text-[11px] text-center" style={{ color: "var(--dim)", padding: 8 }}>
+            <p className="text-2xs text-center" style={{ color: "var(--dim)", padding: 8 }}>
               Nenhum drink no menu. Adicione na aba <strong>Drinks</strong> (sem marcar como "extra").
             </p>
           ) : (
@@ -307,7 +307,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
                 return (
                   <label key={drink.id} className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
                     <input type="checkbox" checked={sel} onChange={() => toggleDrinkComLimite(drink)} />
-                    <div className="flex-1 text-[12px]">
+                    <div className="flex-1 text-xs">
                       <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
                       <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>{drink.has_alcohol ? "c/ álcool" : "s/ álcool"}</span>
                       {cmv > 0 && (
@@ -332,13 +332,13 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
               const qty = getExtraQty(drink.id);
               return (
                 <div key={drink.id} className="flex items-center gap-2 p-2 rounded" style={{ background: qty > 0 ? "var(--elevated)" : "transparent" }}>
-                  <div className="flex-1 text-[12px]">
+                  <div className="flex-1 text-xs">
                     <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
                     <span style={{ color: "var(--accent-fg)", marginLeft: 6, fontWeight: 700 }}>{fmtBRL(drink.preco_venda)}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setExtraQty(drink.id, qty - 1)} style={{ background: "var(--surface)", padding: "4px 8px", borderRadius: 6, border: "none", cursor: "pointer", color: "var(--fg)" }}>−</button>
-                    <span className="text-[12px]" style={{ color: "var(--fg)", minWidth: 20, textAlign: "center" }}>{qty}</span>
+                    <span className="text-xs" style={{ color: "var(--fg)", minWidth: 20, textAlign: "center" }}>{qty}</span>
                     <button onClick={() => setExtraQty(drink.id, qty + 1)} style={{ background: "var(--surface)", padding: "4px 8px", borderRadius: 6, border: "none", cursor: "pointer", color: "var(--fg)" }}>+</button>
                   </div>
                 </div>
@@ -656,10 +656,10 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
     <div className="space-y-4">
       <Card className="!p-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>CONFIRMADAS</p><strong style={{ fontSize: 20, color: "var(--accent-fg)" }}>{reservas.length}/{evento.capacidade}</strong></div>
-          <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>PAGAS</p><strong style={{ fontSize: 20, color: "#10B981" }}>{stats.pagas}</strong></div>
-          <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>SINAIS</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{fmtBRL(stats.totalSinal)}</strong></div>
-          <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>1º T / 2º T</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{stats.turno1} / {stats.turno2}</strong></div>
+          <div><p className="text-3xs" style={{ color: "var(--dim)" }}>CONFIRMADAS</p><strong style={{ fontSize: 20, color: "var(--accent-fg)" }}>{reservas.length}/{evento.capacidade}</strong></div>
+          <div><p className="text-3xs" style={{ color: "var(--dim)" }}>PAGAS</p><strong style={{ fontSize: 20, color: "#10B981" }}>{stats.pagas}</strong></div>
+          <div><p className="text-3xs" style={{ color: "var(--dim)" }}>SINAIS</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{fmtBRL(stats.totalSinal)}</strong></div>
+          <div><p className="text-3xs" style={{ color: "var(--dim)" }}>1º T / 2º T</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{stats.turno1} / {stats.turno2}</strong></div>
         </div>
 
         {/* Botões de Impressão (ordens de produção) — sempre visíveis */}
@@ -751,28 +751,28 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <strong style={{ color: "var(--fg)" }}>{r.nome}</strong>
-                        {r.mesa && <span className="erp-badge text-[10px]" style={{ background: "var(--surface)", color: "var(--muted)" }}>Mesa {r.mesa}</span>}
-                        <span className="erp-badge text-[10px]" style={{ background: "var(--surface)", color: "var(--muted)" }}>
+                        {r.mesa && <span className="erp-badge text-3xs" style={{ background: "var(--surface)", color: "var(--muted)" }}>Mesa {r.mesa}</span>}
+                        <span className="erp-badge text-3xs" style={{ background: "var(--surface)", color: "var(--muted)" }}>
                           <Clock size={9} style={{ display: "inline", marginRight: 2 }} />{r.horario === "19:00" ? "1º turno" : "2º turno"}
                         </span>
                         {r.status === "paid"
-                          ? <span className="erp-badge text-[10px]" style={{ background: "#10B98133", color: "#10B981" }}><Check size={9} style={{ display: "inline" }} /> Pago</span>
-                          : <span className="erp-badge text-[10px]" style={{ background: "#F59E0B33", color: "#F59E0B" }}>Pendente</span>}
-                        <span className="erp-badge text-[10px]" style={{ background: "var(--surface)", color: "var(--muted)" }}>
+                          ? <span className="erp-badge text-3xs" style={{ background: "#10B98133", color: "#10B981" }}><Check size={9} style={{ display: "inline" }} /> Pago</span>
+                          : <span className="erp-badge text-3xs" style={{ background: "#F59E0B33", color: "#F59E0B" }}>Pendente</span>}
+                        <span className="erp-badge text-3xs" style={{ background: "var(--surface)", color: "var(--muted)" }}>
                           <CreditCard size={9} style={{ display: "inline", marginRight: 2 }} />{PAYMENT_METHODS.find((p) => p.id === r.payment_method)?.label || "?"}
                         </span>
                       </div>
                       {pratosEscolhidos.length > 0 && (
-                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>{pratosEscolhidos.map((p) => p.nome).join(" + ")}</p>
+                        <p className="text-2xs" style={{ color: "var(--dim)" }}>{pratosEscolhidos.map((p) => p.nome).join(" + ")}</p>
                       )}
                       {drinksEscolhidos.length > 0 && (
-                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>{drinksEscolhidos.map((d) => d.nome).join(" + ")}</p>
+                        <p className="text-2xs" style={{ color: "var(--dim)" }}>{drinksEscolhidos.map((d) => d.nome).join(" + ")}</p>
                       )}
                       {extrasTotal > 0 && (
-                        <p className="text-[11px]" style={{ color: "#8B5CF6" }}>Extras: {fmtBRL(extrasTotal)}</p>
+                        <p className="text-2xs" style={{ color: "#8B5CF6" }}>Extras: {fmtBRL(extrasTotal)}</p>
                       )}
-                      {r.observacao && <p className="text-[11px] mt-1" style={{ color: "var(--muted)", fontStyle: "italic" }}>"{r.observacao}"</p>}
-                      <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+                      {r.observacao && <p className="text-2xs mt-1" style={{ color: "var(--muted)", fontStyle: "italic" }}>"{r.observacao}"</p>}
+                      <p className="text-2xs mt-1" style={{ color: "var(--muted)" }}>
                         Sinal: <strong style={{ color: "#10B981" }}>{fmtBRL(r.sinal)}</strong>
                         · Total: <strong style={{ color: "var(--fg)" }}>{fmtBRL(totalCobrar)}</strong>
                         {restante > 0 && <> · A receber: <strong style={{ color: "#F59E0B" }}>{fmtBRL(restante)}</strong></>}

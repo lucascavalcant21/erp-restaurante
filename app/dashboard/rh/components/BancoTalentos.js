@@ -366,9 +366,9 @@ export default function BancoTalentos({ unidadeAtiva }) {
                  const ativa = abaSituacao === a.id;
                  return (
                    <button key={a.id} type="button" onClick={() => setAbaSituacao(a.id)}
-                     className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-widest transition-colors ${ativa ? a.ativo : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}>
+                     className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${ativa ? a.ativo : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}>
                      {a.nome}
-                     <span className={`rounded-full px-2 py-0.5 text-[11px] ${ativa ? "bg-white/25" : "bg-slate-100 text-slate-500"}`}>{n}</span>
+                     <span className={`rounded-full px-2 py-0.5 text-2xs ${ativa ? "bg-white/25" : "bg-slate-100 text-slate-500"}`}>{n}</span>
                    </button>
                  );
               })}
@@ -385,7 +385,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                 <div key={vaga} className="mb-5">
                    <div className="mb-2 flex items-center gap-2 px-1">
                       <h4 className="text-[13px] font-black text-slate-700">{vaga}</h4>
-                      <span className="text-[11px] font-black text-slate-400">{daVaga.length}</span>
+                      <span className="text-2xs font-bold text-slate-400">{daVaga.length}</span>
                    </div>
                    <div className="space-y-2">
                       {daVaga.map(c => {
@@ -400,23 +400,23 @@ export default function BancoTalentos({ unidadeAtiva }) {
                                      {c.cargo_pretendido && <span className="font-bold text-slate-400"> ({c.cargo_pretendido})</span>}
                                   </p>
                                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${getCorNota(c.nota_ia)}`}>{c.nota_ia} pts</span>
-                                     {c.url_curriculo && <span className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"><FileText size={10}/> Tem CV</span>}
-                                     {c.tem_filhos === "Sim" && <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">Tem filhos</span>}
+                                     <span className={`rounded px-1.5 py-0.5 text-3xs font-bold ${getCorNota(c.nota_ia)}`}>{c.nota_ia} pts</span>
+                                     {c.url_curriculo && <span className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-3xs font-bold text-slate-600"><FileText size={10}/> Tem CV</span>}
+                                     {c.tem_filhos === "Sim" && <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-3xs font-bold text-slate-500">Tem filhos</span>}
                                   </div>
                                </div>
 
                                {/* Situação e decisão. Aqui o clique não abre a ficha. */}
                                <div className="flex shrink-0 items-center gap-2" onClick={e => e.stopPropagation()}>
-                                  {sit === "aprovado" && <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">Aprovado</span>}
-                                  {sit === "reprovado" && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600">Reprovado</span>}
+                                  {sit === "aprovado" && <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-3xs font-bold uppercase tracking-widest text-emerald-700">Aprovado</span>}
+                                  {sit === "reprovado" && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-3xs font-bold uppercase tracking-widest text-slate-600">Reprovado</span>}
                                   {sit !== "aprovado" && (
                                     <button type="button" onClick={() => decidir(c.id, APROVADO)}
-                                       className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700">Aprovar</button>
+                                       className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Aprovar</button>
                                   )}
                                   {sit !== "reprovado" && (
                                     <button type="button" onClick={() => decidir(c.id, REPROVADO)}
-                                       className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">Reprovar</button>
+                                       className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Reprovar</button>
                                   )}
                                </div>
                             </div>
@@ -425,7 +425,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                             {sit === "aprovado" && c.telefone && (
                               <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3" onClick={e => e.stopPropagation()}>
                                 <a href={`https://wa.me/55${String(c.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
-                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-2xs font-bold text-emerald-700 hover:bg-emerald-100">
                                   <Phone size={13} /> Chamar
                                 </a>
                                 <button type="button" title="Compartilhar contato"
@@ -434,11 +434,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
                                     if (navigator.share) navigator.share({ text: texto }).catch(() => {});
                                     else navigator.clipboard?.writeText(texto);
                                   }}
-                                  className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
+                                  className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:bg-slate-200">
                                   Compartilhar
                                 </button>
                                 <button type="button" title="Ficha em PDF para enviar" onClick={() => imprimirFichaCandidato(c)}
-                                  className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
+                                  className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:bg-slate-200">
                                   PDF
                                 </button>
                               </div>
@@ -462,19 +462,19 @@ export default function BancoTalentos({ unidadeAtiva }) {
               {idsSelecionados.length} marcado{idsSelecionados.length > 1 ? "s" : ""}
             </span>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(APROVADO)}
-              className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+              className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
               Aprovar
             </button>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(REPROVADO)}
-              className="rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+              className="rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
               Reprovar
             </button>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(A_DECIDIR)}
-              className="rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+              className="rounded-xl border-2 border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50">
               Voltar para a decidir
             </button>
             <button type="button" onClick={() => setSelecionados({})} disabled={movendo}
-              className="ml-auto rounded-xl px-3 py-2 text-xs font-black text-slate-500 hover:text-slate-800 disabled:opacity-50">
+              className="ml-auto rounded-xl px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 disabled:opacity-50">
               {movendo ? "Movendo..." : "Limpar"}
             </button>
           </div>
@@ -495,15 +495,15 @@ export default function BancoTalentos({ unidadeAtiva }) {
             <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Título</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Título</span>
                   <input value={editorPortal.titulo} onChange={e => setEditorPortal({ ...editorPortal, titulo: e.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-bold outline-none focus:border-indigo-500" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Mensagem depois da candidatura</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Mensagem depois da candidatura</span>
                   <input value={editorPortal.mensagem_sucesso} onChange={e => setEditorPortal({ ...editorPortal, mensagem_sucesso: e.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-medium outline-none focus:border-indigo-500" />
                 </label>
                 <label className="block md:col-span-2">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Apresentação do portal</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Apresentação do portal</span>
                   <textarea rows={3} value={editorPortal.subtitulo} onChange={e => setEditorPortal({ ...editorPortal, subtitulo: e.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-medium outline-none focus:border-indigo-500 resize-y" />
                 </label>
               </div>
@@ -521,7 +521,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                       horario_trabalho: "", dias_trabalho: "", folga: "", domingo_folga: "1 domingo de folga por mês",
                       requisitos: [], ativa: true,
                     }],
-                  })} className="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-black">
+                  })} className="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-bold">
                     <Plus size={15} /> Nova vaga
                   </button>
                 </div>
@@ -541,22 +541,22 @@ export default function BancoTalentos({ unidadeAtiva }) {
                           ["domingo_folga", "Domingo de folga"],
                         ].map(([campo, label]) => (
                           <label key={campo} className="block">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</span>
+                            <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">{label}</span>
                             <input value={vaga[campo] || ""} onChange={e => atualizarVaga(index, { [campo]: e.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
                           </label>
                         ))}
                         <label className="block">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quantidade</span>
+                          <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Quantidade</span>
                           <input type="number" min="1" value={vaga.quantidade} onChange={e => atualizarVaga(index, { quantidade: Number(e.target.value) || 1 })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
                         </label>
                       </div>
                       <div className="mt-4 rounded-2xl border border-indigo-100 bg-white p-3.5">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                           <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pré-requisitos da função</p>
-                            <p className="text-[11px] text-slate-400 mt-0.5">Um requisito por linha. Você pode editar tudo que a IA sugerir.</p>
+                            <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Pré-requisitos da função</p>
+                            <p className="text-2xs text-slate-400 mt-0.5">Um requisito por linha. Você pode editar tudo que a IA sugerir.</p>
                           </div>
-                          <button type="button" disabled={gerandoRequisitos === vaga.id} onClick={() => gerarRequisitosIA(vaga, index)} className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:opacity-60">
+                          <button type="button" disabled={gerandoRequisitos === vaga.id} onClick={() => gerarRequisitosIA(vaga, index)} className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">
                             {gerandoRequisitos === vaga.id ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
                             {gerandoRequisitos === vaga.id ? "Gerando..." : "Gerar com IA"}
                           </button>
@@ -574,7 +574,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                           <input type="checkbox" checked={vaga.ativa} onChange={e => atualizarVaga(index, { ativa: e.target.checked })} />
                           Exibir no portal
                         </label>
-                        <button type="button" onClick={() => setEditorPortal({ ...editorPortal, vagas: editorPortal.vagas.filter((_, i) => i !== index) })} className="flex items-center gap-1.5 text-xs font-black text-rose-600 hover:text-rose-700">
+                        <button type="button" onClick={() => setEditorPortal({ ...editorPortal, vagas: editorPortal.vagas.filter((_, i) => i !== index) })} className="flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700">
                           <Trash2 size={14} /> Excluir vaga
                         </button>
                       </div>
@@ -632,7 +632,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                            <div key={label} className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-0">
                               <Icon size={19} className="text-slate-400 shrink-0 mt-0.5" />
                               <div className="min-w-0">
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                                 <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
                                  <p className="font-black text-sm text-slate-700 break-words">{valorOuTraco(value)}</p>
                               </div>
                            </div>
@@ -661,12 +661,12 @@ export default function BancoTalentos({ unidadeAtiva }) {
                         <div className="flex items-start gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
                            <Briefcase size={20} className="text-indigo-500 shrink-0 mt-0.5" />
                            <div>
-                              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Cargo pretendido</p>
+                              <p className="text-3xs font-bold text-indigo-400 uppercase tracking-widest">Cargo pretendido</p>
                               <p className="font-black text-indigo-800">{valorOuTraco(detalhesAbertos.cargoPretendido)}</p>
                            </div>
                         </div>
                         <div className="sm:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Experiência declarada</p>
+                           <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest mb-1">Experiência declarada</p>
                            <p className="font-bold text-sm text-slate-700 whitespace-pre-wrap">{valorOuTraco(detalhesAbertos.experiencia)}</p>
                         </div>
                      </div>
@@ -679,11 +679,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
                            const resposta = respostaFormatada(candidatoAberto, pergunta);
                            return (
                               <div key={pergunta.id} className="rounded-2xl border border-slate-200 p-4 bg-white">
-                                 <p className="text-xs font-black text-slate-500 mb-2">{index + 1}. {pergunta.pergunta}</p>
+                                 <p className="text-xs font-bold text-slate-500 mb-2">{index + 1}. {pergunta.pergunta}</p>
                                  {resposta ? (
                                     <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
                                        <p className="font-bold text-sm text-emerald-900">{resposta.texto}</p>
-                                       {resposta.tag && <span className="inline-flex mt-2 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-white border border-emerald-200 rounded-full px-2 py-1">{resposta.tag}</span>}
+                                       {resposta.tag && <span className="inline-flex mt-2 text-3xs font-bold uppercase tracking-wider text-emerald-700 bg-white border border-emerald-200 rounded-full px-2 py-1">{resposta.tag}</span>}
                                     </div>
                                  ) : (
                                     <p className="text-sm font-bold text-slate-400 bg-slate-50 rounded-xl p-3">Resposta não disponível neste cadastro antigo.</p>

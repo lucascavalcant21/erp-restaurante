@@ -96,12 +96,12 @@ function Indicador({ icone: Icone, rotulo, valor, nota, tom = "neutro" }) {
   };
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3">
-      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-slate-500">
         {Icone ? <Icone size={13} /> : null}
         <span className="truncate">{rotulo}</span>
       </div>
       <div className={`mt-1 text-lg font-bold tabular-nums ${cores[tom] || cores.neutro}`}>{valor}</div>
-      {nota ? <div className="mt-0.5 text-[11px] text-slate-400">{nota}</div> : null}
+      {nota ? <div className="mt-0.5 text-2xs text-slate-400">{nota}</div> : null}
     </div>
   );
 }
@@ -596,24 +596,24 @@ export default function FichaTecnicaPage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               {ficha.codigo ? (
-                <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-[11px] font-bold text-white">{ficha.codigo}</span>
+                <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-2xs font-bold text-white">{ficha.codigo}</span>
               ) : null}
-              <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
-              <span className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold ${
+              <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
+              <span className={`rounded-lg px-2 py-0.5 text-2xs font-semibold ${
                 (form.status || "ativa") === "ativa" ? "bg-emerald-50 text-emerald-700"
                   : (form.status || "") === "rascunho" ? "bg-amber-50 text-amber-700"
                   : "bg-slate-100 text-slate-500"}`}>
                 {STATUS_FICHA.find(s => s.valor === (form.status || "ativa"))?.rotulo || "Ativa"}
               </span>
               {ficha.eh_base ? (
-                <span className="rounded-lg bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">Pré-preparo</span>
+                <span className="rounded-lg bg-orange-50 px-2 py-0.5 text-2xs font-semibold text-orange-700">Pré-preparo</span>
               ) : null}
             </div>
             <h1 className="mt-1.5 truncate text-xl font-extrabold text-slate-900">{ficha.nome_receita}</h1>
             <p className="mt-0.5 text-xs text-slate-500">
               {[ficha.categoria, ficha.subcategoria, ficha.departamento].filter(Boolean).join(" · ") || "Sem categoria"}
             </p>
-            <p className="mt-1.5 text-[11px] text-slate-400">
+            <p className="mt-1.5 text-2xs text-slate-400">
               {ficha.responsavel ? `Responsável: ${ficha.responsavel} · ` : ""}
               Criada em {fmtData(ficha.created_at)}
               {ficha.atualizado_em ? ` · Atualizada em ${fmtData(ficha.atualizado_em)}` : ""}
@@ -766,7 +766,7 @@ export default function FichaTecnicaPage() {
               onChange={e => mudar("peso_final_g", e.target.value)} />
           </Field>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Perda calculada</div>
+            <div className="text-2xs font-medium uppercase tracking-wide text-slate-500">Perda calculada</div>
             <div className="mt-1 text-lg font-bold tabular-nums text-slate-800">
               {calc.perda ? `${Math.round(calc.perda)} g` : "—"}
               {calc.perdaPct ? <span className="ml-1.5 text-sm font-semibold text-slate-500">{fmtPct(calc.perdaPct)}</span> : null}
@@ -783,7 +783,7 @@ export default function FichaTecnicaPage() {
             </Field>
           )}
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-slate-500">
               <Clock size={12} /> Tempo total
             </div>
             <div className="mt-1 text-lg font-bold tabular-nums text-slate-800">
@@ -813,7 +813,7 @@ export default function FichaTecnicaPage() {
           <div className="-mx-1 overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                <tr className="border-b border-slate-100 text-left text-2xs uppercase tracking-wide text-slate-400">
                   <th className="px-1 pb-2 font-medium">Item</th>
                   <th className="px-1 pb-2 text-right font-medium">Qtd.</th>
                   <th className="px-1 pb-2 text-right font-medium">Correção</th>
@@ -832,7 +832,7 @@ export default function FichaTecnicaPage() {
                     <tr key={fi.id || i} className="border-b border-slate-50 last:border-0">
                       <td className="px-1 py-2">
                         <span className="font-medium text-slate-700">{nome}</span>
-                        {sub ? <span className="ml-1.5 rounded bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700">subreceita</span> : null}
+                        {sub ? <span className="ml-1.5 rounded bg-orange-50 px-1.5 py-0.5 text-3xs font-semibold text-orange-700">subreceita</span> : null}
                       </td>
                       <td className="px-1 py-2 text-right tabular-nums text-slate-600">
                         {parseNumero(fi.quantidade)} {unidade}
@@ -1040,7 +1040,7 @@ export default function FichaTecnicaPage() {
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
             <Percent size={14} /> Simulador de CMV
           </div>
-          <p className="mt-0.5 text-[11px] text-slate-500">Com que preço a receita fecha no CMV desejado.</p>
+          <p className="mt-0.5 text-2xs text-slate-500">Com que preço a receita fecha no CMV desejado.</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {CMV_ATALHOS.map(v => (
               <button key={v} onClick={() => setCmvSimulado(String(v))}
@@ -1057,7 +1057,7 @@ export default function FichaTecnicaPage() {
             </div>
             {precoAlvo > 0 ? (
               <div className="ml-auto text-right">
-                <div className="text-[11px] uppercase tracking-wide text-slate-500">Preço sugerido</div>
+                <div className="text-2xs uppercase tracking-wide text-slate-500">Preço sugerido</div>
                 <div className="text-lg font-bold tabular-nums text-emerald-600">{fmtBRL(precoAlvo)}</div>
               </div>
             ) : null}
@@ -1122,7 +1122,7 @@ export default function FichaTecnicaPage() {
               <div className="-mx-1 overflow-x-auto">
                 <table className="w-full min-w-[440px] text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-left text-[11px] uppercase tracking-wide text-slate-400">
+                    <tr className="border-b border-slate-100 text-left text-2xs uppercase tracking-wide text-slate-400">
                       <th className="px-1 pb-2 font-medium">Data</th>
                       <th className="px-1 pb-2 text-right font-medium">Custo total</th>
                       <th className="px-1 pb-2 text-right font-medium">Variação</th>
@@ -1275,11 +1275,11 @@ function ComparacaoVersoes({ par, onVoltar }) {
               </div>
               <div className="mt-1 grid gap-1 sm:grid-cols-2">
                 <div className="rounded-lg bg-rose-50 px-2 py-1 text-rose-800">
-                  <span className="text-[10px] font-bold uppercase text-rose-400">antes</span>
+                  <span className="text-3xs font-bold uppercase text-rose-400">antes</span>
                   <div className="break-words">{mostrarValor(d.antes)}</div>
                 </div>
                 <div className="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800">
-                  <span className="text-[10px] font-bold uppercase text-emerald-500">depois</span>
+                  <span className="text-3xs font-bold uppercase text-emerald-500">depois</span>
                   <div className="break-words">{mostrarValor(d.depois)}</div>
                 </div>
               </div>

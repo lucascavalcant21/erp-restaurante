@@ -99,7 +99,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
     <Modal open={open} onClose={onClose} title={titulo}>
       {parseados.length === 0 ? (
         <>
-          <p className="text-[12px] mb-3" style={{ color: "var(--dim)" }}>
+          <p className="text-xs mb-3" style={{ color: "var(--dim)" }}>
             Cole sua lista de ingredientes (1 por linha). O sistema vai detectar automaticamente <strong>nome</strong>, <strong>preço</strong>, <strong>quantidade</strong>, <strong>unidade</strong> e <strong>categoria</strong>.
           </p>
 
@@ -107,7 +107,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent-fg)", fontWeight: 600 }}>
               Ver formatos suportados e exemplo
             </summary>
-            <div className="mt-2 p-3 rounded text-[11px]" style={{ background: "var(--elevated)" }}>
+            <div className="mt-2 p-3 rounded text-2xs" style={{ background: "var(--elevated)" }}>
               <p style={{ color: "var(--muted)", marginBottom: 6 }}><strong>Exemplos válidos:</strong></p>
               <code style={{ whiteSpace: "pre-wrap", display: "block", fontFamily: "monospace", color: "var(--fg)" }}>{exemplo}</code>
               <p className="mt-2" style={{ color: "var(--dim)" }}>
@@ -144,7 +144,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
       ) : (
         <>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <p className="text-[12px]" style={{ color: "var(--dim)" }}>
+            <p className="text-xs" style={{ color: "var(--dim)" }}>
               {parseados.length} item{parseados.length !== 1 ? "s" : ""} identificado{parseados.length !== 1 ? "s" : ""}.
               Revise e edite o que precisar antes de salvar.
             </p>
@@ -228,7 +228,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
                     {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                   </Select>
 
-                  <p className="text-[10px] mt-1" style={{ color: "var(--dim)" }}>
+                  <p className="text-3xs mt-1" style={{ color: "var(--dim)" }}>
                     {fmtBRL(item.custo_unit)} / {item.peso_unit}{item.unidade}
                     {item.peso_unit > 0 && (
                       <> · <strong style={{ color: "var(--accent-fg)" }}>

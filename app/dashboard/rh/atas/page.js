@@ -337,7 +337,7 @@ export default function AtasReuniaoPage() {
             <div className="erp-card p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="erp-label">Dados da Reunião</p>
-                {form.id && <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>salva no histórico</span>}
+                {form.id && <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>salva no histórico</span>}
               </div>
               <div>
                 <label className="erp-label block mb-1.5">Tema da reunião</label>
@@ -383,7 +383,7 @@ export default function AtasReuniaoPage() {
                     <img src={"data:image/jpeg;base64," + form.foto} alt="Foto da Ata" className="w-16 h-16 object-cover rounded-lg border border-emerald-300 shadow-sm" />
                     <div className="flex-1 min-w-0 text-xs">
                       <p className="font-bold text-emerald-900">Foto da Ata / Anotação anexada</p>
-                      <p className="text-emerald-700 text-[11px]">Transcrevida pela IA mantendo sua estrutura original.</p>
+                      <p className="text-emerald-700 text-2xs">Transcrevida pela IA mantendo sua estrutura original.</p>
                     </div>
                     <button type="button" onClick={() => setForm(f => ({ ...f, foto: null }))} className="px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-100 rounded-lg">Remover</button>
                   </div>
@@ -420,12 +420,12 @@ export default function AtasReuniaoPage() {
                 const marcados = colaboradores.filter(c => participantes[c.id]).length;
                 const q = Number(qtdParticipantes) || 0;
                 if (q > 0 && q < marcados) return (
-                  <p className="text-[10px] font-bold mb-3" style={{ color: "#B45309" }}>
+                  <p className="text-3xs font-bold mb-3" style={{ color: "#B45309" }}>
                     Você marcou {marcados} nomes — a folha vai sair com {marcados} linhas para caber todos.
                   </p>
                 );
                 if (q > 0) return (
-                  <p className="text-[10px] font-medium mb-3" style={{ color: "var(--dim)" }}>
+                  <p className="text-3xs font-medium mb-3" style={{ color: "var(--dim)" }}>
                     A folha sai com {q} linha{q > 1 ? "s" : ""} de assinatura: {marcados} com nome impresso + {q - marcados} em branco.
                   </p>
                 );
@@ -439,12 +439,12 @@ export default function AtasReuniaoPage() {
                     <label key={c.id} className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer" style={{ background: participantes[c.id] ? "var(--accent-soft)" : "var(--elevated)" }}>
                       <input type="checkbox" checked={!!participantes[c.id]} onChange={e => setParticipantes(p => ({ ...p, [c.id]: e.target.checked }))} className="w-4 h-4 accent-emerald-600" />
                       <span className="text-sm font-bold truncate" style={{ color: "var(--fg-soft)" }}>{c.nome}</span>
-                      {c.cargo && <span className="text-[10px] font-medium ml-auto shrink-0" style={{ color: "var(--dim)" }}>{c.cargo}</span>}
+                      {c.cargo && <span className="text-3xs font-medium ml-auto shrink-0" style={{ color: "var(--dim)" }}>{c.cargo}</span>}
                     </label>
                   ))}
                 </div>
               )}
-              <p className="text-[10px] font-medium mt-3" style={{ color: "var(--dim)" }}>Sem número definido, a folha sai com os nomes marcados + 4 linhas em branco.</p>
+              <p className="text-3xs font-medium mt-3" style={{ color: "var(--dim)" }}>Sem número definido, a folha sai com os nomes marcados + 4 linhas em branco.</p>
             </div>
 
             <div className="erp-card p-5">
@@ -459,7 +459,7 @@ export default function AtasReuniaoPage() {
                     <div key={a.id} className="p-3 rounded-xl flex items-center gap-2" style={{ background: a.id === form.id ? "var(--accent-soft)" : "var(--elevated)" }}>
                       <button onClick={() => abrirDoHistorico(a)} className="flex-1 min-w-0 text-left">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{a.tema}</p>
-                        <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>
+                        <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>
                           {a.data_reuniao ? a.data_reuniao.split("-").reverse().join("/") : "—"}{a.hora ? ` às ${a.hora}` : ""}
                           {Array.isArray(a.participantes) ? ` · ${a.participantes.length} presentes` : ""}
                         </p>

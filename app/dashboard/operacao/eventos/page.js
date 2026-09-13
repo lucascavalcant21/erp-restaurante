@@ -148,24 +148,24 @@ export default function EventosPage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>{e.tipo}</span>
+                          <span className="text-3xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>{e.tipo}</span>
                           <span className={`erp-badge ${STATUS_STYLE[e.status] || ""}`}>{e.status}</span>
                         </div>
                         <p className="text-base font-bold truncate" style={{ color: "var(--fg)" }}>{e.nome}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(e.valor_contrato)}</p>
-                        <p className="text-[11px]" style={{ color: margem >= 0 ? "var(--accent-fg)" : "#DC2626" }}>lucro {fmtBRL(margem)}</p>
+                        <p className="text-2xs" style={{ color: margem >= 0 ? "var(--accent-fg)" : "#DC2626" }}>lucro {fmtBRL(margem)}</p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] mb-3" style={{ color: "var(--subtle)" }}>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-2xs mb-3" style={{ color: "var(--subtle)" }}>
                       <span className="flex items-center gap-1"><Calendar size={11} />{fmtDataHora(e.data)}</span>
                       {e.local && <span className="flex items-center gap-1"><MapPin size={11} />{e.local}</span>}
                       {!!e.convidados && <span className="flex items-center gap-1"><Users size={11} />{e.convidados}</span>}
                     </div>
                     <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
-                      <button onClick={() => { setEditar(e); setModal(true); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }}><Edit3 size={13} /> Editar</button>
-                      <button onClick={() => remover(e.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg erp-badge-danger"><Trash2 size={13} /> Remover</button>
+                      <button onClick={() => { setEditar(e); setModal(true); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-2xs font-bold rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }}><Edit3 size={13} /> Editar</button>
+                      <button onClick={() => remover(e.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-2xs font-bold rounded-lg erp-badge-danger"><Trash2 size={13} /> Remover</button>
                     </div>
                   </Card>
                 );

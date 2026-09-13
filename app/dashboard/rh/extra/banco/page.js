@@ -176,7 +176,7 @@ export default function BancoDeExtras() {
                     </p>
                   </div>
                   {e.interesse !== "extra" && (
-                    <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black uppercase text-white">Quer CLT</span>
+                    <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-1 text-3xs font-bold uppercase text-white">Quer CLT</span>
                   )}
                 </div>
 
@@ -217,7 +217,7 @@ export default function BancoDeExtras() {
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-[11px] font-bold text-slate-400">Cadastrado em {dataBR(e.created_at)}</p>
+                <p className="mt-2 text-2xs font-bold text-slate-400">Cadastrado em {dataBR(e.created_at)}</p>
               </article>
             ))}
           </div>
@@ -238,30 +238,30 @@ export default function BancoDeExtras() {
 
             <div className="space-y-4">
               <label className="block">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Nome</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Nome</span>
                 <input value={editando.nome || ""} onChange={ev => setEditando(v => ({ ...v, nome: ev.target.value }))}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Telefone</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Telefone</span>
                   <input value={editando.telefone || ""} onChange={ev => setEditando(v => ({ ...v, telefone: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Diária combinada (R$)</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Diária combinada (R$)</span>
                   <input type="number" step="0.01" value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-emerald-700 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Função principal</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Função principal</span>
                   <select value={editando.funcao_principal || ""} onChange={ev => setEditando(v => ({ ...v, funcao_principal: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600">
                     {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Segunda função</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Segunda função</span>
                   <select value={editando.funcao_secundaria || ""} onChange={ev => setEditando(v => ({ ...v, funcao_secundaria: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600">
                     <option value="">Nenhuma</option>
@@ -269,23 +269,23 @@ export default function BancoDeExtras() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Bairro</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Bairro</span>
                   <input value={editando.bairro || ""} onChange={ev => setEditando(v => ({ ...v, bairro: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Cidade</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Cidade</span>
                   <input value={editando.cidade || ""} onChange={ev => setEditando(v => ({ ...v, cidade: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
               </div>
               <label className="block">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Chave PIX</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Chave PIX</span>
                 <input value={editando.chave_pix || ""} onChange={ev => setEditando(v => ({ ...v, chave_pix: ev.target.value }))}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
               </label>
               <label className="block">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Observações do RH</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Observações do RH</span>
                 <textarea rows={3} value={editando.observacoes || ""} onChange={ev => setEditando(v => ({ ...v, observacoes: ev.target.value }))}
                   className="mt-1.5 w-full rounded-xl border border-slate-300 p-3.5 font-medium text-slate-800 outline-none focus:border-emerald-600"
                   placeholder="Só o RH vê." />

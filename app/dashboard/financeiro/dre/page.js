@@ -79,7 +79,7 @@ export default function DreGerencialPage() {
                {["Semanal", "Mensal", "Anual"].map(p => (
                   <button 
                     key={p} onClick={() => setPeriodoLetra(p)}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}
+                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}
                   >
                     {p}
                   </button>
@@ -128,12 +128,12 @@ export default function DreGerencialPage() {
                    
                    <div className="space-y-4">
                       <div>
-                         <p className="text-[11px] font-bold text-slate-500 uppercase">Receitas Geradas</p>
+                         <p className="text-2xs font-bold text-slate-500 uppercase">Receitas Geradas</p>
                          <p className="text-xl font-black text-slate-900">{fmtBRL(dre.receitaBruta)}</p>
                       </div>
                       <div className="w-full h-px bg-slate-100"></div>
                       <div>
-                         <p className="text-[11px] font-bold text-slate-500 uppercase">Custos Consumidos</p>
+                         <p className="text-2xs font-bold text-slate-500 uppercase">Custos Consumidos</p>
                          <p className="text-xl font-black text-slate-900">{fmtBRL(dre.despesaTotal)}</p>
                       </div>
                    </div>
@@ -147,8 +147,8 @@ export default function DreGerencialPage() {
                    
                    {/* Cabeçalho Tabela */}
                    <div className="bg-slate-50 px-4 sm:px-6 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-500">Descrição da Conta</span>
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-500">Valor Acumulado</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Descrição da Conta</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Valor Acumulado</span>
                    </div>
 
                    {/* Linha: Receita Operacional Bruta */}
@@ -164,7 +164,7 @@ export default function DreGerencialPage() {
 
                    {/* Cabeçalho de Despesas */}
                    <div className="px-6 py-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-50 px-2 py-1 rounded-md">
+                      <span className="text-3xs font-bold uppercase tracking-widest text-slate-600 bg-slate-50 px-2 py-1 rounded-md">
                          (-) Custos & Despesas Operacionais
                       </span>
                    </div>
@@ -174,7 +174,7 @@ export default function DreGerencialPage() {
                       {Object.entries(dre.categorias).sort((a, b) => b[1] - a[1]).map(([cat, val], idx) => (
                          <div key={cat} className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 hover:bg-slate-50 transition-colors group">
                             <div className="flex items-center gap-3">
-                               <span className="text-[10px] font-bold text-slate-500 w-4">{idx + 1}</span>
+                               <span className="text-3xs font-bold text-slate-500 w-4">{idx + 1}</span>
                                <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{cat}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-500 font-mono">
@@ -201,10 +201,10 @@ export default function DreGerencialPage() {
                    {/* Linha Mestra: Resultado Líquido */}
                    <div className={`px-4 sm:px-6 py-5 sm:py-6 border-t-2 border-slate-900 flex flex-wrap justify-between items-center gap-2 ${isLucro ? 'bg-emerald-50' : 'bg-slate-50'}`}>
                       <div className="flex items-center gap-3">
-                         <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-xs font-black">3</span>
+                         <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-xs font-bold">3</span>
                          <div>
                             <span className={`text-lg font-black uppercase tracking-widest ${isLucro ? 'text-emerald-900' : 'text-red-900'}`}>(=) Resultado Líquido</span>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>Lucro ou Prejuízo do Exercício</p>
+                            <p className={`text-3xs font-bold uppercase tracking-widest mt-1 ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>Lucro ou Prejuízo do Exercício</p>
                          </div>
                       </div>
                       <span className={`text-2xl font-black font-mono ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>
@@ -219,23 +219,23 @@ export default function DreGerencialPage() {
         )}
         {cmo && (
           <Card className="mt-4">
-            <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CMO · custo de mão de obra no mês</p>
-            <p className="mt-0.5 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Folha vem do RH; diárias vêm dos recibos pagos no módulo de Extras.</p>
+            <p className="text-2xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>CMO · custo de mão de obra no mês</p>
+            <p className="mt-0.5 text-2xs font-medium" style={{ color: "var(--dim)" }}>Folha vem do RH; diárias vêm dos recibos pagos no módulo de Extras.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <div className="rounded-xl px-3 py-2" style={{ background: "var(--elevated)" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Folha dos contratados</p>
+                <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Folha dos contratados</p>
                 <p className="text-lg font-black" style={{ color: "var(--fg)" }}>{fmtBRL(cmo.folha)}</p>
               </div>
               <div className="rounded-xl px-3 py-2" style={{ background: "var(--elevated)" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Diárias de extras</p>
+                <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Diárias de extras</p>
                 <p className="text-lg font-black" style={{ color: "var(--fg)" }}>{fmtBRL(cmo.extras)}</p>
-                {cmo.extrasEmAberto > 0 && <p className="text-[10px] font-bold" style={{ color: "#B45309" }}>{fmtBRL(cmo.extrasEmAberto)} em aberto</p>}
+                {cmo.extrasEmAberto > 0 && <p className="text-3xs font-bold" style={{ color: "#B45309" }}>{fmtBRL(cmo.extrasEmAberto)} em aberto</p>}
               </div>
               <div className="rounded-xl px-3 py-2" style={{ background: "var(--accent-soft)" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--accent-strong)" }}>CMO total</p>
+                <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--accent-strong)" }}>CMO total</p>
                 <p className="text-lg font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(cmo.total)}</p>
                 {(() => { const p = pesoDoCMO(cmo.total, dre.receitaBruta); return p == null ? null : (
-                  <p className="text-[10px] font-bold" style={{ color: "var(--accent-strong)" }}>{fmtPct(p)} do faturamento</p>
+                  <p className="text-3xs font-bold" style={{ color: "var(--accent-strong)" }}>{fmtPct(p)} do faturamento</p>
                 ); })()}
               </div>
             </div>
@@ -250,7 +250,7 @@ function LinhaTotal({ codigo, label, valor, cor, bg }) {
   return (
     <div className={`flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 ${bg}`}>
       <div className="flex items-center gap-3">
-         <span className="text-[10px] font-black text-slate-500 border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-white">{codigo}</span>
+         <span className="text-3xs font-bold text-slate-500 border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-white">{codigo}</span>
          <span className={`text-sm font-black uppercase tracking-widest ${cor}`}>{label}</span>
       </div>
       <span className={`text-lg font-black font-mono ${cor}`}>{fmtBRL(valor)}</span>

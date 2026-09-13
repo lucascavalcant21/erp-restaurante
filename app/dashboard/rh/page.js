@@ -2059,16 +2059,16 @@ export default function RHPage() {
                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                   {cards.map(c => (
                      <div key={c.rot} className="bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5">
-                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                        <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
                         <p className="text-lg font-black text-emerald-700 mt-0.5">{c.val}</p>
-                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
+                        <p className="text-3xs font-bold text-slate-400 truncate">{c.sub}</p>
                      </div>
                   ))}
                   {incompletos > 0 && (
                      <div className="bg-red-50 rounded-2xl border border-red-200 shadow-sm px-3 py-2.5">
-                        <p className="text-[9px] font-black uppercase tracking-wider text-red-400 leading-tight">Cadastros incompletos</p>
+                        <p className="text-3xs font-bold uppercase tracking-wider text-red-400 leading-tight">Cadastros incompletos</p>
                         <p className="text-lg font-black text-red-600 mt-0.5">{incompletos}</p>
-                        <p className="text-[10px] font-bold text-red-400 truncate">sem admissão / CPF</p>
+                        <p className="text-3xs font-bold text-red-400 truncate">sem admissão / CPF</p>
                      </div>
                   )}
                </div>
@@ -2099,10 +2099,10 @@ export default function RHPage() {
             if (!alertas.length) return null;
             const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
             return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-               <div className="flex items-center justify-between mb-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-black bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
-               {alertas.length > 8 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
-               <p className="text-[9px] font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
+               <div className="flex items-center justify-between mb-3"><div><p className="text-3xs font-bold uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-bold">{a.nome}</p><p className="text-3xs font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
+               {alertas.length > 8 && <p className="text-3xs font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
+               <p className="text-3xs font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
             </div>;
          })()}
       </div>
@@ -2133,11 +2133,11 @@ export default function RHPage() {
                      <div className="relative w-24 h-24 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops || "#e2e8f0 0deg 360deg"})` }}>
                         <div className="absolute inset-[14px] rounded-full bg-white flex flex-col items-center justify-center">
                            <span className="text-xl font-black text-slate-800 leading-none">{todos.length}</span>
-                           <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Total</span>
+                           <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Total</span>
                         </div>
                      </div>
                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Composição da equipe</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-2">Composição da equipe</p>
                         <div className="space-y-1">
                            {segs.map(s => (
                               <div key={s.rot} className="flex items-center gap-2 text-xs">
@@ -2155,7 +2155,7 @@ export default function RHPage() {
 
             {/* Ações rápidas */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Ações rápidas</p>
+               <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-2.5">Ações rápidas</p>
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                      { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
@@ -2168,7 +2168,7 @@ export default function RHPage() {
                   ].map(a => (
                      <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
                         <a.icon size={18} className="text-emerald-600" />
-                        <span className="text-[10px] font-black text-slate-600 leading-tight">{a.rot}</span>
+                        <span className="text-3xs font-bold text-slate-600 leading-tight">{a.rot}</span>
                      </button>
                   ))}
                </div>
@@ -2182,7 +2182,7 @@ export default function RHPage() {
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
             {[["Fixo", "Equipe Fixa"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
                <button key={id} onClick={() => setAbaAtiva(id)}
-                  className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                   {rot}
                </button>
             ))}
@@ -2220,7 +2220,7 @@ export default function RHPage() {
                         const strToMin = (s) => { if (!s) return null; const [h, m] = s.split(':').map(Number); return h * 60 + m; };
                         const dateToMin = (d) => { if (!d) return null; const x = new Date(d); return x.getHours() * 60 + x.getMinutes(); };
                         const minToStr = (m) => { if (m < 0) m += 1440; const hh = Math.floor(m / 60), mm = m % 60; return hh === 0 ? `${mm}min` : `${hh}h${String(mm).padStart(2, '0')}`; };
-                        const cls = (c) => `text-[11px] font-bold px-2.5 py-1 rounded-md border inline-flex items-center gap-1 ${c}`;
+                        const cls = (c) => `text-2xs font-bold px-2.5 py-1 rounded-md border inline-flex items-center gap-1 ${c}`;
                         const hoje = new Date();
                         const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
                         const diaSemana = hoje.getDay(); // 0 = domingo
@@ -2235,7 +2235,7 @@ export default function RHPage() {
                               const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
                               if (minAgora > strToMin(entradaEsperada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {entradaEsperada})</span>;
                            }
-                           return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
+                           return <span className="text-2xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
                         }
                         // A frase base vem do módulo de status, para o RH falar
                         // igual em toda tela. O que a tela acrescenta são os
@@ -2255,7 +2255,7 @@ export default function RHPage() {
                            return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>{situacao.texto}</span>;
                         }
                         if (pt.status_jornada === 4) return <span className={cls(situacao.semIntervalo ? "text-rose-700 bg-rose-100 border-rose-200" : "text-blue-700 bg-blue-100 border-blue-200")}>{situacao.texto}</span>;
-                        return <span className="text-[11px] font-bold text-slate-400">--</span>;
+                        return <span className="text-2xs font-bold text-slate-400">--</span>;
                      })();
                      const tb = totalBancoDe(f.id);
                      return (
@@ -2272,10 +2272,10 @@ export default function RHPage() {
                                     <div className="flex text-amber-400 mt-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (f.avaliacao_estrelas || 0) ? "fill-amber-400" : "text-slate-200"} />)}</div>
                                  )}
                               </div>
-                              {ehInativo(f) && <span className="text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 shrink-0">{f.tipo_desligamento || "Desligado"}</span>}
+                              {ehInativo(f) && <span className="text-3xs font-bold uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 shrink-0">{f.tipo_desligamento || "Desligado"}</span>}
                            </div>
                            {(f.telefone || f.chave_pix) && (
-                              <div className="text-[11px] font-semibold text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                              <div className="text-2xs font-semibold text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5">
                                  {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-emerald-700 hover:underline"><Phone size={10} /> {f.telefone}</a>}
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
@@ -2287,7 +2287,7 @@ export default function RHPage() {
                               const adm = f.data_admissao ? new Date(`${String(f.data_admissao).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : null;
                               if (!adm && !casa && !aniv && !f.tipo_contrato) return null;
                               return (
-                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-slate-500">
+                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-slate-500">
                                     {f.tipo_contrato && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
                                     {adm && <span>Admissão {adm}</span>}
                                     {casa && <span className="text-emerald-700">{casa.textoDias} de {nomeDaCasa}</span>}
@@ -2298,7 +2298,7 @@ export default function RHPage() {
                            <div>{pontoBadge}</div>
                            <div>
                               {ehFreela ? (
-                                 <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-[10px] font-bold text-slate-400">/ diária</span></div>
+                                 <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-3xs font-bold text-slate-400">/ diária</span></div>
                               ) : (
                                  (() => {
                                  // Dia a dia do mês: alimenta os cliques (extra/noturno/feriado) e os contadores
@@ -2320,7 +2320,7 @@ export default function RHPage() {
                                     alert(`${titulo}\n\n${ls.join("\n") || "Nenhum dia registrado."}\n\nTotal: ${tot} min\n${regra}`);
                                  };
                                  return (
-                                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-[12px]" onClick={(e) => e.stopPropagation()}>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
                                     {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-slate-500 font-semibold">Salário base</span><span className="font-bold text-slate-700">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
                                     {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nValor mensal definido no cadastro (rateio da taxa de 10%). Entra no total e no holerite no fim do mês.\n\nTrabalhou até agora: ${diasTrab.length} dia(s) — por dia dá ${fmtBRL(p.taxa / Math.max(1, diasTrab.length))}.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
@@ -2333,18 +2333,18 @@ export default function RHPage() {
                                     {(() => {
                                        const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
                                        if (!nDias || !p.fixo) return null;
-                                       return <div className="flex justify-between mt-0.5"><span className="text-[10px] font-bold text-slate-400">Valor por dia trabalhado</span><span className="text-[10px] font-black text-slate-500">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
+                                       return <div className="flex justify-between mt-0.5"><span className="text-3xs font-bold text-slate-400">Valor por dia trabalhado</span><span className="text-3xs font-bold text-slate-500">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
                                     })()}
                                     {detAberto[f.id] && (<>{/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
-                                    <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-200 text-[10px] font-bold">
+                                    <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-200 text-3xs font-bold">
                                        <span className="text-slate-500">Dias no mês (escala)</span><span className="text-right text-slate-700 font-black">{diasPrevistos}</span>
                                        <span className="text-slate-500">Trabalhou até agora</span><span className="text-right text-emerald-700 font-black">{diasTrab.length}</span>
                                        <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-slate-500"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
                                        <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-slate-500"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
                                     </div>
                                     </>)}
-                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-[10px] font-black text-slate-400 hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
-                                    <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center justify-center gap-1.5">
+                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-3xs font-bold text-slate-400 hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
+                                    <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-2xs flex items-center justify-center gap-1.5">
                                        <Printer size={12} /> Holerite
                                     </button>
                                  </div>
@@ -2355,22 +2355,22 @@ export default function RHPage() {
                            <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                  {f.docs?.length > 0
-                                    ? <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
-                                    : <span className="text-[10px] text-slate-400">Sem docs</span>}
+                                    ? <span className="text-3xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
+                                    : <span className="text-3xs text-slate-400">Sem docs</span>}
                                  {tb >= BANCO_ALERTA_MIN && (
-                                    <button onClick={() => abrirModalBanco(f)} className={`text-[10px] font-black px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
+                                    <button onClick={() => abrirModalBanco(f)} className={`text-3xs font-bold px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
                                        <Clock size={10} /> {fmtMin(tb)}{tb >= BANCO_LIMITE_MIN ? "!" : ""}
                                     </button>
                                  )}
                               </div>
                               <div className="flex items-center gap-1.5">
                                  {abaAtiva !== "Ex-funcionários" && (
-                                    <button onClick={() => abrirDesligamento(f)} className="flex items-center gap-1 text-xs font-black text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
+                                    <button onClick={() => abrirDesligamento(f)} className="flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
                                        <LogOut size={12} /> Desligar
                                     </button>
                                  )}
                                  <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
-                                 <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
+                                 <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>
                            </div>
                         </div>
@@ -2412,16 +2412,16 @@ export default function RHPage() {
                      ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-white/20 object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
                      : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black sm:h-12 sm:w-12 sm:rounded-2xl sm:text-xl">{(f.nome || "?")[0].toUpperCase()}</span>}
                   <div className="min-w-0 flex-1">
-                     <p className="text-[8px] font-black uppercase tracking-[.16em] text-emerald-300 sm:text-[9px]">Ações do colaborador</p>
+                     <p className="text-3xs font-bold uppercase tracking-[.16em] text-emerald-300 sm:text-3xs">Ações do colaborador</p>
                      <h2 className="truncate text-base font-black sm:text-lg">{f.nome}</h2>
-                     <p className="truncate text-[10px] font-bold text-slate-300 sm:text-[11px]">{f.cargo || "Sem cargo informado"}</p>
+                     <p className="truncate text-3xs font-bold text-slate-300 sm:text-2xs">{f.cargo || "Sem cargo informado"}</p>
                   </div>
                   <button onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"><X size={17}/></button>
                </div>
 
                <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-slate-200 bg-white p-1.5 sm:p-2">
                   {abas.map(([id, rotulo, Icone]) => (
-                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-[9px] font-black transition-colors sm:min-h-11 sm:rounded-xl sm:text-[10px] ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>
+                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-3xs font-bold transition-colors sm:min-h-11 sm:rounded-xl sm:text-3xs ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>
                         <Icone size={15}/><span className="truncate">{rotulo}</span>
                      </button>
                   ))}
@@ -2432,7 +2432,7 @@ export default function RHPage() {
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
                      <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-sky-50 group-hover:bg-sky-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
-                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-700">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
+                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-3xs font-bold text-slate-700">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
@@ -2440,7 +2440,7 @@ export default function RHPage() {
                   </div>}
 
                   {abaMenuAcoes === "financeiro" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 group-hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="shrink-0 text-[10px] font-black text-teal-700">{fmtBRL(t)}</span> : null; })()}>Consumo / Vales</Acao>
+                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 group-hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="shrink-0 text-3xs font-bold text-teal-700">{fmtBRL(t)}</span> : null; })()}>Consumo / Vales</Acao>
                      <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
                      {f.tipo_contrato === "Freelancer" && (
                         <>
@@ -2461,7 +2461,7 @@ export default function RHPage() {
                      )}
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
                      </div>
-                     {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-slate-200 pt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Arquivos anexados</p>{(f.docs || []).map(d => (
+                     {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-slate-200 pt-4"><p className="text-3xs font-bold uppercase tracking-widest text-slate-400">Arquivos anexados</p>{(f.docs || []).map(d => (
                         <div key={d.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2">
                            <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-emerald-700 hover:underline min-w-0">
                               <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
@@ -2480,8 +2480,8 @@ export default function RHPage() {
                   </div>}
                </div>
                <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
-                  <p className="hidden text-[10px] font-bold text-slate-400 sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
-                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-slate-100 px-4 text-xs font-black text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
+                  <p className="hidden text-3xs font-bold text-slate-400 sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
+                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-slate-100 px-4 text-xs font-bold text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
                </div>
             </div>
          </div>
@@ -2500,7 +2500,7 @@ export default function RHPage() {
                `}</style>
                <div className="flex justify-between items-center gap-4 shrink-0 border-b border-slate-100 p-4 sm:px-6 sm:py-5">
                   <div className="min-w-0">
-                     <p className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Equipe fixa · cadastro completo</p>
+                     <p className="text-3xs font-bold uppercase tracking-[.18em] text-emerald-700">Equipe fixa · cadastro completo</p>
                      <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar funcionário" : "Novo funcionário fixo"}</h2>
                      <p className="mt-1 text-xs font-bold text-slate-500">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
                   </div>
@@ -2511,12 +2511,12 @@ export default function RHPage() {
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
                     ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"],
-                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
+                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
                </nav>
 
                <div className="space-y-5 flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/60">
                   <section id="func-identificacao" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-slate-500">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase text-emerald-700">Funcionário fixo</span></div>
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-slate-500">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo de Contrato</label>
@@ -2572,12 +2572,12 @@ export default function RHPage() {
                                     setNovoFunc({...novoFunc, supervisores_ids: e.target.checked ? [...atual, f.id] : atual.filter(x => x !== f.id)});
                                  }} className="w-4 h-4 accent-emerald-600"/>
                                  <span className="text-sm font-bold text-slate-700">{f.nome}</span>
-                                 <span className="text-[10px] font-medium text-slate-400 ml-auto">{f.cargo || "—"}</span>
+                                 <span className="text-3xs font-medium text-slate-400 ml-auto">{f.cargo || "—"}</span>
                               </label>
                            );
                         })}
                      </div>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
+                     <p className="text-3xs text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                      <div>
@@ -2601,62 +2601,62 @@ export default function RHPage() {
 
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
                   <div id="func-pessoais" className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                     <div><p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-slate-500">Informações completas para documentos e gestão do RH.</p></div>
+                     <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-slate-500">Informações completas para documentos e gestão do RH.</p></div>
                      
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rua / Avenida</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Rua / Avenida</label>
                            <input type="text" value={novoFunc.rua_av || ""} onChange={e=>setNovoFunc({...novoFunc, rua_av: e.target.value, endereco: `${e.target.value}${novoFunc.numero_casa ? `, ${novoFunc.numero_casa}` : ""}${novoFunc.bairro ? `, ${novoFunc.bairro}` : ""}`})} placeholder="Ex.: Av. Paulista" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Número</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Número</label>
                            <input type="text" value={novoFunc.numero_casa || ""} onChange={e=>setNovoFunc({...novoFunc, numero_casa: e.target.value})} placeholder="Ex.: 1500 ou S/N" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
 
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Bairro</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Bairro</label>
                            <input type="text" value={novoFunc.bairro || ""} onChange={e=>setNovoFunc({...novoFunc, bairro: e.target.value})} placeholder="Ex.: Bela Vista" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cidade / UF</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Cidade / UF</label>
                            <input type="text" value={novoFunc.cidade_uf || ""} onChange={e=>setNovoFunc({...novoFunc, cidade_uf: e.target.value})} placeholder="Ex.: São Paulo / SP" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CEP</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">CEP</label>
                            <input type="text" value={novoFunc.cep || ""} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data de Nascimento</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Data de Nascimento</label>
                            <input type="date" value={novoFunc.data_nascimento || ""} onChange={e=>setNovoFunc({...novoFunc, data_nascimento: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                            {novoFunc.data_nascimento && (() => {
                               const n = new Date(novoFunc.data_nascimento + "T12:00:00");
                               const hoje = new Date();
                               let idade = hoje.getFullYear() - n.getFullYear();
                               if (hoje.getMonth() < n.getMonth() || (hoje.getMonth() === n.getMonth() && hoje.getDate() < n.getDate())) idade--;
-                              return <p className="text-[10px] font-black text-emerald-600 mt-1">{idade} anos</p>;
+                              return <p className="text-3xs font-bold text-emerald-600 mt-1">{idade} anos</p>;
                            })()}
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cidade de Nascimento</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Cidade de Nascimento</label>
                            <input type="text" value={novoFunc.cidade_nascimento} onChange={e=>setNovoFunc({...novoFunc, cidade_nascimento: e.target.value})} placeholder="Ex: Belém - PA" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do pai</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Nome do pai</label>
                            <input type="text" value={novoFunc.nome_pai || ""} onChange={e=>setNovoFunc({...novoFunc, nome_pai: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome da mãe</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Nome da mãe</label>
                            <input type="text" value={novoFunc.nome_mae || ""} onChange={e=>setNovoFunc({...novoFunc, nome_mae: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         {/* Filhos com nome e CPF: entram no contrato */}
                         <div className="sm:col-span-2">
                            <div className="flex items-center justify-between gap-2">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Filhos</label>
-                              <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-black text-emerald-700 hover:underline">+ Adicionar filho</button>
+                              <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Filhos</label>
+                              <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-bold text-emerald-700 hover:underline">+ Adicionar filho</button>
                            </div>
                            <div className="mt-2 space-y-2">
                               {(novoFunc.filhos || []).length === 0 && <p className="text-xs font-semibold text-slate-400">Nenhum filho cadastrado.</p>}
@@ -2675,7 +2675,7 @@ export default function RHPage() {
                            </div>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gênero</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Gênero</label>
                            <select value={novoFunc.genero} onChange={e=>setNovoFunc({...novoFunc, genero: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               <option value="Feminino">Feminino</option>
@@ -2685,7 +2685,7 @@ export default function RHPage() {
                            </select>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Estado civil</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Estado civil</label>
                            <select value={novoFunc.estado_civil || ""} onChange={e=>setNovoFunc({...novoFunc, estado_civil: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               {ESTADOS_CIVIS.map(v => <option key={v} value={v}>{v}</option>)}
@@ -2694,7 +2694,7 @@ export default function RHPage() {
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escolaridade</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Escolaridade</label>
                            <select value={novoFunc.escolaridade} onChange={e=>setNovoFunc({...novoFunc, escolaridade: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               <option value="Fundamental incompleto">Fundamental incompleto</option>
@@ -2738,7 +2738,7 @@ export default function RHPage() {
                   </div>
 
                   <div id="func-contrato" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                  <div><p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-slate-500">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
+                  <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-slate-500">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Chave PIX</label>
@@ -2753,8 +2753,8 @@ export default function RHPage() {
                   {/* EXTRA: o que o recibo precisa fica aqui no cadastro e migra sozinho */}
                   {novoFunc.tipo_contrato === "Freelancer" && (
                      <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
-                        <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
-                        <p className="mt-1 mb-4 text-[12px] font-medium text-slate-500">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
+                        <p className="mt-1 mb-4 text-xs font-medium text-slate-500">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
 
                         <label className="block">
                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">O que a função faz (sai impresso no recibo)</span>
@@ -2799,7 +2799,7 @@ export default function RHPage() {
 
                   {novoFunc.tipo_contrato !== "Freelancer" && (
                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-3">Composição da remuneração (além do fixo)</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Composição da remuneração (além do fixo)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
@@ -2818,10 +2818,10 @@ export default function RHPage() {
                                     <option key={v} value={v}>{v.replace(".", ",")} {v === "1" ? "ponto" : "pontos"}</option>
                                  ))}
                               </select>
-                              <p className="text-[10px] text-slate-400 font-medium mt-1">De 0,5 a 2 pontos. O valor em reais sai do rateio no fechamento do mês.</p>
+                              <p className="text-3xs text-slate-400 font-medium mt-1">De 0,5 a 2 pontos. O valor em reais sai do rateio no fechamento do mês.</p>
                            </div>
                         </div>
-                        <p className="text-[10px] font-medium text-emerald-700/70 mt-3">Adicional noturno (20% das 22h às 5h, com hora noturna reduzida de 52min30s) e hora extra (+50% além da jornada contratada) são calculados automaticamente pelo ponto. Hora normal = salário ÷ 220.</p>
+                        <p className="text-3xs font-medium text-emerald-700/70 mt-3">Adicional noturno (20% das 22h às 5h, com hora noturna reduzida de 52min30s) e hora extra (+50% além da jornada contratada) são calculados automaticamente pelo ponto. Hora normal = salário ÷ 220.</p>
                      </div>
                   )}
 
@@ -2852,8 +2852,8 @@ export default function RHPage() {
 
                   <div id="func-jornada" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
                      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Jornada de trabalho</p>
-                        <label className="flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer">
+                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Jornada de trabalho</p>
+                        <label className="flex items-center gap-2 text-2xs font-bold text-slate-600 cursor-pointer">
                            <input type="checkbox" checked={novoFunc.horario_por_dia} onChange={e=>setNovoFunc({...novoFunc, horario_por_dia: e.target.checked})} style={{accentColor:"#059669"}} />
                            Horário diferente por dia da semana
                         </label>
@@ -2861,7 +2861,7 @@ export default function RHPage() {
 
                      {!novoFunc.horario_por_dia ? (
                      <>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Horário — dias normais (seg a sáb)</p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Horário — dias normais (seg a sáb)</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada</label>
@@ -2872,7 +2872,7 @@ export default function RHPage() {
                            <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-slate-400">(deixe vazio se for igual)</span></p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-slate-400">(deixe vazio se for igual)</span></p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (dom)</label>
@@ -2886,7 +2886,7 @@ export default function RHPage() {
                      </>
                      ) : (
                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-medium text-slate-400 mb-2">Preencha entrada e saída de cada dia. Dia em branco = folga. O intervalo (abaixo) é descontado de cada dia.</p>
+                        <p className="text-3xs font-medium text-slate-400 mb-2">Preencha entrada e saída de cada dia. Dia em branco = folga. O intervalo (abaixo) é descontado de cada dia.</p>
                         {[['0','Domingo'],['1','Segunda'],['2','Terça'],['3','Quarta'],['4','Quinta'],['5','Sexta'],['6','Sábado']].map(([d,lbl]) => {
                            const hd = (novoFunc.horarios_dia && novoFunc.horarios_dia[d]) || {};
                            const setDia = (campo,val) => setNovoFunc(nf => ({...nf, horarios_dia: {...(nf.horarios_dia||{}), [d]: {...((nf.horarios_dia||{})[d]||{}), [campo]: val}}}));
@@ -2894,11 +2894,11 @@ export default function RHPage() {
                            const trabalha = !!(hd.e || hd.s);
                            return (
                               <div key={d} className="flex items-center gap-2">
-                                 <span className="w-16 text-[10px] font-black uppercase text-slate-500 shrink-0">{lbl}</span>
+                                 <span className="w-16 text-3xs font-bold uppercase text-slate-500 shrink-0">{lbl}</span>
                                  <input type="time" value={hd.e||""} onChange={e=>setDia('e',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
                                  <span className="text-slate-300 shrink-0">→</span>
                                  <input type="time" value={hd.s||""} onChange={e=>setDia('s',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
-                                 <button type="button" onClick={limpar} title="Marcar folga neste dia" className="text-[10px] font-bold shrink-0 w-12 text-center rounded-md py-1 border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200">{trabalha ? "folga" : "—"}</button>
+                                 <button type="button" onClick={limpar} title="Marcar folga neste dia" className="text-3xs font-bold shrink-0 w-12 text-center rounded-md py-1 border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200">{trabalha ? "folga" : "—"}</button>
                               </div>
                            );
                         })}
@@ -2914,7 +2914,7 @@ export default function RHPage() {
                            const horas = totalMin/60;
                            const acima = horas > 44;
                            return (
-                              <div className={`mt-2 rounded-lg px-3 py-2 text-[12px] font-bold ${acima ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-emerald-50 border border-emerald-100 text-emerald-700"}`}>
+                              <div className={`mt-2 rounded-lg px-3 py-2 text-xs font-bold ${acima ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-emerald-50 border border-emerald-100 text-emerald-700"}`}>
                                  Carga semanal: {Math.floor(horas)}h{String(Math.round((horas%1)*60)).padStart(2,'0')} em {diasTrab} dia(s) (intervalo já descontado).
                                  {acima ? " Acima do limite CLT de 44h/semana — ajuste os horários." : " Dentro do limite CLT (44h/semana)."}
                               </div>
@@ -2925,7 +2925,7 @@ export default function RHPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Dias Trabalho</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Dias Trabalho</label>
                         <div className="flex flex-wrap gap-1">
                            {[ {v:'0',l:'D'},{v:'1',l:'S'},{v:'2',l:'T'},{v:'3',l:'Q'},{v:'4',l:'Q'},{v:'5',l:'S'},{v:'6',l:'S'} ].map(dia => {
                               const selecionados = novoFunc.dias_trabalho ? novoFunc.dias_trabalho.split(',') : [];
@@ -2949,7 +2949,7 @@ export default function RHPage() {
                            if (!nDias || !sal || novoFunc.tipo_contrato === "Freelancer") return null;
                            const diasMes = nDias * 4.345;
                            return (
-                              <p className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2 inline-block">
+                              <p className="text-2xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2 inline-block">
                                  {fmtBRL(sal / diasMes)} por dia trabalhado
                                  <span className="text-emerald-600/70 font-bold"> · fixo + VA + taxa · {nDias} dia(s)/semana ≈ {Math.round(diasMes)} dias/mês</span>
                               </p>
@@ -2957,7 +2957,7 @@ export default function RHPage() {
                         })()}
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>
                         <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
@@ -2967,22 +2967,22 @@ export default function RHPage() {
                       jornada, no formato "int: 17:00 as 18:00". */}
                   <div className="grid grid-cols-2 gap-3 mt-3">
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo começa</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo começa</label>
                         <input type="time" value={novoFunc.intervalo_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo termina</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo termina</label>
                         <input type="time" value={novoFunc.intervalo_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      {/* Só aparece para quem trabalha domingo com jornada
                          diferente — caso da chefia de cozinha. */}
                      {(novoFunc.horario_dom_entrada || novoFunc.horario_dom_saida) && <>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · início</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · início</label>
                            <input type="time" value={novoFunc.intervalo_dom_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · fim</label>
+                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · fim</label>
                            <input type="time" value={novoFunc.intervalo_dom_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </>}
@@ -3010,7 +3010,7 @@ export default function RHPage() {
              <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5">
                  <div>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Recibo de Trabalho Extra</p>
+                   <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Recibo de Trabalho Extra</p>
                    <h2 className="mt-1 text-xl font-black text-slate-900">Escolha um extra cadastrado</h2>
                    <p className="mt-1 text-xs font-bold text-slate-500">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
                  </div>
@@ -3066,7 +3066,7 @@ export default function RHPage() {
 
                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-5">
                   <div className="mb-4 bg-white p-3 rounded-xl border border-emerald-200">
-                     <label className="text-xs font-black text-emerald-800 block mb-1">Puxar dados do cadastro do colaborador:</label>
+                     <label className="text-xs font-bold text-emerald-800 block mb-1">Puxar dados do cadastro do colaborador:</label>
                      <select
                        onChange={e => {
                          const fid = e.target.value;
@@ -3111,10 +3111,10 @@ export default function RHPage() {
 
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dados que sairão no recibo</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Dados que sairão no recibo</p>
                         <p className="text-xs font-bold text-slate-400">Quando o colaborador é selecionado, estes campos são puxados automaticamente do cadastro.</p>
                      </div>
-                     {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">Importado do cadastro</span>}
+                     {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold text-emerald-700">Importado do cadastro</span>}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                      <label className="text-xs font-bold text-slate-600">Nome completo
@@ -3152,7 +3152,7 @@ export default function RHPage() {
                </div>
 
                <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Trabalho e controle do turno</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Trabalho e controle do turno</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                      <label className="col-span-2 text-xs font-bold text-slate-600">Data do trabalho
                        <input type="date" value={fichaDados.data_trabalho} onChange={e => setFichaDados(d => ({...d, data_trabalho: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
@@ -3192,20 +3192,20 @@ export default function RHPage() {
 
                {/* Valor pago -> desmembramento automático */}
                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-emerald-700 block mb-1">Valor pago da diária (R$)</label>
+                  <label className="text-3xs font-bold uppercase tracking-widest text-emerald-700 block mb-1">Valor pago da diária (R$)</label>
                   <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
                      className="w-full p-3.5 bg-white border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
 
                   {/* Nº de dias combinados: soma o total (ex.: terça a domingo = 6 dias) */}
                   <div className="flex items-center gap-3 mt-3">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Dias combinados</label>
+                     <label className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Dias combinados</label>
                      <div className="flex items-center gap-1">
                         <button type="button" onClick={()=>setFichaDias(String(Math.max(1, nDias-1)))} className="w-8 h-8 rounded-lg bg-white border border-emerald-300 font-black text-emerald-700">−</button>
                         <input type="number" min="1" step="1" value={fichaDias} onChange={e=>setFichaDias(e.target.value)} className="w-16 p-2 text-center bg-white border-2 border-emerald-300 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
                         <button type="button" onClick={()=>setFichaDias(String(nDias+1))} className="w-8 h-8 rounded-lg bg-white border border-emerald-300 font-black text-emerald-700">+</button>
                      </div>
                      <div className="flex flex-wrap gap-1">
-                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-[10px] font-bold px-2 py-1 rounded-md ${nDias===n?"bg-emerald-600 text-white":"bg-white border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
+                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-3xs font-bold px-2 py-1 rounded-md ${nDias===n?"bg-emerald-600 text-white":"bg-white border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
                      </div>
                   </div>
 
@@ -3222,12 +3222,12 @@ export default function RHPage() {
                         </span>
                      </div>
                   ) : (
-                     <p className="text-[10px] font-medium text-emerald-700/70 mt-2">Sem valor, o acerto sai em branco para preencher à mão.</p>
+                     <p className="text-3xs font-medium text-emerald-700/70 mt-2">Sem valor, o acerto sai em branco para preencher à mão.</p>
                   )}
                </div>
 
                <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Ajustes e pagamento</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Ajustes e pagamento</p>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     {[
                       ["vale_transporte", "Vale-transporte"], ["adicional", "Adicional / bônus"], ["descontos", "Descontos"],
@@ -3255,7 +3255,7 @@ export default function RHPage() {
 
                {/* Itens emprestados: escolhe na hora */}
                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
                   <div className="space-y-1.5 mb-3">
                      {fichaItens.map((it, idx) => (
                         <label key={idx} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer border ${it.incluir ? "bg-white border-emerald-200" : "bg-slate-100 border-slate-200 opacity-60"}`}>
@@ -3272,7 +3272,7 @@ export default function RHPage() {
                </div>
 
                <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Entrega e devolução dos itens</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Entrega e devolução dos itens</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(() => {
                       const lideres = (funcionarios || []).filter(f => {
@@ -3374,7 +3374,7 @@ export default function RHPage() {
                          ["Total já pago", fmtBRL(totalPago)],
                        ].map(([rotulo, valor]) => (
                          <div key={rotulo} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{rotulo}</p>
+                           <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">{rotulo}</p>
                            <p className="mt-1 text-lg font-black text-slate-900">{valor}</p>
                          </div>
                        ))}
@@ -3423,15 +3423,15 @@ export default function RHPage() {
                                     <p className="font-black text-slate-900 text-sm">{recibo.numero}</p>
                                     <p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-emerald-700">{fmtBRL(recibo.valor_total)}</b></p>
                                   </div>
-                                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
+                                  <span className={`rounded-full px-2.5 py-1 text-3xs font-bold ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
                                 </div>
 
                                 <div className="text-xs space-y-1">
                                   <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
                                   <p className="font-medium text-slate-600">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
                                   {topicos.length > 0 && (
-                                    <div className="mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] font-medium text-slate-700">
-                                      <p className="font-bold text-slate-500 text-[10px] uppercase mb-0.5">Atribuições do dia:</p>
+                                    <div className="mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-2xs font-medium text-slate-700">
+                                      <p className="font-bold text-slate-500 text-3xs uppercase mb-0.5">Atribuições do dia:</p>
                                       {topicos.map((t, idx) => <p key={idx} className="truncate">• {t.replace(/^[•\-\*]\s*/, "")}</p>)}
                                     </div>
                                   )}
@@ -3439,7 +3439,7 @@ export default function RHPage() {
 
                                 {temFoto && (
                                   <div className="flex items-center gap-2 pt-1">
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                    <span className="inline-flex items-center gap-1 text-3xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                                       ✓ Recibo Assinado Anexado
                                     </span>
                                     <button
@@ -3453,9 +3453,9 @@ export default function RHPage() {
                                 )}
 
                                 <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
-                                  <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
-                                  <label className="cursor-pointer rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-700 inline-flex items-center gap-1.5 shadow-sm">
+                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                  <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
+                                  <label className="cursor-pointer rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 inline-flex items-center gap-1.5 shadow-sm">
                                     {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
                                     {temFoto ? "Trocar Foto" : "Anexar Foto do Recibo Assinado"}
                                     <input
@@ -3495,7 +3495,7 @@ export default function RHPage() {
                           <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
                           <div className="space-y-2">
                             {advertencias.length === 0 ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
-                              <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-black text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
+                              <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-bold text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
                             ))}
                           </div>
                         </section>
@@ -3528,7 +3528,7 @@ export default function RHPage() {
                </form>
 
                <div className="flex items-center gap-2 mb-3 shrink-0">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mês:</label>
+                  <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Mês:</label>
                   <input type="month" value={mesFeriados} onChange={e=>{ setMesFeriados(e.target.value); carregarFeriados(e.target.value); }} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm text-slate-700 outline-none"/>
                </div>
 
@@ -3562,7 +3562,7 @@ export default function RHPage() {
                {/* Se o funcionário já está cumprindo aviso */}
                {(funcDeslig.em_aviso_previo || funcDeslig.status_aviso === "cumprindo_aviso") && (
                   <div className="mb-4 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4">
-                     <p className="text-xs font-black text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
+                     <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
                      <p className="text-xs text-amber-800 font-medium">Início em <b>{funcDeslig.inicio_aviso_previo ? new Date(funcDeslig.inicio_aviso_previo + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</b> ({funcDeslig.dias_aviso_previo || 30} dias contratados).</p>
                      <div className="mt-3 flex gap-2">
                         <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-white border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
@@ -3572,10 +3572,10 @@ export default function RHPage() {
 
                {/* Alternador de Modo: Cumprir Aviso vs Desligar Imediatamente */}
                <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-100 p-1.5 rounded-2xl">
-                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all ${desligForm.modo === "aviso" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "aviso" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                      1. Cumprindo Aviso Prévio
                   </button>
-                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                      2. Desligar Imediatamente
                   </button>
                </div>
@@ -3583,7 +3583,7 @@ export default function RHPage() {
                <form onSubmit={confirmarDesligamento} className="space-y-4">
                   {desligForm.modo === "aviso" ? (
                      <div className="space-y-3 bg-amber-50/60 border border-amber-200/80 p-4 rounded-2xl">
-                        <p className="text-[11px] font-black uppercase tracking-widest text-amber-800">Parâmetros do Aviso Prévio</p>
+                        <p className="text-2xs font-bold uppercase tracking-widest text-amber-800">Parâmetros do Aviso Prévio</p>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            <div>
@@ -3622,7 +3622,7 @@ export default function RHPage() {
                      </div>
                   ) : (
                      <div className="space-y-3 bg-rose-50/60 border border-rose-200/80 p-4 rounded-2xl">
-                        <p className="text-[11px] font-black uppercase tracking-widest text-rose-800">Desligamento Definitivo & Arquivamento</p>
+                        <p className="text-2xs font-bold uppercase tracking-widest text-rose-800">Desligamento Definitivo & Arquivamento</p>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            <div>
@@ -3679,9 +3679,9 @@ export default function RHPage() {
                      { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
                      { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
                   ].map(tab => (
-                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-black text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                         <span>{tab.rotulo}</span>
-                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-700"}`}>{tab.count}</span>}
+                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-3xs ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-700"}`}>{tab.count}</span>}
                      </button>
                   ))}
                </div>
@@ -3695,34 +3695,34 @@ export default function RHPage() {
                         {abaOcorrencia === "atestados" && (
                            <div className="space-y-4">
                               <form onSubmit={handleSalvarAtestado} className="bg-cyan-50/70 border border-cyan-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-black uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
+                                 <p className="text-xs font-bold uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Início do Afastamento</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Início do Afastamento</label>
                                        <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Qtd Dias Afastado</label>
-                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-black text-slate-800 text-xs outline-none focus:border-cyan-500"/>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Qtd Dias Afastado</label>
+                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">CID (Opcional)</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">CID (Opcional)</label>
                                        <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                  </div>
 
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Médico / CRM (Opcional)</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Médico / CRM (Opcional)</label>
                                        <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
-                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
+                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
                                     </div>
                                  </div>
 
-                                 <button type="submit" className="w-full py-3 bg-cyan-700 hover:bg-cyan-800 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Atestado e Abonar Ponto Automático
                                  </button>
                               </form>
@@ -3733,12 +3733,12 @@ export default function RHPage() {
                                  ) : listaAtestados.map(a => (
                                     <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
                                        <div>
-                                          <p className="font-black text-slate-800 text-xs">🏥 Atestado Médico · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-[11px] font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
+                                          <p className="font-bold text-slate-800 text-xs">🏥 Atestado Médico · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-2xs font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
                                        </div>
                                        <div className="flex items-center gap-2">
                                           {a.arquivo_url && (
-                                             <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-[11px] rounded-xl hover:bg-cyan-100">Ver Anexo</a>
+                                             <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-2xs rounded-xl hover:bg-cyan-100">Ver Anexo</a>
                                           )}
                                           <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
                                        </div>
@@ -3752,14 +3752,14 @@ export default function RHPage() {
                         {abaOcorrencia === "advertencias" && (
                            <div className="space-y-4">
                               <form onSubmit={handleSalvarAdvNovo} className="bg-rose-50/70 border border-rose-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-black uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
+                                 <p className="text-xs font-bold uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data da Ocorrência</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Data da Ocorrência</label>
                                        <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tipo de Medida</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Tipo de Medida</label>
                                        <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500">
                                           <option value="Advertência Verbal">Advertência Verbal</option>
                                           <option value="Advertência Escrita">Advertência Escrita</option>
@@ -3769,10 +3769,10 @@ export default function RHPage() {
                                     </div>
                                  </div>
                                  <div>
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Motivo / Descrição Detalhada</label>
+                                    <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Motivo / Descrição Detalhada</label>
                                     <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-rose-500 resize-none"/>
                                  </div>
-                                 <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Advertência
                                  </button>
                               </form>
@@ -3783,9 +3783,9 @@ export default function RHPage() {
                                  ) : listaAdvertencias.map(a => (
                                     <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
                                        <div>
-                                          <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
+                                          <span className="text-3xs font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
                                           <p className="font-bold text-slate-800 text-xs mt-1">{a.motivo || a.descricao}</p>
-                                          <p className="text-[10px] font-bold text-slate-400 mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                                          <p className="text-3xs font-bold text-slate-400 mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir registro?")) { await removerAdvertencia(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
                                     </div>
@@ -3798,22 +3798,22 @@ export default function RHPage() {
                         {abaOcorrencia === "reunioes" && (
                            <div className="space-y-4">
                               <form onSubmit={handleSalvarReuniao} className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-black uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
+                                 <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Data</label>
                                        <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Título / Pauta da Reunião</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Título / Pauta da Reunião</label>
                                        <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
                                     </div>
                                  </div>
                                  <div>
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
+                                    <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
                                     <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-indigo-500 resize-none"/>
                                  </div>
-                                 <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Reunião
                                  </button>
                               </form>
@@ -3824,7 +3824,7 @@ export default function RHPage() {
                                  ) : listaReunioes.map(r => (
                                     <div key={r.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
                                        <div>
-                                          <p className="font-black text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="font-bold text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
                                           <p className="text-xs text-slate-600 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir reunião?")) { await removerReuniaoColab(r.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
@@ -3838,32 +3838,32 @@ export default function RHPage() {
                         {abaOcorrencia === "treinamentos" && (
                            <div className="space-y-4">
                               <form onSubmit={handleSalvarTreino} className="bg-emerald-50/70 border border-emerald-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-black uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
+                                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nome do Curso / Treinamento</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Nome do Curso / Treinamento</label>
                                        <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Instituição / Instrutor</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Instituição / Instrutor</label>
                                        <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Data Conclusão</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Data Conclusão</label>
                                        <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Carga Horária</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Carga Horária</label>
                                        <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Vencimento (Opcional)</label>
+                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Vencimento (Opcional)</label>
                                        <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
-                                 <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Treinamento
                                  </button>
                               </form>
@@ -3874,9 +3874,9 @@ export default function RHPage() {
                                  ) : listaTreinamentos.map(t => (
                                     <div key={t.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
                                        <div>
-                                          <p className="font-black text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
-                                          <p className="text-[11px] font-bold text-slate-500 mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          {t.vencimento && <p className="text-[10px] font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
+                                          <p className="font-bold text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
+                                          <p className="text-2xs font-bold text-slate-500 mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          {t.vencimento && <p className="text-3xs font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
                                     </div>
@@ -3904,7 +3904,7 @@ export default function RHPage() {
                </div>
 
                <form onSubmit={salvarAdvertencia} className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 shrink-0 space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Nova advertência</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-red-600">Nova advertência</p>
                   <div className="flex gap-3">
                      <input type="date" value={advForm.data} onChange={e=>setAdvForm({...advForm, data: e.target.value})} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400"/>
                      <select value={advForm.gravidade} onChange={e=>setAdvForm({...advForm, gravidade: e.target.value})} className="flex-1 p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400">
@@ -3923,10 +3923,10 @@ export default function RHPage() {
                      <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhuma advertência registrada.</p>
                   ) : advLista.map(a => (
                      <div key={a.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
-                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
+                        <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
                         <div className="flex-1 min-w-0">
                            <p className="text-sm font-bold text-slate-700 truncate">{a.motivo}</p>
-                           <p className="text-[10px] font-medium text-slate-400">{a.data ? a.data.split("-").reverse().join("/") : "—"}{a.descricao ? ` · ${a.descricao}` : ""}</p>
+                           <p className="text-3xs font-medium text-slate-400">{a.data ? a.data.split("-").reverse().join("/") : "—"}{a.descricao ? ` · ${a.descricao}` : ""}</p>
                         </div>
                         <button onClick={() => imprimirTermoAdvertencia(funcAdv, a)} className="p-2 text-slate-400 hover:text-slate-700 rounded-lg" title="Imprimir termo para assinatura"><Printer size={14}/></button>
                         <button onClick={() => excluirAdvertencia(a.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg" title="Excluir"><Trash2 size={14}/></button>
@@ -3958,7 +3958,7 @@ export default function RHPage() {
                {/* Acumulado do mês vs limite de 8h */}
                <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
                   <div className="flex justify-between items-baseline mb-2">
-                     <span className={`text-[10px] font-black uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-500"}`}>
+                     <span className={`text-3xs font-bold uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-500"}`}>
                         {critico ? "Limite de 8h atingido!" : alerta ? "Perto de estourar as 8h!" : "Acumulado no mês"}
                      </span>
                      <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-slate-400">/ 8h00</span></span>
@@ -3966,15 +3966,15 @@ export default function RHPage() {
                   <div className="h-2.5 rounded-full overflow-hidden bg-white border border-slate-200">
                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: critico ? "#DC2626" : alerta ? "#F59E0B" : "#059669" }} />
                   </div>
-                  {(alerta || critico) && <p className="text-[11px] font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
+                  {(alerta || critico) && <p className="text-2xs font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
                </div>
 
                {/* Compensar tudo com uma folga (registra a folga e zera os créditos) */}
                {total > 0 && (
                   <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 shrink-0">
-                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
+                     <span className="text-3xs font-bold uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
                      <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-white border border-emerald-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
-                     <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-colors">
+                     <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors">
                         Dar folga e zerar {fmtMin(total)}
                      </button>
                   </div>
@@ -3982,20 +3982,20 @@ export default function RHPage() {
 
                {/* Lançar minutos não tirados do dia */}
                <form onSubmit={lancarBancoHoras} className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-5 shrink-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
                   <div className="flex flex-wrap items-end gap-3">
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Dia</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block">Dia</label>
                         <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Minutos que faltaram</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block">Minutos que faltaram</label>
                         <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
                      </div>
                      <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
                   </div>
                   <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-white border border-slate-200 rounded-lg font-medium text-sm text-slate-700 outline-none focus:border-sky-500"/>
-                  <p className="text-[10px] font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
+                  <p className="text-3xs font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
                </form>
 
                {/* Lançamentos do mês */}
@@ -4011,7 +4011,7 @@ export default function RHPage() {
                                  ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
                                  : <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span>}
                            </p>
-                           {b.observacao && <p className="text-[11px] font-medium text-slate-400 truncate">{b.observacao}</p>}
+                           {b.observacao && <p className="text-2xs font-medium text-slate-400 truncate">{b.observacao}</p>}
                         </div>
                         <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
                      </div>
@@ -4068,7 +4068,7 @@ export default function RHPage() {
                                        </button>
                                     </div>
                                     {hasConflito && (
-                                       <span className="text-[10px] font-bold text-rose-500">
+                                       <span className="text-3xs font-bold text-rose-500">
                                           Aviso: {folgasNestaData.length} funcionário(s) de folga ({nomesConflito})
                                        </span>
                                     )}
@@ -4089,7 +4089,7 @@ export default function RHPage() {
 
                   {/* Coluna 2: Folgas Agendadas */}
                   <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
-                     <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2">Folgas Extras Agendadas</h3>
+                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2">Folgas Extras Agendadas</h3>
                      <div className="space-y-3">
                         {folgasEsporadicas.length === 0 ? (
                            <p className="text-center text-sm font-bold text-slate-400 py-4">Nenhuma folga extra agendada.</p>
@@ -4097,7 +4097,7 @@ export default function RHPage() {
                            <div key={folga.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
                               <div>
                                  <div className="font-black text-slate-700">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
-                                 <div className="text-[10px] font-bold text-indigo-500 uppercase">{folga.descricao || "Folga Extra"}</div>
+                                 <div className="text-3xs font-bold text-indigo-500 uppercase">{folga.descricao || "Folga Extra"}</div>
                               </div>
                               <button onClick={() => handleRemoverFolga(folga.id)} className="text-slate-400 hover:text-rose-600 transition-colors bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
                            </div>
@@ -4140,7 +4140,7 @@ export default function RHPage() {
                      <div className="mb-5">
                         <div className="flex items-center justify-between mb-2">
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><UtensilsCrossed size={13} /> Pratos do Cardápio</label>
-                           {cardapioConsumo.length > 0 && <span className="text-[10px] font-bold text-slate-400">{cardapioConsumo.length} itens</span>}
+                           {cardapioConsumo.length > 0 && <span className="text-3xs font-bold text-slate-400">{cardapioConsumo.length} itens</span>}
                         </div>
                         {cardapioConsumo.length === 0 ? (
                            <p className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
@@ -4160,7 +4160,7 @@ export default function RHPage() {
                                              className={`w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border text-left transition-all ${selecionado ? "bg-teal-50 border-teal-400" : "bg-white border-slate-200 hover:border-teal-300"}`}>
                                              <div className="min-w-0">
                                                 <p className="font-bold text-sm text-slate-800 truncate">{p.nome}</p>
-                                                {p.categoria && <p className="text-[10px] font-medium text-slate-400">{p.categoria}</p>}
+                                                {p.categoria && <p className="text-3xs font-medium text-slate-400">{p.categoria}</p>}
                                              </div>
                                              <span className="font-black text-sm text-slate-700 shrink-0">{fmtBRL(p.preco)}</span>
                                           </button>
@@ -4214,10 +4214,10 @@ export default function RHPage() {
 
                   {/* Lado Direito: Histórico */}
                   <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex flex-col h-full overflow-hidden">
-                     <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2 flex items-center justify-between">
+                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2 flex items-center justify-between">
                         <span>Extrato de Consumo</span>
                         {listaConsumo.length > 0 && (
-                           <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{listaConsumo.length} itens</span>
+                           <span className="text-3xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{listaConsumo.length} itens</span>
                         )}
                      </h3>
                      
@@ -4236,24 +4236,24 @@ export default function RHPage() {
                                  <div className="flex justify-between items-start mb-2">
                                     <div>
                                        <div className="font-black text-slate-800 leading-tight">{item.descricao}</div>
-                                       <div className="text-[10px] font-bold text-slate-400">
+                                       <div className="text-3xs font-bold text-slate-400">
                                           {new Date(item.data_consumo).toLocaleString('pt-BR')}
                                        </div>
                                     </div>
                                     <div className="text-right">
                                        <div className="font-black text-teal-700">{fmtBRL(item.valor_desconto)}</div>
-                                       <div className="text-[10px] font-medium text-slate-400 line-through">De {fmtBRL(item.valor_original)}</div>
+                                       <div className="text-3xs font-medium text-slate-400 line-through">De {fmtBRL(item.valor_original)}</div>
                                     </div>
                                  </div>
                                  
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                                     <div className="flex items-center gap-2">
                                        {isPago ? (
-                                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                                          <span className="flex items-center gap-1 text-3xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
                                              <CheckCircle size={10}/> PAGO
                                           </span>
                                        ) : (
-                                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                                          <span className="flex items-center gap-1 text-3xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
                                              <Clock size={10}/> PENDENTE
                                           </span>
                                        )}
@@ -4261,7 +4261,7 @@ export default function RHPage() {
                                        <select 
                                           value={item.forma_pagamento} 
                                           onChange={(e) => alterarFormaPagamentoConsumo(item.id, item.status_pagamento, e.target.value)}
-                                          className="text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
+                                          className="text-3xs font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
                                        >
                                           <option value="Desconto em Folha">Desconto em Folha</option>
                                           <option value="Dinheiro">Dinheiro</option>
@@ -4270,7 +4270,7 @@ export default function RHPage() {
                                        </select>
                                        
                                        {!isPago && (
-                                          <button onClick={() => quitarConsumo(item.id)} className="text-[10px] font-bold uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-md transition-colors">
+                                          <button onClick={() => quitarConsumo(item.id)} className="text-3xs font-bold uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-md transition-colors">
                                              Quitar agora
                                           </button>
                                        )}
@@ -4316,25 +4316,25 @@ export default function RHPage() {
 
                <div className="space-y-4">
                   <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                     <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block mb-1">Valor Total Pago (R$)</label>
+                     <label className="text-3xs font-bold text-emerald-600 uppercase tracking-widest block mb-1">Valor Total Pago (R$)</label>
                      <input type="text" value={formLancamento.total} onChange={e => handleTotalLancamentoChange(e.target.value)} className="w-full bg-transparent text-2xl font-black text-emerald-800 outline-none" />
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">INSS (5%)</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">INSS (5%)</label>
                         <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">FGTS (8%)</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">FGTS (8%)</label>
                         <input type="text" value={formLancamento.fgts} onChange={e => setFormLancamento({...formLancamento, fgts: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
                         <input type="text" value={formLancamento.taxa} onChange={e => setFormLancamento({...formLancamento, taxa: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor Fixo Base</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor Fixo Base</label>
                         <input type="text" value={formLancamento.fixo} onChange={e => setFormLancamento({...formLancamento, fixo: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
                      </div>
                   </div>

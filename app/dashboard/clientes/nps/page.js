@@ -75,7 +75,7 @@ export default function NpsPage() {
         <Card className="text-center">
           <p className="erp-label">Net Promoter Score</p>
           <p className="text-4xl sm:text-5xl font-bold mt-1" style={{ color: npsColor }}>{resumo.nps}</p>
-          <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>{resumo.total} avaliações · média {resumo.media.toFixed(1)}/10</p>
+          <p className="text-2xs mt-1" style={{ color: "var(--dim)" }}>{resumo.total} avaliações · média {resumo.media.toFixed(1)}/10</p>
         </Card>
 
         <div>
@@ -99,8 +99,8 @@ export default function NpsPage() {
                           <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{a.nome}</p>
                           <span className="erp-badge" style={{ background: c.cor + "22", color: c.cor }}>{c.tipo}</span>
                         </div>
-                        {a.comentario && <p className="text-[11px] mt-0.5" style={{ color: "var(--subtle)" }}>“{a.comentario}”</p>}
-                        <p className="text-[10px] mt-0.5" style={{ color: "var(--dim)" }}>{fmtData(a.data)}</p>
+                        {a.comentario && <p className="text-2xs mt-0.5" style={{ color: "var(--subtle)" }}>“{a.comentario}”</p>}
+                        <p className="text-3xs mt-0.5" style={{ color: "var(--dim)" }}>{fmtData(a.data)}</p>
                       </div>
                       <span className="text-xl font-bold flex-shrink-0" style={{ color: c.cor }}>{a.nota}</span>
                     </div>

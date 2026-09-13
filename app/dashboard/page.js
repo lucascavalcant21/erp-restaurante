@@ -385,7 +385,7 @@ export default function DashboardGestao() {
       </div>
       <div>
         <h3 className="text-3xl font-extrabold tracking-tight" style={{ color: alerta ? tintFg : "var(--fg)" }}>{value}</h3>
-        {sub && <p className="text-[11px] font-bold mt-1" style={{ color: "var(--dim)" }}>{sub}</p>}
+        {sub && <p className="text-2xs font-bold mt-1" style={{ color: "var(--dim)" }}>{sub}</p>}
       </div>
     </button>
   );
@@ -465,7 +465,7 @@ export default function DashboardGestao() {
                     <div key={e.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
                       <div>
                         <p className="text-sm font-bold capitalize" style={{ color: "var(--fg-soft)" }}>{dt.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}</p>
-                        <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{total} pessoa(s) · {(e.escala || []).length} área(s)</p>
+                        <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>{total} pessoa(s) · {(e.escala || []).length} área(s)</p>
                       </div>
                       <button onClick={() => imprimirEscala(e.escala, dt)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>Imprimir</button>
                     </div>
@@ -508,7 +508,7 @@ export default function DashboardGestao() {
                       {l.categoria === "ar_condicionado" ? <Wind size={13} /> : <Sparkles size={13} />}
                       <span className="truncate">{l.nome}</span>
                     </span>
-                    <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: atras ? "#DC2626" : "#B45309" }}>
+                    <span className="text-2xs font-bold shrink-0 ml-2" style={{ color: atras ? "#DC2626" : "#B45309" }}>
                       {atras ? `Atrasada ${Math.abs(l.dias)}d` : l.dias === 0 ? "Hoje" : `${l.dias}d`}
                     </span>
                   </div>
@@ -523,7 +523,7 @@ export default function DashboardGestao() {
                 return (
                   <div key={c.dept} className="flex justify-between items-center p-2.5 rounded-xl" style={{ background: "rgba(245,158,11,0.10)" }}>
                     <span className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{nome}</span>
-                    <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: "#B45309" }}>{c.feitos}/{c.total} — faltam {c.total - c.feitos}</span>
+                    <span className="text-2xs font-bold shrink-0 ml-2" style={{ color: "#B45309" }}>{c.feitos}/{c.total} — faltam {c.total - c.feitos}</span>
                   </div>
                 );
               })}
@@ -535,7 +535,7 @@ export default function DashboardGestao() {
                 <div key={c.id} className="flex justify-between items-center p-2.5 rounded-xl" style={{ background: "rgba(239,68,68,0.06)" }}>
                   <div className="min-w-0">
                     <span className="text-sm font-bold block truncate" style={{ color: "var(--fg-soft)" }}>{c.descricao}</span>
-                    <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: "#DC2626" }}>
+                    <span className="text-3xs font-bold flex items-center gap-1" style={{ color: "#DC2626" }}>
                       <Clock size={9} /> {c.dias < 0 ? `Atrasada ${Math.abs(c.dias)}d` : c.dias === 0 ? "Vence hoje" : `Vence em ${c.dias}d`}
                     </span>
                   </div>
@@ -549,7 +549,7 @@ export default function DashboardGestao() {
               {m.bancoAlertas.slice(0, 3).map(b => (
                 <div key={b.id} className="flex justify-between items-center p-2.5 rounded-xl" style={{ background: b.estourou ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.10)" }}>
                   <span className="text-sm font-bold truncate" style={{ color: "var(--fg-soft)" }}>{b.nome}</span>
-                  <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: b.estourou ? "#DC2626" : "#B45309" }}>
+                  <span className="text-2xs font-bold shrink-0 ml-2" style={{ color: b.estourou ? "#DC2626" : "#B45309" }}>
                     {Math.floor(b.min / 60)}h{String(b.min % 60).padStart(2, "0")}{b.estourou ? " — estourou!" : " / 8h"}
                   </span>
                 </div>
@@ -581,7 +581,7 @@ function PainelLista({ titulo, icon: Icon, corIcon, itens, vazio, acao, contador
           <Icon size={20} style={{ color: corIcon }} /> {titulo}
         </h3>
         {contador > 0 && (
-          <span className="text-xs font-black px-2.5 py-1 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{contador}</span>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{contador}</span>
         )}
       </div>
       {itens.length === 0 ? (
@@ -594,9 +594,9 @@ function PainelLista({ titulo, icon: Icon, corIcon, itens, vazio, acao, contador
             <div key={it.id} className="flex justify-between items-center p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
               <div className="min-w-0">
                 <span className="text-sm font-bold block truncate" style={{ color: "var(--fg-soft)" }}>{it.principal}</span>
-                {it.secundario && <span className="text-[11px] font-medium block truncate" style={{ color: "var(--dim)" }}>{it.secundario}</span>}
+                {it.secundario && <span className="text-2xs font-medium block truncate" style={{ color: "var(--dim)" }}>{it.secundario}</span>}
               </div>
-              {it.direita && <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: it.direitaCor || "var(--muted)" }}>{it.direita}</span>}
+              {it.direita && <span className="text-2xs font-bold shrink-0 ml-2" style={{ color: it.direitaCor || "var(--muted)" }}>{it.direita}</span>}
             </div>
           ))}
         </div>
@@ -634,13 +634,13 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
           <CalendarDays size={20} style={{ color: "#7C3AED" }} /> <button onClick={() => setAberto(v => !v)} className="flex items-center gap-1">Escala da Semana <span className="text-xs font-bold" style={{ color: "var(--muted)" }}>{aberto ? "▲" : "▼ mostrar"}</span></button>
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => setAddAberto(v => !v)} className="text-xs font-black px-3 py-2 rounded-lg transition-colors" style={{ background: "#7C3AED", color: "#fff" }}>
+          <button onClick={() => setAddAberto(v => !v)} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "#7C3AED", color: "#fff" }}>
             + Extra do dia
           </button>
           <button onClick={onSalvarDia} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
             Salvar escala do dia
           </button>
-          <button onClick={onWhats} className="text-xs font-black px-3 py-2 rounded-lg text-white transition-colors" style={{ background: "#25D366" }}>
+          <button onClick={onWhats} className="text-xs font-bold px-3 py-2 rounded-lg text-white transition-colors" style={{ background: "#25D366" }}>
             WhatsApp
           </button>
           <button onClick={onImprimir} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
@@ -681,12 +681,12 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
               style={{ borderColor: dragId ? cor + "66" : "var(--line)", background: dragId ? cor + "08" : "transparent" }}>
               <div className="flex items-center gap-2 mb-2.5 px-1">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: cor }} />
-                <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>{area}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{lista.length}</span>
+                <span className="text-2xs font-bold uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>{area}</span>
+                <span className="text-3xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{lista.length}</span>
               </div>
               <div className="space-y-1.5 min-h-[44px]">
                 {lista.length === 0 ? (
-                  <div className="flex items-center justify-center h-11 rounded-xl border border-dashed text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
+                  <div className="flex items-center justify-center h-11 rounded-xl border border-dashed text-2xs font-bold" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
                     {area === "Folga" ? "Quem está de folga hoje" : "Arraste alguém para cá"}
                   </div>
                 ) : lista.map(c => (
@@ -701,9 +701,9 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}>
                         {c.nome}
-                        {c._extra && <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.15)", color: "#B45309" }}>Extra</span>}
+                        {c._extra && <span className="text-3xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.15)", color: "#B45309" }}>Extra</span>}
                       </p>
-                      <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>
+                      <p className="text-3xs font-medium truncate" style={{ color: "var(--dim)" }}>
                         {c.cargo || "—"}
                         <span className="sm:hidden">{(c.horario_entrada || c.horario_saida) ? ` · ${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : ""}</span>
                       </p>
@@ -713,14 +713,14 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
                       {DIAS_SEMANA.map(([d, lbl]) => {
                         const on = String(c.dias_trabalho || "").split(",").map(s => s.trim()).includes(d);
                         return (
-                          <span key={d} title={lbl} className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black"
+                          <span key={d} title={lbl} className="w-5 h-5 rounded flex items-center justify-center text-3xs font-bold"
                             style={{ background: on ? cor + "22" : "transparent", color: on ? cor : "var(--faint)", border: on ? `1px solid ${cor}55` : "1px solid var(--line)" }}>
                             {lbl[0]}
                           </span>
                         );
                       })}
                     </div>
-                    <span className="text-[10px] font-bold shrink-0 text-right w-[86px] hidden sm:block" style={{ color: "var(--muted)" }}>
+                    <span className="text-3xs font-bold shrink-0 text-right w-[86px] hidden sm:block" style={{ color: "var(--muted)" }}>
                       {(c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : "—"}
                     </span>
                     {/* Mover (funciona no toque): abre a escolha da área de destino */}
@@ -741,11 +741,11 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
                   </div>
                   {mover?.id === c.id && (
                     <div className="mt-1 p-2 rounded-xl border flex flex-wrap gap-1.5 relative z-10" style={{ borderColor: cor + "55", background: "var(--card)" }}>
-                      <span className="w-full text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "var(--dim)" }}>Mover para:</span>
+                      <span className="w-full text-3xs font-bold uppercase tracking-widest mb-0.5" style={{ color: "var(--dim)" }}>Mover para:</span>
                       {areas.filter(a => a !== area).map(a => (
                         <button key={a} type="button"
                           onClick={() => { onMover(a, c.id, null); setMover(null); }}
-                          className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
+                          className="text-2xs font-bold px-2.5 py-1.5 rounded-lg"
                           style={{ background: (CORES_AREA[a] || "#94A3B8") + "18", color: CORES_AREA[a] || "#64748b", border: `1px solid ${(CORES_AREA[a] || "#94A3B8")}44` }}>
                           {a}
                         </button>
@@ -759,7 +759,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
           );
         })}
       </div>
-      <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>
+      <p className="text-3xs font-medium mt-4" style={{ color: "var(--dim)" }}>
         No computador, arraste uma pessoa para outra área. No celular/tablet, toque no botão <ArrowRightLeft size={11} className="inline align-[-1px]" /> e escolha a área. Letras = dias da semana (Dom → Sáb).
       </p>
       </>)}
@@ -772,7 +772,7 @@ function BlocoAlerta({ titulo, icon: Icon, children, vazio, acao }) {
   const arr = Array.isArray(children) ? children.filter(Boolean) : (children ? [children] : []);
   return (
     <div>
-      <button onClick={acao} className="w-full text-[11px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ color: "var(--subtle)" }}>
+      <button onClick={acao} className="w-full text-2xs font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5" style={{ color: "var(--subtle)" }}>
         <Icon size={13} /> {titulo}
       </button>
       {arr.length === 0 ? (

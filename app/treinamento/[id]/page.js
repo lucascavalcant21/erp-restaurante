@@ -45,7 +45,7 @@ export default function TreinamentoPublico() {
     <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:py-10">
       <article className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-slate-200">
         <header className="bg-slate-950 p-6 text-white sm:p-9">
-          <div className="flex flex-wrap gap-2 text-xs font-black uppercase tracking-widest">
+          <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-widest">
             <span className="flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-2 text-emerald-300"><SetorIcon size={15}/>{setor.label}</span>
             <span className="rounded-full bg-white/10 px-3 py-2">{item.modulo || "Geral"}</span>
             <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2"><Clock3 size={14}/>{Number(item.duracao_minutos) || 5} min</span>

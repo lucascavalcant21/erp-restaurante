@@ -129,7 +129,7 @@ export default function ModoTV() {
             <div className="flex items-center gap-2.5 rounded-2xl bg-red-500/15 px-5 py-3">
               <ShieldAlert size={26} className="text-red-400" />
               <span className="text-2xl font-black text-red-300 sm:text-3xl">{contadores.ncs}</span>
-              <span className="text-xs font-black uppercase tracking-wider text-red-300/80">
+              <span className="text-xs font-bold uppercase tracking-wider text-red-300/80">
                 não conformidade{contadores.ncs > 1 ? "s" : ""}
               </span>
             </div>
@@ -211,7 +211,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
                   <span className={`shrink-0 text-2xl font-black tabular-nums ${t.hora}`}>{l.hora}</span>
                   <span className="min-w-0 flex-1 truncate text-xl font-black text-white">{l.nome}</span>
                   {l.critica && (
-                    <span className="shrink-0 rounded-lg bg-red-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-300">
+                    <span className="shrink-0 rounded-lg bg-red-500/20 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-red-300">
                       crítico
                     </span>
                   )}
@@ -240,7 +240,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
 function Numero({ rotulo, valor, destaque = false }) {
   return (
     <div>
-      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">{rotulo}</p>
+      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-slate-500">{rotulo}</p>
       <p className={`text-3xl font-black tabular-nums ${destaque ? "text-emerald-400" : "text-white"}`}>{valor}</p>
     </div>
   );

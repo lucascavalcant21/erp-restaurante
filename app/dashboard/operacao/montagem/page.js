@@ -159,7 +159,7 @@ function BotaoOpcao({ ativo, children, onClick, className = "" }) {
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-10 rounded-xl border px-3 py-2 text-[11px] font-black transition-all ${className}`}
+      className={`min-h-10 rounded-xl border px-3 py-2 text-2xs font-bold transition-all ${className}`}
       style={ativo
         ? { background: "var(--accent-strong)", color: "var(--accent-fg)", borderColor: "var(--accent-strong)" }
         : { background: "var(--card)", color: "var(--muted)", borderColor: "var(--line)" }}
@@ -172,7 +172,7 @@ function BotaoOpcao({ ativo, children, onClick, className = "" }) {
 function ControleFaixa({ label, valor, sufixo, min, max, step = 1, onChange }) {
   return (
     <label className="block rounded-xl border p-3" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
-      <span className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+      <span className="mb-2 flex items-center justify-between gap-2 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
         <span>{label}</span>
         <span className="rounded-md px-2 py-1" style={{ background: "var(--elevated)", color: "var(--fg)" }}>{valor}{sufixo}</span>
       </span>
@@ -202,7 +202,7 @@ function SecaoDesigner({ icon: Icon, titulo, abertoInicial = true, children }) {
   const [aberto, setAberto] = useState(abertoInicial);
   return (
     <section className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
-      <button type="button" onClick={() => setAberto((valor) => !valor)} aria-expanded={aberto} className="flex min-h-10 w-full items-center gap-2 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: "var(--fg-soft)" }}>
+      <button type="button" onClick={() => setAberto((valor) => !valor)} aria-expanded={aberto} className="flex min-h-10 w-full items-center gap-2 text-left text-3xs font-bold uppercase tracking-[0.16em]" style={{ color: "var(--fg-soft)" }}>
         <Icon size={15} /> {titulo}
         <span className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-base" style={{ background: "var(--card)", color: "var(--muted)" }}>{aberto ? "−" : "+"}</span>
       </button>
@@ -218,7 +218,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--fg)" }}><SlidersHorizontal size={16} /> Designer da ficha</p>
-            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "var(--dim)" }}>A prévia e a impressão usam exatamente estas escolhas.</p>
+            <p className="mt-1 text-2xs leading-relaxed" style={{ color: "var(--dim)" }}>A prévia e a impressão usam exatamente estas escolhas.</p>
           </div>
           <button type="button" onClick={onReset} title="Restaurar o padrão" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" style={{ borderColor: "var(--line)", color: "var(--muted)", background: "var(--card)" }}><RotateCcw size={15} /></button>
         </div>
@@ -255,7 +255,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
             <ControleFaixa label="Texto" valor={cfg.textoPx} sufixo=" px" min={10} max={30} onChange={(textoPx) => onChange({ textoPx })} />
           </div>
           <ControleFaixa label="Espaço entre linhas" valor={cfg.entrelinha} sufixo="" min={1.15} max={2} step={0.05} onChange={(entrelinha) => onChange({ entrelinha })} />
-          <label className="block text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+          <label className="block text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
             Fonte
             <select value={cfg.fonte} onChange={(e) => onChange({ fonte: e.target.value })} className="mt-2 h-11 w-full rounded-xl border px-3 text-sm font-bold outline-none" style={{ borderColor: "var(--line)", background: "var(--card)", color: "var(--fg)" }}>
               {FONTES_MODELO.map((fonte) => <option key={fonte} value={fonte}>{fonte}</option>)}
@@ -268,13 +268,13 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
             <AlternadorDesigner marcado={cfg.numerarPassos} onChange={(numerarPassos) => onChange({ numerarPassos })}>Numerar passos</AlternadorDesigner>
           </div>
           <div>
-            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Alinhamento do título</p>
+            <p className="mb-2 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Alinhamento do título</p>
             <div className="grid grid-cols-2 gap-2">
               {[['left', 'Esquerda'], ['center', 'Centro']].map(([valor, label]) => <BotaoOpcao key={valor} ativo={cfg.alinhamentoTitulo === valor} onClick={() => onChange({ alinhamentoTitulo: valor })}>{label}</BotaoOpcao>)}
             </div>
           </div>
           <div>
-            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Alinhamento do texto</p>
+            <p className="mb-2 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Alinhamento do texto</p>
             <div className="grid grid-cols-3 gap-2">
               {[['left', 'Esquerda'], ['center', 'Centro'], ['justify', 'Justificado']].map(([valor, label]) => <BotaoOpcao key={valor} ativo={cfg.alinhamentoTexto === valor} onClick={() => onChange({ alinhamentoTexto: valor })}>{label}</BotaoOpcao>)}
             </div>
@@ -283,7 +283,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
 
       <SecaoDesigner icon={Palette} titulo="Visual e conteúdo" abertoInicial={!compacto}>
           <div>
-            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Cor de destaque</p>
+            <p className="mb-2 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Cor de destaque</p>
             <div className="flex flex-wrap gap-2">
               {CORES_MODELO.map((cor) => (
                 <button key={cor} type="button" aria-label={`Usar cor ${cor}`} onClick={() => onChange({ corDestaque: cor })} className="h-10 w-10 rounded-full border-4 transition-transform hover:scale-105" style={{ background: cor, borderColor: cfg.corDestaque === cor ? "var(--fg)" : "transparent", boxShadow: "0 0 0 1px var(--line)" }} />
@@ -291,7 +291,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
             </div>
           </div>
           <div>
-            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Borda da ficha</p>
+            <p className="mb-2 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Borda da ficha</p>
             <div className="grid grid-cols-3 gap-2">
               {[["nenhuma", "Sem borda"], ["simples", "Simples"], ["dupla", "Dupla"]].map(([valor, label]) => (
                 <BotaoOpcao key={valor} ativo={cfg.borda === valor} onClick={() => onChange({ borda: valor })}>{label}</BotaoOpcao>
@@ -366,7 +366,7 @@ function RenderCamadaVertical({ camada }) {
 
       <div className="w-48 text-right flex-shrink-0">
          <p className="font-bold text-[13px] text-[var(--fg)] leading-tight">{camada.nome}</p>
-         <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{camada.tipo.replace('_', ' ')}</p>
+         <p className="text-3xs uppercase text-[var(--subtle)] font-bold">{camada.tipo.replace('_', ' ')}</p>
       </div>
     </div>
   )
@@ -375,7 +375,7 @@ function RenderCamadaVertical({ camada }) {
 function EstruturaVertical({ camadas }) {
   return (
     <div className="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-6 shadow-sm mt-4">
-       <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--subtle)] mb-6 text-center">Estrutura Explodida (Vertical)</h3>
+       <h3 className="text-3xs font-bold uppercase tracking-widest text-[var(--subtle)] mb-6 text-center">Estrutura Explodida (Vertical)</h3>
        <div className="flex flex-col gap-1">
           {camadas.map((cam, idx) => <RenderCamadaVertical key={idx} camada={cam} />)}
        </div>
@@ -393,7 +393,7 @@ function EstruturaRadial({ camadas, fotoUrl }) {
 
   return (
     <div className="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-4 md:p-8 shadow-sm mt-4 overflow-x-auto relative">
-      <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--subtle)] mb-8 text-center">Visão Radial</h3>
+      <h3 className="text-3xs font-bold uppercase tracking-widest text-[var(--subtle)] mb-8 text-center">Visão Radial</h3>
       <div className="flex items-center justify-between gap-4 md:gap-8 relative min-h-[250px] min-w-[520px] md:min-w-0">
         
         {/* Coluna Esquerda */}
@@ -401,8 +401,8 @@ function EstruturaRadial({ camadas, fotoUrl }) {
           {esq.map((c, i) => (
             <div key={i} className="flex items-center gap-2 md:gap-4 w-full group">
               <div className="flex-1 text-right">
-                  <p className="font-bold text-[11px] md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
-                  <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
+                  <p className="font-bold text-2xs md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
+                  <p className="text-3xs uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
               </div>
               <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-600 transition-colors">
                 <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
@@ -421,7 +421,7 @@ function EstruturaRadial({ camadas, fotoUrl }) {
           ) : (
              <div className="w-full h-full flex flex-col items-center justify-center text-[var(--subtle)]">
                <Camera size={32} className="mb-2 opacity-50" />
-               <span className="text-[10px] font-bold uppercase tracking-widest">Sem Foto</span>
+               <span className="text-3xs font-bold uppercase tracking-widest">Sem Foto</span>
              </div>
           )}
         </div>
@@ -437,8 +437,8 @@ function EstruturaRadial({ camadas, fotoUrl }) {
                 </svg>
               </div>
               <div className="flex-1 text-left">
-                  <p className="font-bold text-[11px] md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
-                  <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
+                  <p className="font-bold text-2xs md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
+                  <p className="text-3xs uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
               </div>
             </div>
           ))}
@@ -496,7 +496,7 @@ function EditorCamadas({ camadas, setCamadas }) {
   return (
     <div className="bg-[var(--panel)] border border-[var(--line)] rounded-xl p-4 mt-3">
       <div className="flex items-center justify-between mb-3">
-         <h4 className="text-xs font-black uppercase text-[var(--subtle)]">Ajuste de Camadas (IA)</h4>
+         <h4 className="text-xs font-bold uppercase text-[var(--subtle)]">Ajuste de Camadas (IA)</h4>
          <button onClick={adicionar} className="text-xs font-bold text-slate-600 bg-emerald-500/10 px-2 py-1 rounded flex items-center gap-1 hover:bg-emerald-500/20 transition-colors">
             <Plus size={12}/> Adicionar
          </button>
@@ -515,7 +515,7 @@ function EditorCamadas({ camadas, setCamadas }) {
                />
                <select 
                  value={c.tipo} onChange={(e) => alterar(idx, "tipo", e.target.value)}
-                 className="col-span-1 bg-transparent border border-[var(--line)] rounded px-1 py-1.5 text-[10px] uppercase font-bold text-[var(--subtle)] outline-none focus:border-emerald-500"
+                 className="col-span-1 bg-transparent border border-[var(--line)] rounded px-1 py-1.5 text-3xs uppercase font-bold text-[var(--subtle)] outline-none focus:border-emerald-500"
                >
                  {TIPOS_IA.map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
                </select>
@@ -587,7 +587,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
       {/* Topbar */}
       <header className="flex h-16 items-center justify-between border-b border-slate-800 bg-slate-900 px-6">
         <div className="flex items-center gap-3">
-          <span className="rounded-xl bg-emerald-500/20 px-3 py-1 text-xs font-black uppercase text-emerald-400 border border-emerald-500/30">
+          <span className="rounded-xl bg-emerald-500/20 px-3 py-1 text-xs font-bold uppercase text-emerald-400 border border-emerald-500/30">
             {currentGuia?.departamento === "bar" ? "🍹 BAR DE PRODUÇÃO" : "🍳 COZINHA DA PRAÇA"}
           </span>
           <span className="text-sm font-bold text-slate-400">
@@ -621,7 +621,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center text-slate-600">
                 <Camera size={48} />
-                <span className="mt-2 text-xs font-black uppercase tracking-widest">Sem Foto de Referência</span>
+                <span className="mt-2 text-xs font-bold uppercase tracking-widest">Sem Foto de Referência</span>
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
@@ -633,11 +633,11 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           {/* Quick Specs */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <span className="text-[10px] font-black uppercase text-slate-400">Tempo de Preparo</span>
+              <span className="text-3xs font-bold uppercase text-slate-400">Tempo de Preparo</span>
               <p className="mt-1 text-lg font-black text-emerald-400">{currentGuia?.tempo_preparo ? `${currentGuia.tempo_preparo} min` : "Livre"}</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <span className="text-[10px] font-black uppercase text-slate-400">{currentGuia?.departamento === "bar" ? "Copo / Coparia" : "Rendimento"}</span>
+              <span className="text-3xs font-bold uppercase text-slate-400">{currentGuia?.departamento === "bar" ? "Copo / Coparia" : "Rendimento"}</span>
               <p className="mt-1 text-lg font-black text-sky-400 truncate">{copo?.nome || currentGuia?.rendimento || "1 Porção"}</p>
             </div>
           </div>
@@ -645,7 +645,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           {/* Ingredients List */}
           {ingredientes.length > 0 && (
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
                 <ListChecks size={16} className="text-emerald-400" /> Ingredientes & Dosagem
               </h3>
               <ul className="space-y-2">
@@ -752,7 +752,7 @@ function PreviaModeloChef({ m, lista, cfg: cfgProp }) {
   const alturaPapel = cfg.orientacao === "paisagem" ? 210 : 297;
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>
+      <div className="mb-2 flex items-center justify-between gap-2 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>
         <span>Prévia real do A4</span>
         <span>{cfg.orientacao === "paisagem" ? "A4 horizontal" : "A4 vertical"} · {cfg.porPagina}/pág.</span>
       </div>
@@ -772,7 +772,7 @@ function PreviaModeloChef({ m, lista, cfg: cfgProp }) {
           className="block h-full w-full border-0"
         />
       </div>
-      <p className="mt-2 text-center text-[10px] font-medium" style={{ color: "var(--dim)" }}>A folha acima usa o mesmo HTML, margens, fonte e conteúdo enviados à impressora. Se algo não couber, o sistema amplia para uma folha inteira sem cortar.</p>
+      <p className="mt-2 text-center text-3xs font-medium" style={{ color: "var(--dim)" }}>A folha acima usa o mesmo HTML, margens, fonte e conteúdo enviados à impressora. Se algo não couber, o sistema amplia para uma folha inteira sem cortar.</p>
     </div>
   );
 }
@@ -984,11 +984,11 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
         <div className="space-y-4">
           {/* MONTAR COM IA: cola a receita inteira e ela preenche as seções */}
           <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Preenchimento manual</p>
-            <p className="mt-1 text-[11px] font-medium text-slate-500">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Preenchimento manual</p>
+            <p className="mt-1 text-2xs font-medium text-slate-500">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
           </div>
           <details className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3">
-            <summary className="cursor-pointer text-xs font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
+            <summary className="cursor-pointer text-xs font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
             <div className="mt-3">
             <textarea
               value={receitaIA}
@@ -997,7 +997,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
               rows={3}
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "#fff", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
             />
-            <button onClick={montarDrinkComIA} disabled={gerandoIA || !receitaIA.trim()} className="mt-2 w-full flex items-center justify-center gap-1.5 text-[12px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
+            <button onClick={montarDrinkComIA} disabled={gerandoIA || !receitaIA.trim()} className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-bold uppercase text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
               {gerandoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {gerandoIA ? "Montando o drink..." : "Montar drink automaticamente"}
             </button>
@@ -1007,8 +1007,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
           {/* SEÇÃO: Ingredientes & Dosagem */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-black text-slate-600 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
-              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
+              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
                 {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                 {gerandoIA ? "Gerando..." : "Preparo com IA"}
               </button>
@@ -1024,7 +1024,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
           {/* SEÇÃO: Copo / Taça — foto real (tirada por você) ou desenho */}
           <div>
-            <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai no guia com a foto ou o desenho)</label>
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai no guia com a foto ou o desenho)</label>
             <div className="flex items-stretch gap-3">
               {fotoCopoAtual ? (
                 <img src={fotoCopoAtual} alt="Copo" className="w-14 h-[76px] object-contain rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#f4f4f5" }} />
@@ -1043,19 +1043,19 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
             <input ref={inputFotoCopoRef} type="file" accept="image/*" capture="environment" onChange={escolherFotoCopo} className="hidden" />
             <div className="flex items-center gap-3 mt-2">
               <button type="button" onClick={() => inputFotoCopoRef.current?.click()} disabled={uploadando}
-                className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors disabled:opacity-50">
+                className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors disabled:opacity-50">
                 <Camera size={12} /> {uploadando ? "Enviando..." : (fotoCopoAtual ? "Trocar foto deste copo" : "Adicionar foto do copo")}
               </button>
               {fotoCopoAtual && (
-                <button type="button" onClick={removerFotoCopo} className="text-[11px] font-bold text-rose-500 hover:text-rose-600">Voltar ao desenho</button>
+                <button type="button" onClick={removerFotoCopo} className="text-2xs font-bold text-rose-500 hover:text-rose-600">Voltar ao desenho</button>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Esta foto pertence somente a esta ficha e fica separada da foto do drink.</p>
+            <p className="text-2xs text-slate-400 mt-1">Esta foto pertence somente a esta ficha e fica separada da foto do drink.</p>
           </div>
 
           {/* SEÇÃO: Modo de Preparo */}
           <div>
-            <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Modo de Preparo</label>
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Modo de Preparo</label>
             <textarea
               value={f.descritivo}
               onChange={(e) => set("descritivo", e.target.value)}
@@ -1069,7 +1069,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ingredientes e Passo a passo</label>
-             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
                {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
              </button>
@@ -1668,7 +1668,7 @@ function PreviaCardDrink({ m }) {
   </style></head><body><div id="w">${drinkCardHTML(m)}</div></body></html>`;
   return (
     <div>
-      <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--dim)" }}>Prévia real do card do Guia de Drinks</p>
+      <p className="text-3xs font-bold uppercase tracking-widest mb-2" style={{ color: "var(--dim)" }}>Prévia real do card do Guia de Drinks</p>
       <iframe key={chavePrevia} title={`Prévia ${m.nome}`} srcDoc={html} className="w-full rounded-2xl border" style={{ height: 360, borderColor: "var(--line)", background: "#e2e8f0" }} />
     </div>
   );
@@ -2271,19 +2271,19 @@ function MontagemPageInner() {
               {vazios > 0 && (
                 <button onClick={preencherVaziosIA} disabled={preenchendoIA}
                   title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
-                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
+                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
                   {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
                 </button>
               )}
               <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert(vazios ? `Nenhum drink com receita ainda. Use o botão "Receitas com IA" para a IA montar as ${vazios} bebidas de uma vez, ou cadastre manualmente.` : "Nenhum drink com receita para o guia.")}
-                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-md shadow-violet-600/20 transition-all hover:bg-violet-700 active:scale-[.98]">
+                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-bold text-white shadow-md shadow-violet-600/20 transition-all hover:bg-violet-700 active:scale-[.98]">
                 <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
               </button>
             </>
           );
         })()}
-        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>
@@ -2297,14 +2297,14 @@ function MontagemPageInner() {
             dá para rever e desfazer pelo botão "Fora do guia". */}
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => { setVerForaDoGuia(v => !v); setSelecionadas([]); }}
-            className={`min-h-10 rounded-xl border px-3 text-xs font-black ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
+            className={`min-h-10 rounded-xl border px-3 text-xs font-bold ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
             {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia || !temConteudoDrink(m)).length})`}
           </button>
           {filtrados.length > 0 && (() => {
             const todosMarcados = filtrados.every(m => selecionadas.includes(m.id));
             return (
               <button type="button" onClick={alternarTodos}
-                className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300">
+                className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:border-emerald-300">
                 {todosMarcados ? <CheckSquare size={15} /> : <Square size={15} />}
                 {todosMarcados ? "Desmarcar todos" : `Selecionar todos (${filtrados.length})`}
               </button>
@@ -2312,14 +2312,14 @@ function MontagemPageInner() {
           })()}
           {selecionadas.length > 0 && (
             <button type="button" onClick={removerSelecionadas} disabled={excluindo}
-              className="flex min-h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-xs font-black text-white hover:bg-red-700 disabled:opacity-60">
+              className="flex min-h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-60">
               {excluindo ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
               {excluindo ? "Excluindo..." : `Excluir (${selecionadas.length})`}
             </button>
           )}
           {verForaDoGuia && selecionadas.length > 0 && (
             <button type="button" onClick={() => mudarForaDoGuia(false)}
-              className="min-h-10 rounded-xl bg-slate-800 px-4 text-xs font-black text-white hover:bg-slate-900">
+              className="min-h-10 rounded-xl bg-slate-800 px-4 text-xs font-bold text-white hover:bg-slate-900">
               Devolver ao guia ({selecionadas.length})
             </button>
           )}
@@ -2333,7 +2333,7 @@ function MontagemPageInner() {
             <EmptyState icon={ClipboardList} title={busca ? "Nenhuma ficha encontrada" : "Sem fichas cadastradas"} hint={busca ? "Ajuste a busca" : "Clique em Nova para adicionar"} />
           ) : (
             <>
-            <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>Toque num card para ver o modelo pronto e escolher imprimir, baixar, compartilhar ou excluir.</p>
+            <p className="text-2xs font-medium mb-3" style={{ color: "var(--dim)" }}>Toque num card para ver o modelo pronto e escolher imprimir, baixar, compartilhar ou excluir.</p>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {filtrados.map((m) => (
                 <button key={m.id} type="button" onClick={() => setPreviewCard(m)} title="Ver modelo pronto"
@@ -2355,11 +2355,11 @@ function MontagemPageInner() {
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                          <Camera size={24} />
-                         <span className="text-[9px] uppercase font-bold mt-1">Sem foto</span>
+                         <span className="text-3xs uppercase font-bold mt-1">Sem foto</span>
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                    <span className="absolute top-2 left-9 px-1.5 py-0.5 rounded uppercase font-bold text-[8px] bg-black/30 text-white backdrop-blur-sm">{m.tipo}</span>
+                    <span className="absolute top-2 left-9 px-1.5 py-0.5 rounded uppercase font-bold text-3xs bg-black/30 text-white backdrop-blur-sm">{m.tipo}</span>
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                        <span className="flex items-center gap-1.5 text-white text-xs font-bold bg-black/45 rounded-full px-3 py-1.5 backdrop-blur-sm"><Eye size={14} /> Ver modelo</span>
                     </div>
@@ -2403,7 +2403,7 @@ function MontagemPageInner() {
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
               ].map(({ icon: Ic, label, onClick, perigo }) => (
                 <button key={label} onClick={onClick}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-bold transition-colors hover:bg-slate-100 active:scale-95"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-2xs font-bold transition-colors hover:bg-slate-100 active:scale-95"
                   style={{ background: "var(--elevated)", color: perigo ? "#DC2626" : "var(--muted)" }}
                   title={label}>
                   <Ic size={16} />
@@ -2436,7 +2436,7 @@ function MontagemPageInner() {
                 <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Wine size={18} /> Guia de Drinks</h3>
                 <button onClick={fechar} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
               </div>
-              <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>
+              <p className="text-2xs font-medium mb-3" style={{ color: "var(--dim)" }}>
                 {selecionadas.length ? `${drinksGuia.length} drink(s) marcado(s).` : `${drinksGuia.length} drink(s) com receita.`} Divididos em Com Álcool, Sem Álcool e Doses, em ordem alfabética.
               </p>
               {/* Saída: imprimir na hora ou baixar o arquivo PDF */}
@@ -2462,7 +2462,7 @@ function MontagemPageInner() {
                   <div><p className="font-black text-slate-800 text-sm">Livro A5 (metade da A4 — livro menor)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Mesmo livro em página 148×210mm, com margem de 14mm para encadernar. Na impressora, escolha o papel A5 (ou 2 por folha em A4).</p></div>
                 </button>
               </div>
-              <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>Dica: marque drinks nos cards para imprimir só alguns (ex.: 2 ou mais). Sem marcar, entra todo o bar.</p>
+              <p className="text-3xs font-medium mt-4" style={{ color: "var(--dim)" }}>Dica: marque drinks nos cards para imprimir só alguns (ex.: 2 ou mais). Sem marcar, entra todo o bar.</p>
             </div>
           </div>
         );
@@ -2476,13 +2476,13 @@ function MontagemPageInner() {
               <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Printer size={18} /> Impressão das fichas</h3>
               <button onClick={() => setModalImpressao(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
             </div>
-            <p className="text-[11px] font-medium mb-4" style={{ color: "var(--dim)" }}>
+            <p className="text-2xs font-medium mb-4" style={{ color: "var(--dim)" }}>
               {selecionadas.length
                 ? `Imprimindo as ${alvoImpressao.length} ficha(s) MARCADAS nos cards (desmarque para voltar a todas).`
                 : "Marque fichas nos cards para imprimir só algumas (ex.: 2 receitas na mesma página)."}
             </p>
             {dept === "bar" && (
-              <p className="text-[11px] font-black mb-4 px-3 py-2 rounded-xl" style={{ background: "rgba(34,197,94,0.10)", color: "#15803D" }}>
+              <p className="text-2xs font-bold mb-4 px-3 py-2 rounded-xl" style={{ background: "rgba(34,197,94,0.10)", color: "#15803D" }}>
                 No Bar, os drinks saem no modelo do GUIA DE DRINKS (card com foto, dosagem e preparo) — o designer abaixo vale só para itens que não são drinks.
               </p>
             )}
@@ -2490,24 +2490,24 @@ function MontagemPageInner() {
             {/* Modelo personalizado — as mesmas definições da prévia vão à impressora */}
             <div className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)" }}>
               <div className="mb-4">
-                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>Modelo personalizado</p>
-                <p className="mt-1 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Ajuste aqui e confira a primeira ficha antes de imprimir. Foto, letras e detalhes serão mantidos no papel.</p>
+                <p className="text-2xs font-bold uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>Modelo personalizado</p>
+                <p className="mt-1 text-2xs font-medium" style={{ color: "var(--dim)" }}>Ajuste aqui e confira a primeira ficha antes de imprimir. Foto, letras e detalhes serão mantidos no papel.</p>
               </div>
               {/* Como montar a folha: 2 juntas ou cada uma na sua, em pé ou deitada.
                   O sistema encolhe/amplia as fichas para completar a página e a
                   prévia ao lado mostra o resultado na hora. */}
               {alvoImpressao.length >= 2 && (
               <div className="rounded-2xl border p-3 sm:p-4 mb-4" style={{ borderColor: "var(--accent-strong)", background: "var(--accent-soft)" }}>
-                <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--accent-strong)" }}>
+                <p className="text-2xs font-bold uppercase tracking-widest mb-2" style={{ color: "var(--accent-strong)" }}>
                   Como imprimir as {alvoImpressao.length} montagens?
                 </p>
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <BotaoOpcao ativo={cfgModelo.porPagina === 2} onClick={() => mudarCfg({ porPagina: 2 })}>2 na mesma página<span className="block text-[9px] font-bold normal-case opacity-75">encolhe para caber as duas</span></BotaoOpcao>
-                  <BotaoOpcao ativo={cfgModelo.porPagina === 1} onClick={() => mudarCfg({ porPagina: 1 })}>Cada uma em 1 página<span className="block text-[9px] font-bold normal-case opacity-75">amplia para completar a folha</span></BotaoOpcao>
+                  <BotaoOpcao ativo={cfgModelo.porPagina === 2} onClick={() => mudarCfg({ porPagina: 2 })}>2 na mesma página<span className="block text-3xs font-bold normal-case opacity-75">encolhe para caber as duas</span></BotaoOpcao>
+                  <BotaoOpcao ativo={cfgModelo.porPagina === 1} onClick={() => mudarCfg({ porPagina: 1 })}>Cada uma em 1 página<span className="block text-3xs font-bold normal-case opacity-75">amplia para completar a folha</span></BotaoOpcao>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <BotaoOpcao ativo={cfgModelo.orientacao === "retrato"} onClick={() => mudarCfg({ orientacao: "retrato" })}>Vertical (A4 em pé){cfgModelo.porPagina === 2 && <span className="block text-[9px] font-bold normal-case opacity-75">uma sobre a outra</span>}</BotaoOpcao>
-                  <BotaoOpcao ativo={cfgModelo.orientacao === "paisagem"} onClick={() => mudarCfg({ orientacao: "paisagem" })}>Horizontal (A4 deitado){cfgModelo.porPagina === 2 && <span className="block text-[9px] font-bold normal-case opacity-75">lado a lado</span>}</BotaoOpcao>
+                  <BotaoOpcao ativo={cfgModelo.orientacao === "retrato"} onClick={() => mudarCfg({ orientacao: "retrato" })}>Vertical (A4 em pé){cfgModelo.porPagina === 2 && <span className="block text-3xs font-bold normal-case opacity-75">uma sobre a outra</span>}</BotaoOpcao>
+                  <BotaoOpcao ativo={cfgModelo.orientacao === "paisagem"} onClick={() => mudarCfg({ orientacao: "paisagem" })}>Horizontal (A4 deitado){cfgModelo.porPagina === 2 && <span className="block text-3xs font-bold normal-case opacity-75">lado a lado</span>}</BotaoOpcao>
                 </div>
               </div>
               )}
@@ -2524,7 +2524,7 @@ function MontagemPageInner() {
                 />
                 <div className="min-w-0 lg:sticky lg:top-0 lg:self-start">
                   <PreviaModeloChef lista={alvoImpressao} cfg={cfgModelo} />
-                  {alvoImpressao.length > 1 && <p className="mt-2 text-center text-[10px] font-bold" style={{ color: "var(--dim)" }}>A prévia mostra a 1ª página — a mesma configuração vale para as {alvoImpressao.length} fichas.</p>}
+                  {alvoImpressao.length > 1 && <p className="mt-2 text-center text-3xs font-bold" style={{ color: "var(--dim)" }}>A prévia mostra a 1ª página — a mesma configuração vale para as {alvoImpressao.length} fichas.</p>}
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -2561,7 +2561,7 @@ function MontagemPageInner() {
                 <div className="order-1 lg:order-none lg:col-start-2 lg:row-start-1 sticky top-0 z-10 -mx-3 sm:mx-0 px-3 sm:px-0 pb-2 lg:pb-0" style={{ background: "var(--surface)" }}>
                   <div className="lg:sticky lg:top-0">
                     <h3 className="font-black text-[var(--fg)] text-sm sm:text-lg mb-0.5">{dept === "bar" ? "Prévia do Guia de Drinks" : "Prévia da ficha impressa"}</h3>
-                    <p className="text-[var(--subtle)] text-[11px] sm:text-xs mb-2 hidden sm:block">Acompanha cada ajuste em tempo real — é exatamente o que vai para a impressão.</p>
+                    <p className="text-[var(--subtle)] text-2xs sm:text-xs mb-2 hidden sm:block">Acompanha cada ajuste em tempo real — é exatamente o que vai para a impressão.</p>
                     <div className="max-w-[240px] sm:max-w-[300px] lg:max-w-none mx-auto">
                       {dept === "bar" && previewFicha
                         ? <PreviaCardDrink m={previewFicha} />

@@ -81,14 +81,14 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
       {isCmo && (
         <label className="flex items-center gap-2 p-2 rounded cursor-pointer mb-3" style={{ background: "var(--elevated)" }}>
           <input type="checkbox" checked={f.is_extra} onChange={(e) => set("is_extra", e.target.checked)} />
-          <span className="text-[12px]" style={{ color: "var(--fg)" }}>Contratação extra (só para o evento)</span>
+          <span className="text-xs" style={{ color: "var(--fg)" }}>Contratação extra (só para o evento)</span>
         </label>
       )}
 
       {/* Repassar este item ao cliente: entra no orçamento e no faturamento */}
       <label className="flex items-center gap-2 p-2 rounded cursor-pointer mb-2" style={{ background: f.cobrar_cliente ? "#10B98122" : "var(--elevated)", border: f.cobrar_cliente ? "1px solid #10B98155" : "1px solid transparent" }}>
         <input type="checkbox" checked={!!f.cobrar_cliente} onChange={(e) => set("cobrar_cliente", e.target.checked)} />
-        <span className="text-[12px]" style={{ color: "var(--fg)" }}>Cobrar do cliente (entra no orçamento além do buffet)</span>
+        <span className="text-xs" style={{ color: "var(--fg)" }}>Cobrar do cliente (entra no orçamento além do buffet)</span>
       </label>
       {f.cobrar_cliente && (
         <Field label={`Valor cobrado do cliente (R$) — vazio repassa o custo (${fmtBRL(totalCusto)})`}>
@@ -97,7 +97,7 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
       )}
 
       <div className="erp-panel p-3 mb-3 flex justify-between">
-        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Custo total:</span>
+        <span className="text-2xs font-bold" style={{ color: "var(--muted)" }}>Custo total:</span>
         <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL(totalCusto)}</strong>
       </div>
 
@@ -164,10 +164,10 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
       <Card className="!p-4">
         <h3 style={{ fontWeight: 700, color: "var(--fg)", marginBottom: 12 }}>Resumo por {calc.unitName}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>PREÇO POR {calc.unitName.toUpperCase()}</p><strong style={{ fontSize: 20, color: "#10B981" }}>{fmtBRL(evento.preco_unit)}</strong></div>
-          <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>LUCRO POR {calc.unitName.toUpperCase()}</p><strong style={{ fontSize: 20, color: calc.contributionPerUnit > 0 ? "#10B981" : "#EF4444" }}>{fmtBRL(calc.contributionPerUnit - (reservas.length > 0 ? calc.totalFixos / reservas.length : 0))}</strong></div>
+          <div><p className="text-3xs" style={{ color: "var(--dim)" }}>PREÇO POR {calc.unitName.toUpperCase()}</p><strong style={{ fontSize: 20, color: "#10B981" }}>{fmtBRL(evento.preco_unit)}</strong></div>
+          <div><p className="text-3xs" style={{ color: "var(--dim)" }}>LUCRO POR {calc.unitName.toUpperCase()}</p><strong style={{ fontSize: 20, color: calc.contributionPerUnit > 0 ? "#10B981" : "#EF4444" }}>{fmtBRL(calc.contributionPerUnit - (reservas.length > 0 ? calc.totalFixos / reservas.length : 0))}</strong></div>
         </div>
-        <div className="space-y-2 text-[12px]">
+        <div className="space-y-2 text-xs">
           <div className="flex justify-between"><span style={{ color: "#10B981" }}>+ Preço</span><strong>{fmtBRL(evento.preco_unit)}</strong></div>
           <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>− CMV</span><strong>{fmtBRL(calc.cmvUnit)}</strong></div>
           <div className="flex justify-between"><span style={{ color: "var(--muted)" }}>− Mão de Obra rateada</span><strong>{fmtBRL(reservas.length > 0 ? calc.laborTotal / reservas.length : 0)}</strong></div>
@@ -184,13 +184,13 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
             <CreditCard size={16} style={{ color: "#10B981" }} />
             <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>Status de Pagamento</h3>
           </div>
-          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "#10B981" }}>Recebido</span><strong>{fmtBRL(totalSinal)}</strong></div>
-          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "#F59E0B" }}>A receber</span><strong>{fmtBRL(totalReceber)}</strong></div>
-          <div className="flex justify-between text-[12px] mb-2 pb-2" style={{ borderBottom: "1px solid var(--line)" }}><span style={{ color: "var(--muted)" }}>Total esperado</span><strong>{fmtBRL(calc.totalRevenue)}</strong></div>
+          <div className="flex justify-between text-xs mb-1"><span style={{ color: "#10B981" }}>Recebido</span><strong>{fmtBRL(totalSinal)}</strong></div>
+          <div className="flex justify-between text-xs mb-1"><span style={{ color: "#F59E0B" }}>A receber</span><strong>{fmtBRL(totalReceber)}</strong></div>
+          <div className="flex justify-between text-xs mb-2 pb-2" style={{ borderBottom: "1px solid var(--line)" }}><span style={{ color: "var(--muted)" }}>Total esperado</span><strong>{fmtBRL(calc.totalRevenue)}</strong></div>
           <div style={{ height: 6, background: "var(--elevated)", borderRadius: 100, overflow: "hidden" }}>
             <div style={{ width: `${pagamentoPct}%`, height: "100%", background: "linear-gradient(90deg, #10B981, #F59E0B)" }} />
           </div>
-          <div className="flex justify-between text-[10px] mt-1" style={{ color: "var(--dim)" }}>
+          <div className="flex justify-between text-3xs mt-1" style={{ color: "var(--dim)" }}>
             <span>{pagamentoPct.toFixed(0)}% pago</span><span>{(100 - pagamentoPct).toFixed(0)}% pendente</span>
           </div>
         </Card>
@@ -204,12 +204,12 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
             <NumberInput value={meta} onChange={(e) => setMeta(e.target.value)} placeholder="2000,00" step="0.01" />
             <Btn variant="primary" onClick={salvarMeta}>Salvar</Btn>
           </div>
-          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "var(--muted)" }}>Lucro atual</span><strong style={{ color: calc.profit >= 0 ? "#10B981" : "#EF4444" }}>{fmtBRL(calc.profit)}</strong></div>
-          <div className="flex justify-between text-[12px] mb-2"><span style={{ color: "var(--muted)" }}>Meta</span><strong>{fmtBRL(metaNum)}</strong></div>
+          <div className="flex justify-between text-xs mb-1"><span style={{ color: "var(--muted)" }}>Lucro atual</span><strong style={{ color: calc.profit >= 0 ? "#10B981" : "#EF4444" }}>{fmtBRL(calc.profit)}</strong></div>
+          <div className="flex justify-between text-xs mb-2"><span style={{ color: "var(--muted)" }}>Meta</span><strong>{fmtBRL(metaNum)}</strong></div>
           <div style={{ height: 6, background: "var(--elevated)", borderRadius: 100, overflow: "hidden" }}>
             <div style={{ width: `${Math.min(100, metaPct)}%`, height: "100%", background: calc.profit >= metaNum ? "#10B981" : "linear-gradient(90deg, #EF4444, #F59E0B)" }} />
           </div>
-          <div className="flex justify-between text-[10px] mt-1" style={{ color: "var(--dim)" }}>
+          <div className="flex justify-between text-3xs mt-1" style={{ color: "var(--dim)" }}>
             <span>{metaPct.toFixed(0)}% da meta</span>
             {unidadesFaltam !== null && unidadesFaltam > 0 && calc.profit < metaNum && (
               <span>Faltam <strong style={{ color: "var(--accent-fg)" }}>{unidadesFaltam}</strong> {calc.unitName}</span>
@@ -232,7 +232,7 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
                 <ShoppingCart size={16} style={{ display: "inline", marginRight: 6 }} />
                 Compras Realizadas (CMV Real)
               </h3>
-              <span className="text-[10px]" style={{ color: "var(--dim)" }}>{totalCompradosCount} item{totalCompradosCount !== 1 ? "s" : ""} comprado{totalCompradosCount !== 1 ? "s" : ""}</span>
+              <span className="text-3xs" style={{ color: "var(--dim)" }}>{totalCompradosCount} item{totalCompradosCount !== 1 ? "s" : ""} comprado{totalCompradosCount !== 1 ? "s" : ""}</span>
             </div>
             {totalCompradosCount === 0 ? (
               <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>
@@ -242,27 +242,27 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <p className="text-[10px]" style={{ color: "var(--dim)" }}>CMV ESTIMADO</p>
+                    <p className="text-3xs" style={{ color: "var(--dim)" }}>CMV ESTIMADO</p>
                     <strong style={{ fontSize: 18, color: "#F59E0B" }}>{fmtBRL(totalCmvEstimado)}</strong>
                   </div>
                   <div>
-                    <p className="text-[10px]" style={{ color: "var(--dim)" }}>GASTO REAL EM COMPRAS</p>
+                    <p className="text-3xs" style={{ color: "var(--dim)" }}>GASTO REAL EM COMPRAS</p>
                     <strong style={{ fontSize: 18, color: "#10B981" }}>{fmtBRL(totalGastoReal)}</strong>
                   </div>
                   <div>
-                    <p className="text-[10px]" style={{ color: "var(--dim)" }}>{diff >= 0 ? "ACIMA DO PREVISTO" : "ABAIXO DO PREVISTO"}</p>
+                    <p className="text-3xs" style={{ color: "var(--dim)" }}>{diff >= 0 ? "ACIMA DO PREVISTO" : "ABAIXO DO PREVISTO"}</p>
                     <strong style={{ fontSize: 18, color: diff > 0 ? "#EF4444" : "#10B981" }}>
                       {diff >= 0 ? "+" : ""}{fmtBRL(diff)}
                     </strong>
                     {totalCmvEstimado > 0 && (
-                      <p className="text-[10px]" style={{ color: "var(--dim)" }}>
+                      <p className="text-3xs" style={{ color: "var(--dim)" }}>
                         {((Math.abs(diff) / totalCmvEstimado) * 100).toFixed(1)}% de variação
                       </p>
                     )}
                   </div>
                 </div>
                 <div className="mt-3 p-2 rounded" style={{ background: "var(--elevated)" }}>
-                  <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+                  <p className="text-2xs" style={{ color: "var(--muted)" }}>
                     <strong style={{ color: "var(--fg)" }}>Lucro recalculado com CMV real:</strong>{" "}
                     <span style={{ color: (calc.totalRevenue - totalGastoReal - calc.totalFixos - calc.impostos - calc.machineFee) >= 0 ? "#10B981" : "#EF4444", fontWeight: 700 }}>
                       {fmtBRL(calc.totalRevenue - totalGastoReal - calc.totalFixos - calc.impostos - calc.machineFee)}
@@ -296,23 +296,23 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
                     <div style={{ width: 8, height: 8, borderRadius: 999, background: grupo.cor }} />
                     <strong style={{ color: "var(--fg)" }}>{grupo.label}</strong>
                   </div>
-                  <span className="text-[12px] font-bold" style={{ color: grupo.cor }}>{fmtBRL(grupo.total)}</span>
+                  <span className="text-xs font-bold" style={{ color: grupo.cor }}>{fmtBRL(grupo.total)}</span>
                 </div>
                 {grupo.groups ? (
                   // CMO com sub-áreas
                   <div className="space-y-2">
                     {grupo.groups.map((area) => (
                       <div key={area.id}>
-                        <div className="flex items-center justify-between mb-1 text-[11px]" style={{ color: "var(--muted)", paddingLeft: 16 }}>
+                        <div className="flex items-center justify-between mb-1 text-2xs" style={{ color: "var(--muted)", paddingLeft: 16 }}>
                           <span>{area.label} ({area.items.length})</span>
                           <strong>{fmtBRL(area.total)}</strong>
                         </div>
                         {area.items.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between p-2 rounded text-[12px]" style={{ background: "var(--elevated)", marginLeft: 16 }}>
+                          <div key={item.id} className="flex items-center justify-between p-2 rounded text-xs" style={{ background: "var(--elevated)", marginLeft: 16 }}>
                             <div>
                               <strong style={{ color: "var(--fg)" }}>{item.nome}</strong>
-                              {item.is_extra && <span className="erp-badge text-[9px]" style={{ background: "#F59E0B33", color: "#F59E0B", marginLeft: 4 }}>extra</span>}
-                              {item.cobrar_cliente && <span className="erp-badge text-[9px]" style={{ background: "#10B98133", color: "#10B981", marginLeft: 4 }}>cobrado do cliente · {fmtBRL(item.valor_cobranca)}</span>}
+                              {item.is_extra && <span className="erp-badge text-3xs" style={{ background: "#F59E0B33", color: "#F59E0B", marginLeft: 4 }}>extra</span>}
+                              {item.cobrar_cliente && <span className="erp-badge text-3xs" style={{ background: "#10B98133", color: "#10B981", marginLeft: 4 }}>cobrado do cliente · {fmtBRL(item.valor_cobranca)}</span>}
                               <div style={{ color: "var(--dim)", fontSize: 10 }}>{item.person_count}× {fmtBRL(item.value_per_person)}</div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -329,10 +329,10 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
                   // Outras categorias
                   <div className="space-y-1">
                     {grupo.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-2 rounded text-[12px]" style={{ background: "var(--elevated)" }}>
+                      <div key={item.id} className="flex items-center justify-between p-2 rounded text-xs" style={{ background: "var(--elevated)" }}>
                         <div>
                           <strong style={{ color: "var(--fg)" }}>{item.nome}</strong>
-                          {item.cobrar_cliente && <span className="erp-badge text-[9px]" style={{ background: "#10B98133", color: "#10B981", marginLeft: 4 }}>cobrado do cliente · {fmtBRL(item.valor_cobranca)}</span>}
+                          {item.cobrar_cliente && <span className="erp-badge text-3xs" style={{ background: "#10B98133", color: "#10B981", marginLeft: 4 }}>cobrado do cliente · {fmtBRL(item.valor_cobranca)}</span>}
                           <div style={{ color: "var(--dim)", fontSize: 10 }}>{item.person_count}× {fmtBRL(item.value_per_person)}</div>
                         </div>
                         <div className="flex items-center gap-2">

@@ -226,7 +226,7 @@ export default function RhConfiguracoesPage() {
                            {item.nome}
                          </p>
                          {item.regras && <p className="text-xs text-[var(--dim)] mt-1 truncate">{item.regras}</p>}
-                         {item.funcoes_padrao && <p className="text-[11px] text-[var(--dim)] mt-1 truncate">{item.funcoes_padrao}</p>}
+                         {item.funcoes_padrao && <p className="text-2xs text-[var(--dim)] mt-1 truncate">{item.funcoes_padrao}</p>}
                        </div>
                        <div className="flex gap-2">
                          <button onClick={() => { setEditar(item); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--elevated)]">

@@ -174,11 +174,11 @@ export default function FluxoCaixaFintechPage() {
          {/* RESUMO RÁPIDO */}
          <div className="bg-white p-2 rounded-2xl border border-slate-200 flex flex-wrap justify-between items-center gap-2 mb-8 sm:mb-10 shadow-sm">
             <div className="flex-1 text-center py-3 border-r border-slate-100">
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Entradas</p>
+               <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Entradas</p>
                <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.entradas)}</p>
             </div>
             <div className="flex-1 text-center py-3">
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Saídas</p>
+               <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Saídas</p>
                <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.saidas)}</p>
             </div>
          </div>
@@ -219,7 +219,7 @@ export default function FluxoCaixaFintechPage() {
                             <div>
                                <p className="font-bold text-slate-900">{l.descricao}</p>
                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{l.categoria}</span>
+                                  <span className="text-3xs font-bold uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{l.categoria}</span>
                                   <span className="text-xs font-medium text-slate-500">{fmtData(l.data)}</span>
                                </div>
                             </div>

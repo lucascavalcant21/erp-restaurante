@@ -66,7 +66,7 @@ function CardInstalar() {
                 </div>
               </div>
             )}
-            <p className="text-[11px] text-slate-400 font-medium mt-3">Se já instalou antes e mudou a versão, desinstale e instale de novo para pegar a tela cheia nova.</p>
+            <p className="text-2xs text-slate-400 font-medium mt-3">Se já instalou antes e mudou a versão, desinstale e instale de novo para pegar a tela cheia nova.</p>
           </>
         )}
       </div>
@@ -122,7 +122,7 @@ function CardParametros({ unidadeAtiva }) {
       <div className="p-6 space-y-6">
         {GRUPOS.map(([titulo, campos]) => (
           <div key={titulo}>
-            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3">{titulo}</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-slate-400 mb-3">{titulo}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {campos.map(([k, label, hint]) => (
                 <div key={k}>
@@ -130,7 +130,7 @@ function CardParametros({ unidadeAtiva }) {
                   <input type="number" min="0" step="1" value={p[k]}
                     onChange={e => setP(prev => ({ ...prev, [k]: e.target.value === "" ? "" : Number(e.target.value) }))}
                     className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500" />
-                  <p className="text-[10px] text-slate-400 font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
+                  <p className="text-3xs text-slate-400 font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
                 </div>
               ))}
             </div>
@@ -201,20 +201,20 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
         <Tag size={18} className="text-emerald-600" />
         <div>
           <h2 className="font-bold text-slate-800">Validades padrão das etiquetas</h2>
-          <p className="text-[11px] text-slate-500 font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
+          <p className="text-2xs text-slate-500 font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
         </div>
       </div>
       <div className="p-6 space-y-3">
         {categorias.map((item, indice) => (
           <div key={item.id} className="grid grid-cols-[1fr_110px_40px] gap-2 items-end">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categoria</label>
+              <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Categoria</label>
               <input value={item.nome} onChange={(e) => alterar(indice, "nome", e.target.value)}
                 placeholder="Ex.: Molhos e bases"
                 className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Validade (dias)</label>
+              <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Validade (dias)</label>
               <input type="number" min="0" max="3650" value={item.dias}
                 onChange={(e) => alterar(indice, "dias", e.target.value)}
                 className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500" />
@@ -271,7 +271,7 @@ function CardCargos({ unidadeAtiva }) {
         <Briefcase size={18} className="text-slate-500" />
         <div>
           <h2 className="font-bold text-slate-800">Funções / Cargos</h2>
-          <p className="text-[11px] text-slate-500 font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
+          <p className="text-2xs text-slate-500 font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
         </div>
       </div>
       <div className="p-6 space-y-4">
@@ -281,10 +281,10 @@ function CardCargos({ unidadeAtiva }) {
               <div key={c.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-xl p-3">
                 <div className="min-w-0 flex items-center gap-2">
                   <span className="font-bold text-slate-800 truncate">{c.nome}</span>
-                  {c.eh_supervisor && <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Supervisor</span>}
+                  {c.eh_supervisor && <span className="text-3xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Supervisor</span>}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => alternarSup(c)} className="text-[11px] font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
+                  <button onClick={() => alternarSup(c)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
                   <button onClick={() => excluir(c)} title="Excluir" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
                 </div>
               </div>
@@ -343,7 +343,7 @@ function CardUnidades() {
         <Store size={18} className="text-slate-500" />
         <div>
           <h2 className="font-bold text-slate-800">Unidades (lojas)</h2>
-          <p className="text-[11px] text-slate-500 font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
+          <p className="text-2xs text-slate-500 font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
         </div>
       </div>
       <div className="p-6 space-y-4">
@@ -351,12 +351,12 @@ function CardUnidades() {
           {reais.map(u => (
             <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-slate-200"}`}>
               <div className="min-w-0">
-                <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-emerald-600">Ativa</span>}</p>
-                {u.cidade && <p className="text-[11px] text-slate-500 truncate">{u.cidade}</p>}
+                <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-3xs font-bold uppercase tracking-widest text-emerald-600">Ativa</span>}</p>
+                {u.cidade && <p className="text-2xs text-slate-500 truncate">{u.cidade}</p>}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {unidadeAtiva !== u.id && (
-                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-[11px] font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">Usar</button>
+                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">Usar</button>
                 )}
                 <button onClick={() => excluir(u)} title="Excluir unidade" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
               </div>
@@ -385,7 +385,7 @@ function CardControleAcessos() {
         <ShieldCheck size={18} className="text-violet-600" />
         <div>
           <h2 className="font-bold text-slate-800">Usuários, perfis e permissões</h2>
-          <p className="text-[11px] font-medium text-slate-500">Controle acessos por empresa, unidade, setor, página e ação.</p>
+          <p className="text-2xs font-medium text-slate-500">Controle acessos por empresa, unidade, setor, página e ação.</p>
         </div>
       </div>
       <div className="grid gap-3 p-5 sm:grid-cols-2">
@@ -443,7 +443,7 @@ function CardSenhas({ unidadeAtiva }) {
               <input type="text" inputMode="numeric" maxLength={4} value={pins[k] || ""}
                 onChange={e => setPins(p => ({ ...p, [k]: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
                 className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
-              <p className="text-[10px] text-slate-400 font-medium mt-1">{hint}</p>
+              <p className="text-3xs text-slate-400 font-medium mt-1">{hint}</p>
             </div>
           ))}
         </div>
@@ -655,7 +655,7 @@ export default function ConfiguracoesPage() {
             <div className="col-span-2 md:col-span-2">
               <label className={`${labelCls} flex items-center gap-1`}>CEP {buscandoCep && <Loader2 size={11} className="animate-spin" />}</label>
               <input type="text" name="cep" value={dadosLoja.cep} onChange={handleChange} onBlur={e => buscarCep(e.target.value)} className={inputCls} placeholder="00000-000" />
-              <p className="text-[10px] text-slate-400 mt-1">Digite o CEP e o endereço preenche sozinho.</p>
+              <p className="text-3xs text-slate-400 mt-1">Digite o CEP e o endereço preenche sozinho.</p>
             </div>
             <div className="col-span-2 md:col-span-3">
               <label className={labelCls}>Endereço (rua/avenida)</label>

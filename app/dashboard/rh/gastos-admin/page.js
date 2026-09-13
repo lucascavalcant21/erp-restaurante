@@ -137,7 +137,7 @@ export default function ComprasDoMesPage() {
         ) : (
           <>
             <section className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
-              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Total comprado no período</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Total comprado no período</p>
               <p className="mt-1 text-4xl font-black text-slate-900 sm:text-5xl">{brl(totalGeral)}</p>
               <p className="mt-2 text-sm font-bold text-slate-500">{doPeriodo.length} entrada(s) de estoque</p>
             </section>
@@ -151,7 +151,7 @@ export default function ComprasDoMesPage() {
               ) : totais.map(([cat, v]) => (
                 <button key={cat} onClick={() => setCategoria(categoria === cat ? "Todas" : cat)}
                   className={`rounded-2xl border-2 p-4 text-left transition-all ${COR_CATEGORIA[cat] || COR_CATEGORIA.Outros} ${categoria === cat ? "ring-2 ring-emerald-500 ring-offset-1" : ""}`}>
-                  <p className="text-[11px] font-black uppercase tracking-widest opacity-80">{cat}</p>
+                  <p className="text-2xs font-bold uppercase tracking-widest opacity-80">{cat}</p>
                   <p className="mt-1 text-2xl font-black">{brl(v.total)}</p>
                   <p className="text-xs font-bold opacity-70">
                     {v.itens} entrada(s) · {totalGeral > 0 ? Math.round((v.total / totalGeral) * 100) : 0}% do total
@@ -182,7 +182,7 @@ export default function ComprasDoMesPage() {
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShoppingCart size={16} /></span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[15px] font-black text-slate-900">{m.insumo?.nome || "Produto removido"}</p>
-                          <p className="truncate text-[11px] font-bold text-slate-500">
+                          <p className="truncate text-2xs font-bold text-slate-500">
                             {Number(m.quantidade || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {m.insumo?.unidade_medida || ""}
                             {m.estoque?.nome ? ` · ${m.estoque.nome}` : ""}
                             {m.usuario_nome ? ` · ${m.usuario_nome}` : ""}

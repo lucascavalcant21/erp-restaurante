@@ -206,7 +206,7 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
         </div>
         <p className="text-slate-400 font-medium text-sm mb-4">{subtitulo}</p>
 
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Toque em um motivo (rápido)</p>
+        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Toque em um motivo (rápido)</p>
         <div className="space-y-2 mb-4">
           {MOTIVOS_RAPIDOS.map((m) => (
             <button key={m} disabled={confirmando} onClick={() => onConfirm(m)}
@@ -216,7 +216,7 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
           ))}
         </div>
 
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Ou escreva o motivo</p>
+        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Ou escreva o motivo</p>
         <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={2}
           placeholder="Motivo..." className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-white font-medium outline-none focus:border-emerald-500 resize-none mb-3" />
         <button disabled={confirmando || !texto.trim()} onClick={() => onConfirm(texto.trim())}
@@ -713,22 +713,22 @@ export default function PontoPage() {
             de longe, sem pegar o tablet. */}
         {sucesso.comprovante && (
           <div className="mt-7 w-full max-w-md bg-white rounded-2xl px-5 py-4 text-left shadow-2xl font-mono text-slate-800">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Comprovante de Registro de Ponto do Trabalhador</p>
+            <p className="text-3xs font-bold uppercase tracking-[0.18em] text-slate-500">Comprovante de Registro de Ponto do Trabalhador</p>
             <p className="mt-1 text-4xl font-black tabular-nums tracking-tight">NSR {sucesso.comprovante.nsr}</p>
-            <div className="mt-3 space-y-0.5 text-[12px] leading-snug">
+            <div className="mt-3 space-y-0.5 text-xs leading-snug">
               <p>{sucesso.comprovante.empresa}{sucesso.comprovante.cnpj ? ` · CNPJ ${sucesso.comprovante.cnpj}` : ""}</p>
               <p className="font-bold">{sucesso.comprovante.nome}{sucesso.comprovante.cpf ? ` · CPF ${sucesso.comprovante.cpf}` : ""}</p>
               <p>{sucesso.comprovante.etapa} · {sucesso.comprovante.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })}</p>
               {sucesso.comprovante.local && <p>{sucesso.comprovante.local}</p>}
               {sucesso.comprovante.hash && (
-                <p className="mt-1 break-all text-[9px] leading-tight text-slate-500">
+                <p className="mt-1 break-all text-3xs leading-tight text-slate-500">
                   SHA-256 {sucesso.comprovante.hash}
                 </p>
               )}
             </div>
             <button
               onClick={() => imprimirComprovante(sucesso.comprovante)}
-              className="mt-3 w-full rounded-lg bg-slate-900 py-2 text-[12px] font-bold text-white hover:bg-slate-800">
+              className="mt-3 w-full rounded-lg bg-slate-900 py-2 text-xs font-bold text-white hover:bg-slate-800">
               Imprimir comprovante
             </button>
           </div>
@@ -797,11 +797,11 @@ export default function PontoPage() {
               <div className="space-y-2">
                 <button disabled={batendo} onClick={() => confirmarAntecipada("extra")} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm disabled:opacity-50">
                   Contar como hora extra
-                  <span className="block text-[10px] font-bold opacity-80">vai para o banco de horas</span>
+                  <span className="block text-3xs font-bold opacity-80">vai para o banco de horas</span>
                 </button>
                 <button disabled={batendo} onClick={() => confirmarAntecipada("liberar")} className="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm disabled:opacity-50">
                   Vai ser liberado mais cedo hoje
-                  <span className="block text-[10px] font-bold opacity-70">só registra o combinado</span>
+                  <span className="block text-3xs font-bold opacity-70">só registra o combinado</span>
                 </button>
               </div>
               <button onClick={() => setEscolhaAntecipada(null)} className="text-slate-500 hover:text-slate-300 text-xs font-bold mt-4">Cancelar</button>
@@ -844,7 +844,7 @@ export default function PontoPage() {
                     de hoje escondia justamente o dia que muda — que é o dia em
                     que a pessoa erra. */}
                 {linhasJornadaSemana(selecionado).map(linha => (
-                  <p key={linha} className="text-slate-500 font-bold text-[11px] sm:text-xs mt-0.5">{linha}</p>
+                  <p key={linha} className="text-slate-500 font-bold text-2xs sm:text-xs mt-0.5">{linha}</p>
                 ))}
               </div>
             </div>
@@ -858,7 +858,7 @@ export default function PontoPage() {
               e o sistema registrar como intervalo do dia anterior. */}
           {reg && reg.data_referencia !== isoLocalDeHoje() && (
             <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-              <p className="text-[11px] font-black uppercase tracking-widest text-amber-300">
+              <p className="text-2xs font-bold uppercase tracking-widest text-amber-300">
                 Jornada de {reg.data_referencia.slice(5).split("-").reverse().join("/")} ainda aberta
               </p>
               <p className="mt-1 text-xs font-bold leading-snug text-amber-100/90">
@@ -877,8 +877,8 @@ export default function PontoPage() {
               return (
                 <div key={e.id} className={`p-4 rounded-2xl border text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-slate-800 border-slate-500 border-dashed" : "bg-slate-900 border-slate-800"}`}>
                   <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400" : "text-slate-500"}`} />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{e.label}</p>
-                  <p className={`text-lg font-black mt-0.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400 text-xs leading-tight" : "text-slate-600"}`}>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-400">{e.label}</p>
+                  <p className={`text-lg font-bold mt-0.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400 text-xs leading-tight" : "text-slate-600"}`}>
                     {hora || (puladoAqui ? "não tirado" : "--:--")}
                   </p>
                 </div>
@@ -893,7 +893,7 @@ export default function PontoPage() {
             const estourou = resta <= 0;
             return (
               <div className={`rounded-3xl p-6 text-center mb-4 border ${estourou ? "bg-rose-500/10 border-rose-500/40" : "bg-amber-500/10 border-amber-500/30"}`}>
-                <p className={`text-[10px] font-black uppercase tracking-widest ${estourou ? "text-rose-300" : "text-amber-300"}`}>
+                <p className={`text-3xs font-bold uppercase tracking-widest ${estourou ? "text-rose-300" : "text-amber-300"}`}>
                   {estourou ? "Intervalo estourado" : "Em intervalo"}
                 </p>
                 <p className={`text-4xl sm:text-5xl font-black tabular-nums mt-2 ${estourou ? "text-rose-400" : "text-amber-400"}`}>
@@ -930,7 +930,7 @@ export default function PontoPage() {
                 Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
               </p>
               <p className="text-4xl sm:text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>
               <button onClick={() => setPinAntecipada(true)}
                 className="mt-5 px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm transition-colors">
                 Reunião / serviço mais cedo? Liberar — PIN do gerente
@@ -955,11 +955,11 @@ export default function PontoPage() {
               batida do começo do mês. */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
               <div className="flex items-center gap-1">
                 <button onClick={() => andarMes(-1)} aria-label="Mês anterior"
                   className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700">‹</button>
-                <span className="min-w-[112px] text-center text-xs font-black uppercase text-slate-300">
+                <span className="min-w-[112px] text-center text-xs font-bold uppercase text-slate-300">
                   {new Date(`${mesHistorico}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
                 </span>
                 <button onClick={() => andarMes(1)} disabled={mesEhFuturo} aria-label="Próximo mês"
@@ -967,7 +967,7 @@ export default function PontoPage() {
               </div>
             </div>
             {historico.length > 0 && (
-              <p className="mb-2 text-[11px] font-bold text-slate-500">
+              <p className="mb-2 text-2xs font-bold text-slate-500">
                 {historico.length} dia(s) com registro neste mês
               </p>
             )}
@@ -979,17 +979,17 @@ export default function PontoPage() {
                     titulo obrigam a decorar a ordem. Mesma grade das linhas
                     para os titulos cairem exatamente sobre os numeros. */}
                 <div className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-end px-2 pb-1 text-center">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-600 text-left">Dia</span>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Entrada</span>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Saiu p/<br/>intervalo</span>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Voltou do<br/>intervalo</span>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Saída</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-600 text-left">Dia</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Entrada</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Saiu p/<br/>intervalo</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Voltou do<br/>intervalo</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Saída</span>
                 </div>
                 {historico.map(h => (
                   <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-slate-950/60">
                     {/* Dia da semana ao lado da data: quem confere o próprio
                         ponto lembra "no sábado eu saí tarde", não "no dia 15". */}
-                    <span className="text-[11px] font-black text-slate-400 text-left">
+                    <span className="text-2xs font-bold text-slate-400 text-left">
                       {h.data_referencia?.slice(5).split("-").reverse().join("/")}
                       <span className="ml-1.5 text-slate-500">{siglaDiaSemana(h.data_referencia)}</span>
                     </span>
@@ -1042,7 +1042,7 @@ export default function PontoPage() {
           <div className={`w-11 h-11 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
             <p className="font-black text-white leading-tight break-words text-xl">{c.nome}</p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
+            <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1051,11 +1051,11 @@ export default function PontoPage() {
           {/* Folga não é falta: sai em âmbar, não em vermelho. E cada tipo diz
               o próprio nome — quem monta a escala precisa saber se a pessoa
               está de folga semanal ou se foi a vez dela no domingo. */}
-          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-300" : "bg-slate-700/40 text-slate-300") : faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
+          <div className={`text-3xs font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-300" : "bg-slate-700/40 text-slate-300") : faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
             {bloqueado && !reg?.hora_entrada ? <><Ban size={11} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> {info.motivo}</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
-            <span className="text-[10px] font-bold text-slate-600">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>
+            <span className="text-3xs font-bold text-slate-600">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>
           )}
         </div>
       </button>
@@ -1095,7 +1095,7 @@ export default function PontoPage() {
 
         <div className="text-center mb-8 relative">
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
-          <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
+          <p className="text-emerald-400 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
           <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
             {/* Segundos não são enfeite: o Anexo IX, item 3, exige que o
                 coletor exiba horas, minutos e segundos no momento da marcação. */}
@@ -1161,16 +1161,16 @@ export default function PontoPage() {
                       <p className="text-sm font-black text-amber-300 leading-tight">
                         {a.tipo === "entrada" ? `${a.c.nome.split(" ").slice(0, 2).join(" ")} entra às ${a.hora}` : `${a.c.nome.split(" ").slice(0, 2).join(" ")} volta do intervalo às ${a.hora}`}
                       </p>
-                      <p className="text-[11px] font-bold text-amber-500/80">faltam {a.falta} min</p>
+                      <p className="text-2xs font-bold text-amber-500/80">faltam {a.falta} min</p>
                     </div>
                     {zap ? (
                       <a href={zap} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-black text-xs text-white shrink-0 active:scale-95 transition-transform"
+                        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-bold text-xs text-white shrink-0 active:scale-95 transition-transform"
                         style={{ background: "#25D366" }}>
                         <MessageCircle size={14} /> Lembrar no WhatsApp
                       </a>
                     ) : (
-                      <span className="text-[10px] font-bold text-slate-500 shrink-0">sem telefone no cadastro</span>
+                      <span className="text-3xs font-bold text-slate-500 shrink-0">sem telefone no cadastro</span>
                     )}
                   </div>
                 );
@@ -1216,8 +1216,8 @@ export default function PontoPage() {
             {grupos.map(g => (
               <div key={g.cat}>
                 <div className="flex items-center gap-3 mb-3">
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">{g.cat}</p>
-                  <span className="text-[10px] font-black text-slate-600 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">{g.itens.length}</span>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{g.cat}</p>
+                  <span className="text-3xs font-bold text-slate-600 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">{g.itens.length}</span>
                   <div className="flex-1 h-px bg-slate-800/70" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">

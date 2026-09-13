@@ -136,7 +136,7 @@ export default function Rankings() {
               )}
               {pessoas.poucosDados.length > 0 && (
                 <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <summary className="cursor-pointer select-none text-xs font-black uppercase tracking-wider text-slate-500">
+                  <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-slate-500">
                     Poucos dados para ranquear ({pessoas.poucosDados.length})
                   </summary>
                   <p className="mt-2 text-xs font-bold text-slate-500">
@@ -185,7 +185,7 @@ export default function Rankings() {
                         <div className="w-full rounded-t-md bg-emerald-500"
                           style={{ height: `${d.score == null ? 2 : Math.max(2, d.score)}%` }} />
                       </div>
-                      <span className="text-[9px] font-bold text-slate-400">{String(d.dia).slice(8, 10)}</span>
+                      <span className="text-3xs font-bold text-slate-400">{String(d.dia).slice(8, 10)}</span>
                     </div>
                   ))}
                 </div>
@@ -201,7 +201,7 @@ export default function Rankings() {
 function Secao({ titulo, icone: Icone, children }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <h2 className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700">
+      <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700">
         <Icone size={15} /> {titulo}
       </h2>
       {children}
@@ -214,7 +214,7 @@ function Tabela({ linhas, rotuloCol, chave, comPosicao = false, capitalizar = fa
     <div className="overflow-x-auto">
       <table className="w-full min-w-[560px] text-left text-sm">
         <thead>
-          <tr className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+          <tr className="text-3xs font-bold uppercase tracking-wider text-slate-400">
             <th className="pb-2 pr-3">{rotuloCol}</th>
             <th className="pb-2 px-2 text-center">Feitas</th>
             <th className="pb-2 px-2 text-center">Atrasos</th>

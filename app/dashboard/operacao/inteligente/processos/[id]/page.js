@@ -46,7 +46,7 @@ const AGENDA_VAZIA = () => ({
   turno: "", responsavel_id: "", funcao_responsavel: "", ativo: true,
 });
 
-const rotulo = "text-[11px] font-black uppercase tracking-widest text-slate-500";
+const rotulo = "text-2xs font-black uppercase tracking-widest text-slate-500";
 const campo = "mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] font-semibold text-slate-800 outline-none focus:border-emerald-600";
 
 export default function ConstrutorProcesso() {
@@ -314,7 +314,7 @@ export default function ConstrutorProcesso() {
 
         {/* Identificação */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">O processo</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">O processo</p>
           <label className="block">
             <span className={rotulo}>Nome *</span>
             <input value={processo.nome} onChange={e => setProcesso(p => ({ ...p, nome: e.target.value }))}
@@ -385,7 +385,7 @@ export default function ConstrutorProcesso() {
                     <div className="flex items-start gap-2 p-3">
                       <button onClick={() => setAberto(expandido ? "" : item.chave)} className="min-w-0 flex-1 text-left">
                         <p className="text-[15px] font-black text-slate-900">{item.titulo || <span className="text-slate-400">Item sem título</span>}</p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-bold text-slate-500">
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs font-bold text-slate-500">
                           <span className="rounded bg-slate-100 px-1.5 py-0.5">{info.rotulo}</span>
                           {ehNumerico(item.tipo) && (item.valor_min !== "" || item.valor_max !== "") && (
                             <span>{item.valor_min !== "" ? item.valor_min : "—"} a {item.valor_max !== "" ? item.valor_max : "—"}{item.unidade_medida}</span>
@@ -428,7 +428,7 @@ export default function ConstrutorProcesso() {
                               </optgroup>
                             ))}
                           </select>
-                          <span className="mt-1 block text-[12px] font-medium text-slate-500">{info.ajuda}</span>
+                          <span className="mt-1 block text-xs font-medium text-slate-500">{info.ajuda}</span>
                         </label>
 
                         {ehNumerico(item.tipo) && (
@@ -515,7 +515,7 @@ export default function ConstrutorProcesso() {
 
                         {/* Condicional */}
                         <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                          <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-500"><Settings2 size={13} /> Mostrar só em certos casos</p>
+                          <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-slate-500"><Settings2 size={13} /> Mostrar só em certos casos</p>
                           {candidatosCondicao(iS, iI).length === 0 ? (
                             <p className="mt-1.5 text-[13px] font-medium text-slate-500">Depende de um item anterior de resposta fechada. Não há nenhum antes deste.</p>
                           ) : (
@@ -556,7 +556,7 @@ export default function ConstrutorProcesso() {
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-emerald-700"><Clock size={14} /> Quando esta rotina acontece</p>
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-700"><Clock size={14} /> Quando esta rotina acontece</p>
               <p className="mt-1 text-sm font-medium text-slate-500">A execução aparece sozinha na Central, no horário marcado.</p>
             </div>
             <button onClick={addAgenda} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-white px-3.5 font-black text-emerald-700 hover:bg-emerald-50">

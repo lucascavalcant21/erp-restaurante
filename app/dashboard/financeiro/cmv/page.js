@@ -183,9 +183,9 @@ export default function CmvPage() {
                 {porArea.map(a => (
                   <Card key={a.chave} className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CMV médio · {a.rotulo}</p>
+                      <p className="text-2xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>CMV médio · {a.rotulo}</p>
                       <p className="mt-1 text-3xl font-black" style={{ color: a.medio <= META_CMV ? "#10B981" : "#EF4444" }}>{fmtPct(a.medio)}</p>
-                      <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{a.itens} item(ns) · {a.acima} acima da meta</p>
+                      <p className="text-2xs font-bold" style={{ color: "var(--dim)" }}>{a.itens} item(ns) · {a.acima} acima da meta</p>
                     </div>
                   </Card>
                 ))}
@@ -195,13 +195,13 @@ export default function CmvPage() {
             {/* CMV de estoque: o que saiu de cada estoque no mês, em reais */}
             {consumo.length > 0 && (
               <Card>
-                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Consumo de estoque no mês</p>
-                <p className="mt-0.5 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Saídas de cada estoque valorizadas pelo custo do ingrediente.</p>
+                <p className="text-2xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Consumo de estoque no mês</p>
+                <p className="mt-0.5 text-2xs font-medium" style={{ color: "var(--dim)" }}>Saídas de cada estoque valorizadas pelo custo do ingrediente.</p>
                 <div className="mt-3 space-y-2">
                   {consumo.map(c => (
                     <div key={c.nome} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: "var(--elevated)" }}>
                       <span className="min-w-0 flex-1 truncate text-sm font-bold" style={{ color: "var(--fg)" }}>{c.nome}</span>
-                      <span className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{c.itens} saída(s)</span>
+                      <span className="text-2xs font-bold" style={{ color: "var(--dim)" }}>{c.itens} saída(s)</span>
                       <span className="shrink-0 text-base font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(c.total)}</span>
                     </div>
                   ))}
@@ -219,7 +219,7 @@ export default function CmvPage() {
                   <Crown size={18} style={{ color: "var(--accent-fg)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Melhor CMV da carta</p>
+                  <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>Melhor CMV da carta</p>
                   <p className="text-sm font-bold break-words" style={{ color: "var(--fg)" }}>{resumo.melhor.nome} · {fmtPct(resumo.melhor.cmv)}</p>
                 </div>
               </Card>
@@ -236,7 +236,7 @@ export default function CmvPage() {
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
                           {l.departamento && (
-                            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: "var(--elevated)", color: "var(--dim)" }}>{l.departamento}</span>
+                            <span className="text-3xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: "var(--elevated)", color: "var(--dim)" }}>{l.departamento}</span>
                           )}
                           {(() => {
                             const p = produtos.find(x => x.id === l.id);
@@ -244,7 +244,7 @@ export default function CmvPage() {
                             if (!mud.length) return null;
                             return (
                               <button onClick={() => setModalHistPrato({ nome: l.nome, mudancas: mud })}
-                                className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0 flex items-center gap-1 transition-colors"
+                                className="text-3xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0 flex items-center gap-1 transition-colors"
                                 style={{ background: "rgba(245,158,11,0.13)", color: "#B45309" }}
                                 title="Alterações de preço dos ingredientes deste prato">
                                 <History size={9} /> {mud.length} alteração{mud.length > 1 ? "ões" : ""}
@@ -257,7 +257,7 @@ export default function CmvPage() {
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                         <div className="h-full rounded-full" style={{ width: `${Math.min(l.cmv, 100)}%`, background: alto ? "#EF4444" : "#10B981" }} />
                       </div>
-                      <div className="flex justify-between text-[10px]" style={{ color: "var(--dim)" }}>
+                      <div className="flex justify-between text-3xs" style={{ color: "var(--dim)" }}>
                         <span>Custo {fmtBRL(l.custo)}</span><span>Preço {fmtBRL(l.preco)}</span>
                       </div>
                     </Card>
@@ -293,16 +293,16 @@ export default function CmvPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{h.insumo_nome}</p>
-                      <p className="text-[11px] font-medium" style={{ color: "var(--muted)" }}>
+                      <p className="text-2xs font-medium" style={{ color: "var(--muted)" }}>
                         {fmtBRL(antigo)} → {fmtBRL(novo)} · {new Date(h.created_at).toLocaleDateString("pt-BR")} às {new Date(h.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
-                    <span className="text-xs font-black shrink-0" style={{ color: subiu ? "#DC2626" : "#047857" }}>{subiu ? "+" : ""}{varPct.toFixed(1)}%</span>
+                    <span className="text-xs font-bold shrink-0" style={{ color: subiu ? "#DC2626" : "#047857" }}>{subiu ? "+" : ""}{varPct.toFixed(1)}%</span>
                   </div>
                 );
               })}
             </div>
-            <p className="text-[10px] font-medium mt-3 shrink-0" style={{ color: "var(--dim)" }}>O CMV do prato já reflete o preço atual — cada mudança acima recalculou fichas, cardápio e CMV na hora.</p>
+            <p className="text-3xs font-medium mt-3 shrink-0" style={{ color: "var(--dim)" }}>O CMV do prato já reflete o preço atual — cada mudança acima recalculou fichas, cardápio e CMV na hora.</p>
           </div>
         </div>
       )}

@@ -93,7 +93,7 @@ export default function ContasAPagarPage() {
                   <CalendarDays size={28}/>
                </div>
                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Pendente (A Pagar)</p>
+                  <p className="text-3xs uppercase font-bold tracking-widest text-slate-500">Pendente (A Pagar)</p>
                   <p className="text-3xl font-black text-slate-500">{fmtBRL(aPagarTotal)}</p>
                </div>
             </div>
@@ -102,7 +102,7 @@ export default function ContasAPagarPage() {
                   <Wallet size={28}/>
                </div>
                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Total Pago</p>
+                  <p className="text-3xs uppercase font-bold tracking-widest text-slate-500">Total Pago</p>
                   <p className="text-3xl font-black text-emerald-400">{fmtBRL(pagasTotal)}</p>
                </div>
             </div>
@@ -131,12 +131,12 @@ export default function ContasAPagarPage() {
                <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
                   {/* Cabeçalho */}
                   <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[160px_1fr_180px_120px_140px_100px] gap-4 items-center">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Vencimento</span>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Descrição</span>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Categoria</span>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Valor</span>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Status</span>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300"></span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Vencimento</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Descrição</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Categoria</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Valor</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-center">Status</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300"></span>
                   </div>
                   {/* Linhas */}
                   <div className="bg-white divide-y divide-slate-100">
@@ -152,12 +152,12 @@ export default function ContasAPagarPage() {
                               <span className={`font-bold text-sm ${isAtrasado ? 'text-rose-700' : 'text-slate-600'}`}>
                                 {c.data_vencimento.split('-').reverse().join('/')}
                               </span>
-                              {isAtrasado && <span className="block text-[10px] font-black text-rose-500 uppercase">Atrasado</span>}
+                              {isAtrasado && <span className="block text-3xs font-bold text-rose-500 uppercase">Atrasado</span>}
                             </div>
                           </div>
                           <span className="font-bold text-slate-800">{c.descricao}</span>
                           <div>
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white ${cat?.cor || 'bg-slate-500'}`}>
+                            <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full text-white ${cat?.cor || 'bg-slate-500'}`}>
                               {cat?.label}
                             </span>
                           </div>
@@ -175,7 +175,7 @@ export default function ContasAPagarPage() {
                           </div>
                           <div className="text-right">
                             {c.status === 'pendente' && (
-                              <button onClick={() => handlePagar(c.id)} className="px-3 py-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all text-xs font-black">
+                              <button onClick={() => handlePagar(c.id)} className="px-3 py-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all text-xs font-bold">
                                 Pagar
                               </button>
                             )}
@@ -221,8 +221,8 @@ export default function ContasAPagarPage() {
                   <label className="flex items-start gap-3 bg-sky-50 border border-sky-200 rounded-xl p-3.5 cursor-pointer">
                      <input type="checkbox" checked={!!form.recorrente} onChange={e=>setForm({...form, recorrente: e.target.checked})} className="w-4 h-4 accent-sky-600 mt-0.5"/>
                      <span>
-                        <span className="text-xs font-black text-sky-700 uppercase tracking-widest block">Conta recorrente (todo mês)</span>
-                        <span className="text-[11px] font-medium text-sky-700/70">Aluguel, luz, internet... Na virada do mês ela se recria sozinha, com o mesmo dia de vencimento e valor (que você pode ajustar).</span>
+                        <span className="text-xs font-bold text-sky-700 uppercase tracking-widest block">Conta recorrente (todo mês)</span>
+                        <span className="text-2xs font-medium text-sky-700/70">Aluguel, luz, internet... Na virada do mês ela se recria sozinha, com o mesmo dia de vencimento e valor (que você pode ajustar).</span>
                      </span>
                   </label>
                   <div className="pt-4 mt-2 border-t border-slate-100">

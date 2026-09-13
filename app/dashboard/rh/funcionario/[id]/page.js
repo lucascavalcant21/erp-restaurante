@@ -173,16 +173,16 @@ export default function FuncionarioDetalhePage() {
             )}
             <div className="min-w-0">
               <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{func.nome}</p>
-              <p className="text-[11px] text-[var(--dim)] truncate">
+              <p className="text-2xs text-[var(--dim)] truncate">
                 {func.cargo} · {func.turno || "—"} · {func.tipo_contrato || "CLT Fixo"}
               </p>
-              {func.email && <p className="text-[10px] text-[var(--muted)] truncate">{func.email}</p>}
+              {func.email && <p className="text-3xs text-[var(--muted)] truncate">{func.email}</p>}
             </div>
           </Card>
         )}
 
         {!func?.email && func && (
-          <Card><p className="text-[12px]" style={{ color: "#DC2626" }}>Este funcionário não tem e-mail cadastrado — sem e-mail, ele não consegue ver o portal. Edite o cadastro e adicione o e-mail de login dele.</p></Card>
+          <Card><p className="text-xs" style={{ color: "#DC2626" }}>Este funcionário não tem e-mail cadastrado — sem e-mail, ele não consegue ver o portal. Edite o cadastro e adicione o e-mail de login dele.</p></Card>
         )}
 
         <Chips options={TABS.map((t) => ({ value: t.key, label: t.label }))} value={abaKey} onChange={setAbaKey} />
@@ -190,7 +190,7 @@ export default function FuncionarioDetalhePage() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <SectionLabel>{aba.label}</SectionLabel>
-            <Btn variant="primary" className="!h-8 text-[11px]" onClick={() => setModal(true)}>+ Novo</Btn>
+            <Btn variant="primary" className="!h-8 text-2xs" onClick={() => setModal(true)}>+ Novo</Btn>
           </div>
           {loading ? (
             <EmptyState icon={aba.icon} title="Carregando..." />
@@ -202,7 +202,7 @@ export default function FuncionarioDetalhePage() {
                 <Card key={it.id} className="!p-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{aba.titulo(it)}</p>
-                    <p className="text-[11px] truncate" style={{ color: "var(--dim)" }}>{aba.sub(it)} · {fmtData(it.created_at || it.data)}</p>
+                    <p className="text-2xs truncate" style={{ color: "var(--dim)" }}>{aba.sub(it)} · {fmtData(it.created_at || it.data)}</p>
                   </div>
                   {it.arquivo_url && <a href={it.arquivo_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Download size={14} style={{ color: "var(--muted)" }} /></a>}
                   <button onClick={() => remover(it)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>

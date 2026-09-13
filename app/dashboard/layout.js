@@ -328,7 +328,7 @@ function SidebarSection({ section, idx, isExpanded, onToggle, pathname, dept, se
         }}
         className={`w-full min-h-10 px-3 py-2 text-xs font-bold flex items-center justify-between rounded-xl transition-all group outline-none text-left ${
           hasActiveItem
-            ? "bg-emerald-500/15 text-emerald-300 font-black border border-emerald-500/20"
+            ? "bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20"
             : "text-slate-400 hover:text-white hover:bg-slate-800/60"
         }`}
       >
@@ -360,7 +360,7 @@ function SidebarSection({ section, idx, isExpanded, onToggle, pathname, dept, se
                   setMobileOpen(false);
                   router.push(ajustarHrefParaAreaTravada(item.href));
                 }}
-                className={`w-full min-h-8 px-2.5 py-1.5 text-[12px] font-medium flex items-center gap-2 rounded-lg transition-colors text-left truncate ${
+                className={`w-full min-h-8 px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 rounded-lg transition-colors text-left truncate ${
                   isItemActive
                     ? "bg-emerald-500/20 text-emerald-300 font-bold"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
@@ -462,12 +462,12 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         {/* User Profile Footer */}
         <div className="erp-sidebar-footer p-2.5 sm:p-3 border-t border-slate-800/50 shrink-0">
           <div className="bg-slate-800/40 rounded-xl p-2.5 flex items-center gap-2.5 border border-slate-700/40 group">
-             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white text-xs font-black shadow-inner group-hover:scale-105 transition-transform">
+             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white text-xs font-bold shadow-inner group-hover:scale-105 transition-transform">
                {String(sessao?.nome || sessao?.email || "U").trim().charAt(0).toUpperCase()}
              </div>
              <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-100 leading-tight truncate">{sessao?.nome || "Usuário"}</p>
-                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
+                <p className="text-3xs font-semibold text-emerald-400 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
              </div>
           </div>
           <button type="button" onClick={onSair} className="mt-2 flex min-h-9 w-full items-center justify-center gap-2 rounded-xl bg-rose-500/10 px-3 text-xs font-bold uppercase tracking-wider text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-white">
@@ -522,14 +522,14 @@ function MobileBottomNav({ sessao, onMenu }) {
           const ativo = pathname === base || (base !== "/dashboard" && pathname.startsWith(`${base}/`));
           return (
             <button key={item.href} type="button" onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
-              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-black transition-colors ${ativo ? "text-emerald-700" : "text-slate-400"}`}>
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold transition-colors ${ativo ? "text-emerald-700" : "text-slate-400"}`}>
               <span className={`flex h-8 w-10 items-center justify-center rounded-xl ${ativo ? "bg-emerald-100" : "bg-transparent"}`}><Icon size={18} /></span>
               <span className="w-full truncate">{item.label}</span>
             </button>
           );
         })}
         <button type="button" onClick={onMenu}
-          className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-black text-slate-400">
+          className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold text-slate-400">
           <span className="flex h-8 w-10 items-center justify-center rounded-xl"><Menu size={19} /></span>
           <span>Menu</span>
         </button>

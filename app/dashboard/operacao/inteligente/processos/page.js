@@ -103,7 +103,7 @@ export default function ProcessosPage() {
       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {modelos && (
           <section className="rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Começar de um modelo pronto</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Começar de um modelo pronto</p>
             <p className="mb-3 mt-1 text-sm font-medium text-slate-500">O processo é criado já preenchido. Depois é só ajustar.</p>
             <div className="grid gap-2.5 sm:grid-cols-2">
               {MODELOS_PROCESSO.map(m => (
@@ -111,7 +111,7 @@ export default function ProcessosPage() {
                   className="rounded-xl border border-slate-200 p-3.5 text-left transition-colors hover:border-emerald-400 hover:bg-emerald-50/60">
                   <p className="text-[15px] font-black text-slate-900">{m.nome}</p>
                   <p className="mt-0.5 text-[13px] font-medium text-slate-500">{m.descricao}</p>
-                  <p className="mt-1.5 text-[11px] font-black uppercase tracking-wider text-emerald-700">
+                  <p className="mt-1.5 text-2xs font-bold uppercase tracking-wider text-emerald-700">
                     {m.secoes.length} seções · {m.secoes.reduce((s, x) => s + x.itens.length, 0)} itens
                   </p>
                 </button>
@@ -154,13 +154,13 @@ export default function ProcessosPage() {
                     <button onClick={() => router.push(`/dashboard/operacao/inteligente/processos/${p.id}`)} className="min-w-0 flex-1 text-left">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-[16px] font-black text-slate-900">{p.nome}</h2>
-                        <span className={`rounded-lg border px-2 py-0.5 text-[11px] font-black ${CORCRIT[p.criticidade] || CORCRIT.normal}`}>
+                        <span className={`rounded-lg border px-2 py-0.5 text-2xs font-bold ${CORCRIT[p.criticidade] || CORCRIT.normal}`}>
                           {CRITICIDADES.find(c => c.valor === p.criticidade)?.rotulo || "Normal"}
                         </span>
-                        {p.versao > 1 && <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-500">v{p.versao}</span>}
+                        {p.versao > 1 && <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-2xs font-bold text-slate-500">v{p.versao}</span>}
                       </div>
                       {p.descricao && <p className="mt-1 text-[13px] font-medium text-slate-500 line-clamp-2">{p.descricao}</p>}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-bold text-slate-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-slate-500">
                         {p.setor && <span className="capitalize">{p.setor}</span>}
                         {ags.length === 0 ? (
                           <span className="flex items-center gap-1 text-amber-700"><AlertTriangle size={13} /> sem agendamento</span>

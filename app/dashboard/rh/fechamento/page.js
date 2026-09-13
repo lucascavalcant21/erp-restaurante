@@ -147,7 +147,7 @@ export default function FechamentoFolhaPage() {
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1040px]">
                      <thead>
-                        <tr className="text-[10px] uppercase font-black tracking-widest text-slate-400 border-b-2 border-slate-100">
+                        <tr className="text-3xs uppercase font-bold tracking-widest text-slate-400 border-b-2 border-slate-100">
                            <th className="pb-4 pl-4 min-w-[210px]">Colaborador</th>
                            <th className="pb-4 text-center whitespace-nowrap">Dias Trabs.</th>
                            <th className="pb-4 text-right whitespace-nowrap">Base</th>
@@ -162,7 +162,7 @@ export default function FechamentoFolhaPage() {
                            <tr key={p.colaborador_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
                               <td className="py-4 pl-4">
                                  <p className="text-slate-800">{p.nome}</p>
-                                 <span className={`text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                 <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
                                     {p.tipo_contrato} {p.tipo_contrato === 'Freelancer' && `(${fmtBRL(p.salario_cadastrado)}/dia)`}
                                  </span>
                               </td>
@@ -193,7 +193,7 @@ export default function FechamentoFolhaPage() {
                                  </span>
                                  {p.vales_detalhes.length > 0 && (
                                     <div className="absolute z-10 hidden group-hover/vale:block bottom-full right-0 mb-2 bg-slate-900 text-white text-xs p-3 rounded-xl shadow-xl w-64 text-left font-medium">
-                                       <p className="font-bold text-slate-400 mb-2 uppercase tracking-widest text-[10px]">Vales Pendentes:</p>
+                                       <p className="font-bold text-slate-400 mb-2 uppercase tracking-widest text-3xs">Vales Pendentes:</p>
                                        {p.vales_detalhes.map(v => (
                                           <div key={v.id} className="flex justify-between border-b border-slate-700 pb-1 mb-1 last:border-0 last:mb-0">
                                              <span className="truncate pr-2">{v.descricao}</span>

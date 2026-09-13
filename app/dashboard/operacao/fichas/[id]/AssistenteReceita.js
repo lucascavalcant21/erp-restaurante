@@ -104,7 +104,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
             <Sparkles size={18} className="text-slate-400" />
             <div>
               <h2 className="text-sm font-bold text-slate-800">Assistente da receita</h2>
-              <p className="text-[11px] text-slate-500">{ficha.nome_receita}</p>
+              <p className="text-2xs text-slate-500">{ficha.nome_receita}</p>
             </div>
           </div>
           <button onClick={onFechar} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
@@ -124,7 +124,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
                   </button>
                 ))}
               </div>
-              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-500">
+              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-2xs leading-relaxed text-slate-500">
                 As contas são feitas pelo sistema, com as mesmas fórmulas da ficha.
                 A IA entra só para entender frases fora do comum — ela não calcula custo.
               </p>
@@ -138,7 +138,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
                   ? "bg-slate-900 text-white"
                   : "border border-slate-200 bg-white text-slate-700"}`}>
                 <Markdown texto={msg.texto} />
-                {msg.nota ? <p className="mt-1.5 text-[11px] italic text-slate-400">{msg.nota}</p> : null}
+                {msg.nota ? <p className="mt-1.5 text-2xs italic text-slate-400">{msg.nota}</p> : null}
 
                 {msg.proposta ? (
                   <button
@@ -149,7 +149,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
                 ) : null}
 
                 {msg.veioDaIA ? (
-                  <p className="mt-1.5 text-[10px] text-slate-300">interpretado pela IA · conta feita pelo sistema</p>
+                  <p className="mt-1.5 text-3xs text-slate-300">interpretado pela IA · conta feita pelo sistema</p>
                 ) : null}
               </div>
             </div>

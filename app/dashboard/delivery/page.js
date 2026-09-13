@@ -174,7 +174,7 @@ export default function DeliveryKanbanPage() {
                                    <p className="text-xs font-bold text-slate-500">{m.placa || "Sem Placa"} · {m.telefone}</p>
                                 </div>
                              </div>
-                             <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${m.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>{m.status}</span>
+                             <span className={`px-3 py-1 rounded-md text-3xs font-bold uppercase tracking-widest ${m.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>{m.status}</span>
                           </div>
                        ))}
                     </div>
@@ -230,7 +230,7 @@ export default function DeliveryKanbanPage() {
                <h2 className="font-black text-slate-700 uppercase tracking-widest text-sm flex items-center gap-2">
                   <Flame size={18} className="text-slate-600" /> Na Cozinha
                </h2>
-               <span className="bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-xs">{colCozinha.length}</span>
+               <span className="bg-slate-200 text-slate-600 font-bold px-3 py-1 rounded-full text-xs">{colCozinha.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colCozinha.map(p => (
@@ -240,7 +240,7 @@ export default function DeliveryKanbanPage() {
                        <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
-                    <div className="bg-slate-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
+                    <div className="bg-slate-50 text-emerald-600 font-bold text-3xs uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
                        Aguardando KDS
                     </div>
                  </div>
@@ -255,7 +255,7 @@ export default function DeliveryKanbanPage() {
                <h2 className="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">
                   <PackageOpen size={18} className="text-emerald-500" /> Na Rampa
                </h2>
-               <span className="bg-emerald-100 text-emerald-700 font-black px-3 py-1 rounded-full text-xs">{colRampa.length}</span>
+               <span className="bg-emerald-100 text-emerald-700 font-bold px-3 py-1 rounded-full text-xs">{colRampa.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colRampa.map(p => (
@@ -282,7 +282,7 @@ export default function DeliveryKanbanPage() {
                <h2 className="font-black text-slate-700 uppercase tracking-widest text-sm flex items-center gap-2">
                   <Route size={18} className="text-slate-600" /> Em Rota
                </h2>
-               <span className="bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-xs">{colRota.length}</span>
+               <span className="bg-slate-200 text-slate-600 font-bold px-3 py-1 rounded-full text-xs">{colRota.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colRota.map(p => (
@@ -292,7 +292,7 @@ export default function DeliveryKanbanPage() {
                        <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
-                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg text-emerald-700 text-xs font-black uppercase tracking-widest mb-3">
+                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg text-emerald-700 text-xs font-bold uppercase tracking-widest mb-3">
                        <Bike size={14}/> {p.motoboy || "Motoboy"}
                     </div>
                     
@@ -311,7 +311,7 @@ export default function DeliveryKanbanPage() {
                <h2 className="font-black text-slate-500 uppercase tracking-widest text-sm flex items-center gap-2">
                   <PackageCheck size={18} /> Entregues
                </h2>
-               <span className="bg-slate-200 text-slate-500 font-black px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
+               <span className="bg-slate-200 text-slate-500 font-bold px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colEntregue.map(p => (

@@ -111,7 +111,7 @@ export default function DocumentosLegaisPage() {
           <h1 className="text-base sm:text-lg font-bold leading-tight flex items-center gap-2 min-w-0" style={{ color: "var(--fg)" }}>
             <FileText size={18} className="shrink-0" style={{ color: "var(--muted)" }} /> <span className="truncate">Documentos Legais</span>
           </h1>
-          <p className="text-[11px] font-medium truncate" style={{ color: "var(--dim)" }}>
+          <p className="text-2xs font-medium truncate" style={{ color: "var(--dim)" }}>
             Alvarás, Contratos e Certidões · {unidadeInfo.nome}
           </p>
         </div>
@@ -122,7 +122,7 @@ export default function DocumentosLegaisPage() {
 
         <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
           <p className="erp-label">Arquivos ({docs.length})</p>
-          <Btn variant="primary" className="!h-8 text-[11px] w-full sm:w-auto" onClick={() => setModal(true)}>
+          <Btn variant="primary" className="!h-8 text-2xs w-full sm:w-auto" onClick={() => setModal(true)}>
             + Anexar Documento
           </Btn>
         </div>
@@ -145,7 +145,7 @@ export default function DocumentosLegaisPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{d.titulo}</p>
-                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{d.tipo}</span>
+                        <span className="text-3xs uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{d.tipo}</span>
                       </div>
                       {d.descricao && <p className="text-xs mt-0.5 break-words" style={{ color: "var(--subtle)" }}>{d.descricao}</p>}
                       
@@ -154,7 +154,7 @@ export default function DocumentosLegaisPage() {
                           {st.status === 'vencido' ? <AlertTriangle size={12} color={st.cor} /> :
                            st.status === 'alerta' ? <Calendar size={12} color={st.cor} /> :
                            <CheckCircle size={12} color={st.cor} />}
-                          <span className="text-[11px] font-medium" style={{ color: st.cor }}>{st.msg}</span>
+                          <span className="text-2xs font-medium" style={{ color: st.cor }}>{st.msg}</span>
                         </div>
                       )}
                     </div>

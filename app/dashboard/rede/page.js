@@ -62,7 +62,7 @@ function KpiCentral({ icon: Icon, label, valor, cor }) {
         <Icon size={16} style={{ color: cor || "var(--subtle)" }} />
       </div>
       <p className="text-xl font-bold" style={{ color: "var(--fg)" }}>{valor}</p>
-      <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{label}</p>
+      <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>{label}</p>
     </div>
   );
 }
@@ -113,7 +113,7 @@ export default function RedePage() {
           <h1 className="text-lg font-bold leading-tight flex items-center gap-2" style={{ color: "var(--fg)" }}>
             <Building2 size={18} style={{ color: "var(--muted)" }} /> Visão de Rede
           </h1>
-          <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>
+          <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>
             Central · consolidado e comparativo das {unidades.length} unidades
           </p>
         </div>
@@ -141,7 +141,7 @@ export default function RedePage() {
             <div className="erp-card p-4 space-y-3">
               {dados.slice().sort((a, b) => (b.receita30 || 0) - (a.receita30 || 0)).map((u) => (
                 <div key={u.id}>
-                  <div className="flex justify-between text-[12px] mb-1">
+                  <div className="flex justify-between text-xs mb-1">
                     <span className="flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}><span className="w-2 h-2 rounded-full" style={{ background: u.cor }} />{u.nome}</span>
                     <span className="font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(u.receita30 || 0)}</span>
                   </div>
@@ -161,7 +161,7 @@ export default function RedePage() {
               <Crown size={18} style={{ color: "var(--accent-fg)" }} />
             </div>
             <div className="flex-1">
-              <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Melhor CMV da rede</p>
+              <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>Melhor CMV da rede</p>
               <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>
                 {melhorCmv.nome} · {fmtPct(melhorCmv.cmvMedio)}
               </p>
@@ -199,7 +199,7 @@ export default function RedePage() {
           )}
         </div>
 
-        <p className="text-[11px] text-center" style={{ color: "var(--elevated)" }}>
+        <p className="text-2xs text-center" style={{ color: "var(--elevated)" }}>
           Dados por unidade · rode a migração multiunidade no Supabase para separar por loja
         </p>
       </div>
@@ -212,7 +212,7 @@ function Metric({ icon: Icon, label, valor }) {
     <div>
       <Icon size={14} style={{ color: "var(--dim)" }} className="mx-auto mb-1" />
       <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{valor}</p>
-      <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{label}</p>
+      <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>{label}</p>
     </div>
   );
 }

@@ -101,7 +101,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Clientes na Base</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Clientes na Base</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.totalCli}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-emerald-600"><Users size={20}/></div>
@@ -114,7 +114,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Score NPS</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Score NPS</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.npsAvg}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><Star size={20} className="fill-emerald-600"/></div>
@@ -125,7 +125,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Taxa de Retorno</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Taxa de Retorno</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.taxaRetorno}%</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-emerald-600"><Heart size={20}/></div>
@@ -136,7 +136,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 border-none text-white relative overflow-hidden">
           <div className="absolute -right-4 -top-4 opacity-10"><Award size={120} /></div>
           <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">LTV Médio</p>
+            <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">LTV Médio</p>
             <p className="text-3xl font-black tracking-tighter">{fmtBRL(kpis.avgLtv)}</p>
             <p className="text-xs font-bold text-slate-500 mt-3">Gasto de vida útil</p>
           </div>
@@ -149,7 +149,7 @@ export default function CRMPage() {
           <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Top Clientes (LTV)</h3>
-              <p className="text-[10px] font-medium text-slate-500 mt-1">Os que mais gastaram historicamente</p>
+              <p className="text-3xs font-medium text-slate-500 mt-1">Os que mais gastaram historicamente</p>
             </div>
             <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Ver todos</button>
           </div>
@@ -157,12 +157,12 @@ export default function CRMPage() {
             {clientes.slice(0,5).map((cliente, idx) => (
               <div key={cliente.id} className="p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-black text-xs">
+                  <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
                     {idx + 1}º
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-800">{cliente.nome}</p>
-                    <p className="text-[11px] font-medium text-slate-500">{cliente.total_pedidos} visitas • LTV</p>
+                    <p className="text-2xs font-medium text-slate-500">{cliente.total_pedidos} visitas • LTV</p>
                   </div>
                 </div>
                 <span className="text-sm font-black text-emerald-600">{fmtBRL(cliente.total_gasto)}</span>
@@ -179,7 +179,7 @@ export default function CRMPage() {
           <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Atenção: Avaliações</h3>
-              <p className="text-[10px] font-medium text-slate-500 mt-1">Reviews recentes com nota baixa</p>
+              <p className="text-3xs font-medium text-slate-500 mt-1">Reviews recentes com nota baixa</p>
             </div>
             <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Abrir NPS</button>
           </div>
@@ -191,7 +191,7 @@ export default function CRMPage() {
                     <HeartCrack size={16} className="text-slate-600"/>
                     <span className="text-xs font-bold text-slate-800">{av.nome}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{av.origem} (Nota {av.nota})</span>
+                  <span className="text-3xs font-bold text-slate-600 uppercase tracking-widest">{av.origem} (Nota {av.nota})</span>
                 </div>
                 <p className="text-sm text-slate-700 italic">"{av.comentario}"</p>
               </div>
@@ -228,10 +228,10 @@ export default function CRMPage() {
       <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
         {/* Cabeçalho */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center">
-          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Cliente</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Contato</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Status</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right">LTV Total</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Cliente</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Contato</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Status</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-right">LTV Total</span>
         </div>
         {/* Linhas */}
         <div className="bg-white divide-y divide-slate-100">
@@ -241,12 +241,12 @@ export default function CRMPage() {
                 <div className="w-1 h-10 rounded-full bg-blue-500 shrink-0" />
                 <div>
                   <p className="font-bold text-slate-800 text-sm">{cliente.nome}</p>
-                  <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500 mt-0.5">{cliente.total_pedidos} visitas</p>
+                  <p className="text-3xs font-medium uppercase tracking-widest text-slate-500 mt-0.5">{cliente.total_pedidos} visitas</p>
                 </div>
               </div>
               <span className="text-sm text-slate-600 font-medium">{cliente.telefone || cliente.tel || "Não inf."}</span>
               <div>
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
                   cliente.status === 'Vip' ? 'bg-purple-100 text-purple-700' :
                   cliente.status === 'Risco' ? 'bg-rose-100 text-rose-700' :
                   'bg-emerald-100 text-emerald-700'}`}>
@@ -287,14 +287,14 @@ export default function CRMPage() {
                     <Star key={i} size={14} className={i < (av.nota/2) ? "fill-yellow-400" : "text-slate-200"} />
                   ))}
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{av.origem}</span>
+                <span className="text-3xs font-bold text-slate-500 uppercase tracking-widest">{av.origem}</span>
               </div>
               <p className="text-sm font-medium text-slate-700 italic">"{av.comentario || 'Sem comentário'}"</p>
             </div>
             <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-800">{av.nome}</p>
-                <p className="text-[10px] text-slate-500">{av.data}</p>
+                <p className="text-3xs text-slate-500">{av.data}</p>
               </div>
             </div>
           </div>
@@ -329,7 +329,7 @@ export default function CRMPage() {
                          <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">{c.tipo} • Cupom: {c.cupom}</p>
                       </div>
                    </div>
-                   <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
+                   <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-3xs font-bold uppercase tracking-widest rounded-lg border border-emerald-100">
                      {c.status}
                    </span>
                 </div>
@@ -337,17 +337,17 @@ export default function CRMPage() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-slate-100 pt-4">
                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Atingidos</p>
+                      <p className="text-3xs font-bold text-slate-500 uppercase">Atingidos</p>
                       <p className="font-black text-slate-800 text-lg">{c.clientes_atingidos || 0}</p>
                    </div>
                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Conversão</p>
+                      <p className="text-3xs font-bold text-slate-500 uppercase">Conversão</p>
                       <p className="font-black text-slate-800 text-lg">
                         {c.meta_clientes > 0 ? Math.round(((c.clientes_atingidos||0) / c.meta_clientes)*100) : 0}%
                       </p>
                    </div>
                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Receita (ROI)</p>
+                      <p className="text-3xs font-bold text-slate-500 uppercase">Receita (ROI)</p>
                       <p className="font-black text-emerald-600 text-lg">{fmtBRL(c.receita_gerada)}</p>
                    </div>
                 </div>
@@ -368,7 +368,7 @@ export default function CRMPage() {
       <div className="px-4 pt-8 md:pt-12 pb-6 bg-[var(--surface)] sticky top-0 z-30 border-b border-slate-100 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 max-w-6xl mx-auto">
           <div>
-            <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Marketing</p>
+            <p className="text-3xs md:text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Marketing</p>
             <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tighter text-slate-800">Relacionamento.</h1>
             <p className="text-sm font-semibold text-slate-500 mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
           </div>

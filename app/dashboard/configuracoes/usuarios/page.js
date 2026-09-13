@@ -26,7 +26,7 @@ const TYPES = [
 ];
 const DAYS = [["0","D"],["1","S"],["2","T"],["3","Q"],["4","Q"],["5","S"],["6","S"]];
 const INPUT = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500";
-const LABEL = "mb-1 block text-[10px] font-black uppercase tracking-[.14em] text-slate-400";
+const LABEL = "mb-1 block text-3xs font-black uppercase tracking-[.14em] text-slate-400";
 
 function Modal({ title, subtitle, onClose, wide = false, children }) {
   return (
@@ -44,7 +44,7 @@ function Modal({ title, subtitle, onClose, wide = false, children }) {
 
 function Status({ value }) {
   const styles = { ativo: "bg-emerald-50 text-emerald-700", bloqueado: "bg-amber-50 text-amber-700", desativado: "bg-slate-100 text-slate-500" };
-  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${styles[value] || styles.desativado}`}>{value}</span>;
+  return <span className={`rounded-full px-2.5 py-1 text-3xs font-bold uppercase ${styles[value] || styles.desativado}`}>{value}</span>;
 }
 
 export default function UsuariosAcessosPage() {
@@ -178,7 +178,7 @@ export default function UsuariosAcessosPage() {
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white"><ShieldCheck size={23}/></div>
-          <div><p className="text-xs font-black uppercase tracking-[.16em] text-emerald-600">Configurações</p><h1 className="text-2xl font-black text-slate-800">Usuários e acessos</h1><p className="text-sm text-slate-500">Login, escopos, segurança e permissões individuais.</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">Configurações</p><h1 className="text-2xl font-black text-slate-800">Usuários e acessos</h1><p className="text-sm text-slate-500">Login, escopos, segurança e permissões individuais.</p></div>
         </div>
         <button onClick={() => openForm()} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200"><Plus size={17}/> Novo usuário</button>
       </header>
@@ -199,14 +199,14 @@ export default function UsuariosAcessosPage() {
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[82rem] text-left">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[.12em] text-slate-400"><tr>
+            <thead className="bg-slate-50 text-3xs font-bold uppercase tracking-[.12em] text-slate-400"><tr>
               <th className="px-4 py-3">Nome</th><th className="px-4 py-3">Funcionário</th><th className="px-4 py-3">Login</th><th className="px-4 py-3">Perfil</th><th className="px-4 py-3">Setor / unidade</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Último acesso</th><th className="px-4 py-3">Criação</th><th className="px-4 py-3">Criado por</th><th className="px-4 py-3">Ações</th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {users.map((user) => {
                 const employee = (data?.employees || []).find((item) => item.id === user.funcionario_id);
                 return <tr key={user.id} className="text-sm text-slate-600 hover:bg-slate-50/70">
-                  <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-black text-white">{avatarInitials(user.nome)}</span><div><p className="font-black text-slate-800">{user.nome}</p><p className="text-xs text-slate-400">{TYPES.find(([id])=>id===user.tipo_acesso)?.[1]}</p></div></div></td>
+                  <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{avatarInitials(user.nome)}</span><div><p className="font-black text-slate-800">{user.nome}</p><p className="text-xs text-slate-400">{TYPES.find(([id])=>id===user.tipo_acesso)?.[1]}</p></div></div></td>
                   <td className="px-4 py-3">{employee?.nome || "—"}</td><td className="px-4 py-3 font-bold">{user.login}</td><td className="px-4 py-3">{profileName(user.perfil_id)}</td>
                   <td className="px-4 py-3"><p className="font-bold">{sectorName(user.setor_principal_id)}</p><p className="text-xs text-slate-400">{unitName(user.unidade_principal_id)}</p></td>
                   <td className="px-4 py-3"><Status value={user.status}/></td><td className="px-4 py-3">{formatLastAccess(user.ultimo_acesso_em)}</td><td className="px-4 py-3">{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td className="px-4 py-3">{(data?.users || []).find((item)=>item.auth_user_id===user.criado_por)?.nome||"Sistema"}</td>
@@ -247,7 +247,7 @@ export default function UsuariosAcessosPage() {
           <div><label className={LABEL}>Perfil de acesso</label><select value={form.perfil_id||""} onChange={e=>setForm({...form,perfil_id:e.target.value})} className={INPUT}><option value="">Personalizado</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
           <div><label className={LABEL}>Página inicial</label><input value={form.pagina_inicial} onChange={e=>setForm({...form,pagina_inicial:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Status</label><select value={form.status} onChange={e=>setForm({...form,status:e.target.value})} className={INPUT}><option value="ativo">Ativo</option><option value="bloqueado">Bloqueado</option><option value="desativado">Desativado</option></select></div>
-          <div className="sm:col-span-2"><label className={LABEL}>Dias permitidos</label><div className="flex gap-2">{DAYS.map(([day,label])=><button type="button" key={day} onClick={()=>{const n=Number(day),days=form.allowed_days.includes(n)?form.allowed_days.filter(x=>x!==n):[...form.allowed_days,n];setForm({...form,allowed_days:days})}} className={`h-9 w-9 rounded-lg text-xs font-black ${form.allowed_days.includes(Number(day))?"bg-emerald-600 text-white":"bg-slate-100 text-slate-400"}`}>{label}</button>)}</div></div>
+          <div className="sm:col-span-2"><label className={LABEL}>Dias permitidos</label><div className="flex gap-2">{DAYS.map(([day,label])=><button type="button" key={day} onClick={()=>{const n=Number(day),days=form.allowed_days.includes(n)?form.allowed_days.filter(x=>x!==n):[...form.allowed_days,n];setForm({...form,allowed_days:days})}} className={`h-9 w-9 rounded-lg text-xs font-bold ${form.allowed_days.includes(Number(day))?"bg-emerald-600 text-white":"bg-slate-100 text-slate-400"}`}>{label}</button>)}</div></div>
           <div><label className={LABEL}>Horário inicial</label><input type="time" value={form.allowed_start_time||""} onChange={e=>setForm({...form,allowed_start_time:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Horário final</label><input type="time" value={form.allowed_end_time||""} onChange={e=>setForm({...form,allowed_end_time:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Acesso válido a partir de</label><input type="datetime-local" value={form.valid_from||""} onChange={e=>setForm({...form,valid_from:e.target.value})} className={INPUT}/></div>

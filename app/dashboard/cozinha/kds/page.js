@@ -121,7 +121,7 @@ export default function KDSPage() {
          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4">
             <button 
               onClick={() => setSomAtivo(!somAtivo)}
-              className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest transition-colors ${
+              className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-colors ${
                 somAtivo 
                   ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" 
                   : "bg-emerald-500/20 text-slate-600 border border-emerald-500/30"
@@ -133,7 +133,7 @@ export default function KDSPage() {
             <button 
                onClick={() => carregar(false)} 
                disabled={loading}
-               className="px-3 sm:px-6 py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
+               className="px-3 sm:px-6 py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
             >
                {loading ? "Sincronizando..." : "Forçar Sync"}
             </button>
@@ -188,7 +188,7 @@ export default function KDSPage() {
                               <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-slate-600 animate-pulse' : 'text-slate-500'}`}>
                                  <Clock size={20} /> {minutos}m
                               </p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
+                              <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
                            </div>
                         </div>
 
@@ -233,7 +233,7 @@ export default function KDSPage() {
                            {/* Observação */}
                            {pedido.observacao && (
                               <div className="mt-2 p-4 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-[20px]">
-                                 <p className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                 <p className="text-xs font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <TriangleAlert size={16} /> Observação do Cliente
                                  </p>
                                  <p className="text-amber-100 font-bold text-sm leading-snug">{pedido.observacao}</p>

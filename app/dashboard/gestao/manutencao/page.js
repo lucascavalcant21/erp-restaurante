@@ -144,10 +144,10 @@ export default function ManutencaoPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Mês:</span>
+            <span className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Mês:</span>
             <input type="month" value={mes} onChange={e => setMes(e.target.value)} className="p-2.5 rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--card)", borderColor: "var(--line)", color: "var(--fg)" }} />
           </div>
-          <div className="erp-card px-4 py-2.5 flex items-center gap-2"><span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Total do mês</span><span className="text-lg font-extrabold" style={{ color: "var(--accent-strong)" }}>{fmtBRL(resumo.total)}</span></div>
+          <div className="erp-card px-4 py-2.5 flex items-center gap-2"><span className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Total do mês</span><span className="text-lg font-extrabold" style={{ color: "var(--accent-strong)" }}>{fmtBRL(resumo.total)}</span></div>
           <div className="erp-card px-4 py-2.5 flex items-center gap-2 text-xs font-bold" style={{ color: "var(--muted)" }}>{resumo.abertos} aberto(s) · {resumo.concluidos} concluído(s)</div>
         </div>
 
@@ -162,11 +162,11 @@ export default function ManutencaoPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-sm" style={{ color: "var(--fg)" }}>{s.servico}</p>
-                      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{s.categoria}</span>
-                      {concluido ? <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "rgba(5,150,105,0.12)", color: "#047857" }}>concluído</span>
-                        : <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.13)", color: "#B45309" }}>aberto</span>}
+                      <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{s.categoria}</span>
+                      {concluido ? <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "rgba(5,150,105,0.12)", color: "#047857" }}>concluído</span>
+                        : <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.13)", color: "#B45309" }}>aberto</span>}
                     </div>
-                    <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
+                    <p className="text-2xs font-medium mt-0.5" style={{ color: "var(--dim)" }}>
                       {fmtDataBR(s.data)}{s.prestador ? ` · ${s.prestador}` : ""}{s.forma_pagamento ? ` · ${s.forma_pagamento}` : ""}
                     </p>
                   </div>

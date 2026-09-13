@@ -133,7 +133,7 @@ export default function SemanaPage() {
         ) : (
           <>
             <section className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm">
-              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Diárias de extras na semana</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Diárias de extras na semana</p>
               <p className="mt-1 text-3xl font-black text-slate-900 sm:text-4xl">{brl(totalSemana)}</p>
               <p className="mt-1 text-sm font-bold text-slate-500">
                 {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(c => !ehExtra(c)).length} contratado(s) na escala
@@ -151,30 +151,30 @@ export default function SemanaPage() {
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-[15px] font-black text-slate-900">
                         {DIAS[dia.diaSemana]}
-                        {ehHoje && <span className="ml-2 rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">hoje</span>}
+                        {ehHoje && <span className="ml-2 rounded-md bg-emerald-100 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">hoje</span>}
                       </p>
-                      <p className="text-xs font-black text-slate-400">{dia.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
+                      <p className="text-xs font-bold text-slate-400">{dia.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
                     </div>
 
                     {/* Feriado e evento vêm ANTES da escala: são eles que mudam
                         quanta gente o dia precisa, então quem lê o card decide
                         a escala já sabendo disso. */}
                     {dia.feriadosDoDia.map(f => (
-                      <div key={f.id} className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-rose-50 px-2 py-1.5 text-[12px] font-black text-rose-800">
+                      <div key={f.id} className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-bold text-rose-800">
                         <Star size={13} className="shrink-0" />
                         <span className="min-w-0 truncate">{f.nome || "Feriado"}</span>
                       </div>
                     ))}
                     {dia.eventosDoDia.map(e => (
                       <button key={e.id} type="button" onClick={() => router.push(`/dashboard/eventos/${e.id}`)}
-                        className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg bg-violet-50 px-2 py-1.5 text-left text-[12px] font-black text-violet-800 hover:bg-violet-100">
+                        className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg bg-violet-50 px-2 py-1.5 text-left text-xs font-bold text-violet-800 hover:bg-violet-100">
                         <PartyPopper size={13} className="shrink-0" />
                         <span className="min-w-0 flex-1 truncate">{e.nome || "Evento"}</span>
-                        {Number(e.capacidade) > 0 && <span className="shrink-0 text-[11px] font-bold">{e.capacidade} lug.</span>}
+                        {Number(e.capacidade) > 0 && <span className="shrink-0 text-2xs font-bold">{e.capacidade} lug.</span>}
                       </button>
                     ))}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-slate-500">
                       <Users size={13} /> Escala · {dia.escalados.length}
                     </p>
                     {dia.escalados.length === 0 ? (
@@ -182,7 +182,7 @@ export default function SemanaPage() {
                     ) : (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {dia.escalados.map(c => (
-                          <span key={c.id} className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">
+                          <span key={c.id} className="rounded-lg bg-slate-100 px-2 py-1 text-2xs font-bold text-slate-700">
                             {String(c.nome || "").split(" ")[0]}
                             {c.horario_entrada ? ` ${String(c.horario_entrada).slice(0, 5)}` : ""}
                           </span>
@@ -190,7 +190,7 @@ export default function SemanaPage() {
                       </div>
                     )}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-slate-500">
                       <UserRound size={13} /> Extras · {dia.diarias.length}
                     </p>
                     {dia.diarias.length === 0 ? (
@@ -199,13 +199,13 @@ export default function SemanaPage() {
                       <div className="mt-1.5 space-y-1">
                         {dia.diarias.map(r => (
                           <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1">
-                            <span className="min-w-0 flex-1 truncate text-[12px] font-bold text-amber-900">
+                            <span className="min-w-0 flex-1 truncate text-xs font-bold text-amber-900">
                               {r.nome_prestador || r.funcao_exercida || "Extra"}
                             </span>
-                            <span className="shrink-0 text-[12px] font-black text-amber-800">{brl(r.valor_total)}</span>
+                            <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_total)}</span>
                           </div>
                         ))}
-                        <p className="pt-1 text-right text-[11px] font-black text-slate-500">Dia: {brl(dia.custoDiarias)}</p>
+                        <p className="pt-1 text-right text-2xs font-bold text-slate-500">Dia: {brl(dia.custoDiarias)}</p>
                       </div>
                     )}
                   </section>

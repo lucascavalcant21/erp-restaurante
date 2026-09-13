@@ -126,7 +126,7 @@ export default function PortalExtras() {
       <main className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-5">
         {/* Funções */}
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700"><Briefcase size={15} /> Selecione sua função</p>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700"><Briefcase size={15} /> Selecione sua função</p>
           <p className="mb-4 mt-1 text-sm font-semibold text-slate-600">Escolha sua função principal e, se quiser, uma segunda.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
@@ -148,7 +148,7 @@ export default function PortalExtras() {
 
         {/* Disponibilidade */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700"><CalendarDays size={15} /> Sua disponibilidade</p>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700"><CalendarDays size={15} /> Sua disponibilidade</p>
           <p className="mb-3 mt-1 text-sm font-semibold text-slate-600">Marque os dias em que você pode trabalhar.</p>
           <div className="flex flex-wrap gap-2">
             {DIAS_SEMANA.map(d => {
@@ -176,7 +176,7 @@ export default function PortalExtras() {
 
         {/* Dados pessoais */}
         <section id="dados" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Seus dados</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Seus dados</p>
           <div className="space-y-4">
             <label className="block">
               <span className={rotulo}>Nome completo *</span>
@@ -264,7 +264,7 @@ export default function PortalExtras() {
         {/* Perguntas */}
         {config.perguntas.length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Algumas perguntas</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Algumas perguntas</p>
           <p className="mb-4 mt-1 text-sm font-medium text-slate-500">Não existe resposta certa ou errada.</p>
           <div className="space-y-5">
             {config.perguntas.map((p, i) => (
@@ -293,7 +293,7 @@ export default function PortalExtras() {
 
         {/* Interesse */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
-          <p className="text-xs font-black uppercase tracking-widest text-emerald-700">O que você procura</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">O que você procura</p>
           <div className="mt-3 space-y-2">
             {[
               { v: "extra", t: "Só quero prestar serviço avulso", d: "Trabalho por diária quando vocês chamarem." },

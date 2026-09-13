@@ -544,7 +544,7 @@ function GerenciarChecklistsContent() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">{deptFixo ? `Checklists ${ESCOPO_DEPT[deptFixo]}` : "Checklists"}</h1>
-            <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] sm:text-xs mt-1">
+            <p className="text-slate-700 font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">
               {deptFixo ? `${NOMES_DEPT[deptFixo]} · crie, organize responsáveis e imprima` : "Cozinha · Bar · Salão — crie, organize responsáveis e imprima"}
             </p>
           </div>
@@ -598,13 +598,13 @@ function GerenciarChecklistsContent() {
             <div key={t.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex flex-wrap gap-1.5">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${CORES_DEPT[t.departamento] || "bg-slate-100 text-slate-600"}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest ${CORES_DEPT[t.departamento] || "bg-slate-100 text-slate-600"}`}>
                     {t.departamento === "salao" ? "Salão" : t.departamento}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600">
+                  <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-slate-100 text-slate-600">
                     {rotuloTipo(t.tipo)}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700">
+                  <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700">
                     {t.frequencia === "semanal" ? "Semanal" : t.frequencia === "mensal" ? "Mensal" : "Diário"}
                   </span>
                 </div>
@@ -645,10 +645,10 @@ function GerenciarChecklistsContent() {
                 return (
                   <div key={dept}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">{NOMES_DEPT[dept] || dept}</p>
+                      <p className="text-2xs font-bold uppercase tracking-widest text-slate-500">{NOMES_DEPT[dept] || dept}</p>
                       {faltam > 0 && (
                         <button onClick={() => criarTodosDoSetor(dept)} disabled={criandoTudo}
-                          className="min-h-11 flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
+                          className="min-h-11 flex items-center gap-1 text-2xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
                           {criandoTudo ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />} Criar todos ({faltam})
                         </button>
                       )}
@@ -666,9 +666,9 @@ function GerenciarChecklistsContent() {
                             className={`text-left p-3.5 rounded-xl border transition-all ${jaExiste ? "bg-slate-50 border-slate-100 opacity-60 cursor-default" : "bg-white border-slate-200 hover:border-emerald-400 hover:shadow-sm"}`}>
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-bold text-slate-800 text-sm">{m.titulo}</p>
-                              {jaExiste && <span className="text-[9px] font-black uppercase text-emerald-600 shrink-0">criado</span>}
+                              {jaExiste && <span className="text-3xs font-bold uppercase text-emerald-600 shrink-0">criado</span>}
                             </div>
-                            <p className="text-[11px] font-medium text-slate-400 mt-0.5">{m.itens.length} tarefas · {rotuloTipo(tipo)}</p>
+                            <p className="text-2xs font-medium text-slate-400 mt-0.5">{m.itens.length} tarefas · {rotuloTipo(tipo)}</p>
                           </button>
                         );
                       })}
@@ -726,10 +726,10 @@ function GerenciarChecklistsContent() {
                     <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-sm"><Sparkles size={18} /></div>
                     <div>
                       <p className="font-black text-sm text-violet-950 leading-tight">Gerador Inteligente por IA (Texto & Fotos)</p>
-                      <p className="text-[11px] font-medium text-violet-700">Cole um checklist, digite instruções ou envie a foto de um quadro/papel</p>
+                      <p className="text-2xs font-medium text-violet-700">Cole um checklist, digite instruções ou envie a foto de um quadro/papel</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-violet-600 bg-violet-100 px-2.5 py-1 rounded-full">OCR / Visão + Texto</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-violet-600 bg-violet-100 px-2.5 py-1 rounded-full">OCR / Visão + Texto</span>
                 </div>
 
                 <textarea
@@ -744,7 +744,7 @@ function GerenciarChecklistsContent() {
                 {imagemIA ? (
                   <div className="relative mb-3 inline-block overflow-hidden rounded-xl border-2 border-violet-400 shadow-md">
                     <img src={`data:image/jpeg;base64,${imagemIA}`} alt="Imagem enviada para IA" className="h-28 max-w-xs object-cover" />
-                    <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-2 py-0.5 text-[9px] font-black uppercase text-white">Foto para leitura</span>
+                    <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-2 py-0.5 text-3xs font-bold uppercase text-white">Foto para leitura</span>
                     <button type="button" onClick={() => setImagemIA("")} className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-700"><X size={14} /></button>
                   </div>
                 ) : (
@@ -757,7 +757,7 @@ function GerenciarChecklistsContent() {
                       <Camera size={15} className="text-violet-600"/> Tirar foto
                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
                     </label>
-                    <span className="text-[11px] font-semibold text-violet-600">Dica: Você também pode dar <b>Ctrl + V</b> com uma imagem copiada!</span>
+                    <span className="text-2xs font-semibold text-violet-600">Dica: Você também pode dar <b>Ctrl + V</b> com uma imagem copiada!</span>
                   </div>
                 )}
 
@@ -789,7 +789,7 @@ function GerenciarChecklistsContent() {
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div>
                     <p className="font-black text-sm text-slate-800 flex items-center gap-1.5"><Camera size={16} className="text-emerald-600"/> Foto Geral do Cômodo / Área (Gabarito da Área)</p>
-                    <p className="text-[11px] font-medium text-slate-500">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
+                    <p className="text-2xs font-medium text-slate-500">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
                   </div>
                   {form.foto_ambiente && (
                     <button type="button" onClick={() => setForm(f => ({ ...f, foto_ambiente: "" }))} className="text-xs font-bold text-rose-600 hover:underline">Remover foto</button>
@@ -798,7 +798,7 @@ function GerenciarChecklistsContent() {
                 {form.foto_ambiente ? (
                   <div className="relative overflow-hidden rounded-xl border border-slate-200 shadow-sm">
                     <img src={`data:image/jpeg;base64,${form.foto_ambiente}`} alt="Foto do Cômodo" className="h-44 w-full object-cover" />
-                    <span className="absolute bottom-2 left-2 rounded bg-slate-950/80 px-2 py-1 text-[10px] font-black uppercase text-white">Foto do Padrão do Cômodo</span>
+                    <span className="absolute bottom-2 left-2 rounded bg-slate-950/80 px-2 py-1 text-3xs font-bold uppercase text-white">Foto do Padrão do Cômodo</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
@@ -836,14 +836,14 @@ function GerenciarChecklistsContent() {
                 <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:justify-between">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas do Checklist</label>
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{form.itens.length} ações</span>
-                    <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700"><Clock3 size={12}/>{form.itens.reduce((total, tarefa) => total + (Number(tarefa.tempo_minutos) || 0), 0)} min</span>
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-3xs font-bold uppercase tracking-wide text-slate-600">{form.itens.length} ações</span>
+                    <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-3xs font-bold uppercase tracking-wide text-amber-700"><Clock3 size={12}/>{form.itens.reduce((total, tarefa) => total + (Number(tarefa.tempo_minutos) || 0), 0)} min</span>
+                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-3xs font-bold uppercase tracking-wide text-emerald-700"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
                   </div>
                 </div>
                 <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
                   <ImagePlus size={20} className="mt-0.5 shrink-0 text-emerald-600"/>
-                  <div><p className="text-xs font-black uppercase tracking-wide">Fotos Gabarito / Exemplo de Padrão</p><p className="mt-0.5 text-xs font-medium">Anexe fotos de exemplo para cada tarefa. Quem estiver executando pelo celular poderá visualizar o gabarito de como a bancada, salão ou equipamento deve ficar.</p></div>
+                  <div><p className="text-xs font-bold uppercase tracking-wide">Fotos Gabarito / Exemplo de Padrão</p><p className="mt-0.5 text-xs font-medium">Anexe fotos de exemplo para cada tarefa. Quem estiver executando pelo celular poderá visualizar o gabarito de como a bancada, salão ou equipamento deve ficar.</p></div>
                 </div>
                 <div className="space-y-2.5">
                   {form.itens.map((it, i) => {
@@ -866,7 +866,7 @@ function GerenciarChecklistsContent() {
                       {novaCategoria && (
                         <div className="flex items-center gap-2 mt-4 mb-1.5">
                           <Layers size={13} className="text-violet-500 shrink-0" />
-                          <span className="text-[11px] font-black uppercase tracking-widest text-violet-700">{catAtual}</span>
+                          <span className="text-2xs font-bold uppercase tracking-widest text-violet-700">{catAtual}</span>
                           <div className="flex-1 h-px bg-violet-100" />
                         </div>
                       )}
@@ -897,11 +897,11 @@ function GerenciarChecklistsContent() {
                                 <ChevronDown size={12} />
                               </button>
                             </div>
-                            <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-900 text-xs font-black text-white shadow-sm ml-0.5">{i + 1}</span>
+                            <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-900 text-xs font-bold text-white shadow-sm ml-0.5">{i + 1}</span>
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">Ação a executar</label>
+                            <label className="mb-1 block text-3xs font-bold uppercase tracking-widest text-slate-500">Ação a executar</label>
                             <input
                               type="text"
                               placeholder="O que deve ser feito?"
@@ -915,7 +915,7 @@ function GerenciarChecklistsContent() {
 
                         <div className="mt-3 grid gap-2 sm:grid-cols-5">
                           <label className="block sm:col-span-1">
-                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-emerald-700">Fase do Turno</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-emerald-700">Fase do Turno</span>
                             <select
                               value={it.fase_turno || "abertura"}
                               onChange={e => mudaTarefa(it.id, { fase_turno: e.target.value })}
@@ -928,7 +928,7 @@ function GerenciarChecklistsContent() {
                           </label>
 
                           <label className="block">
-                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-sky-700">Horário Previsto</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-sky-700">Horário Previsto</span>
                             <input
                               type="text"
                               placeholder="Ex: 08:00"
@@ -939,7 +939,7 @@ function GerenciarChecklistsContent() {
                           </label>
 
                           <label className="block">
-                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-amber-700">Pausa / Intervalo</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-amber-700">Pausa / Intervalo</span>
                             <input
                               type="text"
                               placeholder="Ex: 10 min ou 15h-16h"
@@ -950,7 +950,7 @@ function GerenciarChecklistsContent() {
                           </label>
 
                           <label className="block">
-                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-violet-600">Grupo / etapa</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-violet-600">Grupo / etapa</span>
                             <input
                               type="text"
                               list="categorias-checklist"
@@ -962,11 +962,11 @@ function GerenciarChecklistsContent() {
                           </label>
 
                           <label className="block">
-                            <span className="mb-1 block text-[9px] font-black uppercase tracking-widest text-amber-600">Tempo previsto</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-amber-600">Tempo previsto</span>
                             <div className="relative">
                               <Clock3 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600" />
                               <input type="number" min="1" max="240" value={it.tempo_minutos || ""} onChange={e => mudaTarefa(it.id, { tempo_minutos: Number(e.target.value) || "" })} placeholder="Minutos" title="Tempo previsto em minutos" className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 pl-9 text-sm font-black text-slate-800 outline-none focus:border-amber-500" />
-                              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-amber-700">min</span>
+                              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-3xs font-bold uppercase text-amber-700">min</span>
                             </div>
                           </label>
                         </div>
@@ -977,15 +977,15 @@ function GerenciarChecklistsContent() {
                               {it[campo] ? (
                                 <div className="relative">
                                   <img src={`data:image/jpeg;base64,${it[campo]}`} alt={label} className="h-28 w-full rounded-lg object-cover" />
-                                  <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-white">{label}</span>
+                                  <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 px-2 py-1 text-3xs font-bold uppercase tracking-wide text-white">{label}</span>
                                   <button type="button" onClick={() => mudaTarefa(it.id, { [campo]: "" })} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white text-rose-600 shadow" aria-label={`Remover ${label}`}><X size={14} /></button>
                                 </div>
                               ) : (
                                 <div>
-                                  <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-600">{label}</p>
+                                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-slate-600">{label}</p>
                                   <div className="grid grid-cols-2 gap-2">
-                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white px-2 text-[10px] font-black text-slate-700 ring-1 ring-slate-200"><Upload size={14} className="text-emerald-600"/>Galeria / PC<input type="file" accept="image/*" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
-                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-2 text-[10px] font-black text-white"><Camera size={14}/>Tirar foto<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
+                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white px-2 text-3xs font-bold text-slate-700 ring-1 ring-slate-200"><Upload size={14} className="text-emerald-600"/>Galeria / PC<input type="file" accept="image/*" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
+                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-2 text-3xs font-bold text-white"><Camera size={14}/>Tirar foto<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
                                   </div>
                                 </div>
                               )}

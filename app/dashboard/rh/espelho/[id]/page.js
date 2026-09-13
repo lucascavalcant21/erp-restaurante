@@ -218,7 +218,7 @@ export default function EspelhoDePonto() {
          {/* Escolher o mês aqui. Antes o mês só chegava pela URL (?mes=), então
              quem entrava pelo menu caía sempre no mês atual e não tinha como
              ver agosto sem editar o endereço à mão. */}
-         <label className="flex w-full items-center justify-between gap-2 text-xs font-black uppercase tracking-widest text-slate-400 sm:w-auto sm:justify-start">
+         <label className="flex w-full items-center justify-between gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 sm:w-auto sm:justify-start">
             Mês
             <input type="month" value={mesParam} max={new Date().toISOString().slice(0, 7)}
                onChange={e => trocarMes(e.target.value)}
@@ -310,8 +310,8 @@ export default function EspelhoDePonto() {
                Registro de Jornada Diária
             </h1>
             <div className="flex items-start justify-between border-t border-slate-800 px-1 py-0.5">
-               <p className="text-[11px] font-black uppercase">{colaborador.unidade?.nome || "Empresa"}</p>
-               <p className="text-[10px] font-bold">CNPJ: {mascaraCNPJ(colaborador.unidade?.cnpj) || "—"}</p>
+               <p className="text-2xs font-bold uppercase">{colaborador.unidade?.nome || "Empresa"}</p>
+               <p className="text-3xs font-bold">CNPJ: {mascaraCNPJ(colaborador.unidade?.cnpj) || "—"}</p>
             </div>
             <div className="flex items-stretch border-t border-slate-800">
                <div className="bloco-identificacao flex-1 px-1 py-1 text-[10.5px] leading-[1.5]">
@@ -329,7 +329,7 @@ export default function EspelhoDePonto() {
                </div>
                {/* Totais do mês. O que depende de conferência da contabilidade
                    fica em branco, como na folha de papel. */}
-               <table data-print-table className="tabela-totais border-l border-slate-800 text-[8px] shrink-0" style={{ width: "38mm" }}>
+               <table data-print-table className="tabela-totais border-l border-slate-800 text-3xs shrink-0" style={{ width: "38mm" }}>
                   <thead>
                      <tr>
                         <th className="border-b border-slate-800 px-1 font-black">TOTAIS</th>
@@ -400,7 +400,7 @@ export default function EspelhoDePonto() {
                             <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.15em] text-cyan-950 bg-cyan-100/60">
                                🏥 ATESTADO MÉDICO — AUSÊNCIA ABONADA {atestado.cid ? `(CID ${atestado.cid})` : ""}
                             </td>
-                            <td className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.10em] text-cyan-900 bg-cyan-100/60 text-[8px]">ABONADO — NÃO DESCONTAR</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.10em] text-cyan-900 bg-cyan-100/60 text-3xs">ABONADO — NÃO DESCONTAR</td>
                          </tr>
                       );
                   }
@@ -416,7 +416,7 @@ export default function EspelhoDePonto() {
                          <tr key={dia}>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500 text-left">{rotuloDia(dia)}</td>
                             <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-slate-50">{textoFolga}</td>
-                            <td className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.12em] bg-slate-50 text-[8px]">{partesFolga[0]} — NÃO ASSINAR</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.12em] bg-slate-50 text-3xs">{partesFolga[0]} — NÃO ASSINAR</td>
                          </tr>
                       );
                   }
@@ -452,8 +452,8 @@ export default function EspelhoDePonto() {
             </tbody>
             <tfoot>
                <tr className="bg-slate-100">
-                  <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Total de Horas no Mês:</td>
-                  <td colSpan={4} className="border border-slate-800 !py-1 !px-2 text-left font-black text-[11px]">{fmtHoras(totalHorasMes)} hrs</td>
+                  <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Total de Horas no Mês:</td>
+                  <td colSpan={4} className="border border-slate-800 !py-1 !px-2 text-left font-bold text-2xs">{fmtHoras(totalHorasMes)} hrs</td>
                </tr>
             </tfoot>
          </table>
@@ -462,7 +462,7 @@ export default function EspelhoDePonto() {
              linha, mesmo rotulo embaixo. A data ficava mais baixa e mais
              estreita que as assinaturas, e a folha parecia montada em dois
              momentos. Quem assina espera os tres campos no mesmo nivel. */}
-         <div className="mt-14 grid grid-cols-3 items-end gap-8 px-1 text-[9px] print:mt-[18mm]">
+         <div className="mt-14 grid grid-cols-3 items-end gap-8 px-1 text-3xs print:mt-[18mm]">
             {[
                { chave: "data", rotulo: "Data", comBarras: true },
                { chave: "trabalhador", rotulo: colaborador.nome },
@@ -503,8 +503,8 @@ export default function EspelhoDePonto() {
             const fmtM = (m) => m > 0 ? `${m} min` : "—";
             return (
                <div className="fora-da-folha mt-2 print:mt-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Hora extra e adicionais — dia a dia</p>
-                  <table className="w-full border-collapse text-[9px]">
+                  <p className="text-3xs font-bold uppercase tracking-widest mb-0.5">Hora extra e adicionais — dia a dia</p>
+                  <table className="w-full border-collapse text-3xs">
                      <thead>
                         <tr className="bg-slate-100">
                            <th className="border border-slate-800 !py-1 !px-2 text-left">Dia</th>
@@ -533,7 +533,7 @@ export default function EspelhoDePonto() {
                      </tbody>
                      <tfoot>
                         <tr className="bg-slate-100">
-                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Totais:</td>
+                           <td className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Totais:</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.e)}</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.n)}</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.f)}</td>
@@ -544,12 +544,12 @@ export default function EspelhoDePonto() {
             );
          })()}
 
-         <div className="mt-2 text-[8px] text-slate-600 leading-snug">
+         <div className="mt-2 text-3xs text-slate-600 leading-snug">
             <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% das 22h00 às 05h00, com hora noturna reduzida de 52min30s (CLT art. 73). Hora extra além da jornada contratada com acréscimo de 50%; tolerância de 5 min por marcação, limitada a 10 min diários (CLT art. 58, §1º). Feriado trabalhado com adicional de 100%.
          </div>
 
          
-         <div className="mt-2 text-[8px] text-center text-slate-500">
+         <div className="mt-2 text-3xs text-center text-slate-500">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.
             {fechamento?.fechado_em && ` Mês encerrado em ${new Date(fechamento.fechado_em).toLocaleDateString("pt-BR")} — jornada contratada congelada nesta data.`}
          </div>

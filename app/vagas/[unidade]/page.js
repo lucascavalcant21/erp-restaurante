@@ -24,7 +24,7 @@ const classeCampo = "h-12 w-full rounded-xl border border-slate-300 bg-white px-
 function Campo({ label, children }) {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
         {label}<span className="text-emerald-600"> *</span>
       </span>
       <div className="mt-1.5">{children}</div>
@@ -206,7 +206,7 @@ export default function PaginaPublicaVagas() {
                   </div>
                   {Array.isArray(vaga.requisitos) && vaga.requisitos.length > 0 && (
                     <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                      <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-600">
+                      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
                         <ListChecks size={15} className="text-emerald-600" /> Pré-requisitos
                       </p>
                       <ul className="mt-2 space-y-1 text-xs font-medium leading-relaxed text-slate-600">
@@ -231,8 +231,8 @@ export default function PaginaPublicaVagas() {
           </div>
           {form.cargoPretendido ? (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <span><span className="block text-xs font-black uppercase tracking-wide text-emerald-700">Área escolhida</span><strong className="text-base text-slate-900">{form.cargoPretendido}</strong></span>
-              <button type="button" onClick={() => { set("cargoPretendido", ""); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg bg-white px-3 py-2 text-xs font-black text-emerald-700 shadow-sm">Trocar área</button>
+              <span><span className="block text-xs font-bold uppercase tracking-wide text-emerald-700">Área escolhida</span><strong className="text-base text-slate-900">{form.cargoPretendido}</strong></span>
+              <button type="button" onClick={() => { set("cargoPretendido", ""); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm">Trocar área</button>
             </div>
           ) : <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800">Escolha uma área de trabalho acima antes de enviar.</div>}
           <div className="space-y-4">
@@ -291,7 +291,7 @@ export default function PaginaPublicaVagas() {
 
         {/* Teste de perfil */}
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <h2 className="text-xs font-black uppercase tracking-widest text-emerald-700">Teste de perfil</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-700">Teste de perfil</h2>
           <p className="mb-4 mt-1 text-sm font-medium text-slate-500">Não existe resposta certa ou errada. Escolha a opção mais parecida com você.</p>
           <div className="space-y-5">
             {PERGUNTAS_RECRUTAMENTO.map((p, i) => (

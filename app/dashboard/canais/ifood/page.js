@@ -198,7 +198,7 @@ export default function IFoodConfigPage() {
                   Simular Cancelamento
                </button>
                
-               {!conectado && <p className="text-[10px] text-red-300 font-bold uppercase tracking-widest mt-2">Conecte primeiro</p>}
+               {!conectado && <p className="text-3xs text-red-300 font-bold uppercase tracking-widest mt-2">Conecte primeiro</p>}
             </div>
          </div>
 

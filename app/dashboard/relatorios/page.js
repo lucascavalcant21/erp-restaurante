@@ -164,10 +164,10 @@ export default function RelatorioGerencial() {
     <div className="erp-card p-5 print:border print:border-slate-300 print:shadow-none print:rounded-lg">
       <div className="flex items-center gap-2 mb-1.5" style={{ color: "var(--muted)" }}>
         <Icon size={15} />
-        <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
+        <p className="text-3xs font-bold uppercase tracking-widest">{label}</p>
       </div>
       <p className="text-2xl font-extrabold tracking-tight" style={{ color: cor || "var(--fg)" }}>{value}</p>
-      {sub && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>{sub}</p>}
+      {sub && <p className="text-2xs font-bold mt-0.5" style={{ color: "var(--dim)" }}>{sub}</p>}
     </div>
   );
 
@@ -255,7 +255,7 @@ export default function RelatorioGerencial() {
                 <div key={p.nome} className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "var(--line-soft)" }}>
                   <div className="min-w-0">
                     <p className="text-sm font-bold truncate" style={{ color: "var(--fg-soft)" }}>{p.nome}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>{p.qtd.toLocaleString("pt-BR")} porções</p>
+                    <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>{p.qtd.toLocaleString("pt-BR")} porções</p>
                   </div>
                   <span className="font-black text-sm shrink-0 ml-2" style={{ color: "var(--fg)" }}>{fmtBRL(p.custo)}</span>
                 </div>
@@ -268,7 +268,7 @@ export default function RelatorioGerencial() {
         </div>
       </div>
 
-      <p className="text-[10px] font-medium mt-6 text-center print:mt-8" style={{ color: "var(--dim)" }}>
+      <p className="text-3xs font-medium mt-6 text-center print:mt-8" style={{ color: "var(--dim)" }}>
         Relatório gerencial de {unidadeInfo?.nome} — dados reais de contas, RH, fichas técnicas, estoque, inventário e produção. Sem dados de venda (ERP de gestão).
       </p>
     </div>

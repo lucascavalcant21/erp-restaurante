@@ -167,11 +167,11 @@ export default function LoginPage() {
         </div>
 
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-[12px] font-medium cursor-pointer" style={{ color: "var(--muted)" }}>
+          <label className="flex items-center gap-2 text-xs font-medium cursor-pointer" style={{ color: "var(--muted)" }}>
             <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
             Lembrar meu usuário
           </label>
-          <button type="button" onClick={() => router.push("/recuperar")} className="text-[12px] font-bold" style={{ color: "var(--accent-fg)" }}>
+          <button type="button" onClick={() => router.push("/recuperar")} className="text-xs font-bold" style={{ color: "var(--accent-fg)" }}>
             Esqueci minha senha
           </button>
         </div>

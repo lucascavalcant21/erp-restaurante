@@ -106,7 +106,7 @@ export default function MotorDeTarefasPage() {
                 </div>
                 <p className="text-sm font-medium mb-4 line-clamp-2" style={{ color: "var(--dim)" }}>{t.descricao}</p>
                 
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>Campos</p>
+                <p className="text-3xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>Campos</p>
                 <div className="space-y-1 mb-4">
                   {(t.campos || []).slice(0, 3).map((c, i) => (
                     <p key={i} className="text-xs truncate" style={{ color: "var(--dim)" }}>• {c.label} ({c.tipo})</p>
@@ -135,7 +135,7 @@ export default function MotorDeTarefasPage() {
               <div className="w-full sm:flex-1 min-w-0">
                 <TextInput value={c.label} onChange={(e) => alteraCampo(i, e.target.value)} />
               </div>
-              <div className="w-full sm:w-24 text-[10px] font-bold text-left sm:text-center uppercase" style={{ color: "var(--accent)" }}>{c.tipo}</div>
+              <div className="w-full sm:w-24 text-3xs font-bold text-left sm:text-center uppercase" style={{ color: "var(--accent)" }}>{c.tipo}</div>
               <button onClick={() => removeCampo(i)} className="p-2 rounded hover:bg-emerald-500/20 self-end sm:self-auto" aria-label="Remover campo"><Trash size={16} color="#ef4444" /></button>
             </div>
           ))}

@@ -42,11 +42,11 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
 
          {/* Informações */}
          <h3 className={`font-black text-lg text-center leading-tight truncate w-full px-2 ${textName}`}>{func.nome}</h3>
-         <p className={`text-[10px] font-black uppercase tracking-widest mt-1 text-center ${textRole}`}>{func.cargo}</p>
+         <p className={`text-3xs font-bold uppercase tracking-widest mt-1 text-center ${textRole}`}>{func.cargo}</p>
 
          {/* Badge de Liderança */}
          {hasChildren && (
-            <div className={`mt-4 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${isCLevel ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>
+            <div className={`mt-4 px-3 py-1 rounded-full text-3xs font-bold flex items-center gap-1 ${isCLevel ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>
                <Users size={12} /> {children.length} Liderado{children.length > 1 ? 's' : ''}
             </div>
          )}
@@ -232,7 +232,7 @@ export default function OrganogramaCorporativoPage() {
                    </div>
                    <div>
                       <p className="font-bold text-slate-900">{func.nome}</p>
-                      <p className="text-[10px] uppercase font-bold text-slate-500">{func.cargo}</p>
+                      <p className="text-3xs uppercase font-bold text-slate-500">{func.cargo}</p>
                    </div>
                 </div>
              ))}

@@ -19,7 +19,7 @@ export function CupomTermico({ pedido, unidadeInfo, tipo = "parcial" }) {
   const dataEmissao = new Date().toLocaleString("pt-BR");
 
   return (
-    <div className="print-section text-black bg-white font-mono text-[12px] leading-tight" style={{ width: "80mm", margin: "0 auto", padding: "5mm" }}>
+    <div className="print-section text-black bg-white font-mono text-xs leading-tight" style={{ width: "80mm", margin: "0 auto", padding: "5mm" }}>
       {/* CABEÇALHO */}
       <div className="text-center mb-4">
         <h1 className="font-bold text-[16px] uppercase">{unidadeInfo?.nome || "Meu Restaurante"}</h1>
@@ -95,7 +95,7 @@ export function CupomTermico({ pedido, unidadeInfo, tipo = "parcial" }) {
 
       {/* RODAPÉ */}
       <div className="border-b border-dashed border-black mt-4 mb-2"></div>
-      <div className="text-center text-[10px] mt-2 mb-8">
+      <div className="text-center text-3xs mt-2 mb-8">
         <p>Obrigado pela preferência!</p>
         <p>Desenvolvido por Hefisto ERP</p>
       </div>

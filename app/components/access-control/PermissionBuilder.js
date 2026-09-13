@@ -53,7 +53,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
   return (
     <div className="grid min-h-[32rem] grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white lg:grid-cols-[15rem_1fr]">
       <aside className="border-b border-slate-200 bg-slate-50 p-3 lg:border-b-0 lg:border-r">
-        <p className="px-2 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-slate-400">Módulos</p>
+        <p className="px-2 pb-2 text-3xs font-bold uppercase tracking-[.18em] text-slate-400">Módulos</p>
         <div className="space-y-1">
           {PERMISSION_MODULES.map((item) => {
             const keys = item.pages.flatMap((page) => page.actions.map((action) => permissionKey(item.id, page.id, action)));
@@ -61,7 +61,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
             return (
               <button key={item.id} type="button" onClick={() => setModuleId(item.id)}
                 className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${moduleId === item.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-white"}`}>
-                <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-[10px] ${count ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-3xs ${count ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
                   {count ? <Check size={13} /> : "—"}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -75,7 +75,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
       <section className="min-w-0 p-4 sm:p-6">
         <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.16em] text-emerald-600">{module.label}</p>
+            <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">{module.label}</p>
             <h3 className="mt-1 text-xl font-black text-slate-800">Páginas e ações</h3>
             <p className="mt-1 text-sm text-slate-500">{moduleCount} de {moduleKeys.length} permissões selecionadas</p>
           </div>
@@ -111,7 +111,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
                   <p className="font-black text-slate-800">{page.label}</p>
-                  <p className="text-[11px] text-slate-400">{page.route}</p>
+                  <p className="text-2xs text-slate-400">{page.route}</p>
                 </div>
                 <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-500">
                   <input type="checkbox"

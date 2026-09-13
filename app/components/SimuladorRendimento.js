@@ -108,13 +108,13 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-3">
-              <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Saldo disponível</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-slate-400">Saldo disponível</p>
               <p className="text-xl font-black text-slate-800">{fmtQtd(saldoBase, unItem)}</p>
             </div>
 
             {fichas.length > 0 && (
               <div className="mt-3">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-500">Usar receita</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Usar receita</label>
                 <select onChange={(e) => { const f = fichas[Number(e.target.value)]; if (f) { setMedida(String(f.quantidade).replace(".", ",")); setUn(String(f.unidade || unItem).toLowerCase()); } }}
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-700 outline-none">
                   <option value="">Dosagem manual</option>
@@ -124,7 +124,7 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
             )}
 
             <div className="mt-3">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-500">Dosagem / porção por {tipo === "drinks" ? "drink" : "unidade"}</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Dosagem / porção por {tipo === "drinks" ? "drink" : "unidade"}</label>
               <div className="mt-1 flex gap-2">
                 <input type="number" min="0" step="any" inputMode="decimal" value={medida} onChange={(e) => setMedida(e.target.value)} autoFocus
                   className="w-28 rounded-xl border-2 border-slate-200 p-3 font-black text-slate-800 outline-none focus:border-indigo-500" />
@@ -137,7 +137,7 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {chips.map((c) => (
-                  <button key={c} onClick={() => { setMedida(String(c)); setUn(unItem); }} className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-600">{c}{ehVol ? "ml" : ehPeso ? "g" : ""}</button>
+                  <button key={c} onClick={() => { setMedida(String(c)); setUn(unItem); }} className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">{c}{ehVol ? "ml" : ehPeso ? "g" : ""}</button>
                 ))}
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
               </button>
               <button onClick={() => setAberto(false)} className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-600">Fechar</button>
             </div>
-            <p className="mt-3 text-[11px] text-slate-400">Apenas consulta — não altera o estoque, não cria baixa e não abre embalagem.</p>
+            <p className="mt-3 text-2xs text-slate-400">Apenas consulta — não altera o estoque, não cria baixa e não abre embalagem.</p>
           </div>
         </div>
       )}

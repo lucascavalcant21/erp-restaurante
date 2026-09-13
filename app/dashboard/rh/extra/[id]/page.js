@@ -213,9 +213,9 @@ export default function CadastroExtraPage() {
             <p className="text-xs font-bold text-slate-500">Freelancer / diarista · dados do recibo inclusos</p>
           </div>
           {!novo && <div className="flex gap-2">
-            <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 hover:bg-blue-100"><FileDown size={17}/> Pré-admissão eSocial</button>
-            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={17}/> PDF</button>
-            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
+            <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100"><FileDown size={17}/> Pré-admissão eSocial</button>
+            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"><FileDown size={17}/> PDF</button>
+            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
           </div>}
         </div>
       </div>
@@ -223,7 +223,7 @@ export default function CadastroExtraPage() {
       <main className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
         {/* Identificação */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Identificação</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Identificação</p>
           <div className="flex gap-4">
             <label className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:border-emerald-400">
               {form.foto ? (
@@ -267,7 +267,7 @@ export default function CadastroExtraPage() {
 
         {/* Dados pessoais */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Dados pessoais</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Dados pessoais</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={rotulo}>Data de nascimento</span>
@@ -312,7 +312,7 @@ export default function CadastroExtraPage() {
 
         {/* Endereço */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Endereço</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Endereço</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2">
               <span className={rotulo}>Rua / Avenida</span>
@@ -339,7 +339,7 @@ export default function CadastroExtraPage() {
 
         {/* Pagamento e jornada */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Pagamento e jornada</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Pagamento e jornada</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={rotulo}>Valor da diária (R$)</span>
@@ -367,7 +367,7 @@ export default function CadastroExtraPage() {
 
         {/* Dados do recibo */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 shadow-sm sm:p-5">
-          <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
           <p className="mb-4 mt-1 text-[13px] font-medium text-slate-500">
             Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.
           </p>
@@ -412,7 +412,7 @@ export default function CadastroExtraPage() {
         {!novo && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-emerald-700"><ReceiptText size={14} /> Recibos desta pessoa</p>
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-700"><ReceiptText size={14} /> Recibos desta pessoa</p>
             <p className="text-sm font-black text-slate-700">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
           </div>
           {emAberto > 0 && (
@@ -426,7 +426,7 @@ export default function CadastroExtraPage() {
                 className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-black text-slate-900">{dataBR(r.data_trabalho)}</span>
-                  <span className="block text-[12px] font-bold text-slate-500">
+                  <span className="block text-xs font-bold text-slate-500">
                     {r.funcao_exercida || form.cargo || "Extra"}
                     {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
                   </span>

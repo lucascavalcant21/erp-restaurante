@@ -39,7 +39,7 @@ export default function DashboardError({ error, reset }) {
             ? "O sistema foi atualizado enquanto esta janela estava aberta e a versão antiga não conseguiu se recuperar sozinha."
             : String(error?.message || error || "Erro desconhecido")}
         </p>
-        <p className="mt-3 text-[11px] font-medium" style={{ color: "var(--dim)" }}>
+        <p className="mt-3 text-2xs font-medium" style={{ color: "var(--dim)" }}>
           {versaoVelha
             ? "Recarregar traz a versão nova."
             : "Se o erro continuar, recarregue a página ou mande a mensagem acima para o suporte."}

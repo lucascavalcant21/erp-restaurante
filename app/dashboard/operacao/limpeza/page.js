@@ -144,12 +144,12 @@ export default function OperacaoLimpezaUnidade() {
               return (
                 <Card key={i.id} className="!p-4 relative overflow-hidden">
                   {critico && (
-                    <div className="absolute top-0 right-0 px-2 py-1 text-[9px] font-bold uppercase" style={{ background: "#EF4444", color: "#fff", borderBottomLeftRadius: 8 }}>
+                    <div className="absolute top-0 right-0 px-2 py-1 text-3xs font-bold uppercase" style={{ background: "#EF4444", color: "#fff", borderBottomLeftRadius: 8 }}>
                       Estoque Baixo
                     </div>
                   )}
                   
-                  <p className="text-[10px] font-bold uppercase mb-1" style={{ color: "var(--dim)" }}>{i.categoria}</p>
+                  <p className="text-3xs font-bold uppercase mb-1" style={{ color: "var(--dim)" }}>{i.categoria}</p>
                   <p className="font-bold text-lg leading-tight mb-3" style={{ color: "var(--fg)" }}>{i.nome}</p>
                   
                   <div className="flex items-center justify-between mb-4">

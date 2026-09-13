@@ -203,7 +203,7 @@ export default function CardapioFuncionarios() {
                  <button key={f.id} onClick={() => addReceita(f, diaSelecionado)} className="w-full text-left bg-white border border-slate-200 p-4 rounded-xl hover:border-emerald-500 hover:shadow-sm transition-all group flex items-center justify-between">
                    <div>
                      <div className="font-bold text-slate-800 group-hover:text-emerald-700">{f.nome_receita}</div>
-                     <div className="text-[11px] font-semibold text-slate-500 mt-1">Rende {f.rendimento_porcoes} {f.rendimento_unidade}</div>
+                     <div className="text-2xs font-semibold text-slate-500 mt-1">Rende {f.rendimento_porcoes} {f.rendimento_unidade}</div>
                    </div>
                    <Plus size={18} className="text-slate-300 group-hover:text-emerald-500"/>
                  </button>

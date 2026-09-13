@@ -321,7 +321,7 @@ export default function ControlesCozinha() {
                 <div key={item.id} className={`p-5 rounded-2xl border bg-white shadow-sm flex flex-col md:flex-row gap-4 justify-between items-start md:items-center ${atrasada ? 'border-rose-300' : 'border-slate-200'}`}>
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md ${st.cor}`}>{st.label}</span>
+                      <span className={`px-2 py-1 text-3xs font-bold uppercase rounded-md ${st.cor}`}>{st.label}</span>
                       <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                         {item.categoria === "ar_condicionado" ? <Wind size={18} className="text-sky-500" /> : <Sparkles size={18} className="text-emerald-500" />}
                         {item.nome}
@@ -365,7 +365,7 @@ export default function ControlesCozinha() {
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md ${item.fim_uso ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <span className={`px-2 py-1 text-3xs font-bold uppercase rounded-md ${item.fim_uso ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
                       {item.fim_uso ? "Finalizado" : "Em Uso"}
                     </span>
                     <h3 className="font-bold text-lg text-slate-800">
@@ -564,7 +564,7 @@ export default function ControlesCozinha() {
           <p className="text-sm text-slate-500 mb-4">Ao registrar, a próxima limpeza será reagendada automaticamente para daqui a <b>{execAlvo?.frequencia_dias} dias</b>.</p>
           <Field label="Data em que foi feita">
             <input type="date" value={execForm.data || ""} onChange={e => setExecForm({ ...execForm, data: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
-            <span className="text-[11px] text-slate-400 mt-1 block">Deixe vazio para usar hoje.</span>
+            <span className="text-2xs text-slate-400 mt-1 block">Deixe vazio para usar hoje.</span>
           </Field>
           <Field label="Responsável (opcional)">
             <TextInput value={execForm.responsavel || ""} onChange={e => setExecForm({ ...execForm, responsavel: e.target.value })} placeholder="Quem fez / empresa" />

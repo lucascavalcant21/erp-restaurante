@@ -152,14 +152,14 @@ export default function LojaDeliveryPage({ params }) {
                 {/* Info Textual */}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h3 className="font-black text-slate-800 text-[15px] leading-tight mb-1">{prato.nome}</h3>
-                  <p className="text-[12px] font-medium text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                  <p className="text-xs font-medium text-slate-500 line-clamp-2 leading-relaxed mb-3">
                     {prato.descricao || "Acompanha molho especial da casa e aquele toque de chef."}
                   </p>
                   <div className="flex items-center gap-3 mt-auto">
                     <span className="font-black text-slate-900 text-[15px]">
                       R$ {parseFloat(prato.preco).toFixed(2).replace('.', ',')}
                     </span>
-                    <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <span className="text-3xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md flex items-center gap-1">
                       +{Math.floor(prato.preco)} 🔥
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export default function LojaDeliveryPage({ params }) {
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center relative">
                   <ShoppingBag size={20} />
                   {/* Badge de Quantidade saltando */}
-                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center border-2 border-slate-900 animate-bounce">
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-orange-500 text-white text-3xs rounded-full flex items-center justify-center border-2 border-slate-900 animate-bounce">
                     {qtdCarrinho}
                   </div>
                 </div>

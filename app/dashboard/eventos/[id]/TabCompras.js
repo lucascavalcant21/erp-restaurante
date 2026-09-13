@@ -154,9 +154,9 @@ function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }
       })}
       {/* Subtotal */}
       <div className="p-2 mt-2 flex justify-between items-center" style={{ background: "var(--elevated)", borderRadius: 8 }}>
-        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Subtotal</span>
+        <span className="text-2xs font-bold" style={{ color: "var(--muted)" }}>Subtotal</span>
         <div className="text-right">
-          <div className="text-[10px]" style={{ color: "var(--dim)" }}>
+          <div className="text-3xs" style={{ color: "var(--dim)" }}>
             Estimado: <strong style={{ color: corDestaque }}>{fmtBRL(itens.reduce((s, i) => s + i.cost, 0))}</strong>
             {" · "}
             Real: <strong style={{ color: "#10B981" }}>{fmtBRL(itens.reduce((s, i) => {
@@ -337,7 +337,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
           <div>
             <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><ShoppingCart size={16} style={{ display: "inline", marginRight: 6 }} />Lista de Compras</h3>
-            <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+            <p className="text-2xs" style={{ color: "var(--dim)" }}>
               {modo === "real"
                 ? `Calculado pelas escolhas reais das ${escolhasStats.comEscolhas} reserva${escolhasStats.comEscolhas !== 1 ? "s" : ""} com pratos/drinks selecionados`
                 : `Calculado por distribuição igual em ${reservas.length} ${evento.charge_mode === "couple" ? "casais" : "pessoas"} × menu do evento`}
@@ -386,7 +386,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         </div>
 
         {modo === "real" && escolhasStats.comEscolhas < escolhasStats.totalReservas && (
-          <p className="text-[11px] mt-2" style={{ color: "#F59E0B" }}>
+          <p className="text-2xs mt-2" style={{ color: "#F59E0B" }}>
             Atenção: {escolhasStats.totalReservas - escolhasStats.comEscolhas} reserva{escolhasStats.totalReservas - escolhasStats.comEscolhas !== 1 ? "s" : ""} sem escolhas — esses casais não estão sendo contabilizados. Complete-os antes de comprar.
           </p>
         )}
@@ -468,7 +468,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#10B981", marginBottom: 4 }}>Maiores economias</p>
                   {economias.slice(0, 3).map((e, i) => (
-                    <div key={i} className="flex justify-between text-[11px] py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
+                    <div key={i} className="flex justify-between text-2xs py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
                       <span style={{ color: "var(--fg)" }}>{e.nome}</span>
                       <span style={{ color: "#10B981", fontWeight: 700 }}>-{fmtBRL(e.diff)} ({e.pct.toFixed(0)}%)</span>
                     </div>
@@ -479,7 +479,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>Maiores excessos</p>
                   {perdas.slice(0, 3).map((p, i) => (
-                    <div key={i} className="flex justify-between text-[11px] py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
+                    <div key={i} className="flex justify-between text-2xs py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
                       <span style={{ color: "var(--fg)" }}>{p.nome}</span>
                       <span style={{ color: "#EF4444", fontWeight: 700 }}>+{fmtBRL(p.diff)} (+{p.pct.toFixed(0)}%)</span>
                     </div>
@@ -501,19 +501,19 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <Card className="!p-3">
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>CUSTO ESTIMADO</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>CUSTO ESTIMADO</p>
               <strong style={{ fontSize: 18, color: "#EF4444" }}>{fmtBRL(shopping.totalCost)}</strong>
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{totalItens} itens · +{safetyMargin}%</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>{totalItens} itens · +{safetyMargin}%</p>
             </Card>
             <Card className="!p-3" style={{ borderLeft: "3px solid #10B981" }}>
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>GASTO REAL</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>GASTO REAL</p>
               <strong style={{ fontSize: 18, color: "#10B981" }}>{fmtBRL(totalGasto)}</strong>
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{totalComprados}/{totalItens} comprado{totalComprados !== 1 ? "s" : ""} · {pctConcluido.toFixed(0)}%</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>{totalComprados}/{totalItens} comprado{totalComprados !== 1 ? "s" : ""} · {pctConcluido.toFixed(0)}%</p>
             </Card>
             <Card className="!p-3">
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{diff >= 0 ? "ACIMA DO ESTIMADO" : "ABAIXO DO ESTIMADO"}</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>{diff >= 0 ? "ACIMA DO ESTIMADO" : "ABAIXO DO ESTIMADO"}</p>
               <strong style={{ fontSize: 18, color: diff > 0 ? "#EF4444" : "#10B981" }}>{diff >= 0 ? "+" : ""}{fmtBRL(diff)}</strong>
-              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{shopping.totalCost > 0 ? ((Math.abs(diff) / shopping.totalCost) * 100).toFixed(1) : 0}% de diferença</p>
+              <p className="text-3xs" style={{ color: "var(--dim)" }}>{shopping.totalCost > 0 ? ((Math.abs(diff) / shopping.totalCost) * 100).toFixed(1) : 0}% de diferença</p>
             </Card>
           </div>
         );
@@ -560,9 +560,9 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
       <Card className="!p-4" style={{ background: "linear-gradient(135deg, #EF444411, #F59E0B11)", border: "1px solid #EF444433" }}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Total a comprar</p>
+            <p className="text-3xs font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Total a comprar</p>
             <strong style={{ fontSize: 32, color: "#EF4444" }}>{fmtBRL(shopping.totalCost)}</strong>
-            <p className="text-[11px]" style={{ color: "var(--dim)" }}>{reservas.length} {evento.charge_mode === "couple" ? "casais" : "pessoas"} com +{safetyMargin}% de margem</p>
+            <p className="text-2xs" style={{ color: "var(--dim)" }}>{reservas.length} {evento.charge_mode === "couple" ? "casais" : "pessoas"} com +{safetyMargin}% de margem</p>
           </div>
           <Btn variant="primary" onClick={() => imprimirLista(shopping.food, shopping.bar, shopping.totalCost, evento, safetyMargin)}>
             <Printer size={14} /> Imprimir lista

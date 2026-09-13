@@ -1321,7 +1321,7 @@ function EstoqueRunner() {
         <section className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs">
           <div className="flex items-center justify-between gap-3 mb-2 px-1">
             <div>
-              <p className="text-xs font-black uppercase tracking-wider text-slate-500">Setores de Estoque</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Setores de Estoque</p>
               <p className="text-xs text-slate-400">Selecione o estoque para visualizar os saldos</p>
             </div>
             <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-emerald-700 hover:underline">
@@ -1336,7 +1336,7 @@ function EstoqueRunner() {
                   key={estoque.id}
                   type="button"
                   onClick={() => setEstoqueId(estoque.id)}
-                  className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black transition-all cursor-pointer ${
+                  className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
                     isSelected
                       ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900"
                       : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
@@ -1346,7 +1346,7 @@ function EstoqueRunner() {
                     <Warehouse size={14} />
                   </div>
                   <span>{estoque.nome}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-3xs font-extrabold ${isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"}`}>
                     {estoque.itens || 0}
                   </span>
                 </button>
@@ -1362,7 +1362,7 @@ function EstoqueRunner() {
                 <span className="h-3.5 w-3.5 rounded-full shrink-0" style={{ backgroundColor: estoqueAtual.cor || "#047857" }} />
                 <div>
                   <h2 className="text-base font-black text-slate-900 leading-tight">{estoqueAtual.nome}</h2>
-                  <span className="text-[11px] font-bold text-slate-500">{itensDaArea.length} produtos cadastrados</span>
+                  <span className="text-2xs font-bold text-slate-500">{itensDaArea.length} produtos cadastrados</span>
                 </div>
               </div>
 
@@ -1410,7 +1410,7 @@ function EstoqueRunner() {
                     <Icon size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 truncate">{label}</p>
+                    <p className="text-3xs font-extrabold uppercase tracking-wider text-slate-500 truncate">{label}</p>
                     <strong className="text-sm font-black text-slate-900 leading-tight block truncate">{value}</strong>
                   </div>
                 </button>
@@ -1423,17 +1423,17 @@ function EstoqueRunner() {
                   ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}>{label}</button>
                 ))}
                 {/* Entradas e saídas em forma de calendário, fora das abas. */}
                 <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
-                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-black text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
+                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
                   Calendário
                 </button>
                 {/* Recomeço de contagem. Fica discreto de propósito: é a única
                     ação da tela que não tem desfazer. */}
                 <button onClick={() => setModalZerar({ confirmacao: "", alvos: estoqueAtual?.id ? [estoqueAtual.id] : [], salvando: false })}
-                  className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-black text-slate-400 hover:text-red-600 sm:py-3.5 sm:text-sm">
+                  className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-slate-400 hover:text-red-600 sm:py-3.5 sm:text-sm">
                   Zerar estoque
                 </button>
               </div>
@@ -1443,12 +1443,12 @@ function EstoqueRunner() {
                   <div className="border-b border-slate-100 px-4 py-3 sm:px-6">
                     {grupos.length > 1 && (
                       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                        <span className="text-xs font-black text-slate-500 shrink-0">Grupo:</span>
+                        <span className="text-xs font-bold text-slate-500 shrink-0">Grupo:</span>
                         {grupos.map(grupo => (
                           <button
                             key={grupo}
                             onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-black transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-700 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-700 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                           >
                             {grupo} ({contagemGrupos[grupo] || 0})
                           </button>
@@ -1460,7 +1460,7 @@ function EstoqueRunner() {
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                       {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug?.includes("bar") || estoqueAtual?.nome?.toLowerCase()?.includes("bar")) ? (
                         <>
-                          <span className="text-xs font-black text-slate-500 mr-1">Temperatura Bar:</span>
+                          <span className="text-xs font-bold text-slate-500 mr-1">Temperatura Bar:</span>
                           {[
                             ["todos_temp", "Todos os Itens"],
                             ["apenas_gelado", "Gelados (Expositor)"],
@@ -1470,7 +1470,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-black transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1478,7 +1478,7 @@ function EstoqueRunner() {
                         </>
                       ) : (
                         <>
-                          <span className="text-xs font-black text-slate-500 mr-1">Estado Insumo/Comida:</span>
+                          <span className="text-xs font-bold text-slate-500 mr-1">Estado Insumo/Comida:</span>
                           {[
                             ["todos_estado", "Todos os Itens"],
                             ["insumos", "Insumos Brutos"],
@@ -1489,7 +1489,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-black transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1515,7 +1515,7 @@ function EstoqueRunner() {
                     <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">{locais.map(v => <option key={v}>{v}</option>)}</select>
                     {/* Separar a lista por onde a coisa fica (expositor, balcão, depósito...) */}
                     {(estoqueAtual?.locais_internos || []).length > 0 && (
-                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-800">
+                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-bold text-emerald-800">
                         <option value="categoria">Separar por categoria</option>
                         <option value="local">Separar por lugar</option>
                       </select>
@@ -1569,13 +1569,13 @@ function EstoqueRunner() {
 
             {vozItens.length > 0 && (
               <>
-                <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-500">Confira antes de gravar</p>
+                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-slate-500">Confira antes de gravar</p>
                 <div className="mt-2 space-y-2">
                   {vozItens.map((linha, i) => (
                     <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
                       <div className="min-w-0 flex-1">
                         <p className="text-[15px] font-black text-slate-800 truncate">{linha.item.nome}</p>
-                        <p className="text-[12px] font-bold text-slate-400">saldo atual {fmtQtd(linha.item.quantidade_atual)} {mostrarUn(linha.item.unidade_medida)}</p>
+                        <p className="text-xs font-bold text-slate-400">saldo atual {fmtQtd(linha.item.quantidade_atual)} {mostrarUn(linha.item.unidade_medida)}</p>
                       </div>
                       <input type="number" step="0.001" min="0" value={linha.quantidade}
                         onChange={e => setVozItens(a => a.map((x, j) => j === i ? { ...x, quantidade: Number(e.target.value) } : x))}
@@ -1586,7 +1586,7 @@ function EstoqueRunner() {
                 </div>
 
                 <label className="mt-4 block">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Quem está contando *</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Quem está contando *</span>
                   <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })}
                     className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-slate-200 bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
                     <option value="">Selecione o responsável...</option>
@@ -1621,11 +1621,11 @@ function EstoqueRunner() {
             {/* Produto que ainda não existe: cadastra aqui e já entra no estoque */}
             {modal.tipo === "entrada" && !modal.item && (novoProduto ? (
               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
-                <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
+                <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
                 <p className="mt-1 text-xs font-semibold text-slate-500">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_90px_100px_120px]">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Produto</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Produto</span>
                     <input autoFocus value={novoProduto.nome} onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value }))}
                       placeholder="Nome do produto" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1634,19 +1634,19 @@ function EstoqueRunner() {
                       cadastrado aqui nascia sem volume — e sem volume a ficha
                       técnica não sabe quanto sai de cada garrafa. */}
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Volume</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Volume</span>
                     <input inputMode="decimal" value={novoProduto.volume} onChange={e => setNovoProduto(p => ({ ...p, volume: e.target.value }))}
                       placeholder="750" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Medida</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Medida</span>
                     <select value={novoProduto.unidade} onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value }))}
                       className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
                       {["ml", "l", "g", "kg", "un"].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Custo</span>
                     <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
                       placeholder="0,00" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1655,7 +1655,7 @@ function EstoqueRunner() {
                     esta unidade que aparece na contagem ("3 garrafas"), e o
                     volume diz quanto tem em cada uma. */}
                 <label className="mt-2 flex flex-col gap-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Como se compra (opcional)</span>
+                  <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Como se compra (opcional)</span>
                   <select value={novoProduto.unidadeComercial || ""} onChange={e => setNovoProduto(p => ({ ...p, unidadeComercial: e.target.value }))}
                     className="h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
                     <option value="">A granel — conta na própria medida</option>
@@ -1667,12 +1667,12 @@ function EstoqueRunner() {
                     depois para preencher o que ainda não faltou. */}
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Estoque mínimo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Estoque mínimo</span>
                     <input inputMode="decimal" value={novoProduto.minimo || ""} onChange={e => setNovoProduto(p => ({ ...p, minimo: e.target.value }))}
                       placeholder="Avisa quando cair abaixo" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Estoque máximo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Estoque máximo</span>
                     <input inputMode="decimal" value={novoProduto.maximo || ""} onChange={e => setNovoProduto(p => ({ ...p, maximo: e.target.value }))}
                       placeholder="Quanto cabe / quanto comprar" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1681,7 +1681,7 @@ function EstoqueRunner() {
                     categoria" nunca mais é classificado depois. */}
                 {categoriasDisponiveis(estoqueAtual).length > 0 && (
                   <div className="mt-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Categoria</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Categoria</span>
                     <div className="mt-1 flex gap-2">
                       <select value={novoProduto.categoria} onChange={e => setNovoProduto(p => ({ ...p, categoria: e.target.value }))}
                         className="h-12 flex-1 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
@@ -1748,10 +1748,10 @@ function EstoqueRunner() {
                       {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug === "bar" || modal.item?.departamento === "bar") && modal.tipo === "contagem" ? (
                         <div className="col-span-2 space-y-3 rounded-2xl border-2 border-sky-200 bg-sky-50/80 p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-black uppercase tracking-wider text-sky-950 flex items-center gap-1">
+                            <span className="text-xs font-bold uppercase tracking-wider text-sky-950 flex items-center gap-1">
                               🍺 Controle de Estoque do Bar (Estoque Frio vs Quente)
                             </span>
-                            <span className="text-[10px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md">Soma Automática</span>
+                            <span className="text-3xs font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md">Soma Automática</span>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
@@ -1789,7 +1789,7 @@ function EstoqueRunner() {
                               />
                             </div>
                           </div>
-                          <div className="flex items-center justify-between text-xs font-black text-slate-700 bg-white p-2.5 rounded-xl border border-sky-200">
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-700 bg-white p-2.5 rounded-xl border border-sky-200">
                             <span>📦 Saldo Total do Bar (Frio + Quente):</span>
                             <span className="text-sm font-black text-emerald-600">{fmtQtd(operacao.quantidade)} {mostrarUn(itemMod?.unidade_medida)}</span>
                           </div>
@@ -1801,7 +1801,7 @@ function EstoqueRunner() {
                               {modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}
                             </label>
                             {itemMod && (
-                              <span className="text-[10px] font-bold text-slate-500">
+                              <span className="text-3xs font-bold text-slate-500">
                                 Cadastro: <strong className="text-slate-800 uppercase">{mostrarUn(itemMod.unidade_medida)}</strong>
                               </span>
                             )}
@@ -1825,7 +1825,7 @@ function EstoqueRunner() {
                                   const unBase = String(itemMod.unidade_medida).toLowerCase();
                                   setOperacao({ ...operacao, unidade_digitada: novaUn });
                                 }}
-                                className="h-14 rounded-2xl border-2 border-slate-300 bg-slate-100 px-3 font-black text-xs text-slate-800 outline-none"
+                                className="h-14 rounded-2xl border-2 border-slate-300 bg-slate-100 px-3 font-bold text-xs text-slate-800 outline-none"
                               >
                                 {["kg", "g"].includes(String(itemMod.unidade_medida).toLowerCase()) ? (
                                   <>
@@ -1879,7 +1879,7 @@ function EstoqueRunner() {
                             <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({dinheiro(saldoSistema * custo)})</span>
                             <span>Custo Un.: <b>{dinheiro(custo)}/{unName}</b></span>
                           </div>
-                          <div className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-black ${
+                          <div className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold ${
                             diff < -0.001
                               ? "bg-red-100 text-red-900 border border-red-200"
                               : diff > 0.001
@@ -1894,7 +1894,7 @@ function EstoqueRunner() {
                     })()}
                     {modal.tipo !== "contagem" && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
-                        <span className="w-full text-[11px] font-black uppercase text-slate-400 tracking-wider">Atalhos Rápidos de Quantidade:</span>
+                        <span className="w-full text-2xs font-bold uppercase text-slate-400 tracking-wider">Atalhos Rápidos de Quantidade:</span>
                         {[1, 2, 5, 10, 20, 50].map(val => (
                           <button
                             key={val}
@@ -1908,7 +1908,7 @@ function EstoqueRunner() {
                         <button
                           type="button"
                           onClick={() => setOperacao(prev => ({ ...prev, quantidade: "" }))}
-                          className="px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-black text-xs border border-red-200 active:scale-95 transition-all"
+                          className="px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs border border-red-200 active:scale-95 transition-all"
                         >
                           Zerar
                         </button>
@@ -2031,7 +2031,7 @@ function EstoqueRunner() {
                   <button type="button" onClick={() => { setPinDigitado(""); }}
                     className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 px-3 text-left">
                     <span className="font-bold text-slate-700">{String(formItem.unidade_medida || "un").toLowerCase()}</span>
-                    <span className="text-xs font-black text-emerald-700">Alterar</span>
+                    <span className="text-xs font-bold text-emerald-700">Alterar</span>
                   </button>
                 )}
               </Campo>
@@ -2049,7 +2049,7 @@ function EstoqueRunner() {
             {/* Embalagem — valem para o produto em todos os estoques */}
             {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
               <div className="rounded-xl border border-slate-200 p-3">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Bebida / embalado</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Bebida / embalado</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Campo label="Unidade comercial">
                     {(() => {
@@ -2142,7 +2142,7 @@ function EstoqueRunner() {
                       {movsItem.map(m => (
                         <tr key={m.id} className="hover:bg-slate-50">
                           <td className="p-3 font-medium text-slate-600">{fmtData(m.data_movimento, true)}</td>
-                          <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-[10px] ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>{m.tipo}</span></td>
+                          <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>{m.tipo}</span></td>
                           <td className="p-3 font-extrabold text-slate-900">{fmtQtd(m.quantidade)} {mostrarUn(m.unidade_medida)}</td>
                           <td className="p-3 text-slate-600">{m.usuario_nome || m.responsavel_nome || "Sistema"}</td>
                           <td className="p-3 text-slate-500 italic">{m.observacao || "—"}</td>
@@ -2169,7 +2169,7 @@ function EstoqueRunner() {
             {/* Marcar mais de um é possível, mas exige marcar: zerar bar e
                 cozinha de um clique só seria fácil demais para uma ação sem volta. */}
             <div>
-              <span className="text-xs font-black uppercase tracking-widest text-slate-500">Quais estoques zerar</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Quais estoques zerar</span>
               <div className="mt-1.5 max-h-44 space-y-1 overflow-auto rounded-xl border border-slate-200 p-2">
                 {estoquesVisiveis.map(e => {
                   const marcado = (modalZerar.alvos || []).includes(e.id);
@@ -2189,13 +2189,13 @@ function EstoqueRunner() {
               </div>
             </div>
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-widest text-slate-500">Motivo (opcional)</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Motivo (opcional)</span>
               <input value={modalZerar.motivo || ""} onChange={e => setModalZerar(m => ({ ...m, motivo: e.target.value }))}
                 placeholder="Ex.: recontagem geral de agosto"
                 className="mt-1 h-12 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-800 outline-none focus:border-emerald-600" />
             </label>
             <label className="block">
-              <span className="text-xs font-black uppercase tracking-widest text-slate-500">Digite ZERAR para confirmar</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Digite ZERAR para confirmar</span>
               <input autoFocus value={modalZerar.confirmacao} onChange={e => setModalZerar(m => ({ ...m, confirmacao: e.target.value }))}
                 className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-center font-black tracking-widest text-slate-900 outline-none focus:border-red-500" />
             </label>
@@ -2396,7 +2396,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
 
       <div className="hidden overflow-x-auto lg:block rounded-b-2xl border-x border-b border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="sticky top-0 z-20 bg-slate-900 text-xs font-black uppercase tracking-wider text-white shadow-md"><tr>
+          <thead className="sticky top-0 z-20 bg-slate-900 text-xs font-bold uppercase tracking-wider text-white shadow-md"><tr>
             <th className="px-5 py-4 whitespace-nowrap">Produto</th>
             <th className="px-4 py-4 whitespace-nowrap">Categoria</th>
             <th className="px-4 py-4 whitespace-nowrap">Embalagem</th>
@@ -2420,21 +2420,21 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                   >
                     <td colSpan={estoque?.controla_validade ? 11 : 10} className="px-5 py-3">
                       <div className="flex items-center justify-between">
-                        <div className="inline-flex items-center gap-2.5 text-xs font-black uppercase tracking-wider text-slate-900">
+                        <div className="inline-flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-slate-900">
                           <div className="grid h-6 w-6 place-items-center rounded-lg bg-slate-200 text-slate-700">
                             {isColapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
                           </div>
                           <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
                           {categoria}
-                          <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-black text-slate-700 shadow-sm border border-slate-200">
+                          <span className="rounded-full bg-white px-2.5 py-0.5 text-2xs font-bold text-slate-700 shadow-sm border border-slate-200">
                             {lista.length} {lista.length === 1 ? "item" : "itens"}
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+                          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
                             Subtotal: {dinheiro(subtotal)}
                           </span>
-                          <span className="text-[11px] font-bold text-slate-400">
+                          <span className="text-2xs font-bold text-slate-400">
                             {isColapsed ? "Clique para abrir" : "Clique para recolher"}
                           </span>
                         </div>
@@ -2468,11 +2468,11 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           "Líquidos": "bg-blue-100 text-blue-950 border-blue-300",
                         };
                         const cl = cores[cat] || "bg-emerald-100 text-emerald-950 border-emerald-300";
-                        return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-black border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
+                        return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-bold border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
                       })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{dinheiro(item.custo_unitario || 0)}</strong></td>
-                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[11px] font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
@@ -2536,13 +2536,13 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
                     </div>
                     <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
-                      <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
+                      <span className="block text-3xs font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
                       {(() => {
                         const s = saldoEmbalado(item);
                         return s ? (
                           <>
                             <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{s.principal}</strong>
-                            <span className="block text-[9px] font-semibold text-slate-300">{s.secundario}</span>
+                            <span className="block text-3xs font-semibold text-slate-300">{s.secundario}</span>
                           </>
                         ) : (
                           <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
@@ -2712,7 +2712,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                   <div className="min-w-0">
                     <strong className="block truncate text-base font-black text-slate-900">{nomeProduto}</strong>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
-                      <span className={`rounded-md px-2 py-0.5 font-black uppercase text-[10px] border ${badgeConfig.bg}`}>{badgeConfig.label}</span>
+                      <span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs border ${badgeConfig.bg}`}>{badgeConfig.label}</span>
                       <span>·</span>
                       <span className="inline-flex items-center gap-1 font-bold text-slate-800">
                         <User size={13} className="text-slate-400" />
@@ -2736,7 +2736,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                             <span className="text-slate-500">Sistema: {fmtQtd(anterior)} → Contado: {fmtQtd(posterior)}</span>
                           )}
                           {custo > 0 && Math.abs(diff) > 0.001 && (
-                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black ${
+                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-3xs font-bold ${
                               diff < 0 ? "bg-red-100 text-red-800 border border-red-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
                             }`}>
                               {diff < 0 ? `CMV / Quebra: ${dinheiro(Math.abs(valorDiff))}` : `Sobra: +${dinheiro(valorDiff)}`}

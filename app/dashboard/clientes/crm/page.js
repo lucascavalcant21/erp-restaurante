@@ -108,7 +108,7 @@ export default function CrmPage() {
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>{c.nome?.[0]?.toUpperCase()}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
-                      <p className="text-[11px] flex items-center gap-2" style={{ color: "var(--dim)" }}>
+                      <p className="text-2xs flex items-center gap-2" style={{ color: "var(--dim)" }}>
                         {c.tel && <span className="flex items-center gap-1"><Phone size={11} />{c.tel}</span>}
                         {!!c.total_pedidos && <span>{c.total_pedidos} pedidos</span>}
                         {c.ultima_compra && <span>· {fmtData(c.ultima_compra)}</span>}

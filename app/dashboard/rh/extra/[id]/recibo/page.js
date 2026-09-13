@@ -204,7 +204,7 @@ export default function GerarPagamentoExtraPage() {
               <p className="text-xs font-semibold text-slate-500">{extra.nome} ({extra.cargo || "Extra"})</p>
             </div>
           </div>
-          <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50"><Pencil size={14} /> Editar cadastro</button>
+          <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}`)} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"><Pencil size={14} /> Editar cadastro</button>
         </div>
       </header>
 
@@ -214,18 +214,18 @@ export default function GerarPagamentoExtraPage() {
           {/* LINHA 1: VALORES E DATA */}
           <div className="grid gap-3 sm:grid-cols-4">
             <label className="sm:col-span-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Valor Total a Pagar *</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Valor Total a Pagar *</span>
               <div className="mt-1 flex h-12 items-center rounded-xl border-2 border-emerald-400 bg-emerald-50/70 px-3">
                 <span className="mr-2 text-lg font-black text-emerald-700 shrink-0 whitespace-nowrap leading-none">R$</span>
                 <input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-slate-900 outline-none" placeholder="0,00" />
               </div>
             </label>
             <label>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Diárias</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Diárias</span>
               <input type="number" step="0.1" min="0.1" value={form.dias_contratados} onChange={e => set("dias_contratados", e.target.value)} className="mt-1 h-12 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-black text-slate-800 outline-none" placeholder="1" />
             </label>
             <label>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Data do Trabalho</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Data do Trabalho</span>
               <input type="date" value={form.data_trabalho} onChange={e => set("data_trabalho", e.target.value)} className="mt-1 h-12 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold text-slate-800 outline-none" />
             </label>
           </div>
@@ -233,15 +233,15 @@ export default function GerarPagamentoExtraPage() {
           {/* LINHA 2: HORÁRIO E PAGAMENTO */}
           <div className="grid gap-3 sm:grid-cols-3">
             <label>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Início</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Início</span>
               <input type="time" value={form.hora_entrada} onChange={e => set("hora_entrada", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm" placeholder="15:40" />
             </label>
             <label>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Término</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1"><Clock size={13} /> Horário Término</span>
               <input type="time" value={form.hora_saida} onChange={e => set("hora_saida", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm" placeholder="23:40" />
             </label>
             <label>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Forma de Pagamento</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Forma de Pagamento</span>
               <select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 font-bold outline-none text-sm">
                 <option>Pix</option>
                 <option>Dinheiro</option>
@@ -255,11 +255,11 @@ export default function GerarPagamentoExtraPage() {
           {form.forma_pagamento.includes("Híbrido") && (
             <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 grid gap-3 sm:grid-cols-2 animate-in fade-in">
               <label>
-                <span className="text-[11px] font-black text-emerald-800">Valor no PIX (R$)</span>
+                <span className="text-2xs font-bold text-emerald-800">Valor no PIX (R$)</span>
                 <input type="number" min="0" step="0.01" value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none text-sm" />
               </label>
               <label>
-                <span className="text-[11px] font-black text-emerald-800">Valor em DINHEIRO (R$)</span>
+                <span className="text-2xs font-bold text-emerald-800">Valor em DINHEIRO (R$)</span>
                 <input type="number" min="0" step="0.01" value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-white px-3 font-black text-slate-900 outline-none text-sm" />
               </label>
             </div>
@@ -272,23 +272,23 @@ export default function GerarPagamentoExtraPage() {
                 <Sparkles size={15} className="text-emerald-600"/> Desmembramento Automático (Taxa 10% / INSS 11% / FGTS 8%)
               </span>
               <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.desmembrar ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Ativado</button>
-                <button type="button" onClick={() => set("desmembrar", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.desmembrar ? "bg-slate-800 text-white" : "text-slate-600"}`}>Desativado</button>
+                <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.desmembrar ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Ativado</button>
+                <button type="button" onClick={() => set("desmembrar", false)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${!form.desmembrar ? "bg-slate-800 text-white" : "text-slate-600"}`}>Desativado</button>
               </div>
             </div>
 
             {form.desmembrar && (
               <div className="mt-3 p-3 rounded-2xl bg-emerald-50/40 border border-emerald-200 grid gap-3 sm:grid-cols-3 animate-in fade-in">
                 <label>
-                  <span className="text-[11px] font-black text-slate-700">Taxa de serviço (10%)</span>
+                  <span className="text-2xs font-bold text-slate-700">Taxa de serviço (10%)</span>
                   <input type="number" min="0" step="0.01" value={form.taxa_servico} onChange={e => set("taxa_servico", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
                 </label>
                 <label>
-                  <span className="text-[11px] font-black text-slate-700">INSS calculado (11%)</span>
+                  <span className="text-2xs font-bold text-slate-700">INSS calculado (11%)</span>
                   <input type="number" min="0" step="0.01" value={form.inss} onChange={e => set("inss", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
                 </label>
                 <label>
-                  <span className="text-[11px] font-black text-slate-700">FGTS calculado (8%)</span>
+                  <span className="text-2xs font-bold text-slate-700">FGTS calculado (8%)</span>
                   <input type="number" min="0" step="0.01" value={form.fgts} onChange={e => set("fgts", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-900 outline-none text-sm" />
                 </label>
               </div>
@@ -300,23 +300,23 @@ export default function GerarPagamentoExtraPage() {
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Utensils size={15} className="text-emerald-600" /> Ofereceu Alimentação?</span>
               <div className="flex gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
-                <button type="button" onClick={() => set("alimentacao", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.alimentacao ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
-                <button type="button" onClick={() => set("alimentacao", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.alimentacao ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+                <button type="button" onClick={() => set("alimentacao", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.alimentacao ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("alimentacao", false)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${!form.alimentacao ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
               </div>
             </div>
 
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Shirt size={15} className="text-emerald-600" /> Entregou Material/Uniforme?</span>
               <div className="flex gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
-                <button type="button" onClick={() => set("materiais", true)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${form.materiais ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
-                <button type="button" onClick={() => set("materiais", false)} className={`px-3 py-1 rounded-md text-xs font-black transition-colors ${!form.materiais ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
+                <button type="button" onClick={() => set("materiais", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.materiais ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("materiais", false)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${!form.materiais ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
               </div>
             </div>
           </div>
 
           {form.materiais && (
             <label className="block">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Quais materiais foram entregues?</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Quais materiais foram entregues?</span>
               <input value={form.descricao_materiais} onChange={e => set("descricao_materiais", e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm font-bold outline-none focus:border-emerald-500" placeholder="Ex.: avental, camisa da loja, rádio" />
             </label>
           )}
@@ -348,10 +348,10 @@ export default function GerarPagamentoExtraPage() {
                     <p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · <span className={recibo.pagamento_realizado ? "text-emerald-700" : "text-amber-700"}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex h-9 items-center gap-1 rounded-xl bg-white border border-slate-200 px-3 text-xs font-black text-slate-700 hover:bg-slate-50">
+                    <button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex h-9 items-center gap-1 rounded-xl bg-white border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">
                       <Printer size={14} /> Imprimir
                     </button>
-                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100" title="Alternar status de pagamento">
+                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100" title="Alternar status de pagamento">
                       {recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />}
                     </button>
                     <button onClick={() => excluirRecibo(recibo)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100" title="Excluir comprovante/recibo">

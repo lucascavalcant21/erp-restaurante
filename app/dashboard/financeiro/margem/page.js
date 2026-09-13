@@ -60,7 +60,7 @@ export default function MargemPage() {
                   <Crown size={18} style={{ color: "var(--accent-fg)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Maior lucro por unidade vendida</p>
+                  <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>Maior lucro por unidade vendida</p>
                   <p className="text-sm font-bold break-words" style={{ color: "var(--fg)" }}>{resumo.top.nome} · {fmtBRL(resumo.top.mcR)} ({fmtPct(resumo.top.mc)})</p>
                 </div>
               </Card>
@@ -80,7 +80,7 @@ export default function MargemPage() {
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                         <div className="h-full rounded-full" style={{ width: `${Math.min(Math.max(l.mc, 0), 100)}%`, background: ok ? "#10B981" : "#F59E0B" }} />
                       </div>
-                      <div className="flex justify-between text-[10px]" style={{ color: "var(--dim)" }}>
+                      <div className="flex justify-between text-3xs" style={{ color: "var(--dim)" }}>
                         <span>MC {fmtPct(l.mc)}</span><span>Preço {fmtBRL(l.preco)}</span>
                       </div>
                     </Card>

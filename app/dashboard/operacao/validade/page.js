@@ -89,7 +89,7 @@ export function ControleValidade({ embutido = false }) {
             <AlertTriangle size={22} style={{ color: "#EF4444", flexShrink: 0 }} />
             <div>
               <p className="text-sm font-bold" style={{ color: "#DC2626" }}>{resumo.vencidosSemBaixa} produto(s) VENCIDO(S) sem baixa</p>
-              <p className="text-[12px]" style={{ color: "var(--muted)" }}>Possível perda de <b style={{ color: "#DC2626" }}>{fmtBRL(resumo.valorPendente)}</b> — registre baixa (usado) ou perda.</p>
+              <p className="text-xs" style={{ color: "var(--muted)" }}>Possível perda de <b style={{ color: "#DC2626" }}>{fmtBRL(resumo.valorPendente)}</b> — registre baixa (usado) ou perda.</p>
             </div>
           </Card>
         )}
@@ -126,7 +126,7 @@ export function ControleValidade({ embutido = false }) {
                   <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--line)" }}>
                     <div>
                       <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{g.produto}</p>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{g.items.length} lote{g.items.length > 1 ? "s" : ""} · {g.totalQtd} un</p>
+                      <p className="text-2xs" style={{ color: "var(--dim)" }}>{g.items.length} lote{g.items.length > 1 ? "s" : ""} · {g.totalQtd} un</p>
                     </div>
                   </div>
                   {g.items.map((e, idx) => (
@@ -136,29 +136,29 @@ export function ControleValidade({ embutido = false }) {
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>{(e.copias && e.copias > 1) ? `${e.copias} etiq. de ` : ""}{e.quantidade} {e.unidade}</span>
                             {filtro !== "perdas" && filtro !== "baixados" && idx === 0 && e.dias >= 0 && <span className="erp-badge erp-badge-ok">usar 1º</span>}
-                            {e.valor > 0 && <span className="text-[11px]" style={{ color: "var(--dim)" }}>· {fmtBRL(e.valor)}</span>}
+                            {e.valor > 0 && <span className="text-2xs" style={{ color: "var(--dim)" }}>· {fmtBRL(e.valor)}</span>}
                           </div>
-                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                          <p className="text-2xs" style={{ color: "var(--dim)" }}>
                             vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo}
                             {e.lote ? ` · Lote: ${e.lote}` : ""}
                             {e.responsavel ? ` · Resp: ${e.responsavel}` : ""}
                             {unidadeAtiva === "todas" && e.unidade_id ? ` · ${unidades.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}
                           </p>
                         </div>
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: e.st.cor + "22", color: e.st.cor }}>{textoDias(e.dias)}</span>
+                        <span className="text-2xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: e.st.cor + "22", color: e.st.cor }}>{textoDias(e.dias)}</span>
                       </div>
                       {e.status === "ativa" && (
                         <div className="flex gap-2 mt-2">
-                          <button onClick={() => mudarStatus(e, "baixa")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-ok"><Check size={12} /> Dar baixa (usado)</button>
-                          <button onClick={() => mudarStatus(e, "perda")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-danger"><XCircle size={12} /> Registrar perda</button>
+                          <button onClick={() => mudarStatus(e, "baixa")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-2xs font-bold rounded-lg erp-badge-ok"><Check size={12} /> Dar baixa (usado)</button>
+                          <button onClick={() => mudarStatus(e, "perda")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-2xs font-bold rounded-lg erp-badge-danger"><XCircle size={12} /> Registrar perda</button>
                         </div>
                       )}
                       {e.status !== "ativa" && (
                         <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[11px] font-bold" style={{ color: e.status === "perda" ? "#DC2626" : "var(--accent-fg)" }}>
+                          <span className="text-2xs font-bold" style={{ color: e.status === "perda" ? "#DC2626" : "var(--accent-fg)" }}>
                             {e.status === "perda" ? `Perda ${fmtBRL(e.valor)}` : "Baixa (consumido)"}
                           </span>
-                          <button onClick={() => mudarStatus(e, "ativa")} className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>desfazer</button>
+                          <button onClick={() => mudarStatus(e, "ativa")} className="text-2xs font-bold" style={{ color: "var(--dim)" }}>desfazer</button>
                         </div>
                       )}
                     </div>
@@ -176,7 +176,7 @@ export function ControleValidade({ embutido = false }) {
     return (
       <div>
         <div className="flex justify-end mb-3">
-          <button onClick={carregar} className="text-[12px] font-bold px-3 py-1.5 rounded-lg"
+          <button onClick={carregar} className="text-xs font-bold px-3 py-1.5 rounded-lg"
             style={{ background: "var(--panel)", color: "var(--accent-fg)", border: "1px solid var(--line)" }}>
             Atualizar lista
           </button>

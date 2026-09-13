@@ -71,8 +71,8 @@ function CardFornecedor({ f, onEditar, onRemover }) {
             <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{f.nome}</p>
             {!f.ativo && <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--subtle)" }}>Inativo</span>}
           </div>
-          <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{f.segmento}{f.contato ? ` · ${f.contato}` : ""}</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[11px]" style={{ color: "var(--subtle)" }}>
+          <p className="text-2xs font-medium" style={{ color: "var(--dim)" }}>{f.segmento}{f.contato ? ` · ${f.contato}` : ""}</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-2xs" style={{ color: "var(--subtle)" }}>
             {f.telefone && <span className="flex items-center gap-1"><Phone size={11} />{f.telefone}</span>}
             {f.cidade && <span className="flex items-center gap-1"><MapPin size={11} />{f.cidade}</span>}
             {f.forma_pagamento && <span className="flex items-center gap-1"><Wallet size={11} />{f.forma_pagamento}</span>}
@@ -85,10 +85,10 @@ function CardFornecedor({ f, onEditar, onRemover }) {
         </div>
       </div>
       <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--line)" }}>
-        <button onClick={() => onEditar(f)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg" style={{ color: "var(--muted)", background: "var(--elevated)" }}>
+        <button onClick={() => onEditar(f)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-2xs font-bold rounded-lg" style={{ color: "var(--muted)", background: "var(--elevated)" }}>
           <Edit3 size={13} /> Editar
         </button>
-        <button onClick={() => onRemover(f.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg erp-badge-danger">
+        <button onClick={() => onRemover(f.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-2xs font-bold rounded-lg erp-badge-danger">
           <Trash2 size={13} /> Remover
         </button>
       </div>

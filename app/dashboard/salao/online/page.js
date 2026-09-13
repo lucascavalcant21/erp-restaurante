@@ -136,10 +136,10 @@ export default function GestorOnlinePage() {
             </div>
 
             <div className="hidden md:flex items-center gap-2 shrink-0">
-               <button className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-[10px] font-bold uppercase transition-colors">
+               <button className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-3xs font-bold uppercase transition-colors">
                   <Bike size={14}/> Entregadores
                </button>
-               <button onClick={toggleFullscreen} className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-[10px] font-bold uppercase transition-colors">
+               <button onClick={toggleFullscreen} className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-3xs font-bold uppercase transition-colors">
                   <Maximize size={14}/>
                </button>
             </div>
@@ -160,7 +160,7 @@ export default function GestorOnlinePage() {
                   <>
                      {/* COLUNA 1: NOVOS */}
             <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
-               <div className="bg-[#D12B2B] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+               <div className="bg-[#D12B2B] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Novos
                </div>
                <div className="flex-1 overflow-y-auto p-2">
@@ -187,7 +187,7 @@ export default function GestorOnlinePage() {
 
             {/* COLUNA 2: EM PREPARO */}
             <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
-               <div className="bg-[#F39C12] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+               <div className="bg-[#F39C12] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Em Preparo
                </div>
                <div className="flex-1 overflow-y-auto p-2">
@@ -201,7 +201,7 @@ export default function GestorOnlinePage() {
                               <span className="text-xs font-bold text-orange-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
                            </div>
                            <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente"}</p>
-                           <p className="text-[10px] text-orange-600 font-bold mt-2 uppercase bg-orange-50 p-1 rounded inline-block">Sendo preparado pela Cozinha...</p>
+                           <p className="text-3xs text-orange-600 font-bold mt-2 uppercase bg-orange-50 p-1 rounded inline-block">Sendo preparado pela Cozinha...</p>
                         </div>
                      ))
                   )}
@@ -210,7 +210,7 @@ export default function GestorOnlinePage() {
 
             {/* COLUNA 3: PRONTOS */}
             <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
-               <div className="bg-[#27AE60] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+               <div className="bg-[#27AE60] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Prontos p/ Despacho
                </div>
                <div className="flex-1 overflow-y-auto p-2">
@@ -234,7 +234,7 @@ export default function GestorOnlinePage() {
 
             {/* COLUNA 4: EM ROTA (SAIU) */}
             <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
-               <div className="bg-[#7F8C8D] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+               <div className="bg-[#7F8C8D] text-white p-2 text-center font-bold text-xs uppercase tracking-widest rounded-t">
                   Em Rota (Saiu)
                </div>
                <div className="flex-1 overflow-y-auto p-2">
@@ -272,7 +272,7 @@ export default function GestorOnlinePage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-slate-900 text-xl">#{detalhe.id.substring(0, 4).toUpperCase()}</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-100 text-red-700">{detalhe.origem || 'Delivery'}</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-100 text-red-700">{detalhe.origem || 'Delivery'}</span>
                 </div>
                 <p className="text-sm font-bold text-slate-700 mt-1">{detalhe.cliente_nome || 'Cliente não informado'}</p>
                 <p className="text-xs font-bold text-slate-400">Feito às {new Date(detalhe.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
@@ -285,18 +285,18 @@ export default function GestorOnlinePage() {
                 {detalhe.endereco_entrega && <p className="text-sm font-bold text-slate-700 flex items-start gap-2"><MapPin size={15} className="text-slate-400 mt-0.5 shrink-0" /> {detalhe.endereco_entrega}</p>}
               </div>
               <div>
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Itens</p>
+                <p className="text-2xs font-bold text-slate-400 uppercase tracking-widest mb-2">Itens</p>
                 <div className="space-y-1.5">
                   {(detalhe.pedidos_itens || []).map(it => (
                     <div key={it.id} className="flex justify-between items-start bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-[11px] font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
+                      <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-2xs font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
                       <span className="font-black text-slate-700 text-sm shrink-0 ml-2">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Total</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total</span>
                 <span className="text-2xl font-black text-emerald-600">{fmtBRL(detalhe.valor_total || 0)}</span>
               </div>
             </div>

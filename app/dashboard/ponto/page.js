@@ -139,26 +139,26 @@ function ModalHistorico({ onClose, colaborador }) {
                  <p className="text-sm font-black text-slate-700 border-b border-slate-200 pb-2 mb-1">{dataFormatada}</p>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-[10px]">Entrada</p>
+                       <p className="text-slate-400 font-bold uppercase text-3xs">Entrada</p>
                        <p className="font-bold text-slate-800">{reg.hora_entrada ? new Date(reg.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-[10px]">Saída Int.</p>
+                       <p className="text-slate-400 font-bold uppercase text-3xs">Saída Int.</p>
                        <p className="font-bold text-slate-800">{reg.hora_saida_intervalo ? new Date(reg.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-[10px]">Volta Int.</p>
+                       <p className="text-slate-400 font-bold uppercase text-3xs">Volta Int.</p>
                        <p className="font-bold text-slate-800">{reg.hora_retorno_intervalo ? new Date(reg.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-[10px]">Saída Final</p>
+                       <p className="text-slate-400 font-bold uppercase text-3xs">Saída Final</p>
                        <p className="font-bold text-slate-800">{reg.hora_saida ? new Date(reg.hora_saida).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                  </div>
 
                  {/* Detalhes de GPS / Geolocalização */}
                  {reg.latitude != null && reg.longitude != null && (
-                   <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                   <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-2xs">
                      <span className="font-bold text-emerald-700 flex items-center gap-1">
                        <MapPin size={12}/> {reg.distancia_metros != null ? `${reg.distancia_metros}m da loja` : "GPS Registrado"}
                      </span>
@@ -386,7 +386,7 @@ export default function PontoPage() {
               </div>
               <div>
                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">Relógio de Ponto</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-0.5">Unidade: {unidadeInfo?.nome}</p>
+                 <p className="text-slate-500 font-bold uppercase tracking-widest text-3xs mt-0.5">Unidade: {unidadeInfo?.nome}</p>
               </div>
            </div>
 
@@ -509,13 +509,13 @@ export default function PontoPage() {
                        <div className="w-full text-left">
                            <div className="flex items-center justify-between ml-2 mb-3">
                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Registro do Dia:</p>
-                             <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                             <span className="text-3xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                                <MapPin size={10}/> GPS Geofencing Ativo
                              </span>
                            </div>
 
                            {gpsProcessando && (
-                             <div className="mb-3 p-3 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center justify-center gap-2 animate-pulse">
+                             <div className="mb-3 p-3 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
                                <Loader2 size={16} className="animate-spin text-emerald-400" />
                                Obtendo localização por GPS do dispositivo...
                              </div>

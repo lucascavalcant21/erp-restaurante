@@ -141,7 +141,7 @@ function EmbalagensContent() {
               <PackageMinus size={16}/> Registrar Saída
            </button>
            <button onClick={()=>setAba('compras')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='compras' ? 'bg-white text-slate-800 shadow-sm scale-100' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-300/50'}`}>
-              <ShoppingCart size={16}/> Lista de Compras {compras.length > 0 && <span className="bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">{compras.length}</span>}
+              <ShoppingCart size={16}/> Lista de Compras {compras.length > 0 && <span className="bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-3xs">{compras.length}</span>}
            </button>
         </div>
 
@@ -167,20 +167,20 @@ function EmbalagensContent() {
                       <div key={emb.id} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex flex-col group relative">
                          <div className="flex justify-between items-start mb-4">
                             <div>
-                               <p className="text-[10px] uppercase tracking-widest font-bold text-teal-600 mb-1">{emb.categoria}</p>
+                               <p className="text-3xs uppercase tracking-widest font-bold text-teal-600 mb-1">{emb.categoria}</p>
                                <h3 className="font-black text-lg text-slate-800 leading-tight pr-4">{emb.nome}</h3>
                             </div>
                          </div>
                          
                          <div className="mt-auto grid grid-cols-2 gap-3 mb-4 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                             <div>
-                               <p className="text-[10px] font-bold text-slate-500 uppercase">Saldo Atual</p>
+                               <p className="text-3xs font-bold text-slate-500 uppercase">Saldo Atual</p>
                                <p className={`font-black text-xl ${Number(emb.quantidade_atual) <= Number(emb.quantidade_minima) ? 'text-rose-500' : 'text-slate-800'}`}>
                                  {emb.quantidade_atual}
                                </p>
                             </div>
                             <div>
-                               <p className="text-[10px] font-bold text-slate-500 uppercase">Mínimo</p>
+                               <p className="text-3xs font-bold text-slate-500 uppercase">Mínimo</p>
                                <p className="font-black text-xl text-slate-400">{emb.quantidade_minima}</p>
                             </div>
                          </div>
@@ -263,9 +263,9 @@ function EmbalagensContent() {
                                <div className="flex justify-between items-start mb-2">
                                   <div>
                                      <p className="font-bold text-slate-800">{h.colaboradores?.nome || 'Desconhecido'}</p>
-                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{new Date(h.data_registro).toLocaleString('pt-BR')}</p>
+                                     <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest">{new Date(h.data_registro).toLocaleString('pt-BR')}</p>
                                   </div>
-                                  <div className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${h.tipo_movimento === 'Desperdício' ? 'bg-rose-100 text-rose-600' : 'bg-teal-100 text-teal-700'}`}>
+                                  <div className={`px-2 py-1 rounded-lg text-3xs font-bold uppercase tracking-widest ${h.tipo_movimento === 'Desperdício' ? 'bg-rose-100 text-rose-600' : 'bg-teal-100 text-teal-700'}`}>
                                      {h.tipo_movimento}
                                   </div>
                                </div>
@@ -303,10 +303,10 @@ function EmbalagensContent() {
                 ) : (
                   <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
                     <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center min-w-[680px]">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Item</span>
-                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Saldo</span>
-                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Mínimo Ideal</span>
-                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right">Faltam</span>
+                      <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Item</span>
+                      <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-center">Saldo</span>
+                      <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-center">Mínimo Ideal</span>
+                      <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-right">Faltam</span>
                     </div>
                     <div className="bg-white divide-y divide-slate-100">
                       {compras.map(emb => (
@@ -315,7 +315,7 @@ function EmbalagensContent() {
                             <div className="w-1 h-10 rounded-full bg-rose-400 shrink-0" />
                             <div>
                               <p className="font-bold text-slate-800 text-lg">{emb.nome}</p>
-                              <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{emb.categoria}</p>
+                              <p className="text-3xs font-bold text-teal-600 uppercase tracking-widest mt-0.5">{emb.categoria}</p>
                             </div>
                           </div>
                           <div className="text-center">

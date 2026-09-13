@@ -863,7 +863,7 @@ export default function SaloesMesasPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={abrirPainelOnline}
-              className="bg-white text-orange-600 font-black text-xs px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors shadow-sm"
+              className="bg-white text-orange-600 font-bold text-xs px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors shadow-sm"
             >
               Ver Pedidos ({pedidosOnline.length})
             </button>
@@ -887,7 +887,7 @@ export default function SaloesMesasPage() {
                <h1 className="text-sm font-black tracking-widest uppercase">Frente de Loja</h1>
                <div className="flex items-center gap-2 mt-0.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[10px] font-bold text-slate-300 uppercase">Turno Aberto</span>
+                  <span className="text-3xs font-bold text-slate-300 uppercase">Turno Aberto</span>
                </div>
             </div>
             
@@ -911,7 +911,7 @@ export default function SaloesMesasPage() {
             <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
                <Bell size={16} /> Pedidos Online
                {pedidosOnline.length > 0 && (
-                 <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
+                 <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-3xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
                    {pedidosOnline.length}
                  </span>
                )}
@@ -932,7 +932,7 @@ export default function SaloesMesasPage() {
             <button onClick={() => { setTipoMov('sangria'); setModalMov(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-orange-300">
                <ArrowDownCircle size={16} /> Sangria
             </button>
-            <button onClick={abrirFechamento} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 font-black text-xs rounded-lg shadow transition-colors ml-4">
+            <button onClick={abrirFechamento} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 font-bold text-xs rounded-lg shadow transition-colors ml-4">
                <LogOut size={16} /> Fechar Caixa
             </button>
          </div>
@@ -967,7 +967,7 @@ export default function SaloesMesasPage() {
                               <span className="font-bold text-slate-700 text-sm">{it.quantidade}x {it.produtos?.nome_produto}</span>
                               <span className="font-black text-slate-800 text-sm">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
                            </div>
-                           {it.observacao && <span className="text-[10px] text-slate-500 mt-1 uppercase font-bold">Obs: {it.observacao}</span>}
+                           {it.observacao && <span className="text-3xs text-slate-500 mt-1 uppercase font-bold">Obs: {it.observacao}</span>}
                         </div>
                      ))}
                   </div>
@@ -993,7 +993,7 @@ export default function SaloesMesasPage() {
                         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-slate-50 border border-slate-200 rounded font-normal outline-none text-slate-700" />
                      </div>
-                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-black text-[11px] uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-bold text-2xs uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                         <ShoppingBag size={14}/> {modoViagem ? 'Viagem: ON' : 'Viagem: OFF'}
                      </button>
                   </div>
@@ -1001,7 +1001,7 @@ export default function SaloesMesasPage() {
                   <div className="px-3 py-2 bg-white flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10 border-b border-slate-200">
                      {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
                         <button key={cat} onClick={() => setFiltroCategoria(cat)}
-                           className={`px-4 py-2.5 rounded-lg text-[11px] font-black uppercase whitespace-nowrap transition-all ${filtroCategoria === cat ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                           className={`px-4 py-2.5 rounded-lg text-2xs font-bold uppercase whitespace-nowrap transition-all ${filtroCategoria === cat ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                            {cat}
                         </button>
                      ))}
@@ -1012,7 +1012,7 @@ export default function SaloesMesasPage() {
                         {produtosFiltrados.map(prod => (
                            <button key={prod.id} onClick={() => adicionarItemMesa(prod)} className="bg-white rounded-xl p-0 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-center flex flex-col group h-full overflow-hidden">
                               <div className="p-3 flex-1 flex flex-col items-center justify-center">
-                                 <h3 className="font-black text-slate-800 text-[11px] leading-tight mb-2 uppercase">{prod.nome_produto}</h3>
+                                 <h3 className="font-bold text-slate-800 text-2xs leading-tight mb-2 uppercase">{prod.nome_produto}</h3>
                                  <p className="font-bold text-emerald-600 text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
                               </div>
                               <div className="bg-emerald-500 group-hover:bg-emerald-600 text-white py-2 flex items-center justify-center transition-colors">
@@ -1036,7 +1036,7 @@ export default function SaloesMesasPage() {
                      <div className="flex w-full h-full">
                         {garcomAtivo && (
                            <div className="w-10 bg-[#4A72B2] text-white flex flex-col items-center py-4 z-20 shrink-0 shadow-md">
-                              <div className="text-white font-black text-xs flex flex-col items-center tracking-widest whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+                              <div className="text-white font-bold text-xs flex flex-col items-center tracking-widest whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
                                  {garcomAtivo.nome} - {garcomAtivo.cargo}
                               </div>
                            </div>
@@ -1048,7 +1048,7 @@ export default function SaloesMesasPage() {
                               <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
                            </div>
                            
-                            <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-bold text-slate-400 flex-wrap">
+                            <div className="flex items-center gap-2 sm:gap-4 text-3xs sm:text-xs font-bold text-slate-400 flex-wrap">
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#4CAF50]"></div> Disponível</div>
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div> Em consumo</div>
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Pediu a conta</div>
@@ -1077,7 +1077,7 @@ export default function SaloesMesasPage() {
                                        <button key={m.id} onClick={() => clicarMesa(m)}
                                          className={`aspect-square w-full flex flex-col items-center justify-center gap-1 rounded-2xl text-white shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200 ${st.bg}`}>
                                           <span className="font-black text-xl leading-none text-center px-1">{m.numero_mesa}</span>
-                                          <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">{st.label}</span>
+                                          <span className="text-3xs font-bold uppercase tracking-widest text-white/80">{st.label}</span>
                                        </button>
                                     );
                                  })}
@@ -1112,7 +1112,7 @@ export default function SaloesMesasPage() {
                                  <button key={prod.id} onClick={() => handleSelecionarProdutoBalcao(prod)} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-left flex flex-col group h-full">
                                     <h3 className="font-bold text-slate-700 text-xs leading-tight mb-2 flex-1">{prod.nome_produto}</h3>
                                     <div className="flex justify-between items-end w-full">
-                                       <p className="text-[10px] text-slate-400">Estoque: {prod.codigo_barras ? 'Sim' : 'N/A'}</p>
+                                       <p className="text-3xs text-slate-400">Estoque: {prod.codigo_barras ? 'Sim' : 'N/A'}</p>
                                        <p className="font-black text-emerald-600 text-sm">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
                                     </div>
                                  </button>
@@ -1146,7 +1146,7 @@ export default function SaloesMesasPage() {
                                     {item.modsSelecionados && item.modsSelecionados.length > 0 && (
                                        <div className="flex flex-wrap gap-1 mt-1">
                                           {item.modsSelecionados.map((m, idx) => (
-                                             <span key={idx} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
+                                             <span key={idx} className="text-3xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
                                                 + {m.nome}
                                              </span>
                                           ))}
@@ -1158,7 +1158,7 @@ export default function SaloesMesasPage() {
                               <div className="flex justify-between items-center mt-1">
                                  <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
                                     <button onClick={() => alterarQtd(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:text-red-500"><Minus size={12}/></button>
-                                    <span className="font-black text-slate-700 text-xs w-4 text-center">{item.quantidade}</span>
+                                    <span className="font-bold text-slate-700 text-xs w-4 text-center">{item.quantidade}</span>
                                     <button onClick={() => alterarQtd(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:text-emerald-500"><Plus size={12}/></button>
                                  </div>
                               </div>
@@ -1270,7 +1270,7 @@ export default function SaloesMesasPage() {
                      {observacoesPadrao.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                            {observacoesPadrao.map(o => (
-                              <button key={o.id} type="button" onClick={() => setObsLancamento(prev => prev ? prev + ', ' + o.texto : o.texto)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors shadow-sm">
+                              <button key={o.id} type="button" onClick={() => setObsLancamento(prev => prev ? prev + ', ' + o.texto : o.texto)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-3xs font-bold uppercase transition-colors shadow-sm">
                                  + {o.texto}
                               </button>
                            ))}
@@ -1320,16 +1320,16 @@ export default function SaloesMesasPage() {
                      )}
                      <div className="grid grid-cols-2 gap-2">
                         <div>
-                           <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Desc %</label>
+                           <label className="block text-3xs font-bold text-slate-500 uppercase mb-1">Desc %</label>
                            <input type="number" value={descontoPerc} onChange={e=>setDescontoPerc(e.target.value)} placeholder="0%" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-slate-100" disabled={cupomAplicado} />
                         </div>
                         <div>
-                           <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Desc R$</label>
+                           <label className="block text-3xs font-bold text-slate-500 uppercase mb-1">Desc R$</label>
                            <input type="number" step="0.01" value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-slate-100" disabled={cupomAplicado} />
                         </div>
                      </div>
                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Taxas Extras (Serviço, Entrega)</label>
+                        <label className="block text-3xs font-bold text-slate-500 uppercase mb-1">Taxas Extras (Serviço, Entrega)</label>
                         <input type="number" step="0.01" value={taxaExtra} onChange={e=>setTaxaExtra(e.target.value)} placeholder="R$ 0.00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-slate-700"/>
                      </div>
 
@@ -1378,7 +1378,7 @@ export default function SaloesMesasPage() {
                            <Users className="text-blue-500" size={20} />
                         </div>
                         <div>
-                           <label className="block text-[10px] font-bold text-slate-500 uppercase">Dividir Conta Por:</label>
+                           <label className="block text-3xs font-bold text-slate-500 uppercase">Dividir Conta Por:</label>
                            <div className="flex items-center gap-2 mt-1">
                               <button onClick={() => setQuantidadePessoas(Math.max(1, quantidadePessoas - 1))} className="w-7 h-7 bg-white border border-slate-300 rounded-md text-slate-600 font-bold flex items-center justify-center hover:bg-slate-100 transition-colors">-</button>
                               <span className="font-black text-slate-700 w-6 text-center text-lg">{quantidadePessoas}</span>
@@ -1387,7 +1387,7 @@ export default function SaloesMesasPage() {
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">Total por Pessoa</p>
+                        <p className="text-3xs font-bold text-slate-500 uppercase">Total por Pessoa</p>
                         <span className="text-2xl font-black text-blue-600 tracking-tight">{fmtBRL(valorTotalFinal / Math.max(1, quantidadePessoas))}</span>
                      </div>
                   </div>
@@ -1462,7 +1462,7 @@ export default function SaloesMesasPage() {
                   <h2 className="font-black text-xl mb-1">HEFISTO ERP</h2>
                   <p className="text-xs font-bold">CUPOM NÃO FISCAL</p>
                   <p className="text-xs">{dadosRecibo.tipo === 'salao' ? `MESA ${dadosRecibo.mesa}` : 'VENDA BALCÃO'}</p>
-                  <p className="text-[10px] mt-1">{dadosRecibo.data.toLocaleString()}</p>
+                  <p className="text-3xs mt-1">{dadosRecibo.data.toLocaleString()}</p>
                </div>
 
                {/* Itens */}
@@ -1489,7 +1489,7 @@ export default function SaloesMesasPage() {
 
                {/* Pagamentos */}
                {!dadosRecibo.isPreConta && (
-                  <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] space-y-1">
+                  <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-3xs space-y-1">
                      <p className="font-bold text-center mb-1">Pagamentos:</p>
                      {dadosRecibo.recebidos.map((pg, i) => (
                         <div key={i} className="flex justify-between uppercase"><span>{pg.forma}:</span><span>{fmtBRL(pg.valor)}</span></div>
@@ -1499,13 +1499,13 @@ export default function SaloesMesasPage() {
                )}
 
                {dadosRecibo.cpf && (
-                  <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] text-center">
+                  <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-3xs text-center">
                      <p>CPF na Nota: {dadosRecibo.cpf}</p>
                      {dadosRecibo.cliente && <p>Consumidor: {dadosRecibo.cliente}</p>}
                   </div>
                )}
 
-               <div className="text-center text-[10px] mt-4 pt-3 border-t border-slate-800">
+               <div className="text-center text-3xs mt-4 pt-3 border-t border-slate-800">
                   <p>Obrigado pela preferência!</p>
                   <p className="text-slate-400 mt-1">Volte sempre</p>
                </div>
@@ -1642,7 +1642,7 @@ export default function SaloesMesasPage() {
                         <div className="w-24 h-24 rounded-full bg-[#4A72B2] text-white flex items-center justify-center text-4xl font-black shadow-lg group-hover:scale-105 transition-transform">
                            {g.nome.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-black text-[#334155] text-xs tracking-wide uppercase text-center leading-snug">{g.nome} - {g.cargo}</span>
+                        <span className="font-bold text-[#334155] text-xs tracking-wide uppercase text-center leading-snug">{g.nome} - {g.cargo}</span>
                      </button>
                   ))}
                </div>
@@ -1889,7 +1889,7 @@ export default function SaloesMesasPage() {
                         <div className="p-3 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
                            <div>
                               <div className="flex gap-2 items-center mb-1">
-                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${pedido.tipo_pedido === 'qrcode' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                                <span className={`text-3xs font-bold uppercase px-2 py-0.5 rounded ${pedido.tipo_pedido === 'qrcode' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
                                    {pedido.tipo_pedido}
                                 </span>
                                 <span className="text-xs font-bold text-slate-500">#{pedido.numero_pedido}</span>
@@ -1901,7 +1901,7 @@ export default function SaloesMesasPage() {
                               <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md uppercase">
                                 {pedido.status.replace('_', ' ')}
                               </span>
-                              <p className="text-[10px] text-slate-400 mt-2">{new Date(pedido.created_at).toLocaleTimeString().slice(0,5)}</p>
+                              <p className="text-3xs text-slate-400 mt-2">{new Date(pedido.created_at).toLocaleTimeString().slice(0,5)}</p>
                            </div>
                         </div>
 
@@ -1911,7 +1911,7 @@ export default function SaloesMesasPage() {
                               <div key={idx} className="flex justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
                                  <div>
                                     <span className="font-bold">{it.quantidade}x</span> {it.produtos?.nome_produto}
-                                    {it.observacao && <p className="text-[10px] text-slate-400 mt-0.5 italic">Obs: {it.observacao}</p>}
+                                    {it.observacao && <p className="text-3xs text-slate-400 mt-0.5 italic">Obs: {it.observacao}</p>}
                                  </div>
                                  <span className="font-medium">{fmtBRL(it.valor_unitario * it.quantidade)}</span>
                               </div>
@@ -1922,7 +1922,7 @@ export default function SaloesMesasPage() {
                         <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 text-xs flex justify-between items-center font-bold">
                            <span className="text-slate-500 font-normal uppercase flex items-center gap-1">
                              <CreditCard size={12}/> Pagamento: {pedido.forma_pagamento || 'N/A'}
-                             {pedido.troco_para && <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded ml-1">Troco p/ {fmtBRL(parseFloat(pedido.troco_para))}</span>}
+                             {pedido.troco_para && <span className="text-3xs bg-yellow-100 text-yellow-800 px-1 rounded ml-1">Troco p/ {fmtBRL(parseFloat(pedido.troco_para))}</span>}
                            </span>
                            <span className="text-sm">{fmtBRL(pedido.valor_total)}</span>
                         </div>

@@ -923,16 +923,16 @@ export default function OrcamentoEventoPage() {
                  </div>
                  <div>
                     <h1 className="text-2xl font-black tracking-tighter text-slate-900">Orçamento de Eventos</h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-0.5">Buffet: custos, compras e valor por convidado</p>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-3xs mt-0.5">Buffet: custos, compras e valor por convidado</p>
                  </div>
                </div>
                <div className="flex items-center gap-2">
-                  {orcamentoId && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">salvo</span>}
+                  {orcamentoId && <span className="text-3xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">salvo</span>}
                   <button onClick={abrirHistorico} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
                      <History size={14}/> Histórico
                   </button>
                   <button onClick={novoEvento} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">Novo evento</button>
-                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-emerald-600/20">
+                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-emerald-600/20">
                      {salvando ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>} {orcamentoId ? "Atualizar" : "Salvar Evento"}
                   </button>
                </div>
@@ -940,7 +940,7 @@ export default function OrcamentoEventoPage() {
 
             {/* Documentos: escolha o destino (imprimir/PDF) e o documento */}
             <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-slate-100">
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gerar:</span>
+               <span className="text-3xs font-bold uppercase tracking-widest text-slate-400">Gerar:</span>
                <div className="inline-flex p-1 rounded-xl bg-slate-100">
                   <button onClick={() => setModoSaida("imprimir")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "imprimir" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Imprimir</button>
                   <button onClick={() => setModoSaida("pdf")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "pdf" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}>Baixar PDF</button>
@@ -977,7 +977,7 @@ export default function OrcamentoEventoPage() {
 
             {/* Propostas do mesmo evento (ex.: R$60/pessoa, R$90/pessoa) */}
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 flex-wrap">
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">Propostas:</span>
+               <span className="text-3xs font-bold uppercase tracking-widest text-slate-400 mr-1">Propostas:</span>
                {propostas.map(p => {
                   const r = resumoProposta(p);
                   const ativoTab = p.id === ativa.id;
@@ -990,68 +990,68 @@ export default function OrcamentoEventoPage() {
                })}
                <button onClick={addProposta} className="px-3 py-2 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">+ Nova</button>
                <span className="flex-1" />
-               <button onClick={renomearProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800 px-1.5">Renomear</button>
-               <button onClick={duplicarProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800 px-1.5">Duplicar</button>
-               {propostas.length > 1 && <button onClick={removerProposta} className="text-[10px] font-bold text-red-400 hover:text-red-600 px-1.5">Remover</button>}
+               <button onClick={renomearProposta} className="text-3xs font-bold text-slate-500 hover:text-slate-800 px-1.5">Renomear</button>
+               <button onClick={duplicarProposta} className="text-3xs font-bold text-slate-500 hover:text-slate-800 px-1.5">Duplicar</button>
+               {propostas.length > 1 && <button onClick={removerProposta} className="text-3xs font-bold text-red-400 hover:text-red-600 px-1.5">Remover</button>}
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                <div className="flex items-center justify-between mb-4">
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Dados do Evento</p>
-                  <button onClick={limparTudo} className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar proposta</button>
+                  <button onClick={limparTudo} className="text-3xs font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar proposta</button>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do Evento</label>
+                     <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Nome do Evento</label>
                      <input type="text" placeholder="Ex: Casamento Ana e João" value={evento.nome} onChange={e=>setEvento({...evento, nome: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
                   </div>
                   <div>
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cliente</label>
+                     <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Cliente</label>
                      <input type="text" placeholder="Nome do cliente" value={evento.cliente} onChange={e=>setEvento({...evento, cliente: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Data</label>
                         <input type="date" value={evento.data} onChange={e=>setEvento({...evento, data: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
                      </div>
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Horário</label>
+                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Horário</label>
                         <input type="time" value={evento.hora || ""} onChange={e=>setEvento({...evento, hora: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
                      </div>
                   </div>
                   <div>
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users size={12}/> Nº de Convidados</label>
+                     <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users size={12}/> Nº de Convidados</label>
                      <input type="number" min="0" placeholder="Ex: 80" value={evento.convidados} onChange={e=>setEvento({...evento, convidados: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
-                     <label className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Cobrar do Cliente (R$ por pessoa)</label>
+                     <label className="text-3xs font-bold text-emerald-700 uppercase tracking-widest">Cobrar do Cliente (R$ por pessoa)</label>
                      <input type="number" min="0" step="0.01" placeholder="Ex: 70,00" value={evento.preco_pessoa || ""} onChange={e=>setEvento({...evento, preco_pessoa: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
                      {precoPessoaDesejado > 0 && convidados > 0 && (
-                        <p className="text-[10px] font-bold text-slate-500 mt-1.5 leading-relaxed">
+                        <p className="text-3xs font-bold text-slate-500 mt-1.5 leading-relaxed">
                            Cliente paga <span className="text-slate-800">{fmtBRL(vendaEvento)}</span> no total.
                            Seu custo: <span className="text-slate-800">{fmtBRL(custoPorConvidado || 0)}/pessoa</span> ·
                            lucro: <span className={`font-black ${lucroEvento >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtBRL(lucroEvento / convidados)}/pessoa ({fmtBRL(lucroEvento)})</span>
                         </p>
                      )}
                      {precoPessoaDesejado > 0 && !(convidados > 0) && (
-                        <p className="text-[10px] font-bold text-amber-600 mt-1.5">Informe o nº de convidados para o cálculo valer.</p>
+                        <p className="text-3xs font-bold text-amber-600 mt-1.5">Informe o nº de convidados para o cálculo valer.</p>
                      )}
                   </div>
                   <div>
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ou Valor de Venda total (R$)</label>
+                     <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">ou Valor de Venda total (R$)</label>
                      <input type="number" min="0" step="0.01" placeholder="Ex: 5000" disabled={precoPessoaDesejado > 0 && convidados > 0} value={evento.valor_final_venda || ""} onChange={e=>setEvento({...evento, valor_final_venda: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 disabled:opacity-40"/>
                      {precoPessoaDesejado > 0 && convidados > 0 && (
-                        <p className="text-[10px] font-medium text-slate-400 mt-1">Ignorado — o valor por pessoa está mandando.</p>
+                        <p className="text-3xs font-medium text-slate-400 mt-1">Ignorado — o valor por pessoa está mandando.</p>
                      )}
                   </div>
                   <div>
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Comissão sobre vendas (%)</label>
+                     <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Comissão sobre vendas (%)</label>
                      <input type="number" min="0" step="0.1" placeholder="Ex: 10" value={evento.comissao_pct} onChange={e=>setEvento({...evento, comissao_pct: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
                      <label className="flex items-center gap-2 cursor-pointer mt-1">
                         <input type="checkbox" checked={evento.parceria_bar_ativa} onChange={e=>setEvento({...evento, parceria_bar_ativa: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parceria de bar (repasse ao contratante)</span>
+                        <span className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Parceria de bar (repasse ao contratante)</span>
                      </label>
                      {evento.parceria_bar_ativa && (
                         <div className="flex items-center gap-2 mt-1">
@@ -1064,7 +1064,7 @@ export default function OrcamentoEventoPage() {
 
                {/* Utensílios do evento — só para a programação interna (não vai pro cliente) */}
                <div className="mt-4">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><ChefHat size={12}/> Utensílios / equipamentos que vou levar</label>
+                  <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><ChefHat size={12}/> Utensílios / equipamentos que vou levar</label>
                   <textarea placeholder="Ex: 2 rechauds, panela de 20L, tábuas, réchaud de banho-maria, garfos de servir, bandejas..." value={evento.utensilios || ""} onChange={e=>setEvento({...evento, utensilios: e.target.value})} rows={2} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-emerald-500 resize-none"/>
                </div>
             </div>
@@ -1073,17 +1073,17 @@ export default function OrcamentoEventoPage() {
             {linhas.length > 0 && (
               <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
                   <div className="bg-gradient-to-r from-emerald-700 to-emerald-600 px-5 py-3 flex items-center justify-between min-w-[580px]">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">Resumo do Buffet — Valor por Pessoa</span>
+                  <span className="text-2xs font-bold uppercase tracking-widest text-emerald-100">Resumo do Buffet — Valor por Pessoa</span>
                   {convidados > 0 && <span className="text-white font-black text-lg">{fmtBRL(vendaPorConvidado)}<span className="text-emerald-200 font-bold text-xs ml-1">/pessoa</span></span>}
                 </div>
                 <div className="bg-white">
                   {/* Header */}
                   <div className="px-5 py-2.5 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center min-w-[580px] bg-slate-50 border-b border-slate-200">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Prato</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Porção</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">R$/kg</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">R$/pessoa</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Total</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-400">Prato</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-400 text-center">Porção</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-400 text-center">R$/kg</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-400 text-center">R$/pessoa</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-400 text-right">Total</span>
                   </div>
                   {/* Linhas */}
                   <div className="divide-y divide-slate-50">
@@ -1091,12 +1091,12 @@ export default function OrcamentoEventoPage() {
                       <div key={l.produto_id} className="px-5 py-2.5 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center min-w-[580px] hover:bg-emerald-50/30 transition-colors">
                         <div className="min-w-0">
                           <p className="font-bold text-slate-700 text-sm truncate">{l.nome}</p>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">{l.categoria}</span>
+                          <span className="text-3xs font-bold text-slate-400 uppercase">{l.categoria}</span>
                         </div>
                         <span className="text-center text-xs font-bold text-slate-600">{l.pesoUn > 0 ? `${l.pesoUn}g` : '—'}</span>
-                        <span className="text-center text-xs font-black text-slate-700">{l.vendaPorKg ? fmtBRL(l.vendaPorKg) : '—'}</span>
+                        <span className="text-center text-xs font-bold text-slate-700">{l.vendaPorKg ? fmtBRL(l.vendaPorKg) : '—'}</span>
                         <span className="text-center text-sm font-black text-emerald-600">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : '—'}</span>
-                        <span className="text-right text-xs font-black text-slate-700">{fmtBRL(l.vendaTotal)}</span>
+                        <span className="text-right text-xs font-bold text-slate-700">{fmtBRL(l.vendaTotal)}</span>
                       </div>
                     ))}
                   </div>
@@ -1149,7 +1149,7 @@ export default function OrcamentoEventoPage() {
                                  </div>
                                  <div className="min-w-0">
                                     <p className="font-black text-white text-[15px] truncate">{l.nome}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                        {l.categoria}
                                        {!l.ficha && <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded">sem ficha técnica</span>}
                                     </p>
@@ -1163,50 +1163,50 @@ export default function OrcamentoEventoPage() {
                               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                                  {/* Quantidade (porções por convidado) */}
                                  <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
+                                    <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
                                     <div className="flex bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:border-emerald-500">
                                        <input type="text" inputMode="decimal" placeholder="0" value={l.qtdRaw !== undefined ? l.qtdRaw : ''} onChange={e=>{
                                           const val = e.target.value.replace(/[^0-9.,]/g, '');
                                           updateItem(l.produto_id, { qtd: val });
                                        }} className="w-full min-w-0 p-2.5 text-center bg-transparent font-black text-slate-700 outline-none"/>
-                                       <div className="flex items-center justify-center px-2 bg-slate-100 border-l border-slate-200 text-[10px] font-bold text-slate-500 shrink-0">
+                                       <div className="flex items-center justify-center px-2 bg-slate-100 border-l border-slate-200 text-3xs font-bold text-slate-500 shrink-0">
                                           porções
                                        </div>
                                     </div>
                                  </div>
                                  {/* Porção em gramas — sem ela não dá pra calcular R$/kg */}
                                  <div>
-                                    <label className={`text-[9px] font-black uppercase tracking-widest block mb-1 ${l.pesoUn > 0 ? "text-slate-400" : "text-amber-600"}`}>Porção (g)</label>
+                                    <label className={`text-3xs font-bold uppercase tracking-widest block mb-1 ${l.pesoUn > 0 ? "text-slate-400" : "text-amber-600"}`}>Porção (g)</label>
                                     <input type="number" min="0" step="0.1" placeholder="ex: 200" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 ${l.pesoUn > 0 ? "bg-slate-50 border border-slate-200" : "bg-amber-50 border-2 border-amber-400"}`}/>
-                                    {!(l.pesoUn > 0) && <p className="text-[9px] font-bold text-amber-600 mt-1 leading-tight">Comece aqui: o peso da porção destrava o R$/kg e o preço</p>}
+                                    {!(l.pesoUn > 0) && <p className="text-3xs font-bold text-amber-600 mt-1 leading-tight">Comece aqui: o peso da porção destrava o R$/kg e o preço</p>}
                                  </div>
                                  {/* Preço por KG — input principal */}
                                  <div>
-                                    <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-1">R$ / kg</label>
+                                    <label className="text-3xs font-bold text-emerald-600 uppercase tracking-widest block mb-1">R$ / kg</label>
                                     <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoKg; return raw === undefined ? (l.precoKgCardapio ? (+l.precoKgCardapio.toFixed(2)) : "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoKg: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoKgEditado ? 'bg-amber-50 border-2 border-amber-400 text-amber-700' : 'bg-emerald-50 border-2 border-emerald-300 text-emerald-700'}`}/>
                                     {l.precoKgEditado && (
-                                       <button onClick={() => updateItem(l.produto_id, { precoKg: "" })} className="text-[9px] font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
+                                       <button onClick={() => updateItem(l.produto_id, { precoKg: "" })} className="text-3xs font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
                                           voltar sugestão ({fmtBRL(l.precoKgCardapio)})
                                        </button>
                                     )}
                                  </div>
                                  {/* Resumo de Custos e Vendas */}
                                  <div className="flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-200 p-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Custo Total</span>
+                                    <span className="text-3xs font-bold text-slate-400 uppercase tracking-widest text-center">Custo Total</span>
                                     <span className="font-black text-lg text-slate-700">{fmtBRL(l.custoTotal)}</span>
-                                    <span className="text-[9px] font-bold text-slate-400 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.custoTotal / convidados)} / pessoa` : ''}</span>
+                                    <span className="text-3xs font-bold text-slate-400 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.custoTotal / convidados)} / pessoa` : ''}</span>
                                  </div>
                                  <div className="flex flex-col items-center justify-center bg-emerald-50 rounded-lg border-2 border-emerald-200 p-2">
-                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest text-center">Preço de Venda</span>
+                                    <span className="text-3xs font-bold text-emerald-600 uppercase tracking-widest text-center">Preço de Venda</span>
                                     <span className="font-black text-xl text-emerald-700">{fmtBRL(l.vendaTotal)}</span>
-                                    <span className="text-[9px] font-bold text-emerald-600 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.precoPorPessoa)} / pessoa` : ''}</span>
+                                    <span className="text-3xs font-bold text-emerald-600 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.precoPorPessoa)} / pessoa` : ''}</span>
                                  </div>
                               </div>
 
                               {/* PLANEJAR POR KG — digite o total em kg e veja quanto rende por pessoa */}
                               <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
                                  <div className="shrink-0">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total do prato (kg)</label>
+                                    <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Total do prato (kg)</label>
                                     <input type="text" inputMode="decimal" placeholder="ex: 1"
                                        value={l.kgTotal ? +l.kgTotal.toFixed(3) : ""}
                                        onChange={e => setTotalKg(l, e.target.value.replace(/[^0-9.,]/g, ''))}
@@ -1218,7 +1218,7 @@ export default function OrcamentoEventoPage() {
                                        <>
                                           <p>{l.kgTotal ? `${(+l.kgTotal.toFixed(3)).toLocaleString('pt-BR')} kg` : '—'} = <b className="text-slate-800">{(+l.porcoes.toFixed(1)).toLocaleString('pt-BR')}</b> porções de {l.pesoUn}g <span className="text-slate-400 font-medium">(serve {Math.floor(l.porcoes)} com 1 porção cada)</span></p>
                                           {convidados > 0 && (
-                                             <p className="text-[11px] text-emerald-700 mt-0.5">Dividido entre {convidados} convidados: <b>{(l.pesoUn * l.qtd).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} g por pessoa</b></p>
+                                             <p className="text-2xs text-emerald-700 mt-0.5">Dividido entre {convidados} convidados: <b>{(l.pesoUn * l.qtd).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} g por pessoa</b></p>
                                           )}
                                        </>
                                     ) : (
@@ -1231,7 +1231,7 @@ export default function OrcamentoEventoPage() {
                               {l.fatorInNatura > 1 && (
                                  <label className="flex items-center gap-2 mt-3 cursor-pointer bg-sky-50 border border-sky-200 rounded-xl p-2.5">
                                     <input type="checkbox" checked={l.inNatura} onChange={e=>updateItem(l.produto_id, { inNatura: e.target.checked })} className="w-4 h-4 accent-sky-600 shrink-0"/>
-                                    <span className="text-[10px] font-bold text-sky-700 leading-tight">
+                                    <span className="text-3xs font-bold text-sky-700 leading-tight">
                                        Cobrar como in natura (+{((l.fatorInNatura - 1) * 100).toFixed(0)}%)
                                        {l.inNatura && <span className="text-sky-500"> · {fmtBRL(l.precoVenda)} → {fmtBRL(l.precoEfetivo)}/porção</span>}
                                     </span>
@@ -1241,21 +1241,21 @@ export default function OrcamentoEventoPage() {
                               {/* RODAPÉ — métricas compactas */}
                               <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1">
                                  {l.porcoes > 0 && (
-                                    <span className="text-[10px] font-bold text-slate-400">
+                                    <span className="text-3xs font-bold text-slate-400">
                                        <span className="text-slate-600 font-black">{(+l.porcoes.toFixed(1)).toLocaleString("pt-BR")}</span> porç{l.porcoes >= 2 ? 'ões' : 'ão'}
                                        {l.gramasTotal ? ` · ${fmtCompra(l.gramasTotal / 1000, 'kg')}` : ''}
                                     </span>
                                  )}
                                  {l.pesoUn > 0 && (
-                                    <span className="text-[10px] font-bold text-slate-400">
+                                    <span className="text-3xs font-bold text-slate-400">
                                        1kg = <span className="text-slate-600">{(+l.unPorKg.toFixed(1)).toLocaleString("pt-BR")} un</span> · <span className="text-emerald-600">{fmtBRL(l.vendaPorKg)}</span>
                                     </span>
                                  )}
-                                 <span className="text-[10px] font-bold text-slate-400">
+                                 <span className="text-3xs font-bold text-slate-400">
                                     Custo: <span className="text-slate-700 font-black">{fmtBRL(l.custoTotal)}</span>
                                  </span>
                                  {convidados > 0 && l.porcoes > 0 && (
-                                    <span className="text-[10px] font-bold text-slate-400">
+                                    <span className="text-3xs font-bold text-slate-400">
                                        <span className="text-slate-600">{(l.porcoes / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</span> porção/convidado
                                     </span>
                                  )}
@@ -1263,7 +1263,7 @@ export default function OrcamentoEventoPage() {
 
                               {/* PROGRAMAÇÃO INTERNA — descrição de montagem + foto (só pra você) */}
                               <div className="mt-3 pt-3 border-t border-dashed border-slate-200">
-                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><ClipboardList size={11}/> Programação (uso interno)</p>
+                                 <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><ClipboardList size={11}/> Programação (uso interno)</p>
                                  <div className="flex flex-col sm:flex-row gap-3">
                                     <textarea
                                        placeholder="Onde/como servir este prato: réchaud na mesa 2, decorar com salsa, servir quente..."
@@ -1283,7 +1283,7 @@ export default function OrcamentoEventoPage() {
                                           return (
                                              <label className="w-24 h-24 flex flex-col items-center justify-center gap-1 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-emerald-400 text-slate-400 hover:text-emerald-500 transition-colors">
                                                 <ImageIcon size={20}/>
-                                                <span className="text-[9px] font-bold">Foto</span>
+                                                <span className="text-3xs font-bold">Foto</span>
                                                 <input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; if(f){ try{ const b64=await comprimirImagem(f); updateItem(l.produto_id,{ foto:b64 }); }catch{ alert("Não consegui carregar a imagem."); } } e.target.value=""; }}/>
                                              </label>
                                           );
@@ -1301,7 +1301,7 @@ export default function OrcamentoEventoPage() {
             {/* ══ SERVIÇOS E CUSTOS EXTRAS — além do buffet ══ */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Serviços e Custos Extras</p>
-               <p className="text-[11px] font-medium text-slate-400 mb-4">Funcionários, música, energia, aluguel do espaço... O que for cobrado aparece no orçamento do cliente junto ao buffet.</p>
+               <p className="text-2xs font-medium text-slate-400 mb-4">Funcionários, música, energia, aluguel do espaço... O que for cobrado aparece no orçamento do cliente junto ao buffet.</p>
                <div className="flex flex-wrap gap-2 mb-4">
                   {EXTRAS_SUGERIDOS.filter(s => !extras.find(x => x.nome === s)).map(s => (
                      <button key={s} type="button" onClick={() => setExtras(lista => [...lista, { id: novoId(), nome: s, custo: "", valor_cobrado: "" }])}
@@ -1322,13 +1322,13 @@ export default function OrcamentoEventoPage() {
                               onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, nome: e.target.value } : i))}
                               className="flex-1 min-w-[140px] p-2.5 bg-white border border-slate-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
                            <div className="text-center">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Meu custo</label>
+                              <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Meu custo</label>
                               <input type="number" min="0" step="0.01" placeholder="0,00" value={x.custo}
                                  onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, custo: e.target.value } : i))}
                                  className="w-24 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-emerald-500"/>
                            </div>
                            <div className="text-center">
-                              <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block">Cobrar do cliente</label>
+                              <label className="text-3xs font-bold text-emerald-600 uppercase tracking-widest block">Cobrar do cliente</label>
                               <input type="number" min="0" step="0.01" placeholder="0,00" value={x.valor_cobrado}
                                  onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, valor_cobrado: e.target.value } : i))}
                                  className="w-28 p-2 text-center bg-emerald-50 border-2 border-emerald-200 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
@@ -1336,7 +1336,7 @@ export default function OrcamentoEventoPage() {
                            <button type="button" onClick={() => setExtras(lista => lista.filter(i => i.id !== x.id))} className="p-2 text-slate-400 hover:text-red-500 rounded-lg shrink-0"><Trash2 size={15}/></button>
                         </div>
                      ))}
-                     <div className="flex justify-between pt-2 text-xs font-black text-slate-600">
+                     <div className="flex justify-between pt-2 text-xs font-bold text-slate-600">
                         <span>Custo dos extras: {fmtBRL(custoExtras)}</span>
                         <span className="text-emerald-700">Cobrado do cliente: {fmtBRL(vendaExtras)}</span>
                      </div>
@@ -1359,8 +1359,8 @@ export default function OrcamentoEventoPage() {
                         <span className={`font-black ${forte ? 'text-xl' : 'text-base'} ${cor}`}>{sinal}{fmtBRL(total)}</span>
                      </div>
                      <div className="flex justify-between items-baseline gap-2 mt-0.5">
-                        <span className="text-[10px] font-medium text-slate-500">{ajuda}</span>
-                        {convidados > 0 && porPes !== undefined && <span className="text-[10px] font-bold text-slate-500 shrink-0">{sinal}{fmtBRL(porPes)}/pessoa</span>}
+                        <span className="text-3xs font-medium text-slate-500">{ajuda}</span>
+                        {convidados > 0 && porPes !== undefined && <span className="text-3xs font-bold text-slate-500 shrink-0">{sinal}{fmtBRL(porPes)}/pessoa</span>}
                      </div>
                   </div>
                );
@@ -1368,7 +1368,7 @@ export default function OrcamentoEventoPage() {
                if (linhas.length === 0 && totalCliente <= 0) {
                   return (
                      <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
                         <p className="text-sm font-bold text-slate-200 mb-4">Monte o orçamento em 3 passos:</p>
                         <div className="space-y-3">
                            {[
@@ -1380,7 +1380,7 @@ export default function OrcamentoEventoPage() {
                                  <span className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-black text-sm flex items-center justify-center shrink-0">{n}</span>
                                  <div>
                                     <p className="text-sm font-bold text-white leading-tight">{t}</p>
-                                    <p className="text-[11px] font-medium text-slate-400">{s}</p>
+                                    <p className="text-2xs font-medium text-slate-400">{s}</p>
                                  </div>
                               </div>
                            ))}
@@ -1391,8 +1391,8 @@ export default function OrcamentoEventoPage() {
                return (
                <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
                   <div className="flex items-center justify-between mb-3">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resumo do Evento</p>
-                     {convidados > 0 && <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">{convidados} convidados</span>}
+                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-400">Resumo do Evento</p>
+                     {convidados > 0 && <span className="text-3xs font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">{convidados} convidados</span>}
                   </div>
 
                   <Linha cor="text-white" label="Faturamento (o que você recebe)" ajuda={vendaExtras > 0 ? `buffet ${fmtBRL(vendaEvento)} + extras ${fmtBRL(vendaExtras)}` : "buffet contratado"} total={totalCliente} porPes={totalCliente / pes} forte />
@@ -1406,31 +1406,31 @@ export default function OrcamentoEventoPage() {
 
                   <div className="mt-3 pt-3 border-t-2 border-slate-700">
                      <div className="flex justify-between items-baseline gap-2">
-                        <span className="text-slate-300 font-black text-xs uppercase tracking-widest">Lucro do evento</span>
+                        <span className="text-slate-300 font-bold text-xs uppercase tracking-widest">Lucro do evento</span>
                         <span className={`font-black text-3xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
                      </div>
                      {convidados > 0 && (
-                        <p className="text-right text-[11px] font-bold text-slate-400 mt-0.5">{fmtBRL(lucroEvento / pes)} por pessoa</p>
+                        <p className="text-right text-2xs font-bold text-slate-400 mt-0.5">{fmtBRL(lucroEvento / pes)} por pessoa</p>
                      )}
                      {totalCliente > 0 && (
                         <div className="grid grid-cols-2 gap-2 mt-3">
                            <div className="bg-slate-800 rounded-xl p-2.5 text-center">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Margem de lucro</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Margem de lucro</p>
                               <p className={`text-lg font-black ${margemPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{margemPct.toFixed(0)}%</p>
                            </div>
                            <div className="bg-slate-800 rounded-xl p-2.5 text-center">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Preço sobre o custo</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Preço sobre o custo</p>
                               <p className="text-lg font-black text-slate-200">{markupPct >= 0 ? '+' : ''}{markupPct.toFixed(0)}%</p>
                            </div>
                         </div>
                      )}
                      {totalCliente <= 0 && custoEvento > 0 && (
-                        <p className="text-[11px] font-bold text-slate-300 bg-slate-800 rounded-lg px-3 py-2 mt-3 leading-snug">
+                        <p className="text-2xs font-bold text-slate-300 bg-slate-800 rounded-lg px-3 py-2 mt-3 leading-snug">
                            Defina o que vai cobrar (R$ por pessoa ou valor total) nos Dados do Evento — o lucro e a margem aparecem aqui.
                         </p>
                      )}
                      {lucroEvento < 0 && totalCliente > 0 && (
-                        <p className="text-[11px] font-bold text-red-300 bg-red-500/10 rounded-lg px-3 py-2 mt-3 leading-snug">
+                        <p className="text-2xs font-bold text-red-300 bg-red-500/10 rounded-lg px-3 py-2 mt-3 leading-snug">
                            Prejuízo: o custo está maior que o faturamento. Confira o preço por pessoa e os custos das fichas — se os ingredientes parecerem altos, use "Recalcular custos" em Ingredientes.
                         </p>
                      )}
@@ -1450,14 +1450,14 @@ export default function OrcamentoEventoPage() {
                            <div key={i} className="flex justify-between items-center text-sm py-1.5 border-b border-slate-50">
                               <div className="min-w-0">
                                  <p className="font-bold text-slate-700 truncate">{c.nome}</p>
-                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{fmtCompra(c.qtd, c.unidade)}</p>
+                                 <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest">{fmtCompra(c.qtd, c.unidade)}</p>
                               </div>
                               <span className="font-black text-slate-600 shrink-0 ml-2">{fmtBRL(c.custoCompra)}</span>
                            </div>
                         ))}
                      </div>
                      <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-200">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total de compras</span>
+                        <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Total de compras</span>
                         <span className="font-black text-lg text-emerald-600">{fmtBRL(totalCompras)}</span>
                      </div>
                   </>
@@ -1494,14 +1494,14 @@ export default function OrcamentoEventoPage() {
                            return (
                               <div key={item.id} className={`p-4 rounded-2xl border flex items-center gap-3 transition-colors ${item.id === orcamentoId ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:border-slate-300'}`}>
                                  <button onClick={() => carregarDoHistorico(item)} className="flex-1 min-w-0 text-left">
-                                    <p className="font-black text-slate-800 truncate">{item.nome}{item.id === orcamentoId && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 ml-2">aberto</span>}</p>
-                                    <p className="text-[11px] font-bold text-slate-500 mt-0.5">
+                                    <p className="font-black text-slate-800 truncate">{item.nome}{item.id === orcamentoId && <span className="text-3xs font-bold uppercase tracking-widest text-emerald-600 ml-2">aberto</span>}</p>
+                                    <p className="text-2xs font-bold text-slate-500 mt-0.5">
                                        {item.cliente ? `${item.cliente} · ` : ''}
                                        {item.data_evento ? `${item.data_evento.split('-').reverse().join('/')} · ` : ''}
                                        {item.convidados ? `${item.convidados} convidados · ` : ''}
                                        {nProps} proposta{nProps !== 1 ? 's' : ''}
                                     </p>
-                                    <p className="text-[10px] font-medium text-slate-400 mt-0.5">Atualizado em {new Date(item.updated_at).toLocaleDateString('pt-BR')} às {new Date(item.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                                    <p className="text-3xs font-medium text-slate-400 mt-0.5">Atualizado em {new Date(item.updated_at).toLocaleDateString('pt-BR')} às {new Date(item.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                                  </button>
                                  <button onClick={() => excluirDoHistorico(item)} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg border border-slate-200 shrink-0" title="Excluir do histórico"><Trash2 size={15}/></button>
                               </div>

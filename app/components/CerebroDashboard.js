@@ -117,7 +117,7 @@ export default function CerebroDashboard() {
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: `${color}15` }}>
           <Icon size={22} style={{ color }} />
         </div>
-        <p className="text-[10px] sm:text-[11px] uppercase font-bold tracking-widest mt-2 min-w-0 break-words text-right" style={{ color: "var(--dim)" }}>{label}</p>
+        <p className="text-3xs sm:text-2xs uppercase font-bold tracking-widest mt-2 min-w-0 break-words text-right" style={{ color: "var(--dim)" }}>{label}</p>
       </div>
       <div>
         <p className="text-2xl sm:text-3xl font-black tracking-tight break-words" style={{ color: "var(--fg)" }}>{value}</p>

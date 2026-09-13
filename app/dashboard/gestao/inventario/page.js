@@ -482,24 +482,24 @@ export default function InventarioPage() {
         {/* Totais */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <button type="button" onClick={limparFiltros} title="Ver todos os itens" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Total de itens</p>
+            <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Total de itens</p>
             <p className="text-3xl font-extrabold tracking-tight mt-1" style={{ color: "var(--fg)" }}>{resumo.totalUnidades.toLocaleString("pt-BR")}</p>
-            <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>unidades somadas</p>
+            <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>unidades somadas</p>
           </button>
           <button type="button" onClick={limparFiltros} title="Ver todos os itens" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Tipos cadastrados</p>
+            <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Tipos cadastrados</p>
             <p className="text-3xl font-extrabold tracking-tight mt-1" style={{ color: "var(--fg)" }}>{resumo.tipos}</p>
-            <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>em {resumo.categorias.length} categoria{resumo.categorias.length !== 1 ? "s" : ""}</p>
+            <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>em {resumo.categorias.length} categoria{resumo.categorias.length !== 1 ? "s" : ""}</p>
           </button>
           <button type="button" onClick={() => setModalHist(true)} title="Ver o histórico de baixas" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Baixas no mês</p>
+            <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Baixas no mês</p>
             <p className="text-3xl font-extrabold tracking-tight mt-1" style={{ color: resumo.baixasMes > 0 ? "#DC2626" : "var(--fg)" }}>{resumo.baixasMes.toLocaleString("pt-BR")}</p>
-            <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>quebras, perdas e descartes</p>
+            <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>quebras, perdas e descartes</p>
           </button>
           <button type="button" onClick={imprimirPlanilha} title="Abrir a planilha com os valores" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Valor do patrimônio</p>
+            <p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Valor do patrimônio</p>
             <p className="text-2xl font-extrabold tracking-tight mt-1.5" style={{ color: "var(--accent-strong)" }}>{fmtBRL(resumo.valorTotal)}</p>
-            <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>itens com valor informado</p>
+            <p className="text-3xs font-medium" style={{ color: "var(--dim)" }}>itens com valor informado</p>
           </button>
         </div>
 
@@ -508,7 +508,7 @@ export default function InventarioPage() {
           <SearchBar value={busca} onChange={setBusca} placeholder="Buscar item... (ex: garfo, freezer, pote)" />
           <Chips options={["Todas", ...categorias]} value={catFiltro} onChange={setCatFiltro} />
           <details className="rounded-xl border p-3" style={{ borderColor: "var(--line)" }}>
-            <summary className="cursor-pointer text-xs font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Gerenciar categorias</summary>
+            <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Gerenciar categorias</summary>
             <div className="mt-3 flex flex-wrap gap-2">
               {categorias.map(c => (
                 <span key={c} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold" style={{ borderColor: "var(--line)", color: "var(--fg-soft)" }}>
@@ -545,13 +545,13 @@ export default function InventarioPage() {
               <div key={cat}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="erp-label flex items-center gap-1.5"><Layers size={12} /> {cat}</p>
-                  <span className="text-[11px] font-black" style={{ color: "var(--muted)" }}>
+                  <span className="text-2xs font-bold" style={{ color: "var(--muted)" }}>
                     {todosDaCat.reduce((s, i) => s + (Number(i.quantidade) || 0), 0).toLocaleString("pt-BR")} un · {todosDaCat.length} tipo{todosDaCat.length !== 1 ? "s" : ""}
                   </span>
                 </div>
                 {porLugar.map(([lugar, lista]) => (
                 <div key={lugar} className="mb-3">
-                <p className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>
+                <p className="mb-1.5 flex items-center gap-1 text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>
                   <MapPin size={11} /> {lugar} · {lista.reduce((s, i) => s + (Number(i.quantidade) || 0), 0).toLocaleString("pt-BR")} un
                 </p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -569,24 +569,24 @@ export default function InventarioPage() {
                           )}
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-base font-black" style={{ color: "var(--fg)" }}>{item.nome}</p>
-                            <p className="mt-0.5 truncate text-[11px] font-semibold" style={{ color: "var(--dim)" }}>
+                            <p className="mt-0.5 truncate text-2xs font-semibold" style={{ color: "var(--dim)" }}>
                               {item.localizacao ? `${item.localizacao} · ` : ""}
                               {Number(item.valor_unitario) > 0 ? `${fmtBRL(item.valor_unitario)}/un` : "sem valor informado"}
                             </p>
                           </div>
                           <div className="shrink-0 text-right">
                             <p className="text-2xl font-extrabold leading-none" style={{ color: zerado ? "#DC2626" : "var(--fg)" }}>{Number(item.quantidade).toLocaleString("pt-BR")}</p>
-                            <p className="mt-1 text-[9px] font-black uppercase tracking-widest" style={{ color: zerado ? "#DC2626" : "var(--dim)" }}>{zerado ? "zerado" : "un"}</p>
+                            <p className="mt-1 text-3xs font-bold uppercase tracking-widest" style={{ color: zerado ? "#DC2626" : "var(--dim)" }}>{zerado ? "zerado" : "un"}</p>
                           </div>
                         </div>
                         <div className="mt-4 grid grid-cols-[1fr_1fr_44px_44px] gap-2">
                           <button onClick={() => abrirMov(item, "entrada")} title="Entrada (comprei/ganhei mais)"
-                            className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-black transition-colors"
+                            className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold transition-colors"
                             style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
                             <Plus size={13} /> Entrada
                           </button>
                           <button onClick={() => abrirMov(item, "baixa")} title="Baixa (quebra/perda/descarte)"
-                            className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-black transition-colors"
+                            className="flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold transition-colors"
                             style={{ background: "var(--danger-soft)", color: "var(--danger-strong)" }}>
                             <Minus size={13} /> Baixa
                           </button>
@@ -765,9 +765,9 @@ export default function InventarioPage() {
                           </select>
                         </div>
                         <div className="flex items-center gap-2 mt-2 pl-6 flex-wrap">
-                          <label className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Qtd</label>
+                          <label className="text-3xs font-bold" style={{ color: "var(--dim)" }}>Qtd</label>
                           <input type="number" min="0" value={it.quantidade} onChange={e => atualizarItemIA(idx, { quantidade: e.target.value })} className="w-20 p-2 text-center rounded-lg border font-black text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
-                          <label className="text-[10px] font-bold ml-1" style={{ color: "var(--dim)" }}>R$/un</label>
+                          <label className="text-3xs font-bold ml-1" style={{ color: "var(--dim)" }}>R$/un</label>
                           <input type="number" min="0" step="0.01" value={it.valor_unitario || ""} onChange={e => atualizarItemIA(idx, { valor_unitario: e.target.value })} placeholder="0,00" className="w-24 p-2 text-center rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--accent-strong)" }} />
                           <input type="text" value={it.localizacao || ""} onChange={e => atualizarItemIA(idx, { localizacao: e.target.value })} placeholder="Onde fica (opcional)" className="w-full sm:flex-1 sm:min-w-[120px] p-2 rounded-lg border font-medium text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }} />
                         </div>
@@ -806,10 +806,10 @@ export default function InventarioPage() {
                 const ehEntrada = m.tipo === "entrada";
                 return (
                   <div key={m.id} className="p-3 rounded-xl flex items-center gap-3" style={{ background: "var(--elevated)" }}>
-                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0" style={{ background: cor.bg, color: cor.fg }}>{cor.label}</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0" style={{ background: cor.bg, color: cor.fg }}>{cor.label}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{m.inventario_itens?.nome || "Item removido"}</p>
-                      <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>
+                      <p className="text-3xs font-medium truncate" style={{ color: "var(--dim)" }}>
                         {fmtDataHora(m.created_at)}
                         {m.motivo ? ` · ${m.motivo}` : ""}
                         {m.responsavel ? ` · por ${m.responsavel}` : ""}

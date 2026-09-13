@@ -1070,7 +1070,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
             <section className="mb-4 rounded-[20px] border-2 border-amber-300 bg-amber-50 p-4 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="m-0 text-[11px] font-black uppercase tracking-widest text-amber-700">Central de produção</p>
+                  <p className="m-0 text-2xs font-bold uppercase tracking-widest text-amber-700">Central de produção</p>
                   <h2 className="mt-1 text-xl font-black text-slate-900">Produzir, planejar e consultar o que já foi feito</h2>
                   <p className="mt-1 text-sm font-bold text-slate-600">A produção registrada entra automaticamente neste estoque de pré-preparos.</p>
                 </div>

@@ -54,7 +54,7 @@ export default function CozinhaHubPage() {
             </div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Cardápio Digital</h3>
-               <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Gestão de Itens e QR Code</p>
+               <p className="text-3xs uppercase font-bold text-slate-500 mt-0.5">Gestão de Itens e QR Code</p>
             </div>
          </button>
 
@@ -62,7 +62,7 @@ export default function CozinhaHubPage() {
             <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Ficha Técnica</h3>
-               <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Rendimentos e Custos</p>
+               <p className="text-3xs uppercase font-bold text-slate-500 mt-0.5">Rendimentos e Custos</p>
             </div>
          </button>
 
@@ -114,12 +114,12 @@ export default function CozinhaHubPage() {
             
             <button onClick={() => router.push("/dashboard/operacao/rotina?dept=cozinha&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm"><CheckSquare size={20} /></div>
-               <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-[10px] uppercase font-bold text-slate-500">Abertura e Fechamento</p></div>
+               <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-3xs uppercase font-bold text-slate-500">Abertura e Fechamento</p></div>
             </button>
 
             <button onClick={() => router.push("/dashboard/operacao/rotina?dept=cozinha&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm"><Sparkles size={20} /></div>
-               <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-[10px] uppercase font-bold text-slate-500">Higiene Diária e Semanal</p></div>
+               <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-3xs uppercase font-bold text-slate-500">Higiene Diária e Semanal</p></div>
             </button>
 
          </div>

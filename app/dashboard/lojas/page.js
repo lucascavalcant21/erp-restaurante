@@ -170,7 +170,7 @@ export default function LojasPage() {
                     </div>
                     <div>
                        <p className="font-black text-slate-800 text-xl tracking-tight leading-none mb-1">{u.nome}</p>
-                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">ID: {u.id.substring(0,8)}</p>
+                       <p className="text-3xs font-bold uppercase tracking-widest text-slate-400">ID: {u.id.substring(0,8)}</p>
                     </div>
                  </div>
                  <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export default function LojasPage() {
                  <div className="mt-auto bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
                    <div className="bg-white p-2 rounded-lg shadow-sm text-slate-400"><FileText size={16}/></div>
                    <div>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CNPJ Vinculado</p>
+                     <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest">CNPJ Vinculado</p>
                      <p className="text-sm font-black text-slate-700">{mascaraCNPJ(u.cnpj)}</p>
                    </div>
                  </div>
@@ -193,7 +193,7 @@ export default function LojasPage() {
                  <div className="mt-auto bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center gap-3">
                    <div className="bg-white p-2 rounded-lg shadow-sm text-amber-500"><Info size={16}/></div>
                    <div>
-                     <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Sem Dados Fiscais</p>
+                     <p className="text-3xs font-bold text-amber-600 uppercase tracking-widest">Sem Dados Fiscais</p>
                      <p className="text-xs font-medium text-amber-700 leading-tight mt-0.5">Clique em editar para configurar o CNPJ desta unidade.</p>
                    </div>
                  </div>
@@ -342,7 +342,7 @@ export default function LojasPage() {
                                 alert(err.message || "Erro ao obter GPS.");
                               }
                             }}
-                            className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
+                            className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
                           >
                              <Crosshair size={16}/> Capturar GPS Atual do Meu Dispositivo
                           </button>
@@ -362,7 +362,7 @@ export default function LojasPage() {
                        <div>
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Raio Máximo Permitido (em metros)</label>
                           <input type="number" min="10" max="5000" value={form.raio_permitido_m} onChange={e=>setForm({...form, raio_permitido_m: e.target.value})} placeholder="100" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-900 outline-none focus:border-emerald-600"/>
-                          <p className="text-[11px] text-slate-400 font-medium mt-1">Recomendado: 100 a 200 metros (cobre o perímetro da loja com segurança).</p>
+                          <p className="text-2xs text-slate-400 font-medium mt-1">Recomendado: 100 a 200 metros (cobre o perímetro da loja com segurança).</p>
                        </div>
                     </div>
                   )}

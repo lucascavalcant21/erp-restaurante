@@ -55,7 +55,6 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-  {
     category: "RH & Pessoas",
     home: "/dashboard/rh",
     icon: Users,

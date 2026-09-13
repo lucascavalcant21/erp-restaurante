@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useERP } from "../context/ERPContext";
 import {
   ArrowLeft, ArrowRight, Beaker, BookOpen, ChefHat, ClipboardList, GlassWater,
@@ -65,18 +65,15 @@ export default function RecipeWorkspace({
   onPrimary,
   primaryLabel = "Novo item",
   primaryIcon: PrimaryIcon = Plus,
-  // A trilha Etapa 1/2/3 ajuda quem está montando o receituário pela primeira
-  // vez, mas atrapalha em tela de uso diário: ocupa um terço da altura útil
-  // repetindo um caminho que quem trabalha ali já sabe de cor.
   mostrarEtapas = true,
   children,
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { abrirMenu } = useERP();
   const [fluxoAberto, setFluxoAberto] = useState(false);
   const setor = dept === "bar" ? "bar" : "cozinha";
   const bar = setor === "bar";
-  const SetorIcon = bar ? GlassWater : ChefHat;
 
   return (
     <header className="border-b border-slate-200 bg-white shadow-sm">
@@ -91,10 +88,23 @@ export default function RecipeWorkspace({
               <ArrowLeft size={19} />
             </button>
             <div>
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${bar ? "bg-violet-100 text-violet-700" : "bg-emerald-100 text-emerald-700"}`}>
-                  <SetorIcon size={12} /> {bar ? "Operação do Bar" : "Operação da Cozinha"}
-                </span>
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200/80">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`${pathname}?dept=cozinha`)}
+                    className={`px-2.5 py-1 text-xs font-black rounded-lg transition-all ${!bar ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                  >
+                    👨‍🍳 Cozinha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`${pathname}?dept=bar`)}
+                    className={`px-2.5 py-1 text-xs font-black rounded-lg transition-all ${bar ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                  >
+                    🍹 Bar
+                  </button>
+                </div>
                 {Number.isFinite(Number(total)) && (
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-black text-slate-600">
                     {total} cadastrado{Number(total) === 1 ? "" : "s"}

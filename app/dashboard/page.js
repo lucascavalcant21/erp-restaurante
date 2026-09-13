@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useERP } from "../context/ERPContext";
 import {
-  Percent, Users, Wallet, ShoppingCart, PackageX, CalendarClock,
+  PackageX, CalendarClock,
   Sparkles, Wind, AlertCircle, Clock, Megaphone, ChefHat, ArrowRight, CheckCircle2,
-  GripVertical, UserPlus, CalendarDays, ArrowRightLeft, X
+  GripVertical, CalendarDays, ArrowRightLeft, X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fmtBRL, fmtPct } from "../components/ui";
@@ -375,58 +375,171 @@ export default function DashboardGestao() {
 
   const cmvBom = m.cmvMedio <= metaCmv;
 
-  const Kpi = ({ icon: Icon, label, value, sub, tintBg, tintFg, onClick, alerta }) => (
-    <button onClick={onClick} className="erp-card p-6 flex flex-col justify-between text-left group" style={{ minHeight: 140 }}>
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--muted)" }}>{label}</p>
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110" style={{ background: tintBg || "var(--accent-soft)" }}>
-          <Icon size={20} style={{ color: tintFg || "var(--accent-strong)" }} />
-        </div>
-      </div>
-      <div>
-        <h3 className="text-3xl font-extrabold tracking-tight" style={{ color: alerta ? tintFg : "var(--fg)" }}>{value}</h3>
-        {sub && <p className="text-2xs font-bold mt-1" style={{ color: "var(--dim)" }}>{sub}</p>}
-      </div>
+  /* O que pede atenção hoje, montado dos números que a tela já calcula.
+   *
+   * O painel antigo tinha cinco cartões de mesmo tamanho informando o estado
+   * da casa. Estado não chama ninguém para agir: "Equipe de hoje: 9" é um
+   * fato, não uma tarefa. Aqui em cima ficam só as coisas que pedem uma ação
+   * sua, ordenadas pela urgência; os números de contexto descem para a lista
+   * compacta lá embaixo, onde continuam à mão sem disputar a leitura.
+   *
+   * A lista some inteira quando não há nada — um bloco vazio dizendo "tudo
+   * certo" todo dia treina o olho a ignorar o lugar onde o alerta vai nascer.
+   */
+  const avisos = [];
+  {
+    for (const c of m.contasVencendo) {
+      avisos.push({
+        grave: c.dias <= 2,
+        titulo: `${fmtBRL(Number(c.valor) || 0)} ${c.dias < 0 ? "venceu" : c.dias === 0 ? "vence hoje" : `vence em ${c.dias} dia${c.dias > 1 ? "s" : ""}`}`,
+        detalhe: `${c.descricao || c.fornecedor || "Conta"} · Contas a pagar`,
+        ir: "/dashboard/financeiro/contas",
+      });
+    }
+    if (m.cmvAcima > 0) {
+      avisos.push({
+        grave: m.cmvMedio > metaCmv,
+        titulo: `${m.cmvAcima} prato${m.cmvAcima > 1 ? "s" : ""} com CMV acima de ${metaCmv}%`,
+        detalhe: `Média do cardápio em ${fmtPct(m.cmvMedio)} · Pizza do Lucro`,
+        ir: "/dashboard/financeiro/pizza",
+      });
+    }
+    for (const b of m.bancoAlertas.slice(0, 2)) {
+      avisos.push({
+        grave: b.estourou,
+        titulo: `${b.nome} está com ${Math.floor(b.min / 60)}h de banco`,
+        detalhe: `${b.estourou ? "Passou do limite" : `Limite é ${Math.floor(BANCO_LIMITE_MIN / 60)}h`} · Banco de horas`,
+        ir: "/dashboard/rh",
+      });
+    }
+    for (const l of m.limpezasVencendo.slice(0, 2)) {
+      avisos.push({
+        grave: l.dias < 0,
+        titulo: `${l.equipamento || l.nome || "Limpeza"} ${l.dias < 0 ? "está atrasada" : l.dias === 0 ? "é hoje" : `vence em ${l.dias} dia${l.dias > 1 ? "s" : ""}`}`,
+        detalhe: "Manutenção e limpeza programada",
+        ir: "/dashboard/gestao/manutencao",
+      });
+    }
+    if (m.semEstoque.length) {
+      avisos.push({
+        grave: false,
+        titulo: `${m.semEstoque.length} item${m.semEstoque.length > 1 ? "ns" : ""} zerado${m.semEstoque.length > 1 ? "s" : ""} no estoque`,
+        detalhe: `Começa por ${m.semEstoque[0]?.nome || m.semEstoque[0]?.insumos?.nome || "conferir a lista"} · Estoque`,
+        ir: "/dashboard/operacao/estoque",
+      });
+    }
+    for (const c of m.checklistsPend) {
+      avisos.push({
+        grave: false,
+        titulo: `Checklist do ${c.dept} pela metade`,
+        detalhe: `${c.feitos} de ${c.total} feitos hoje · Checklists`,
+        ir: `/dashboard/operacao/rotina?dept=${c.dept}`,
+      });
+    }
+  }
+  // Grave primeiro; dentro de cada grupo, a ordem em que foram apurados (as
+  // contas já vêm ordenadas por vencimento).
+  avisos.sort((a, b) => (b.grave ? 1 : 0) - (a.grave ? 1 : 0));
+  const graves = avisos.filter((a) => a.grave).length;
+
+  /* Uma linha de número, sem o cartão de 140px em volta. Quando havia cinco
+   * cartões iguais, nenhum deles era o assunto da tela. */
+  const LinhaNumero = ({ rotulo, valor, nota, onClick }) => (
+    <button onClick={onClick}
+      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-elevated">
+      <span className="text-sm font-medium text-fg-soft">{rotulo}</span>
+      <span className="shrink-0 text-sm font-semibold text-fg" style={{ fontVariantNumeric: "tabular-nums" }}>
+        {valor}
+        {nota && <span className="ml-1.5 text-2xs font-medium text-muted">· {nota}</span>}
+      </span>
     </button>
   );
 
   return (
-    <div className="p-5 sm:p-8 max-w-7xl mx-auto space-y-7 pb-16">
+    <div className="mx-auto max-w-5xl space-y-4 p-4 pb-16 sm:p-6">
+      {/* A primeira linha diz algo que você ainda não sabia. "Painel de Gestão"
+          não dizia — você já sabe em que tela clicou. */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: "var(--fg)" }}>Painel de Gestão</h1>
-        <p className="mt-1 font-medium" style={{ color: "var(--muted)" }}>
-          Controle operacional de <strong style={{ color: "var(--accent-strong)" }}>{unidadeInfo?.nome || "sua loja"}</strong>.
+        <p className="text-2xs font-semibold uppercase tracking-wider text-subtle">
+          {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+          {unidadeInfo?.nome ? ` · ${unidadeInfo.nome}` : ""}
         </p>
+        <h1 className="mt-1 text-xl font-bold tracking-tight text-fg sm:text-2xl">
+          {`${m.equipeHoje.length} na escala hoje.`}
+          {graves > 0 && (
+            <span style={{ color: "var(--danger-strong)" }}>
+              {" "}{graves === 1 ? "Uma coisa pede" : `${graves} coisas pedem`} você.
+            </span>
+          )}
+        </h1>
       </div>
 
-      {/* KPIs de gestão */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        <Kpi icon={Percent} label="CMV médio"
-          value={m.cmvCount ? fmtPct(m.cmvMedio) : "—"}
-          sub={m.cmvCount ? (cmvBom ? `dentro da meta de ${metaCmv}%` : `${m.cmvAcima} prato(s) acima da meta`) : "sem fichas precificadas"}
-          tintBg={cmvBom ? "rgba(5,150,105,0.12)" : "rgba(239,68,68,0.12)"}
-          tintFg={cmvBom ? "#047857" : "#DC2626"} alerta={!cmvBom && m.cmvCount > 0}
-          onClick={() => router.push("/dashboard/financeiro/cmv")} />
+      {avisos.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-line bg-card">
+          <div className="flex items-center gap-2 bg-elevated px-4 py-2.5">
+            <AlertCircle size={13} style={{ color: "var(--danger-strong)" }} />
+            <p className="text-2xs font-semibold uppercase tracking-wider text-fg-soft">Pede sua atenção</p>
+          </div>
+          {avisos.slice(0, 6).map((a, i) => (
+            <button key={`${a.titulo}-${i}`} onClick={() => router.push(a.ir)}
+              className="flex w-full items-center gap-3 border-t border-line-soft px-4 py-3 text-left transition-colors hover:bg-elevated">
+              {/* A tarja diz a gravidade sem gastar uma cor decorativa: vermelho
+                  quando é hoje/atrasado, cinza quando é só para saber. */}
+              <span className="w-1 shrink-0 self-stretch rounded-full"
+                style={{ background: a.grave ? "var(--danger-strong)" : "var(--subtle)" }} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-fg">{a.titulo}</span>
+                <span className="block text-2xs text-muted">{a.detalhe}</span>
+              </span>
+              <ArrowRight size={14} className="shrink-0 text-accent" />
+            </button>
+          ))}
+        </div>
+      )}
 
-        <Kpi icon={Wallet} label="Folha do mês (mão de obra)"
-          value={fmtBRL(m.folhaMes)} sub={`${m.ativosCount} colaborador(es) ativo(s)`}
-          tintBg="rgba(59,130,246,0.10)" tintFg="#2563EB"
-          onClick={() => router.push("/dashboard/rh")} />
+      {/* O CMV manda na tela porque é o número que você muda com decisão de
+          cardápio. A meta aparece como marca na barra, não como outro número
+          competindo com o primeiro. */}
+      <button onClick={() => router.push("/dashboard/financeiro/pizza")}
+        className="block w-full rounded-2xl border border-line bg-card p-4 text-left">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-subtle">CMV médio do cardápio</p>
+          <p className="text-2xs font-medium text-muted">meta {metaCmv}%</p>
+        </div>
+        <p className="mt-1.5 text-4xl font-bold tracking-tight"
+          style={{ fontVariantNumeric: "tabular-nums", color: cmvBom ? "var(--accent)" : "var(--danger-strong)" }}>
+          {m.cmvCount ? fmtPct(m.cmvMedio) : "—"}
+        </p>
+        {m.cmvCount ? (
+          <>
+            <div className="relative mt-3 h-1.5 rounded-full bg-elevated">
+              <div className="absolute inset-y-0 left-0 rounded-full"
+                style={{ width: `${Math.min(100, (m.cmvMedio / 50) * 100)}%`, background: cmvBom ? "var(--accent)" : "var(--danger-strong)" }} />
+              <div className="absolute w-0.5" style={{ top: -3, bottom: -3, left: `${Math.min(100, (metaCmv / 50) * 100)}%`, background: "var(--fg-soft)" }} />
+            </div>
+            <p className="mt-2 text-2xs font-medium text-muted">
+              {m.cmvAcima > 0
+                ? `${m.cmvAcima} de ${m.cmvCount} pratos acima da meta.`
+                : `Os ${m.cmvCount} pratos precificados estão dentro da meta.`}
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-2xs font-medium text-muted">Sem prato com preço e ficha ligados — o CMV aparece quando houver.</p>
+        )}
+      </button>
 
-        <Kpi icon={ShoppingCart} label="Contas a pagar (mês)"
-          value={fmtBRL(m.totalContasMes)} sub={m.contasVencendo.length ? `${m.contasVencendo.length} vencendo em breve` : "nada vencendo"}
-          tintBg="rgba(239,68,68,0.10)" tintFg="#DC2626" alerta={m.totalContasMes > 0}
-          onClick={() => router.push("/dashboard/financeiro/contas")} />
-
-        <Kpi icon={Users} label="Equipe de hoje"
-          value={m.equipeHoje.length} sub="funcionários escalados hoje"
-          tintBg="rgba(139,92,246,0.10)" tintFg="#7C3AED"
-          onClick={() => router.push("/dashboard/rh/ponto")} />
-
-        <Kpi icon={UserPlus} label="Extras contratados"
-          value={m.extrasCount} sub="freelancers / diaristas ativos"
-          tintBg="rgba(245,158,11,0.12)" tintFg="#B45309"
-          onClick={() => router.push("/dashboard/rh")} />
+      {/* Contexto: continua à mão, sem ocupar a tela inteira. */}
+      <div className="overflow-hidden rounded-2xl border border-line bg-card">
+        <LinhaNumero rotulo="Folha do mês" valor={fmtBRL(m.folhaMes)}
+          nota={`${m.ativosCount} ativos`} onClick={() => router.push("/dashboard/rh")} />
+        <div className="border-t border-line-soft">
+          <LinhaNumero rotulo="Contas do mês" valor={fmtBRL(m.totalContasMes)}
+            onClick={() => router.push("/dashboard/financeiro/contas")} />
+        </div>
+        <div className="border-t border-line-soft">
+          <LinhaNumero rotulo="Na escala hoje" valor={m.equipeHoje.length}
+            nota={m.extrasCount ? `${m.extrasCount} extras` : null} onClick={() => router.push("/dashboard/rh/ponto")} />
+        </div>
       </div>
 
       {/* Escala da semana — por área, com extras e ordenação por arraste */}

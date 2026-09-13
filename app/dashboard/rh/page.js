@@ -1952,15 +1952,15 @@ export default function RHPage() {
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
       {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
-      <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto">
+      <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
-                 <Users size={32} />
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/80 shadow-sm shrink-0">
+                 <Users size={24} />
               </div>
               <div>
-                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
+                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">RH & Equipe</h1>
+                 <p className="text-xs font-semibold text-slate-500 mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">

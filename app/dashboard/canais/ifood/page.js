@@ -127,11 +127,11 @@ export default function IFoodConfigPage() {
            </div>
            <div>
              <h1 className="text-2xl font-black text-slate-800 tracking-tight">Integração iFood</h1>
-             <p className="text-sm text-slate-500 font-medium">Conecte sua loja do iFood ao nosso PDV.</p>
+             <p className="text-sm text-muted font-medium">Conecte sua loja do iFood ao nosso PDV.</p>
            </div>
          </div>
          
-         <div className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-black uppercase ${conectado ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+         <div className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-black uppercase ${conectado ? 'bg-emerald-100 text-emerald-700' : 'bg-elevated text-muted'}`}>
             {conectado ? <><CheckCircle size={16}/> Conectado</> : <><AlertCircle size={16}/> Desconectado</>}
          </div>
       </div>
@@ -139,24 +139,24 @@ export default function IFoodConfigPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          
          {/* CARD CONFIGURAÇÕES */}
-         <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
-               <Settings size={18} className="text-slate-500" />
-               <h2 className="font-bold text-slate-700">Configuração de Conexão</h2>
+         <div className="md:col-span-2 bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
+            <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+               <Settings size={18} className="text-muted" />
+               <h2 className="font-bold text-fg-soft">Configuração de Conexão</h2>
             </div>
             <div className="p-6 space-y-6">
                
                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Merchant ID (ID da Loja no iFood)</label>
+                  <label className="block text-xs font-bold text-muted mb-1.5 uppercase">Merchant ID (ID da Loja no iFood)</label>
                   <input 
                      type="text" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} disabled={conectado}
-                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-[#EA1D2C] outline-none disabled:opacity-60"
+                     className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-[#EA1D2C] outline-none disabled:opacity-60"
                      placeholder="Ex: 12345678-abcd-1234-abcd-123456789abc"
                   />
-                  <p className="text-xs text-slate-400 mt-2">Você encontra seu Merchant ID no Portal do Parceiro iFood.</p>
+                  <p className="text-xs text-subtle mt-2">Você encontra seu Merchant ID no Portal do Parceiro iFood.</p>
                </div>
 
-               <div className="pt-4 border-t border-slate-100 flex justify-end">
+               <div className="pt-4 border-t border-line-soft flex justify-end">
                   <button 
                      onClick={toggleConexao} disabled={saving}
                      className={`px-8 py-3 rounded-xl font-black text-white shadow-lg transition-all flex items-center gap-2 ${conectado ? 'bg-slate-800 hover:bg-slate-900 shadow-slate-900/20' : 'bg-[#EA1D2C] hover:bg-red-700 shadow-red-500/30'}`}

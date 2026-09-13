@@ -304,24 +304,24 @@ export default function HefistoAssistant() {
         <>
         {/* Fundo: tocar fora fecha (no celular o painel ocupa a tela toda) */}
         <div onClick={() => setAberto(false)} className="print:hidden fixed inset-0 z-[294] bg-slate-900/40 backdrop-blur-[2px]" />
-        <div className="print:hidden fixed inset-y-0 right-0 z-[295] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
+        <div className="print:hidden fixed inset-y-0 right-0 z-[295] flex w-full max-w-md flex-col border-l border-line bg-card shadow-2xl"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="flex items-center gap-3 border-b border-line-soft px-4 py-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><Bot size={20} /></div>
             <div className="min-w-0 flex-1">
-              <p className="font-black text-slate-900 leading-tight">Assistente Hefisto</p>
-              <p className="truncate text-2xs font-bold text-slate-400">{contextoModulo} · {unidadeInfo?.nome || "unidade"}</p>
+              <p className="font-black text-fg leading-tight">Assistente Hefisto</p>
+              <p className="truncate text-2xs font-bold text-subtle">{contextoModulo} · {unidadeInfo?.nome || "unidade"}</p>
             </div>
             {audioDisponivel() && (
               <button onClick={() => { const n = !comAudio; setComAudio(n); if (!n) calarVoz(); }}
                 title={comAudio ? "Desligar resposta falada" : "Ouvir as respostas"} aria-label="Resposta em áudio"
                 className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors ${
-                  comAudio ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                  comAudio ? "bg-emerald-600 text-white" : "bg-elevated text-muted hover:bg-slate-200"}`}>
                 {comAudio ? <Volume2 size={19} /> : <VolumeX size={19} />}
               </button>
             )}
             <button onClick={() => setAberto(false)} aria-label="Fechar assistente"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95"><X size={20} /></button>
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-elevated text-slate-600 hover:bg-slate-200 active:scale-95"><X size={20} /></button>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -331,7 +331,7 @@ export default function HefistoAssistant() {
                 <p className="mt-1 text-xs font-medium text-emerald-700">Posso consultar saldo, abrir telas e lançar entrada/retirada no estoque.</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {SUGESTOES.map(s => (
-                    <button key={s} onClick={() => enviar(s)} className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-2xs font-bold text-emerald-700 hover:bg-emerald-50">{s}</button>
+                    <button key={s} onClick={() => enviar(s)} className="rounded-full border border-emerald-200 bg-card px-3 py-1.5 text-2xs font-bold text-emerald-700 hover:bg-emerald-50">{s}</button>
                   ))}
                 </div>
               </div>
@@ -339,14 +339,14 @@ export default function HefistoAssistant() {
 
             {msgs.map(m => (
               <div key={m.id} className={m.autor === "user" ? "flex justify-end" : "flex justify-start"}>
-                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm font-medium ${m.autor === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm font-medium ${m.autor === "user" ? "bg-emerald-600 text-white" : "bg-elevated text-fg-soft"}`}>
                   {m.texto}
                   {m.opcoes && (
                     <div className="mt-2 space-y-1.5">
                       {m.opcoes.map(o => (
                         <button key={o.valor} onClick={() => enviar(`${m.intencaoPendente?.acao === "retirada_estoque" ? "retirar" : ""} ${o.valor}`.trim())}
-                          className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-bold text-slate-700 hover:border-emerald-400">
-                          {o.rotulo} <ChevronRight size={14} className="text-slate-400" />
+                          className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-card px-3 py-2 text-left text-xs font-bold text-fg-soft hover:border-emerald-400">
+                          {o.rotulo} <ChevronRight size={14} className="text-subtle" />
                         </button>
                       ))}
                     </div>
@@ -357,16 +357,16 @@ export default function HefistoAssistant() {
 
             {/* Resumo aguardando confirmação */}
             {pendente && (
-              <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border-2 border-emerald-300 bg-card p-4 shadow-sm">
                 <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-emerald-700">
                   <AlertTriangle size={13} /> Confirme a {pendente.tipo === "entrada" ? "entrada" : "retirada"}
                 </p>
                 <div className="mt-2 space-y-1 text-sm">
                   <p className="font-black text-slate-800">{pendente.item.nome}</p>
-                  <p className="font-bold text-slate-500">Estoque: {pendente.estoque.nome}</p>
-                  <p className="font-bold text-slate-500">Quantidade: {fmtQtd(pendente.quantidade)} {mostrarUn(pendente.item.unidade_medida)}</p>
-                  {pendente.intencao?.valor_unitario > 0 && <p className="font-bold text-slate-500">Valor: {fmtBRL(pendente.intencao.valor_unitario)} / {mostrarUn(pendente.item.unidade_medida)}</p>}
-                  <p className="font-bold text-slate-500">
+                  <p className="font-bold text-muted">Estoque: {pendente.estoque.nome}</p>
+                  <p className="font-bold text-muted">Quantidade: {fmtQtd(pendente.quantidade)} {mostrarUn(pendente.item.unidade_medida)}</p>
+                  {pendente.intencao?.valor_unitario > 0 && <p className="font-bold text-muted">Valor: {fmtBRL(pendente.intencao.valor_unitario)} / {mostrarUn(pendente.item.unidade_medida)}</p>}
+                  <p className="font-bold text-muted">
                     Saldo: {fmtQtd(pendente.item.quantidade_atual)} → {fmtQtd(pendente.tipo === "entrada"
                       ? (Number(pendente.item.quantidade_atual) || 0) + pendente.quantidade
                       : Math.max(0, (Number(pendente.item.quantidade_atual) || 0) - pendente.quantidade))} {mostrarUn(pendente.item.unidade_medida)}
@@ -374,11 +374,11 @@ export default function HefistoAssistant() {
                 </div>
                 {/* Obrigatório: quem está lançando/retirando */}
                 <label className="mt-3 block">
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">
+                  <span className="text-3xs font-bold uppercase tracking-wider text-muted">
                     Quem está {pendente.tipo === "entrada" ? "lançando" : "retirando"}? *
                   </span>
                   <select value={responsavelId} onChange={e => setResponsavelId(e.target.value)}
-                    className={`mt-1 h-11 w-full rounded-xl border-2 px-3 text-sm font-bold outline-none ${responsavelId ? "border-slate-200 bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
+                    className={`mt-1 h-11 w-full rounded-xl border-2 px-3 text-sm font-bold outline-none ${responsavelId ? "border-line bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
                     <option value="">Selecione o responsável...</option>
                     {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
                   </select>
@@ -387,24 +387,24 @@ export default function HefistoAssistant() {
                   <button onClick={confirmar} disabled={ocupado || !responsavelId} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
                     {ocupado ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Confirmar
                   </button>
-                  <button onClick={() => { setPendente(null); diz("bot", "Cancelado."); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                  <button onClick={() => { setPendente(null); diz("bot", "Cancelado."); }} className="rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
                 </div>
               </div>
             )}
 
             {ultima && !pendente && (
-              <button onClick={desfazer} disabled={ocupado} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:border-red-300 hover:text-red-600 disabled:opacity-50">
+              <button onClick={desfazer} disabled={ocupado} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-slate-600 hover:border-red-300 hover:text-red-600 disabled:opacity-50">
                 <Undo2 size={14} /> Desfazer lançamento
               </button>
             )}
 
             {ocupado && !pendente && (
-              <p className="flex items-center gap-2 text-xs font-bold text-slate-400"><Loader2 size={14} className="animate-spin" /> Interpretando...</p>
+              <p className="flex items-center gap-2 text-xs font-bold text-subtle"><Loader2 size={14} className="animate-spin" /> Interpretando...</p>
             )}
             <div ref={fimRef} />
           </div>
 
-          <div className="border-t border-slate-100 p-3">
+          <div className="border-t border-line-soft p-3">
             {/* Estado de escuta: mostra o que está sendo ouvido em tempo real */}
             {ouvindo && (
               <div className="mb-2 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
@@ -425,7 +425,7 @@ export default function HefistoAssistant() {
               {temVoz && (
                 <button onClick={iniciarEscuta} disabled={ocupado} title={ouvindo ? "Parar de ouvir" : "Falar um comando"}
                   className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border-2 transition-all disabled:opacity-40 ${
-                    ouvindo ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"}`}>
+                    ouvindo ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
                   {ouvindo ? <MicOff size={18} /> : <Mic size={18} />}
                 </button>
               )}
@@ -434,14 +434,14 @@ export default function HefistoAssistant() {
                 onChange={e => setTexto(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") enviar(); }}
                 placeholder={ouvindo ? "Falando..." : "Peça algo ao Hefisto..."}
-                className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-medium outline-none focus:border-emerald-500"
+                className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-slate-50 px-3.5 text-sm font-medium outline-none focus:border-emerald-500"
               />
               <button onClick={() => enviar()} disabled={ocupado || !texto.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40">
                 <Send size={17} />
               </button>
             </div>
             {/* Saída explícita — no celular o painel cobre a tela inteira */}
-            <button onClick={() => setAberto(false)} className="mt-2 w-full rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 sm:hidden">
+            <button onClick={() => setAberto(false)} className="mt-2 w-full rounded-xl border border-line py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 sm:hidden">
               Voltar ao sistema
             </button>
           </div>

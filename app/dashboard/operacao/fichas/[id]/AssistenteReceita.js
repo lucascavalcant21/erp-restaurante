@@ -96,18 +96,18 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4"
       onClick={onFechar}>
-      <div className="flex h-[85vh] w-full max-w-2xl flex-col rounded-t-3xl bg-white sm:h-[75vh] sm:rounded-3xl"
+      <div className="flex h-[85vh] w-full max-w-2xl flex-col rounded-t-3xl bg-card sm:h-[75vh] sm:rounded-3xl"
         onClick={e => e.stopPropagation()}>
 
-        <div className="flex items-center justify-between border-b border-slate-100 p-4">
+        <div className="flex items-center justify-between border-b border-line-soft p-4">
           <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-slate-400" />
+            <Sparkles size={18} className="text-subtle" />
             <div>
               <h2 className="text-sm font-bold text-slate-800">Assistente da receita</h2>
-              <p className="text-2xs text-slate-500">{ficha.nome_receita}</p>
+              <p className="text-2xs text-muted">{ficha.nome_receita}</p>
             </div>
           </div>
-          <button onClick={onFechar} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+          <button onClick={onFechar} className="rounded-lg p-1.5 text-subtle hover:bg-elevated">
             <X size={18} />
           </button>
         </div>
@@ -115,16 +115,16 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
           {conversa.length === 0 ? (
             <div>
-              <p className="text-sm text-slate-500">Pergunte sobre esta receita. Por exemplo:</p>
+              <p className="text-sm text-muted">Pergunte sobre esta receita. Por exemplo:</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {(podeVerCustos ? EXEMPLOS : EXEMPLOS.filter(e => !/cust|cmv|R\$/i.test(e))).map(ex => (
                   <button key={ex} onClick={() => responder(ex)}
-                    className="rounded-xl border border-slate-200 px-2.5 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-50">
+                    className="rounded-xl border border-line px-2.5 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-50">
                     {ex}
                   </button>
                 ))}
               </div>
-              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-2xs leading-relaxed text-slate-500">
+              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-2xs leading-relaxed text-muted">
                 As contas são feitas pelo sistema, com as mesmas fórmulas da ficha.
                 A IA entra só para entender frases fora do comum — ela não calcula custo.
               </p>
@@ -136,9 +136,9 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
               <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                 msg.de === "usuario"
                   ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-700"}`}>
+                  : "border border-line bg-card text-fg-soft"}`}>
                 <Markdown texto={msg.texto} />
-                {msg.nota ? <p className="mt-1.5 text-2xs italic text-slate-400">{msg.nota}</p> : null}
+                {msg.nota ? <p className="mt-1.5 text-2xs italic text-subtle">{msg.nota}</p> : null}
 
                 {msg.proposta ? (
                   <button
@@ -149,14 +149,14 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
                 ) : null}
 
                 {msg.veioDaIA ? (
-                  <p className="mt-1.5 text-3xs text-slate-300">interpretado pela IA · conta feita pelo sistema</p>
+                  <p className="mt-1.5 text-3xs text-dim">interpretado pela IA · conta feita pelo sistema</p>
                 ) : null}
               </div>
             </div>
           ))}
 
           {pensando ? (
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2 text-sm text-subtle">
               <Loader2 size={15} className="animate-spin" /> Calculando…
             </div>
           ) : null}
@@ -165,10 +165,10 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
 
         <form
           onSubmit={(e) => { e.preventDefault(); responder(entrada); }}
-          className="flex items-center gap-2 border-t border-slate-100 p-3">
+          className="flex items-center gap-2 border-t border-line-soft p-3">
           {temVoz ? (
             <button type="button" onClick={alternarVoz} title={ouvindo ? "Parar de ouvir" : "Falar"}
-              className={`rounded-xl p-2.5 ${ouvindo ? "bg-rose-500 text-white" : "border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+              className={`rounded-xl p-2.5 ${ouvindo ? "bg-rose-500 text-white" : "border border-line text-muted hover:bg-slate-50"}`}>
               {ouvindo ? <MicOff size={17} /> : <Mic size={17} />}
             </button>
           ) : null}

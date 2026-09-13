@@ -79,7 +79,7 @@ export default function ContasAPagarPage() {
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
                <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Contas a Pagar</h1>
-               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Custos e Despesas</p>
+               <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Gestão de Custos e Despesas</p>
             </div>
             <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
                <Plus size={20}/> Nova Despesa
@@ -93,8 +93,8 @@ export default function ContasAPagarPage() {
                   <CalendarDays size={28}/>
                </div>
                <div>
-                  <p className="text-3xs uppercase font-bold tracking-widest text-slate-500">Pendente (A Pagar)</p>
-                  <p className="text-3xl font-black text-slate-500">{fmtBRL(aPagarTotal)}</p>
+                  <p className="text-3xs uppercase font-bold tracking-widest text-muted">Pendente (A Pagar)</p>
+                  <p className="text-3xl font-black text-muted">{fmtBRL(aPagarTotal)}</p>
                </div>
             </div>
             <div className="bg-slate-800 p-6 rounded-[24px] border border-slate-700/50 flex items-center gap-4">
@@ -102,7 +102,7 @@ export default function ContasAPagarPage() {
                   <Wallet size={28}/>
                </div>
                <div>
-                  <p className="text-3xs uppercase font-bold tracking-widest text-slate-500">Total Pago</p>
+                  <p className="text-3xs uppercase font-bold tracking-widest text-muted">Total Pago</p>
                   <p className="text-3xl font-black text-emerald-400">{fmtBRL(pagasTotal)}</p>
                </div>
             </div>
@@ -110,36 +110,36 @@ export default function ContasAPagarPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-         <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-200 shadow-xl shadow-slate-200/50">
+         <div className="bg-card rounded-[32px] p-6 sm:p-8 border border-line shadow-xl shadow-slate-200/50">
             
-            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-line-soft">
                <div className="flex-1 relative">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"/>
-                  <input type="text" placeholder="Buscar despesa..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-emerald-500 transition-colors"/>
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"/>
+                  <input type="text" placeholder="Buscar despesa..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-line rounded-xl font-bold text-sm outline-none focus:bg-card focus:border-emerald-500 transition-colors"/>
                </div>
-               <button className="p-3 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-100"><Filter size={18}/></button>
+               <button className="p-3 bg-slate-50 border border-line text-muted rounded-xl hover:bg-elevated"><Filter size={18}/></button>
             </div>
 
             {loading ? (
                <SkeletonList />
             ) : contas.length === 0 ? (
-               <div className="text-center py-20 text-slate-500">
+               <div className="text-center py-20 text-muted">
                   <Wallet size={48} className="mx-auto mb-4 opacity-20"/>
                   <p className="font-bold">Nenhuma conta cadastrada.</p>
                </div>
             ) : (
-               <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+               <div className="rounded-2xl overflow-hidden shadow-md border border-line">
                   {/* Cabeçalho */}
                   <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[160px_1fr_180px_120px_140px_100px] gap-4 items-center">
-                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Vencimento</span>
-                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Descrição</span>
-                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Categoria</span>
-                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Valor</span>
-                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-center">Status</span>
-                    <span className="text-2xs font-bold uppercase tracking-widest text-slate-300"></span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-dim">Vencimento</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-dim">Descrição</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-dim">Categoria</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-dim">Valor</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-dim text-center">Status</span>
+                    <span className="text-2xs font-bold uppercase tracking-widest text-dim"></span>
                   </div>
                   {/* Linhas */}
-                  <div className="bg-white divide-y divide-slate-100">
+                  <div className="bg-card divide-y divide-slate-100">
                     {contas.map(c => {
                       const cat = CATEGORIAS_CUSTO.find(x => x.id === c.categoria);
                       const hoje = new Date().toISOString().split('T')[0];
@@ -161,7 +161,7 @@ export default function ContasAPagarPage() {
                               {cat?.label}
                             </span>
                           </div>
-                          <span className="font-black text-slate-900">{fmtBRL(c.valor)}</span>
+                          <span className="font-black text-fg">{fmtBRL(c.valor)}</span>
                           <div className="text-center">
                             {c.status === 'pago' ? (
                               <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg font-bold">
@@ -175,7 +175,7 @@ export default function ContasAPagarPage() {
                           </div>
                           <div className="text-right">
                             {c.status === 'pendente' && (
-                              <button onClick={() => handlePagar(c.id)} className="px-3 py-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all text-xs font-bold">
+                              <button onClick={() => handlePagar(c.id)} className="px-3 py-2 bg-elevated hover:bg-blue-100 text-muted hover:text-blue-600 rounded-lg transition-all text-xs font-bold">
                                 Pagar
                               </button>
                             )}
@@ -192,30 +192,30 @@ export default function ContasAPagarPage() {
       {/* MODAL NOVA CONTA */}
       {modalOpen && (
          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-3 sm:my-0">
-               <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-3 sm:my-0">
+               <div className="p-6 bg-slate-50 border-b border-line-soft flex justify-between items-center">
                   <h2 className="text-xl font-black text-slate-800">Lançar Despesa</h2>
-                  <button onClick={() => setModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-500 hover:bg-slate-100">x</button>
+                  <button onClick={() => setModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-card border border-line rounded-full text-muted hover:bg-elevated">x</button>
                </div>
                <form onSubmit={handleSalvar} className="p-6 space-y-4">
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">O que você está pagando?</label>
-                     <input required type="text" placeholder="Ex: Conta de Luz Maio" value={form.descricao} onChange={e=>setForm({...form, descricao: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-white"/>
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">O que você está pagando?</label>
+                     <input required type="text" placeholder="Ex: Conta de Luz Maio" value={form.descricao} onChange={e=>setForm({...form, descricao: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-card"/>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Qual a Categoria? (Centro de Custo)</label>
-                     <select required value={form.categoria} onChange={e=>setForm({...form, categoria: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-white">
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Qual a Categoria? (Centro de Custo)</label>
+                     <select required value={form.categoria} onChange={e=>setForm({...form, categoria: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-card">
                         {CATEGORIAS_CUSTO.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                      </select>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Valor (R$)</label>
-                        <input required type="text" placeholder="150,00" value={form.valor} onChange={e=>setForm({...form, valor: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-white"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Valor (R$)</label>
+                        <input required type="text" placeholder="150,00" value={form.valor} onChange={e=>setForm({...form, valor: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-card"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Vencimento</label>
-                        <input required type="date" value={form.data_vencimento} onChange={e=>setForm({...form, data_vencimento: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-white"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Vencimento</label>
+                        <input required type="date" value={form.data_vencimento} onChange={e=>setForm({...form, data_vencimento: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-card"/>
                      </div>
                   </div>
                   <label className="flex items-start gap-3 bg-sky-50 border border-sky-200 rounded-xl p-3.5 cursor-pointer">
@@ -225,7 +225,7 @@ export default function ContasAPagarPage() {
                         <span className="text-2xs font-medium text-sky-700/70">Aluguel, luz, internet... Na virada do mês ela se recria sozinha, com o mesmo dia de vencimento e valor (que você pode ajustar).</span>
                      </span>
                   </label>
-                  <div className="pt-4 mt-2 border-t border-slate-100">
+                  <div className="pt-4 mt-2 border-t border-line-soft">
                      <button type="submit" className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-xl shadow-xl shadow-emerald-500/30 active:scale-95 transition-transform">
                         Salvar Despesa
                      </button>

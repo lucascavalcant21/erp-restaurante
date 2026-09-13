@@ -123,7 +123,7 @@ export default function LoginPage() {
           </svg>
         </div>
         <p className="text-xl font-bold tracking-tight mb-2">Hefisto</p>
-        <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
+        <div className="flex items-center gap-2 text-sm text-subtle font-medium">
           <Loader2 size={16} className="animate-spin text-orange-400" />
           <span>Restaurando sua sessão...</span>
         </div>

@@ -75,11 +75,11 @@ function podeVerCustosDaFicha(sessao, departamento) {
 function Secao({ icone: Icone, titulo, descricao, children }) {
   return (
     <Card className="p-4 sm:p-5">
-      <div className="flex items-start gap-3 border-b border-slate-100 pb-3">
-        {Icone ? <Icone size={18} className="mt-0.5 shrink-0 text-slate-400" /> : null}
+      <div className="flex items-start gap-3 border-b border-line-soft pb-3">
+        {Icone ? <Icone size={18} className="mt-0.5 shrink-0 text-subtle" /> : null}
         <div className="min-w-0">
           <h2 className="text-sm font-bold text-slate-800">{titulo}</h2>
-          {descricao ? <p className="mt-0.5 text-xs text-slate-500">{descricao}</p> : null}
+          {descricao ? <p className="mt-0.5 text-xs text-muted">{descricao}</p> : null}
         </div>
       </div>
       <div className="pt-4">{children}</div>
@@ -95,13 +95,13 @@ function Indicador({ icone: Icone, rotulo, valor, nota, tom = "neutro" }) {
     ruim: "text-rose-600",
   };
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3">
-      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-slate-500">
+    <div className="rounded-2xl border border-line bg-card p-3">
+      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-muted">
         {Icone ? <Icone size={13} /> : null}
         <span className="truncate">{rotulo}</span>
       </div>
       <div className={`mt-1 text-lg font-bold tabular-nums ${cores[tom] || cores.neutro}`}>{valor}</div>
-      {nota ? <div className="mt-0.5 text-2xs text-slate-400">{nota}</div> : null}
+      {nota ? <div className="mt-0.5 text-2xs text-subtle">{nota}</div> : null}
     </div>
   );
 }
@@ -506,7 +506,7 @@ export default function FichaTecnicaPage() {
   // ── Telas de carga e erro ────────────────────────────────────────────────
   if (carregando) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center gap-2 text-slate-500">
+      <div className="flex min-h-[60vh] items-center justify-center gap-2 text-muted">
         <Loader2 size={18} className="animate-spin" /> Carregando ficha…
       </div>
     );
@@ -515,7 +515,7 @@ export default function FichaTecnicaPage() {
     return (
       <div className="mx-auto max-w-lg p-6 text-center">
         <AlertTriangle size={28} className="mx-auto text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-slate-700">{erro}</p>
+        <p className="mt-3 text-sm font-medium text-fg-soft">{erro}</p>
         <Btn className="mt-4" onClick={() => router.push("/dashboard/operacao/fichas")}>
           Voltar para as fichas
         </Btn>
@@ -545,7 +545,7 @@ export default function FichaTecnicaPage() {
     <div className="mx-auto max-w-5xl space-y-4 p-3 pb-28 sm:p-4">
       {/* ── Cabeçalho ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2">
-        <button onClick={voltar} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+        <button onClick={voltar} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-elevated">
           <ArrowLeft size={16} /> Fichas
         </button>
         <div className="flex items-center gap-2">
@@ -575,19 +575,19 @@ export default function FichaTecnicaPage() {
       <Card className="overflow-hidden p-0">
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
           <div className="shrink-0">
-            <div className="relative h-32 w-full overflow-hidden rounded-2xl bg-slate-100 sm:h-28 sm:w-40">
+            <div className="relative h-32 w-full overflow-hidden rounded-2xl bg-elevated sm:h-28 sm:w-40">
               {foto
                 ? <img src={foto} alt={ficha.nome_receita} className="h-full w-full object-cover" />
-                : <div className="flex h-full items-center justify-center text-slate-300"><UtensilsCrossed size={26} /></div>}
+                : <div className="flex h-full items-center justify-center text-dim"><UtensilsCrossed size={26} /></div>}
             </div>
             <div className="mt-1.5 flex items-center gap-1.5">
-              <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-line px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
                 <Camera size={13} /> {foto ? "Trocar" : "Adicionar"}
                 <input type="file" accept="image/*" className="hidden" onChange={trocarFoto} />
               </label>
               {foto ? (
                 <button onClick={removerFoto} title="Remover foto"
-                  className="rounded-xl border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500">
+                  className="rounded-xl border border-line px-2 py-1.5 text-subtle hover:bg-rose-50 hover:text-rose-500">
                   <ImageOff size={14} />
                 </button>
               ) : null}
@@ -598,22 +598,22 @@ export default function FichaTecnicaPage() {
               {ficha.codigo ? (
                 <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-2xs font-bold text-white">{ficha.codigo}</span>
               ) : null}
-              <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
+              <span className="rounded-lg bg-elevated px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
               <span className={`rounded-lg px-2 py-0.5 text-2xs font-semibold ${
                 (form.status || "ativa") === "ativa" ? "bg-emerald-50 text-emerald-700"
                   : (form.status || "") === "rascunho" ? "bg-amber-50 text-amber-700"
-                  : "bg-slate-100 text-slate-500"}`}>
+                  : "bg-elevated text-muted"}`}>
                 {STATUS_FICHA.find(s => s.valor === (form.status || "ativa"))?.rotulo || "Ativa"}
               </span>
               {ficha.eh_base ? (
                 <span className="rounded-lg bg-orange-50 px-2 py-0.5 text-2xs font-semibold text-orange-700">Pré-preparo</span>
               ) : null}
             </div>
-            <h1 className="mt-1.5 truncate text-xl font-extrabold text-slate-900">{ficha.nome_receita}</h1>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <h1 className="mt-1.5 truncate text-xl font-extrabold text-fg">{ficha.nome_receita}</h1>
+            <p className="mt-0.5 text-xs text-muted">
               {[ficha.categoria, ficha.subcategoria, ficha.departamento].filter(Boolean).join(" · ") || "Sem categoria"}
             </p>
-            <p className="mt-1.5 text-2xs text-slate-400">
+            <p className="mt-1.5 text-2xs text-subtle">
               {ficha.responsavel ? `Responsável: ${ficha.responsavel} · ` : ""}
               Criada em {fmtData(ficha.created_at)}
               {ficha.atualizado_em ? ` · Atualizada em ${fmtData(ficha.atualizado_em)}` : ""}
@@ -696,7 +696,7 @@ export default function FichaTecnicaPage() {
             <TextInput value={form.nome_receita || ""} onChange={e => mudar("nome_receita", e.target.value)} />
           </Field>
           <Field label="Código">
-            <TextInput value={ficha.codigo || "—"} readOnly className="bg-slate-50 font-mono text-slate-500" />
+            <TextInput value={ficha.codigo || "—"} readOnly className="bg-slate-50 font-mono text-muted" />
           </Field>
           <Field label="Nome interno (cozinha)">
             <TextInput value={form.nome_interno || ""} onChange={e => mudar("nome_interno", e.target.value)}
@@ -765,11 +765,11 @@ export default function FichaTecnicaPage() {
             <NumberInput value={form.peso_final_g ?? ""} min="0" step="any"
               onChange={e => mudar("peso_final_g", e.target.value)} />
           </Field>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="text-2xs font-medium uppercase tracking-wide text-slate-500">Perda calculada</div>
+          <div className="rounded-2xl border border-line bg-slate-50 p-3">
+            <div className="text-2xs font-medium uppercase tracking-wide text-muted">Perda calculada</div>
             <div className="mt-1 text-lg font-bold tabular-nums text-slate-800">
               {calc.perda ? `${Math.round(calc.perda)} g` : "—"}
-              {calc.perdaPct ? <span className="ml-1.5 text-sm font-semibold text-slate-500">{fmtPct(calc.perdaPct)}</span> : null}
+              {calc.perdaPct ? <span className="ml-1.5 text-sm font-semibold text-muted">{fmtPct(calc.perdaPct)}</span> : null}
             </div>
           </div>
 
@@ -782,8 +782,8 @@ export default function FichaTecnicaPage() {
                 onChange={e => mudar("tempo_coccao_min", e.target.value)} />
             </Field>
           )}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-2xl border border-line bg-slate-50 p-3">
+            <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-muted">
               <Clock size={12} /> Tempo total
             </div>
             <div className="mt-1 text-lg font-bold tabular-nums text-slate-800">
@@ -808,12 +808,12 @@ export default function FichaTecnicaPage() {
       <Secao icone={UtensilsCrossed} titulo="Ingredientes"
         descricao="Editados na tela de fichas, para não existirem dois lugares gravando a mesma lista.">
         {(ficha.fichas_ingredientes || []).length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-400">Esta ficha ainda não tem ingredientes.</p>
+          <p className="py-4 text-center text-sm text-subtle">Esta ficha ainda não tem ingredientes.</p>
         ) : (
           <div className="-mx-1 overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-2xs uppercase tracking-wide text-slate-400">
+                <tr className="border-b border-line-soft text-left text-2xs uppercase tracking-wide text-subtle">
                   <th className="px-1 pb-2 font-medium">Item</th>
                   <th className="px-1 pb-2 text-right font-medium">Qtd.</th>
                   <th className="px-1 pb-2 text-right font-medium">Correção</th>
@@ -831,13 +831,13 @@ export default function FichaTecnicaPage() {
                   return (
                     <tr key={fi.id || i} className="border-b border-slate-50 last:border-0">
                       <td className="px-1 py-2">
-                        <span className="font-medium text-slate-700">{nome}</span>
+                        <span className="font-medium text-fg-soft">{nome}</span>
                         {sub ? <span className="ml-1.5 rounded bg-orange-50 px-1.5 py-0.5 text-3xs font-semibold text-orange-700">subreceita</span> : null}
                       </td>
                       <td className="px-1 py-2 text-right tabular-nums text-slate-600">
                         {parseNumero(fi.quantidade)} {unidade}
                       </td>
-                      <td className="px-1 py-2 text-right tabular-nums text-slate-500">
+                      <td className="px-1 py-2 text-right tabular-nums text-muted">
                         {parseNumero(fi.fator_correcao) ? `+${parseNumero(fi.fator_correcao)}%` : "—"}
                       </td>
                       {podeVerCustos ? (
@@ -852,7 +852,7 @@ export default function FichaTecnicaPage() {
         )}
         <button
           onClick={() => router.push(`/dashboard/operacao/fichas?dept=${ficha.departamento || "cozinha"}&q=${encodeURIComponent(ficha.nome_receita || "")}`)}
-          className="mt-3 flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+          className="mt-3 flex w-full items-center justify-between rounded-xl border border-line px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
           Editar ingredientes na tela de fichas <ChevronRight size={16} />
         </button>
       </Secao>
@@ -863,11 +863,11 @@ export default function FichaTecnicaPage() {
         <EtapasPreparo etapas={etapas} onChange={alterarSecao(setEtapas)}
           modoPreparoLegado={ficha.modo_preparo} />
         {ficha.modo_preparo && etapas.length > 0 ? (
-          <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <details className="mt-3 rounded-xl border border-line bg-slate-50 p-3">
             <summary className="cursor-pointer text-xs font-semibold text-slate-600">
               Texto original do modo de preparo
             </summary>
-            <p className="mt-2 whitespace-pre-wrap text-xs text-slate-500">{ficha.modo_preparo}</p>
+            <p className="mt-2 whitespace-pre-wrap text-xs text-muted">{ficha.modo_preparo}</p>
           </details>
         ) : null}
       </Secao>
@@ -883,7 +883,7 @@ export default function FichaTecnicaPage() {
         <Secao icone={ChefHat} titulo="Onde este pré-preparo é usado"
           descricao="Mexer no custo daqui muda o custo de todas estas receitas.">
           {usadoPor.length === 0 ? (
-            <p className="py-4 text-center text-sm text-slate-400">
+            <p className="py-4 text-center text-sm text-subtle">
               Nenhuma receita usa este pré-preparo ainda.
             </p>
           ) : (
@@ -893,10 +893,10 @@ export default function FichaTecnicaPage() {
                   <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)}
                     className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:bg-slate-50">
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-slate-700">{f.nome_receita}</span>
-                      <span className="text-xs text-slate-400">{f.categoria || "Sem categoria"}</span>
+                      <span className="block truncate text-sm font-medium text-fg-soft">{f.nome_receita}</span>
+                      <span className="text-xs text-subtle">{f.categoria || "Sem categoria"}</span>
                     </span>
-                    <ChevronRight size={16} className="shrink-0 text-slate-300" />
+                    <ChevronRight size={16} className="shrink-0 text-dim" />
                   </button>
                 </li>
               ))}
@@ -937,7 +937,7 @@ export default function FichaTecnicaPage() {
                 </Field>
               </div>
               {form.metodo_bar ? (
-                <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-muted">
                   {METODOS_BAR.find(m => m.id === form.metodo_bar)?.ajuda}
                 </p>
               ) : null}
@@ -986,12 +986,12 @@ export default function FichaTecnicaPage() {
           ? "Pré-preparo não é vendido: o que importa aqui é quanto custa cada unidade que vai para os pratos."
           : "Os custos indiretos entram sobre o custo direto da receita."}>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
+          <div className="rounded-2xl border border-line bg-slate-50 p-3 text-sm">
             <Linha rotulo="Ingredientes" valor={fmtBRL(calc.custoIngredientes)} />
             <Linha rotulo="Subreceitas" valor={fmtBRL(calc.custoSubreceitas)} />
             <Linha rotulo="Embalagem" valor={fmtBRL(calc.custoEmbalagem)} />
             <Linha rotulo="Custos indiretos" valor={fmtBRL(calc.custoIndireto)} />
-            <div className="mt-2 border-t border-slate-200 pt-2">
+            <div className="mt-2 border-t border-line pt-2">
               <Linha rotulo={ehPreparo ? "Custo do lote" : "Custo total"} valor={fmtBRL(calc.custoTotal)} forte />
               {ehPreparo ? (
                 <Linha rotulo={`Custo por ${ficha.rendimento_unidade || "unidade"}`}
@@ -1026,7 +1026,7 @@ export default function FichaTecnicaPage() {
                   onChange={e => mudar("cmv_meta", e.target.value)} />
               </Field>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm">
+            <div className="rounded-2xl border border-line bg-card p-3 text-sm">
               <Linha rotulo="CMV" valor={calc.cmv ? fmtPct(calc.cmv) : "—"} />
               <Linha rotulo="Margem bruta" valor={calc.preco ? fmtBRL(calc.margem) : "—"} />
               <Linha rotulo="Margem bruta %" valor={calc.preco ? fmtPct(calc.margemPct) : "—"} />
@@ -1036,18 +1036,18 @@ export default function FichaTecnicaPage() {
         </div>
 
         {/* Simulador de CMV */}
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+        <div className="mt-4 rounded-2xl border border-line bg-slate-50 p-3">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-fg-soft">
             <Percent size={14} /> Simulador de CMV
           </div>
-          <p className="mt-0.5 text-2xs text-slate-500">Com que preço a receita fecha no CMV desejado.</p>
+          <p className="mt-0.5 text-2xs text-muted">Com que preço a receita fecha no CMV desejado.</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {CMV_ATALHOS.map(v => (
               <button key={v} onClick={() => setCmvSimulado(String(v))}
                 className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
                   String(v) === String(cmvSimulado)
                     ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"}`}>
+                    : "border border-line bg-card text-slate-600 hover:bg-elevated"}`}>
                 {v}%
               </button>
             ))}
@@ -1057,7 +1057,7 @@ export default function FichaTecnicaPage() {
             </div>
             {precoAlvo > 0 ? (
               <div className="ml-auto text-right">
-                <div className="text-2xs uppercase tracking-wide text-slate-500">Preço sugerido</div>
+                <div className="text-2xs uppercase tracking-wide text-muted">Preço sugerido</div>
                 <div className="text-lg font-bold tabular-nums text-emerald-600">{fmtBRL(precoAlvo)}</div>
               </div>
             ) : null}
@@ -1097,7 +1097,7 @@ export default function FichaTecnicaPage() {
           <>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm">
-                <span className="text-slate-500">Custo atual: </span>
+                <span className="text-muted">Custo atual: </span>
                 <span className="font-bold text-slate-800">{fmtBRL(calc.custoTotal)}</span>
                 {variacaoCusto !== null ? (
                   <span className={`ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-bold ${
@@ -1108,21 +1108,21 @@ export default function FichaTecnicaPage() {
                 ) : null}
               </div>
               <button onClick={registrarCustoAtual} disabled={registrandoCusto}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
                 {registrandoCusto ? <Loader2 size={14} className="animate-spin" /> : <LineChart size={14} />}
                 Registrar custo de hoje
               </button>
             </div>
 
             {historico.length === 0 ? (
-              <p className="py-4 text-center text-sm text-slate-400">
+              <p className="py-4 text-center text-sm text-subtle">
                 Nenhum registro ainda. O custo é gravado quando a receita muda, ou pelo botão acima.
               </p>
             ) : (
               <div className="-mx-1 overflow-x-auto">
                 <table className="w-full min-w-[440px] text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-left text-2xs uppercase tracking-wide text-slate-400">
+                    <tr className="border-b border-line-soft text-left text-2xs uppercase tracking-wide text-subtle">
                       <th className="px-1 pb-2 font-medium">Data</th>
                       <th className="px-1 pb-2 text-right font-medium">Custo total</th>
                       <th className="px-1 pb-2 text-right font-medium">Variação</th>
@@ -1137,11 +1137,11 @@ export default function FichaTecnicaPage() {
                           {fmtBRL(h.custo_total)}
                         </td>
                         <td className={`px-1 py-2 text-right tabular-nums font-medium ${
-                          h.diferenca_pct > 0 ? "text-rose-600" : h.diferenca_pct < 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                          h.diferenca_pct > 0 ? "text-rose-600" : h.diferenca_pct < 0 ? "text-emerald-600" : "text-subtle"}`}>
                           {h.diferenca_pct == null ? "—"
                             : `${h.diferenca_pct > 0 ? "+" : ""}${fmtPct(h.diferenca_pct)}`}
                         </td>
-                        <td className="px-1 py-2 text-xs text-slate-400">
+                        <td className="px-1 py-2 text-xs text-subtle">
                           {h.ingrediente_gatilho || h.origem || "—"}
                         </td>
                       </tr>
@@ -1149,7 +1149,7 @@ export default function FichaTecnicaPage() {
                   </tbody>
                 </table>
                 {historico.length > 20 ? (
-                  <p className="pt-2 text-center text-xs text-slate-400">
+                  <p className="pt-2 text-center text-xs text-subtle">
                     Mostrando os 20 registros mais recentes de {historico.length}.
                   </p>
                 ) : null}
@@ -1165,17 +1165,17 @@ export default function FichaTecnicaPage() {
       {modalVersoes ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
           onClick={() => setModalVersoes(false)}>
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-white p-4 sm:rounded-3xl"
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-card p-4 sm:rounded-3xl"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-800">Histórico de versões</h2>
-              <button onClick={() => setModalVersoes(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+              <button onClick={() => setModalVersoes(false)} className="rounded-lg p-1.5 text-subtle hover:bg-elevated">
                 <X size={18} />
               </button>
             </div>
 
             {versoes.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">
+              <p className="py-8 text-center text-sm text-subtle">
                 Nenhuma versão registrada ainda. Use “Nova versão” para congelar o estado atual da ficha.
               </p>
             ) : comparando ? (
@@ -1185,14 +1185,14 @@ export default function FichaTecnicaPage() {
                 {versoes.map((v, i) => {
                   const anterior = versoes[i + 1];
                   return (
-                    <li key={v.id} className="rounded-2xl border border-slate-200 p-3">
+                    <li key={v.id} className="rounded-2xl border border-line p-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-lg bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">v{v.versao}</span>
-                        <span className="text-xs text-slate-500">{fmtData(v.created_at)}</span>
-                        {v.usuario_nome ? <span className="text-xs text-slate-400">· {v.usuario_nome}</span> : null}
+                        <span className="text-xs text-muted">{fmtData(v.created_at)}</span>
+                        {v.usuario_nome ? <span className="text-xs text-subtle">· {v.usuario_nome}</span> : null}
                         {anterior ? (
                           <button onClick={() => setComparando({ a: anterior, b: v })}
-                            className="ml-auto rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                            className="ml-auto rounded-lg border border-line px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
                             Comparar com v{anterior.versao}
                           </button>
                         ) : null}
@@ -1209,7 +1209,7 @@ export default function FichaTecnicaPage() {
 
       {/* Barra fixa de salvar no celular */}
       {sujo ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 p-3 backdrop-blur sm:hidden">
           <Btn onClick={salvar} disabled={salvando} className="w-full justify-center">
             {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             <span className="ml-1.5">Salvar alterações</span>
@@ -1226,7 +1226,7 @@ function AcaoBtn({ icone: Icone, children, onClick, destaque = false, carregando
       className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${
         destaque
           ? "bg-slate-900 text-white hover:bg-slate-700"
-          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+          : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
       {carregando ? <Loader2 size={15} className="animate-spin" /> : <Icone size={15} />}
       {children}
     </button>
@@ -1258,19 +1258,19 @@ function ComparacaoVersoes({ par, onVoltar }) {
   const diferencas = compararVersoes(par.a.snapshot, par.b.snapshot);
   return (
     <div className="mt-3">
-      <button onClick={onVoltar} className="mb-3 flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700">
+      <button onClick={onVoltar} className="mb-3 flex items-center gap-1 text-sm font-medium text-muted hover:text-fg-soft">
         <ArrowLeft size={15} /> Voltar ao histórico
       </button>
-      <p className="text-sm font-semibold text-slate-700">
-        v{par.a.versao} <span className="text-slate-400">→</span> v{par.b.versao}
+      <p className="text-sm font-semibold text-fg-soft">
+        v{par.a.versao} <span className="text-subtle">→</span> v{par.b.versao}
       </p>
       {diferencas.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-400">Nada mudou entre estas duas versões.</p>
+        <p className="py-6 text-center text-sm text-subtle">Nada mudou entre estas duas versões.</p>
       ) : (
         <ul className="mt-2 space-y-1.5">
           {diferencas.map(d => (
-            <li key={d.campo} className="rounded-xl border border-slate-200 p-2.5 text-sm">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <li key={d.campo} className="rounded-xl border border-line p-2.5 text-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-subtle">
                 {ROTULO_CAMPO[d.campo] || d.campo}
               </div>
               <div className="mt-1 grid gap-1 sm:grid-cols-2">
@@ -1294,8 +1294,8 @@ function ComparacaoVersoes({ par, onVoltar }) {
 function Linha({ rotulo, valor, forte = false }) {
   return (
     <div className="flex items-center justify-between py-0.5">
-      <span className={forte ? "font-semibold text-slate-700" : "text-slate-500"}>{rotulo}</span>
-      <span className={`tabular-nums ${forte ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>{valor}</span>
+      <span className={forte ? "font-semibold text-fg-soft" : "text-muted"}>{rotulo}</span>
+      <span className={`tabular-nums ${forte ? "font-bold text-fg" : "font-medium text-fg-soft"}`}>{valor}</span>
     </div>
   );
 }

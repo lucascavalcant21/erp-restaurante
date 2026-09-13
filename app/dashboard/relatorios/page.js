@@ -184,7 +184,7 @@ export default function RelatorioGerencial() {
           </p>
         </div>
         <div className="flex items-center gap-3 print:hidden">
-          <div className="flex bg-white rounded-xl shadow-sm border border-slate-200 p-1">
+          <div className="flex bg-card rounded-xl shadow-sm border border-line p-1">
             {[7, 15, 30].map(d => (
               <button key={d} onClick={() => setDias(d)}
                 className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${dias === d ? "text-white" : ""}`}

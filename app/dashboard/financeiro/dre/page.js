@@ -68,18 +68,18 @@ export default function DreGerencialPage() {
          
          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-5xl mx-auto">
             <div>
-               <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
+               <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-2">
                   <BarChart3 size={14}/> Engenharia Financeira
                </p>
                <h1 className="text-3xl md:text-5xl font-black tracking-tighter">DRE Gerencial.</h1>
-               <p className="text-sm font-medium text-slate-500 mt-2">Demonstrativo de Resultados do Exercício da {unidadeInfo.nome}</p>
+               <p className="text-sm font-medium text-muted mt-2">Demonstrativo de Resultados do Exercício da {unidadeInfo.nome}</p>
             </div>
             
             <div className="flex bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-700">
                {["Semanal", "Mensal", "Anual"].map(p => (
                   <button 
                     key={p} onClick={() => setPeriodoLetra(p)}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}
+                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-card text-fg shadow-sm' : 'text-muted hover:text-white'}`}
                   >
                     {p}
                   </button>
@@ -112,7 +112,7 @@ export default function DreGerencialPage() {
                    
                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/20 backdrop-blur-md mt-2">
                       <span className="font-bold text-sm">Margem Líquida</span>
-                      <span className="font-black text-lg bg-white text-slate-900 px-2 py-0.5 rounded-lg ml-1 shadow-sm">{fmtPct(dre.margem)}</span>
+                      <span className="font-black text-lg bg-card text-fg px-2 py-0.5 rounded-lg ml-1 shadow-sm">{fmtPct(dre.margem)}</span>
                    </div>
                    
                    <p className="text-xs font-medium text-white/80 mt-6 leading-relaxed">
@@ -123,18 +123,18 @@ export default function DreGerencialPage() {
                 </div>
 
                 {/* Resumo Rápido */}
-                <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200">
+                <div className="bg-card p-6 rounded-[24px] shadow-sm border border-line">
                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2"><Info size={16}/> Resumo do Período</h3>
                    
                    <div className="space-y-4">
                       <div>
-                         <p className="text-2xs font-bold text-slate-500 uppercase">Receitas Geradas</p>
-                         <p className="text-xl font-black text-slate-900">{fmtBRL(dre.receitaBruta)}</p>
+                         <p className="text-2xs font-bold text-muted uppercase">Receitas Geradas</p>
+                         <p className="text-xl font-black text-fg">{fmtBRL(dre.receitaBruta)}</p>
                       </div>
-                      <div className="w-full h-px bg-slate-100"></div>
+                      <div className="w-full h-px bg-elevated"></div>
                       <div>
-                         <p className="text-2xs font-bold text-slate-500 uppercase">Custos Consumidos</p>
-                         <p className="text-xl font-black text-slate-900">{fmtBRL(dre.despesaTotal)}</p>
+                         <p className="text-2xs font-bold text-muted uppercase">Custos Consumidos</p>
+                         <p className="text-xl font-black text-fg">{fmtBRL(dre.despesaTotal)}</p>
                       </div>
                    </div>
                 </div>
@@ -143,12 +143,12 @@ export default function DreGerencialPage() {
 
              {/* COLUNA DIREITA: TABELA DRE NÍVEL WALL STREET (2/3) */}
              <div className="lg:col-span-2">
-                <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-card rounded-[32px] shadow-sm border border-line overflow-hidden">
                    
                    {/* Cabeçalho Tabela */}
-                   <div className="bg-slate-50 px-4 sm:px-6 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Descrição da Conta</span>
-                      <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Valor Acumulado</span>
+                   <div className="bg-slate-50 px-4 sm:px-6 py-4 border-b border-line flex flex-wrap justify-between items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted">Descrição da Conta</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted">Valor Acumulado</span>
                    </div>
 
                    {/* Linha: Receita Operacional Bruta */}
@@ -156,7 +156,7 @@ export default function DreGerencialPage() {
                      codigo="1" 
                      label="(=) Receita Operacional Bruta" 
                      valor={dre.receitaBruta} 
-                     cor="text-slate-900" 
+                     cor="text-fg" 
                      bg="bg-slate-100/50" 
                    />
 
@@ -174,16 +174,16 @@ export default function DreGerencialPage() {
                       {Object.entries(dre.categorias).sort((a, b) => b[1] - a[1]).map(([cat, val], idx) => (
                          <div key={cat} className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 hover:bg-slate-50 transition-colors group">
                             <div className="flex items-center gap-3">
-                               <span className="text-3xs font-bold text-slate-500 w-4">{idx + 1}</span>
-                               <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{cat}</span>
+                               <span className="text-3xs font-bold text-muted w-4">{idx + 1}</span>
+                               <span className="text-sm font-bold text-slate-600 group-hover:text-fg transition-colors">{cat}</span>
                             </div>
-                            <span className="text-sm font-medium text-slate-500 font-mono">
+                            <span className="text-sm font-medium text-muted font-mono">
                                - {fmtBRL(val)}
                             </span>
                          </div>
                       ))}
                       {Object.keys(dre.categorias).length === 0 && (
-                         <div className="px-6 py-4 text-sm text-slate-500 font-medium">Nenhuma despesa registrada.</div>
+                         <div className="px-6 py-4 text-sm text-muted font-medium">Nenhuma despesa registrada.</div>
                       )}
                    </div>
 
@@ -248,9 +248,9 @@ export default function DreGerencialPage() {
 
 function LinhaTotal({ codigo, label, valor, cor, bg }) {
   return (
-    <div className={`flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 ${bg}`}>
+    <div className={`flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-4 border-b border-line ${bg}`}>
       <div className="flex items-center gap-3">
-         <span className="text-3xs font-bold text-slate-500 border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-white">{codigo}</span>
+         <span className="text-3xs font-bold text-muted border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-card">{codigo}</span>
          <span className={`text-sm font-black uppercase tracking-widest ${cor}`}>{label}</span>
       </div>
       <span className={`text-lg font-black font-mono ${cor}`}>{fmtBRL(valor)}</span>

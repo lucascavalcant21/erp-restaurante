@@ -355,7 +355,7 @@ export default function DashboardGestao() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="p-6 sm:p-8 max-w-7xl mx-auto">
-        <div className="erp-card p-10 text-center text-slate-500 font-bold">Selecione uma unidade no topo para ver o painel de gestão.</div>
+        <div className="erp-card p-10 text-center text-muted font-bold">Selecione uma unidade no topo para ver o painel de gestão.</div>
       </div>
     );
   }

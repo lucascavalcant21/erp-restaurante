@@ -76,43 +76,43 @@ export default function RecipeWorkspace({
   const bar = setor === "bar";
 
   return (
-    <header className="border-b border-slate-200 bg-white shadow-sm">
+    <header className="border-b border-line bg-card shadow-sm">
       <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={abrirMenu}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:bg-elevated hover:text-fg transition"
               title="Voltar ao menu"
             >
               <ArrowLeft size={19} />
             </button>
             <div>
               <div className="flex items-center gap-2.5">
-                <div className="flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200/80">
+                <div className="flex items-center rounded-xl bg-elevated p-0.5 border border-slate-200/80">
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=cozinha`)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${!bar ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${!bar ? "bg-card text-emerald-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
                   >
                     👨‍🍳 Cozinha
                   </button>
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=bar`)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${bar ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${bar ? "bg-card text-violet-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
                   >
                     🍹 Bar
                   </button>
                 </div>
                 {Number.isFinite(Number(total)) && (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-3xs font-bold text-slate-600">
+                  <span className="rounded-full bg-elevated px-2.5 py-0.5 text-3xs font-bold text-slate-600">
                     {total} cadastrado{Number(total) === 1 ? "" : "s"}
                   </span>
                 )}
               </div>
               <h1 className="text-2xl font-black tracking-tight text-slate-950 mt-1">{title}</h1>
-              {description && <p className="text-sm font-medium text-slate-500">{description}</p>}
+              {description && <p className="text-sm font-medium text-muted">{description}</p>}
             </div>
           </div>
 
@@ -143,25 +143,25 @@ export default function RecipeWorkspace({
                 className={`group flex items-center gap-3 rounded-2xl border p-2.5 text-left transition-all ${
                   ativo
                     ? (bar ? "border-violet-300 bg-violet-50/70 text-violet-950 shadow-sm" : "border-emerald-300 bg-emerald-50/70 text-emerald-950 shadow-sm")
-                    : "border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100/80"
+                    : "border-line bg-slate-50/50 text-fg-soft hover:bg-slate-100/80"
                 }`}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                     ativo
                       ? (bar ? "bg-violet-600 text-white" : "bg-emerald-600 text-white")
-                      : "bg-white border border-slate-200 text-slate-500"
+                      : "bg-card border border-line text-muted"
                   }`}
                 >
                   <Icon size={17} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-3xs font-bold uppercase tracking-widest ${ativo ? (bar ? "text-violet-600" : "text-emerald-600") : "text-slate-400"}`}>
+                  <span className={`block text-3xs font-bold uppercase tracking-widest ${ativo ? (bar ? "text-violet-600" : "text-emerald-600") : "text-subtle"}`}>
                     Etapa {index + 1}
                   </span>
                   <span className="block text-xs font-bold leading-tight break-words">{etapa.label}</span>
                 </span>
-                <ArrowRight size={14} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? (bar ? "text-violet-600" : "text-emerald-600") : "text-slate-400"}`} />
+                <ArrowRight size={14} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? (bar ? "text-violet-600" : "text-emerald-600") : "text-subtle"}`} />
               </button>
             );
           })}

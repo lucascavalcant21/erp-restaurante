@@ -787,7 +787,7 @@ function RotinaRunner() {
                     <p className="text-2xs font-medium text-emerald-800">Veja a foto de como a área inteira deve estar organizada ao final do turno.</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)} className="px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100 shadow-sm shrink-0">
+                <button type="button" onClick={() => setFotoAmpliada(checklistAtual.foto_ambiente)} className="px-3 py-1.5 rounded-xl bg-card border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100 shadow-sm shrink-0">
                   Ampliar Foto
                 </button>
               </div>
@@ -853,7 +853,7 @@ function RotinaRunner() {
               <div>
                 <label className="text-3xs font-bold uppercase tracking-widest" style={{ color: t.cor }}>Pessoa responsável por tudo</label>
                 <select value={colabSelecionado} onChange={e => atribuirTodos(e.target.value)} disabled={registrado || salvando || concluidas > 0}
-                  className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
+                  className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none"
                   style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
                   <option value="">-- Selecione o funcionário --</option>
                   {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
@@ -863,7 +863,7 @@ function RotinaRunner() {
               <div>
                 <label className="text-3xs font-bold uppercase tracking-widest" style={{ color: t.cor }}>Quem confere e finaliza?</label>
                 <select value={colabSelecionado} onChange={e => setColabSelecionado(e.target.value)} disabled={registrado || salvando}
-                  className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
+                  className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none"
                   style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
                   <option value="">-- Selecione quem vai conferir --</option>
                   {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
@@ -875,29 +875,29 @@ function RotinaRunner() {
 
           {/* Modo rápido: mostra uma ação por vez, com o padrão visual em destaque. */}
           {proximaPendente && !registrado && (
-            <section className="overflow-hidden rounded-3xl border-2 bg-white shadow-lg" style={{ borderColor: `${t.cor}75` }}>
+            <section className="overflow-hidden rounded-3xl border-2 bg-card shadow-lg" style={{ borderColor: `${t.cor}75` }}>
               <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: t.corClara }}>
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-black text-white" style={{ background: t.cor }}>{indiceProxima + 1}</span>
                   <div className="min-w-0">
                     <p className="text-3xs font-bold uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Próxima ação</p>
-                    <h2 className="text-lg font-black leading-tight text-slate-900 sm:text-xl">{proximaPendente.texto}</h2>
+                    <h2 className="text-lg font-black leading-tight text-fg sm:text-xl">{proximaPendente.texto}</h2>
                   </div>
                 </div>
-                {Number(proximaPendente.tempo_minutos) > 0 && <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-white px-3 py-2 text-xs font-bold shadow-sm" style={{ color: t.corTexto }}><Clock3 size={14}/>{Number(proximaPendente.tempo_minutos)} min</span>}
+                {Number(proximaPendente.tempo_minutos) > 0 && <span className="flex shrink-0 items-center gap-1.5 self-start rounded-full bg-card px-3 py-2 text-xs font-bold shadow-sm" style={{ color: t.corTexto }}><Clock3 size={14}/>{Number(proximaPendente.tempo_minutos)} min</span>}
               </div>
 
               {(proximaPendente.foto_antes || proximaPendente.foto_final) ? (
                 <div className="grid gap-2 p-3 sm:grid-cols-2">
                   {[[proximaPendente.foto_antes, "Antes do expediente"], [proximaPendente.foto_final, "Como deve ficar"]].filter(([foto]) => foto).map(([foto, label]) => (
-                    <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="group relative min-h-44 overflow-hidden rounded-2xl bg-slate-100 text-left">
+                    <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="group relative min-h-44 overflow-hidden rounded-2xl bg-elevated text-left">
                       <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-44 w-full object-cover transition group-hover:scale-105 sm:h-52" />
                       <span className="absolute inset-x-0 bottom-0 bg-slate-950/80 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white">{label}</span>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="mx-3 mt-3 flex min-h-24 items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 text-center text-sm font-bold text-slate-500">
+                <div className="mx-3 mt-3 flex min-h-24 items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 text-center text-sm font-bold text-muted">
                   <ImageIcon size={20}/> Esta ação ainda não possui foto de referência.
                 </div>
               )}
@@ -905,7 +905,7 @@ function RotinaRunner() {
               <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
                 <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/20"><Check size={19}/> Feito</button>
                 <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "nao_conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-rose-100 px-4 text-sm font-black text-rose-700"><X size={19}/> Problema</button>
-                <button type="button" onClick={() => { setExp(proximaPendente.id); document.getElementById(`tarefa-${proximaPendente.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 text-sm font-black text-slate-700 sm:col-span-1"><Camera size={17}/> Foto / observação</button>
+                <button type="button" onClick={() => { setExp(proximaPendente.id); document.getElementById(`tarefa-${proximaPendente.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-elevated px-4 text-sm font-black text-fg-soft sm:col-span-1"><Camera size={17}/> Foto / observação</button>
               </div>
             </section>
           )}
@@ -1005,7 +1005,7 @@ function RotinaRunner() {
                           {(it.foto_equipamento || it.foto_antes || it.foto_final) && (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {[[it.foto_equipamento, "Equipamento"], [it.foto_antes, "Inicial (Antes)"], [it.foto_final, "Foto Gabarito (Exemplo Final)"]].filter(([foto]) => foto).map(([foto, label]) => (
-                                <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left shadow-sm hover:border-emerald-400 transition-all" title={`Ver foto de referência: ${label}`}>
+                                <button type="button" key={label} onClick={() => setFotoAmpliada(foto)} className="relative overflow-hidden rounded-xl border border-line bg-slate-50 text-left shadow-sm hover:border-emerald-400 transition-all" title={`Ver foto de referência: ${label}`}>
                                   <img src={`data:image/jpeg;base64,${foto}`} alt={label} className="h-16 w-28 object-cover" />
                                   <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 px-1.5 py-0.5 text-center text-3xs font-bold uppercase tracking-wide text-white">{label}</span>
                                 </button>
@@ -1037,7 +1037,7 @@ function RotinaRunner() {
                           className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "conforme"
                               ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-105"
-                              : "bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"
+                              : "bg-elevated text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"
                           }`}
                         >
                           <Check size={14} /> Feito
@@ -1049,7 +1049,7 @@ function RotinaRunner() {
                           className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "nao_conforme"
                               ? "bg-rose-600 text-white shadow-md shadow-rose-600/20 scale-105 animate-pulse"
-                              : "bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-800"
+                              : "bg-elevated text-slate-600 hover:bg-rose-100 hover:text-rose-800"
                           }`}
                         >
                           <X size={14} /> Problema
@@ -1061,7 +1061,7 @@ function RotinaRunner() {
                           className={`min-h-10 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                             statusItem === "na"
                               ? "bg-slate-700 text-white"
-                              : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                              : "bg-elevated text-muted hover:bg-slate-200"
                           }`}
                         >
                           N/A
@@ -1084,7 +1084,7 @@ function RotinaRunner() {
                           value={rItem.temperatura_val || ""}
                           onChange={e => mudaTemperatura(it.id, e.target.value, minTemp, maxTemp)}
                           disabled={registrado || salvando}
-                          className="w-24 p-2 bg-white border-2 border-amber-300 rounded-lg font-black text-center text-sm text-amber-950 outline-none focus:border-amber-500"
+                          className="w-24 p-2 bg-card border-2 border-amber-300 rounded-lg font-black text-center text-sm text-amber-950 outline-none focus:border-amber-500"
                         />
                         <span className="font-black text-amber-900">°C</span>
                         {(minTemp !== undefined || maxTemp !== undefined) && (
@@ -1115,7 +1115,7 @@ function RotinaRunner() {
                           value={rItem.plano_acao || ""}
                           onChange={e => mudaPlanoAcao(it.id, e.target.value)}
                           disabled={registrado || salvando}
-                          className="w-full p-2.5 bg-white border border-rose-300 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-rose-500"
+                          className="w-full p-2.5 bg-card border border-rose-300 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-rose-500"
                         />
                       </div>
                     )}
@@ -1231,12 +1231,12 @@ function RotinaRunner() {
       </PageHeader>
       <PageBody>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: t.cor }}><DIcon size={20} /></span>
             <div className="min-w-0">
-              <h1 className="truncate text-lg font-black text-slate-900">Rotinas de {t.nome}</h1>
-              <p className="text-2xs font-bold text-slate-500">{unidadeInfo?.nome || "Unidade"} · toque em preencher para começar</p>
+              <h1 className="truncate text-lg font-black text-fg">Rotinas de {t.nome}</h1>
+              <p className="text-2xs font-bold text-muted">{unidadeInfo?.nome || "Unidade"} · toque em preencher para começar</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1307,7 +1307,7 @@ function RotinaRunner() {
                     <div key={tmpl.id} className="erp-card !p-0 overflow-hidden hover:shadow-lg transition-all duration-200"
                       style={{ borderLeft: `4px solid ${execHoje ? t.cor : t.cor}` }}>
                       {fotoCapa ? (
-                        <button type="button" onClick={() => setFotoAmpliada(fotoCapa)} className="relative block h-32 w-full overflow-hidden bg-slate-100 text-left sm:h-36">
+                        <button type="button" onClick={() => setFotoAmpliada(fotoCapa)} className="relative block h-32 w-full overflow-hidden bg-elevated text-left sm:h-36">
                           <img src={`data:image/jpeg;base64,${fotoCapa}`} alt={`Padrão de ${tmpl.titulo}`} className="h-full w-full object-cover" />
                           <span className="absolute bottom-2 left-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-3xs font-bold uppercase tracking-wide text-white"><ImageIcon size={12} className="mr-1 inline"/>Padrão visual</span>
                         </button>
@@ -1409,16 +1409,16 @@ function RotinaRunner() {
       {/* PRODUTIVIDADE INDIVIDUAL — só do setor atual, por dia/mês/ano */}
       {modalProd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalProd(false)}>
-          <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-card rounded-[28px] w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BarChart3 size={20} style={{ color: t.cor }} /> Produtividade · {t.nome}</h2>
-              <button onClick={() => setModalProd(false)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+              <button onClick={() => setModalProd(false)} className="w-9 h-9 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={17} /></button>
             </div>
-            <p className="text-xs font-medium text-slate-500 mb-3">Tarefas concluídas por pessoa, somente da equipe {t.nome}.</p>
+            <p className="text-xs font-medium text-muted mb-3">Tarefas concluídas por pessoa, somente da equipe {t.nome}.</p>
 
             {/* Período: dia / mês / ano */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              <div className="inline-flex gap-1 p-1 rounded-xl bg-slate-100">
+              <div className="inline-flex gap-1 p-1 rounded-xl bg-elevated">
                 {[["dia", "Dia"], ["mes", "Mês"], ["ano", "Ano"]].map(([v, l]) => (
                   <button key={v} onClick={() => setProdTipo(v)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
@@ -1429,15 +1429,15 @@ function RotinaRunner() {
               </div>
               {prodTipo === "dia" && (
                 <input type="date" value={prodDia} onChange={e => setProdDia(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 px-2 text-sm font-bold text-slate-700" />
+                  className="h-9 rounded-lg border border-line px-2 text-sm font-bold text-fg-soft" />
               )}
               {prodTipo === "mes" && (
                 <input type="month" value={prodMes} onChange={e => setProdMes(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 px-2 text-sm font-bold text-slate-700" />
+                  className="h-9 rounded-lg border border-line px-2 text-sm font-bold text-fg-soft" />
               )}
               {prodTipo === "ano" && (
                 <input type="number" min="2020" max="2100" value={prodAno} onChange={e => setProdAno(e.target.value)}
-                  className="h-9 w-24 rounded-lg border border-slate-200 px-2 text-sm font-bold text-slate-700" />
+                  className="h-9 w-24 rounded-lg border border-line px-2 text-sm font-bold text-fg-soft" />
               )}
               <button onClick={imprimirProdutividade} disabled={!prodDados || prodDados.length === 0}
                 className="ml-auto h-9 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-40"
@@ -1447,9 +1447,9 @@ function RotinaRunner() {
             </div>
 
             {prodLoading ? (
-              <p className="text-center font-bold text-slate-400 py-8"><Loader2 size={20} className="animate-spin inline mr-2" />Calculando...</p>
+              <p className="text-center font-bold text-subtle py-8"><Loader2 size={20} className="animate-spin inline mr-2" />Calculando...</p>
             ) : !prodDados || prodDados.length === 0 ? (
-              <p className="text-sm font-medium text-slate-400 text-center py-8">Nenhum checklist registrado neste período.</p>
+              <p className="text-sm font-medium text-subtle text-center py-8">Nenhum checklist registrado neste período.</p>
             ) : (() => {
               const max = prodDados[0].tarefas || 1;
               return (
@@ -1457,13 +1457,13 @@ function RotinaRunner() {
                   {prodDados.map((p, i) => (
                     <div key={i}>
                       <div className="flex justify-between items-baseline text-sm mb-1">
-                        <span className="font-bold text-slate-700 truncate flex items-center gap-1.5">
+                        <span className="font-bold text-fg-soft truncate flex items-center gap-1.5">
                           {i === 0 && <span className="text-3xs font-bold uppercase tracking-widest rounded px-1.5 py-0.5" style={{ color: t.corTexto, background: t.corBg, border: `1px solid ${t.corBorda}` }}>top</span>}
                           {p.nome}
                         </span>
-                        <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-3xs font-bold text-slate-400">tarefa(s) · {p.checklists} check.</span></span>
+                        <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-3xs font-bold text-subtle">tarefa(s) · {p.checklists} check.</span></span>
                       </div>
-                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-2.5 rounded-full bg-elevated overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(4, (p.tarefas / max) * 100)}%`, background: t.cor }} />
                       </div>
                     </div>
@@ -1481,7 +1481,7 @@ function RotinaRunner() {
 
 export default function RotinaPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando checklists...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando checklists...</div>}>
       <RotinaRunner />
     </Suspense>
   );

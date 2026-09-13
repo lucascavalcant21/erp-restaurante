@@ -19,7 +19,7 @@ export function CupomTermico({ pedido, unidadeInfo, tipo = "parcial" }) {
   const dataEmissao = new Date().toLocaleString("pt-BR");
 
   return (
-    <div className="print-section text-black bg-white font-mono text-xs leading-tight" style={{ width: "80mm", margin: "0 auto", padding: "5mm" }}>
+    <div className="print-section text-black bg-card font-mono text-xs leading-tight" style={{ width: "80mm", margin: "0 auto", padding: "5mm" }}>
       {/* CABEÇALHO */}
       <div className="text-center mb-4">
         <h1 className="font-bold text-[16px] uppercase">{unidadeInfo?.nome || "Meu Restaurante"}</h1>

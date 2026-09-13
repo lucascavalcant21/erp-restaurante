@@ -2387,27 +2387,27 @@ function FichasRunner() {
         .erp-fichas-card { border-color: #dbe2ee; box-shadow: 0 5px 18px rgb(30 41 59 / .06); }
         .erp-fichas-card:hover { box-shadow: 0 12px 28px rgb(154 52 18 / .10); }
       `}</style>
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-line bg-card">
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900" title="Voltar ao menu">
+              <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:text-fg" title="Voltar ao menu">
                 <ArrowLeft size={19} />
               </button>
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-black tracking-tight text-slate-950">Fichas Técnicas</h1>
-                <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/80">
+                <div className="flex items-center rounded-xl bg-elevated p-1 border border-slate-200/80">
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl !== "bar" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl !== "bar" ? "bg-card text-emerald-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
                   >
                     👨‍🍳 Cozinha
                   </button>
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl === "bar" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl === "bar" ? "bg-card text-emerald-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
                   >
                     🍹 Bar
                   </button>
@@ -2415,28 +2415,28 @@ function FichasRunner() {
               </div>
             </div>
             <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
-              <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
-                <Search size={19} className="shrink-0 text-slate-700" />
-                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
-                {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
+              <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-card px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
+                <Search size={19} className="shrink-0 text-fg-soft" />
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle" />
+                {busca && <button onClick={() => setBusca("")} className="text-subtle hover:text-fg-soft" title="Limpar busca"><X size={16} /></button>}
               </label>
               <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
               <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>
             </div>
           </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
-            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
-            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
-            {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>}
+          <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-line bg-slate-50 p-2">
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated"><Printer size={14} /> Livro de receitas</button>
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated"><Download size={14} /> Baixar PDF</button>
+            {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated"><Calculator size={14} /> Custos e CMV</button>}
             {podeVerCustos && (
               <button onClick={() => setVerPizza(v => !v)} title="Mostra em cada ficha para onde vai cada real da venda"
-                className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${verPizza ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"}`}>
+                className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${verPizza ? "bg-emerald-600 text-white" : "border border-line bg-card text-fg-soft hover:bg-elevated"}`}>
                 <PieChart size={14} /> {verPizza ? "Ver números" : "Pizza do lucro"}
               </button>
             )}
-            <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
+            <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
-            <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
+            <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
           </div>
         </div>
       </header>
@@ -2444,7 +2444,7 @@ function FichasRunner() {
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
          <div className="mb-2 flex justify-end">
-           <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50">
+           <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex min-h-9 items-center gap-2 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50">
              <BarChart3 size={15} /> {mostrarIndicadores ? "Ocultar indicadores" : "Ver indicadores"}
            </button>
          </div>
@@ -2468,10 +2468,10 @@ function FichasRunner() {
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
                   {cardsPreparo.map(c => (
-                    <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-amber-50 border-amber-200" : "bg-white border-amber-100"}`}>
-                      <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                    <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-amber-50 border-amber-200" : "bg-card border-amber-100"}`}>
+                      <p className="text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
                       <p className={`text-lg font-black mt-0.5 ${c.alerta ? "text-amber-700" : "text-orange-700"}`}>{c.val}</p>
-                      <p className="text-3xs font-bold text-slate-400 truncate">{c.sub}</p>
+                      <p className="text-3xs font-bold text-subtle truncate">{c.sub}</p>
                     </div>
                   ))}
                 </div>
@@ -2522,15 +2522,15 @@ function FichasRunner() {
                                  ? "bg-red-600 text-white border-red-700 ring-4 ring-red-500/20"
                                  : c.alerta
                                  ? "bg-red-50 border-red-200 hover:border-red-300"
-                                 : "bg-white border-slate-200"
+                                 : "bg-card border-line"
                            }`}
                         >
-                           <p className={`text-3xs font-bold uppercase tracking-wider leading-tight flex items-center justify-between ${ativo ? "text-red-100" : "text-slate-400"}`}>
+                           <p className={`text-3xs font-bold uppercase tracking-wider leading-tight flex items-center justify-between ${ativo ? "text-red-100" : "text-subtle"}`}>
                               <span>{c.rot}</span>
                               {isAcima && <span className={`text-3xs font-bold ${ativo ? "text-white" : "text-red-500"}`}>{ativo ? "✓ FILTRADO" : "🔍 FILTRAR"}</span>}
                            </p>
                            <p className={`text-lg font-black mt-0.5 ${ativo ? "text-white" : c.alerta ? "text-red-600" : "text-emerald-700"}`}>{c.val}</p>
-                           <p className={`text-3xs font-bold truncate ${ativo ? "text-red-100" : "text-slate-400"}`}>{c.sub}</p>
+                           <p className={`text-3xs font-bold truncate ${ativo ? "text-red-100" : "text-subtle"}`}>{c.sub}</p>
                         </div>
                      );
                   })}
@@ -2571,14 +2571,14 @@ function FichasRunner() {
                 className={`rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
                   filtroStatus === op.id
                     ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                    : "border border-line bg-card text-muted hover:bg-slate-50"
                 }`}
               >
                 {op.rotulo}
               </button>
             ))}
             {filtroStatus !== "ativas" && (
-              <span className="text-2xs font-bold text-slate-400">
+              <span className="text-2xs font-bold text-subtle">
                 {filtradas.length} ficha(s)
               </span>
             )}
@@ -2605,12 +2605,12 @@ function FichasRunner() {
                 type="button"
                 key={item.id}
                 onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(false); }}
-                className={`min-h-[58px] rounded-xl border p-2.5 text-left transition-all sm:min-h-[66px] sm:p-3 ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"}`}
+                className={`min-h-[58px] rounded-xl border p-2.5 text-left transition-all sm:min-h-[66px] sm:p-3 ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-line bg-card hover:border-slate-300 hover:shadow-sm"}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-600"}`}>{item.icone}</span>
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-elevated text-slate-600"}`}>{item.icone}</span>
                   <span className="min-w-0">
-                    <span className="block text-sm sm:text-base font-black leading-tight text-slate-900">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
+                    <span className="block text-sm sm:text-base font-black leading-tight text-fg">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
                   </span>
                 </div>
               </button>
@@ -2622,7 +2622,7 @@ function FichasRunner() {
              <button type="button" onClick={() => setCategoriasRecolhidas(valor => !valor)} className="flex min-h-10 flex-1 items-center gap-2 rounded-lg px-2 text-left text-sm font-black text-slate-800 hover:bg-white/70" aria-expanded={!categoriasRecolhidas}>
                <ChevronRight size={18} className={`transition-transform ${categoriasRecolhidas ? "" : "rotate-90"}`} />
                {modoFicha === "preparos" ? "Categorias de preparos" : deptUrl === "bar" ? "Categorias de bebidas e drinks" : "Categorias de pratos"}
-               <span className="rounded-full bg-white px-2 py-0.5 text-3xs text-slate-500">{categoriasDisponiveis.length}</span>
+               <span className="rounded-full bg-card px-2 py-0.5 text-3xs text-muted">{categoriasDisponiveis.length}</span>
              </button>
              <button type="button" onClick={() => setModalCategorias(true)} className={`flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-white ${modoFicha === "preparos" ? "bg-amber-700 hover:bg-amber-800" : "bg-emerald-700 hover:bg-emerald-800"}`}>
                <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
@@ -2634,8 +2634,8 @@ function FichasRunner() {
               return (
                 <div key={cat} className="flex items-center">
                   <button onClick={() => setTipoFiltro(cat)}
-                    className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
-                    {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-slate-400"}>({n})</span>
+                    className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-card text-fg-soft border border-line hover:bg-slate-50"}`}>
+                    {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-subtle"}>({n})</span>
                   </button>
                 </div>
               );
@@ -2646,42 +2646,42 @@ function FichasRunner() {
               ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
             ]).map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
-                {label} <span className={tipoFiltro === t ? "text-white/75" : "text-slate-400"}>({n})</span>
+                className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
+                {label} <span className={tipoFiltro === t ? "text-white/75" : "text-subtle"}>({n})</span>
               </button>
             ))}
          </div>}
          </div>
-         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-             <p className="px-2 text-xs font-bold text-slate-500">{filtradas.length} {filtradas.length === 1 ? "ficha encontrada" : "fichas encontradas"}</p>
+         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-card p-2 shadow-sm">
+             <p className="px-2 text-xs font-bold text-muted">{filtradas.length} {filtradas.length === 1 ? "ficha encontrada" : "fichas encontradas"}</p>
              <div className="flex flex-wrap items-center gap-2">
-                <button onClick={selecionarPaginaLote} disabled={!fichasPagina.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 disabled:opacity-50">
+                <button onClick={selecionarPaginaLote} disabled={!fichasPagina.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-line disabled:opacity-50">
                   <CheckSquare2 size={15} className="inline mr-1.5" /> Selecionar página
                 </button>
-                <button onClick={selecionarResultadoLote} disabled={!filtradas.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 disabled:opacity-50">
+                <button onClick={selecionarResultadoLote} disabled={!filtradas.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-line disabled:opacity-50">
                   Selecionar resultado ({filtradas.length})
                 </button>
-                {selecionadas.length > 0 && <button onClick={limparSelecaoLote} className="text-xs font-bold text-slate-500 hover:text-rose-600 px-3 py-2">Limpar seleção</button>}
+                {selecionadas.length > 0 && <button onClick={limparSelecaoLote} className="text-xs font-bold text-muted hover:text-rose-600 px-3 py-2">Limpar seleção</button>}
              </div>
          </div>
 
          {selecionadas.length > 0 && (
-           <div className="sticky top-2 z-30 mb-4 rounded-2xl border border-emerald-200 bg-white p-3 shadow-lg shadow-emerald-900/10">
+           <div className="sticky top-2 z-30 mb-4 rounded-2xl border border-emerald-200 bg-card p-3 shadow-lg shadow-emerald-900/10">
              <div className="flex flex-col xl:flex-row xl:items-center gap-3">
                <div className="flex items-center justify-between gap-3 xl:min-w-48">
                  <div>
                    <p className="text-sm font-black text-slate-800">{selecionadas.length} {selecionadas.length === 1 ? "ficha selecionada" : "fichas selecionadas"}</p>
-                   <p className="text-3xs font-bold text-slate-400 uppercase tracking-wider">A seleção continua ao trocar de página</p>
+                   <p className="text-3xs font-bold text-subtle uppercase tracking-wider">A seleção continua ao trocar de página</p>
                  </div>
-                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="xl:hidden p-2 rounded-lg bg-slate-100 text-slate-500"><X size={16}/></button>
+                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="xl:hidden p-2 rounded-lg bg-elevated text-muted"><X size={16}/></button>
                </div>
                <div className="flex flex-wrap gap-2 xl:flex-1 xl:justify-end">
                  <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800"><Printer size={15}/> Imprimir</button>
-                 <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
-                 <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
-                 <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
+                 <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
+                 <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
+                 <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
                   <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>
-                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-800"><X size={16}/></button>
+                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-elevated text-muted hover:text-slate-800"><X size={16}/></button>
                </div>
              </div>
            </div>
@@ -2701,12 +2701,12 @@ function FichasRunner() {
          )}
 
          {loading ? (
-            <p className="font-bold text-slate-500">Buscando receitas...</p>
+            <p className="font-bold text-muted">Buscando receitas...</p>
          ) : filtradas.length === 0 ? (
-            <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
-               <LayoutList size={40} className="mx-auto text-slate-500 mb-4"/>
-               <h3 className="text-xl font-black text-slate-700">Nenhuma ficha encontrada</h3>
-               <p className="text-slate-500 mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
+            <div className="text-center p-10 bg-card border border-line rounded-3xl">
+               <LayoutList size={40} className="mx-auto text-muted mb-4"/>
+               <h3 className="text-xl font-black text-fg-soft">Nenhuma ficha encontrada</h3>
+               <p className="text-muted mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
             </div>
          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
@@ -2719,18 +2719,18 @@ function FichasRunner() {
                        key={f.id}
                        onDragOver={e => { if (dragId) e.preventDefault(); }}
                        onDrop={() => reordenar(dragId, f.id)}
-                       className={`erp-fichas-card bg-white rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200/90'}`}
+                       className={`erp-fichas-card bg-card rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200/90'}`}
                      >
                        <div>
                          {/* TOP ROW: Nome e Botão Editar verde */}
                          <div className="flex items-start justify-between gap-3 mb-3">
                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                             <label className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                             <label className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-line bg-slate-50 cursor-pointer">
                                <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="h-4 w-4 cursor-pointer rounded accent-emerald-600"/>
                              </label>
                              <h3
                                onClick={() => abrirFicha(f)}
-                               className="text-xl font-black leading-snug text-slate-900 break-words cursor-pointer hover:text-emerald-700 transition-colors"
+                               className="text-xl font-black leading-snug text-fg break-words cursor-pointer hover:text-emerald-700 transition-colors"
                                title={f.nome_receita}
                              >
                                {f.nome_receita}
@@ -2746,7 +2746,7 @@ function FichasRunner() {
                              <button
                                onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
                                title="Mais opções"
-                               className="h-8 w-8 rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center"
+                               className="h-8 w-8 rounded-full border border-line bg-slate-50 text-muted hover:text-fg flex items-center justify-center"
                              >
                                <MoreVertical size={16} />
                              </button>
@@ -2755,14 +2755,14 @@ function FichasRunner() {
 
                          {/* Menu suspenso de ações rápidas se clicado */}
                          {acoesCardAberto === f.id && (
-                           <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-lg text-xs font-bold">
-                             <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📖 Ver Ficha</button>
+                           <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-line bg-slate-50 p-2 shadow-lg text-xs font-bold">
+                             <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📖 Ver Ficha</button>
                              {/* Ficha técnica completa: código, pesos, perdas, precificação e simulador de CMV */}
-                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📑 Ficha técnica</button>
-                             {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📋 Montagem</button>}
-                             <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🧮 Simular</button>
-                             <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">🖨️ Imprimir</button>
-                             <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-left">📄 PDF</button>
+                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📑 Ficha técnica</button>
+                             {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📋 Montagem</button>}
+                             <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">🧮 Simular</button>
+                             <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">🖨️ Imprimir</button>
+                             <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📄 PDF</button>
                              <button onClick={() => excluirImediatamente([f])} className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-left">🗑️ Excluir</button>
                            </div>
                          )}
@@ -2830,16 +2830,16 @@ function FichasRunner() {
                                  )}
                                </div>
 
-                               <div className="border-t border-slate-100 pt-2 mb-2">
-                                 <span className="text-3xs font-bold uppercase tracking-widest text-slate-400 block">COMPOSIÇÃO</span>
-                                 <span className="text-sm font-black text-slate-900">{composicaoCount} {composicaoCount === 1 ? "item" : "itens"}</span>
+                               <div className="border-t border-line-soft pt-2 mb-2">
+                                 <span className="text-3xs font-bold uppercase tracking-widest text-subtle block">COMPOSIÇÃO</span>
+                                 <span className="text-sm font-black text-fg">{composicaoCount} {composicaoCount === 1 ? "item" : "itens"}</span>
                                </div>
 
                                {/* TABELA DE VALORES COM LINHAS DIVISORAS LIMPAS */}
                                <div className="divide-y divide-slate-100 text-xs font-bold">
                                  <div className="py-2 flex items-center justify-between">
                                    <span className="text-slate-600 font-bold">Quantidade</span>
-                                   <span className="text-sm font-black text-slate-900">{rendimentoTexto}</span>
+                                   <span className="text-sm font-black text-fg">{rendimentoTexto}</span>
                                  </div>
 
                                  {/* Daqui para baixo é tudo dinheiro: só para quem tem view_costs. */}
@@ -2857,38 +2857,38 @@ function FichasRunner() {
                                  {podeVerCustos && !verPizza && <>
                                  <div className="py-2 flex items-center justify-between">
                                    <span className="text-slate-600 font-bold">Custo</span>
-                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoIngred)}</span>
+                                   <span className="text-sm font-black text-fg">{fmtBRL(custoIngred)}</span>
                                  </div>
 
                                  <div className="py-2 flex items-center justify-between">
                                    <span className="text-slate-600 font-bold">Embalagem</span>
-                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoEmb)}</span>
+                                   <span className="text-sm font-black text-fg">{fmtBRL(custoEmb)}</span>
                                  </div>
 
                                  {!f.eh_base && (
                                    <>
                                      <div className="py-2 flex items-center justify-between">
                                        <span className="text-slate-600 font-bold">Custo maquininha ({taxaMaqPct}%)</span>
-                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(custoMaquininha) : "—"}</span>
+                                       <span className="text-sm font-black text-fg">{precoPorcao > 0 ? fmtBRL(custoMaquininha) : "—"}</span>
                                      </div>
 
                                      <div className="py-2 flex items-center justify-between">
                                        <span className="text-slate-600 font-bold">Imposto ({impostoPct}%)</span>
-                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(custoImposto) : "—"}</span>
+                                       <span className="text-sm font-black text-fg">{precoPorcao > 0 ? fmtBRL(custoImposto) : "—"}</span>
                                      </div>
                                    </>
                                  )}
 
                                  <div className="py-2 flex items-center justify-between">
-                                   <span className="text-slate-700 font-black">Custo total</span>
-                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoTotalComGastos)}</span>
+                                   <span className="text-fg-soft font-black">Custo total</span>
+                                   <span className="text-sm font-black text-fg">{fmtBRL(custoTotalComGastos)}</span>
                                  </div>
 
                                  {!f.eh_base && (
                                    <>
                                      <div className="py-2 flex items-center justify-between">
                                        <span className="text-slate-600 font-bold">Venda</span>
-                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
+                                       <span className="text-sm font-black text-fg">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
                                      </div>
 
                                      <div className="py-2 flex items-center justify-between">
@@ -2901,7 +2901,7 @@ function FichasRunner() {
                                          <span className="text-slate-600 font-bold">CMV</span>
                                          <span className={`px-3 py-1 rounded-xl text-sm font-black ${
                                            cmv === null
-                                             ? "bg-slate-100 text-slate-500"
+                                             ? "bg-elevated text-muted"
                                              : cmv > meta
                                              ? "bg-red-100/90 text-red-600"
                                              : "bg-emerald-100/90 text-emerald-800"
@@ -2910,7 +2910,7 @@ function FichasRunner() {
                                          </span>
                                        </div>
                                        {margem !== null && (
-                                         <span className="text-2xs font-bold text-slate-400 mt-1">Margem {margem.toFixed(1)}%</span>
+                                         <span className="text-2xs font-bold text-subtle mt-1">Margem {margem.toFixed(1)}%</span>
                                        )}
                                      </div>
                                    </>
@@ -2927,17 +2927,17 @@ function FichasRunner() {
             </div>
          )}
          {!loading && filtradas.length > 0 && (
-           <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-             <p className="text-xs font-bold text-slate-500">
+           <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3 shadow-sm">
+             <p className="text-xs font-bold text-muted">
                Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
              </p>
              <div className="flex flex-wrap items-center justify-center gap-2">
-               <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none">
+               <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft outline-none">
                  {[8, 12, 24, 48].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
                </select>
-               <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1} title="Página anterior" className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:opacity-30"><ChevronLeft size={17}/></button>
-               <span className="min-w-24 text-center text-xs font-bold text-slate-700">Página {pagina} de {totalPaginas}</span>
-               <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas} title="Próxima página" className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:opacity-30"><ChevronRight size={17}/></button>
+               <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1} title="Página anterior" className="rounded-xl border border-line p-2 text-slate-600 disabled:opacity-30"><ChevronLeft size={17}/></button>
+               <span className="min-w-24 text-center text-xs font-bold text-fg-soft">Página {pagina} de {totalPaginas}</span>
+               <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas} title="Próxima página" className="rounded-xl border border-line p-2 text-slate-600 disabled:opacity-30"><ChevronRight size={17}/></button>
              </div>
            </div>
          )}
@@ -2946,17 +2946,17 @@ function FichasRunner() {
       {/* PRÉVIA E CONFIGURAÇÃO DA IMPRESSÃO / PDF */}
       {modalImpressao && configImpressao && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-2 sm:p-4 backdrop-blur-sm">
-          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[94vh]">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
+          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-card shadow-2xl sm:max-h-[94vh]">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-4 sm:px-6">
               <div>
                 <p className="text-3xs font-bold uppercase tracking-[0.18em] text-emerald-700">Prévia do documento</p>
-                <h2 className="text-xl font-black text-slate-900 sm:text-2xl">{modalImpressao.lista.length} {modalImpressao.lista.length === 1 ? "ficha técnica" : "fichas técnicas"}</h2>
+                <h2 className="text-xl font-black text-fg sm:text-2xl">{modalImpressao.lista.length} {modalImpressao.lista.length === 1 ? "ficha técnica" : "fichas técnicas"}</h2>
               </div>
-              <button onClick={() => setModalImpressao(null)} className="rounded-full bg-slate-100 p-3 text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+              <button onClick={() => setModalImpressao(null)} className="rounded-full bg-elevated p-3 text-muted hover:bg-slate-200"><X size={20}/></button>
             </div>
 
             <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-              <div className="space-y-5 border-b border-slate-200 bg-slate-50 p-4 sm:p-6 lg:border-b-0 lg:border-r">
+              <div className="space-y-5 border-b border-line bg-slate-50 p-4 sm:p-6 lg:border-b-0 lg:border-r">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <label className="text-xs font-bold text-slate-600">Modelo
                     <select value={configImpressao.modelo} onChange={e => {
@@ -2975,14 +2975,14 @@ function FichasRunner() {
                         responsaveis: false,
                         atualizacao: false,
                       }));
-                    }} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
+                    }} className="mt-1 w-full rounded-xl border border-line bg-card p-3 text-sm outline-none">
                       <option value="operacional">Operacional</option>
                       <option value="resumido">Resumo rápido</option>
                       <option value="livro">Livro completo</option>
                     </select>
                   </label>
                   <label className="text-xs font-bold text-slate-600">Ordem
-                    <select value={configImpressao.ordem} onChange={e => setConfigImpressao(atual => ({...atual, ordem: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
+                    <select value={configImpressao.ordem} onChange={e => setConfigImpressao(atual => ({...atual, ordem: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 text-sm outline-none">
                       <option value="selecao">Ordem da seleção</option>
                       <option value="nome">Nome A–Z</option>
                       <option value="categoria">Categoria</option>
@@ -2991,7 +2991,7 @@ function FichasRunner() {
                     </select>
                   </label>
                   <label className="text-xs font-bold text-slate-600">Formato
-                    <select value={configImpressao.formato} onChange={e => setConfigImpressao(atual => ({...atual, formato: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
+                    <select value={configImpressao.formato} onChange={e => setConfigImpressao(atual => ({...atual, formato: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 text-sm outline-none">
                       <option value="a4-retrato">A4 retrato</option>
                       <option value="a4-paisagem">A4 paisagem</option>
                     </select>
@@ -2999,7 +2999,7 @@ function FichasRunner() {
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Conteúdo incluído</p>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Conteúdo incluído</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {[
                       ["foto", "Foto"], ["ingredientes", "Ingredientes"], ["preparo", "Preparo"],
@@ -3012,7 +3012,7 @@ function FichasRunner() {
                                            ["cmv", "CMV"], ["margem", "Margem"]] : []),
                       ["capa", "Capa"], ["indice", "Índice"],
                     ].map(([campo, label]) => (
-                      <label key={campo} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                      <label key={campo} className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft">
                         <input type="checkbox" checked={!!configImpressao[campo]} onChange={e => setConfigImpressao(atual => ({...atual, [campo]: e.target.checked, ...(campo === "capa" || campo === "indice" ? { livro: e.target.checked || atual.livro } : {})}))} className="h-4 w-4 accent-emerald-700"/>
                         {label}
                       </label>
@@ -3022,14 +3022,14 @@ function FichasRunner() {
 
                 {configImpressao.ordem === "personalizada" && modalImpressao.lista.length > 1 && (
                   <div>
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Arraste a ordem com as setas</p>
-                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Arraste a ordem com as setas</p>
+                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-line bg-card p-2">
                       {listaOrdenadaPrevia().map((ficha, indice, lista) => (
                         <div key={ficha.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
-                          <span className="w-6 text-xs font-bold text-slate-400">{indice + 1}</span>
-                          <span className="flex-1 truncate text-xs font-bold text-slate-700">{ficha.nome_receita}</span>
-                          <button onClick={() => moverFichaNaPrevia(ficha.id, -1)} disabled={indice === 0} className="p-1 text-slate-500 disabled:opacity-20"><ArrowUp size={15}/></button>
-                          <button onClick={() => moverFichaNaPrevia(ficha.id, 1)} disabled={indice === lista.length - 1} className="p-1 text-slate-500 disabled:opacity-20"><ArrowDown size={15}/></button>
+                          <span className="w-6 text-xs font-bold text-subtle">{indice + 1}</span>
+                          <span className="flex-1 truncate text-xs font-bold text-fg-soft">{ficha.nome_receita}</span>
+                          <button onClick={() => moverFichaNaPrevia(ficha.id, -1)} disabled={indice === 0} className="p-1 text-muted disabled:opacity-20"><ArrowUp size={15}/></button>
+                          <button onClick={() => moverFichaNaPrevia(ficha.id, 1)} disabled={indice === lista.length - 1} className="p-1 text-muted disabled:opacity-20"><ArrowDown size={15}/></button>
                         </div>
                       ))}
                     </div>
@@ -3037,37 +3037,37 @@ function FichasRunner() {
                 )}
               </div>
 
-              <div className="bg-white p-4 sm:p-6">
-                <div className={`mx-auto min-h-[420px] max-w-2xl rounded-lg border border-slate-300 bg-white p-5 shadow-xl ${configImpressao.formato === "a4-paisagem" ? "aspect-[1.414/1]" : "aspect-[1/1.414]"}`}>
+              <div className="bg-card p-4 sm:p-6">
+                <div className={`mx-auto min-h-[420px] max-w-2xl rounded-lg border border-slate-300 bg-card p-5 shadow-xl ${configImpressao.formato === "a4-paisagem" ? "aspect-[1.414/1]" : "aspect-[1/1.414]"}`}>
                   <div className="flex items-start justify-between gap-3 border-b-2 border-emerald-700 pb-3">
                     <div>
                       <p className="text-3xs font-bold uppercase tracking-[0.2em] text-emerald-700">{configImpressao.livro ? "Livro de fichas técnicas" : "Fichas técnicas"}</p>
-                      <h3 className="mt-1 text-xl font-black text-slate-900">{unidadeInfo?.nome || "Seldeestrela"}</h3>
+                      <h3 className="mt-1 text-xl font-black text-fg">{unidadeInfo?.nome || "Seldeestrela"}</h3>
                     </div>
                     <BookOpen size={30} className="text-emerald-700"/>
                   </div>
                   <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-slate-50 p-3"><p className="text-3xs font-bold uppercase text-slate-400">Fichas</p><p className="text-2xl font-black text-slate-800">{modalImpressao.lista.length}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3"><p className="text-3xs font-bold uppercase text-slate-400">Estimativa</p><p className="text-2xl font-black text-slate-800">{estimarPaginasDocumento(modalImpressao.lista.length, configImpressao)} pág.</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3"><p className="text-3xs font-bold uppercase text-subtle">Fichas</p><p className="text-2xl font-black text-slate-800">{modalImpressao.lista.length}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3"><p className="text-3xs font-bold uppercase text-subtle">Estimativa</p><p className="text-2xl font-black text-slate-800">{estimarPaginasDocumento(modalImpressao.lista.length, configImpressao)} pág.</p></div>
                   </div>
-                  <p className="mt-5 text-3xs font-bold uppercase tracking-wider text-slate-400">Ordem do documento</p>
+                  <p className="mt-5 text-3xs font-bold uppercase tracking-wider text-subtle">Ordem do documento</p>
                   <div className="mt-2 space-y-2">
                     {listaOrdenadaPrevia().slice(0, 6).map((ficha, indice) => (
-                      <div key={ficha.id} className="flex items-center gap-3 rounded-lg border border-slate-100 px-3 py-2">
+                      <div key={ficha.id} className="flex items-center gap-3 rounded-lg border border-line-soft px-3 py-2">
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-3xs font-bold text-emerald-700">{indice + 1}</span>
-                        <span className="truncate text-xs font-bold text-slate-700">{ficha.nome_receita}</span>
+                        <span className="truncate text-xs font-bold text-fg-soft">{ficha.nome_receita}</span>
                       </div>
                     ))}
-                    {modalImpressao.lista.length > 6 && <p className="text-center text-xs font-bold text-slate-400">+ {modalImpressao.lista.length - 6} fichas no documento</p>}
+                    {modalImpressao.lista.length > 6 && <p className="text-center text-xs font-bold text-subtle">+ {modalImpressao.lista.length - 6} fichas no documento</p>}
                   </div>
-                  <p className="mt-5 text-3xs font-bold text-slate-400">Modelo {configImpressao.modelo} · {configImpressao.formato === "a4-paisagem" ? "Paisagem" : "Retrato"} · {configImpressao.capa ? "Com capa" : "Sem capa"} · {configImpressao.indice ? "Com índice" : "Sem índice"}</p>
+                  <p className="mt-5 text-3xs font-bold text-subtle">Modelo {configImpressao.modelo} · {configImpressao.formato === "a4-paisagem" ? "Paisagem" : "Retrato"} · {configImpressao.capa ? "Com capa" : "Sem capa"} · {configImpressao.indice ? "Com índice" : "Sem índice"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white p-4 sm:px-6">
-              <button onClick={() => setModalImpressao(null)} className="mr-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-100"><ArrowLeft size={17}/> Voltar</button>
-              <button onClick={salvarModeloImpressao} className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700"><Save size={17}/> Salvar modelo</button>
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-card p-4 sm:px-6">
+              <button onClick={() => setModalImpressao(null)} className="mr-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-elevated"><ArrowLeft size={17}/> Voltar</button>
+              <button onClick={salvarModeloImpressao} className="flex items-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-black text-fg-soft"><Save size={17}/> Salvar modelo</button>
               <button onClick={() => gerarDocumentoConfigurado("pdf")} className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"><Download size={17}/> Gerar PDF</button>
               <button onClick={() => gerarDocumentoConfigurado("imprimir")} className="flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800"><Printer size={17}/> Imprimir</button>
             </div>
@@ -3077,14 +3077,14 @@ function FichasRunner() {
 
       {modalCategorias && (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModalCategorias(false)}>
-          <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-card p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className={`text-xs font-bold uppercase tracking-widest ${modoFicha === "preparos" ? "text-amber-700" : "text-emerald-700"}`}>{modoFicha === "preparos" ? "Ambiente de preparos" : "Ambiente de pratos e montagens"}</p>
-                <h3 className="mt-1 text-2xl font-black text-slate-900">Gerenciar categorias de {modoFicha === "preparos" ? "preparos" : deptUrl === "bar" ? "drinks e produtos" : "pratos"}</h3>
-                <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">As categorias ficam disponíveis para toda a equipe desta unidade.</p>
+                <h3 className="mt-1 text-2xl font-black text-fg">Gerenciar categorias de {modoFicha === "preparos" ? "preparos" : deptUrl === "bar" ? "drinks e produtos" : "pratos"}</h3>
+                <p className="mt-1 text-sm font-semibold leading-relaxed text-muted">As categorias ficam disponíveis para toda a equipe desta unidade.</p>
               </div>
-              <button type="button" onClick={() => setModalCategorias(false)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><X size={20} /></button>
+              <button type="button" onClick={() => setModalCategorias(false)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-elevated text-muted hover:bg-slate-200"><X size={20} /></button>
             </div>
 
             <div className="mt-5 flex flex-col sm:flex-row gap-2">
@@ -3105,36 +3105,36 @@ function FichasRunner() {
               {categoriasDisponiveis.map(cat => {
                 const quantidade = fichasDoModo.filter(f => f.categoria === cat).length;
                 return (
-                  <div key={cat} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div key={cat} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-slate-50 px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-base font-black text-slate-800">{cat}</p>
-                      <p className="text-xs font-semibold text-slate-500">{quantidade} {quantidade === 1 ? "ficha nesta categoria" : "fichas nesta categoria"}</p>
+                      <p className="text-xs font-semibold text-muted">{quantidade} {quantidade === 1 ? "ficha nesta categoria" : "fichas nesta categoria"}</p>
                     </div>
-                    <button type="button" onClick={() => excluirCategoria(cat)} title={`Excluir categoria ${cat}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50"><Trash2 size={17} /></button>
+                    <button type="button" onClick={() => excluirCategoria(cat)} title={`Excluir categoria ${cat}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-rose-200 bg-card text-rose-600 hover:bg-rose-50"><Trash2 size={17} /></button>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-6 border-t border-slate-200 pt-5">
-              <h4 className="text-base font-black text-slate-900">Organizar {modoFicha === "preparos" ? "receitas" : deptUrl === "bar" ? "drinks" : "pratos"}</h4>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Escolha diretamente em qual categoria cada item deve aparecer.</p>
+            <div className="mt-6 border-t border-line pt-5">
+              <h4 className="text-base font-black text-fg">Organizar {modoFicha === "preparos" ? "receitas" : deptUrl === "bar" ? "drinks" : "pratos"}</h4>
+              <p className="mt-1 text-xs font-semibold text-muted">Escolha diretamente em qual categoria cada item deve aparecer.</p>
               <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
                 {[...fichasDoModo].sort(ordenarFichas).map(ficha => (
-                  <div key={ficha.id} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+                  <div key={ficha.id} className="grid gap-2 rounded-xl border border-line bg-card p-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
                     <p className="truncate text-sm font-black text-slate-800" title={ficha.nome_receita}>{ficha.nome_receita}</p>
                     <select
                       value={ficha.categoria || ""}
                       disabled={alterandoCategoriaId === ficha.id}
                       onChange={e => organizarFichaNaCategoria(ficha, e.target.value)}
-                      className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 disabled:opacity-60"
+                      className="min-h-10 w-full rounded-lg border border-slate-300 bg-card px-3 text-sm font-bold text-fg-soft outline-none focus:border-emerald-500 disabled:opacity-60"
                     >
                       <option value="">Sem categoria</option>
                       {categoriasDisponiveis.map(categoria => <option key={categoria} value={categoria}>{categoria}</option>)}
                     </select>
                   </div>
                 ))}
-                {fichasDoModo.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold text-slate-500">Nenhuma ficha cadastrada neste grupo.</p>}
+                {fichasDoModo.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold text-muted">Nenhuma ficha cadastrada neste grupo.</p>}
               </div>
             </div>
           </div>
@@ -3182,24 +3182,24 @@ function FichasRunner() {
             <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
                <div className="erp-ficha bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:max-h-[92vh] sm:rounded-[28px] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
                   {/* CABEÇALHO */}
-                  <div className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
-                     <button onClick={fechar} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 shrink-0"><ArrowLeft size={19} /></button>
+                  <div className="bg-card border-b border-line-soft px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
+                     <button onClick={fechar} className="w-10 h-10 rounded-full bg-elevated hover:bg-slate-200 flex items-center justify-center text-slate-600 shrink-0"><ArrowLeft size={19} /></button>
                      <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
                         {f.departamento === "bar" ? <Wine size={20} /> : <UtensilsCrossed size={20} />}
                      </div>
                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                           <h2 className="text-lg sm:text-xl font-black text-slate-900 break-words">{f.nome_receita}</h2>
+                           <h2 className="text-lg sm:text-xl font-black text-fg break-words">{f.nome_receita}</h2>
                            <span className="erp-status-ativo inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Ativo</span>
                         </div>
-                        <p className="text-2xs font-bold text-slate-500 mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
+                        <p className="text-2xs font-bold text-muted mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
                      </div>
                      <div className="flex items-center gap-2 shrink-0">
                         {!f.eh_base && (
                            <>
-                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>
-                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>
-                              <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
+                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>
+                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>
+                              <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-line bg-card text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
                            </>
                         )}
                         <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>
@@ -3207,10 +3207,10 @@ function FichasRunner() {
                   </div>
 
                   {/* ABAS */}
-                  <div className="bg-white border-b border-slate-100 px-4 sm:px-6 flex gap-1 overflow-x-auto">
+                  <div className="bg-card border-b border-line-soft px-4 sm:px-6 flex gap-1 overflow-x-auto">
                      {[["ficha", "Ficha técnica"], ["preparo", f.eh_base ? "Modo de preparo" : "Montagem e guarnição"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
                         <button key={id} onClick={() => setViewTab(id)}
-                           className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+                           className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-subtle hover:text-slate-600"}`}>
                            {rot}
                         </button>
                      ))}
@@ -3222,7 +3222,7 @@ function FichasRunner() {
                      <div className="flex flex-col gap-4 sm:gap-5">
                         {viewTab === "ficha" && (<>
                         {/* INFORMAÇÕES GERAIS */}
-                        <div className="order-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                        <div className="order-2 bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-4">Informações gerais</p>
                            <div className="flex flex-col sm:flex-row gap-4">
                               <div className="grid grid-cols-2 gap-3 flex-1">
@@ -3234,17 +3234,17 @@ function FichasRunner() {
                                      ["Unidade padrão", labelUn],
                                      ["Custo total", fmtBRL(custoTotal)],
                                   ].map(([rot, val]) => (
-                                    <div key={rot} className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
-                                       <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">{rot}</p>
+                                    <div key={rot} className="rounded-xl bg-slate-50 border border-line-soft px-3 py-2">
+                                       <p className="text-3xs font-bold uppercase tracking-wider text-subtle">{rot}</p>
                                        <p className="text-sm font-black text-slate-800 mt-0.5 truncate">{val}</p>
                                     </div>
                                  ))}
                               </div>
-                              <div onClick={() => { fechar(); abrirEditar(f); }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer relative group">
+                              <div onClick={() => { fechar(); abrirEditar(f); }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-elevated border border-line cursor-pointer relative group">
                                  {f.imagem ? (
                                     <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
                                  ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-1"><Camera size={26} /><span className="text-3xs font-bold uppercase tracking-widest">Sem foto</span></div>
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-dim gap-1"><Camera size={26} /><span className="text-3xs font-bold uppercase tracking-widest">Sem foto</span></div>
                                  )}
                                  <div className="absolute inset-x-0 bottom-0 bg-slate-900/60 text-white text-3xs font-bold py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"><Camera size={12} /> Alterar imagem</div>
                               </div>
@@ -3253,12 +3253,12 @@ function FichasRunner() {
 
                         {/* INGREDIENTES E CUSTOS */}
                         {!f.produto_pronto && (
-                        <div className="order-1 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                        <div className="order-1 bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Ingredientes / composição</p>
                            <div className="overflow-x-auto">
                               <table className="w-full text-sm min-w-[560px]">
                                  <thead>
-                                    <tr className="text-3xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                                    <tr className="text-3xs font-bold uppercase tracking-wider text-subtle border-b border-line">
                                        <th className="text-left font-black py-2 pr-2">Ingrediente</th>
                                        <th className="text-center font-black py-2 px-1">Unid.</th>
                                        <th className="text-right font-black py-2 px-1">Qtd. bruta</th>
@@ -3270,7 +3270,7 @@ function FichasRunner() {
                                  </thead>
                                  <tbody>
                                     {linhas.length === 0 && (
-                                       <tr><td colSpan={7} className="py-6 text-center text-slate-400 font-medium">Sem ingredientes cadastrados.</td></tr>
+                                       <tr><td colSpan={7} className="py-6 text-center text-subtle font-medium">Sem ingredientes cadastrados.</td></tr>
                                     )}
                                     {/* Preparos (bases) primeiro, depois os ingredientes soltos:
                                         na cozinha o preparo vem antes da montagem do prato. */}
@@ -3289,10 +3289,10 @@ function FichasRunner() {
                                         {grupo.itens.map((l, i) => (
                                           <tr key={`${grupo.titulo}-${i}`} className="border-b border-slate-50">
                                             <td className="py-3 pr-2 text-[15px] font-bold text-slate-800">{l.nome}{l.base && <span className="ml-1.5 text-3xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Preparo</span>}</td>
-                                            <td className="py-3 px-1 text-center font-bold text-slate-500">{l.un}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
+                                            <td className="py-3 px-1 text-center font-bold text-muted">{l.un}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(l.bruta)}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-muted">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-fg-soft">{nf(l.liquida)}</td>
                                             {podeVerCustos && <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>}
                                             {podeVerCustos && <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>}
                                           </tr>
@@ -3304,9 +3304,9 @@ function FichasRunner() {
                            </div>
                            <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-emerald-700 font-black text-sm px-4 py-2.5 hover:bg-emerald-50"><Plus size={16} /> Adicionar ingrediente</button>
                            {podeVerCustos && (
-                           <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
-                              <span className="text-slate-500 font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
-                              {custoKg !== null && <span className="text-slate-500 font-bold">1 {labelUn} custa: <b className="text-emerald-700 font-black">{fmtBRL(custoKg)}</b></span>}
+                           <div className="mt-4 pt-3 border-t border-line flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
+                              <span className="text-muted font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
+                              {custoKg !== null && <span className="text-muted font-bold">1 {labelUn} custa: <b className="text-emerald-700 font-black">{fmtBRL(custoKg)}</b></span>}
                            </div>
                            )}
                         </div>
@@ -3315,25 +3315,25 @@ function FichasRunner() {
 
                         {/* ABA: MODO DE PREPARO / MONTAGEM E GUARNIÇÃO */}
                         {viewTab === "preparo" && (
-                           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                               <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-3">
                                  {f.eh_base ? "Modo de preparo" : "Montagem do prato e guarnição"}
                               </p>
                               {f.guarnicao ? (
-                                 <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                                    <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">Guarnição / Acompanhamento</p>
+                                 <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-line">
+                                    <p className="text-3xs font-bold uppercase tracking-wider text-muted">Guarnição / Acompanhamento</p>
                                     <p className="text-sm font-bold text-slate-800 mt-0.5">{f.guarnicao}</p>
                                  </div>
                               ) : null}
                               {(() => {
                                  const passos = String(f.modo_preparo || f.padrao_montagem || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
-                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum passo de {f.eh_base ? "modo de preparo" : "montagem"} cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
+                                 if (!passos.length) return <p className="text-sm text-subtle font-medium">Nenhum passo de {f.eh_base ? "modo de preparo" : "montagem"} cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
                                  return (
                                     <ol className="space-y-2.5">
                                        {passos.map((p, i) => (
                                           <li key={i} className="flex gap-3">
                                              <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-100 text-emerald-700 font-black text-sm flex items-center justify-center">{i + 1}</span>
-                                             <span className="text-sm text-slate-700 font-medium leading-relaxed pt-0.5">{p.replace(/^\d+[.)\-\s]+/, "")}</span>
+                                             <span className="text-sm text-fg-soft font-medium leading-relaxed pt-0.5">{p.replace(/^\d+[.)\-\s]+/, "")}</span>
                                           </li>
                                        ))}
                                     </ol>
@@ -3346,7 +3346,7 @@ function FichasRunner() {
                         {viewTab === "custos" && (
                            <div className="space-y-4 sm:space-y-5">
                               {/* Linha do tempo */}
-                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                              <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                                  <div className="flex items-center justify-between gap-2 mb-3">
                                     <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Histórico de custos</p>
                                     <button onClick={() => registrarCustoAtual(f, "manual")} disabled={registrandoCusto || histStatus === "sem_tabela"}
@@ -3359,9 +3359,9 @@ function FichasRunner() {
                                        Para guardar a variação de custo ao longo do tempo, rode a migração <b>db/migracao_ficha_custo_historico.sql</b> no SQL Editor do Supabase. Depois disso, cada alteração de custo fica registrada aqui automaticamente.
                                     </div>
                                  ) : histStatus === "carregando" ? (
-                                    <p className="text-sm text-slate-400 font-medium">Carregando histórico...</p>
+                                    <p className="text-sm text-subtle font-medium">Carregando histórico...</p>
                                  ) : histCustos.length === 0 ? (
-                                    <p className="text-sm text-slate-400 font-medium">Nenhum custo registrado ainda. Toque em <b>Registrar custo atual</b> para criar o primeiro ponto — ou salve a ficha após mudar ingredientes.</p>
+                                    <p className="text-sm text-subtle font-medium">Nenhum custo registrado ainda. Toque em <b>Registrar custo atual</b> para criar o primeiro ponto — ou salve a ficha após mudar ingredientes.</p>
                                  ) : (
                                     <div className="space-y-2">
                                        {histCustos.map((h, i) => {
@@ -3371,15 +3371,15 @@ function FichasRunner() {
                                           const desceu = dif != null && dif < -0.005;
                                           const origemTxt = h.origem === "edicao_ficha" ? "edição" : h.origem === "variacao_preco" ? "variação de preço" : "manual";
                                           return (
-                                             <div key={h.id || i} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                             <div key={h.id || i} className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-slate-50 px-3 py-2.5">
                                                 <div className="min-w-0">
-                                                   <p className="text-sm font-black text-slate-800">{fmtBRL(Number(h.custo_total) || 0)}<span className="text-2xs font-bold text-slate-400 ml-1.5">total{h.custo_porcao != null ? ` · ${fmtBRL(Number(h.custo_porcao))}/porção` : ""}</span></p>
-                                                   <p className="text-3xs font-bold text-slate-400">{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {origemTxt}{h.usuario_nome ? ` · ${h.usuario_nome}` : ""}</p>
+                                                   <p className="text-sm font-black text-slate-800">{fmtBRL(Number(h.custo_total) || 0)}<span className="text-2xs font-bold text-subtle ml-1.5">total{h.custo_porcao != null ? ` · ${fmtBRL(Number(h.custo_porcao))}/porção` : ""}</span></p>
+                                                   <p className="text-3xs font-bold text-subtle">{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {origemTxt}{h.usuario_nome ? ` · ${h.usuario_nome}` : ""}</p>
                                                 </div>
                                                 {dif == null ? (
-                                                   <span className="text-3xs font-bold uppercase tracking-wider text-slate-400 shrink-0">1º registro</span>
+                                                   <span className="text-3xs font-bold uppercase tracking-wider text-subtle shrink-0">1º registro</span>
                                                 ) : (
-                                                   <span className={`text-xs font-bold shrink-0 ${subiu ? "text-red-600" : desceu ? "text-emerald-700" : "text-slate-400"}`}>
+                                                   <span className={`text-xs font-bold shrink-0 ${subiu ? "text-red-600" : desceu ? "text-emerald-700" : "text-subtle"}`}>
                                                       {subiu ? "▲" : desceu ? "▼" : "="} {fmtBRL(Math.abs(dif))}{pct != null ? ` (${pct > 0 ? "+" : ""}${pct.toFixed(1)}%)` : ""}
                                                    </span>
                                                 )}
@@ -3391,23 +3391,23 @@ function FichasRunner() {
                               </div>
 
                               {/* Composição atual */}
-                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                              <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                                  <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-1">Composição do custo atual</p>
-                                 <p className="text-2xs font-medium text-slate-400 mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
+                                 <p className="text-2xs font-medium text-subtle mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
                                  <div className="space-y-2.5">
                                     {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
                                        const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
                                        return (
                                           <div key={i}>
                                              <div className="flex items-center justify-between text-sm mb-1">
-                                                <span className="font-bold text-slate-700 truncate pr-2">{l.nome}</span>
-                                                <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-slate-400 font-bold">· {pct.toFixed(1)}%</span></span>
+                                                <span className="font-bold text-fg-soft truncate pr-2">{l.nome}</span>
+                                                <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-subtle font-bold">· {pct.toFixed(1)}%</span></span>
                                              </div>
-                                             <div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                                             <div className="h-2 rounded-full bg-elevated overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
                                           </div>
                                        );
                                     })}
-                                    {linhas.length === 0 && <p className="text-sm text-slate-400 font-medium">Sem ingredientes para compor o custo.</p>}
+                                    {linhas.length === 0 && <p className="text-sm text-subtle font-medium">Sem ingredientes para compor o custo.</p>}
                                  </div>
                               </div>
                            </div>
@@ -3417,34 +3417,34 @@ function FichasRunner() {
                      {/* SIDEBAR */}
                      <div className="space-y-4 lg:sticky lg:top-0">
                         {/* RENDIMENTO E PORÇÕES */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                        <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Rendimento e porções</p>
                            <div className="grid grid-cols-2 gap-3">
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Esta receita rende</p>
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Esta receita rende</p>
                                  <p className="text-xl font-black text-emerald-700">{nf(rend)} {labelUn}</p>
                               </div>
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Peso total</p>
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Peso total</p>
                                  <p className="text-xl font-black text-emerald-700">{padraoSetor.valor > 0 ? textoRendimentoPadronizado(f) : "—"}</p>
                               </div>
                            </div>
                            <div className="flex items-center justify-between mt-3 text-sm">
-                              <span className="text-slate-500 font-bold">Porção padrão</span>
+                              <span className="text-muted font-bold">Porção padrão</span>
                               <span className="font-black text-slate-800">{pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"}</span>
                            </div>
                            {pesoPorcaoG > 0 && (
-                              <div className="mt-3 pt-3 border-t border-slate-100">
-                                 <p className="text-2xs font-bold text-slate-700">Simulador de porções</p>
-                                 <p className="text-3xs font-medium text-slate-400 mb-2">Informe o peso disponível para ver quantas porções dá para servir.</p>
+                              <div className="mt-3 pt-3 border-t border-line-soft">
+                                 <p className="text-2xs font-bold text-fg-soft">Simulador de porções</p>
+                                 <p className="text-3xs font-medium text-subtle mb-2">Informe o peso disponível para ver quantas porções dá para servir.</p>
                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 flex items-center rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                                    <div className="flex-1 flex items-center rounded-xl border border-line bg-slate-50 overflow-hidden">
                                        <input type="text" inputMode="decimal" value={simPesoView} onChange={e => setSimPesoView(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="Peso disponível" className="flex-1 min-w-0 px-3 py-2.5 bg-transparent font-black text-slate-800 outline-none" />
-                                       <span className="px-3 text-xs font-bold text-slate-400">g</span>
+                                       <span className="px-3 text-xs font-bold text-subtle">g</span>
                                     </div>
                                     <div className="text-right">
                                        <p className="text-lg font-black text-emerald-700 leading-none">{simN > 0 ? `${simPorcoes} porç.` : "—"}</p>
-                                       <p className="text-3xs font-bold text-slate-400 mt-0.5">{simN > 0 ? `sobra ${nf(simSobra)} g` : `de ${nf(pesoPorcaoG)} g`}</p>
+                                       <p className="text-3xs font-bold text-subtle mt-0.5">{simN > 0 ? `sobra ${nf(simSobra)} g` : `de ${nf(pesoPorcaoG)} g`}</p>
                                     </div>
                                  </div>
                               </div>
@@ -3453,27 +3453,27 @@ function FichasRunner() {
 
                         {/* CUSTO E PRECIFICAÇÃO */}
                         {!f.eh_base && (
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                        <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Custo e precificação</p>
                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
-                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo de 1 {labelUn}</span><span className="font-black text-slate-800">{custoKg !== null ? fmtBRL(custoKg) : "—"}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-muted font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-muted font-bold">Custo de 1 {labelUn}</span><span className="font-black text-slate-800">{custoKg !== null ? fmtBRL(custoKg) : "—"}</span></div>
                            </div>
                            <div className="grid grid-cols-2 gap-2 mt-3">
                               <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">CMV</p>
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">CMV</p>
                                  <p className={`text-lg font-black ${cmv !== null && cmv > meta ? "text-red-600" : "text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</p>
                               </div>
                               <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Margem</p>
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Margem</p>
                                  <p className="text-lg font-black text-emerald-700">{margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>
                               </div>
                               <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Markup</p>
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Markup</p>
                                  <p className="text-lg font-black text-emerald-700">{markup ? `${markup.toFixed(2)}×` : "—"}</p>
                               </div>
-                              <div className="rounded-xl px-3 py-2 text-center border bg-slate-50 border-slate-200">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Preço/porção</p>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-slate-50 border-line">
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Preço/porção</p>
                                  <p className="text-lg font-black text-slate-800">{preco > 0 ? fmtBRL(preco) : "—"}</p>
                               </div>
                            </div>
@@ -3485,13 +3485,13 @@ function FichasRunner() {
                         )}
 
                         {/* INFORMAÇÕES ADICIONAIS */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                        <div className="bg-card rounded-2xl border border-line shadow-sm p-4 sm:p-5">
                            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Informações adicionais</p>
                            <div className="space-y-2 text-sm">
                               <div className="flex items-center gap-2 text-slate-600"><Clock size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Tempo de preparo:</span> <b className="text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</b></div>
                               <div className="flex items-center gap-2 text-slate-600"><Thermometer size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Validade:</span> <b className="text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) !== 1 ? "s" : ""}` : "—"}</b></div>
                               {metodoBar(f.metodo_bar) && <div className="flex items-center gap-2 text-slate-600"><Wine size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Método:</span> <b className="text-slate-800">{metodoBar(f.metodo_bar).nome}</b></div>}
-                              {f.observacoes && <p className="text-[13px] text-slate-500 font-medium pt-1 leading-relaxed border-t border-slate-100 mt-2">{f.observacoes}</p>}
+                              {f.observacoes && <p className="text-[13px] text-muted font-medium pt-1 leading-relaxed border-t border-line-soft mt-2">{f.observacoes}</p>}
                            </div>
                         </div>
                      </div>
@@ -3503,23 +3503,23 @@ function FichasRunner() {
 
       {modalEscolhaNovo && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => setModalEscolhaNovo(false)}>
-          <div className="w-full max-w-lg rounded-t-3xl bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6" onClick={evento => evento.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-t-3xl bg-card p-4 shadow-2xl sm:rounded-3xl sm:p-6" onClick={evento => evento.stopPropagation()}>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-3xs font-bold uppercase tracking-[.16em] text-orange-600">Nova ficha técnica</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Como deseja começar?</h2>
-                <p className="mt-1 text-sm font-semibold text-slate-500">Você pode completar uma ficha agora ou cadastrar vários títulos para preencher depois.</p>
+                <h2 className="mt-1 text-xl font-black text-fg">Como deseja começar?</h2>
+                <p className="mt-1 text-sm font-semibold text-muted">Você pode completar uma ficha agora ou cadastrar vários títulos para preencher depois.</p>
               </div>
-              <button onClick={() => setModalEscolhaNovo(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={17}/></button>
+              <button onClick={() => setModalEscolhaNovo(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-elevated text-muted"><X size={17}/></button>
             </div>
             <div className="grid gap-2.5 sm:grid-cols-2">
               <button onClick={() => { setModalEscolhaNovo(false); abrirNova(); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-3 text-left text-orange-950 hover:border-orange-400">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-600 text-white"><Edit3 size={19}/></span>
                 <span><strong className="block text-sm font-black">Criar um {deptUrl === "bar" ? "drink" : "prato"}</strong><small className="mt-0.5 block font-semibold text-orange-700">Preencher a ficha completa agora</small></span>
               </button>
-              <button onClick={() => { setModalEscolhaNovo(false); setTitulosLote(""); setModalTitulosLote(true); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left text-slate-900 hover:border-orange-300">
+              <button onClick={() => { setModalEscolhaNovo(false); setTitulosLote(""); setModalTitulosLote(true); }} className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-line bg-slate-50 p-3 text-left text-fg hover:border-orange-300">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-800 text-white"><LayoutList size={19}/></span>
-                <span><strong className="block text-sm font-black">Adicionar vários títulos</strong><small className="mt-0.5 block font-semibold text-slate-500">Completar cada ficha depois</small></span>
+                <span><strong className="block text-sm font-black">Adicionar vários títulos</strong><small className="mt-0.5 block font-semibold text-muted">Completar cada ficha depois</small></span>
               </button>
             </div>
           </div>
@@ -3528,22 +3528,22 @@ function FichasRunner() {
 
       {modalTitulosLote && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => !salvandoTitulosLote && setModalTitulosLote(false)}>
-          <div className="flex max-h-[100dvh] w-full max-w-xl flex-col rounded-t-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl" onClick={evento => evento.stopPropagation()}>
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-4 sm:p-5">
+          <div className="flex max-h-[100dvh] w-full max-w-xl flex-col rounded-t-3xl bg-card shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl" onClick={evento => evento.stopPropagation()}>
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line-soft p-4 sm:p-5">
               <div>
                 <p className="text-3xs font-bold uppercase tracking-[.16em] text-orange-600">Cadastro rápido</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Adicionar títulos de {deptUrl === "bar" ? "drinks" : "pratos"}</h2>
-                <p className="mt-1 text-sm font-semibold text-slate-500">Digite um {deptUrl === "bar" ? "drink" : "prato"} por linha. Eles serão salvos para você completar depois.</p>
+                <h2 className="mt-1 text-xl font-black text-fg">Adicionar títulos de {deptUrl === "bar" ? "drinks" : "pratos"}</h2>
+                <p className="mt-1 text-sm font-semibold text-muted">Digite um {deptUrl === "bar" ? "drink" : "prato"} por linha. Eles serão salvos para você completar depois.</p>
               </div>
-              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 disabled:opacity-40"><X size={17}/></button>
+              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-elevated text-muted disabled:opacity-40"><X size={17}/></button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Títulos</label>
-              <textarea autoFocus value={titulosLote} onChange={evento => setTitulosLote(evento.target.value)} placeholder={deptUrl === "bar" ? "Ex.:\nCaipirinha de limão\nGin tônica\nMoscow mule" : "Ex.:\nAçaí de 300 ml\nAçaí de 500 ml\nBatata frita com cheddar"} className="mt-2 min-h-[220px] w-full resize-y rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-base font-semibold leading-8 text-slate-800 outline-none focus:border-orange-500"/>
-              <p className="mt-2 text-xs font-semibold text-slate-400">Títulos repetidos ou que já existem serão ignorados.</p>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted">Títulos</label>
+              <textarea autoFocus value={titulosLote} onChange={evento => setTitulosLote(evento.target.value)} placeholder={deptUrl === "bar" ? "Ex.:\nCaipirinha de limão\nGin tônica\nMoscow mule" : "Ex.:\nAçaí de 300 ml\nAçaí de 500 ml\nBatata frita com cheddar"} className="mt-2 min-h-[220px] w-full resize-y rounded-2xl border-2 border-line bg-slate-50 p-4 text-base font-semibold leading-8 text-slate-800 outline-none focus:border-orange-500"/>
+              <p className="mt-2 text-xs font-semibold text-subtle">Títulos repetidos ou que já existem serão ignorados.</p>
             </div>
-            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 p-3 sm:p-4" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} className="min-h-10 rounded-xl px-4 text-sm font-black text-slate-500 hover:bg-slate-200 disabled:opacity-40">Cancelar</button>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line-soft bg-slate-50 p-3 sm:p-4" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+              <button disabled={salvandoTitulosLote} onClick={() => setModalTitulosLote(false)} className="min-h-10 rounded-xl px-4 text-sm font-black text-muted hover:bg-slate-200 disabled:opacity-40">Cancelar</button>
               <button disabled={salvandoTitulosLote || !titulosLote.trim()} onClick={salvarTitulosEmLote} className="flex min-h-11 items-center gap-2 rounded-xl bg-orange-600 px-5 text-sm font-black text-white shadow-lg shadow-orange-600/20 hover:bg-orange-700 disabled:opacity-50">
                 {salvandoTitulosLote ? <Loader2 size={17} className="animate-spin"/> : <Plus size={17}/>} {salvandoTitulosLote ? "Criando..." : "Criar títulos"}
               </button>
@@ -3555,7 +3555,7 @@ function FichasRunner() {
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-             <div className="erp-ficha erp-editor-ficha bg-white rounded-3xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[94vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+             <div className="erp-ficha erp-editor-ficha bg-card rounded-3xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[94vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
                <style>{`
                  .erp-editor-ficha label { font-size: 13px !important; line-height: 1.4; }
                  .erp-editor-ficha input, .erp-editor-ficha select, .erp-editor-ficha textarea { font-size: 16px !important; line-height: 1.5; }
@@ -3566,23 +3566,23 @@ function FichasRunner() {
                `}</style>
                
                {/* HEADER DO MODAL */}
-               <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-white">
+               <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-line-soft bg-card">
                   <div className="min-w-0">
                      <p className={`text-3xs font-bold uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-emerald-700"}`}>{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
                      <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-emerald-600 font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
+                     <p className="text-sm font-bold text-muted mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-emerald-600 font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
-                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={21}/></button>
+                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={21}/></button>
                </div>
 
-               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-slate-50 px-4 py-3 sm:px-6">
                   {[
                     ["ficha-dados", "1. Dados", !!form.nome_receita],
                     ["ficha-ingredientes", "2. Ingredientes", form.produto_pronto || ingFicha.length > 0],
                     ["ficha-rendimento", "3. Rendimento", !!form.rendimento_porcoes],
                     ...(!form.eh_base && !form.produto_pronto ? [["ficha-custos", "4. Custos e preço", Number(form.preco_venda) > 0]] : []),
                     ...(form.eh_base ? [["ficha-preparo", "4. Preparo", !!form.modo_preparo]] : []),
-                  ].map(([id, label, completo]) => <button key={id} type="button" onClick={() => irSecaoEditorFicha(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-bold transition-colors ${completo ? "border-emerald-200 text-emerald-700" : "border-slate-200 text-slate-500 hover:border-emerald-300"}`}><span className={`h-2 w-2 rounded-full ${completo ? "bg-emerald-500" : "bg-slate-300"}`} />{label}</button>)}
+                  ].map(([id, label, completo]) => <button key={id} type="button" onClick={() => irSecaoEditorFicha(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border bg-card px-3 text-xs font-bold transition-colors ${completo ? "border-emerald-200 text-emerald-700" : "border-line text-muted hover:border-emerald-300"}`}><span className={`h-2 w-2 rounded-full ${completo ? "bg-emerald-500" : "bg-slate-300"}`} />{label}</button>)}
                </nav>
 
                {/* BODY DO MODAL COM SCROLL */}
@@ -3592,7 +3592,7 @@ function FichasRunner() {
                   <div id="ficha-dados" className="space-y-4 scroll-mt-24">
                      <div className="flex gap-4">
                         <div className="w-24 h-24 shrink-0 relative">
-                           <div onClick={() => fileInputRef.current?.click()} className="w-full h-full rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-emerald-400 overflow-hidden relative group transition-colors">
+                           <div onClick={() => fileInputRef.current?.click()} className="w-full h-full rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-elevated hover:border-emerald-400 overflow-hidden relative group transition-colors">
                               {form.imagem ? (
                                  <>
                                     <img src={`data:image/jpeg;base64,${form.imagem}`} className="w-full h-full object-cover" alt="Foto do Prato" />
@@ -3600,8 +3600,8 @@ function FichasRunner() {
                                  </>
                               ) : (
                                  <div className="text-center">
-                                    <Camera size={24} className="mx-auto text-slate-400 mb-1"/>
-                                    <span className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Foto</span>
+                                    <Camera size={24} className="mx-auto text-subtle mb-1"/>
+                                    <span className="text-3xs font-bold text-muted uppercase tracking-widest">Foto</span>
                                  </div>
                               )}
                               <input type="file" ref={fileInputRef} onChange={handleMudarFotoForm} accept="image/*" className="hidden" />
@@ -3614,23 +3614,23 @@ function FichasRunner() {
                            )}
                         </div>
                         <div className="flex-1">
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{form.produto_pronto ? "Nome do produto" : "Nome da receita"}</label>
-                           <input type="text" placeholder={form.produto_pronto ? "Ex: Água sem gás 500 ml" : "Ex: Caipirinha de Morango"} value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">{form.produto_pronto ? "Nome do produto" : "Nome da receita"}</label>
+                           <input type="text" placeholder={form.produto_pronto ? "Ex: Água sem gás 500 ml" : "Ex: Caipirinha de Morango"} value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
                            {form.imagem && <button type="button" onClick={() => setForm({ ...form, imagem: "" })} className="text-2xs font-bold text-rose-500 hover:text-rose-600 mt-1.5">Remover foto</button>}
                         </div>
                      </div>
                      {/* Escolha principal, no mesmo padrão rápido do estoque */}
                      {!form.id ? <div>
-                       <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">O que você vai cadastrar?</p>
+                       <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">O que você vai cadastrar?</p>
                        <div className="grid grid-cols-2 gap-3">
                          <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
-                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-amber-300"}`}>
-                           <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-slate-400"} />
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-line bg-card text-muted hover:border-amber-300"}`}>
+                           <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-subtle"} />
                            <strong className="mt-2 block text-base">Pré-preparo</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
                          </button>
                          <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
-                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"}`}>
-                           <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-slate-400"} />
+                           className={`min-h-[76px] rounded-2xl border-2 p-3 text-left transition-all sm:min-h-[94px] sm:p-4 ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-line bg-card text-muted hover:border-emerald-300"}`}>
+                           <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-subtle"} />
                            <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">item final do cardápio</span>
                          </button>
                        </div>
@@ -3642,16 +3642,16 @@ function FichasRunner() {
                        <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-orange-200 bg-orange-50" : "border-emerald-200 bg-emerald-50"}`}>
                          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-orange-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
                          <div>
-                           <p className="text-2xs font-bold uppercase tracking-widest text-slate-500">Tipo da ficha</p>
-                           <p className="text-base font-black text-slate-900">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
-                           <p className="text-xs font-semibold text-slate-500">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
+                           <p className="text-2xs font-bold uppercase tracking-widest text-muted">Tipo da ficha</p>
+                           <p className="text-base font-black text-fg">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                           <p className="text-xs font-semibold text-muted">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
                          </div>
                        </div>
                      )}
                       {form.produto_pronto && (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
-                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
+                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-card border border-emerald-200 rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500 shadow-sm">
                               {CATEGORIAS_PRODUTO_PRONTO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
                            </select>
                            <p className="mt-2 text-2xs font-medium text-emerald-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
@@ -3663,7 +3663,7 @@ function FichasRunner() {
                               <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Categoria deste preparo</label>
                               <button type="button" onClick={() => { setModoFicha("preparos"); setModalCategorias(true); }} className="text-xs font-bold text-emerald-700 hover:underline">+ Gerenciar</button>
                             </div>
-                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
+                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-card border border-emerald-200 rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500 shadow-sm">
                                <option value="">Sem categoria</option>
                                {form.categoria && !categoriasPreparoDisponiveis.includes(form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
                                {categoriasPreparoDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}
@@ -3675,7 +3675,7 @@ function FichasRunner() {
                      {!form.eh_base && !form.produto_pronto && (
                         <div>
                            <div className="flex items-center justify-between">
-                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{deptUrl === "bar" ? "Categoria do drink" : "Categoria no cardápio"}</label>
+                             <label className="text-xs font-bold text-muted uppercase tracking-widest">{deptUrl === "bar" ? "Categoria do drink" : "Categoria no cardápio"}</label>
                              <button
                                type="button"
                                onClick={() => { setModoFicha("principais"); setModalCategorias(true); }}
@@ -3684,7 +3684,7 @@ function FichasRunner() {
                                + Gerenciar categorias
                              </button>
                            </div>
-                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
+                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500 shadow-sm">
                               <option value="">Sem categoria</option>
                               {form.categoria && !categoriasPrincipaisDisponiveis.includes(form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
                               {categoriasPrincipaisDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}
@@ -3696,18 +3696,18 @@ function FichasRunner() {
                      <div id="ficha-ingredientes" className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center scroll-mt-24">
                         <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4"><Package size={28} /></div>
                         <h3 className="text-xl font-black text-slate-800">Produto pronto para venda</h3>
-                        <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-slate-500">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
+                        <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-muted">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
                         <div className="mt-5 grid w-full max-w-sm grid-cols-2 gap-2 text-left">
-                           <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-3xs font-bold uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
-                           <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-3xs font-bold uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
+                           <div className="rounded-xl border border-emerald-100 bg-card p-3"><span className="block text-3xs font-bold uppercase tracking-widest text-subtle">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
+                           <div className="rounded-xl border border-emerald-100 bg-card p-3"><span className="block text-3xs font-bold uppercase tracking-widest text-subtle">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
                         </div>
                      </div>
                      ) : (
-                     <div id="ficha-ingredientes" className="bg-white p-5 rounded-2xl border-2 border-emerald-200 shadow-sm flex flex-col scroll-mt-24">
+                     <div id="ficha-ingredientes" className="bg-card p-5 rounded-2xl border-2 border-emerald-200 shadow-sm flex flex-col scroll-mt-24">
                         <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                            <div>
                               <label className="block text-xs font-bold uppercase tracking-widest text-emerald-700">Ingredientes / composição</label>
-                              <p className="mt-1 text-xs font-semibold text-slate-500">Comece por aqui: rendimento, CMV e preço saem desta lista.</p>
+                              <p className="mt-1 text-xs font-semibold text-muted">Comece por aqui: rendimento, CMV e preço saem desta lista.</p>
                            </div>
                            <span className="shrink-0 rounded-xl bg-emerald-50 px-3 py-2 text-right">
                               <span className="block text-3xs font-bold uppercase tracking-widest text-emerald-700">{ingFicha.length} item(ns)</span>
@@ -3717,22 +3717,22 @@ function FichasRunner() {
                      
                         {/* ADD INGREDIENTE — busca por digitação: a lista tem centenas de itens */}
                         <div className="relative mb-4">
-                           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3">
-                              <Search size={17} className="shrink-0 text-slate-400" />
+                           <div className="flex items-center gap-2 rounded-xl border border-line bg-slate-50 px-3">
+                              <Search size={17} className="shrink-0 text-subtle" />
                               <input value={buscaIng} onChange={e => setBuscaIng(e.target.value)}
                                  placeholder="Digite para achar insumo, pré-preparo ou embalagem"
-                                 className="h-12 w-full bg-transparent font-bold text-slate-700 outline-none" />
-                              {buscaIng && <button type="button" onClick={() => setBuscaIng("")} className="shrink-0 text-slate-400 hover:text-slate-600"><X size={16} /></button>}
+                                 className="h-12 w-full bg-transparent font-bold text-fg-soft outline-none" />
+                              {buscaIng && <button type="button" onClick={() => setBuscaIng("")} className="shrink-0 text-subtle hover:text-slate-600"><X size={16} /></button>}
                            </div>
                            {buscaIng.trim() && (
-                              <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                              <div className="mt-2 overflow-hidden rounded-xl border border-line bg-card shadow-sm">
                                  {sugestoesIngrediente.length === 0 ? (
-                                    <p className="p-3 text-sm font-bold text-slate-400">Nada encontrado com esse nome.</p>
+                                    <p className="p-3 text-sm font-bold text-subtle">Nada encontrado com esse nome.</p>
                                  ) : sugestoesIngrediente.map(o => (
                                     <button key={o.valor + o.nome} type="button" onClick={() => addIngrediente(o.valor)}
                                        className="flex w-full items-center gap-2 border-b border-slate-50 px-3 py-2.5 text-left last:border-0 hover:bg-emerald-50">
                                        <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-800">{o.nome}</span>
-                                       <span className="shrink-0 text-3xs font-bold uppercase tracking-wider text-slate-400">{o.tipo}{o.detalhe ? ` · ${o.detalhe}` : ""}</span>
+                                       <span className="shrink-0 text-3xs font-bold uppercase tracking-wider text-subtle">{o.tipo}{o.detalhe ? ` · ${o.detalhe}` : ""}</span>
                                     </button>
                                  ))}
                               </div>
@@ -3741,10 +3741,10 @@ function FichasRunner() {
 
                         {/* Cabeçalho estilo tabela (como na ficha de referência) */}
                         {ingFicha.length > 0 && (
-                           <div className="flex items-center gap-3 px-3 pb-2 mb-1 border-b border-slate-200">
-                              <span className="flex-1 text-3xs font-bold uppercase tracking-wider text-slate-400">Ingrediente</span>
-                              <span className="w-20 text-center text-3xs font-bold uppercase tracking-wider text-slate-400">Qtd.</span>
-                              <span className="w-9 text-center text-3xs font-bold uppercase tracking-wider text-slate-400">Un.</span>
+                           <div className="flex items-center gap-3 px-3 pb-2 mb-1 border-b border-line">
+                              <span className="flex-1 text-3xs font-bold uppercase tracking-wider text-subtle">Ingrediente</span>
+                              <span className="w-20 text-center text-3xs font-bold uppercase tracking-wider text-subtle">Qtd.</span>
+                              <span className="w-9 text-center text-3xs font-bold uppercase tracking-wider text-subtle">Un.</span>
                               <span className="w-8" />
                            </div>
                         )}
@@ -3752,7 +3752,7 @@ function FichasRunner() {
                         {/* LISTA DE INGREDIENTES */}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                            {ingFicha.length === 0 && (
-                              <div className="text-center p-6 text-slate-500 font-medium text-sm">
+                              <div className="text-center p-6 text-muted font-medium text-sm">
                                  Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
                               </div>
                            )}
@@ -3768,20 +3768,20 @@ function FichasRunner() {
                                  updateQtd(ing.chave, v / fator); // sempre grava em unidade-base
                               };
                               return (
-                              <div key={ing.chave} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
+                              <div key={ing.chave} className="p-3 bg-slate-50 border border-line-soft rounded-xl flex items-center gap-3 group">
                                  <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-800 text-sm truncate flex items-center gap-1.5">
                                        {ing.nome}
                                        {ing.tipo === "base" && <span className="text-3xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                     </p>
-                                    <p className="text-3xs font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
+                                    <p className="text-3xs font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-subtle normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                     {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (
                                        <div className="flex items-center gap-1.5 mt-1">
-                                          <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Perda do ingrediente</span>
+                                          <span className="text-3xs font-bold uppercase tracking-wider text-subtle">Perda do ingrediente</span>
                                           <span className="text-3xs font-bold text-emerald-700">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
                                           {ing.quantidade > 0 && (
-                                             <span className="text-3xs font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
+                                             <span className="text-3xs font-bold text-subtle">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
                                           )}
                                        </div>
                                     )}
@@ -3793,7 +3793,7 @@ function FichasRunner() {
                                        if (!pg) return null;
                                        const g = ing.quantidade * pg;
                                        return (
-                                          <p className="text-3xs font-bold text-slate-400 mt-0.5">
+                                          <p className="text-3xs font-bold text-subtle mt-0.5">
                                              = {(+g.toFixed(1)).toLocaleString("pt-BR")} g ({(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg)
                                           </p>
                                        );
@@ -3807,7 +3807,7 @@ function FichasRunner() {
                                        placeholder="0"
                                        value={valorExibido}
                                        onChange={onChangeQtd}
-                                       className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
+                                       className="w-20 p-2 text-center bg-card border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
                                     />
                                     {sub ? (
                                        <button
@@ -3819,10 +3819,10 @@ function FichasRunner() {
                                           {unidadeLabel}
                                        </button>
                                     ) : (
-                                       <span className="text-3xs font-bold text-slate-500 uppercase w-9 text-center">{unidadeLabel}</span>
+                                       <span className="text-3xs font-bold text-muted uppercase w-9 text-center">{unidadeLabel}</span>
                                     )}
                                  </div>
-                                 <button onClick={() => { setSubstitutoValor(""); setSubstituirAlvo(ing); }} title="Remover ou substituir" className="p-2 text-slate-500 hover:text-rose-600 transition-colors bg-white rounded-lg border border-slate-200">
+                                 <button onClick={() => { setSubstitutoValor(""); setSubstituirAlvo(ing); }} title="Remover ou substituir" className="p-2 text-muted hover:text-rose-600 transition-colors bg-card rounded-lg border border-line">
                                     <Trash2 size={14}/>
                                  </button>
                               </div>
@@ -3834,11 +3834,11 @@ function FichasRunner() {
                      )}
 
                      {/* RENDIMENTO — cozinha em kg; bar em litros */}
-                     <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
+                     <div id="ficha-rendimento" className="bg-card border border-line rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento da receita</p>
+                           <p className="text-xs font-bold text-muted uppercase tracking-widest">Rendimento da receita</p>
                            {autoSoma
-                              ? <button type="button" onClick={() => setAutoSoma(false)} className="text-3xs font-bold text-slate-400 hover:text-slate-600 underline">ajustar manualmente</button>
+                              ? <button type="button" onClick={() => setAutoSoma(false)} className="text-3xs font-bold text-subtle hover:text-slate-600 underline">ajustar manualmente</button>
                               : <button type="button" onClick={() => setAutoSoma(true)} className="text-3xs font-bold text-emerald-600 hover:text-emerald-700 underline">← voltar ao automático</button>}
                         </div>
                         {autoSoma ? (
@@ -3847,16 +3847,16 @@ function FichasRunner() {
                                const custoTotal = calcularCustoTotal(ingFicha);
                                const unidadeSetor = unidadePadraoDepartamento(form.departamento || deptUrl);
                                const unidadeLabelSetor = unidadeSetor === "l" ? "L" : "kg";
-                               if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 {unidadeLabelSetor} aparecem aqui sozinhos.</p>;
+                               if (!est) return <p className="text-sm text-subtle font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 {unidadeLabelSetor} aparecem aqui sozinhos.</p>;
                                const custoKg = custoTotal / (est.totalG / 1000);
                                const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
                               return (
                                  <>
                                     <div className="grid grid-cols-2 gap-3">
-                                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                                          <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest">Rende</p>
+                                       <div className="bg-slate-50 border border-line rounded-xl p-3 text-center">
+                                          <p className="text-3xs font-bold text-subtle uppercase tracking-widest">Rende</p>
                                           <p className="text-2xl font-black text-slate-800 mt-1">{est.valor.toLocaleString("pt-BR")} <span className="text-base">{unLabel}</span></p>
-                                          <p className="text-3xs font-medium text-slate-400">somado dos ingredientes</p>
+                                          <p className="text-3xs font-medium text-subtle">somado dos ingredientes</p>
                                        </div>
                                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
                                           <p className="text-3xs font-bold text-emerald-600 uppercase tracking-widest">1 {unidadeLabelSetor} custa</p>
@@ -3879,8 +3879,8 @@ function FichasRunner() {
                                                 </p>
                                              </div>
                                           )}
-                                          <details className="mt-3 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
-                                             <summary className="text-2xs font-bold text-slate-500 cursor-pointer select-none">Ver a conta (ingrediente por ingrediente)</summary>
+                                          <details className="mt-3 bg-slate-50 border border-line rounded-xl px-3.5 py-2.5">
+                                             <summary className="text-2xs font-bold text-muted cursor-pointer select-none">Ver a conta (ingrediente por ingrediente)</summary>
                                              <div className="mt-2 space-y-1">
                                                 {detalhes.map(({ ing, d }) => (
                                                    <div key={ing.chave} className="flex justify-between items-baseline text-2xs font-medium gap-2">
@@ -3888,18 +3888,18 @@ function FichasRunner() {
                                                          {ing.nome}
                                                          {d.precoSuspeito && <span className="ml-1 text-amber-600 font-bold">(confira o preço!)</span>}
                                                       </span>
-                                                      <span className="shrink-0 text-slate-500">
+                                                      <span className="shrink-0 text-muted">
                                                          {d.pesoG !== null ? fmtG(d.pesoG) : <span className="text-amber-600 font-bold">fora do peso</span>}
-                                                         <span className="text-slate-400"> · </span>
-                                                         <span className="font-bold text-slate-700">{fmtBRL(d.custo)}</span>
+                                                         <span className="text-subtle"> · </span>
+                                                         <span className="font-bold text-fg-soft">{fmtBRL(d.custo)}</span>
                                                       </span>
                                                    </div>
                                                 ))}
-                                                <div className="flex justify-between items-baseline text-2xs font-bold pt-1.5 mt-1 border-t border-slate-200">
-                                                   <span className="text-slate-700">
+                                                <div className="flex justify-between items-baseline text-2xs font-bold pt-1.5 mt-1 border-t border-line">
+                                                   <span className="text-fg-soft">
                                                       TOTAL
                                                       {est.solidosG > 0 && est.liquidosMl > 0 && (
-                                                         <span className="font-medium text-slate-400"> (sólidos {fmtG(est.solidosG)} + líquidos {fmtG(est.liquidosMl).replace(" kg", " L").replace(" g", " ml")})</span>
+                                                         <span className="font-medium text-subtle"> (sólidos {fmtG(est.solidosG)} + líquidos {fmtG(est.liquidosMl).replace(" kg", " L").replace(" g", " ml")})</span>
                                                       )}
                                                    </span>
                                                    <span className="text-slate-800 shrink-0">{fmtG(est.totalG)} · {fmtBRL(custoTotal)}</span>
@@ -3914,10 +3914,10 @@ function FichasRunner() {
                                           </>
                                        );
                                     })()}
-                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
-                                       <span className="text-2xs font-bold text-slate-500">Quanto custa se eu usar</span>
-                                       <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
-                                       <select value={unidadeSetor === "l" ? (["l","ml"].includes(calcUn) ? calcUn : "ml") : (["g","kg"].includes(calcUn) ? calcUn : "g")} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
+                                    <div className="mt-3 pt-3 border-t border-line-soft flex items-center gap-2 flex-wrap">
+                                       <span className="text-2xs font-bold text-muted">Quanto custa se eu usar</span>
+                                       <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-line rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                                       <select value={unidadeSetor === "l" ? (["l","ml"].includes(calcUn) ? calcUn : "ml") : (["g","kg"].includes(calcUn) ? calcUn : "g")} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-line rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
                                           {unidadeSetor === "l" ? <><option value="ml">ml</option><option value="l">L</option></> : <><option value="g">g</option><option value="kg">kg</option></>}
                                        </select>
                                        {(() => {
@@ -3936,15 +3936,15 @@ function FichasRunner() {
                         <>
                         <div className="grid grid-cols-2 gap-3">
                            <div>
-                              <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest">Rendimento</label>
+                              <label className="text-3xs font-bold text-subtle uppercase tracking-widest">Rendimento</label>
                               <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
                                  setForm({...form, rendimento_porcoes: e.target.value});
                                  setAutoSoma(false);
-                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
+                              }} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
                            </div>
                            <div>
-                              <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest">Medido em</label>
-                              <select value={unidadePadraoDepartamento(form.departamento || deptUrl)} disabled className="w-full p-3 mt-1 bg-slate-100 border border-slate-200 rounded-xl font-black text-slate-700 outline-none disabled:opacity-100">
+                              <label className="text-3xs font-bold text-subtle uppercase tracking-widest">Medido em</label>
+                              <select value={unidadePadraoDepartamento(form.departamento || deptUrl)} disabled className="w-full p-3 mt-1 bg-elevated border border-line rounded-xl font-black text-fg-soft outline-none disabled:opacity-100">
                                  {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? <option value="l">L (padrão do bar)</option> : <option value="kg">kg (padrão da cozinha)</option>}
                               </select>
                            </div>
@@ -3967,7 +3967,7 @@ function FichasRunner() {
                            if (!pesoTotalG && !porcoesRendidas) {
                               // Sem dados suficientes: só a sugestão pelos ingredientes, se houver
                               return est ? (
-                                 <p className="text-2xs font-bold text-slate-500 mt-3">
+                                 <p className="text-2xs font-bold text-muted mt-3">
                                     Os ingredientes somam <span className="text-slate-800">{est.valor.toLocaleString("pt-BR")} {({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade]}</span>.
                                     <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="ml-1.5 text-emerald-600 underline hover:text-emerald-700">Usar como rendimento</button>
                                  </p>
@@ -3975,23 +3975,23 @@ function FichasRunner() {
                            }
                            return (
                               <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
-                                 <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                                 <p className="text-sm font-bold text-fg-soft leading-relaxed">
                                     {unR === "porcao" ? (
                                        <>
-                                          Rende <span className="font-black text-slate-900">{rendimento} {rendimento >= 2 ? "porções" : "porção"}</span>
-                                          {pesoPorcao > 0 && <> de <span className="font-black text-slate-900">{pesoPorcao}g</span> (Total: {fmtG(pesoTotalG)})</>}
+                                          Rende <span className="font-black text-fg">{rendimento} {rendimento >= 2 ? "porções" : "porção"}</span>
+                                          {pesoPorcao > 0 && <> de <span className="font-black text-fg">{pesoPorcao}g</span> (Total: {fmtG(pesoTotalG)})</>}
                                        </>
                                     ) : (
                                        <>
-                                          Rende <span className="font-black text-slate-900">{rendimento} {unR}</span>
-                                          {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-slate-900">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
+                                          Rende <span className="font-black text-fg">{rendimento} {unR}</span>
+                                          {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-fg">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
                                        </>
                                     )}
                                     {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
                                     {custoKg !== null && <> · 1 {unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"} custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
                                  </p>
                                  {est && Math.abs(est.totalG - pesoTotalG) / Math.max(est.totalG, pesoTotalG) > 0.05 && (
-                                    <p className="text-3xs font-medium text-slate-400 mt-1">
+                                    <p className="text-3xs font-medium text-subtle mt-1">
                                        Ingredientes somam {fmtG(est.totalG)} (diferença = água/perdas do preparo).
                                        <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="ml-1 text-emerald-600 underline hover:text-emerald-700">Usar esse valor</button>
                                     </p>
@@ -4018,10 +4018,10 @@ function FichasRunner() {
                            const unidadesCalc = pesoPorcao > 0 ? gramas / pesoPorcao : null;
 
                            return (
-                              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
-                                 <span className="text-2xs font-bold text-slate-500">Quanto custa se eu usar</span>
-                                 <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
-                                 <select value={calcUn} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
+                              <div className="mt-3 pt-3 border-t border-line-soft flex items-center gap-2 flex-wrap">
+                                 <span className="text-2xs font-bold text-muted">Quanto custa se eu usar</span>
+                                 <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-line rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                                 <select value={calcUn} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-line rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
                                     <option value="g">g</option>
                                     <option value="kg">kg</option>
                                     {pesoPorcao > 0 && <option value="un">porções</option>}
@@ -4029,7 +4029,7 @@ function FichasRunner() {
                                  {gramas > 0 && (
                                     <span className="text-sm font-bold text-slate-600">
                                        ? → <span className="font-black text-emerald-600">{fmtBRL(custoCalc)}</span>
-                                       <span className="text-slate-400 font-medium text-xs"> ({fmtG(gramas)}{unidadesCalc !== null ? ` · ${(+unidadesCalc.toFixed(1)).toLocaleString("pt-BR")} porções` : ""})</span>
+                                       <span className="text-subtle font-medium text-xs"> ({fmtG(gramas)}{unidadesCalc !== null ? ` · ${(+unidadesCalc.toFixed(1)).toLocaleString("pt-BR")} porções` : ""})</span>
                                     </span>
                                  )}
                               </div>
@@ -4074,25 +4074,25 @@ function FichasRunner() {
                         const difPreparo = pesoPorcaoFinal > 0 ? ((pesoPorcaoFinal - totalInNatura) / totalInNatura) * 100 : null;
 
                         return (
-                           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Composição da porção{pesoPorcaoFinal > 0 ? ` (${pesoPorcaoFinal}g final)` : ''}</p>
+                           <div className="bg-card border border-line rounded-2xl p-4 shadow-sm">
+                              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Composição da porção{pesoPorcaoFinal > 0 ? ` (${pesoPorcaoFinal}g final)` : ''}</p>
                               <div className="space-y-2">
                                  {composicao.map((c, i) => {
                                     const pct = (c.g / baseRef) * 100;
                                     return (
                                        <div key={i}>
-                                          <div className="flex justify-between text-xs font-bold text-slate-700 mb-0.5">
+                                          <div className="flex justify-between text-xs font-bold text-fg-soft mb-0.5">
                                              <span className="truncate">{c.nome}</span>
                                              <span className="shrink-0 ml-2">{(+c.g.toFixed(1)).toLocaleString("pt-BR")} g · {pct.toFixed(0)}%</span>
                                           </div>
-                                          <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                          <div className="h-1.5 rounded-full bg-elevated overflow-hidden">
                                              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(pct, 100)}%` }} />
                                           </div>
                                        </div>
                                     );
                                  })}
                               </div>
-                              <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-100 text-3xs font-bold text-slate-500">
+                              <div className="flex justify-between items-center mt-3 pt-3 border-t border-line-soft text-3xs font-bold text-muted">
                                  <span>Total in natura: {(+totalInNatura.toFixed(1)).toLocaleString("pt-BR")} g / porção</span>
                                  {difPreparo !== null && Math.abs(difPreparo) >= 1 && (
                                     <span className={difPreparo < 0 ? "text-red-500" : "text-emerald-600"}>
@@ -4105,26 +4105,26 @@ function FichasRunner() {
                      })()}
 
                      {/* CMV E PRECIFICAÇÃO — o preço de venda vive AQUI (Produtos e Preços saiu do menu) */}
-                     {!form.eh_base && <div className="rounded-2xl border-2 border-pink-200 bg-white p-4 shadow-sm">
+                     {!form.eh_base && <div className="rounded-2xl border-2 border-pink-200 bg-card p-4 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
-                           <div><p className="text-xs font-bold uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-slate-500">Selecione o que acompanha cada prato ou drink. O custo entra automaticamente no CMV.</p></div>
+                           <div><p className="text-xs font-bold uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-muted">Selecione o que acompanha cada prato ou drink. O custo entra automaticamente no CMV.</p></div>
                            <span className="shrink-0 rounded-lg bg-pink-50 px-3 py-2 text-sm font-black text-pink-700">{fmtBRL(custoEmbalagensPorPorcao())}/porcao</span>
                         </div>
                         {embalagensEstoque.length > 0 ? <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                            {embalagensEstoque.map(emb => {
                               const selecionada = fichaEmbalagens.find(item => String(item.embalagem_id) === String(emb.id));
-                              return <div key={emb.id} className={`rounded-xl border p-3 ${selecionada ? "border-pink-400 bg-pink-50" : "border-slate-200 bg-slate-50"}`}>
+                              return <div key={emb.id} className={`rounded-xl border p-3 ${selecionada ? "border-pink-400 bg-pink-50" : "border-line bg-slate-50"}`}>
                                  <button type="button" onClick={() => alternarEmbalagemFicha(emb.id)} className="flex w-full items-center gap-2 text-left">
-                                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${selecionada ? "bg-pink-600 text-white" : "bg-white text-slate-400"}`}>{selecionada ? <CheckSquare2 size={16}/> : <Package size={16}/>}</span>
-                                    <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-800">{emb.nome}</strong><small className="font-bold text-slate-500">{fmtBRL(emb.preco_unitario)} cada · saldo {Number(emb.quantidade_atual) || 0}</small></span>
+                                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${selecionada ? "bg-pink-600 text-white" : "bg-card text-subtle"}`}>{selecionada ? <CheckSquare2 size={16}/> : <Package size={16}/>}</span>
+                                    <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-800">{emb.nome}</strong><small className="font-bold text-muted">{fmtBRL(emb.preco_unitario)} cada · saldo {Number(emb.quantidade_atual) || 0}</small></span>
                                  </button>
-                                 {selecionada && <label className="mt-2 flex items-center justify-between gap-2 border-t border-pink-200 pt-2 text-xs font-bold text-pink-800"><span>Quantidade por venda</span><input type="number" min="0.01" step="0.01" value={selecionada.qtd} onChange={e => alterarQuantidadeEmbalagem(emb.id, e.target.value)} className="h-9 w-24 rounded-lg border border-pink-300 bg-white px-2 text-right font-black outline-none" /></label>}
+                                 {selecionada && <label className="mt-2 flex items-center justify-between gap-2 border-t border-pink-200 pt-2 text-xs font-bold text-pink-800"><span>Quantidade por venda</span><input type="number" min="0.01" step="0.01" value={selecionada.qtd} onChange={e => alterarQuantidadeEmbalagem(emb.id, e.target.value)} className="h-9 w-24 rounded-lg border border-pink-300 bg-card px-2 text-right font-black outline-none" /></label>}
                               </div>;
                            })}
-                        </div> : <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs font-bold text-slate-500">Nenhuma embalagem cadastrada neste setor.</p>}
+                        </div> : <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs font-bold text-muted">Nenhuma embalagem cadastrada neste setor.</p>}
                         <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-dashed border-pink-300 bg-pink-50 p-3 sm:grid-cols-[1fr_140px_auto]">
-                           <input value={novaEmbalagem.nome} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, nome: e.target.value })} placeholder="Nova embalagem (ex.: Marmita 500 ml)" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-white px-3 text-sm font-bold outline-none focus:border-pink-500" />
-                           <input value={novaEmbalagem.custo} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, custo: e.target.value.replace(/[^0-9.,]/g, "") })} placeholder="Custo R$" inputMode="decimal" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-white px-3 text-sm font-bold outline-none focus:border-pink-500" />
+                           <input value={novaEmbalagem.nome} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, nome: e.target.value })} placeholder="Nova embalagem (ex.: Marmita 500 ml)" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
+                           <input value={novaEmbalagem.custo} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, custo: e.target.value.replace(/[^0-9.,]/g, "") })} placeholder="Custo R$" inputMode="decimal" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
                            <button type="button" disabled={salvandoEmbalagem} onClick={cadastrarEmbalagemDaFicha} className="h-11 rounded-lg bg-pink-600 px-4 text-sm font-black text-white disabled:opacity-50">{salvandoEmbalagem ? "Salvando..." : "Cadastrar e usar"}</button>
                         </div>
                      </div>}
@@ -4146,68 +4146,68 @@ function FichasRunner() {
                         const lucro = precoNum > 0 ? precoNum - custoPorc : null;
                         const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
-                           <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
+                           <div id="ficha-custos" className="bg-card border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
                               {/* Custos base — sempre visíveis, recalculam ao digitar */}
                               <div className="grid grid-cols-3 gap-2 mb-3">
-                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Custo total</p>
+                                 <div className="rounded-xl bg-slate-50 border border-line p-2 text-center">
+                                    <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Custo total</p>
                                     <p className="text-sm font-black text-slate-800">{fmtBRL(custoTotalForm)}</p>
                                  </div>
-                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Custo/porção</p>
+                                 <div className="rounded-xl bg-slate-50 border border-line p-2 text-center">
+                                    <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Custo/porção</p>
                                     <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
                                  </div>
-                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                 <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">Custo/{unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"}</p>
+                                 <div className="rounded-xl bg-slate-50 border border-line p-2 text-center">
+                                 <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Custo/{unidadePadraoDepartamento(form.departamento || deptUrl) === "l" ? "L" : "kg"}</p>
                                     <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
                                  </div>
                               </div>
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
-                                    <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">CMV meta (%)</label>
-                                    <input type="number" min="1" max="90" value={form.cmv_meta} onChange={e => setForm({ ...form, cmv_meta: e.target.value })} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                                    <label className="text-3xs font-bold text-muted uppercase tracking-widest">CMV meta (%)</label>
+                                    <input type="number" min="1" max="90" value={form.cmv_meta} onChange={e => setForm({ ...form, cmv_meta: e.target.value })} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                                  </div>
                                  <div>
-                                    <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Preço de venda/porção (R$)</label>
+                                    <label className="text-3xs font-bold text-muted uppercase tracking-widest">Preço de venda/porção (R$)</label>
                                     <input type="text" inputMode="decimal" placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-3 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
                                  </div>
                               </div>
                               {sugerido > 0 && (
-                                 <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mt-2 w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
-                                    <span className="text-3xs font-bold text-slate-500 uppercase tracking-widest block">Preço sugerido/porção (CMV {meta}%)</span>
+                                 <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mt-2 w-full text-left bg-slate-50 border border-line rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
+                                    <span className="text-3xs font-bold text-muted uppercase tracking-widest block">Preço sugerido/porção (CMV {meta}%)</span>
                                     <span className="text-lg font-black text-slate-800">{fmtBRL(sugerido)}</span>
-                                    <span className="text-3xs font-bold text-slate-400 ml-2">toque para usar</span>
+                                    <span className="text-3xs font-bold text-subtle ml-2">toque para usar</span>
                                  </button>
                               )}
                               {cmvTeo !== null ? (
                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                                     <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
-                                       <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">CMV teórico</p>
+                                       <p className="text-3xs font-bold uppercase tracking-wider text-muted">CMV teórico</p>
                                        <p className={`text-lg font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
                                     </div>
                                     <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
-                                       <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">Margem</p>
+                                       <p className="text-3xs font-bold uppercase tracking-wider text-muted">Margem</p>
                                        <p className="text-lg font-black text-emerald-700">{margem.toFixed(1)}%</p>
                                     </div>
                                     <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
-                                       <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">Markup</p>
+                                       <p className="text-3xs font-bold uppercase tracking-wider text-muted">Markup</p>
                                        <p className="text-lg font-black text-emerald-700">{markup ? markup.toFixed(2) + "×" : "—"}</p>
                                     </div>
                                     <div className={`rounded-xl p-2.5 text-center border ${lucro < 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
-                                       <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">Lucro/porção</p>
+                                       <p className="text-3xs font-bold uppercase tracking-wider text-muted">Lucro/porção</p>
                                        <p className={`text-lg font-black ${lucro < 0 ? "text-red-600" : "text-emerald-700"}`}>{fmtBRL(lucro)}</p>
                                     </div>
                                  </div>
                               ) : (
-                                 <p className="text-2xs font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem, markup e lucro por porção.</p>
+                                 <p className="text-2xs font-medium text-subtle mt-2">Defina o preço de venda para ver CMV teórico, margem, markup e lucro por porção.</p>
                               )}
                            </div>
                         );
                      })()}
 
-                     {form.eh_base && <div id="ficha-preparo" className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de Preparo</label>
+                     {form.eh_base && <div id="ficha-preparo" className="scroll-mt-24 rounded-2xl border border-line bg-card p-4 shadow-sm">
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Modo de Preparo</label>
 
                         {/* Assistente de IA: você explica solto, a IA estrutura em etapas */}
                         <div className="mt-1 mb-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
@@ -4219,7 +4219,7 @@ function FichasRunner() {
                               placeholder="Ex: refogo a cebola no azeite numa panela, junto o camarão, deixo uns 5 min, jogo o leite de coco e o tucupi e cozinho até engrossar..."
                               value={iaExplicacao}
                               onChange={e => setIaExplicacao(e.target.value)}
-                              className="w-full h-20 p-3 bg-white border border-emerald-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
+                              className="w-full h-20 p-3 bg-card border border-emerald-200 rounded-lg text-sm font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none"
                            ></textarea>
                            <button
                               type="button"
@@ -4234,22 +4234,22 @@ function FichasRunner() {
                            <p className="text-3xs text-emerald-700/70 font-medium mt-1.5 leading-tight">A IA deduz panela, se vai ao fogo, o tempo de cada etapa e o tempo total. Você pode editar o texto depois.</p>
                         </div>
 
-                        <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
+                        <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-card border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
                      </div>}
 
                      {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
                      {form.departamento === "bar" && !form.eh_base && (
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Método de preparo</label>
                            <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
                               {METODOS_BAR.map(metodo => {
                                  const ativo = form.metodo_bar === metodo.id;
                                  return (
                                     <button key={metodo.id} type="button"
                                        onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
-                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
-                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
-                                       <span className="mt-0.5 block text-2xs font-semibold text-slate-500">{metodo.ajuda}</span>
+                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-line bg-card hover:border-emerald-300"}`}>
+                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-fg-soft"}`}>{metodo.nome}</span>
+                                       <span className="mt-0.5 block text-2xs font-semibold text-muted">{metodo.ajuda}</span>
                                     </button>
                                  );
                               })}
@@ -4263,7 +4263,7 @@ function FichasRunner() {
                </div>
 
                {/* FOOTER DO MODAL */}
-               <div className="p-3 sm:p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
+               <div className="p-3 sm:p-4 border-t border-line-soft bg-card flex flex-col sm:flex-row gap-3">
                   <button
                      type="button"
                      onMouseDown={e => e.preventDefault()}
@@ -4283,7 +4283,7 @@ function FichasRunner() {
                         onMouseDown={e => e.preventDefault()}
                         onClick={() => handleSalvar(true)}
                         disabled={salvandoFicha}
-                        className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 disabled:opacity-50 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                        className="sm:w-56 py-5 bg-card border-2 border-slate-300 hover:border-slate-900 disabled:opacity-50 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
                      >
                         <Plus size={18}/> Salvar e criar outra
                      </button>
@@ -4305,38 +4305,38 @@ function FichasRunner() {
          const alvoTxt = `${(+alvo.toFixed(3)).toLocaleString("pt-BR")} ${unLabel}`;
          return (
          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalSim(null)}>
-            <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[88vh] p-6 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-[28px] w-full max-w-lg max-h-[88vh] p-6 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between mb-1">
                   <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><Calculator size={20} className="text-emerald-600" /> Simular rendimento</h2>
-                  <button onClick={() => setModalSim(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+                  <button onClick={() => setModalSim(null)} className="w-9 h-9 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={17} /></button>
                </div>
-               <p className="text-sm font-bold text-slate-700">{modalSim.nome_receita}</p>
-               <p className="text-xs font-medium text-slate-500 mb-4">Receita original rende <b>{(+original).toLocaleString("pt-BR")} {unLabel}</b>. Escolha o quanto quer produzir e os ingredientes se ajustam.</p>
+               <p className="text-sm font-bold text-fg-soft">{modalSim.nome_receita}</p>
+               <p className="text-xs font-medium text-muted mb-4">Receita original rende <b>{(+original).toLocaleString("pt-BR")} {unLabel}</b>. Escolha o quanto quer produzir e os ingredientes se ajustam.</p>
 
                <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1">
-                     <label className="text-3xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Quero produzir</label>
-                     <div className="flex bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-500">
-                        <input type="text" inputMode="decimal" value={simAlvo} onChange={e => setSimAlvo(e.target.value.replace(/[^0-9.,]/g, ""))} className="w-full p-3 text-center bg-transparent font-black text-lg text-slate-700 outline-none" />
-                        <div className="flex items-center justify-center px-3 bg-slate-100 border-l border-slate-200 text-sm font-bold text-slate-500 shrink-0">{unLabel}</div>
+                     <label className="text-3xs font-bold text-subtle uppercase tracking-widest block mb-1">Quero produzir</label>
+                     <div className="flex bg-slate-50 border border-line rounded-xl overflow-hidden focus-within:border-emerald-500">
+                        <input type="text" inputMode="decimal" value={simAlvo} onChange={e => setSimAlvo(e.target.value.replace(/[^0-9.,]/g, ""))} className="w-full p-3 text-center bg-transparent font-black text-lg text-fg-soft outline-none" />
+                        <div className="flex items-center justify-center px-3 bg-elevated border-l border-line text-sm font-bold text-muted shrink-0">{unLabel}</div>
                      </div>
                   </div>
                   <div className="text-center">
-                     <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest">Fator</p>
+                     <p className="text-3xs font-bold text-subtle uppercase tracking-widest">Fator</p>
                      <p className="text-lg font-black text-emerald-600">{factor > 0 ? `${(+factor.toFixed(3)).toLocaleString("pt-BR")}×` : "—"}</p>
                   </div>
                </div>
 
                <div className="flex-1 overflow-y-auto -mx-1 px-1">
-                  <div className="rounded-xl border border-slate-200 overflow-hidden">
-                     <div className="bg-slate-50 px-4 py-2 grid grid-cols-[1fr_auto] text-3xs font-bold uppercase tracking-widest text-slate-400 border-b border-slate-200">
+                  <div className="rounded-xl border border-line overflow-hidden">
+                     <div className="bg-slate-50 px-4 py-2 grid grid-cols-[1fr_auto] text-3xs font-bold uppercase tracking-widest text-subtle border-b border-line">
                         <span>Ingrediente</span><span>Quantidade</span>
                      </div>
                      {linhas.length === 0 ? (
-                        <p className="p-4 text-sm text-slate-400 font-medium">Esta ficha não tem ingredientes cadastrados.</p>
+                        <p className="p-4 text-sm text-subtle font-medium">Esta ficha não tem ingredientes cadastrados.</p>
                      ) : linhas.map((l, i) => (
                         <div key={i} className="px-4 py-2.5 grid grid-cols-[1fr_auto] items-center border-b border-slate-50 last:border-0">
-                           <span className="font-bold text-slate-700 text-sm truncate">{l.nome}</span>
+                           <span className="font-bold text-fg-soft text-sm truncate">{l.nome}</span>
                            <span className="font-black text-slate-800 text-sm">{l.qtdFmt}</span>
                         </div>
                      ))}
@@ -4344,11 +4344,11 @@ function FichasRunner() {
                </div>
 
                <div className="flex items-center justify-between mt-4 mb-3 px-1">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo desta produção</span>
+                  <span className="text-xs font-bold text-muted uppercase tracking-widest">Custo desta produção</span>
                   <span className="text-xl font-black text-emerald-600">{fmtBRL(custoSim)}</span>
                </div>
                <div className="flex gap-3">
-                  <button onClick={() => setModalSim(null)} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Fechar</button>
+                  <button onClick={() => setModalSim(null)} className="flex-1 py-3 rounded-xl font-bold bg-elevated text-fg-soft hover:bg-slate-200">Fechar</button>
                   <button onClick={() => imprimirSimulacao(modalSim, factor, alvoTxt)} disabled={!(factor > 0)} className="flex-1 py-3 rounded-xl font-black bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"><Printer size={16} /> Imprimir</button>
                </div>
             </div>
@@ -4359,15 +4359,15 @@ function FichasRunner() {
       {/* REMOVER / SUBSTITUIR INGREDIENTE DA FICHA */}
       {substituirAlvo && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4" onClick={fecharSubstituicao}>
-            <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between mb-1">
                   <h3 className="text-xl font-black text-slate-800">Remover “{substituirAlvo.nome}”</h3>
-                  <button onClick={fecharSubstituicao} className="text-slate-400 hover:text-slate-600 p-1"><X size={20}/></button>
+                  <button onClick={fecharSubstituicao} className="text-subtle hover:text-slate-600 p-1"><X size={20}/></button>
                </div>
-               <p className="text-sm font-medium text-slate-500 mb-4">Quer substituir por outro ingrediente cadastrado ou só remover?</p>
+               <p className="text-sm font-medium text-muted mb-4">Quer substituir por outro ingrediente cadastrado ou só remover?</p>
 
-               <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Substituir por (opcional)</label>
-               <select value={substitutoValor} onChange={e => setSubstitutoValor(e.target.value)} className="w-full mt-1 mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
+               <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Substituir por (opcional)</label>
+               <select value={substitutoValor} onChange={e => setSubstitutoValor(e.target.value)} className="w-full mt-1 mb-4 p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
                   <option value="">Escolher um ingrediente...</option>
                   <optgroup label="Insumos">
                      {insumosAtivos.filter(i => i.id !== substituirAlvo.chave).map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
@@ -4380,7 +4380,7 @@ function FichasRunner() {
                </select>
 
                <div className="flex gap-3">
-                  <button onClick={soRemover} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Não, só remover</button>
+                  <button onClick={soRemover} className="flex-1 py-3 rounded-xl font-bold bg-elevated text-fg-soft hover:bg-slate-200 transition-colors">Não, só remover</button>
                   <button onClick={confirmarSubstituicao} disabled={!substitutoValor} className="flex-1 py-3 rounded-xl font-black bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Substituir</button>
                </div>
             </div>
@@ -4390,44 +4390,44 @@ function FichasRunner() {
       {/* MONTAR FICHA COM IA (texto/foto da receita) */}
       {modalIAFicha && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
-             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-3xl my-2 sm:my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
-               <div className="flex justify-between items-center gap-3 p-4 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 shrink-0">
+             <div className="bg-card rounded-3xl sm:rounded-[32px] w-full max-w-3xl my-2 sm:my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+               <div className="flex justify-between items-center gap-3 p-4 sm:p-8 pb-4 sm:pb-6 border-b border-line-soft shrink-0">
                   <div className="flex items-center gap-3">
                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
                      <div>
                          <h2 className="font-black text-xl sm:text-2xl text-slate-800">Montar Ficha Técnica com IA</h2>
-                        <p className="text-xs font-bold text-slate-500 mt-0.5">Cole a receita ou envie uma foto — a IA monta nome, ingredientes e modo de preparo</p>
+                        <p className="text-xs font-bold text-muted mt-0.5">Cole a receita ou envie uma foto — a IA monta nome, ingredientes e modo de preparo</p>
                      </div>
                   </div>
-                  <button onClick={() => setModalIAFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalIAFicha(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
                   {!iaFResultado ? (
                      <>
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Colar a receita (opcional se enviar foto)</label>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Colar a receita (opcional se enviar foto)</label>
                            <textarea
                               placeholder={"Ex:\nTacacá: refogo camarão seco no azeite, junto tucupi e goma, cozinho 15 min mexendo, sirvo com jambu e pimenta..."}
                               value={iaFTexto}
                               onChange={e => setIaFTexto(e.target.value)}
-                              className="w-full h-32 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
+                              className="w-full h-32 p-4 mt-1 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none"
                            ></textarea>
                         </div>
 
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ou enviar foto (caderno de receitas, print, etc)</label>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Ou enviar foto (caderno de receitas, print, etc)</label>
                            <input ref={fileInputFichaRef} type="file" accept="image/*" onChange={handleSelecionarImagemFicha} className="hidden" />
                            {iaFImagem ? (
-                              <div className="mt-1 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                 <img src={iaFImagem.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-slate-200" />
+                              <div className="mt-1 flex items-center gap-3 bg-slate-50 border border-line rounded-xl p-3">
+                                 <img src={iaFImagem.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-line" />
                                  <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-sm text-slate-700 truncate">{iaFImagem.nomeArquivo}</p>
+                                    <p className="font-bold text-sm text-fg-soft truncate">{iaFImagem.nomeArquivo}</p>
                                     <button onClick={() => setIaFImagem(null)} className="text-xs font-bold text-red-500 hover:text-red-600 mt-1">Remover foto</button>
                                  </div>
                               </div>
                            ) : (
-                              <button type="button" onClick={() => fileInputFichaRef.current?.click()} className="w-full mt-1 p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-colors">
+                              <button type="button" onClick={() => fileInputFichaRef.current?.click()} className="w-full mt-1 p-6 bg-slate-50 border-2 border-dashed border-line rounded-xl flex flex-col items-center gap-2 text-subtle hover:text-emerald-600 hover:border-emerald-300 transition-colors">
                                  <Camera size={24} />
                                  <span className="font-bold text-sm">Tirar foto ou escolher da galeria</span>
                               </button>
@@ -4444,9 +4444,9 @@ function FichasRunner() {
                      </>
                   ) : (
                      <>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Nome do prato (vai pro cardápio)</label>
-                           <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
+                        <div className="bg-slate-50 border border-line rounded-xl p-4">
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Nome do prato (vai pro cardápio)</label>
+                           <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
                            {(() => {
                                const pesoIA = rendimentoPelosIngredientes(
                                   iaFResultado.itens.map(it => {
@@ -4457,7 +4457,7 @@ function FichasRunner() {
                                );
                               if (pesoIA) return (
                                  <>
-                                    <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (peso total)</label>
+                                    <label className="text-3xs font-bold text-muted uppercase tracking-widest mt-3 block">Rendimento (peso total)</label>
                                     <div className="mt-1 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                                        <span className="font-black text-emerald-700 text-lg">{pesoIA.valor.toLocaleString("pt-BR")} {pesoIA.unidade}</span>
                                        <span className="block text-3xs font-bold text-emerald-600/80 mt-0.5">Somado automaticamente dos ingredientes. Você pode ajustar na ficha (perdas do cozimento).</span>
@@ -4466,16 +4466,16 @@ function FichasRunner() {
                               );
                               return (
                                  <>
-                                    <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (porções)</label>
-                                    <input type="number" value={iaFResultado.rendimento_porcoes} onChange={e=>setIaFResultado({...iaFResultado, rendimento_porcoes: e.target.value})} className="w-24 p-3 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 outline-none focus:border-emerald-500" />
-                                    <span className="block text-3xs font-medium text-slate-400 mt-1">Ingredientes em unidades (sem peso) — informe as porções manualmente.</span>
+                                    <label className="text-3xs font-bold text-muted uppercase tracking-widest mt-3 block">Rendimento (porções)</label>
+                                    <input type="number" value={iaFResultado.rendimento_porcoes} onChange={e=>setIaFResultado({...iaFResultado, rendimento_porcoes: e.target.value})} className="w-24 p-3 mt-1 bg-card border border-line rounded-lg font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                                    <span className="block text-3xs font-medium text-subtle mt-1">Ingredientes em unidades (sem peso) — informe as porções manualmente.</span>
                                  </>
                               );
                            })()}
                         </div>
 
                         <div>
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ingredientes identificados</p>
+                           <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Ingredientes identificados</p>
                            <div className="space-y-2">
                               {iaFResultado.itens.map((it, idx) => {
                                  const vinculado = it.vinculoId !== "novo";
@@ -4484,11 +4484,11 @@ function FichasRunner() {
                                        <div className="flex items-center gap-2 flex-wrap">
                                           {vinculado ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0"/> : <AlertTriangle size={16} className="text-amber-600 shrink-0"/>}
                                           <span className="font-bold text-slate-800 text-sm">{it.nomeOriginal}</span>
-                                          <span className="text-xs font-bold text-slate-400">({it.quantidade_lida}{it.unidade_lida})</span>
+                                          <span className="text-xs font-bold text-subtle">({it.quantidade_lida}{it.unidade_lida})</span>
                                           <select
                                              value={it.vinculoId}
                                              onChange={e => atualizarItemIAFicha(idx, { vinculoId: e.target.value })}
-                                             className="ml-auto p-2 bg-white border border-slate-200 rounded-lg font-bold text-xs outline-none focus:border-emerald-500"
+                                             className="ml-auto p-2 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500"
                                           >
                                              <option value="novo">-- Cadastrar novo --</option>
                                              {insumosAtivos.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
@@ -4497,8 +4497,8 @@ function FichasRunner() {
 
                                        {!vinculado && (
                                           <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
-                                             <input type="text" placeholder="Marca (opcional)" value={it.novo.marca} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, marca: e.target.value } })} className="w-32 p-2 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-500" />
-                                             <select value={it.novo.unidade_medida} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, unidade_medida: e.target.value } })} className="w-20 p-2 bg-white border border-slate-200 rounded-lg font-bold text-xs outline-none focus:border-emerald-500">
+                                             <input type="text" placeholder="Marca (opcional)" value={it.novo.marca} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, marca: e.target.value } })} className="w-32 p-2 bg-card border border-line rounded-lg text-xs outline-none focus:border-emerald-500" />
+                                             <select value={it.novo.unidade_medida} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, unidade_medida: e.target.value } })} className="w-20 p-2 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500">
                                                 <option value="kg">KG</option>
                                                 <option value="l">L</option>
                                                 <option value="un">UN</option>
@@ -4518,17 +4518,17 @@ function FichasRunner() {
                         </div>
 
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de preparo (editável)</label>
-                           <textarea value={iaFResultado.modo_preparo} onChange={e=>setIaFResultado({...iaFResultado, modo_preparo: e.target.value})} className="w-full h-32 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 text-sm outline-none focus:border-emerald-500 resize-none"></textarea>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Modo de preparo (editável)</label>
+                           <textarea value={iaFResultado.modo_preparo} onChange={e=>setIaFResultado({...iaFResultado, modo_preparo: e.target.value})} className="w-full h-32 p-4 mt-1 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft text-sm outline-none focus:border-emerald-500 resize-none"></textarea>
                         </div>
 
-                        <button onClick={() => setIaFResultado(null)} className="text-xs font-bold text-slate-500 hover:text-slate-700">← Voltar e enviar outra receita/foto</button>
+                        <button onClick={() => setIaFResultado(null)} className="text-xs font-bold text-muted hover:text-fg-soft">← Voltar e enviar outra receita/foto</button>
                      </>
                   )}
                </div>
 
                {iaFResultado && (
-                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-slate-50 rounded-b-[32px] shrink-0">
                      <button onClick={usarFichaIA} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                         <Save size={20}/> Usar esta ficha
                      </button>
@@ -4544,7 +4544,7 @@ function FichasRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando módulo...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando módulo...</div>}>
        <FichasRunner />
     </Suspense>
   );

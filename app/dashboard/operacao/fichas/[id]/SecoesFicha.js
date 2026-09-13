@@ -56,16 +56,16 @@ export function EtapasPreparo({ etapas, onChange, modoPreparoLegado }) {
   return (
     <div className="space-y-3">
       {etapas.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-center">
-          <p className="text-sm text-slate-400">Nenhuma etapa cadastrada.</p>
+        <div className="rounded-2xl border border-dashed border-line p-5 text-center">
+          <p className="text-sm text-subtle">Nenhuma etapa cadastrada.</p>
           {modoPreparoLegado ? (
             <>
-              <p className="mx-auto mt-2 max-w-md text-xs text-slate-500">
+              <p className="mx-auto mt-2 max-w-md text-xs text-muted">
                 Esta receita já tem um modo de preparo escrito como texto corrido.
                 Dá para transformá-lo em etapas numeradas — o texto original continua guardado.
               </p>
               <button onClick={importarDoTextoAntigo}
-                className="mt-3 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                className="mt-3 rounded-xl border border-slate-300 bg-card px-3 py-1.5 text-sm font-semibold text-fg-soft hover:bg-slate-50">
                 Transformar o texto em etapas
               </button>
             </>
@@ -74,8 +74,8 @@ export function EtapasPreparo({ etapas, onChange, modoPreparoLegado }) {
       ) : null}
 
       {etapas.map((etapa, i) => (
-        <div key={etapa.chave} className="rounded-2xl border border-slate-200 bg-white p-3">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+        <div key={etapa.chave} className="rounded-2xl border border-line bg-card p-3">
+          <div className="flex items-center gap-2 border-b border-line-soft pb-2">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
               {i + 1}
             </span>
@@ -83,17 +83,17 @@ export function EtapasPreparo({ etapas, onChange, modoPreparoLegado }) {
               value={etapa.titulo || ""}
               onChange={e => alterar(etapa.chave, "titulo", e.target.value)}
               placeholder="Título da etapa (ex.: Grelhar)"
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-slate-800 outline-none placeholder:font-normal placeholder:text-slate-300"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-slate-800 outline-none placeholder:font-normal placeholder:text-dim"
             />
             <div className="flex shrink-0 items-center gap-0.5">
               <button onClick={() => onChange(mover(etapas, i, -1))} disabled={i === 0}
                 title="Subir"
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30">
+                className="rounded-lg p-1.5 text-subtle hover:bg-elevated disabled:opacity-30">
                 <ArrowUp size={14} />
               </button>
               <button onClick={() => onChange(mover(etapas, i, 1))} disabled={i === etapas.length - 1}
                 title="Descer"
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30">
+                className="rounded-lg p-1.5 text-subtle hover:bg-elevated disabled:opacity-30">
                 <ArrowDown size={14} />
               </button>
               <button onClick={() => onChange(etapas.filter(e => e.chave !== etapa.chave))}
@@ -175,7 +175,7 @@ export function Equipamentos({ selecionados, onChange }) {
           return (
             <button key={nome} onClick={() => alternar(nome)}
               className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-sm font-medium transition ${
-                ativo ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+                ativo ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
               {ativo ? <Check size={13} /> : null} {nome}
             </button>
           );
@@ -197,7 +197,7 @@ export function Equipamentos({ selecionados, onChange }) {
 
       <form onSubmit={adicionar} className="mt-3 flex gap-2">
         <input name="novo" placeholder="Outro equipamento" className="erp-input flex-1" />
-        <button type="submit" className="rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <button type="submit" className="rounded-xl border border-slate-300 px-3 text-sm font-semibold text-fg-soft hover:bg-slate-50">
           Adicionar
         </button>
       </form>
@@ -222,7 +222,7 @@ export function Alergenicos({ selecionados, podeConter, onChange, onPodeConterCh
           return (
             <button key={nome} onClick={() => alternar(nome)}
               className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-sm font-medium transition ${
-                ativo ? "bg-amber-500 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+                ativo ? "bg-amber-500 text-white" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
               {ativo ? <Check size={13} /> : null} {nome}
             </button>
           );
@@ -309,14 +309,14 @@ export function MontagemPassos({ passos, onChange }) {
   return (
     <div className="space-y-2">
       {passos.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 py-5 text-center text-sm text-slate-400">
+        <p className="rounded-2xl border border-dashed border-line py-5 text-center text-sm text-subtle">
           Nenhum passo de montagem. A ordem aqui é a ordem em que o prato é montado.
         </p>
       ) : null}
 
       {passos.map((passo, i) => (
         <div key={passo.chave} className="flex items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-elevated text-xs font-bold text-slate-600">
             {i + 1}
           </span>
           <input
@@ -327,11 +327,11 @@ export function MontagemPassos({ passos, onChange }) {
           />
           <div className="flex shrink-0 items-center gap-0.5">
             <button onClick={() => onChange(mover(passos, i, -1))} disabled={i === 0}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30" title="Subir">
+              className="rounded-lg p-1.5 text-subtle hover:bg-elevated disabled:opacity-30" title="Subir">
               <ArrowUp size={14} />
             </button>
             <button onClick={() => onChange(mover(passos, i, 1))} disabled={i === passos.length - 1}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30" title="Descer">
+              className="rounded-lg p-1.5 text-subtle hover:bg-elevated disabled:opacity-30" title="Descer">
               <ArrowDown size={14} />
             </button>
             <button onClick={() => onChange(passos.filter(p => p.chave !== passo.chave))}

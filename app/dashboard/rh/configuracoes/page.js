@@ -159,31 +159,31 @@ export default function RhConfiguracoesPage() {
 
         <div className="mt-4">
           {abaAtiva === "regulamento" ? (
-             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+             <div className="bg-card p-6 rounded-3xl border border-line shadow-sm space-y-6">
                 <div>
-                  <label className="text-sm font-bold text-slate-700">Texto do Regulamento Interno</label>
-                  <p className="text-xs text-slate-500 mb-2">Digite as regras de conduta, faltas, uniformes, etc. Isso será impresso no termo do funcionário.</p>
+                  <label className="text-sm font-bold text-fg-soft">Texto do Regulamento Interno</label>
+                  <p className="text-xs text-muted mb-2">Digite as regras de conduta, faltas, uniformes, etc. Isso será impresso no termo do funcionário.</p>
                   <textarea 
                      value={regulamento.texto_regulamento || ""} 
                      onChange={e => setRegulamento({...regulamento, texto_regulamento: e.target.value})} 
-                     className="w-full h-64 p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"
+                     className="w-full h-64 p-4 bg-slate-50 border border-line rounded-xl font-medium outline-none focus:border-emerald-500"
                      placeholder="Digite o regulamento aqui..."
                   />
                 </div>
                 
-                <div className="pt-4 border-t border-slate-100">
-                  <label className="text-sm font-bold text-slate-700">Anexar Regulamento em PDF (Opcional)</label>
-                  <p className="text-xs text-slate-500 mb-3">Se você já tiver um arquivo PDF pronto, pode anexá-lo aqui. O funcionário também poderá baixar.</p>
+                <div className="pt-4 border-t border-line-soft">
+                  <label className="text-sm font-bold text-fg-soft">Anexar Regulamento em PDF (Opcional)</label>
+                  <p className="text-xs text-muted mb-3">Se você já tiver um arquivo PDF pronto, pode anexá-lo aqui. O funcionário também poderá baixar.</p>
                   
                   {regulamento.url_pdf ? (
                     <div className="flex items-center gap-3">
-                       <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-100 text-emerald-600 px-4 py-2 rounded-lg font-bold hover:bg-slate-200">
+                       <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-elevated text-emerald-600 px-4 py-2 rounded-lg font-bold hover:bg-slate-200">
                          <FileText size={16}/> Ver PDF Atual
                        </a>
-                       <button onClick={() => fileInputRef.current.click()} className="text-slate-500 text-sm font-bold hover:text-slate-700 underline">Trocar PDF</button>
+                       <button onClick={() => fileInputRef.current.click()} className="text-muted text-sm font-bold hover:text-fg-soft underline">Trocar PDF</button>
                     </div>
                   ) : (
-                    <button onClick={() => fileInputRef.current.click()} className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg font-bold hover:bg-slate-200">
+                    <button onClick={() => fileInputRef.current.click()} className="flex items-center gap-2 bg-elevated text-slate-600 px-4 py-2 rounded-lg font-bold hover:bg-slate-200">
                       <Upload size={16}/> Fazer Upload de PDF
                     </button>
                   )}

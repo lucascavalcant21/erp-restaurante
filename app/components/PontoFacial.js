@@ -62,14 +62,14 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5">
+      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-card shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-line-soft px-4 py-3.5">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><ScanFace size={20} /></div>
           <div className="min-w-0 flex-1">
-            <p className="font-black text-slate-900">Ponto por reconhecimento</p>
-            <p className="text-2xs font-bold text-slate-400">{cadastrados.length} funcionário(s) com rosto cadastrado</p>
+            <p className="font-black text-fg">Ponto por reconhecimento</p>
+            <p className="text-2xs font-bold text-subtle">{cadastrados.length} funcionário(s) com rosto cadastrado</p>
           </div>
-          <button onClick={onFechar} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600"><X size={20} /></button>
+          <button onClick={onFechar} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-elevated text-slate-600"><X size={20} /></button>
         </div>
 
         <div className="relative bg-slate-900" style={{ aspectRatio: "4/3" }}>
@@ -92,7 +92,7 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
           {erro && <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
           {achado ? (
             <div className="flex gap-3">
-              <button onClick={() => { setAchado(null); setErro(""); }} className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600">
+              <button onClick={() => { setAchado(null); setErro(""); }} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600">
                 Não sou eu
               </button>
               <button onClick={confirmar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700">
@@ -105,7 +105,7 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
               {lendo ? <><Loader2 size={19} className="animate-spin" /> Reconhecendo...</> : <><ScanFace size={19} /> Reconhecer meu rosto</>}
             </button>
           )}
-          <p className="mt-3 text-center text-2xs font-medium text-slate-400">
+          <p className="mt-3 text-center text-2xs font-medium text-subtle">
             Fique de frente, com o rosto iluminado e sozinho na câmera.
           </p>
         </div>

@@ -520,7 +520,7 @@ function EditorCamadas({ camadas, setCamadas }) {
                  {TIPOS_IA.map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
                </select>
             </div>
-            <button onClick={() => remover(idx)} className="p-2 text-slate-600 hover:text-slate-500 hover:bg-emerald-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
+            <button onClick={() => remover(idx)} className="p-2 text-slate-600 hover:text-muted hover:bg-emerald-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
           </div>
         ))}
       </div>
@@ -590,7 +590,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           <span className="rounded-xl bg-emerald-500/20 px-3 py-1 text-xs font-bold uppercase text-emerald-400 border border-emerald-500/30">
             {currentGuia?.departamento === "bar" ? "🍹 BAR DE PRODUÇÃO" : "🍳 COZINHA DA PRAÇA"}
           </span>
-          <span className="text-sm font-bold text-slate-400">
+          <span className="text-sm font-bold text-subtle">
             Item {currentIndex + 1} de {lista.length}
           </span>
         </div>
@@ -604,7 +604,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           )}
           <button
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-dim hover:bg-slate-700 hover:text-white transition"
           >
             <X size={22} />
           </button>
@@ -633,11 +633,11 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           {/* Quick Specs */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <span className="text-3xs font-bold uppercase text-slate-400">Tempo de Preparo</span>
+              <span className="text-3xs font-bold uppercase text-subtle">Tempo de Preparo</span>
               <p className="mt-1 text-lg font-black text-emerald-400">{currentGuia?.tempo_preparo ? `${currentGuia.tempo_preparo} min` : "Livre"}</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <span className="text-3xs font-bold uppercase text-slate-400">{currentGuia?.departamento === "bar" ? "Copo / Coparia" : "Rendimento"}</span>
+              <span className="text-3xs font-bold uppercase text-subtle">{currentGuia?.departamento === "bar" ? "Copo / Coparia" : "Rendimento"}</span>
               <p className="mt-1 text-lg font-black text-sky-400 truncate">{copo?.nome || currentGuia?.rendimento || "1 Porção"}</p>
             </div>
           </div>
@@ -645,7 +645,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           {/* Ingredients List */}
           {ingredientes.length > 0 && (
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-subtle mb-3 flex items-center gap-2">
                 <ListChecks size={16} className="text-emerald-400" /> Ingredientes & Dosagem
               </h3>
               <ul className="space-y-2">
@@ -663,12 +663,12 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
         {/* Right Side: Giant Step-by-Step Instructions */}
         <div className="p-6 overflow-y-auto lg:col-span-7 flex flex-col justify-between">
           <div className="space-y-4">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-subtle flex items-center gap-2">
               <Sparkles size={18} className="text-amber-400" /> Passos de Montagem da Praça
             </h2>
 
             {passos.length === 0 ? (
-              <div className="p-12 text-center text-slate-500 font-bold">Nenhum passo de montagem cadastrado para este item.</div>
+              <div className="p-12 text-center text-muted font-bold">Nenhum passo de montagem cadastrado para este item.</div>
             ) : (
               <div className="space-y-3">
                 {passos.map((passo, idx) => {
@@ -695,7 +695,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
                         </div>
                         <button
                           onClick={() => startTimer(30, idx)}
-                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 hover:text-white px-3 py-2 text-xs font-bold text-slate-300 transition"
+                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 hover:text-white px-3 py-2 text-xs font-bold text-dim transition"
                           title="Iniciar cronômetro de 30s"
                         >
                           <Clock size={14} /> 30s
@@ -757,7 +757,7 @@ function PreviaModeloChef({ m, lista, cfg: cfgProp }) {
         <span>{cfg.orientacao === "paisagem" ? "A4 horizontal" : "A4 vertical"} · {cfg.porPagina}/pág.</span>
       </div>
       <div
-        className="mx-auto w-full overflow-hidden rounded-xl border bg-white shadow-lg"
+        className="mx-auto w-full overflow-hidden rounded-xl border bg-card shadow-lg"
         style={{
           aspectRatio: `${larguraPapel} / ${alturaPapel}`,
           borderColor: "var(--line)",
@@ -983,9 +983,9 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       {f.tipo === "drink" ? (
         <div className="space-y-4">
           {/* MONTAR COM IA: cola a receita inteira e ela preenche as seções */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Preenchimento manual</p>
-            <p className="mt-1 text-2xs font-medium text-slate-500">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
+          <div className="rounded-2xl border border-line bg-card p-3">
+            <p className="text-xs font-bold text-fg-soft uppercase tracking-widest">Preenchimento manual</p>
+            <p className="mt-1 text-2xs font-medium text-muted">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
           </div>
           <details className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3">
             <summary className="cursor-pointer text-xs font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
@@ -1008,7 +1008,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
-              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
                 {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                 {gerandoIA ? "Gerando..." : "Preparo com IA"}
               </button>
@@ -1050,7 +1050,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
                 <button type="button" onClick={removerFotoCopo} className="text-2xs font-bold text-rose-500 hover:text-rose-600">Voltar ao desenho</button>
               )}
             </div>
-            <p className="text-2xs text-slate-400 mt-1">Esta foto pertence somente a esta ficha e fica separada da foto do drink.</p>
+            <p className="text-2xs text-subtle mt-1">Esta foto pertence somente a esta ficha e fica separada da foto do drink.</p>
           </div>
 
           {/* SEÇÃO: Modo de Preparo */}
@@ -1068,8 +1068,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       ) : (
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
-             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ingredientes e Passo a passo</label>
-             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+             <label className="text-xs font-bold text-muted uppercase tracking-widest">Ingredientes e Passo a passo</label>
+             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
                {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
              </button>
@@ -2271,7 +2271,7 @@ function MontagemPageInner() {
               {vazios > 0 && (
                 <button onClick={preencherVaziosIA} disabled={preenchendoIA}
                   title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
-                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
+                  className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
                   {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
                 </button>
@@ -2283,7 +2283,7 @@ function MontagemPageInner() {
             </>
           );
         })()}
-        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>
@@ -2297,14 +2297,14 @@ function MontagemPageInner() {
             dá para rever e desfazer pelo botão "Fora do guia". */}
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => { setVerForaDoGuia(v => !v); setSelecionadas([]); }}
-            className={`min-h-10 rounded-xl border px-3 text-xs font-bold ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
+            className={`min-h-10 rounded-xl border px-3 text-xs font-bold ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-line bg-card text-slate-600"}`}>
             {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia || !temConteudoDrink(m)).length})`}
           </button>
           {filtrados.length > 0 && (() => {
             const todosMarcados = filtrados.every(m => selecionadas.includes(m.id));
             return (
               <button type="button" onClick={alternarTodos}
-                className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:border-emerald-300">
+                className="flex min-h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-300">
                 {todosMarcados ? <CheckSquare size={15} /> : <Square size={15} />}
                 {todosMarcados ? "Desmarcar todos" : `Selecionar todos (${filtrados.length})`}
               </button>
@@ -2337,7 +2337,7 @@ function MontagemPageInner() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {filtrados.map((m) => (
                 <button key={m.id} type="button" onClick={() => setPreviewCard(m)} title="Ver modelo pronto"
-                  className="text-left rounded-2xl bg-white border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all relative overflow-hidden group">
+                  className="text-left rounded-2xl bg-card border border-line hover:shadow-lg hover:border-slate-300 transition-all relative overflow-hidden group">
                   {m.estrutura_ia && (
                     <div className="absolute top-2 right-2 bg-white/90 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center shadow z-10" title="Criado com Inteligência Artificial">
                        <Sparkles size={12} />
@@ -2345,7 +2345,7 @@ function MontagemPageInner() {
                   )}
 
                   {/* Foto de capa (menor) */}
-                  <div className="w-full h-28 sm:h-32 bg-slate-100 relative">
+                  <div className="w-full h-28 sm:h-32 bg-elevated relative">
                     {/* Seleção p/ imprimir juntas (não abre o preview) */}
                     <label className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm" title="Selecionar para impressão" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selecionadas.includes(m.id)} onChange={() => toggleSel(m.id)} className="w-4 h-4 accent-emerald-600 block cursor-pointer" />
@@ -2353,7 +2353,7 @@ function MontagemPageInner() {
                     {m.foto_url ? (
                       <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-opacity" />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                      <div className="w-full h-full flex flex-col items-center justify-center text-subtle">
                          <Camera size={24} />
                          <span className="text-3xs uppercase font-bold mt-1">Sem foto</span>
                       </div>
@@ -2403,7 +2403,7 @@ function MontagemPageInner() {
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
               ].map(({ icon: Ic, label, onClick, perigo }) => (
                 <button key={label} onClick={onClick}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-2xs font-bold transition-colors hover:bg-slate-100 active:scale-95"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-2xs font-bold transition-colors hover:bg-elevated active:scale-95"
                   style={{ background: "var(--elevated)", color: perigo ? "#DC2626" : "var(--muted)" }}
                   title={label}>
                   <Ic size={16} />
@@ -2451,15 +2451,15 @@ function MontagemPageInner() {
               <div className="grid gap-3">
                 <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfGuiaDrinks : imprimirGuiaDrinks)(drinksGuia, 3); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <ClipboardList size={22} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <div><p className="font-black text-slate-800 text-sm">Cartões (pôster)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Grade compacta para colar na parede/bancada. Margem mínima, cabe o máximo por folha.</p></div>
+                  <div><p className="font-black text-slate-800 text-sm">Cartões (pôster)</p><p className="text-xs font-medium text-subtle mt-0.5">Grade compacta para colar na parede/bancada. Margem mínima, cabe o máximo por folha.</p></div>
                 </button>
                 <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfLivroDrinks : imprimirLivroDrinks)(drinksGuia, "a4"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <Printer size={22} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <div><p className="font-black text-slate-800 text-sm">Livro A4 (folha inteira)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Capa, índice com páginas, categorias em ordem alfabética, páginas numeradas e margem esquerda de 18mm para encadernar.</p></div>
+                  <div><p className="font-black text-slate-800 text-sm">Livro A4 (folha inteira)</p><p className="text-xs font-medium text-subtle mt-0.5">Capa, índice com páginas, categorias em ordem alfabética, páginas numeradas e margem esquerda de 18mm para encadernar.</p></div>
                 </button>
                 <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfLivroDrinks : imprimirLivroDrinks)(drinksGuia, "a5"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <Printer size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <div><p className="font-black text-slate-800 text-sm">Livro A5 (metade da A4 — livro menor)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Mesmo livro em página 148×210mm, com margem de 14mm para encadernar. Na impressora, escolha o papel A5 (ou 2 por folha em A4).</p></div>
+                  <div><p className="font-black text-slate-800 text-sm">Livro A5 (metade da A4 — livro menor)</p><p className="text-xs font-medium text-subtle mt-0.5">Mesmo livro em página 148×210mm, com margem de 14mm para encadernar. Na impressora, escolha o papel A5 (ou 2 por folha em A4).</p></div>
                 </button>
               </div>
               <p className="text-3xs font-medium mt-4" style={{ color: "var(--dim)" }}>Dica: marque drinks nos cards para imprimir só alguns (ex.: 2 ou mais). Sem marcar, entra todo o bar.</p>

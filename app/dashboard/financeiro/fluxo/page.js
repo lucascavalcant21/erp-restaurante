@@ -50,7 +50,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
       
       <div className="text-center mb-6">
          <h3 className="text-xl font-black text-slate-800">{isReceita ? "Nova Receita" : "Nova Despesa"}</h3>
-         <p className="text-sm font-medium text-slate-500">{isReceita ? "Dinheiro entrando no caixa" : "Pagamento saindo do caixa"}</p>
+         <p className="text-sm font-medium text-muted">{isReceita ? "Dinheiro entrando no caixa" : "Pagamento saindo do caixa"}</p>
       </div>
 
       <div className="space-y-4">
@@ -77,7 +77,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
       {erro && <div className="mt-4 p-3 bg-slate-50 text-emerald-600 text-sm font-bold rounded-xl text-center">{erro}</div>}
       
       <div className="flex gap-3 mt-8">
-        <button className="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-4 font-bold text-muted hover:bg-elevated rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
         <button className={`flex-1 py-4 font-black text-white rounded-xl shadow-lg transition-all transform hover:-translate-y-1 ${corBotao}`} onClick={salvar}>
            Registrar {isReceita ? "Receita" : "Despesa"}
         </button>
@@ -140,9 +140,9 @@ export default function FluxoCaixaFintechPage() {
          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500 rounded-full blur-[100px] opacity-10"></div>
          
          <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Conta da Unidade · {unidadeInfo.nome}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Conta da Unidade · {unidadeInfo.nome}</p>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter mb-2 break-words">{fmtBRL(resumo.saldo)}</h1>
-            <p className="text-sm font-medium text-slate-500">Saldo Atual do Período Operacional</p>
+            <p className="text-sm font-medium text-muted">Saldo Atual do Período Operacional</p>
          </div>
       </div>
 
@@ -152,7 +152,7 @@ export default function FluxoCaixaFintechPage() {
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-10">
             <button 
               onClick={() => setModalReceita(true)} 
-              className="bg-white p-6 rounded-[32px] shadow-lg border border-slate-100 flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all"
+              className="bg-card p-6 rounded-[32px] shadow-lg border border-line-soft flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all"
             >
                <div className="w-14 h-14 rounded-full bg-emerald-50 group-hover:bg-emerald-500 text-emerald-500 group-hover:text-white flex items-center justify-center transition-colors">
                   <ArrowDownRight size={24} />
@@ -162,7 +162,7 @@ export default function FluxoCaixaFintechPage() {
 
             <button 
               onClick={() => setModalDespesa(true)} 
-              className="bg-white p-6 rounded-[32px] shadow-lg border border-slate-100 flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all"
+              className="bg-card p-6 rounded-[32px] shadow-lg border border-line-soft flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all"
             >
                <div className="w-14 h-14 rounded-full bg-slate-50 group-hover:bg-emerald-500 text-slate-600 group-hover:text-white flex items-center justify-center transition-colors">
                   <ArrowUpRight size={24} />
@@ -172,13 +172,13 @@ export default function FluxoCaixaFintechPage() {
          </div>
 
          {/* RESUMO RÁPIDO */}
-         <div className="bg-white p-2 rounded-2xl border border-slate-200 flex flex-wrap justify-between items-center gap-2 mb-8 sm:mb-10 shadow-sm">
-            <div className="flex-1 text-center py-3 border-r border-slate-100">
-               <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Entradas</p>
+         <div className="bg-card p-2 rounded-2xl border border-line flex flex-wrap justify-between items-center gap-2 mb-8 sm:mb-10 shadow-sm">
+            <div className="flex-1 text-center py-3 border-r border-line-soft">
+               <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Entradas</p>
                <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.entradas)}</p>
             </div>
             <div className="flex-1 text-center py-3">
-               <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Saídas</p>
+               <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Saídas</p>
                <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.saidas)}</p>
             </div>
          </div>
@@ -190,17 +190,17 @@ export default function FluxoCaixaFintechPage() {
          </div>
 
          {/* LISTA DE TRANSAÇÕES (EXTRATO) */}
-         <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden">
+         <div className="bg-card rounded-[32px] border border-line shadow-sm overflow-hidden">
             {loading ? (
                <div className="p-12 text-center">
-                  <ArrowDownUp size={32} className="mx-auto text-slate-500 animate-pulse mb-4" />
-                  <p className="font-bold text-slate-500">Buscando transações...</p>
+                  <ArrowDownUp size={32} className="mx-auto text-muted animate-pulse mb-4" />
+                  <p className="font-bold text-muted">Buscando transações...</p>
                </div>
             ) : filtrados.length === 0 ? (
                <div className="p-12 text-center">
-                  <Search size={32} className="mx-auto text-slate-500 mb-4" />
+                  <Search size={32} className="mx-auto text-muted mb-4" />
                   <p className="font-bold text-slate-800 text-lg">Extrato Limpo</p>
-                  <p className="text-sm text-slate-500 mt-2">Você ainda não tem {filtro !== "Todos" ? filtro.toLowerCase() : "lançamentos"} nesse período.</p>
+                  <p className="text-sm text-muted mt-2">Você ainda não tem {filtro !== "Todos" ? filtro.toLowerCase() : "lançamentos"} nesse período.</p>
                </div>
             ) : (
                <div className="divide-y divide-slate-100">
@@ -211,16 +211,16 @@ export default function FluxoCaixaFintechPage() {
                          
                          <div className="flex items-center gap-4">
                             {/* Ícone FinTech */}
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isEntrada ? 'bg-emerald-50' : 'bg-slate-100'}`}>
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isEntrada ? 'bg-emerald-50' : 'bg-elevated'}`}>
                                <CatIcon cat={l.categoria} isEntrada={isEntrada} />
                             </div>
                             
                             {/* Detalhes */}
                             <div>
-                               <p className="font-bold text-slate-900">{l.descricao}</p>
+                               <p className="font-bold text-fg">{l.descricao}</p>
                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-3xs font-bold uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{l.categoria}</span>
-                                  <span className="text-xs font-medium text-slate-500">{fmtData(l.data)}</span>
+                                  <span className="text-3xs font-bold uppercase tracking-widest text-muted bg-elevated px-2 py-0.5 rounded-md">{l.categoria}</span>
+                                  <span className="text-xs font-medium text-muted">{fmtData(l.data)}</span>
                                </div>
                             </div>
                          </div>

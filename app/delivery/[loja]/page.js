@@ -68,7 +68,7 @@ export default function LojaDeliveryPage({ params }) {
     <div className="min-h-screen bg-slate-50 pb-28 font-sans">
       
       {/* HERO HEADER - Estilo UberEats / iFood */}
-      <div className="relative bg-white pb-6 shadow-sm">
+      <div className="relative bg-card pb-6 shadow-sm">
         {/* Imagem de Capa */}
         <div className="h-40 md:h-56 w-full bg-slate-200 relative">
           <img src={coverUrl} alt="Capa" className="w-full h-full object-cover" />
@@ -78,17 +78,17 @@ export default function LojaDeliveryPage({ params }) {
         {/* Info do Restaurante (Logo por cima) */}
         <div className="px-4 sm:px-5 relative">
           <div className="absolute -top-12 md:-top-16 left-4 sm:left-5">
-            <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-full p-1.5 shadow-xl">
+            <div className="w-24 h-24 md:w-32 md:h-32 bg-card rounded-full p-1.5 shadow-xl">
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
             </div>
           </div>
           
           <div className="pt-14 md:pt-20">
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 capitalize tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-black text-fg capitalize tracking-tight">
               {lojaSlug.replace("-", " ")}
             </h1>
             
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-sm font-bold text-slate-500">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-sm font-bold text-muted">
               <span className="flex items-center gap-1 text-orange-500 bg-orange-50 px-2 py-0.5 rounded-md">
                 <Star size={14} className="fill-orange-500" /> 4.9
               </span>
@@ -118,7 +118,7 @@ export default function LojaDeliveryPage({ params }) {
       </div>
 
       {/* NAVEGAÇÃO DE CATEGORIAS (STICKY) */}
-      <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-xl py-3 px-4 sm:px-5 border-b border-slate-200">
+      <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-xl py-3 px-4 sm:px-5 border-b border-line">
         <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
           {categorias.map(cat => (
             <button 
@@ -127,7 +127,7 @@ export default function LojaDeliveryPage({ params }) {
               className={`px-5 py-2.5 rounded-full text-[13px] font-black tracking-wide whitespace-nowrap transition-all shadow-sm ${
                 categoriaAtiva === cat 
                 ? 'bg-slate-900 text-white shadow-lg scale-105' 
-                : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
+                : 'bg-card text-muted border border-line hover:border-slate-300'
               }`}
             >
               {cat}
@@ -142,21 +142,21 @@ export default function LojaDeliveryPage({ params }) {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtrados.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-slate-400">
+            <div className="col-span-full py-12 text-center text-subtle">
               <p className="font-bold">Nenhum prato nesta categoria.</p>
             </div>
           ) : (
             filtrados.map((prato, idx) => (
-              <div key={prato.id} className="bg-white rounded-[24px] p-4 shadow-sm border border-slate-100 flex gap-3 sm:gap-4 transition-transform active:scale-[0.98] relative overflow-hidden group min-w-0">
+              <div key={prato.id} className="bg-card rounded-[24px] p-4 shadow-sm border border-line-soft flex gap-3 sm:gap-4 transition-transform active:scale-[0.98] relative overflow-hidden group min-w-0">
                 
                 {/* Info Textual */}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h3 className="font-black text-slate-800 text-[15px] leading-tight mb-1">{prato.nome}</h3>
-                  <p className="text-xs font-medium text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                  <p className="text-xs font-medium text-muted line-clamp-2 leading-relaxed mb-3">
                     {prato.descricao || "Acompanha molho especial da casa e aquele toque de chef."}
                   </p>
                   <div className="flex items-center gap-3 mt-auto">
-                    <span className="font-black text-slate-900 text-[15px]">
+                    <span className="font-black text-fg text-[15px]">
                       R$ {parseFloat(prato.preco).toFixed(2).replace('.', ',')}
                     </span>
                     <span className="text-3xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md flex items-center gap-1">
@@ -167,7 +167,7 @@ export default function LojaDeliveryPage({ params }) {
                 
                 {/* Imagem do Produto + Botão Adicionar */}
                 <div className="relative">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-100 rounded-[20px] bg-cover bg-center border border-slate-100 shadow-inner flex items-center justify-center text-slate-300 overflow-hidden"
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-elevated rounded-[20px] bg-cover bg-center border border-line-soft shadow-inner flex items-center justify-center text-dim overflow-hidden"
                        style={{ backgroundImage: prato.imagem_url ? `url(${prato.imagem_url})` : 'none' }}>
                     {!prato.imagem_url && <Flame size={32} className="opacity-20"/>}
                   </div>
@@ -175,7 +175,7 @@ export default function LojaDeliveryPage({ params }) {
                   {/* Plus Button flutuante sobre a imagem */}
                   <button 
                     onClick={() => addCarrinho(prato)} 
-                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(0,0,0,0.1)] border border-slate-100 hover:scale-110 hover:bg-slate-900 hover:text-white transition-all z-10"
+                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-card text-fg rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(0,0,0,0.1)] border border-line-soft hover:scale-110 hover:bg-slate-900 hover:text-white transition-all z-10"
                   >
                     <Plus size={20} strokeWidth={3} />
                   </button>
@@ -211,7 +211,7 @@ export default function LojaDeliveryPage({ params }) {
               
               <div className="flex items-center gap-2 relative z-10">
                 <span className="text-[16px]">R$ {totalCarrinho.toFixed(2).replace('.', ',')}</span>
-                <ChevronRight size={20} className="text-slate-400" />
+                <ChevronRight size={20} className="text-subtle" />
               </div>
             </button>
           </div>

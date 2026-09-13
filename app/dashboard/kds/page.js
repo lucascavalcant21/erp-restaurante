@@ -22,7 +22,7 @@ export default function KdsRedirecionaPage() {
       <div>
         <Loader2 className="mx-auto animate-spin text-emerald-600" size={28} />
         <p className="mt-3 text-sm font-bold text-slate-800">O KDS agora fica em KDS da Cozinha.</p>
-        <p className="mt-1 text-2xs font-bold text-slate-500">Levando voce para la.</p>
+        <p className="mt-1 text-2xs font-bold text-muted">Levando voce para la.</p>
       </div>
     </div>
   );

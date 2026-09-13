@@ -108,14 +108,14 @@ export default function CadastroFacialPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-24">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
+          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200">
             <ArrowLeft size={19} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Cadastro facial do ponto</h1>
-            <p className="text-xs font-bold text-slate-500">O rosto vira números no aparelho — a foto não é guardada</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Cadastro facial do ponto</h1>
+            <p className="text-xs font-bold text-muted">O rosto vira números no aparelho — a foto não é guardada</p>
           </div>
         </div>
       </div>
@@ -132,14 +132,14 @@ export default function CadastroFacialPage() {
             </div>
 
             {carregando ? (
-              <p className="font-bold text-slate-500">Carregando equipe...</p>
+              <p className="font-bold text-muted">Carregando equipe...</p>
             ) : (
               <div className="space-y-2">
                 {colaboradores.map(c => (
-                  <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+                  <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-card p-3.5 shadow-sm">
                     <div className="min-w-0">
                       <p className="text-[15px] font-black text-slate-800 truncate">{c.nome}</p>
-                      <p className="text-xs font-bold text-slate-500 truncate">
+                      <p className="text-xs font-bold text-muted truncate">
                         {c.cargo || "Equipe"}
                         {temRosto(c) && <span className="ml-2 text-emerald-700">· rosto cadastrado</span>}
                       </p>
@@ -147,7 +147,7 @@ export default function CadastroFacialPage() {
                     <div className="flex shrink-0 items-center gap-2">
                       {temRosto(c) && (
                         <button onClick={() => apagarRosto(c)} title="Apagar cadastro facial"
-                          className="grid h-10 w-10 place-items-center rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50">
+                          className="grid h-10 w-10 place-items-center rounded-xl border border-rose-200 bg-card text-rose-600 hover:bg-rose-50">
                           <Trash2 size={17} />
                         </button>
                       )}
@@ -158,16 +158,16 @@ export default function CadastroFacialPage() {
                     </div>
                   </div>
                 ))}
-                {!colaboradores.length && <p className="font-bold text-slate-500">Nenhum funcionário ativo nesta unidade.</p>}
+                {!colaboradores.length && <p className="font-bold text-muted">Nenhum funcionário ativo nesta unidade.</p>}
               </div>
             )}
           </>
         ) : !consentiu ? (
           /* Termo — biometria exige consentimento específico (LGPD art. 5º, II) */
-          <div className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm">
             <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Autorização do funcionário</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">{pessoa.nome}</h2>
-            <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-[13px] font-medium leading-relaxed text-slate-700">
+            <h2 className="mt-1 text-xl font-black text-fg">{pessoa.nome}</h2>
+            <div className="mt-4 rounded-xl bg-slate-50 border border-line p-4 text-[13px] font-medium leading-relaxed text-fg-soft">
               <p>Eu autorizo o uso do meu reconhecimento facial <b>exclusivamente para registrar meu ponto</b> nesta empresa.</p>
               <p className="mt-2">Fui informado(a) de que:</p>
               <ul className="mt-1.5 list-disc pl-5 space-y-1">
@@ -181,16 +181,16 @@ export default function CadastroFacialPage() {
               <button onClick={() => setConsentiu(true)} className="flex-1 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700">
                 {pessoa.nome.split(" ")[0]} autoriza — continuar
               </button>
-              <button onClick={() => setPessoa(null)} className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600">
+              <button onClick={() => setPessoa(null)} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600">
                 Cancelar
               </button>
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="min-w-0">
-                <h2 className="text-lg font-black text-slate-900 truncate">{pessoa.nome}</h2>
+                <h2 className="text-lg font-black text-fg truncate">{pessoa.nome}</h2>
                 <p className="text-[13px] font-bold text-emerald-700">
                   {capturas.length < CAPTURAS_NECESSARIAS ? ORIENTACOES[capturas.length] : "Capturas concluídas"}
                 </p>
@@ -212,7 +212,7 @@ export default function CadastroFacialPage() {
             {erro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
 
             <div className="mt-4 flex gap-3">
-              <button onClick={() => { setPessoa(null); setCapturas([]); }} className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600">
+              <button onClick={() => { setPessoa(null); setCapturas([]); }} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600">
                 Cancelar
               </button>
               {capturas.length < CAPTURAS_NECESSARIAS ? (

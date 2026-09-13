@@ -118,7 +118,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
 
   return (
     <div className="min-w-[156px]">
-      <div className="flex h-8 overflow-hidden rounded-md border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+      <div className="flex h-8 overflow-hidden rounded-md border border-line bg-card focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
         <input
           aria-label={`Quantidade de ${insumo.nome}`}
           inputMode="decimal"
@@ -129,13 +129,13 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
             if (valor.startsWith("-")) return;
             onChange({ quantidade: valor, unidade });
           }}
-          className="w-[68px] min-w-0 px-2 text-xs font-bold text-slate-700 outline-none"
+          className="w-[68px] min-w-0 px-2 text-xs font-bold text-fg-soft outline-none"
         />
         <select
           aria-label={`Unidade para ${insumo.nome}`}
           value={unidade}
           onChange={event => onChange({ quantidade, unidade: event.target.value })}
-          className="min-w-[54px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-2xs font-bold text-slate-600 outline-none"
+          className="min-w-[54px] flex-1 border-l border-line bg-slate-50 px-1 text-2xs font-bold text-slate-600 outline-none"
         >
           {unidadesDisponiveis.map(item => (
             <option key={item.value} value={item.value}>{item.label}</option>
@@ -147,7 +147,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
             aria-label="Limpar cálculo"
             title="Limpar cálculo"
             onClick={() => onChange({ quantidade: "", unidade })}
-            className="border-l border-slate-200 px-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+            className="border-l border-line px-2 text-subtle hover:bg-slate-50 hover:text-fg-soft"
           >
             <X size={13} />
           </button>
@@ -156,7 +156,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
       {resultado.erro ? (
         <p className="mt-1 max-w-[190px] text-3xs font-semibold leading-tight text-amber-700">{resultado.erro}</p>
       ) : (
-        <p className="mt-0.5 text-2xs font-bold text-slate-500">
+        <p className="mt-0.5 text-2xs font-bold text-muted">
           {resultado.valor === null ? "Informe uma quantidade" : `= ${fmtBRL(resultado.valor)}`}
         </p>
       )}
@@ -169,8 +169,8 @@ function VariacaoPreco({ insumo }) {
   if (!Number.isFinite(variacao)) {
     return (
       <div className="min-w-[98px] text-xs">
-        <p className="font-bold text-slate-500">Primeiro valor</p>
-        <p className="mt-1 text-3xs text-slate-400">Sem comparação</p>
+        <p className="font-bold text-muted">Primeiro valor</p>
+        <p className="mt-1 text-3xs text-subtle">Sem comparação</p>
       </div>
     );
   }
@@ -178,11 +178,11 @@ function VariacaoPreco({ insumo }) {
   const caiu = variacao < 0;
   return (
     <div className="min-w-[98px] text-xs">
-      <p className={`flex items-center gap-1 font-black ${subiu ? "text-red-600" : caiu ? "text-emerald-600" : "text-slate-500"}`}>
+      <p className={`flex items-center gap-1 font-black ${subiu ? "text-red-600" : caiu ? "text-emerald-600" : "text-muted"}`}>
         {subiu ? <ArrowUp size={12} /> : caiu ? <ArrowDown size={12} /> : null}
         {variacao > 0 ? "+" : ""}{variacao.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
       </p>
-      <p className="mt-1 text-3xs text-slate-400">Preço normalizado</p>
+      <p className="mt-1 text-3xs text-subtle">Preço normalizado</p>
     </div>
   );
 }
@@ -654,37 +654,37 @@ function IngredientesRunner() {
   };
 
   if (!unidadeAtiva) {
-    return <div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-500">Selecione uma unidade para consultar os ingredientes.</div>;
+    return <div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-muted">Selecione uma unidade para consultar os ingredientes.</div>;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-line bg-card">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-4 sm:px-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={abrirMenu}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:text-fg"
               title="Voltar ao menu"
             >
               <ArrowLeft size={19} />
             </button>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-slate-950">{ehBar ? "Produtos cadastrados" : "Ingredientes cadastrados"}</h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">{ehBar ? "Catálogo de produtos do Bar e histórico de preços" : "Catálogo de ingredientes e histórico de preços"}</p>
+              <p className="mt-1 text-sm font-medium text-muted">{ehBar ? "Catálogo de produtos do Bar e histórico de preços" : "Catálogo de ingredientes e histórico de preços"}</p>
             </div>
           </div>
           <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
-            <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[500px]">
-              <Search size={19} className="shrink-0 text-slate-700 font-bold" />
+            <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-card px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[500px]">
+              <Search size={19} className="shrink-0 text-fg-soft font-bold" />
               <input
                 value={busca}
                 onChange={event => setBusca(event.target.value)}
                 placeholder={`Buscar ${rotuloItem} por nome, marca, fornecedor...`}
-                className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400"
+                className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle"
               />
               {busca && (
-                <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca">
+                <button onClick={() => setBusca("")} className="text-subtle hover:text-fg-soft" title="Limpar busca">
                   <X size={16} />
                 </button>
               )}
@@ -730,14 +730,14 @@ function IngredientesRunner() {
                 key={card.label}
                 type="button"
                 onClick={card.action}
-                className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-md active:scale-95 cursor-pointer"
+                className="group flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-md active:scale-95 cursor-pointer"
               >
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${cores[card.color]}`}>
                   <card.icon size={20} />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-slate-500">{card.label}</p>
-                  <p className="text-xl font-black leading-tight text-slate-900">{card.value}</p>
+                  <p className="truncate text-xs font-bold text-muted">{card.label}</p>
+                  <p className="text-xl font-black leading-tight text-fg">{card.value}</p>
                   <p className="hidden text-2xs font-semibold text-emerald-600 sm:block">{card.note}</p>
                 </div>
               </button>
@@ -745,14 +745,14 @@ function IngredientesRunner() {
           })}
         </section>
 
-        <section className="mt-3 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <section className="mt-3 flex flex-col gap-2 rounded-xl border border-line bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2 overflow-x-auto">
             {["Todas", ...categorias].map(item => (
               <button
                 key={item}
                 onClick={() => setCategoria(item)}
                 className={`shrink-0 rounded-lg px-2.5 py-1.5 text-2xs font-bold transition ${
-                  categoria === item ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  categoria === item ? "bg-slate-900 text-white" : "bg-slate-50 text-muted hover:bg-elevated"
                 }`}
               >
                 {item}
@@ -762,17 +762,17 @@ function IngredientesRunner() {
           <select
             value={ordenacao}
             onChange={event => setOrdenacao(event.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
+            className="h-9 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
             aria-label={`Ordenação dos ${rotuloItens}`}
           >
             {ORDENACOES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </section>
 
-        <section className="mt-3 hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
+        <section className="mt-3 hidden overflow-x-auto rounded-xl border border-line bg-card shadow-sm lg:block">
           <table className="w-full min-w-[1050px] table-fixed text-left">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-2xs font-bold uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-line bg-slate-50 text-2xs font-bold uppercase tracking-wide text-muted">
                 <th className="w-[190px] px-4 py-3">{ehBar ? "Produto" : "Ingrediente"}</th>
                 <th className="w-[85px] px-2.5 py-3">Marca</th>
                 <th className="w-[80px] px-2.5 py-3">Embalagem</th>
@@ -786,9 +786,9 @@ function IngredientesRunner() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</td></tr>
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-subtle">Carregando {rotuloItens}...</td></tr>
               ) : paginados.length === 0 ? (
-                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</td></tr>
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-subtle">Nenhum {rotuloItem} encontrado.</td></tr>
               ) : paginados.map(insumo => {
                 const vinculados = insumo.fornecedores_vinculados || [];
                 const outros = Math.max(0, vinculados.length - 1);
@@ -796,24 +796,24 @@ function IngredientesRunner() {
                 return (
                   <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
                     <td className="px-4 py-2">
-                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
-                      <p className="mt-0.5 truncate text-2xs text-slate-500">
+                      <p className="truncate text-sm font-black text-fg">{insumo.nome}</p>
+                      <p className="mt-0.5 truncate text-2xs text-muted">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
                         {insumo.categoria ? ` · ${insumo.categoria}` : ""}
                       </p>
                     </td>
                     <td className="px-2.5 py-2 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</td>
-                    <td className="px-2.5 py-2 text-xs font-bold text-slate-700">
+                    <td className="px-2.5 py-2 text-xs font-bold text-fg-soft">
                       {fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}
                     </td>
                     <td className="px-2.5 py-2">
-                      <p className="truncate text-xs font-bold text-slate-700">{nomeFornecedorAtual(insumo)}</p>
+                      <p className="truncate text-xs font-bold text-fg-soft">{nomeFornecedorAtual(insumo)}</p>
                       {outros > 0 && <p className="mt-1 text-2xs font-bold text-emerald-600">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
                     </td>
                     <td className="px-2.5 py-2">
-                      <p className="text-sm font-black text-slate-900">{fmtBRL(insumo.custo_compra ?? 0)}</p>
-                      <p className="mt-0.5 text-2xs font-medium text-slate-500">
+                      <p className="text-sm font-black text-fg">{fmtBRL(insumo.custo_compra ?? 0)}</p>
+                      <p className="mt-0.5 text-2xs font-medium text-muted">
                         {fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}
                       </p>
                       {(() => {
@@ -842,17 +842,17 @@ function IngredientesRunner() {
                     <td className="px-2.5 py-2">
                       <button
                         onClick={() => abrirHistorico(insumo)}
-                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                        className="rounded-lg border border-line px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
                       >
                         Ver histórico
                       </button>
                     </td>
-                    <td className="sticky right-0 z-[3] bg-white px-2.5 py-2 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.45)]">
+                    <td className="sticky right-0 z-[3] bg-card px-2.5 py-2 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.45)]">
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600">
+                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-line p-1.5 text-muted hover:bg-blue-50 hover:text-blue-600">
                           <Edit3 size={14} />
                         </button>
-                        <button onClick={() => handleRemover(insumo)} title="Remover" className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                        <button onClick={() => handleRemover(insumo)} title="Remover" className="rounded-lg border border-line p-1.5 text-muted hover:bg-red-50 hover:text-red-600">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -866,37 +866,37 @@ function IngredientesRunner() {
 
         <section className="mt-3 space-y-2 lg:hidden">
           {loading ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</div>
+            <div className="rounded-2xl border border-line bg-card p-10 text-center text-sm font-bold text-subtle">Carregando {rotuloItens}...</div>
           ) : paginados.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</div>
+            <div className="rounded-2xl border border-line bg-card p-10 text-center text-sm font-bold text-subtle">Nenhum {rotuloItem} encontrado.</div>
           ) : paginados.map(insumo => {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <article key={insumo.id} className="rounded-xl border border-line bg-card p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
-                    <p className="mt-1 truncate text-xs text-slate-500">
+                    <h2 className="truncate font-black text-fg">{insumo.nome}</h2>
+                    <p className="mt-1 truncate text-xs text-muted">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</span>
+                  <span className="shrink-0 rounded-lg bg-elevated px-2.5 py-1.5 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</span>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Embalagem</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Embalagem</p>
                     <p className="mt-1 font-bold">{fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}</p>
                   </div>
                   <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Fornecedor</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Fornecedor</p>
                     <p className="mt-1 truncate font-bold">{nomeFornecedorAtual(insumo)}</p>
                     {vinculados.length > 1 && <p className="text-3xs font-bold text-emerald-600">+{vinculados.length - 1} outro(s)</p>}
                   </div>
                   <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Valor atual</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Valor atual</p>
                     <p className="mt-1 font-black">{fmtBRL(insumo.custo_compra ?? 0)}</p>
-                    <p className="text-xs text-slate-500">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
+                    <p className="text-xs text-muted">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
                     {(() => {
                       const pG = Number(insumo.peso_peca_g);
                       const pK = Number(insumo.pecas_por_kg);
@@ -913,12 +913,12 @@ function IngredientesRunner() {
                     })()}
                   </div>
                   <div>
-                    <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Variação</p>
+                    <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Variação</p>
                     <div className="mt-1"><VariacaoPreco insumo={insumo} /></div>
                   </div>
                 </div>
-                <div className="mt-3 border-t border-slate-100 pt-3">
-                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-slate-400">Calcular quantidade</p>
+                <div className="mt-3 border-t border-line-soft pt-3">
+                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-subtle">Calcular quantidade</p>
                   <CalculadoraRapida
                     insumo={insumo}
                     estado={calculos[insumo.id]}
@@ -926,9 +926,9 @@ function IngredientesRunner() {
                   />
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => abrirHistorico(insumo)} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-xs font-bold text-slate-600">Ver histórico</button>
-                  <button onClick={() => abrirEditar(insumo)} className="rounded-lg border border-slate-200 p-2.5 text-slate-500"><Edit3 size={16} /></button>
-                  <button onClick={() => handleRemover(insumo)} className="rounded-lg border border-slate-200 p-2.5 text-slate-500"><Trash2 size={16} /></button>
+                  <button onClick={() => abrirHistorico(insumo)} className="flex-1 rounded-lg border border-line py-2.5 text-xs font-bold text-slate-600">Ver histórico</button>
+                  <button onClick={() => abrirEditar(insumo)} className="rounded-lg border border-line p-2.5 text-muted"><Edit3 size={16} /></button>
+                  <button onClick={() => handleRemover(insumo)} className="rounded-lg border border-line p-2.5 text-muted"><Trash2 size={16} /></button>
                 </div>
               </article>
             );
@@ -936,15 +936,15 @@ function IngredientesRunner() {
         </section>
 
         {!loading && filtrados.length > 0 && (
-          <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
-            <p className="text-xs font-medium text-slate-500">
+          <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-line bg-card px-4 py-3 sm:flex-row">
+            <p className="text-xs font-medium text-muted">
               Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} {rotuloItens}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPagina(valor => Math.max(1, valor - 1))}
                 disabled={paginaAtual === 1}
-                className="rounded-lg border border-slate-200 p-2 text-slate-500 disabled:opacity-30"
+                className="rounded-lg border border-line p-2 text-muted disabled:opacity-30"
                 aria-label="Página anterior"
               >
                 <ChevronLeft size={16} />
@@ -953,7 +953,7 @@ function IngredientesRunner() {
               <button
                 onClick={() => setPagina(valor => Math.min(totalPaginas, valor + 1))}
                 disabled={paginaAtual === totalPaginas}
-                className="rounded-lg border border-slate-200 p-2 text-slate-500 disabled:opacity-30"
+                className="rounded-lg border border-line p-2 text-muted disabled:opacity-30"
                 aria-label="Próxima página"
               >
                 <ChevronRight size={16} />
@@ -965,18 +965,18 @@ function IngredientesRunner() {
 
       {modalCadastro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm">
-          <div className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-card shadow-2xl">
+            <div className="flex items-start justify-between border-b border-line-soft px-5 py-5 sm:px-7">
               <div>
-                <h2 className="text-xl font-black text-slate-900">{form.id ? `Editar ${rotuloItem}` : `Novo ${rotuloItem}`}</h2>
-                <p className="mt-1 text-xs font-medium text-slate-500">Cadastre a identificação, a embalagem e o preço atual.</p>
+                <h2 className="text-xl font-black text-fg">{form.id ? `Editar ${rotuloItem}` : `Novo ${rotuloItem}`}</h2>
+                <p className="mt-1 text-xs font-medium text-muted">Cadastre a identificação, a embalagem e o preço atual.</p>
               </div>
-              <button onClick={() => setModalCadastro(false)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button>
+              <button onClick={() => setModalCadastro(false)} className="rounded-full bg-elevated p-2 text-muted hover:bg-slate-200"><X size={18} /></button>
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7">
               <section>
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Identificação</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-subtle">Identificação</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="text-xs font-bold text-slate-600">Nome original/oficial do {rotuloItem} *</span>
@@ -992,12 +992,12 @@ function IngredientesRunner() {
                       }}
                       placeholder="Ex.: Açafrão-da-terra"
                       maxLength={100}
-                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500"
+                      className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500"
                     />
                   </label>
                   <label>
                     <span className="text-xs font-bold text-slate-600">Marca</span>
-                    <input value={form.marca} onChange={event => setForm({ ...form, marca: event.target.value })} placeholder="Deixe vazio para Sem marca" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                    <input value={form.marca} onChange={event => setForm({ ...form, marca: event.target.value })} placeholder="Deixe vazio para Sem marca" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                   </label>
                   <label>
                     <div className="flex items-center justify-between">
@@ -1017,7 +1017,7 @@ function IngredientesRunner() {
                         + Criar categoria
                       </button>
                     </div>
-                    <select value={form.categoria} onChange={event => setForm({ ...form, categoria: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                    <select value={form.categoria} onChange={event => setForm({ ...form, categoria: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="">Selecione...</option>
                       {obterTodasCategoriasInsumo(form.departamento).map(item => <option key={item} value={item}>{item}</option>)}
                     </select>
@@ -1035,7 +1035,7 @@ function IngredientesRunner() {
                           ? form.unidade_medida
                           : (departamento === "bar" ? "ml" : "kg"),
                       });
-                    }} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                    }} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="cozinha">Cozinha</option>
                       <option value="bar">Bar</option>
                     </select>
@@ -1044,18 +1044,18 @@ function IngredientesRunner() {
               </section>
 
               <section>
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Embalagem e valor</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-subtle">Embalagem e valor</h3>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <label>
                     <span className="text-xs font-bold text-slate-600">Quantidade *</span>
-                    <input inputMode="decimal" value={form.tamanho_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, tamanho_embalagem: event.target.value })} placeholder="500" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
+                    <input inputMode="decimal" value={form.tamanho_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, tamanho_embalagem: event.target.value })} placeholder="500" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
                   </label>
                   <label>
                     <span className="text-xs font-bold text-slate-600">Unidade *</span>
                     {(() => {
                       const lista = unidadesIngredientePorDepartamento(form.departamento);
                       return (
-                        <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
+                        <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
                           {lista.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
                         </select>
                       );
@@ -1063,8 +1063,8 @@ function IngredientesRunner() {
                   </label>
                   <label className="col-span-2">
                     <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>
-                    <div className="mt-1.5 flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 focus-within:border-emerald-500">
-                      <span className="mr-2 text-sm font-bold text-slate-400">R$</span>
+                    <div className="mt-1.5 flex h-11 items-center rounded-xl border border-line bg-slate-50 px-3.5 focus-within:border-emerald-500">
+                      <span className="mr-2 text-sm font-bold text-subtle">R$</span>
                       <input inputMode="decimal" value={form.valor_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, valor_embalagem: event.target.value })} placeholder="0,00" className="min-w-0 flex-1 bg-transparent font-black text-emerald-700 outline-none" />
                     </div>
                   </label>
@@ -1079,8 +1079,8 @@ function IngredientesRunner() {
                 )}
 
                 {/* Porcionamento & Custo por Peça (Ex: R$ 90/kg, 150g/peça -> R$ 13,50/un) */}
-                <div className="mt-4 border-t border-slate-100 pt-3 space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <div className="mt-4 border-t border-line-soft pt-3 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
                     <Calculator size={14} className="text-emerald-600" />
                     Porcionamento por Peça / Unidade (Opcional)
                   </h4>
@@ -1097,7 +1097,7 @@ function IngredientesRunner() {
                           setForm({ ...form, peso_peca_g: val, pecas_por_kg: pecas });
                         }}
                         placeholder="Ex.: 150 (g por unidade)"
-                        className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
+                        className="mt-1 h-10 w-full rounded-xl border border-line bg-slate-50 px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
                       />
                     </label>
                     <label>
@@ -1112,7 +1112,7 @@ function IngredientesRunner() {
                           setForm({ ...form, pecas_por_kg: val, peso_peca_g: peso });
                         }}
                         placeholder="Ex.: 6 (un por kg)"
-                        className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
+                        className="mt-1 h-10 w-full rounded-xl border border-line bg-slate-50 px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
                       />
                     </label>
                   </div>
@@ -1144,15 +1144,15 @@ function IngredientesRunner() {
 
               {!ehBar && (
                 <section>
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Perda e rendimento</h3>
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-subtle">Perda e rendimento</h3>
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     <label>
                       <span className="text-xs font-bold text-slate-600">Peso bruto (g)</span>
-                      <input inputMode="decimal" value={form.peso_bruto_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, peso_bruto_g: e.target.value })} placeholder="Ex.: 1000" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                      <input inputMode="decimal" value={form.peso_bruto_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, peso_bruto_g: e.target.value })} placeholder="Ex.: 1000" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                     </label>
                     <label>
                       <span className="text-xs font-bold text-slate-600">Perda (g)</span>
-                      <input inputMode="decimal" value={form.perda_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, perda_g: e.target.value })} placeholder="Ex.: 200" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                      <input inputMode="decimal" value={form.perda_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, perda_g: e.target.value })} placeholder="Ex.: 200" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                     </label>
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-600">Perda calculada</span>
@@ -1169,23 +1169,23 @@ function IngredientesRunner() {
                     <div className="mt-3 grid grid-cols-2 gap-4">
                       <label>
                         <span className="text-xs font-bold text-slate-600">Ganho de peso (%)</span>
-                        <input inputMode="decimal" value={form.ganho_pct} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, ganho_pct: e.target.value })} placeholder="Ex.: 30" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                        <input inputMode="decimal" value={form.ganho_pct} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, ganho_pct: e.target.value })} placeholder="Ex.: 30" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                       </label>
                       <label>
                         <span className="text-xs font-bold text-slate-600">Custo do empanado (R$/kg final)</span>
-                        <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                        <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                       </label>
                     </div>
                   )}
-                  <p className="mt-2 text-2xs font-medium text-slate-400">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
+                  <p className="mt-2 text-2xs font-medium text-subtle">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
                 </section>
               )}
 
               <section>
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Fornecedores</h3>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-subtle">Fornecedores</h3>
                 <label>
                   <span className="text-xs font-bold text-slate-600">Fornecedor do valor atual</span>
-                  <select value={form.fornecedor_atual_id} onChange={event => selecionarFornecedorAtual(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                  <select value={form.fornecedor_atual_id} onChange={event => selecionarFornecedorAtual(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
                     <option value="">Não informado</option>
                     {fornecedores.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
                   </select>
@@ -1201,25 +1201,25 @@ function IngredientesRunner() {
                         const p = precoDe(fid);
                         const atual = form.fornecedor_atual_id === fid;
                         return (
-                          <div key={fid} className={`flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${atual ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}>
-                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-slate-700">{forn.nome}{atual && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-white">Em uso</span>}</span>
-                            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-2">
-                              <span className="mr-1 text-xs font-bold text-slate-400">R$</span>
+                          <div key={fid} className={`flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${atual ? "border-emerald-300 bg-emerald-50" : "border-line bg-card"}`}>
+                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-fg-soft">{forn.nome}{atual && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-white">Em uso</span>}</span>
+                            <div className="flex h-9 items-center rounded-lg border border-line bg-slate-50 px-2">
+                              <span className="mr-1 text-xs font-bold text-subtle">R$</span>
                               <input inputMode="decimal" value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-emerald-700 outline-none" />
                             </div>
-                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Usar</button>}
-                            <button type="button" onClick={() => abrirHistorico({ id: form.id, nome: form.nome, fornecedor_id: fid })} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">Histórico</button>
+                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-card px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Usar</button>}
+                            <button type="button" onClick={() => abrirHistorico({ id: form.id, nome: form.nome, fornecedor_id: fid })} className="h-9 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">Histórico</button>
                           </div>
                         );
                       })}
                     </div>
-                    <p className="mt-2 text-2xs font-medium text-slate-400">O preço do fornecedor "Em uso" vira o custo do ingrediente nas fichas. Salve para guardar os preços e o histórico.</p>
+                    <p className="mt-2 text-2xs font-medium text-subtle">O preço do fornecedor "Em uso" vira o custo do ingrediente nas fichas. Salve para guardar os preços e o histórico.</p>
                   </div>
                 )}
                 {fornecedores.length > 0 && (
                   <div className="mt-3">
                     <p className="mb-2 text-xs font-bold text-slate-600">Outros fornecedores vinculados</p>
-                    <div className="grid max-h-40 gap-2 overflow-y-auto rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
+                    <div className="grid max-h-40 gap-2 overflow-y-auto rounded-xl border border-line p-3 sm:grid-cols-2">
                       {fornecedores.map(item => (
                         <label key={item.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
                           <input
@@ -1238,8 +1238,8 @@ function IngredientesRunner() {
               </section>
             </div>
 
-            <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-7">
-              <button onClick={() => setModalCadastro(false)} className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+            <div className="flex gap-3 border-t border-line-soft bg-slate-50 px-5 py-4 sm:px-7">
+              <button onClick={() => setModalCadastro(false)} className="flex-1 rounded-xl border border-line bg-card py-3 text-sm font-bold text-slate-600 hover:bg-elevated">Cancelar</button>
               <button disabled={salvando} onClick={handleSalvar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
                 {salvando ? "Salvando..." : `Salvar ${rotuloItem}`}
               </button>
@@ -1250,19 +1250,19 @@ function IngredientesRunner() {
 
       {modalHistorico && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={() => setModalHistorico(null)}>
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
-            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-line-soft px-5 py-5 sm:px-7">
               <div>
-                <h2 className="flex items-center gap-2 text-xl font-black text-slate-900"><History size={20} className="text-emerald-600" /> Histórico de preços</h2>
-                <p className="mt-1 text-sm font-bold text-slate-500">{modalHistorico.nome}</p>
+                <h2 className="flex items-center gap-2 text-xl font-black text-fg"><History size={20} className="text-emerald-600" /> Histórico de preços</h2>
+                <p className="mt-1 text-sm font-bold text-muted">{modalHistorico.nome}</p>
               </div>
-              <button onClick={() => setModalHistorico(null)} className="rounded-full bg-slate-100 p-2 text-slate-500"><X size={18} /></button>
+              <button onClick={() => setModalHistorico(null)} className="rounded-full bg-elevated p-2 text-muted"><X size={18} /></button>
             </div>
             <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5 sm:px-7">
               {historicoLoading ? (
-                <p className="py-12 text-center text-sm font-bold text-slate-400">Carregando histórico...</p>
+                <p className="py-12 text-center text-sm font-bold text-subtle">Carregando histórico...</p>
               ) : historico.length === 0 ? (
-                <p className="py-12 text-center text-sm font-bold text-slate-400">Nenhuma alteração de preço registrada.</p>
+                <p className="py-12 text-center text-sm font-bold text-subtle">Nenhuma alteração de preço registrada.</p>
               ) : historico.map(registro => {
                 const normalizadoAnterior = registro.preco_normalizado_anterior ?? registro.custo_anterior;
                 const normalizadoNovo = registro.preco_normalizado_novo ?? registro.custo_novo;
@@ -1273,11 +1273,11 @@ function IngredientesRunner() {
                 );
                 const subiu = Number(percentual) > 0;
                 return (
-                  <article key={registro.id} className="rounded-2xl border border-slate-200 p-4">
+                  <article key={registro.id} className="rounded-2xl border border-line p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-black text-slate-800">{registro.fornecedor_nome || "Fornecedor não informado"}</p>
-                        <p className="mt-1 text-xs text-slate-500">{fmtDataHoraBR(registro.created_at)} · {registro.usuario_nome || "Usuário do sistema"}</p>
+                        <p className="mt-1 text-xs text-muted">{fmtDataHoraBR(registro.created_at)} · {registro.usuario_nome || "Usuário do sistema"}</p>
                       </div>
                       {percentual !== null && (
                         <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${subiu ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
@@ -1287,28 +1287,28 @@ function IngredientesRunner() {
                     </div>
                     <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2">
                       <div>
-                        <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Embalagem anterior</p>
+                        <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Embalagem anterior</p>
                         <p className="mt-1 text-xs font-bold text-slate-600">
                           {registro.embalagem_quantidade_anterior
                             ? `${fmtQuantidade(registro.embalagem_quantidade_anterior)} ${unidadeLabel(registro.embalagem_unidade_anterior)} por ${fmtBRL(registro.valor_anterior)}`
                             : "Cadastro inicial"}
                         </p>
-                        {normalizadoAnterior !== null && <p className="mt-1 text-xs text-slate-500">{fmtBRL(normalizadoAnterior)}/{unidadeNormalizada(registro.embalagem_unidade_anterior || modalHistorico.unidade_medida)}</p>}
+                        {normalizadoAnterior !== null && <p className="mt-1 text-xs text-muted">{fmtBRL(normalizadoAnterior)}/{unidadeNormalizada(registro.embalagem_unidade_anterior || modalHistorico.unidade_medida)}</p>}
                       </div>
                       <div>
-                        <p className="text-3xs font-bold uppercase tracking-wide text-slate-400">Nova embalagem</p>
-                        <p className="mt-1 text-xs font-bold text-slate-700">
+                        <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Nova embalagem</p>
+                        <p className="mt-1 text-xs font-bold text-fg-soft">
                           {fmtQuantidade(registro.embalagem_quantidade_nova || modalHistorico.tamanho_embalagem)} {unidadeLabel(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)} por {fmtBRL(registro.valor_novo ?? modalHistorico.custo_compra)}
                         </p>
                         <p className="mt-1 text-xs font-bold text-emerald-700">{fmtBRL(normalizadoNovo)}/{unidadeNormalizada(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)}</p>
                       </div>
                     </div>
                     {registro.diferenca_valor !== null && registro.diferenca_valor !== undefined && (
-                      <p className="mt-3 text-xs font-semibold text-slate-500">
+                      <p className="mt-3 text-xs font-semibold text-muted">
                         Diferença normalizada: {Number(registro.diferenca_valor) > 0 ? "+" : ""}{fmtBRL(registro.diferenca_valor)}
                       </p>
                     )}
-                    <p className="mt-2 text-3xs font-medium text-slate-400">Origem: {registro.origem || "Cadastro de ingredientes"}</p>
+                    <p className="mt-2 text-3xs font-medium text-subtle">Origem: {registro.origem || "Cadastro de ingredientes"}</p>
                   </article>
                 );
               })}
@@ -1319,28 +1319,28 @@ function IngredientesRunner() {
 
       {modalMigrar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={() => setModalMigrar(false)}>
-          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-line-soft px-6 py-5">
               <div>
-                <h2 className="flex items-center gap-2.5 text-xl font-black text-slate-900">
+                <h2 className="flex items-center gap-2.5 text-xl font-black text-fg">
                   <Sparkles className="text-emerald-600" size={22} /> Migração Inteligente por Print / Lista
                 </h2>
-                <p className="mt-1 text-xs font-semibold text-slate-500">
+                <p className="mt-1 text-xs font-semibold text-muted">
                   Envie o print da lista de ingredientes ou cole o texto. O sistema separa Bar e Cozinha e consolida duplicados mantendo o <strong>maior valor</strong>.
                 </p>
               </div>
-              <button onClick={() => setModalMigrar(false)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200">
+              <button onClick={() => setModalMigrar(false)} className="rounded-full bg-elevated p-2 text-muted hover:bg-slate-200">
                 <X size={18} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col justify-between rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-5 text-center">
+                <div className="flex flex-col justify-between rounded-2xl border-2 border-dashed border-line bg-slate-50/50 p-5 text-center">
                   <div>
                     <Camera size={32} className="mx-auto text-emerald-600 mb-2" />
-                    <p className="text-sm font-bold text-slate-700">Print / Foto da Lista</p>
-                    <p className="text-xs text-slate-400 mt-1">Selecione uma imagem (PNG, JPG, WEBP) do celular ou computador.</p>
+                    <p className="text-sm font-bold text-fg-soft">Print / Foto da Lista</p>
+                    <p className="text-xs text-subtle mt-1">Selecione uma imagem (PNG, JPG, WEBP) do celular ou computador.</p>
                   </div>
                   <div className="mt-4">
                     <input
@@ -1356,7 +1356,7 @@ function IngredientesRunner() {
                         }
                       }}
                     />
-                    <label htmlFor="file-print-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100">
+                    <label htmlFor="file-print-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-card border border-line px-4 py-2.5 text-xs font-bold text-fg-soft shadow-sm hover:bg-elevated">
                       <Upload size={15} /> Adicionar Fotos / Prints
                     </label>
                     {migrarArquivos.length > 0 && (
@@ -1378,17 +1378,17 @@ function IngredientesRunner() {
                   </div>
                 </div>
 
-                <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex flex-col rounded-2xl border border-line bg-card p-4">
                   <label className="text-xs font-bold text-slate-600 mb-1.5 flex items-center justify-between">
                     <span>Texto / Lista Copiada</span>
-                    <span className="text-3xs text-slate-400">Opcional</span>
+                    <span className="text-3xs text-subtle">Opcional</span>
                   </label>
                   <textarea
                     rows={4}
                     value={migrarTexto}
                     onChange={e => setMigrarTexto(e.target.value)}
                     placeholder="Cole aqui nomes, valores, quantidades de produtos..."
-                    className="w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
+                    className="w-full flex-1 rounded-xl border border-line bg-slate-50 p-3 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
                   />
                   {origemMigracaoVoz && <div className="mt-2"><p className="rounded-lg bg-violet-50 px-3 py-2 text-2xs font-bold text-violet-700">{respostaVozIngredientes || "Use o microfone para ditar a lista."}</p><button type="button" onClick={ouvindoIngredientes ? () => escutaIngredientesRef.current?.parar?.() : () => iniciarCadastroPorVoz(false)} className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-bold text-white ${ouvindoIngredientes ? "bg-rose-600" : "bg-violet-600"}`}>{ouvindoIngredientes ? <><MicOff size={16}/> Parar de ouvir</> : <><Mic size={16}/> Falar ou confirmar por voz</>}</button></div>}
                 </div>
@@ -1409,7 +1409,7 @@ function IngredientesRunner() {
               </div>
 
               {itensMigracao.length > 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="rounded-2xl border border-line bg-card p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-black text-slate-800">
                       Itens Extraídos ({itensMigracao.length})
@@ -1419,9 +1419,9 @@ function IngredientesRunner() {
                     </span>
                   </div>
 
-                  <div className="max-h-[320px] overflow-y-auto rounded-xl border border-slate-100">
+                  <div className="max-h-[320px] overflow-y-auto rounded-xl border border-line-soft">
                     <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-slate-100 font-bold text-slate-600">
+                      <thead className="sticky top-0 bg-elevated font-bold text-slate-600">
                         <tr>
                           <th className="p-3">Nome</th>
                           <th className="p-3">Marca</th>
@@ -1433,14 +1433,14 @@ function IngredientesRunner() {
                           <th className="p-3 w-10"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                      <tbody className="divide-y divide-slate-100 font-semibold text-fg-soft">
                         {itensMigracao.map((item, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/80">
                             <td className="p-2">
                               <input
                                 value={item.nome}
                                 onChange={e => atualizarItemMigracao(idx, "nome", e.target.value)}
-                                className="w-full rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-800"
+                                className="w-full rounded-lg border border-line px-2 py-1 font-bold text-slate-800"
                               />
                             </td>
                             <td className="p-2">
@@ -1448,7 +1448,7 @@ function IngredientesRunner() {
                                 value={item.marca || ""}
                                 onChange={e => atualizarItemMigracao(idx, "marca", e.target.value)}
                                 placeholder="Marca"
-                                className="w-full rounded-lg border border-slate-200 px-2 py-1"
+                                className="w-full rounded-lg border border-line px-2 py-1"
                               />
                             </td>
                             <td className="p-2">
@@ -1465,7 +1465,7 @@ function IngredientesRunner() {
                                       : (departamento === "bar" ? "ml" : "kg"),
                                   } : atual));
                                 }}
-                                className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
+                                className="rounded-lg border border-line px-2 py-1 font-bold text-fg-soft"
                               >
                                 <option value="cozinha">Cozinha</option>
                                 <option value="bar">Bar</option>
@@ -1477,14 +1477,14 @@ function IngredientesRunner() {
                                 step="any"
                                 value={item.quantidade}
                                 onChange={e => atualizarItemMigracao(idx, "quantidade", e.target.value)}
-                                className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center font-bold"
+                                className="w-16 rounded-lg border border-line px-2 py-1 text-center font-bold"
                               />
                             </td>
                             <td className="p-2">
                               <select
                                 value={item.unidade}
                                 onChange={e => atualizarItemMigracao(idx, "unidade", e.target.value)}
-                                className="rounded-lg border border-slate-200 px-1 py-1 font-bold"
+                                className="rounded-lg border border-line px-1 py-1 font-bold"
                               >
                                 {unidadesIngredientePorDepartamento(item.departamento).map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                               </select>
@@ -1495,7 +1495,7 @@ function IngredientesRunner() {
                                 step="any"
                                 value={item.valor_total}
                                 onChange={e => atualizarItemMigracao(idx, "valor_total", e.target.value)}
-                                className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right font-black text-emerald-700"
+                                className="w-24 rounded-lg border border-line px-2 py-1 text-right font-black text-emerald-700"
                               />
                             </td>
                             <td className="p-2">
@@ -1503,13 +1503,13 @@ function IngredientesRunner() {
                                 value={item.categoria || ""}
                                 onChange={e => atualizarItemMigracao(idx, "categoria", e.target.value)}
                                 placeholder="Categoria"
-                                className="w-full rounded-lg border border-slate-200 px-2 py-1"
+                                className="w-full rounded-lg border border-line px-2 py-1"
                               />
                             </td>
                             <td className="p-2 text-center">
                               <button
                                 onClick={() => removerItemMigracao(idx)}
-                                className="text-slate-400 hover:text-red-600"
+                                className="text-subtle hover:text-red-600"
                                 title="Remover item"
                               >
                                 <Trash2 size={16} />
@@ -1524,10 +1524,10 @@ function IngredientesRunner() {
               )}
             </div>
 
-            <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+            <div className="flex gap-3 border-t border-line-soft bg-slate-50 px-6 py-4">
               <button
                 onClick={() => setModalMigrar(false)}
-                className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                className="flex-1 rounded-xl border border-line bg-card py-3 text-sm font-bold text-slate-600 hover:bg-elevated"
               >
                 Cancelar
               </button>
@@ -1555,7 +1555,7 @@ function IngredientesRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-400">Carregando ingredientes...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-subtle">Carregando ingredientes...</div>}>
       <IngredientesRunner />
     </Suspense>
   );

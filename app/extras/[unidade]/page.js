@@ -81,21 +81,21 @@ export default function PortalExtras() {
     const querVaga = enviado.interesse === "clt" || enviado.interesse === "ambos";
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 p-5">
-        <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-white p-7 text-center shadow-sm">
+        <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-card p-7 text-center shadow-sm">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 size={34} /></div>
-          <h1 className="text-xl font-black text-slate-900">Cadastro enviado</h1>
+          <h1 className="text-xl font-black text-fg">Cadastro enviado</h1>
           <p className="mt-3 whitespace-pre-line text-sm font-medium leading-relaxed text-slate-600">
             {config.mensagem_sucesso}
           </p>
-          <p className="mt-2 text-sm font-bold text-slate-700">Função: {form.funcao_principal}</p>
+          <p className="mt-2 text-sm font-bold text-fg-soft">Função: {form.funcao_principal}</p>
           {querVaga && (
             <>
-              <p className="mt-5 text-sm font-bold text-slate-700">Você marcou interesse em ser contratado.</p>
+              <p className="mt-5 text-sm font-bold text-fg-soft">Você marcou interesse em ser contratado.</p>
               <button onClick={() => router.push(`/vagas/${unidade}?extra=${enviado.id}`)}
                 className="mt-3 w-full rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700">
                 Ver as vagas abertas
               </button>
-              <p className="mt-2 text-xs font-medium text-slate-400">Seus dados já vão preenchidos — é só escolher a vaga.</p>
+              <p className="mt-2 text-xs font-medium text-subtle">Seus dados já vão preenchidos — é só escolher a vaga.</p>
             </>
           )}
         </div>
@@ -103,8 +103,8 @@ export default function PortalExtras() {
     );
   }
 
-  const rotulo = "text-xs font-black uppercase tracking-wider text-slate-500";
-  const campo = "h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
+  const rotulo = "text-xs font-black uppercase tracking-wider text-muted";
+  const campo = "h-12 w-full rounded-xl border border-slate-300 bg-card px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
@@ -147,7 +147,7 @@ export default function PortalExtras() {
         </section>
 
         {/* Disponibilidade */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700"><CalendarDays size={15} /> Sua disponibilidade</p>
           <p className="mb-3 mt-1 text-sm font-semibold text-slate-600">Marque os dias em que você pode trabalhar.</p>
           <div className="flex flex-wrap gap-2">
@@ -156,7 +156,7 @@ export default function PortalExtras() {
               return (
                 <button key={d.valor} type="button" onClick={() => alternarDia(d.valor)}
                   className={`h-12 min-w-[62px] rounded-xl border-2 px-3 text-sm font-black transition-all ${
-                    marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}>
+                    marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
                   {d.rotulo}
                 </button>
               );
@@ -175,7 +175,7 @@ export default function PortalExtras() {
         </section>
 
         {/* Dados pessoais */}
-        <section id="dados" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section id="dados" className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Seus dados</p>
           <div className="space-y-4">
             <label className="block">
@@ -223,7 +223,7 @@ export default function PortalExtras() {
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2.5">
                 <input type="checkbox" checked={form.tem_filhos} onChange={e => set("tem_filhos", e.target.checked)} className="h-5 w-5 accent-emerald-600" />
-                <span className="text-sm font-bold text-slate-700">Tenho filhos</span>
+                <span className="text-sm font-bold text-fg-soft">Tenho filhos</span>
               </label>
               {form.tem_filhos && (
                 <label className="flex items-center gap-2">
@@ -255,7 +255,7 @@ export default function PortalExtras() {
             <label className="block">
               <span className={rotulo}>Experiência</span>
               <textarea rows={3} value={form.experiencia} onChange={e => set("experiencia", e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white p-3.5 text-base font-medium outline-none focus:border-emerald-600"
+                className="w-full rounded-xl border border-slate-300 bg-card p-3.5 text-base font-medium outline-none focus:border-emerald-600"
                 placeholder="Onde já trabalhou e o que fazia." />
             </label>
           </div>
@@ -263,9 +263,9 @@ export default function PortalExtras() {
 
         {/* Perguntas */}
         {config.perguntas.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Algumas perguntas</p>
-          <p className="mb-4 mt-1 text-sm font-medium text-slate-500">Não existe resposta certa ou errada.</p>
+          <p className="mb-4 mt-1 text-sm font-medium text-muted">Não existe resposta certa ou errada.</p>
           <div className="space-y-5">
             {config.perguntas.map((p, i) => (
               <div key={p.id}>
@@ -276,11 +276,11 @@ export default function PortalExtras() {
                     return (
                       <button key={idx} type="button" onClick={() => setRespostas(r => ({ ...r, [p.id]: op }))}
                         className={`flex w-full items-start gap-2.5 rounded-xl border-2 p-3 text-left transition-all ${
-                          marcada ? "border-emerald-600 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
+                          marcada ? "border-emerald-600 bg-emerald-50" : "border-line bg-card hover:border-emerald-300"}`}>
                         <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${marcada ? "border-emerald-600 bg-emerald-600" : "border-slate-300"}`}>
-                          {marcada && <span className="h-2 w-2 rounded-full bg-white" />}
+                          {marcada && <span className="h-2 w-2 rounded-full bg-card" />}
                         </span>
-                        <span className="text-sm font-semibold text-slate-700">{op}</span>
+                        <span className="text-sm font-semibold text-fg-soft">{op}</span>
                       </button>
                     );
                   })}
@@ -304,13 +304,13 @@ export default function PortalExtras() {
               return (
                 <button key={op.v} type="button" onClick={() => set("interesse", op.v)}
                   className={`flex w-full items-start gap-3 rounded-xl border-2 p-3.5 text-left transition-all ${
-                    marcada ? "border-emerald-600 bg-white" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
+                    marcada ? "border-emerald-600 bg-card" : "border-line bg-card hover:border-emerald-300"}`}>
                   <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${marcada ? "border-emerald-600 bg-emerald-600" : "border-slate-300"}`}>
-                    {marcada && <span className="h-2 w-2 rounded-full bg-white" />}
+                    {marcada && <span className="h-2 w-2 rounded-full bg-card" />}
                   </span>
                   <span>
                     <span className="block text-[15px] font-black text-slate-800">{op.t}</span>
-                    <span className="block text-[13px] font-medium text-slate-500">{op.d}</span>
+                    <span className="block text-[13px] font-medium text-muted">{op.d}</span>
                   </span>
                 </button>
               );
@@ -324,7 +324,7 @@ export default function PortalExtras() {
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700 disabled:opacity-60">
           {enviando ? <><Loader2 size={19} className="animate-spin" /> Enviando...</> : <><Send size={19} /> Enviar meu cadastro</>}
         </button>
-        <p className="text-center text-xs font-medium text-slate-400">
+        <p className="text-center text-xs font-medium text-subtle">
           Seus dados são usados apenas para contato sobre trabalho neste restaurante.
         </p>
       </main>

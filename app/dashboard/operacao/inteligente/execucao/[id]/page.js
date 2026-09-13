@@ -50,21 +50,21 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
           {evidencias.map((evidencia) => {
             const veredito = VEREDITO_IA[evidencia.ia_status];
             return (
-              <div key={evidencia.id} className="rounded-xl border border-slate-200 bg-white p-3">
+              <div key={evidencia.id} className="rounded-xl border border-line bg-card p-3">
                 <div className="flex items-start gap-3">
                   {evidencia.arquivo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={evidencia.arquivo_url} alt="Evidência registrada"
-                      className="h-20 w-20 shrink-0 rounded-lg border border-slate-200 object-cover" />
+                      className="h-20 w-20 shrink-0 rounded-lg border border-line object-cover" />
                   ) : (
-                    <span className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400"><MapPin size={22} /></span>
+                    <span className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-elevated text-subtle"><MapPin size={22} /></span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-2xs font-bold uppercase tracking-wider text-slate-500">
+                    <p className="text-2xs font-bold uppercase tracking-wider text-muted">
                       {evidencia.tipo === "gps" ? "Localização" : "Foto"} · {evidencia.usuario || "sem nome"}
                     </p>
                     {evidencia.latitude != null && (
-                      <p className="mt-1 flex items-center gap-1 text-2xs font-bold text-slate-500">
+                      <p className="mt-1 flex items-center gap-1 text-2xs font-bold text-muted">
                         <MapPin size={12} /> {Number(evidencia.latitude).toFixed(5)}, {Number(evidencia.longitude).toFixed(5)}
                         {evidencia.precisao_gps != null && ` · ±${Math.round(evidencia.precisao_gps)}m`}
                       </p>
@@ -79,7 +79,7 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
                     )}
                   </div>
                   <button onClick={() => onDescartar(evidencia)} disabled={ocupado}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-subtle hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                     aria-label="Descartar esta evidência"><Trash2 size={16} /></button>
                 </div>
               </div>
@@ -108,7 +108,7 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
       )}
 
       {item.exige_gps && pedeFoto && (
-        <p className="mt-2 flex items-center justify-center gap-1.5 text-2xs font-bold text-slate-500">
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-2xs font-bold text-muted">
           <MapPin size={12} /> A localização do aparelho é gravada junto com a foto.
         </p>
       )}
@@ -295,15 +295,15 @@ export default function ExecucaoGuiada() {
   };
 
   if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>;
-  if (!execucao) return <div className="p-10 text-center font-bold text-slate-500">Execução não encontrada.</div>;
+  if (!execucao) return <div className="p-10 text-center font-bold text-muted">Execução não encontrada.</div>;
 
   if (concluida) {
     const naoConformes = Object.values(respostas).filter(r => r.conforme === false).length;
     return (
       <div className="grid min-h-screen place-items-center bg-[var(--surface)] p-5">
-        <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-white p-7 text-center shadow-sm">
+        <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-card p-7 text-center shadow-sm">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 size={34} /></div>
-          <h1 className="text-xl font-black text-slate-900">{processo?.nome} concluído</h1>
+          <h1 className="text-xl font-black text-fg">{processo?.nome} concluído</h1>
           <p className="mt-2 text-sm font-medium text-slate-600">{respondidos} de {itens.length} itens respondidos.</p>
           {naoConformes > 0 && (
             <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
@@ -324,37 +324,37 @@ export default function ExecucaoGuiada() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-32">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-3.5 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-3.5 sm:px-6">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/inteligente")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-black text-slate-900">{processo?.nome}</p>
-            <p className="text-2xs font-bold text-slate-500">Item {Math.min(indice + 1, itens.length)} de {itens.length} · {progresso}% concluído</p>
+            <p className="truncate text-[15px] font-black text-fg">{processo?.nome}</p>
+            <p className="text-2xs font-bold text-muted">Item {Math.min(indice + 1, itens.length)} de {itens.length} · {progresso}% concluído</p>
           </div>
         </div>
-        <div className="mx-auto mt-2.5 h-1.5 w-full max-w-2xl overflow-hidden rounded-full bg-slate-100">
+        <div className="mx-auto mt-2.5 h-1.5 w-full max-w-2xl overflow-hidden rounded-full bg-elevated">
           <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progresso}%` }} />
         </div>
       </div>
 
       <main className="mx-auto max-w-2xl p-4 sm:p-6">
         {!item ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-            <p className="font-black text-slate-700">Nenhum item para responder</p>
-            <p className="mt-1 text-sm text-slate-500">Este processo ainda não tem itens cadastrados.</p>
+          <div className="rounded-2xl border border-line bg-card p-8 text-center">
+            <p className="font-black text-fg-soft">Nenhum item para responder</p>
+            <p className="mt-1 text-sm text-muted">Este processo ainda não tem itens cadastrados.</p>
           </div>
         ) : (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
             <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">{item.secao}</p>
-            <h2 className="mt-1 text-xl font-black leading-snug text-slate-900">{item.titulo}</h2>
+            <h2 className="mt-1 text-xl font-black leading-snug text-fg">{item.titulo}</h2>
             {item.instrucao && <p className="mt-2 text-[15px] font-medium leading-relaxed text-slate-600">{item.instrucao}</p>}
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {item.obrigatorio && <span className="rounded-lg bg-slate-100 px-2 py-1 text-2xs font-bold text-slate-600">Obrigatório</span>}
+              {item.obrigatorio && <span className="rounded-lg bg-elevated px-2 py-1 text-2xs font-bold text-slate-600">Obrigatório</span>}
               {item.critico && <span className="rounded-lg bg-red-50 px-2 py-1 text-2xs font-bold text-red-700">Item crítico</span>}
               {item.exige_foto && <span className="rounded-lg bg-emerald-50 px-2 py-1 text-2xs font-bold text-emerald-700">Foto obrigatória</span>}
               {(item.valor_min != null || item.valor_max != null) && (
-                <span className="rounded-lg bg-slate-100 px-2 py-1 text-2xs font-bold text-slate-600">
+                <span className="rounded-lg bg-elevated px-2 py-1 text-2xs font-bold text-slate-600">
                   Padrão: {item.valor_min ?? "—"} a {item.valor_max ?? "—"}{item.unidade_medida || ""}
                 </span>
               )}
@@ -369,7 +369,7 @@ export default function ExecucaoGuiada() {
                     <Check size={20} /> {tipo === "CONFORME_NAO_CONFORME" ? "Conforme" : tipo === "SIM_NAO" ? "Sim" : "Feito"}
                   </button>
                   <button onClick={() => salvarResposta(NEGATIVO[tipo])} disabled={salvando}
-                    className="flex min-h-16 items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-white text-base font-black text-red-700 hover:bg-red-50 disabled:opacity-60">
+                    className="flex min-h-16 items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-card text-base font-black text-red-700 hover:bg-red-50 disabled:opacity-60">
                     <X size={20} /> {tipo === "CONFORME_NAO_CONFORME" ? "Não conforme" : tipo === "SIM_NAO" ? "Não" : "Não feito"}
                   </button>
                 </div>
@@ -381,8 +381,8 @@ export default function ExecucaoGuiada() {
                     <input type="number" step="any" inputMode="decimal" autoFocus
                       value={rascunho.valor} onChange={e => setRascunho(r => ({ ...r, valor: e.target.value }))}
                       placeholder="0"
-                      className="h-16 flex-1 rounded-2xl border-2 border-slate-200 px-4 text-2xl font-black text-slate-800 outline-none focus:border-emerald-500" />
-                    {item.unidade_medida && <span className="text-xl font-black text-slate-500">{item.unidade_medida}</span>}
+                      className="h-16 flex-1 rounded-2xl border-2 border-line px-4 text-2xl font-black text-slate-800 outline-none focus:border-emerald-500" />
+                    {item.unidade_medida && <span className="text-xl font-black text-muted">{item.unidade_medida}</span>}
                   </div>
                   {rascunho.valor !== "" && conformeAtual === false && (
                     <p className="mt-2 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
@@ -395,14 +395,14 @@ export default function ExecucaoGuiada() {
               {["TEXTO_CURTO", "TEXTO_LONGO"].includes(tipo) && (
                 <textarea rows={tipo === "TEXTO_LONGO" ? 5 : 2} value={rascunho.valor}
                   onChange={e => setRascunho(r => ({ ...r, valor: e.target.value }))}
-                  className="w-full rounded-2xl border-2 border-slate-200 p-4 text-base font-medium outline-none focus:border-emerald-500" />
+                  className="w-full rounded-2xl border-2 border-line p-4 text-base font-medium outline-none focus:border-emerald-500" />
               )}
 
               {["SELECAO_UNICA", "MULTIPLA_ESCOLHA"].includes(tipo) && (
                 <div className="space-y-2">
                   {(item.opcoes || []).map((op, i) => (
                     <button key={i} onClick={() => salvarResposta(String(op))} disabled={salvando}
-                      className="flex w-full items-center rounded-xl border-2 border-slate-200 bg-white p-4 text-left text-[15px] font-bold text-slate-700 hover:border-emerald-400">
+                      className="flex w-full items-center rounded-xl border-2 border-line bg-card p-4 text-left text-[15px] font-bold text-fg-soft hover:border-emerald-400">
                       {String(op)}
                     </button>
                   ))}
@@ -412,7 +412,7 @@ export default function ExecucaoGuiada() {
               {["DATA", "HORA", "DATA_HORA"].includes(tipo) && (
                 <input type={tipo === "DATA" ? "date" : tipo === "HORA" ? "time" : "datetime-local"}
                   value={rascunho.valor} onChange={e => setRascunho(r => ({ ...r, valor: e.target.value }))}
-                  className="h-14 w-full rounded-2xl border-2 border-slate-200 px-4 text-base font-bold outline-none focus:border-emerald-500" />
+                  className="h-14 w-full rounded-2xl border-2 border-line px-4 text-base font-bold outline-none focus:border-emerald-500" />
               )}
 
               {TIPOS_FOTO.includes(tipo) && (
@@ -427,7 +427,7 @@ export default function ExecucaoGuiada() {
                   )}
                   {reprovadaPelaIA && (
                     <button onClick={registrarMesmoAssim} disabled={salvando}
-                      className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-white text-sm font-black text-red-700 hover:bg-red-50 disabled:opacity-60">
+                      className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-card text-sm font-black text-red-700 hover:bg-red-50 disabled:opacity-60">
                       <AlertTriangle size={18} /> Registrar assim mesmo (abre não conformidade)
                     </button>
                   )}
@@ -438,7 +438,7 @@ export default function ExecucaoGuiada() {
                   da resposta, sem virar uma etapa separada no meio do corredor. */}
               {!TIPOS_FOTO.includes(tipo) && precisaEvidencia && (
                 <div className="mt-4">
-                  <p className="mb-2 text-2xs font-bold uppercase tracking-wider text-slate-500">Evidência</p>
+                  <p className="mb-2 text-2xs font-bold uppercase tracking-wider text-muted">Evidência</p>
                   <CapturaEvidencia item={item} evidencias={evidenciasDoItem} ocupado={capturando}
                     erro={erroEvidencia} onCapturar={capturarEvidencia} onDescartar={descartar} />
                 </div>
@@ -447,23 +447,23 @@ export default function ExecucaoGuiada() {
 
             {/* Comentário */}
             <label className="mt-4 block">
-              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-2xs font-bold uppercase tracking-wider text-muted">
                 Observação {item.exige_comentario ? "(obrigatória)" : "(opcional)"}
               </span>
               <textarea rows={2} value={rascunho.comentario} onChange={e => setRascunho(r => ({ ...r, comentario: e.target.value }))}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-[15px] font-medium outline-none focus:border-emerald-500" />
+                className="mt-1.5 w-full rounded-xl border border-line bg-slate-50 p-3 text-[15px] font-medium outline-none focus:border-emerald-500" />
             </label>
 
             {erro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
 
             <div className="mt-5 flex flex-wrap gap-2">
               <button onClick={() => setIndice(i => Math.max(0, i - 1))} disabled={indice === 0}
-                className="flex min-h-12 items-center gap-1.5 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 disabled:opacity-40">
+                className="flex min-h-12 items-center gap-1.5 rounded-xl border border-line px-4 text-sm font-bold text-slate-600 disabled:opacity-40">
                 <ArrowLeft size={16} /> Anterior
               </button>
               {item.permite_na && (
                 <button onClick={() => salvarResposta("nao_aplica", true)} disabled={salvando}
-                  className="min-h-12 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600">Não se aplica</button>
+                  className="min-h-12 rounded-xl border border-line px-4 text-sm font-bold text-slate-600">Não se aplica</button>
               )}
               {!["FEITO_NAO_FEITO", "CONFORME_NAO_CONFORME", "SIM_NAO", "BOOLEAN", "SELECAO_UNICA", "MULTIPLA_ESCOLHA"].includes(tipo) && (
                 <button onClick={() => salvarResposta()} disabled={salvando}
@@ -476,7 +476,7 @@ export default function ExecucaoGuiada() {
         )}
 
         {/* Conclusão */}
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mt-5 rounded-2xl border border-line bg-card p-4 shadow-sm">
           <p className="text-[13px] font-bold text-slate-600">
             {respondidos} de {itens.length} respondidos
             {Object.values(respostas).some(r => r.conforme === false) && (

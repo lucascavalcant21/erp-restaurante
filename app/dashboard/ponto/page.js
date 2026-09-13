@@ -115,50 +115,50 @@ function ModalHistorico({ onClose, colaborador }) {
         width: "min(400px, 100%)", maxHeight: "80vh", display: "flex", flexDirection: "column",
         boxShadow: "0 32px 64px rgba(0,0,0,0.2)", position: "relative"
       }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">
+        <button onClick={onClose} className="absolute top-4 right-4 text-subtle hover:text-slate-600 bg-elevated p-2 rounded-full">
           <X size={20} />
         </button>
         
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+          <div className="w-12 h-12 rounded-full bg-elevated flex items-center justify-center text-muted">
              <Calendar size={24}/>
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-900">Histórico</h2>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{colaborador.nome}</p>
+            <h2 className="text-xl font-black text-fg">Histórico</h2>
+            <p className="text-xs font-bold text-muted uppercase tracking-widest">{colaborador.nome}</p>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-          {loading && <p className="text-center font-bold text-slate-500 py-10">Carregando...</p>}
-          {!loading && historico.length === 0 && <p className="text-center font-bold text-slate-500 py-10">Nenhum registro encontrado.</p>}
+          {loading && <p className="text-center font-bold text-muted py-10">Carregando...</p>}
+          {!loading && historico.length === 0 && <p className="text-center font-bold text-muted py-10">Nenhum registro encontrado.</p>}
           {!loading && historico.map(reg => {
              const dataFormatada = new Date(reg.data_referencia + "T12:00:00").toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
              return (
-               <div key={reg.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col gap-2">
-                 <p className="text-sm font-black text-slate-700 border-b border-slate-200 pb-2 mb-1">{dataFormatada}</p>
+               <div key={reg.id} className="p-4 rounded-2xl border border-line bg-slate-50 flex flex-col gap-2">
+                 <p className="text-sm font-black text-fg-soft border-b border-line pb-2 mb-1">{dataFormatada}</p>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-3xs">Entrada</p>
+                       <p className="text-subtle font-bold uppercase text-3xs">Entrada</p>
                        <p className="font-bold text-slate-800">{reg.hora_entrada ? new Date(reg.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-3xs">Saída Int.</p>
+                       <p className="text-subtle font-bold uppercase text-3xs">Saída Int.</p>
                        <p className="font-bold text-slate-800">{reg.hora_saida_intervalo ? new Date(reg.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-3xs">Volta Int.</p>
+                       <p className="text-subtle font-bold uppercase text-3xs">Volta Int.</p>
                        <p className="font-bold text-slate-800">{reg.hora_retorno_intervalo ? new Date(reg.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                     <div>
-                       <p className="text-slate-400 font-bold uppercase text-3xs">Saída Final</p>
+                       <p className="text-subtle font-bold uppercase text-3xs">Saída Final</p>
                        <p className="font-bold text-slate-800">{reg.hora_saida ? new Date(reg.hora_saida).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                  </div>
 
                  {/* Detalhes de GPS / Geolocalização */}
                  {reg.latitude != null && reg.longitude != null && (
-                   <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-2xs">
+                   <div className="mt-2 pt-2 border-t border-line flex items-center justify-between text-2xs">
                      <span className="font-bold text-emerald-700 flex items-center gap-1">
                        <MapPin size={12}/> {reg.distancia_metros != null ? `${reg.distancia_metros}m da loja` : "GPS Registrado"}
                      </span>
@@ -326,7 +326,7 @@ export default function PontoPage() {
      }
   };
 
-  if(!unidadeAtiva) return <div className="p-10 font-bold text-slate-500">Selecione uma loja no topo.</div>;
+  if(!unidadeAtiva) return <div className="p-10 font-bold text-muted">Selecione uma loja no topo.</div>;
 
   // Tela de Bloqueio Inicial
   if(!pinOk) {
@@ -346,7 +346,7 @@ export default function PontoPage() {
   }
 
   return (
-    <div ref={containerRef} className="erp-safe-top h-screen bg-slate-100 p-4 font-sans flex flex-col overflow-hidden">
+    <div ref={containerRef} className="erp-safe-top h-screen bg-elevated p-4 font-sans flex flex-col overflow-hidden">
       
       {/* Modal de Saída do Modo Ponto */}
       {pedindoSaida && (
@@ -379,30 +379,30 @@ export default function PontoPage() {
       )}
 
       <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col min-h-0">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 bg-white p-4 rounded-[24px] shadow-sm border border-slate-200 shrink-0">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 bg-card p-4 rounded-[24px] shadow-sm border border-line shrink-0">
            <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
                  <Fingerprint size={28} />
               </div>
               <div>
-                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">Relógio de Ponto</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-3xs mt-0.5">Unidade: {unidadeInfo?.nome}</p>
+                 <h1 className="text-2xl font-black text-fg tracking-tight">Relógio de Ponto</h1>
+                 <p className="text-muted font-bold uppercase tracking-widest text-3xs mt-0.5">Unidade: {unidadeInfo?.nome}</p>
               </div>
            </div>
 
            {/* Hora grande no meio: é o que a pessoa confere antes de bater. */}
            <div className="text-center">
-              <p className="font-black leading-none text-slate-900 tabular-nums text-5xl sm:text-7xl">
+              <p className="font-black leading-none text-fg tabular-nums text-5xl sm:text-7xl">
                  {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                 <span className="text-2xl sm:text-3xl text-slate-400">:{String(agora.getSeconds()).padStart(2, "0")}</span>
+                 <span className="text-2xl sm:text-3xl text-subtle">:{String(agora.getSeconds()).padStart(2, "0")}</span>
               </p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted">
                  {agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </p>
            </div>
 
            <div className="flex items-center gap-3">
-              <button onClick={toggleFullscreen} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all text-sm">
+              <button onClick={toggleFullscreen} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-elevated text-slate-600 hover:bg-slate-200 transition-all text-sm">
                  <Maximize size={16}/> Tela Cheia
               </button>
               <button onClick={() => setPedindoSaida(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-rose-100 text-rose-700 hover:bg-rose-200 transition-all text-sm">
@@ -411,11 +411,11 @@ export default function PontoPage() {
            </div>
         </div>
 
-        <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col md:flex-row min-h-0">
+        <div className="bg-card rounded-[24px] shadow-sm border border-line overflow-hidden flex-1 flex flex-col md:flex-row min-h-0">
            
            {/* Lado Esquerdo: Lista de Funcionários */}
-           <div className="w-full md:w-1/2 border-r border-slate-100 flex flex-col bg-slate-50">
-              <div className="p-4 border-b border-slate-200 shrink-0 space-y-3">
+           <div className="w-full md:w-1/2 border-r border-line-soft flex flex-col bg-slate-50">
+              <div className="p-4 border-b border-line shrink-0 space-y-3">
                  {/* Caminho rápido: a pessoa se identifica pelo rosto */}
                  <button onClick={() => setFacialAberto(true)}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20">
@@ -423,7 +423,7 @@ export default function PontoPage() {
                  </button>
                  {areaAtiva && (
                     <button onClick={() => { setAreaAtiva(""); setColabAtivo(null); }}
-                       className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-50">
+                       className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-50">
                        <ArrowLeft size={16} /> Trocar de área · {AREAS_PONTO.find(a => a.id === areaAtiva)?.nome}
                     </button>
                  )}
@@ -437,13 +437,13 @@ export default function PontoPage() {
                        const equipe = equipeDaArea(funcionarios, area.id);
                        return (
                           <button key={area.id} onClick={() => setAreaAtiva(area.id)}
-                             className="flex items-center gap-5 rounded-3xl border-2 border-slate-200 bg-white p-6 text-left transition-all hover:border-emerald-400 hover:shadow-lg">
+                             className="flex items-center gap-5 rounded-3xl border-2 border-line bg-card p-6 text-left transition-all hover:border-emerald-400 hover:shadow-lg">
                              <span className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl" style={{ background: area.fundo, color: area.cor }}>
                                 <Icone size={40} />
                              </span>
                              <span className="min-w-0">
-                                <span className="block text-3xl font-black leading-tight text-slate-900">{area.nome}</span>
-                                <span className="mt-1 block text-sm font-bold text-slate-500">{equipe.length} pessoa(s)</span>
+                                <span className="block text-3xl font-black leading-tight text-fg">{area.nome}</span>
+                                <span className="mt-1 block text-sm font-bold text-muted">{equipe.length} pessoa(s)</span>
                              </span>
                           </button>
                        );
@@ -451,32 +451,32 @@ export default function PontoPage() {
                  </div>
               ) : (
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-                 {loading && <p className="text-center font-bold text-slate-500 mt-10">Carregando...</p>}
+                 {loading && <p className="text-center font-bold text-muted mt-10">Carregando...</p>}
                  {!loading && filtrados.map(f => {
                     const status = getStatus(f.id);
                     const isSelected = colabAtivo?.id === f.id;
 
                     return (
-                       <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-5 rounded-2xl text-left border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20 scale-[1.02]' : 'bg-white border-slate-200 hover:border-emerald-300'}`}>
+                       <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-5 rounded-2xl text-left border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20 scale-[1.02]' : 'bg-card border-line hover:border-emerald-300'}`}>
                           <div className="flex justify-between items-center gap-3">
                              <div className="min-w-0">
-                                <p className={`font-black text-2xl leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>{f.nome}</p>
-                                <p className={`text-sm font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-50' : 'text-slate-500'}`}>{f.cargo}</p>
+                                <p className={`font-black text-2xl leading-tight ${isSelected ? 'text-white' : 'text-fg'}`}>{f.nome}</p>
+                                <p className={`text-sm font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-50' : 'text-muted'}`}>{f.cargo}</p>
                              </div>
                              {status === 4 && <CheckCircle2 className={isSelected ? 'text-white shrink-0' : 'text-emerald-500 shrink-0'} size={30} />}
                           </div>
                        </button>
                     );
                  })}
-                 {!loading && filtrados.length === 0 && <p className="text-center font-bold text-slate-500 mt-10">Ninguém cadastrado nesta área.</p>}
+                 {!loading && filtrados.length === 0 && <p className="text-center font-bold text-muted mt-10">Ninguém cadastrado nesta área.</p>}
               </div>
               )}
            </div>
 
            {/* Lado Direito: Batida de Ponto Sequencial */}
-           <div className="w-full md:w-1/2 p-6 flex flex-col items-center justify-start pt-10 bg-white relative overflow-y-auto">
+           <div className="w-full md:w-1/2 p-6 flex flex-col items-center justify-start pt-10 bg-card relative overflow-y-auto">
               {!colabAtivo ? (
-                 <div className="text-center text-slate-400 flex flex-col items-center gap-4 mt-20">
+                 <div className="text-center text-subtle flex flex-col items-center gap-4 mt-20">
                     <Fingerprint size={80} strokeWidth={1} />
                     <p className="font-bold text-lg max-w-xs">Selecione seu nome na lista para bater o ponto.</p>
                  </div>
@@ -491,8 +491,8 @@ export default function PontoPage() {
                              <Clock size={32} />
                           </div>
                           <div className="text-left">
-                             <h2 className="text-2xl font-black text-slate-900 leading-tight">{colabAtivo.nome}</h2>
-                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{colabAtivo.cargo}</p>
+                             <h2 className="text-2xl font-black text-fg leading-tight">{colabAtivo.nome}</h2>
+                             <p className="text-xs font-bold text-muted uppercase tracking-widest">{colabAtivo.cargo}</p>
                           </div>
                        </div>
                        
@@ -508,7 +508,7 @@ export default function PontoPage() {
                        
                        <div className="w-full text-left">
                            <div className="flex items-center justify-between ml-2 mb-3">
-                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Registro do Dia:</p>
+                             <p className="text-xs font-bold text-subtle uppercase tracking-widest">Registro do Dia:</p>
                              <span className="text-3xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                                <MapPin size={10}/> GPS Geofencing Ativo
                              </span>
@@ -523,7 +523,7 @@ export default function PontoPage() {
                            
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
                              {/* Botão 1 */}
-                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105 cursor-pointer' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105 cursor-pointer' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">1. Entrada</span>
                                    {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}
@@ -536,7 +536,7 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 2 */}
-                             <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                             <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">2. Saída Int.</span>
                                    {st > 1 && <CheckCircle2 size={16} className={st === 1 ? 'text-white' : 'text-amber-500'} />}
@@ -549,7 +549,7 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 3 */}
-                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">3. Volta Int.</span>
                                    {st > 2 && <CheckCircle2 size={16} className={st === 2 ? 'text-white' : 'text-blue-500'} />}
@@ -562,7 +562,7 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 4 */}
-                             <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                             <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">4. Saída Final</span>
                                    {st > 3 && <CheckCircle2 size={16} className={st === 3 ? 'text-white' : 'text-rose-500'} />}
@@ -575,7 +575,7 @@ export default function PontoPage() {
                              </button>
                           </div>
                           
-                          <button onClick={() => setHistoricoAberto(true)} className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all text-sm flex items-center justify-center gap-2 border border-slate-200">
+                          <button onClick={() => setHistoricoAberto(true)} className="w-full py-3 rounded-xl bg-elevated text-slate-600 font-bold hover:bg-slate-200 transition-all text-sm flex items-center justify-center gap-2 border border-line">
                              <Clock size={16}/> Ver Histórico de Dias Anteriores
                           </button>
                        </div>

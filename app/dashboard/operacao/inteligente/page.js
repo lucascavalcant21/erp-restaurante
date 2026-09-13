@@ -18,13 +18,13 @@ import {
 import { calcularScore, isoData } from "../../../lib/operacao-agenda.mjs";
 
 const CORES = {
-  AGENDADA: { rotulo: "Agendado", cor: "bg-slate-100 text-slate-600 border-slate-200" },
+  AGENDADA: { rotulo: "Agendado", cor: "bg-elevated text-slate-600 border-line" },
   DISPONIVEL: { rotulo: "Disponível", cor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   EM_ANDAMENTO: { rotulo: "Em andamento", cor: "bg-emerald-600 text-white border-emerald-600" },
   CONCLUIDA: { rotulo: "Concluído", cor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   CONCLUIDA_COM_ATRASO: { rotulo: "Concluído com atraso", cor: "bg-amber-50 text-amber-700 border-amber-200" },
   ATRASADA: { rotulo: "Atrasado", cor: "bg-red-50 text-red-700 border-red-200" },
-  CANCELADA: { rotulo: "Cancelado", cor: "bg-slate-100 text-slate-400 border-slate-200" },
+  CANCELADA: { rotulo: "Cancelado", cor: "bg-elevated text-subtle border-line" },
 };
 
 const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--");
@@ -89,29 +89,29 @@ export default function CentralOperacional() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-20">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Central Operacional</h1>
-            <p className="text-xs font-bold text-slate-500">Rotinas do dia, atrasos e não conformidades</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Central Operacional</h1>
+            <p className="text-xs font-bold text-muted">Rotinas do dia, atrasos e não conformidades</p>
           </div>
           <input type="date" value={dia} onChange={e => setDia(e.target.value)}
-            className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold text-slate-700" />
+            className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft" />
           <button onClick={() => carregar({ gerar: true })} disabled={gerando}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
             <RefreshCw size={17} className={gerando ? "animate-spin" : ""} /> Atualizar
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/rankings")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
             <Trophy size={17} /> Rankings
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/tv")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
             <MonitorPlay size={17} /> Modo TV
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
             <ClipboardList size={17} /> Processos
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/nao-conformidades")}
@@ -123,7 +123,7 @@ export default function CentralOperacional() {
 
       <main className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : (
           <>
             {/* Indicadores do dia */}
@@ -138,9 +138,9 @@ export default function CentralOperacional() {
               ].map(c => (
                 <button key={c.rot}
                   onClick={() => c.filtro === null ? router.push("/dashboard/operacao/inteligente/nao-conformidades") : setFiltroStatus(c.filtro)}
-                  className={`rounded-2xl border p-3 text-left shadow-sm transition-all hover:border-emerald-300 ${c.alerta ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"}`}>
+                  className={`rounded-2xl border p-3 text-left shadow-sm transition-all hover:border-emerald-300 ${c.alerta ? "border-red-200 bg-red-50" : "border-line bg-card"}`}>
                   <c.icone size={16} className={c.alerta ? "text-red-500" : "text-emerald-600"} />
-                  <p className="mt-1 text-3xs font-bold uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                  <p className="mt-1 text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
                   <p className={`text-xl font-black ${c.alerta ? "text-red-600" : "text-slate-800"}`}>{c.val}</p>
                 </button>
               ))}
@@ -149,8 +149,8 @@ export default function CentralOperacional() {
             {score.score != null && (
               <div className="grid grid-cols-3 gap-2.5">
                 {[["Pontualidade", score.pontualidade], ["Execução", score.execucao], ["Qualidade", score.qualidade]].map(([rot, val]) => (
-                  <div key={rot} className="rounded-2xl border border-slate-200 bg-white p-3">
-                    <p className="text-3xs font-bold uppercase tracking-wider text-slate-400">{rot}</p>
+                  <div key={rot} className="rounded-2xl border border-line bg-card p-3">
+                    <p className="text-3xs font-bold uppercase tracking-wider text-subtle">{rot}</p>
                     <p className="text-lg font-black text-emerald-700">{val}%</p>
                   </div>
                 ))}
@@ -158,7 +158,7 @@ export default function CentralOperacional() {
             )}
 
             {/* Acontecendo agora */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-700">Acontecendo hoje</h2>
                 {filtroStatus && (
@@ -170,9 +170,9 @@ export default function CentralOperacional() {
                 <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
               ) : lista.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
-                  <ListChecks className="mx-auto text-slate-300" size={38} />
-                  <p className="mt-3 font-black text-slate-700">Nenhuma rotina para este dia</p>
-                  <p className="mt-1 text-sm text-slate-500">Crie um processo e agende o horário para ele aparecer aqui.</p>
+                  <ListChecks className="mx-auto text-dim" size={38} />
+                  <p className="mt-3 font-black text-fg-soft">Nenhuma rotina para este dia</p>
+                  <p className="mt-1 text-sm text-muted">Crie um processo e agende o horário para ele aparecer aqui.</p>
                   <button onClick={() => router.push("/dashboard/operacao/inteligente/nao-conformidades")}
                     className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Ver não conformidades</button>
                 </div>
@@ -183,19 +183,19 @@ export default function CentralOperacional() {
                     const progresso = e.total_itens ? Math.round((e.itens_respondidos / e.total_itens) * 100) : 0;
                     return (
                       <button key={e.id} onClick={() => abrir(e)}
-                        className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition-all hover:border-emerald-400">
+                        className="flex w-full items-center gap-3 rounded-xl border border-line bg-card p-3 text-left transition-all hover:border-emerald-400">
                         <span className="w-14 shrink-0 text-center">
                           <span className="block text-[15px] font-black text-slate-800">{hora(e.previsto_para)}</span>
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[15px] font-black text-slate-900">{e.processo?.nome || "Processo"}</span>
-                          <span className="block truncate text-xs font-bold text-slate-500">
+                          <span className="block truncate text-[15px] font-black text-fg">{e.processo?.nome || "Processo"}</span>
+                          <span className="block truncate text-xs font-bold text-muted">
                             {e.processo?.setor || "geral"}
                             {e.responsavel_nome ? ` · ${e.responsavel_nome}` : ""}
                             {e.total_itens ? ` · ${e.itens_respondidos}/${e.total_itens} itens` : ""}
                           </span>
                           {progresso > 0 && progresso < 100 && (
-                            <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                            <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-elevated">
                               <span className="block h-full rounded-full bg-emerald-500" style={{ width: `${progresso}%` }} />
                             </span>
                           )}
@@ -218,10 +218,10 @@ export default function CentralOperacional() {
                 </div>
                 <div className="space-y-2">
                   {ncs.slice(0, 5).map(nc => (
-                    <div key={nc.id} className="rounded-xl border border-red-100 bg-white p-3">
+                    <div key={nc.id} className="rounded-xl border border-red-100 bg-card p-3">
                       <p className="text-[14px] font-black text-slate-800">{nc.titulo}</p>
-                      {nc.descricao && <p className="mt-0.5 whitespace-pre-line text-xs font-medium text-slate-500 line-clamp-2">{nc.descricao}</p>}
-                      <p className="mt-1 text-2xs font-bold text-slate-400">
+                      {nc.descricao && <p className="mt-0.5 whitespace-pre-line text-xs font-medium text-muted line-clamp-2">{nc.descricao}</p>}
+                      <p className="mt-1 text-2xs font-bold text-subtle">
                         {nc.setor || "geral"} · {nc.criticidade === "critica" ? "crítica" : nc.criticidade} · {new Date(nc.created_at).toLocaleString("pt-BR")}
                       </p>
                     </div>

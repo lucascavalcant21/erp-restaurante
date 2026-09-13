@@ -109,7 +109,7 @@ export default function ModoTV() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="grid h-screen place-items-center bg-slate-950 p-10 text-center">
-        <p className="text-3xl font-black text-slate-300">Escolha uma unidade para pendurar o painel.</p>
+        <p className="text-3xl font-black text-dim">Escolha uma unidade para pendurar o painel.</p>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function ModoTV() {
           <h1 className="truncate text-2xl font-black tracking-tight text-white sm:text-3xl">Operação do dia</h1>
           {/* first-letter, e não `capitalize`: este maiusculiza toda palavra e
               "domingo, 30 de agosto" virava "Domingo, 30 De Agosto". */}
-          <p className="mt-0.5 text-sm font-bold text-slate-400 first-letter:uppercase sm:text-base">{dataLonga}</p>
+          <p className="mt-0.5 text-sm font-bold text-subtle first-letter:uppercase sm:text-base">{dataLonga}</p>
         </div>
         <div className="flex items-center gap-6">
           {contadores.ncs > 0 && (
@@ -155,7 +155,7 @@ export default function ModoTV() {
           <Numero rotulo="Do dia" valor={`${contadores.progresso}%`} destaque />
           {score.score != null && <Numero rotulo="Score" valor={score.score} destaque />}
         </div>
-        <div className="flex items-center gap-3 text-slate-500">
+        <div className="flex items-center gap-3 text-muted">
           {online ? <Wifi size={16} /> : <WifiOff size={16} className="text-amber-400" />}
           <span className="text-xs font-bold">
             {online
@@ -184,7 +184,7 @@ export default function ModoTV() {
 const TONS = {
   perigo: { titulo: "text-red-300", pinta: "bg-red-500/10", hora: "text-red-300", barra: "bg-red-400" },
   acao: { titulo: "text-emerald-300", pinta: "bg-emerald-500/10", hora: "text-emerald-300", barra: "bg-emerald-400" },
-  neutro: { titulo: "text-slate-400", pinta: "bg-white/[0.03]", hora: "text-slate-300", barra: "bg-slate-400" },
+  neutro: { titulo: "text-subtle", pinta: "bg-white/[0.03]", hora: "text-dim", barra: "bg-slate-400" },
 };
 
 function Bloco({ titulo, tom, itens, vazio }) {
@@ -216,9 +216,9 @@ function Bloco({ titulo, tom, itens, vazio }) {
                     </span>
                   )}
                 </div>
-                <div className="mt-1.5 flex min-w-0 items-center gap-3 text-sm font-bold text-slate-400">
+                <div className="mt-1.5 flex min-w-0 items-center gap-3 text-sm font-bold text-subtle">
                   {l.setor && <span className="shrink-0 capitalize">{l.setor}</span>}
-                  {l.responsavel && <span className="truncate text-slate-300">{l.responsavel}</span>}
+                  {l.responsavel && <span className="truncate text-dim">{l.responsavel}</span>}
                 </div>
                 {l.progresso != null && l.progresso > 0 && (
                   <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -229,7 +229,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
             );
           })}
           {sobra > 0 && (
-            <p className="pt-1 text-base font-black text-slate-500">e mais {sobra}</p>
+            <p className="pt-1 text-base font-black text-muted">e mais {sobra}</p>
           )}
         </div>
       )}
@@ -240,7 +240,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
 function Numero({ rotulo, valor, destaque = false }) {
   return (
     <div>
-      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-slate-500">{rotulo}</p>
+      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-muted">{rotulo}</p>
       <p className={`text-3xl font-black tabular-nums ${destaque ? "text-emerald-400" : "text-white"}`}>{valor}</p>
     </div>
   );

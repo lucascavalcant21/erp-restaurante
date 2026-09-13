@@ -13,7 +13,7 @@ export default function DrinksPage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-[45vh] items-center justify-center px-4 text-sm font-bold text-slate-500">
+    <div className="flex min-h-[45vh] items-center justify-center px-4 text-sm font-bold text-muted">
       Abrindo as fichas integradas do Bar...
     </div>
   );

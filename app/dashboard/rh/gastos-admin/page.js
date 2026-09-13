@@ -25,7 +25,7 @@ const COR_CATEGORIA = {
   Embalagens: "border-pink-200 bg-pink-50 text-pink-800",
   Limpeza: "border-sky-200 bg-sky-50 text-sky-800",
   "Materiais gerais": "border-amber-200 bg-amber-50 text-amber-800",
-  Outros: "border-slate-200 bg-slate-50 text-slate-700",
+  Outros: "border-line bg-slate-50 text-fg-soft",
 };
 
 export default function ComprasDoMesPage() {
@@ -90,21 +90,21 @@ export default function ComprasDoMesPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Compras do mês</h1>
-            <p className="text-xs font-bold text-slate-500">Vem das entradas de estoque — lançou lá, aparece aqui</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Compras do mês</h1>
+            <p className="text-xs font-bold text-muted">Vem das entradas de estoque — lançou lá, aparece aqui</p>
           </div>
           <button onClick={() => router.push("/dashboard/operacao/estoque")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
             <PackagePlus size={17} /> Lançar entrada
           </button>
         </div>
 
         <div className="mx-auto mt-3 flex max-w-5xl flex-wrap items-center gap-2">
-          <div className="flex rounded-xl border border-slate-200 bg-white p-1">
+          <div className="flex rounded-xl border border-line bg-card p-1">
             {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"], ["meses", "Vários meses"]].map(([v, r]) => (
               <button key={v} onClick={() => setModo(v)}
                 className={`h-9 rounded-lg px-3.5 text-sm font-black ${modo === v ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
@@ -114,38 +114,38 @@ export default function ComprasDoMesPage() {
           </div>
           {modo === "meses" && (
             <select value={mesesJuntos} onChange={e => setMesesJuntos(Number(e.target.value))}
-              className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold text-slate-700">
+              className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft">
               {[2, 3, 4, 6, 12].map(n => <option key={n} value={n}>{n} meses</option>)}
             </select>
           )}
           <div className="flex items-center gap-1">
-            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, -1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, -1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
             <span className="min-w-[200px] text-center text-sm font-black capitalize text-slate-800">{rotuloPeriodo(faixa, modo)}</span>
-            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, 1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
+            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, 1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
           </div>
           {!hojeNoPeriodo && (
-            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">Hoje</button>
+            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">Hoje</button>
           )}
         </div>
       </div>
 
       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
           <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
         ) : (
           <>
-            <section className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
+            <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm sm:p-6">
               <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Total comprado no período</p>
-              <p className="mt-1 text-4xl font-black text-slate-900 sm:text-5xl">{brl(totalGeral)}</p>
-              <p className="mt-2 text-sm font-bold text-slate-500">{doPeriodo.length} entrada(s) de estoque</p>
+              <p className="mt-1 text-4xl font-black text-fg sm:text-5xl">{brl(totalGeral)}</p>
+              <p className="mt-2 text-sm font-bold text-muted">{doPeriodo.length} entrada(s) de estoque</p>
             </section>
 
             {/* Por onde o dinheiro foi */}
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {totais.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center font-bold text-slate-500 sm:col-span-2 lg:col-span-3">
+                <p className="rounded-2xl border border-dashed border-slate-300 bg-card p-6 text-center font-bold text-muted sm:col-span-2 lg:col-span-3">
                   Nenhuma compra neste período.
                 </p>
               ) : totais.map(([cat, v]) => (
@@ -169,8 +169,8 @@ export default function ComprasDoMesPage() {
             {porDia.map(([dia, doDia]) => {
               const totalDia = doDia.reduce((s, m) => s + valorDaCompra(m), 0);
               return (
-                <section key={dia} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+                <section key={dia} className="rounded-2xl border border-line bg-card shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft px-4 py-3">
                     <p className="text-sm font-black capitalize text-slate-800">
                       {new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}
                     </p>
@@ -181,8 +181,8 @@ export default function ComprasDoMesPage() {
                       <div key={m.id} className="flex items-center gap-3 px-4 py-3">
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShoppingCart size={16} /></span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[15px] font-black text-slate-900">{m.insumo?.nome || "Produto removido"}</p>
-                          <p className="truncate text-2xs font-bold text-slate-500">
+                          <p className="truncate text-[15px] font-black text-fg">{m.insumo?.nome || "Produto removido"}</p>
+                          <p className="truncate text-2xs font-bold text-muted">
                             {Number(m.quantidade || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {m.insumo?.unidade_medida || ""}
                             {m.estoque?.nome ? ` · ${m.estoque.nome}` : ""}
                             {m.usuario_nome ? ` · ${m.usuario_nome}` : ""}
@@ -196,7 +196,7 @@ export default function ComprasDoMesPage() {
               );
             })}
 
-            <p className="pt-2 text-center text-xs font-bold text-slate-400">
+            <p className="pt-2 text-center text-xs font-bold text-subtle">
               Cada entrada guarda o preço do dia em que foi lançada. Entradas antigas, de antes disso, usam o custo atual do ingrediente.
             </p>
           </>

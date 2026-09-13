@@ -120,25 +120,25 @@ export default function CorrigirPontoPage() {
       setDiaDoMes((res.data || []).find((d) => String(d.data_referencia).slice(0, 10) === data) || null));
   };
 
-  const campo = "mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-500";
-  const rotulo = "text-2xs font-black uppercase tracking-wider text-slate-500";
+  const campo = "mt-1.5 h-12 w-full rounded-xl border border-line bg-card px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-500";
+  const rotulo = "text-2xs font-black uppercase tracking-wider text-muted";
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-7">
+    <div className="min-h-screen bg-[var(--surface)] pb-16 text-fg">
+      <header className="border-b border-line bg-card px-4 py-4 sm:px-7">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" aria-label="Voltar">
+          <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-line text-slate-600 hover:bg-slate-50" aria-label="Voltar">
             <ArrowLeft size={20} />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-black sm:text-2xl">Corrigir batida do ponto</h1>
-            <p className="text-sm font-semibold text-slate-500">A batida original não é apagada — entra um ajuste com motivo e autor</p>
+            <p className="text-sm font-semibold text-muted">A batida original não é apagada — entra um ajuste com motivo e autor</p>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-7">
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <label><span className={rotulo}>Colaborador *</span>
               <select value={colabId} onChange={(e) => setColabId(e.target.value)} className={campo}>
@@ -152,15 +152,15 @@ export default function CorrigirPontoPage() {
           </div>
 
           {colabId && (
-            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-5 rounded-xl border border-line bg-slate-50 p-4">
               <p className={rotulo}>O que está gravado neste dia</p>
               {carregando ? (
-                <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-500"><Loader2 size={15} className="animate-spin" /> Carregando…</p>
+                <p className="mt-2 flex items-center gap-2 text-sm font-bold text-muted"><Loader2 size={15} className="animate-spin" /> Carregando…</p>
               ) : (
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {TIPOS.map(([id, nome]) => (
-                    <div key={id} className="rounded-lg bg-white px-3 py-2 text-center">
-                      <p className="text-3xs font-bold uppercase text-slate-400">{nome.split(" ")[0]}</p>
+                    <div key={id} className="rounded-lg bg-card px-3 py-2 text-center">
+                      <p className="text-3xs font-bold uppercase text-subtle">{nome.split(" ")[0]}</p>
                       <p className="text-base font-black text-slate-800">{horaDe(diaDoMes?.[CAMPO_POR_TIPO[id]]) || "--:--"}</p>
                     </div>
                   ))}
@@ -173,7 +173,7 @@ export default function CorrigirPontoPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-sm sm:p-6">
+        <section className="rounded-2xl border-2 border-emerald-200 bg-card p-4 shadow-sm sm:p-6">
           <div className="mb-4 flex items-center gap-2"><Clock3 className="text-emerald-600" size={20} /><h2 className="text-lg font-black">A correção</h2></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label><span className={rotulo}>Qual batida *</span>
@@ -185,8 +185,8 @@ export default function CorrigirPontoPage() {
               <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className={campo} />
             </label>
           </div>
-          <p className="mt-2 text-xs font-semibold text-slate-500">
-            Valor atual: <b className="text-slate-700">{horaDe(valorAtual) || "não marcado"}</b>
+          <p className="mt-2 text-xs font-semibold text-muted">
+            Valor atual: <b className="text-fg-soft">{horaDe(valorAtual) || "não marcado"}</b>
             {tipo === "saida_trabalho" && " · saída antes das 6h é entendida como madrugada do dia seguinte"}
           </p>
           <label className="mt-4 block"><span className={rotulo}>Motivo (opcional)</span>
@@ -194,10 +194,10 @@ export default function CorrigirPontoPage() {
               placeholder="Ex.: tablet sem rede no fechamento"
               className={`${campo} h-auto py-3`} />
           </label>
-          <p className="mt-1 text-xs font-semibold text-slate-500">Quando preenchido, fica gravado junto com o ajuste.</p>
+          <p className="mt-1 text-xs font-semibold text-muted">Quando preenchido, fica gravado junto com o ajuste.</p>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-6">
           <div className="mb-3 flex items-center gap-2"><ShieldCheck className="text-emerald-600" size={19} /><h2 className="font-black">Autorização</h2></div>
           <label className="block sm:max-w-[220px]"><span className={rotulo}>PIN do gerente *</span>
             <input type="password" inputMode="numeric" value={pinDigitado} onChange={(e) => setPinDigitado(e.target.value)} className={campo} />

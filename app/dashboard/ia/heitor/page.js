@@ -359,7 +359,7 @@ export default function HeitorPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
                 </span>
               </div>
-              <p className="text-2xs sm:text-xs font-medium text-slate-500 flex items-start sm:items-center gap-1 mt-0.5 min-w-0 leading-snug">
+              <p className="text-2xs sm:text-xs font-medium text-muted flex items-start sm:items-center gap-1 mt-0.5 min-w-0 leading-snug">
                 <Cpu size={12}/> Analisando dados da unidade <span className="text-white font-bold">{unidadeInfo.nome}</span>
               </p>
             </div>
@@ -373,14 +373,14 @@ export default function HeitorPage() {
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "bot" && (
               <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 mr-3 mt-1">
-                <Brain size={14} className="text-slate-500" />
+                <Brain size={14} className="text-muted" />
               </div>
             )}
             
             <div className={`max-w-[calc(100%-2.75rem)] sm:max-w-[85%] md:max-w-[75%] px-4 sm:px-5 py-3 sm:py-4 text-sm shadow-sm break-words ${
                 m.role === "user"
                   ? "bg-slate-800 text-white rounded-2xl rounded-tr-sm"
-                  : "bg-white text-slate-700 border border-slate-200 rounded-2xl rounded-tl-sm"
+                  : "bg-card text-fg-soft border border-line rounded-2xl rounded-tl-sm"
               }`}
             >
               {render(m.text)}
@@ -388,7 +388,7 @@ export default function HeitorPage() {
             
             {m.role === "user" && (
               <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 ml-3 mt-1">
-                <span className="text-3xs font-bold text-slate-500">VC</span>
+                <span className="text-3xs font-bold text-muted">VC</span>
               </div>
             )}
           </div>
@@ -396,7 +396,7 @@ export default function HeitorPage() {
         {acaoPendente && (
           <div className="ml-0 sm:ml-11 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 sm:p-5 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Confirmação necessária</p>
-            <p className="mt-1.5 text-sm font-bold text-slate-700">
+            <p className="mt-1.5 text-sm font-bold text-fg-soft">
               {acaoPendente.tipo === "ingrediente"
                 ? `Cadastrar ${acaoPendente.nome} no setor ${acaoPendente.departamento}`
                 : `${acaoPendente.movimento === "entrada" ? "Adicionar" : "Retirar"} ${acaoPendente.quantidade} ${acaoPendente.unidade} de ${acaoPendente.item?.nome}`}
@@ -405,7 +405,7 @@ export default function HeitorPage() {
               <button type="button" onClick={confirmarAcao} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white hover:bg-emerald-700">
                 <CheckCircle2 size={17} /> Confirmar
               </button>
-              <button type="button" onClick={() => { setAcaoPendente(null); adicionarBot("Operação cancelada.", false); }} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">
+              <button type="button" onClick={() => { setAcaoPendente(null); adicionarBot("Operação cancelada.", false); }} className="flex items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">
                 <XCircle size={17} /> Cancelar
               </button>
             </div>
@@ -415,14 +415,14 @@ export default function HeitorPage() {
       </div>
 
       {/* ÁREA DE INPUT (FIXA NO RODAPÉ) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-line shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 pb-3 sm:pb-6 pt-2 sm:pt-3">
           
           {/* Sugestões Rápidas */}
           <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
             {SUGESTOES.map((s) => (
               <button key={s} onClick={() => processar(s)} 
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-emerald-700 hover:border-slate-200 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-line text-slate-600 hover:bg-slate-50 hover:text-emerald-700 hover:border-line transition-colors"
               >
                 <Sparkles size={12}/> {s}
               </button>
@@ -430,7 +430,7 @@ export default function HeitorPage() {
           </div>
           
           {/* Caixa de Texto Premium */}
-          <div className="flex items-end gap-2 sm:gap-3 bg-slate-50 p-2 border border-slate-200 rounded-2xl sm:rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-emerald-500 transition-all">
+          <div className="flex items-end gap-2 sm:gap-3 bg-slate-50 p-2 border border-line rounded-2xl sm:rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-emerald-500 transition-all">
             <textarea 
               value={input} 
               onChange={(e) => setInput(e.target.value)} 
@@ -450,7 +450,7 @@ export default function HeitorPage() {
                 onClick={iniciarVoz}
                 title={escutando ? "Parar de ouvir" : "Falar com o Hefisto"}
                 aria-label={escutando ? "Parar de ouvir" : "Falar com o Hefisto"}
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${escutando ? "bg-rose-600 text-white animate-pulse" : "bg-white border border-slate-200 text-slate-600 hover:text-purple-600"}`}
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${escutando ? "bg-rose-600 text-white animate-pulse" : "bg-card border border-line text-slate-600 hover:text-purple-600"}`}
               >
                 {escutando ? <MicOff size={19} /> : <Mic size={19} />}
               </button>
@@ -460,7 +460,7 @@ export default function HeitorPage() {
               onClick={() => setLerRespostas(valor => !valor)}
               title={lerRespostas ? "Desativar respostas faladas" : "Ativar respostas faladas"}
               aria-label={lerRespostas ? "Desativar respostas faladas" : "Ativar respostas faladas"}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white border border-slate-200 text-slate-600 hover:text-purple-600 flex items-center justify-center flex-shrink-0"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-card border border-line text-slate-600 hover:text-purple-600 flex items-center justify-center flex-shrink-0"
             >
               {lerRespostas ? <Volume2 size={19} /> : <VolumeX size={19} />}
             </button>
@@ -472,7 +472,7 @@ export default function HeitorPage() {
             </button>
           </div>
           {escutando && <p className="text-center text-xs font-bold text-rose-600 mt-2 animate-pulse">Ouvindo… diga seu comando</p>}
-          <p className="hidden sm:block text-center text-3xs font-bold text-slate-500 uppercase tracking-widest mt-3">
+          <p className="hidden sm:block text-center text-3xs font-bold text-muted uppercase tracking-widest mt-3">
             Hefisto AI processa os dados em tempo real.
           </p>
         </div>

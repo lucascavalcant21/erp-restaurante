@@ -96,7 +96,7 @@ export default function EspelhoDePonto() {
     carregar();
   }, [colabId, mesParam]);
 
-  if (loading) return <div className="p-10 font-bold text-center text-slate-500">Carregando relatório...</div>;
+  if (loading) return <div className="p-10 font-bold text-center text-muted">Carregando relatório...</div>;
   if (!colaborador) return <div className="p-10 font-bold text-center text-red-500">Colaborador não encontrado.</div>;
 
   const diasNoMes = new Date(mesParam.slice(0,4), mesParam.slice(5,7), 0).getDate();
@@ -207,10 +207,10 @@ export default function EspelhoDePonto() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans pb-20 print:bg-white print:pb-0">
+    <div className="min-h-screen bg-elevated font-sans pb-20 print:bg-card print:pb-0">
       
       {/* Barra de Ações (Oculta na impressão) */}
-      <div className="bg-white border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
+      <div className="bg-card border-b border-line p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
          <button onClick={() => router.push("/dashboard/rh")} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
@@ -218,11 +218,11 @@ export default function EspelhoDePonto() {
          {/* Escolher o mês aqui. Antes o mês só chegava pela URL (?mes=), então
              quem entrava pelo menu caía sempre no mês atual e não tinha como
              ver agosto sem editar o endereço à mão. */}
-         <label className="flex w-full items-center justify-between gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 sm:w-auto sm:justify-start">
+         <label className="flex w-full items-center justify-between gap-2 text-xs font-bold uppercase tracking-widest text-subtle sm:w-auto sm:justify-start">
             Mês
             <input type="month" value={mesParam} max={new Date().toISOString().slice(0, 7)}
                onChange={e => trocarMes(e.target.value)}
-               className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-700 outline-none focus:border-emerald-500 sm:flex-none" />
+               className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-card px-3 text-sm font-bold normal-case tracking-normal text-fg-soft outline-none focus:border-emerald-500 sm:flex-none" />
          </label>
 
          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">
@@ -231,7 +231,7 @@ export default function EspelhoDePonto() {
                 errado — e sem isto não haveria como corrigir. */}
             {fechamento && (
                <button onClick={refazerRetrato} disabled={refazendo}
-                  className="w-full text-left text-xs font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2 disabled:opacity-40 sm:w-auto sm:text-right">
+                  className="w-full text-left text-xs font-bold text-muted hover:text-slate-800 underline underline-offset-2 disabled:opacity-40 sm:w-auto sm:text-right">
                   {refazendo ? "Atualizando..." : "Refazer retrato do contrato"}
                </button>
             )}
@@ -240,14 +240,14 @@ export default function EspelhoDePonto() {
                <Printer size={18}/> Imprimir
             </button>
             <button onClick={salvarPdf} title="Abre a mesma janela, com o nome do arquivo pronto: escolha 'Salvar como PDF' no destino"
-               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:flex-none sm:px-5 sm:py-2">
+               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-line bg-card px-3 py-2.5 font-bold text-fg-soft transition-colors hover:bg-slate-50 sm:flex-none sm:px-5 sm:py-2">
                <Download size={18}/> Salvar PDF
             </button>
          </div>
       </div>
 
       {/* Folha A4 */}
-      <div className="folha-espelho max-w-[210mm] mx-3 sm:mx-auto bg-white py-0 px-3 sm:px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0 overflow-x-auto print:overflow-visible">
+      <div className="folha-espelho max-w-[210mm] mx-3 sm:mx-auto bg-card py-0 px-3 sm:px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0 overflow-x-auto print:overflow-visible">
          <style dangerouslySetInnerHTML={{__html: `
            @media print {
              @page { size: A4 portrait; margin: 5mm; }
@@ -355,7 +355,7 @@ export default function EspelhoDePonto() {
             <thead>
                {/* Duas linhas de cabeçalho, como na folha: INTERVALO e HORAS
                    EXTRAS são grupos com subcolunas. */}
-               <tr className="bg-slate-100">
+               <tr className="bg-elevated">
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-14">DIAS</th>
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-16">ENTRADA</th>
                   <th colSpan={2} className="border border-slate-800 !py-0 !px-1">INTERVALO</th>
@@ -363,7 +363,7 @@ export default function EspelhoDePonto() {
                   <th colSpan={3} className="border border-slate-800 !py-0 !px-1">HORAS EXTRAS</th>
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1">ASSINATURA<br/>DO TRABALHADOR</th>
                </tr>
-               <tr className="bg-slate-100">
+               <tr className="bg-elevated">
                   <th className="border border-slate-800 !py-0 !px-1 w-16">INÍCIO</th>
                   <th className="border border-slate-800 !py-0 !px-1 w-16">FIM</th>
                   <th className="border border-slate-800 !py-0 !px-1 w-12">ENTRADA</th>
@@ -414,7 +414,7 @@ export default function EspelhoDePonto() {
                   if ((isFolga || feriado) && !reg) {
                       return (
                          <tr key={dia}>
-                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500 text-left">{rotuloDia(dia)}</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-muted text-left">{rotuloDia(dia)}</td>
                             <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-slate-50">{textoFolga}</td>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.12em] bg-slate-50 text-3xs">{partesFolga[0]} — NÃO ASSINAR</td>
                          </tr>
@@ -451,7 +451,7 @@ export default function EspelhoDePonto() {
                })}
             </tbody>
             <tfoot>
-               <tr className="bg-slate-100">
+               <tr className="bg-elevated">
                   <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Total de Horas no Mês:</td>
                   <td colSpan={4} className="border border-slate-800 !py-1 !px-2 text-left font-bold text-2xs">{fmtHoras(totalHorasMes)} hrs</td>
                </tr>
@@ -506,7 +506,7 @@ export default function EspelhoDePonto() {
                   <p className="text-3xs font-bold uppercase tracking-widest mb-0.5">Hora extra e adicionais — dia a dia</p>
                   <table className="w-full border-collapse text-3xs">
                      <thead>
-                        <tr className="bg-slate-100">
+                        <tr className="bg-elevated">
                            <th className="border border-slate-800 !py-1 !px-2 text-left">Dia</th>
                            <th className="border border-slate-800 !py-1 !px-2 text-right">Hora extra (+50%)</th>
                            <th className="border border-slate-800 !py-1 !px-2 text-right">Ad. noturno (+20%)</th>
@@ -532,7 +532,7 @@ export default function EspelhoDePonto() {
                         ))}
                      </tbody>
                      <tfoot>
-                        <tr className="bg-slate-100">
+                        <tr className="bg-elevated">
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Totais:</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.e)}</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.n)}</td>
@@ -549,7 +549,7 @@ export default function EspelhoDePonto() {
          </div>
 
          
-         <div className="mt-2 text-3xs text-center text-slate-500">
+         <div className="mt-2 text-3xs text-center text-muted">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.
             {fechamento?.fechado_em && ` Mês encerrado em ${new Date(fechamento.fechado_em).toLocaleDateString("pt-BR")} — jornada contratada congelada nesta data.`}
          </div>

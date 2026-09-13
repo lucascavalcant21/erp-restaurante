@@ -118,9 +118,9 @@ export default function GestorOnlinePage() {
          {/* TOPBAR */}
          <div className="bg-[#2D2D2D] min-h-14 flex items-center px-2 sm:px-4 justify-between gap-2 shrink-0 shadow-md z-10 text-white">
             <div className="flex items-center self-stretch min-w-0 overflow-x-auto">
-               <button onClick={() => setAba('DELIVERY')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'DELIVERY' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>DELIVERY</button>
-               <button onClick={() => setAba('IFOOD')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'IFOOD' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>IFOOD</button>
-               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>CARDÁPIO DIGITAL</button>
+               <button onClick={() => setAba('DELIVERY')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'DELIVERY' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>DELIVERY</button>
+               <button onClick={() => setAba('IFOOD')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'IFOOD' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>IFOOD</button>
+               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-subtle hover:text-white'}`}>CARDÁPIO DIGITAL</button>
             </div>
             
             <div className="hidden lg:flex items-center gap-6">
@@ -128,8 +128,8 @@ export default function GestorOnlinePage() {
                   <input type="text" placeholder="Nome, telefone, ID, bairro..." className="bg-transparent border-none outline-none text-xs w-full placeholder-slate-500 text-white" />
                </div>
 
-               <div className="flex items-center gap-1 text-slate-400">
-                  <span className="font-bold text-xs text-slate-300 mr-2">
+               <div className="flex items-center gap-1 text-subtle">
+                  <span className="font-bold text-xs text-dim mr-2">
                      {pedidos.length === 0 ? "Nenhum pedido novo" : `${pedidos.length} Pedido(s) online`}
                   </span>
                </div>
@@ -165,16 +165,16 @@ export default function GestorOnlinePage() {
                </div>
                <div className="flex-1 overflow-y-auto p-2">
                   {pedidosFiltrados.filter(p => !p.status || p.status === 'aberto' || p.status === 'pendente' || p.status === 'aguardando_aceite').length === 0 ? (
-                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                     <div className="h-full flex items-center justify-center text-subtle font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
                      pedidosFiltrados.filter(p => !p.status || p.status === 'aberto' || p.status === 'pendente' || p.status === 'aguardando_aceite').map(p => (
-                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-l-red-500 mb-2 cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-card p-3 rounded-xl shadow-sm border-l-4 border-l-red-500 mb-2 cursor-pointer hover:shadow-md transition-shadow">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                               <span className="text-xs font-bold text-red-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
                            </div>
                            <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente Não Informado"}</p>
-                           <p className="text-xs text-slate-500 mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{p.bairro || p.endereco_entrega || "Balcão / Retirada"}</p>
+                           <p className="text-xs text-muted mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{p.bairro || p.endereco_entrega || "Balcão / Retirada"}</p>
                            <div className="mt-3 flex gap-2">
                               <button onClick={(e) => { e.stopPropagation(); handleRecusar(p.id); }} className="py-1.5 px-3 bg-[#E0E0E0] text-slate-600 font-bold text-xs rounded hover:bg-slate-300"><X size={14}/></button>
                               <button onClick={(e) => { e.stopPropagation(); handleAceitar(p.id); }} className="flex-1 py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> ACEITAR</button>
@@ -192,10 +192,10 @@ export default function GestorOnlinePage() {
                </div>
                <div className="flex-1 overflow-y-auto p-2">
                   {pedidosFiltrados.filter(p => p.status === 'preparando_delivery' || p.status === 'preparando').length === 0 ? (
-                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                     <div className="h-full flex items-center justify-center text-subtle font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
                      pedidosFiltrados.filter(p => p.status === 'preparando_delivery' || p.status === 'preparando').map(p => (
-                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-l-orange-400 mb-2 cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-card p-3 rounded-xl shadow-sm border-l-4 border-l-orange-400 mb-2 cursor-pointer hover:shadow-md transition-shadow">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                               <span className="text-xs font-bold text-orange-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
@@ -215,10 +215,10 @@ export default function GestorOnlinePage() {
                </div>
                <div className="flex-1 overflow-y-auto p-2">
                   {pedidosFiltrados.filter(p => p.status === 'pronto').length === 0 ? (
-                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                     <div className="h-full flex items-center justify-center text-subtle font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
                      pedidosFiltrados.filter(p => p.status === 'pronto').map(p => (
-                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-l-green-500 mb-2 cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-card p-3 rounded-xl shadow-sm border-l-4 border-l-green-500 mb-2 cursor-pointer hover:shadow-md transition-shadow">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                            </div>
@@ -239,10 +239,10 @@ export default function GestorOnlinePage() {
                </div>
                <div className="flex-1 overflow-y-auto p-2">
                   {pedidosFiltrados.filter(p => p.status === 'saiu').length === 0 ? (
-                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                     <div className="h-full flex items-center justify-center text-subtle font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
                      pedidosFiltrados.filter(p => p.status === 'saiu').map(p => (
-                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-l-slate-400 mb-2 cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={p.id} onClick={() => setDetalhe(p)} className="bg-card p-3 rounded-xl shadow-sm border-l-4 border-l-slate-400 mb-2 cursor-pointer hover:shadow-md transition-shadow">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                            </div>
@@ -267,40 +267,40 @@ export default function GestorOnlinePage() {
       {/* Painel de detalhe do pedido (clique no card) */}
       {detalhe && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4" onClick={() => setDetalhe(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-100 flex items-start justify-between">
+          <div className="bg-card rounded-2xl w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 border-b border-line-soft flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-slate-900 text-xl">#{detalhe.id.substring(0, 4).toUpperCase()}</span>
+                  <span className="font-black text-fg text-xl">#{detalhe.id.substring(0, 4).toUpperCase()}</span>
                   <span className="text-3xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-100 text-red-700">{detalhe.origem || 'Delivery'}</span>
                 </div>
-                <p className="text-sm font-bold text-slate-700 mt-1">{detalhe.cliente_nome || 'Cliente não informado'}</p>
-                <p className="text-xs font-bold text-slate-400">Feito às {new Date(detalhe.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="text-sm font-bold text-fg-soft mt-1">{detalhe.cliente_nome || 'Cliente não informado'}</p>
+                <p className="text-xs font-bold text-subtle">Feito às {new Date(detalhe.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
-              <button onClick={() => setDetalhe(null)} className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 shrink-0"><X size={18} /></button>
+              <button onClick={() => setDetalhe(null)} className="w-9 h-9 bg-elevated hover:bg-slate-200 rounded-full flex items-center justify-center text-muted shrink-0"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="space-y-2">
-                {detalhe.cliente_telefone && <p className="text-sm font-bold text-slate-700 flex items-center gap-2"><Phone size={15} className="text-slate-400" /> {detalhe.cliente_telefone}</p>}
-                {detalhe.endereco_entrega && <p className="text-sm font-bold text-slate-700 flex items-start gap-2"><MapPin size={15} className="text-slate-400 mt-0.5 shrink-0" /> {detalhe.endereco_entrega}</p>}
+                {detalhe.cliente_telefone && <p className="text-sm font-bold text-fg-soft flex items-center gap-2"><Phone size={15} className="text-subtle" /> {detalhe.cliente_telefone}</p>}
+                {detalhe.endereco_entrega && <p className="text-sm font-bold text-fg-soft flex items-start gap-2"><MapPin size={15} className="text-subtle mt-0.5 shrink-0" /> {detalhe.endereco_entrega}</p>}
               </div>
               <div>
-                <p className="text-2xs font-bold text-slate-400 uppercase tracking-widest mb-2">Itens</p>
+                <p className="text-2xs font-bold text-subtle uppercase tracking-widest mb-2">Itens</p>
                 <div className="space-y-1.5">
                   {(detalhe.pedidos_itens || []).map(it => (
                     <div key={it.id} className="flex justify-between items-start bg-slate-50 rounded-lg px-3 py-2">
                       <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-2xs font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
-                      <span className="font-black text-slate-700 text-sm shrink-0 ml-2">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
+                      <span className="font-black text-fg-soft text-sm shrink-0 ml-2">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total</span>
+              <div className="flex justify-between items-center pt-2 border-t border-line-soft">
+                <span className="text-xs font-bold text-subtle uppercase tracking-widest">Total</span>
                 <span className="text-2xl font-black text-emerald-600">{fmtBRL(detalhe.valor_total || 0)}</span>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-100">
+            <div className="p-4 border-t border-line-soft">
               <button onClick={() => imprimirVia(detalhe)} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-colors flex items-center justify-center gap-2"><Printer size={16} /> Imprimir via</button>
             </div>
           </div>

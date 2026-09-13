@@ -77,7 +77,7 @@ function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtit
     <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
       <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xs text-center">
         <p className="text-lg font-black text-white">{titulo}</p>
-        <p className="text-slate-400 font-medium text-xs mb-5">{subtitulo}</p>
+        <p className="text-subtle font-medium text-xs mb-5">{subtitulo}</p>
         <div className="flex gap-3 justify-center mb-5">
           {[0, 1, 2, 3].map(i => (
             <div key={i} className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? "bg-emerald-400" : "bg-slate-700"}`} />
@@ -87,13 +87,13 @@ function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtit
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((d, i) => (
             <button key={i} disabled={d === ""}
               onClick={() => d === "⌫" ? setPin(p => p.slice(0, -1)) : d !== "" && digito(String(d))}
-              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-slate-300 hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
+              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-dim hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
               {d}
             </button>
           ))}
         </div>
         {erro && <p className="text-red-400 text-xs font-bold mb-2">{erro}</p>}
-        <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xs font-bold">Cancelar</button>
+        <button onClick={onClose} className="text-muted hover:text-dim text-xs font-bold">Cancelar</button>
       </div>
     </div>
   );
@@ -202,11 +202,11 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
       <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md">
         <div className="flex items-start justify-between mb-1">
           <h3 className="text-xl font-black text-white">{titulo}</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-white p-1"><X size={20} /></button>
+          <button onClick={onClose} className="text-muted hover:text-white p-1"><X size={20} /></button>
         </div>
-        <p className="text-slate-400 font-medium text-sm mb-4">{subtitulo}</p>
+        <p className="text-subtle font-medium text-sm mb-4">{subtitulo}</p>
 
-        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Toque em um motivo (rápido)</p>
+        <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Toque em um motivo (rápido)</p>
         <div className="space-y-2 mb-4">
           {MOTIVOS_RAPIDOS.map((m) => (
             <button key={m} disabled={confirmando} onClick={() => onConfirm(m)}
@@ -216,7 +216,7 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
           ))}
         </div>
 
-        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Ou escreva o motivo</p>
+        <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Ou escreva o motivo</p>
         <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={2}
           placeholder="Motivo..." className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-white font-medium outline-none focus:border-emerald-500 resize-none mb-3" />
         <button disabled={confirmando || !texto.trim()} onClick={() => onConfirm(texto.trim())}
@@ -700,7 +700,7 @@ export default function PontoPage() {
     const alerta = sucesso.tone === "alerta";
     return (
       <div className={`fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-in fade-in duration-300`}>
-        <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-2xl sm:rounded-[32px] flex items-center justify-center mb-5 sm:mb-8 shadow-2xl">
+        <div className="w-20 h-20 sm:w-28 sm:h-28 bg-card rounded-2xl sm:rounded-[32px] flex items-center justify-center mb-5 sm:mb-8 shadow-2xl">
           {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-emerald-600" />}
         </div>
         <h1 className="text-white font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
@@ -712,8 +712,8 @@ export default function PontoPage() {
             Fica em fonte de largura fixa e número grande: o operador confere
             de longe, sem pegar o tablet. */}
         {sucesso.comprovante && (
-          <div className="mt-7 w-full max-w-md bg-white rounded-2xl px-5 py-4 text-left shadow-2xl font-mono text-slate-800">
-            <p className="text-3xs font-bold uppercase tracking-[0.18em] text-slate-500">Comprovante de Registro de Ponto do Trabalhador</p>
+          <div className="mt-7 w-full max-w-md bg-card rounded-2xl px-5 py-4 text-left shadow-2xl font-mono text-slate-800">
+            <p className="text-3xs font-bold uppercase tracking-[0.18em] text-muted">Comprovante de Registro de Ponto do Trabalhador</p>
             <p className="mt-1 text-4xl font-black tabular-nums tracking-tight">NSR {sucesso.comprovante.nsr}</p>
             <div className="mt-3 space-y-0.5 text-xs leading-snug">
               <p>{sucesso.comprovante.empresa}{sucesso.comprovante.cnpj ? ` · CNPJ ${sucesso.comprovante.cnpj}` : ""}</p>
@@ -721,7 +721,7 @@ export default function PontoPage() {
               <p>{sucesso.comprovante.etapa} · {sucesso.comprovante.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })}</p>
               {sucesso.comprovante.local && <p>{sucesso.comprovante.local}</p>}
               {sucesso.comprovante.hash && (
-                <p className="mt-1 break-all text-3xs leading-tight text-slate-500">
+                <p className="mt-1 break-all text-3xs leading-tight text-muted">
                   SHA-256 {sucesso.comprovante.hash}
                 </p>
               )}
@@ -793,7 +793,7 @@ export default function PontoPage() {
           <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
             <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center">
               <p className="text-lg font-black text-white">{escolhaAntecipada.min} min antes do horário</p>
-              <p className="text-slate-400 font-medium text-xs mb-5">Como tratar esse tempo adiantado (reunião/serviço)?</p>
+              <p className="text-subtle font-medium text-xs mb-5">Como tratar esse tempo adiantado (reunião/serviço)?</p>
               <div className="space-y-2">
                 <button disabled={batendo} onClick={() => confirmarAntecipada("extra")} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm disabled:opacity-50">
                   Contar como hora extra
@@ -804,7 +804,7 @@ export default function PontoPage() {
                   <span className="block text-3xs font-bold opacity-70">só registra o combinado</span>
                 </button>
               </div>
-              <button onClick={() => setEscolhaAntecipada(null)} className="text-slate-500 hover:text-slate-300 text-xs font-bold mt-4">Cancelar</button>
+              <button onClick={() => setEscolhaAntecipada(null)} className="text-muted hover:text-dim text-xs font-bold mt-4">Cancelar</button>
             </div>
           </div>
         )}
@@ -820,12 +820,12 @@ export default function PontoPage() {
 
         <div className="max-w-3xl mx-auto p-6 md:p-10">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
-            <button onClick={() => setSelecionado(null)} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">
+            <button onClick={() => setSelecionado(null)} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-dim rounded-2xl font-bold transition-colors">
               <ArrowLeft size={18} /> Voltar
             </button>
             <div className="text-right">
               <p className="text-3xl sm:text-4xl font-black text-white tabular-nums">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
-              <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+              <p className="text-muted font-bold text-xs uppercase tracking-widest">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
             </div>
           </div>
 
@@ -837,14 +837,14 @@ export default function PontoPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg sm:text-2xl font-black text-white leading-tight line-clamp-2">{selecionado.nome}</h2>
-                <p className="text-slate-400 font-bold text-xs sm:text-sm truncate">{selecionado.cargo || "—"}</p>
+                <p className="text-subtle font-bold text-xs sm:text-sm truncate">{selecionado.cargo || "—"}</p>
                 {/* A jornada da semana inteira, agrupada como no espelho:
                     "Terça a domingo: 15:40 às 00:00", e o domingo em linha
                     própria quando tem horário diferente. Mostrar só o horário
                     de hoje escondia justamente o dia que muda — que é o dia em
                     que a pessoa erra. */}
                 {linhasJornadaSemana(selecionado).map(linha => (
-                  <p key={linha} className="text-slate-500 font-bold text-2xs sm:text-xs mt-0.5">{linha}</p>
+                  <p key={linha} className="text-muted font-bold text-2xs sm:text-xs mt-0.5">{linha}</p>
                 ))}
               </div>
             </div>
@@ -876,8 +876,8 @@ export default function PontoPage() {
               const ativa = e.id === etapa;
               return (
                 <div key={e.id} className={`p-4 rounded-2xl border text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-slate-800 border-slate-500 border-dashed" : "bg-slate-900 border-slate-800"}`}>
-                  <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400" : "text-slate-500"}`} />
-                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-400">{e.label}</p>
+                  <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400" : "text-muted"}`} />
+                  <p className="text-3xs font-bold uppercase tracking-widest text-subtle">{e.label}</p>
                   <p className={`text-lg font-bold mt-0.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400 text-xs leading-tight" : "text-slate-600"}`}>
                     {hora || (puladoAqui ? "não tirado" : "--:--")}
                   </p>
@@ -899,7 +899,7 @@ export default function PontoPage() {
                 <p className={`text-4xl sm:text-5xl font-black tabular-nums mt-2 ${estourou ? "text-rose-400" : "text-amber-400"}`}>
                   {estourou ? `+${Math.floor(-resta / 60000)}min` : fmtFalta(resta)}
                 </p>
-                <p className="text-slate-400 font-bold text-xs mt-2">
+                <p className="text-subtle font-bold text-xs mt-2">
                   {estourou
                     ? `A volta era às ${prevista.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} — bata a volta agora`
                     : `volta às ${prevista.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
@@ -913,24 +913,24 @@ export default function PontoPage() {
             <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
               <p className="text-xl font-black text-white">Jornada de hoje concluída!</p>
-              <p className="text-slate-400 font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
+              <p className="text-subtle font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
             </div>
           ) : bloqueiaFolga ? (
             <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <Ban size={44} className="text-rose-400 mx-auto mb-3" />
               <p className="text-2xl font-black text-white">Hoje é sua folga</p>
               <p className="text-rose-200 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
-              <p className="text-slate-400 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
+              <p className="text-subtle font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
             </div>
           ) : bloqueiaJanela ? (
             <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <Timer size={44} className="text-amber-400 mx-auto mb-3" />
               <p className="text-lg font-black text-white">Ainda não dá para bater a entrada</p>
-              <p className="text-slate-400 font-bold text-sm mt-1">
+              <p className="text-subtle font-bold text-sm mt-1">
                 Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
               </p>
               <p className="text-4xl sm:text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-muted mt-1">faltam para liberar</p>
               <button onClick={() => setPinAntecipada(true)}
                 className="mt-5 px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm transition-colors">
                 Reunião / serviço mais cedo? Liberar — PIN do gerente
@@ -955,19 +955,19 @@ export default function PontoPage() {
               batida do começo do mês. */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-muted flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
               <div className="flex items-center gap-1">
                 <button onClick={() => andarMes(-1)} aria-label="Mês anterior"
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700">‹</button>
-                <span className="min-w-[112px] text-center text-xs font-bold uppercase text-slate-300">
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-dim hover:bg-slate-700">‹</button>
+                <span className="min-w-[112px] text-center text-xs font-bold uppercase text-dim">
                   {new Date(`${mesHistorico}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
                 </span>
                 <button onClick={() => andarMes(1)} disabled={mesEhFuturo} aria-label="Próximo mês"
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-30">›</button>
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-dim hover:bg-slate-700 disabled:opacity-30">›</button>
               </div>
             </div>
             {historico.length > 0 && (
-              <p className="mb-2 text-2xs font-bold text-slate-500">
+              <p className="mb-2 text-2xs font-bold text-muted">
                 {historico.length} dia(s) com registro neste mês
               </p>
             )}
@@ -980,21 +980,21 @@ export default function PontoPage() {
                     para os titulos cairem exatamente sobre os numeros. */}
                 <div className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-end px-2 pb-1 text-center">
                   <span className="text-3xs font-bold uppercase tracking-wider text-slate-600 text-left">Dia</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Entrada</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Saiu p/<br/>intervalo</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Voltou do<br/>intervalo</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-500">Saída</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-muted">Entrada</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-muted">Saiu p/<br/>intervalo</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-muted">Voltou do<br/>intervalo</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-muted">Saída</span>
                 </div>
                 {historico.map(h => (
                   <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-slate-950/60">
                     {/* Dia da semana ao lado da data: quem confere o próprio
                         ponto lembra "no sábado eu saí tarde", não "no dia 15". */}
-                    <span className="text-2xs font-bold text-slate-400 text-left">
+                    <span className="text-2xs font-bold text-subtle text-left">
                       {h.data_referencia?.slice(5).split("-").reverse().join("/")}
-                      <span className="ml-1.5 text-slate-500">{siglaDiaSemana(h.data_referencia)}</span>
+                      <span className="ml-1.5 text-muted">{siglaDiaSemana(h.data_referencia)}</span>
                     </span>
                     {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
-                      <span key={c} className={`text-xs font-bold ${h[c] ? "text-slate-200" : "text-slate-700"}`}>{horaDe(h[c]) || "--:--"}</span>
+                      <span key={c} className={`text-xs font-bold ${h[c] ? "text-slate-200" : "text-fg-soft"}`}>{horaDe(h[c]) || "--:--"}</span>
                     ))}
                   </div>
                 ))}
@@ -1039,10 +1039,10 @@ export default function PontoPage() {
       <button key={c.id} onClick={() => abrirFuncionario(c)}
         className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${reg?.hora_entrada && !concluido ? "bg-slate-900 border-sky-500/40 hover:border-sky-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-11 h-11 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
+          <div className={`w-11 h-11 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-muted" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
             <p className="font-black text-white leading-tight break-words text-xl">{c.nome}</p>
-            <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
+            <p className="text-3xs font-bold text-muted uppercase tracking-widest truncate">{c.cargo || "—"}</p>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1051,7 +1051,7 @@ export default function PontoPage() {
           {/* Folga não é falta: sai em âmbar, não em vermelho. E cada tipo diz
               o próprio nome — quem monta a escala precisa saber se a pessoa
               está de folga semanal ou se foi a vez dela no domingo. */}
-          <div className={`text-3xs font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-300" : "bg-slate-700/40 text-slate-300") : faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
+          <div className={`text-3xs font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-300" : "bg-slate-700/40 text-dim") : faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-muted"}`}>
             {bloqueado && !reg?.hora_entrada ? <><Ban size={11} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> {info.motivo}</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
@@ -1078,11 +1078,11 @@ export default function PontoPage() {
       <div className="max-w-4xl mx-auto p-6 md:p-10">
         <div className="flex items-center justify-between mb-6">
           {kiosk ? (
-            <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-slate-900 hover:bg-slate-800 text-slate-600 hover:text-slate-400 rounded-2xl transition-colors border border-slate-800" title="Destravar com PIN do gerente">
+            <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-slate-900 hover:bg-slate-800 text-slate-600 hover:text-subtle rounded-2xl transition-colors border border-slate-800" title="Destravar com PIN do gerente">
               <Lock size={18} />
             </button>
           ) : (
-            <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">
+            <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-dim rounded-2xl font-bold transition-colors">
               <ArrowLeft size={18} /> Painel
             </button>
           )}
@@ -1102,7 +1102,7 @@ export default function PontoPage() {
             {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             <span className="text-3xl md:text-4xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 relative">
+          <p className="text-muted font-bold uppercase tracking-widest mt-2 relative">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
           {/* Qual área está aberta, no meio e logo abaixo da hora: é a primeira
@@ -1170,7 +1170,7 @@ export default function PontoPage() {
                         <MessageCircle size={14} /> Lembrar no WhatsApp
                       </a>
                     ) : (
-                      <span className="text-3xs font-bold text-slate-500 shrink-0">sem telefone no cadastro</span>
+                      <span className="text-3xs font-bold text-muted shrink-0">sem telefone no cadastro</span>
                     )}
                   </div>
                 );
@@ -1194,7 +1194,7 @@ export default function PontoPage() {
                     <Icone size={48} />
                   </span>
                   <span className="text-3xl font-black text-white">{area.nome}</span>
-                  <span className="text-sm font-bold text-slate-500">{quantos} pessoa(s)</span>
+                  <span className="text-sm font-bold text-muted">{quantos} pessoa(s)</span>
                 </button>
               );
             })}
@@ -1203,7 +1203,7 @@ export default function PontoPage() {
           // Só a seta. O nome da área já está no título, abaixo do relógio —
           // repetir na tecla de voltar era dizer a mesma coisa duas vezes.
           <button onClick={() => setAreaAtiva("")} aria-label="Voltar para a escolha de área"
-            className="mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-slate-800 bg-slate-900 text-slate-300 hover:border-emerald-500">
+            className="mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-slate-800 bg-slate-900 text-dim hover:border-emerald-500">
             <ArrowLeft size={24} />
           </button>
         )}
@@ -1216,7 +1216,7 @@ export default function PontoPage() {
             {grupos.map(g => (
               <div key={g.cat}>
                 <div className="flex items-center gap-3 mb-3">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{g.cat}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-subtle">{g.cat}</p>
                   <span className="text-3xs font-bold text-slate-600 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">{g.itens.length}</span>
                   <div className="flex-1 h-px bg-slate-800/70" />
                 </div>

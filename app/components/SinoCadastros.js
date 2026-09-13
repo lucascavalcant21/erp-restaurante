@@ -66,7 +66,7 @@ export default function SinoCadastros() {
     <div className="relative" ref={caixaRef}>
       <button onClick={() => { setAberto(a => !a); if (!aberto) carregar(); }}
         aria-label={`Notificações${total ? ` (${total} novas)` : ""}`}
-        className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+        className="relative flex h-11 w-11 items-center justify-center rounded-xl text-subtle transition-colors hover:bg-elevated hover:text-fg-soft">
         <Bell size={20} />
         {total > 0 && (
           <span className="absolute right-1.5 top-1.5 grid min-w-[18px] place-items-center rounded-full bg-emerald-600 px-1 text-3xs font-bold text-white">
@@ -76,10 +76,10 @@ export default function SinoCadastros() {
       </button>
 
       {aberto && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl animate-in fade-in zoom-in-95 origin-top-right">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-black text-slate-900">Novos cadastros</p>
-            <p className="text-2xs font-bold text-slate-400">{total ? `${total} aguardando você` : "Nada novo por enquanto"}</p>
+        <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-line-soft bg-card shadow-xl animate-in fade-in zoom-in-95 origin-top-right">
+          <div className="border-b border-line-soft px-4 py-3">
+            <p className="text-sm font-black text-fg">Novos cadastros</p>
+            <p className="text-2xs font-bold text-subtle">{total ? `${total} aguardando você` : "Nada novo por enquanto"}</p>
           </div>
 
           <div className="max-h-[min(24rem,60vh)] overflow-y-auto">
@@ -89,10 +89,10 @@ export default function SinoCadastros() {
                 <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UserPlus size={17} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-slate-800">{e.nome}</span>
-                  <span className="block truncate text-xs font-bold text-slate-500">
+                  <span className="block truncate text-xs font-bold text-muted">
                     Extra · {e.funcao_principal}{e.interesse !== "extra" ? " · quer CLT" : ""}
                   </span>
-                  <span className="block text-2xs font-medium text-slate-400">{quando(e.created_at)}</span>
+                  <span className="block text-2xs font-medium text-subtle">{quando(e.created_at)}</span>
                 </span>
               </button>
             ))}
@@ -102,12 +102,12 @@ export default function SinoCadastros() {
                 <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><Briefcase size={17} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-slate-800">{c.nome}</span>
-                  <span className="block truncate text-xs font-bold text-slate-500">Candidatura · {c.cargo_pretendido || "vaga"}</span>
-                  <span className="block text-2xs font-medium text-slate-400">{quando(c.created_at)}</span>
+                  <span className="block truncate text-xs font-bold text-muted">Candidatura · {c.cargo_pretendido || "vaga"}</span>
+                  <span className="block text-2xs font-medium text-subtle">{quando(c.created_at)}</span>
                 </span>
               </button>
             ))}
-            {!total && <p className="px-4 py-8 text-center text-sm font-bold text-slate-400">Quando alguém se cadastrar pelos portais, aparece aqui.</p>}
+            {!total && <p className="px-4 py-8 text-center text-sm font-bold text-subtle">Quando alguém se cadastrar pelos portais, aparece aqui.</p>}
           </div>
         </div>
       )}

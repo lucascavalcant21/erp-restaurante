@@ -1735,7 +1735,7 @@ export default function RHPage() {
      
      // Tempo de casa: aparece para todo mundo, em experiência ou efetivo.
      const casa = tempoDeCasa(f, hj);
-     if (casa) badges.push({ text: `${casa.texto} de ${nomeDaCasa}`, color: 'text-slate-700 bg-slate-100 border-slate-200' });
+     if (casa) badges.push({ text: `${casa.texto} de ${nomeDaCasa}`, color: 'text-fg-soft bg-elevated border-line' });
 
      // Aniversário próximo (ou hoje) — o RH costuma querer lembrar.
      const aniv = aniversario(f, hj);
@@ -1959,21 +1959,21 @@ export default function RHPage() {
                  <Users size={24} />
               </div>
               <div>
-                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">RH & Equipe</h1>
-                 <p className="text-xs font-semibold text-slate-500 mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
+                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-fg">RH & Equipe</h1>
+                 <p className="text-xs font-semibold text-muted mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
                <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
                </button>
-               <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
                   <UserPlus size={16} /> Cadastro de extras
                </button>
-               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
                   <ClipboardList size={16} /> Fechar folha
                </button>
-               <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
                   <Printer size={16} /> Recibos de extras
                </button>
             </div>
@@ -1981,13 +1981,13 @@ export default function RHPage() {
 
          {/* Ferramentas secundárias: linha própria, compactas, com quebra */}
          <div className="flex items-center gap-2 flex-wrap mt-4">
-            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-card text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
                <CreditCard size={14} /> Lançar Folha (mês)
             </button>
-            <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-white text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
+            <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-card text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <Clock size={14} /> Faltas e Atrasos
             </button>
-            <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-white text-rose-600 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
+            <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-card text-rose-600 border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <CalendarDays size={14} /> Feriados
             </button>
             <a
@@ -1995,18 +1995,18 @@ export default function RHPage() {
                onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
                target={(!unidadeAtiva || unidadeAtiva === "todas") ? "_self" : "_blank"}
                rel="noreferrer"
-               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}>
+               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-elevated text-subtle border-line cursor-not-allowed" : "bg-card text-fg-soft border-line hover:bg-slate-50"}`}>
                <FileText size={14} /> Exportar AFD
             </a>
             {abaAtiva === "Freelancer" && (
                <>
-               <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
+               <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-card text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
                   <Printer size={14} /> Recibo de Trabalho Extra
                </button>
                <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
                <button onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
                   title="Tire a foto de um recibo preenchido: a IA lê os dados, cadastra o extra e anexa a foto como documento"
-                  className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors disabled:opacity-60">
+                  className="flex items-center gap-1.5 bg-card text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors disabled:opacity-60">
                   {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler Recibo Preenchido (IA)
                </button>
                </>
@@ -2058,10 +2058,10 @@ export default function RHPage() {
             return (
                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                   {cards.map(c => (
-                     <div key={c.rot} className="bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5">
-                        <p className="text-3xs font-bold uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                     <div key={c.rot} className="bg-card rounded-2xl border border-line shadow-sm px-3 py-2.5">
+                        <p className="text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
                         <p className="text-lg font-black text-emerald-700 mt-0.5">{c.val}</p>
-                        <p className="text-3xs font-bold text-slate-400 truncate">{c.sub}</p>
+                        <p className="text-3xs font-bold text-subtle truncate">{c.sub}</p>
                      </div>
                   ))}
                   {incompletos > 0 && (
@@ -2098,11 +2098,11 @@ export default function RHPage() {
             });
             if (!alertas.length) return null;
             const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
-            return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-               <div className="flex items-center justify-between mb-3"><div><p className="text-3xs font-bold uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
+            return <div className="mt-4 bg-card border border-line rounded-2xl p-5 shadow-sm">
+               <div className="flex items-center justify-between mb-3"><div><p className="text-3xs font-bold uppercase tracking-widest text-subtle">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-bold">{a.nome}</p><p className="text-3xs font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
-               {alertas.length > 8 && <p className="text-3xs font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
-               <p className="text-3xs font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
+               {alertas.length > 8 && <p className="text-3xs font-bold text-subtle mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
+               <p className="text-3xs font-medium text-subtle mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
             </div>;
          })()}
       </div>
@@ -2129,22 +2129,22 @@ export default function RHPage() {
                let acc = 0;
                const stops = segs.map(s => { const ini = (acc / total) * 360; acc += s.n; const fim = (acc / total) * 360; return `${s.cor} ${ini}deg ${fim}deg`; }).join(", ");
                return (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+                  <div className="bg-card rounded-2xl border border-line shadow-sm p-4 flex items-center gap-4">
                      <div className="relative w-24 h-24 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops || "#e2e8f0 0deg 360deg"})` }}>
-                        <div className="absolute inset-[14px] rounded-full bg-white flex flex-col items-center justify-center">
+                        <div className="absolute inset-[14px] rounded-full bg-card flex flex-col items-center justify-center">
                            <span className="text-xl font-black text-slate-800 leading-none">{todos.length}</span>
-                           <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Total</span>
+                           <span className="text-3xs font-bold uppercase tracking-wider text-subtle">Total</span>
                         </div>
                      </div>
                      <div className="min-w-0 flex-1">
-                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-2">Composição da equipe</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-subtle mb-2">Composição da equipe</p>
                         <div className="space-y-1">
                            {segs.map(s => (
                               <div key={s.rot} className="flex items-center gap-2 text-xs">
                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.cor }} />
                                  <span className="font-bold text-slate-600 flex-1 truncate">{s.rot}</span>
                                  <span className="font-black text-slate-800">{s.n}</span>
-                                 <span className="text-slate-400 font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
+                                 <span className="text-subtle font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
                               </div>
                            ))}
                         </div>
@@ -2154,8 +2154,8 @@ export default function RHPage() {
             })()}
 
             {/* Ações rápidas */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-               <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-2.5">Ações rápidas</p>
+            <div className="bg-card rounded-2xl border border-line shadow-sm p-4">
+               <p className="text-3xs font-bold uppercase tracking-widest text-subtle mb-2.5">Ações rápidas</p>
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                      { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
@@ -2166,7 +2166,7 @@ export default function RHPage() {
                      { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
                      { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
                   ].map(a => (
-                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
+                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-line bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
                         <a.icon size={18} className="text-emerald-600" />
                         <span className="text-3xs font-bold text-slate-600 leading-tight">{a.rot}</span>
                      </button>
@@ -2182,7 +2182,7 @@ export default function RHPage() {
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
             {[["Fixo", "Equipe Fixa"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
                <button key={id} onClick={() => setAbaAtiva(id)}
-                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
                   {rot}
                </button>
             ))}
@@ -2200,16 +2200,16 @@ export default function RHPage() {
             <BancoTalentos unidadeAtiva={unidadeAtiva} />
          ) : (
             <>
-               <div className="bg-white p-4 rounded-t-3xl border border-slate-200 border-b-0 flex items-center gap-3">
-                  <Search size={18} className="text-slate-500" />
-                  <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700" />
+               <div className="bg-card p-4 rounded-t-3xl border border-line border-b-0 flex items-center gap-3">
+                  <Search size={18} className="text-muted" />
+                  <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-fg-soft" />
                </div>
 
-               <div className="bg-white rounded-b-3xl border border-slate-200 border-t-0 shadow-sm p-3 sm:p-4">
+               <div className="bg-card rounded-b-3xl border border-line border-t-0 shadow-sm p-3 sm:p-4">
                   {loading ? (
-                     <p className="p-10 text-center text-slate-500 font-bold">Carregando...</p>
+                     <p className="p-10 text-center text-muted font-bold">Carregando...</p>
                   ) : filtrados.length === 0 ? (
-                     <p className="p-10 text-center text-slate-500 font-bold">Nenhum funcionário cadastrado.</p>
+                     <p className="p-10 text-center text-muted font-bold">Nenhum funcionário cadastrado.</p>
                   ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {filtrados.map(f => {
@@ -2235,7 +2235,7 @@ export default function RHPage() {
                               const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
                               if (minAgora > strToMin(entradaEsperada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {entradaEsperada})</span>;
                            }
-                           return <span className="text-2xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
+                           return <span className="text-2xs font-bold text-muted bg-elevated px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
                         }
                         // A frase base vem do módulo de status, para o RH falar
                         // igual em toda tela. O que a tela acrescenta são os
@@ -2255,19 +2255,19 @@ export default function RHPage() {
                            return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>{situacao.texto}</span>;
                         }
                         if (pt.status_jornada === 4) return <span className={cls(situacao.semIntervalo ? "text-rose-700 bg-rose-100 border-rose-200" : "text-blue-700 bg-blue-100 border-blue-200")}>{situacao.texto}</span>;
-                        return <span className="text-2xs font-bold text-slate-400">--</span>;
+                        return <span className="text-2xs font-bold text-subtle">--</span>;
                      })();
                      const tb = totalBancoDe(f.id);
                      return (
                         <div key={f.id} onClick={() => abrirModalEdicao(f)}
-                           className="text-left rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all p-3 cursor-pointer flex flex-col gap-2.5">
+                           className="text-left rounded-2xl border border-line hover:border-slate-300 hover:shadow-md transition-all p-3 cursor-pointer flex flex-col gap-2.5">
                            <div className="flex items-center gap-3">
                               {f.foto
-                                 ? <img src={`data:image/jpeg;base64,${f.foto}`} alt={f.nome} className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0" />
-                                 : <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 shrink-0">{(f.nome || "?")[0].toUpperCase()}</div>}
+                                 ? <img src={`data:image/jpeg;base64,${f.foto}`} alt={f.nome} className="w-12 h-12 rounded-full object-cover border border-line shrink-0" />
+                                 : <div className="w-12 h-12 rounded-full bg-elevated flex items-center justify-center font-black text-muted shrink-0">{(f.nome || "?")[0].toUpperCase()}</div>}
                               <div className="min-w-0 flex-1">
                                  <p className="font-black text-slate-800 truncate">{f.nome}</p>
-                                 <p className="text-xs font-bold text-slate-500 truncate">{f.cargo || "—"}</p>
+                                 <p className="text-xs font-bold text-muted truncate">{f.cargo || "—"}</p>
                                  {ehFreela && (
                                     <div className="flex text-amber-400 mt-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (f.avaliacao_estrelas || 0) ? "fill-amber-400" : "text-slate-200"} />)}</div>
                                  )}
@@ -2275,7 +2275,7 @@ export default function RHPage() {
                               {ehInativo(f) && <span className="text-3xs font-bold uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 shrink-0">{f.tipo_desligamento || "Desligado"}</span>}
                            </div>
                            {(f.telefone || f.chave_pix) && (
-                              <div className="text-2xs font-semibold text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                              <div className="text-2xs font-semibold text-muted flex flex-wrap gap-x-3 gap-y-0.5">
                                  {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-emerald-700 hover:underline"><Phone size={10} /> {f.telefone}</a>}
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
@@ -2287,8 +2287,8 @@ export default function RHPage() {
                               const adm = f.data_admissao ? new Date(`${String(f.data_admissao).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : null;
                               if (!adm && !casa && !aniv && !f.tipo_contrato) return null;
                               return (
-                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-slate-500">
-                                    {f.tipo_contrato && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
+                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-muted">
+                                    {f.tipo_contrato && <span className="rounded-md bg-elevated px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
                                     {adm && <span>Admissão {adm}</span>}
                                     {casa && <span className="text-emerald-700">{casa.textoDias} de {nomeDaCasa}</span>}
                                     {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>Aniversário {aniv.diaMes}{aniv.ehHoje ? " · é hoje" : ""}</span>}
@@ -2298,7 +2298,7 @@ export default function RHPage() {
                            <div>{pontoBadge}</div>
                            <div>
                               {ehFreela ? (
-                                 <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-3xs font-bold text-slate-400">/ diária</span></div>
+                                 <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-3xs font-bold text-subtle">/ diária</span></div>
                               ) : (
                                  (() => {
                                  // Dia a dia do mês: alimenta os cliques (extra/noturno/feriado) e os contadores
@@ -2320,8 +2320,8 @@ export default function RHPage() {
                                     alert(`${titulo}\n\n${ls.join("\n") || "Nenhum dia registrado."}\n\nTotal: ${tot} min\n${regra}`);
                                  };
                                  return (
-                                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
-                                    {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-slate-500 font-semibold">Salário base</span><span className="font-bold text-slate-700">{fmtBRL(p.fixo)}</span></div>
+                                 <div className="rounded-xl bg-slate-50 border border-line-soft p-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
+                                    {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-muted font-semibold">Salário base</span><span className="font-bold text-fg-soft">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
                                     {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nValor mensal definido no cadastro (rateio da taxa de 10%). Entra no total e no holerite no fim do mês.\n\nTrabalhou até agora: ${diasTrab.length} dia(s) — por dia dá ${fmtBRL(p.taxa / Math.max(1, diasTrab.length))}.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
                                     {p.ad.valorExtra > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`HORA EXTRA (+50%): ${fmtBRL(p.ad.valorExtra)}`, "minExtra", "Regra: após 00:00, hora + 50% (base = salário ÷ 220).")}><span className="text-emerald-600 font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-emerald-700">{fmtBRL(p.ad.valorExtra)}</span></div>}
@@ -2329,21 +2329,21 @@ export default function RHPage() {
                                     {p.ad.valorFeriado > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`FERIADO TRABALHADO (+100% — pago em dobro): ${fmtBRL(p.ad.valorFeriado)}`, "minFeriado", "Regra: todas as horas do feriado pagam em dobro (Lei 605/49).")}><span className="text-amber-600 font-semibold">+ Feriado (+100%)</span><span className="font-bold text-amber-700">{fmtBRL(p.ad.valorFeriado)}</span></div>}
                                     {p.descontos > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VALES / DESCONTOS: ${fmtBRL(p.descontos)}\n\nSoma dos vales e consumos pendentes (adiantamentos e consumo no cardápio da equipe). Desconto na folha. Detalhe em Ações → Consumo / Vales.`)}><span className="text-rose-600 font-semibold">− Vales / descontos</span><span className="font-bold text-rose-700">{fmtBRL(p.descontos)}</span></div>}
                                     </>)}
-                                    <div className="flex justify-between pt-1.5 mt-1.5 border-t border-slate-200"><span className="font-black text-slate-700">Total previsto</span><span className="font-black text-emerald-700">{fmtBRL(p.previsto)}</span></div>
+                                    <div className="flex justify-between pt-1.5 mt-1.5 border-t border-line"><span className="font-black text-fg-soft">Total previsto</span><span className="font-black text-emerald-700">{fmtBRL(p.previsto)}</span></div>
                                     {(() => {
                                        const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
                                        if (!nDias || !p.fixo) return null;
-                                       return <div className="flex justify-between mt-0.5"><span className="text-3xs font-bold text-slate-400">Valor por dia trabalhado</span><span className="text-3xs font-bold text-slate-500">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
+                                       return <div className="flex justify-between mt-0.5"><span className="text-3xs font-bold text-subtle">Valor por dia trabalhado</span><span className="text-3xs font-bold text-muted">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
                                     })()}
                                     {detAberto[f.id] && (<>{/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
-                                    <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-200 text-3xs font-bold">
-                                       <span className="text-slate-500">Dias no mês (escala)</span><span className="text-right text-slate-700 font-black">{diasPrevistos}</span>
-                                       <span className="text-slate-500">Trabalhou até agora</span><span className="text-right text-emerald-700 font-black">{diasTrab.length}</span>
-                                       <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-slate-500"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
-                                       <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-slate-500"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
+                                    <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-line text-3xs font-bold">
+                                       <span className="text-muted">Dias no mês (escala)</span><span className="text-right text-fg-soft font-black">{diasPrevistos}</span>
+                                       <span className="text-muted">Trabalhou até agora</span><span className="text-right text-emerald-700 font-black">{diasTrab.length}</span>
+                                       <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-muted"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
+                                       <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-muted"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
                                     </div>
                                     </>)}
-                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-3xs font-bold text-slate-400 hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
+                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-3xs font-bold text-subtle hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
                                     <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-2xs flex items-center justify-center gap-1.5">
                                        <Printer size={12} /> Holerite
                                     </button>
@@ -2352,11 +2352,11 @@ export default function RHPage() {
                                  })()
                               )}
                            </div>
-                           <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                           <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-line-soft" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                  {f.docs?.length > 0
-                                    ? <span className="text-3xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
-                                    : <span className="text-3xs text-slate-400">Sem docs</span>}
+                                    ? <span className="text-3xs font-bold bg-elevated text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
+                                    : <span className="text-3xs text-subtle">Sem docs</span>}
                                  {tb >= BANCO_ALERTA_MIN && (
                                     <button onClick={() => abrirModalBanco(f)} className={`text-3xs font-bold px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
                                        <Clock size={10} /> {fmtMin(tb)}{tb >= BANCO_LIMITE_MIN ? "!" : ""}
@@ -2369,7 +2369,7 @@ export default function RHPage() {
                                        <LogOut size={12} /> Desligar
                                     </button>
                                  )}
-                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
+                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-card border border-line px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
                                  <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>
                            </div>
@@ -2391,8 +2391,8 @@ export default function RHPage() {
          const ir = (fn) => { fechar(); fn(); };
          const tb = totalBancoDe(f.id);
          const critico = tb >= BANCO_LIMITE_MIN, alerta = tb >= BANCO_ALERTA_MIN;
-         const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 group-hover:bg-slate-100", onClick, children, extra }) => (
-            <button onClick={onClick} className="group flex min-h-[52px] w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition-all hover:border-slate-300 hover:shadow-sm sm:min-h-[56px] sm:rounded-2xl sm:px-3">
+         const Acao = ({ icon: Icon, cor = "text-fg-soft", bg = "bg-slate-50 group-hover:bg-elevated", onClick, children, extra }) => (
+            <button onClick={onClick} className="group flex min-h-[52px] w-full items-center gap-2.5 rounded-xl border border-line bg-card px-2.5 py-2 text-left transition-all hover:border-slate-300 hover:shadow-sm sm:min-h-[56px] sm:rounded-2xl sm:px-3">
                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${bg} ${cor}`}><Icon size={17}/></span>
                <span className={`min-w-0 flex-1 text-[13px] font-black leading-tight sm:text-sm ${cor}`}>{children}</span>
                {extra}
@@ -2414,14 +2414,14 @@ export default function RHPage() {
                   <div className="min-w-0 flex-1">
                      <p className="text-3xs font-bold uppercase tracking-[.16em] text-emerald-300 sm:text-3xs">Ações do colaborador</p>
                      <h2 className="truncate text-base font-black sm:text-lg">{f.nome}</h2>
-                     <p className="truncate text-3xs font-bold text-slate-300 sm:text-2xs">{f.cargo || "Sem cargo informado"}</p>
+                     <p className="truncate text-3xs font-bold text-dim sm:text-2xs">{f.cargo || "Sem cargo informado"}</p>
                   </div>
                   <button onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"><X size={17}/></button>
                </div>
 
-               <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-slate-200 bg-white p-1.5 sm:p-2">
+               <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-line bg-card p-1.5 sm:p-2">
                   {abas.map(([id, rotulo, Icone]) => (
-                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-3xs font-bold transition-colors sm:min-h-11 sm:rounded-xl sm:text-3xs ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>
+                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-3xs font-bold transition-colors sm:min-h-11 sm:rounded-xl sm:text-3xs ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-muted hover:bg-elevated"}`}>
                         <Icone size={15}/><span className="truncate">{rotulo}</span>
                      </button>
                   ))}
@@ -2432,7 +2432,7 @@ export default function RHPage() {
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
                      <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-sky-50 group-hover:bg-sky-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
-                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-3xs font-bold text-slate-700">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
+                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-elevated px-2 py-1 text-3xs font-bold text-fg-soft">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
@@ -2445,7 +2445,7 @@ export default function RHPage() {
                      {f.tipo_contrato === "Freelancer" && (
                         <>
                           <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 group-hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
-                          <Acao icon={Clock} cor="text-slate-700" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
+                          <Acao icon={Clock} cor="text-fg-soft" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
                   </div>}
@@ -2461,12 +2461,12 @@ export default function RHPage() {
                      )}
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
                      </div>
-                     {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-slate-200 pt-4"><p className="text-3xs font-bold uppercase tracking-widest text-slate-400">Arquivos anexados</p>{(f.docs || []).map(d => (
-                        <div key={d.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2">
+                     {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-line pt-4"><p className="text-3xs font-bold uppercase tracking-widest text-subtle">Arquivos anexados</p>{(f.docs || []).map(d => (
+                        <div key={d.id} className="flex items-center gap-2 rounded-xl border border-line bg-card px-3.5 py-2">
                            <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-emerald-700 hover:underline min-w-0">
                               <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
                            </a>
-                           <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14}/></button>
+                           <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-subtle hover:text-red-500 shrink-0"><X size={14}/></button>
                         </div>
                      ))}</div>}
                   </div>}
@@ -2476,12 +2476,12 @@ export default function RHPage() {
                      {abaAtiva !== "Ex-funcionários" && (
                         <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 group-hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar e arquivar</Acao>
                      )}
-                     <Acao icon={Trash2} cor="text-slate-500" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
+                     <Acao icon={Trash2} cor="text-muted" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
                   </div>}
                </div>
-               <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
-                  <p className="hidden text-3xs font-bold text-slate-400 sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
-                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-slate-100 px-4 text-xs font-bold text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
+               <div className="flex shrink-0 items-center justify-between border-t border-line bg-card px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+                  <p className="hidden text-3xs font-bold text-subtle sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
+                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-elevated px-4 text-xs font-bold text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
                </div>
             </div>
          </div>
@@ -2491,39 +2491,39 @@ export default function RHPage() {
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4">
-            <div className="erp-editor-funcionario bg-white sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[100dvh] sm:h-auto sm:max-h-[calc(100dvh-2rem)] overflow-hidden">
+            <div className="erp-editor-funcionario bg-card sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[100dvh] sm:h-auto sm:max-h-[calc(100dvh-2rem)] overflow-hidden">
                <style>{`
                  .erp-editor-funcionario label { font-size: 12px !important; line-height: 1.35; }
                  .erp-editor-funcionario input:not([type="checkbox"]):not([type="file"]), .erp-editor-funcionario select { min-height: 48px; font-size: 15px; }
                  .erp-editor-funcionario textarea { font-size: 15px; line-height: 1.6; }
                  .erp-editor-funcionario section[id], .erp-editor-funcionario div[id^="func-"] { scroll-margin-top: 88px; }
                `}</style>
-               <div className="flex justify-between items-center gap-4 shrink-0 border-b border-slate-100 p-4 sm:px-6 sm:py-5">
+               <div className="flex justify-between items-center gap-4 shrink-0 border-b border-line-soft p-4 sm:px-6 sm:py-5">
                   <div className="min-w-0">
                      <p className="text-3xs font-bold uppercase tracking-[.18em] text-emerald-700">Equipe fixa · cadastro completo</p>
                      <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar funcionário" : "Novo funcionário fixo"}</h2>
-                     <p className="mt-1 text-xs font-bold text-slate-500">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
+                     <p className="mt-1 text-xs font-bold text-muted">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
                   </div>
-                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={21}/></button>
+                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={21}/></button>
                </div>
 
-               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-slate-50 px-4 py-3 sm:px-6">
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
                     ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"],
-                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
+                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
                </nav>
 
                <div className="space-y-5 flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/60">
-                  <section id="func-identificacao" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-slate-500">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
+                  <section id="func-identificacao" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-muted">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo de Contrato</label>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Tipo de Contrato</label>
                         <div className="flex min-h-12 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 font-black text-emerald-800">Equipe fixa (CLT / mensalista)</div>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Nome Completo</label>
                         <div className="flex items-center gap-3 mt-1">
                            {/* Foto do colaborador (aparece no ponto, organograma e portal) */}
                            <div className="relative shrink-0">
@@ -2531,7 +2531,7 @@ export default function RHPage() {
                                  className="w-14 h-14 rounded-full overflow-hidden border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center hover:border-emerald-400">
                                  {novoFunc.foto
                                     ? <img src={`data:image/jpeg;base64,${novoFunc.foto}`} alt="Foto" className="w-full h-full object-cover" />
-                                    : <Camera size={18} className="text-slate-400" />}
+                                    : <Camera size={18} className="text-subtle" />}
                               </button>
                               {novoFunc.foto && (
                                  <button type="button" onClick={() => setNovoFunc({ ...novoFunc, foto: "" })} title="Remover foto"
@@ -2539,13 +2539,13 @@ export default function RHPage() {
                               )}
                               <input ref={fotoInputRef} type="file" accept="image/*" onChange={escolherFotoColab} className="hidden" />
                            </div>
-                           <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="flex-1 p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Função / Cargo</label>
-                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Função / Cargo</label>
+                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-fg-soft">
                         <option value="">Selecione um Cargo</option>
                         <optgroup label="Liderança">
                            {CARGOS_LIDERANCA.map(c => <option key={c} value={c}>{c}</option>)}
@@ -2559,79 +2559,79 @@ export default function RHPage() {
                      </select>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Supervisor(es) diretos — organograma</label>
-                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-32 overflow-y-auto space-y-1">
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Supervisor(es) diretos — organograma</label>
+                     <div className="bg-slate-50 border border-line rounded-xl p-3 max-h-32 overflow-y-auto space-y-1">
                         {funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").length === 0 ? (
-                           <p className="text-xs font-medium text-slate-400">Nenhum outro colaborador cadastrado ainda.</p>
+                           <p className="text-xs font-medium text-subtle">Nenhum outro colaborador cadastrado ainda.</p>
                         ) : funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").map(f => {
                            const marcado = (novoFunc.supervisores_ids || []).includes(f.id);
                            return (
-                              <label key={f.id} className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer ${marcado ? "bg-emerald-100" : "hover:bg-slate-100"}`}>
+                              <label key={f.id} className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer ${marcado ? "bg-emerald-100" : "hover:bg-elevated"}`}>
                                  <input type="checkbox" checked={marcado} onChange={e=>{
                                     const atual = novoFunc.supervisores_ids || [];
                                     setNovoFunc({...novoFunc, supervisores_ids: e.target.checked ? [...atual, f.id] : atual.filter(x => x !== f.id)});
                                  }} className="w-4 h-4 accent-emerald-600"/>
-                                 <span className="text-sm font-bold text-slate-700">{f.nome}</span>
-                                 <span className="text-3xs font-medium text-slate-400 ml-auto">{f.cargo || "—"}</span>
+                                 <span className="text-sm font-bold text-fg-soft">{f.nome}</span>
+                                 <span className="text-3xs font-medium text-subtle ml-auto">{f.cargo || "—"}</span>
                               </label>
                            );
                         })}
                      </div>
-                     <p className="text-3xs text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
+                     <p className="text-3xs text-subtle font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone / WhatsApp</label>
-                        <input type="text" inputMode="numeric" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Telefone / WhatsApp</label>
+                        <input type="text" inputMode="numeric" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">E-mail</label>
-                        <input type="email" value={novoFunc.email || ""} onChange={e=>setNovoFunc({...novoFunc, email: e.target.value})} placeholder="nome@email.com" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">E-mail</label>
+                        <input type="email" value={novoFunc.email || ""} onChange={e=>setNovoFunc({...novoFunc, email: e.target.value})} placeholder="nome@email.com" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CPF</label>
-                        <input type="text" inputMode="numeric" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: mascaraCPF(e.target.value)})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">CPF</label>
+                        <input type="text" inputMode="numeric" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: mascaraCPF(e.target.value)})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">RG</label>
-                        <input type="text" inputMode="numeric" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: mascaraRG(e.target.value)})} placeholder="000.000-0" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">RG</label>
+                        <input type="text" inputMode="numeric" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: mascaraRG(e.target.value)})} placeholder="000.000-0" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
                   </section>
 
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
-                  <div id="func-pessoais" className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                     <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-slate-500">Informações completas para documentos e gestão do RH.</p></div>
+                  <div id="func-pessoais" className="bg-card border border-line rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+                     <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-muted">Informações completas para documentos e gestão do RH.</p></div>
                      
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Rua / Avenida</label>
-                           <input type="text" value={novoFunc.rua_av || ""} onChange={e=>setNovoFunc({...novoFunc, rua_av: e.target.value, endereco: `${e.target.value}${novoFunc.numero_casa ? `, ${novoFunc.numero_casa}` : ""}${novoFunc.bairro ? `, ${novoFunc.bairro}` : ""}`})} placeholder="Ex.: Av. Paulista" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Rua / Avenida</label>
+                           <input type="text" value={novoFunc.rua_av || ""} onChange={e=>setNovoFunc({...novoFunc, rua_av: e.target.value, endereco: `${e.target.value}${novoFunc.numero_casa ? `, ${novoFunc.numero_casa}` : ""}${novoFunc.bairro ? `, ${novoFunc.bairro}` : ""}`})} placeholder="Ex.: Av. Paulista" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Número</label>
-                           <input type="text" value={novoFunc.numero_casa || ""} onChange={e=>setNovoFunc({...novoFunc, numero_casa: e.target.value})} placeholder="Ex.: 1500 ou S/N" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Número</label>
+                           <input type="text" value={novoFunc.numero_casa || ""} onChange={e=>setNovoFunc({...novoFunc, numero_casa: e.target.value})} placeholder="Ex.: 1500 ou S/N" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
 
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Bairro</label>
-                           <input type="text" value={novoFunc.bairro || ""} onChange={e=>setNovoFunc({...novoFunc, bairro: e.target.value})} placeholder="Ex.: Bela Vista" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Bairro</label>
+                           <input type="text" value={novoFunc.bairro || ""} onChange={e=>setNovoFunc({...novoFunc, bairro: e.target.value})} placeholder="Ex.: Bela Vista" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Cidade / UF</label>
-                           <input type="text" value={novoFunc.cidade_uf || ""} onChange={e=>setNovoFunc({...novoFunc, cidade_uf: e.target.value})} placeholder="Ex.: São Paulo / SP" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Cidade / UF</label>
+                           <input type="text" value={novoFunc.cidade_uf || ""} onChange={e=>setNovoFunc({...novoFunc, cidade_uf: e.target.value})} placeholder="Ex.: São Paulo / SP" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">CEP</label>
-                           <input type="text" value={novoFunc.cep || ""} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">CEP</label>
+                           <input type="text" value={novoFunc.cep || ""} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Data de Nascimento</label>
-                           <input type="date" value={novoFunc.data_nascimento || ""} onChange={e=>setNovoFunc({...novoFunc, data_nascimento: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Data de Nascimento</label>
+                           <input type="date" value={novoFunc.data_nascimento || ""} onChange={e=>setNovoFunc({...novoFunc, data_nascimento: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                            {novoFunc.data_nascimento && (() => {
                               const n = new Date(novoFunc.data_nascimento + "T12:00:00");
                               const hoje = new Date();
@@ -2641,33 +2641,33 @@ export default function RHPage() {
                            })()}
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Cidade de Nascimento</label>
-                           <input type="text" value={novoFunc.cidade_nascimento} onChange={e=>setNovoFunc({...novoFunc, cidade_nascimento: e.target.value})} placeholder="Ex: Belém - PA" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Cidade de Nascimento</label>
+                           <input type="text" value={novoFunc.cidade_nascimento} onChange={e=>setNovoFunc({...novoFunc, cidade_nascimento: e.target.value})} placeholder="Ex: Belém - PA" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Nome do pai</label>
-                           <input type="text" value={novoFunc.nome_pai || ""} onChange={e=>setNovoFunc({...novoFunc, nome_pai: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Nome do pai</label>
+                           <input type="text" value={novoFunc.nome_pai || ""} onChange={e=>setNovoFunc({...novoFunc, nome_pai: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Nome da mãe</label>
-                           <input type="text" value={novoFunc.nome_mae || ""} onChange={e=>setNovoFunc({...novoFunc, nome_mae: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Nome da mãe</label>
+                           <input type="text" value={novoFunc.nome_mae || ""} onChange={e=>setNovoFunc({...novoFunc, nome_mae: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         {/* Filhos com nome e CPF: entram no contrato */}
                         <div className="sm:col-span-2">
                            <div className="flex items-center justify-between gap-2">
-                              <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Filhos</label>
+                              <label className="text-3xs font-bold text-muted uppercase tracking-widest">Filhos</label>
                               <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-bold text-emerald-700 hover:underline">+ Adicionar filho</button>
                            </div>
                            <div className="mt-2 space-y-2">
-                              {(novoFunc.filhos || []).length === 0 && <p className="text-xs font-semibold text-slate-400">Nenhum filho cadastrado.</p>}
+                              {(novoFunc.filhos || []).length === 0 && <p className="text-xs font-semibold text-subtle">Nenhum filho cadastrado.</p>}
                               {(novoFunc.filhos || []).map((filho, idx) => (
                                  <div key={idx} className="flex flex-wrap items-center gap-2">
                                     <input type="text" value={filho.nome || ""} placeholder="Nome do filho"
                                        onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, nome: e.target.value } : x) })}
-                                       className="min-w-[150px] flex-1 p-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                                       className="min-w-[150px] flex-1 p-3 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                                     <input type="text" inputMode="numeric" value={filho.cpf || ""} placeholder="000.000.000-00"
                                        onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, cpf: mascaraCPF(e.target.value) } : x) })}
-                                       className="w-40 p-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                                       className="w-40 p-3 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                                     <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.filter((_, k) => k !== idx) })}
                                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50">×</button>
                                  </div>
@@ -2675,8 +2675,8 @@ export default function RHPage() {
                            </div>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Gênero</label>
-                           <select value={novoFunc.genero} onChange={e=>setNovoFunc({...novoFunc, genero: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Gênero</label>
+                           <select value={novoFunc.genero} onChange={e=>setNovoFunc({...novoFunc, genero: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               <option value="Feminino">Feminino</option>
                               <option value="Masculino">Masculino</option>
@@ -2685,8 +2685,8 @@ export default function RHPage() {
                            </select>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Estado civil</label>
-                           <select value={novoFunc.estado_civil || ""} onChange={e=>setNovoFunc({...novoFunc, estado_civil: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Estado civil</label>
+                           <select value={novoFunc.estado_civil || ""} onChange={e=>setNovoFunc({...novoFunc, estado_civil: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               {ESTADOS_CIVIS.map(v => <option key={v} value={v}>{v}</option>)}
                            </select>
@@ -2694,8 +2694,8 @@ export default function RHPage() {
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Escolaridade</label>
-                           <select value={novoFunc.escolaridade} onChange={e=>setNovoFunc({...novoFunc, escolaridade: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Escolaridade</label>
+                           <select value={novoFunc.escolaridade} onChange={e=>setNovoFunc({...novoFunc, escolaridade: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               <option value="Fundamental incompleto">Fundamental incompleto</option>
                               <option value="Fundamental completo">Fundamental completo</option>
@@ -2737,16 +2737,16 @@ export default function RHPage() {
                      </div>
                   </div>
 
-                  <div id="func-contrato" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-                  <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-slate-500">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
+                  <div id="func-contrato" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm">
+                  <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-muted">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Chave PIX</label>
-                        <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Chave PIX</label>
+                        <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
-                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
+                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
@@ -2754,45 +2754,45 @@ export default function RHPage() {
                   {novoFunc.tipo_contrato === "Freelancer" && (
                      <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
                         <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
-                        <p className="mt-1 mb-4 text-xs font-medium text-slate-500">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
+                        <p className="mt-1 mb-4 text-xs font-medium text-muted">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
 
                         <label className="block">
-                           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">O que a função faz (sai impresso no recibo)</span>
+                           <span className="text-xs font-bold text-muted uppercase tracking-widest">O que a função faz (sai impresso no recibo)</span>
                            <textarea rows={3} value={novoFunc.topicos_funcao} onChange={e=>setNovoFunc({...novoFunc, topicos_funcao: e.target.value})}
                               placeholder="Ex.: Atender mesas, levar pedidos, repor bebidas, apoiar a limpeza do salão."
-                              className="w-full p-3.5 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500" />
+                              className="w-full p-3.5 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500" />
                         </label>
 
                         <label className="mt-4 block">
-                           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Itens emprestados (separe por vírgula)</span>
+                           <span className="text-xs font-bold text-muted uppercase tracking-widest">Itens emprestados (separe por vírgula)</span>
                            <input type="text" value={novoFunc.itens_emprestados} onChange={e=>setNovoFunc({...novoFunc, itens_emprestados: e.target.value})}
                               placeholder="Uniforme / Camisa, Avental, Cartão de Consumo"
-                              className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                              className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                         </label>
 
                         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Forma de pagamento</label>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Forma de pagamento</label>
                               <select value={novoFunc.forma_pagamento} onChange={e=>setNovoFunc({...novoFunc, forma_pagamento: e.target.value})}
-                                 className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500">
+                                 className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500">
                                  {["Pix", "Dinheiro", "Transferência"].map(v => <option key={v} value={v}>{v}</option>)}
                               </select>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vale transporte (R$)</label>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Vale transporte (R$)</label>
                               <input type="number" step="0.01" value={novoFunc.vale_transporte_val} onChange={e=>setNovoFunc({...novoFunc, vale_transporte_val: e.target.value})}
-                                 placeholder="0,00" className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                                 placeholder="0,00" className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Setor</label>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Setor</label>
                               <input type="text" value={novoFunc.setor_entrega} onChange={e=>setNovoFunc({...novoFunc, setor_entrega: e.target.value})}
-                                 placeholder="Salão, Cozinha, Bar" className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                                 placeholder="Salão, Cozinha, Bar" className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                            </div>
                         </div>
 
                         <label className="mt-4 flex items-center gap-2.5">
                            <input type="checkbox" checked={novoFunc.janta_ofertada !== false} onChange={e=>setNovoFunc({...novoFunc, janta_ofertada: e.target.checked})} className="h-5 w-5 accent-emerald-600" />
-                           <span className="text-sm font-bold text-slate-700">A casa oferece a janta</span>
+                           <span className="text-sm font-bold text-fg-soft">A casa oferece a janta</span>
                         </label>
                      </div>
                   )}
@@ -2802,23 +2802,23 @@ export default function RHPage() {
                         <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Composição da remuneração (além do fixo)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
-                              <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
+                              <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Pontos na taxa de serviço</label>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Pontos na taxa de serviço</label>
                               {/* A taxa é rateada por pontos, não digitada em
                                   reais pessoa por pessoa: o valor do ponto só
                                   se sabe no fim do mês, quando se divide o que
                                   foi arrecadado pela soma dos pontos. */}
                               <select value={novoFunc.pontos_taxa ?? ""} onChange={e=>setNovoFunc({...novoFunc, pontos_taxa: e.target.value})}
-                                 className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                                 className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
                                  <option value="">Não participa</option>
                                  {["0.5","1","1.5","2"].map(v => (
                                     <option key={v} value={v}>{v.replace(".", ",")} {v === "1" ? "ponto" : "pontos"}</option>
                                  ))}
                               </select>
-                              <p className="text-3xs text-slate-400 font-medium mt-1">De 0,5 a 2 pontos. O valor em reais sai do rateio no fechamento do mês.</p>
+                              <p className="text-3xs text-subtle font-medium mt-1">De 0,5 a 2 pontos. O valor em reais sai do rateio no fechamento do mês.</p>
                            </div>
                         </div>
                         <p className="text-3xs font-medium text-emerald-700/70 mt-3">Adicional noturno (20% das 22h às 5h, com hora noturna reduzida de 52min30s) e hora extra (+50% além da jornada contratada) são calculados automaticamente pelo ponto. Hora normal = salário ÷ 220.</p>
@@ -2826,14 +2826,14 @@ export default function RHPage() {
                   )}
 
                   {novoFunc.tipo_contrato === "Fixo" && (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-line-soft pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
                         <div>
                            <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Data de Admissão</label>
-                           <input type="date" value={novoFunc.data_admissao || ""} onChange={e=>setNovoFunc({...novoFunc, data_admissao: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700"/>
+                           <input type="date" value={novoFunc.data_admissao || ""} onChange={e=>setNovoFunc({...novoFunc, data_admissao: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-indigo-500 text-fg-soft"/>
                         </div>
                         <div>
                            <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Fase do Contrato</label>
-                           <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700 appearance-none">
+                           <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-indigo-500 text-fg-soft appearance-none">
                               <option value="Experiência (30 dias)">Experiência (renova a cada 30d até 90d)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
                            </select>
@@ -2850,9 +2850,9 @@ export default function RHPage() {
                   )}
                   </div>
 
-                  <div id="func-jornada" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                  <div id="func-jornada" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm">
                      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Jornada de trabalho</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-muted">Jornada de trabalho</p>
                         <label className="flex items-center gap-2 text-2xs font-bold text-slate-600 cursor-pointer">
                            <input type="checkbox" checked={novoFunc.horario_por_dia} onChange={e=>setNovoFunc({...novoFunc, horario_por_dia: e.target.checked})} style={{accentColor:"#059669"}} />
                            Horário diferente por dia da semana
@@ -2861,32 +2861,32 @@ export default function RHPage() {
 
                      {!novoFunc.horario_por_dia ? (
                      <>
-                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2">Horário — dias normais (seg a sáb)</p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Horário — dias normais (seg a sáb)</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada</label>
-                           <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Entrada</label>
+                           <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Saída</label>
-                           <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Saída</label>
+                           <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
-                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-slate-400">(deixe vazio se for igual)</span></p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-subtle">(deixe vazio se for igual)</span></p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (dom)</label>
-                           <input type="time" value={novoFunc.horario_dom_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Entrada (dom)</label>
+                           <input type="time" value={novoFunc.horario_dom_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Saída (dom)</label>
-                           <input type="time" value={novoFunc.horario_dom_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Saída (dom)</label>
+                           <input type="time" value={novoFunc.horario_dom_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                      </>
                      ) : (
                      <div className="space-y-1.5">
-                        <p className="text-3xs font-medium text-slate-400 mb-2">Preencha entrada e saída de cada dia. Dia em branco = folga. O intervalo (abaixo) é descontado de cada dia.</p>
+                        <p className="text-3xs font-medium text-subtle mb-2">Preencha entrada e saída de cada dia. Dia em branco = folga. O intervalo (abaixo) é descontado de cada dia.</p>
                         {[['0','Domingo'],['1','Segunda'],['2','Terça'],['3','Quarta'],['4','Quinta'],['5','Sexta'],['6','Sábado']].map(([d,lbl]) => {
                            const hd = (novoFunc.horarios_dia && novoFunc.horarios_dia[d]) || {};
                            const setDia = (campo,val) => setNovoFunc(nf => ({...nf, horarios_dia: {...(nf.horarios_dia||{}), [d]: {...((nf.horarios_dia||{})[d]||{}), [campo]: val}}}));
@@ -2894,11 +2894,11 @@ export default function RHPage() {
                            const trabalha = !!(hd.e || hd.s);
                            return (
                               <div key={d} className="flex items-center gap-2">
-                                 <span className="w-16 text-3xs font-bold uppercase text-slate-500 shrink-0">{lbl}</span>
-                                 <input type="time" value={hd.e||""} onChange={e=>setDia('e',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
-                                 <span className="text-slate-300 shrink-0">→</span>
-                                 <input type="time" value={hd.s||""} onChange={e=>setDia('s',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
-                                 <button type="button" onClick={limpar} title="Marcar folga neste dia" className="text-3xs font-bold shrink-0 w-12 text-center rounded-md py-1 border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200">{trabalha ? "folga" : "—"}</button>
+                                 <span className="w-16 text-3xs font-bold uppercase text-muted shrink-0">{lbl}</span>
+                                 <input type="time" value={hd.e||""} onChange={e=>setDia('e',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-line rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
+                                 <span className="text-dim shrink-0">→</span>
+                                 <input type="time" value={hd.s||""} onChange={e=>setDia('s',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-line rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
+                                 <button type="button" onClick={limpar} title="Marcar folga neste dia" className="text-3xs font-bold shrink-0 w-12 text-center rounded-md py-1 border border-line text-subtle hover:text-rose-500 hover:border-rose-200">{trabalha ? "folga" : "—"}</button>
                               </div>
                            );
                         })}
@@ -2925,7 +2925,7 @@ export default function RHPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Dias Trabalho</label>
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-2">Dias Trabalho</label>
                         <div className="flex flex-wrap gap-1">
                            {[ {v:'0',l:'D'},{v:'1',l:'S'},{v:'2',l:'T'},{v:'3',l:'Q'},{v:'4',l:'Q'},{v:'5',l:'S'},{v:'6',l:'S'} ].map(dia => {
                               const selecionados = novoFunc.dias_trabalho ? novoFunc.dias_trabalho.split(',') : [];
@@ -2936,7 +2936,7 @@ export default function RHPage() {
                                     if(ativo) novos = novos.filter(d => d !== dia.v);
                                     else novos.push(dia.v);
                                     setNovoFunc({...novoFunc, dias_trabalho: novos.sort().join(',')});
-                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-emerald-600 text-white shadow-md' : 'bg-elevated text-subtle hover:bg-slate-200'}`}>
                                     {dia.l}
                                  </button>
                               );
@@ -2957,8 +2957,8 @@ export default function RHPage() {
                         })()}
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>
-                        <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo (Minutos)</label>
+                        <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
@@ -2967,30 +2967,30 @@ export default function RHPage() {
                       jornada, no formato "int: 17:00 as 18:00". */}
                   <div className="grid grid-cols-2 gap-3 mt-3">
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo começa</label>
-                        <input type="time" value={novoFunc.intervalo_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo começa</label>
+                        <input type="time" value={novoFunc.intervalo_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo termina</label>
-                        <input type="time" value={novoFunc.intervalo_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo termina</label>
+                        <input type="time" value={novoFunc.intervalo_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      {/* Só aparece para quem trabalha domingo com jornada
                          diferente — caso da chefia de cozinha. */}
                      {(novoFunc.horario_dom_entrada || novoFunc.horario_dom_saida) && <>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · início</label>
-                           <input type="time" value={novoFunc.intervalo_dom_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo domingo · início</label>
+                           <input type="time" value={novoFunc.intervalo_dom_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · fim</label>
-                           <input type="time" value={novoFunc.intervalo_dom_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo domingo · fim</label>
+                           <input type="time" value={novoFunc.intervalo_dom_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </>}
                   </div>
 
                </div>
 
-               <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0">
+               <div className="border-t border-line bg-card p-3 sm:p-4 shrink-0">
                   <button onClick={handleSalvar} disabled={!novoFunc.nome || !novoFunc.cargo} className="w-full min-h-14 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                      {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
                   </button>
@@ -3007,34 +3007,34 @@ export default function RHPage() {
            .filter(f => String(f.nome || "").toLocaleLowerCase("pt-BR").includes(buscaRecibo.toLocaleLowerCase("pt-BR")));
          return (
            <div className="fixed inset-0 z-[55] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm" onClick={() => setModalEscolherExtra(false)}>
-             <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-               <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5">
+             <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
+               <div className="flex items-start justify-between gap-3 border-b border-line p-5">
                  <div>
                    <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Recibo de Trabalho Extra</p>
-                   <h2 className="mt-1 text-xl font-black text-slate-900">Escolha um extra cadastrado</h2>
-                   <p className="mt-1 text-xs font-bold text-slate-500">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
+                   <h2 className="mt-1 text-xl font-black text-fg">Escolha um extra cadastrado</h2>
+                   <p className="mt-1 text-xs font-bold text-muted">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
                  </div>
-                 <button onClick={() => setModalEscolherExtra(false)} className="rounded-full bg-slate-100 p-2.5 text-slate-500"><X size={18}/></button>
+                 <button onClick={() => setModalEscolherExtra(false)} className="rounded-full bg-elevated p-2.5 text-muted"><X size={18}/></button>
                </div>
                <div className="p-5">
-                 <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3">
-                   <Search size={17} className="text-slate-400"/>
-                   <input autoFocus value={buscaRecibo} onChange={e => setBuscaRecibo(e.target.value)} placeholder="Buscar extra por nome..." className="w-full bg-transparent py-3 text-sm font-bold text-slate-700 outline-none"/>
+                 <div className="flex items-center gap-2 rounded-xl border border-line px-3">
+                   <Search size={17} className="text-subtle"/>
+                   <input autoFocus value={buscaRecibo} onChange={e => setBuscaRecibo(e.target.value)} placeholder="Buscar extra por nome..." className="w-full bg-transparent py-3 text-sm font-bold text-fg-soft outline-none"/>
                  </div>
                  <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto">
                    {extrasCadastrados.length ? extrasCadastrados.map(extra => (
-                     <button key={extra.id} onClick={() => { setModalEscolherExtra(false); abrirModalFicha(extra); }} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left hover:border-emerald-300 hover:bg-emerald-50">
+                     <button key={extra.id} onClick={() => { setModalEscolherExtra(false); abrirModalFicha(extra); }} className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left hover:border-emerald-300 hover:bg-emerald-50">
                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-black text-emerald-700">{String(extra.nome || "E").charAt(0).toUpperCase()}</div>
                        <div className="min-w-0 flex-1">
                          <p className="truncate text-sm font-black text-slate-800">{extra.nome}</p>
-                         <p className="truncate text-xs font-bold text-slate-400">{extra.cargo || "Extra"} · {extra.cpf || "CPF não informado"} · {fmtBRL(extra.salario || 0)}/diária</p>
+                         <p className="truncate text-xs font-bold text-subtle">{extra.cargo || "Extra"} · {extra.cpf || "CPF não informado"} · {fmtBRL(extra.salario || 0)}/diária</p>
                        </div>
                        <Printer size={17} className="text-emerald-700"/>
                      </button>
                    )) : (
                      <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
-                       <p className="text-sm font-black text-slate-700">Nenhum extra cadastrado encontrado</p>
-                       <p className="mt-1 text-xs font-bold text-slate-400">Cadastre o profissional como “Freelancer / Extra” antes de gerar o recibo.</p>
+                       <p className="text-sm font-black text-fg-soft">Nenhum extra cadastrado encontrado</p>
+                       <p className="mt-1 text-xs font-bold text-subtle">Cadastre o profissional como “Freelancer / Extra” antes de gerar o recibo.</p>
                        <button onClick={() => { setModalEscolherExtra(false); abrirModalNovo(); }} className="mt-4 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white">Cadastrar extra</button>
                      </div>
                    )}
@@ -3055,17 +3055,17 @@ export default function RHPage() {
          const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
          return (
 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Preparar Recibo de Trabalho Extra</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{fichaFunc ? `${fichaFunc.nome} · dados importados do cadastro` : "Preencha os dados pelo sistema; somente as assinaturas ficarão para a caneta."}</p>
+                     <p className="text-sm font-bold text-muted mt-1">{fichaFunc ? `${fichaFunc.nome} · dados importados do cadastro` : "Preencha os dados pelo sistema; somente as assinaturas ficarão para a caneta."}</p>
                   </div>
-                  <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-5">
-                  <div className="mb-4 bg-white p-3 rounded-xl border border-emerald-200">
+               <div className="rounded-2xl border border-line bg-slate-50 p-4 mb-5">
+                  <div className="mb-4 bg-card p-3 rounded-xl border border-emerald-200">
                      <label className="text-xs font-bold text-emerald-800 block mb-1">Puxar dados do cadastro do colaborador:</label>
                      <select
                        onChange={e => {
@@ -3111,57 +3111,57 @@ export default function RHPage() {
 
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
-                        <p className="text-3xs font-bold uppercase tracking-widest text-slate-500">Dados que sairão no recibo</p>
-                        <p className="text-xs font-bold text-slate-400">Quando o colaborador é selecionado, estes campos são puxados automaticamente do cadastro.</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-muted">Dados que sairão no recibo</p>
+                        <p className="text-xs font-bold text-subtle">Quando o colaborador é selecionado, estes campos são puxados automaticamente do cadastro.</p>
                      </div>
                      {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold text-emerald-700">Importado do cadastro</span>}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                      <label className="text-xs font-bold text-slate-600">Nome completo
-                        <input type="text" value={fichaDados.nome} onChange={e => setFichaDados(d => ({...d, nome: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" value={fichaDados.nome} onChange={e => setFichaDados(d => ({...d, nome: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="text-xs font-bold text-slate-600">CPF
-                        <input type="text" value={fichaDados.cpf} onChange={e => setFichaDados(d => ({...d, cpf: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" value={fichaDados.cpf} onChange={e => setFichaDados(d => ({...d, cpf: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="text-xs font-bold text-slate-600">RG
-                        <input type="text" value={fichaDados.rg} onChange={e => setFichaDados(d => ({...d, rg: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" value={fichaDados.rg} onChange={e => setFichaDados(d => ({...d, rg: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="text-xs font-bold text-slate-600">Telefone
-                        <input type="text" value={fichaDados.telefone} onChange={e => setFichaDados(d => ({...d, telefone: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" value={fichaDados.telefone} onChange={e => setFichaDados(d => ({...d, telefone: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="sm:col-span-2 text-xs font-bold text-slate-600">Chave PIX
-                        <input type="text" value={fichaDados.chave_pix} onChange={e => setFichaDados(d => ({...d, chave_pix: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" value={fichaDados.chave_pix} onChange={e => setFichaDados(d => ({...d, chave_pix: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
 
                      {/* Endereço Estruturado */}
-                     <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-slate-200 pt-3 mt-1">
+                     <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-line pt-3 mt-1">
                        <label className="sm:col-span-2 text-xs font-bold text-slate-600">Rua ou Avenida
-                         <input type="text" value={fichaDados.rua_av} onChange={e => setFichaDados(d => ({...d, rua_av: e.target.value}))} placeholder="Ex.: Av. Paulista" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                         <input type="text" value={fichaDados.rua_av} onChange={e => setFichaDados(d => ({...d, rua_av: e.target.value}))} placeholder="Ex.: Av. Paulista" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
                        <label className="text-xs font-bold text-slate-600">Número da casa/apto
-                         <input type="text" value={fichaDados.numero_casa} onChange={e => setFichaDados(d => ({...d, numero_casa: e.target.value}))} placeholder="Ex.: 1500 ou S/N" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                         <input type="text" value={fichaDados.numero_casa} onChange={e => setFichaDados(d => ({...d, numero_casa: e.target.value}))} placeholder="Ex.: 1500 ou S/N" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
                        <label className="sm:col-span-2 text-xs font-bold text-slate-600">Bairro
-                         <input type="text" value={fichaDados.bairro} onChange={e => setFichaDados(d => ({...d, bairro: e.target.value}))} placeholder="Ex.: Bela Vista" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                         <input type="text" value={fichaDados.bairro} onChange={e => setFichaDados(d => ({...d, bairro: e.target.value}))} placeholder="Ex.: Bela Vista" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
                        <label className="text-xs font-bold text-slate-600">Cidade / UF
-                         <input type="text" value={fichaDados.cidade_uf} onChange={e => setFichaDados(d => ({...d, cidade_uf: e.target.value}))} placeholder="Ex.: São Paulo / SP" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                         <input type="text" value={fichaDados.cidade_uf} onChange={e => setFichaDados(d => ({...d, cidade_uf: e.target.value}))} placeholder="Ex.: São Paulo / SP" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
                      </div>
                   </div>
                </div>
 
-               <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Trabalho e controle do turno</p>
+               <div className="rounded-2xl border border-line bg-card p-4 mb-5">
+                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Trabalho e controle do turno</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                      <label className="col-span-2 text-xs font-bold text-slate-600">Data do trabalho
-                       <input type="date" value={fichaDados.data_trabalho} onChange={e => setFichaDados(d => ({...d, data_trabalho: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                       <input type="date" value={fichaDados.data_trabalho} onChange={e => setFichaDados(d => ({...d, data_trabalho: e.target.value}))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="col-span-2 text-xs font-bold text-slate-600">Evento / ocasião
-                       <input type="text" value={fichaDados.evento} onChange={e => setFichaDados(d => ({...d, evento: e.target.value}))} placeholder="Ex.: casamento, festival, reforço de salão" className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                       <input type="text" value={fichaDados.evento} onChange={e => setFichaDados(d => ({...d, evento: e.target.value}))} placeholder="Ex.: casamento, festival, reforço de salão" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="col-span-2 text-xs font-bold text-slate-600">Função no dia
-                       <input type="text" value={fichaDados.funcao} onChange={e => setFichaDados(d => ({...d, funcao: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                       <input type="text" value={fichaDados.funcao} onChange={e => setFichaDados(d => ({...d, funcao: e.target.value}))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="col-span-2 sm:col-span-4 text-xs font-bold text-slate-600">Descreva por tópicos o que irá fazer no trabalho (atribuições)
                        <textarea
@@ -3169,7 +3169,7 @@ export default function RHPage() {
                          value={fichaDados.topicos_funcao}
                          onChange={e => setFichaDados(d => ({...d, topicos_funcao: e.target.value}))}
                          placeholder={"Digite em tópicos o que o profissional irá fazer, por exemplo:\n- Atendimento de mesas no salão\n- Montagem e organização da praça\n- Limpeza e fechamento"}
-                         className="mt-1 w-full rounded-xl border border-slate-200 p-3 font-medium text-slate-800 outline-none focus:border-emerald-500 text-xs"
+                         className="mt-1 w-full rounded-xl border border-line p-3 font-medium text-slate-800 outline-none focus:border-emerald-500 text-xs"
                        />
                      </label>
                      {[
@@ -3177,11 +3177,11 @@ export default function RHPage() {
                        ["retorno_intervalo", "Retorno intervalo"], ["saida_final", "Saída final"],
                      ].map(([campo, label]) => (
                        <label key={campo} className="text-xs font-bold text-slate-600">{label}
-                         <input type="time" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                         <input type="time" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                        </label>
                      ))}
                      <label className="col-span-2 text-xs font-bold text-slate-600">Intervalo acordado
-                       <input type="text" value={fichaDados.intervalo} onChange={e => setFichaDados(d => ({...d, intervalo: e.target.value}))} placeholder="Ex.: 60 min" className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                       <input type="text" value={fichaDados.intervalo} onChange={e => setFichaDados(d => ({...d, intervalo: e.target.value}))} placeholder="Ex.: 60 min" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="col-span-2 flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-black text-emerald-800">
                        <input type="checkbox" checked={!!fichaDados.janta_ofertada} onChange={e => setFichaDados(d => ({...d, janta_ofertada: e.target.checked}))} className="h-5 w-5 accent-emerald-700"/>
@@ -3194,18 +3194,18 @@ export default function RHPage() {
                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-5">
                   <label className="text-3xs font-bold uppercase tracking-widest text-emerald-700 block mb-1">Valor pago da diária (R$)</label>
                   <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
-                     className="w-full p-3.5 bg-white border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
+                     className="w-full p-3.5 bg-card border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
 
                   {/* Nº de dias combinados: soma o total (ex.: terça a domingo = 6 dias) */}
                   <div className="flex items-center gap-3 mt-3">
                      <label className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Dias combinados</label>
                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={()=>setFichaDias(String(Math.max(1, nDias-1)))} className="w-8 h-8 rounded-lg bg-white border border-emerald-300 font-black text-emerald-700">−</button>
-                        <input type="number" min="1" step="1" value={fichaDias} onChange={e=>setFichaDias(e.target.value)} className="w-16 p-2 text-center bg-white border-2 border-emerald-300 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
-                        <button type="button" onClick={()=>setFichaDias(String(nDias+1))} className="w-8 h-8 rounded-lg bg-white border border-emerald-300 font-black text-emerald-700">+</button>
+                        <button type="button" onClick={()=>setFichaDias(String(Math.max(1, nDias-1)))} className="w-8 h-8 rounded-lg bg-card border border-emerald-300 font-black text-emerald-700">−</button>
+                        <input type="number" min="1" step="1" value={fichaDias} onChange={e=>setFichaDias(e.target.value)} className="w-16 p-2 text-center bg-card border-2 border-emerald-300 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                        <button type="button" onClick={()=>setFichaDias(String(nDias+1))} className="w-8 h-8 rounded-lg bg-card border border-emerald-300 font-black text-emerald-700">+</button>
                      </div>
                      <div className="flex flex-wrap gap-1">
-                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-3xs font-bold px-2 py-1 rounded-md ${nDias===n?"bg-emerald-600 text-white":"bg-white border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
+                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-3xs font-bold px-2 py-1 rounded-md ${nDias===n?"bg-emerald-600 text-white":"bg-card border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
                      </div>
                   </div>
 
@@ -3217,7 +3217,7 @@ export default function RHPage() {
                         <span>Taxa de Serviço (10%): <b className="text-slate-800">{fmt(taxa)}</b></span>
                         <span className="col-span-2 pt-2 mt-1 border-t border-emerald-200 text-sm">
                            {nDias > 1
-                              ? <>Total: <b className="text-emerald-700">{fmt(totalGeral)}</b> <span className="font-medium text-slate-500">({nDias} dias × {fmt(total)})</span></>
+                              ? <>Total: <b className="text-emerald-700">{fmt(totalGeral)}</b> <span className="font-medium text-muted">({nDias} dias × {fmt(total)})</span></>
                               : <>Total do dia: <b className="text-emerald-700">{fmt(total)}</b></>}
                         </span>
                      </div>
@@ -3226,18 +3226,18 @@ export default function RHPage() {
                   )}
                </div>
 
-               <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Ajustes e pagamento</p>
+               <div className="rounded-2xl border border-line bg-card p-4 mb-5">
+                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Ajustes e pagamento</p>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     {[
                       ["vale_transporte", "Vale-transporte"], ["adicional", "Adicional / bônus"], ["descontos", "Descontos"],
                     ].map(([campo, label]) => (
                       <label key={campo} className="text-xs font-bold text-slate-600">{label} (R$)
-                        <input type="number" min="0" step="0.01" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} placeholder="0,00" className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                        <input type="number" min="0" step="0.01" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} placeholder="0,00" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                       </label>
                     ))}
                     <label className="text-xs font-bold text-slate-600">Forma de pagamento
-                      <select value={fichaDados.forma_pagamento} onChange={e => setFichaDados(d => ({...d, forma_pagamento: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-emerald-500">
+                      <select value={fichaDados.forma_pagamento} onChange={e => setFichaDados(d => ({...d, forma_pagamento: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500">
                         <option>Pix</option><option>Dinheiro</option><option>Transferência</option>
                       </select>
                     </label>
@@ -3248,31 +3248,31 @@ export default function RHPage() {
                       Pagamento já realizado
                     </label>
                     <label className="text-xs font-bold text-slate-600">Data do pagamento
-                      <input type="date" disabled={!fichaDados.pagamento_realizado} value={fichaDados.data_pagamento || ""} onChange={e => setFichaDados(d => ({ ...d, data_pagamento: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500 disabled:bg-slate-100" />
+                      <input type="date" disabled={!fichaDados.pagamento_realizado} value={fichaDados.data_pagamento || ""} onChange={e => setFichaDados(d => ({ ...d, data_pagamento: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500 disabled:bg-elevated" />
                     </label>
                   </div>
                </div>
 
                {/* Itens emprestados: escolhe na hora */}
-               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
+               <div className="bg-slate-50 border border-line rounded-2xl p-4 mb-6">
+                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
                   <div className="space-y-1.5 mb-3">
                      {fichaItens.map((it, idx) => (
-                        <label key={idx} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer border ${it.incluir ? "bg-white border-emerald-200" : "bg-slate-100 border-slate-200 opacity-60"}`}>
+                        <label key={idx} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer border ${it.incluir ? "bg-card border-emerald-200" : "bg-elevated border-line opacity-60"}`}>
                            <input type="checkbox" checked={it.incluir} onChange={e=>setFichaItens(lista => lista.map((x, i) => i === idx ? { ...x, incluir: e.target.checked } : x))} className="w-4 h-4 accent-emerald-600"/>
-                           <span className="text-sm font-bold text-slate-700 flex-1">{it.nome}</span>
+                           <span className="text-sm font-bold text-fg-soft flex-1">{it.nome}</span>
                         </label>
                      ))}
                   </div>
                   <div className="flex gap-2">
                      <input type="text" value={fichaNovoItem} onChange={e=>setFichaNovoItem(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); addItemFicha(); } }} placeholder="Adicionar outro item (ex: Faca do chef, Touca...)"
-                        className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-sm outline-none focus:border-emerald-500"/>
+                        className="flex-1 p-2.5 bg-card border border-line rounded-xl font-medium text-sm outline-none focus:border-emerald-500"/>
                      <button type="button" onClick={addItemFicha} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black text-sm rounded-xl">+ Add</button>
                   </div>
                </div>
 
-               <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Entrega e devolução dos itens</p>
+               <div className="rounded-2xl border border-line bg-card p-4 mb-5">
+                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Entrega e devolução dos itens</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(() => {
                       const lideres = (funcionarios || []).filter(f => {
@@ -3284,7 +3284,7 @@ export default function RHPage() {
                       return (
                         <>
                           <label className="text-xs font-bold text-slate-600">Entregue por
-                            <select value={fichaDados.responsavel_entrega || ""} onChange={e => setFichaDados(d => ({ ...d, responsavel_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-emerald-500 font-bold">
+                            <select value={fichaDados.responsavel_entrega || ""} onChange={e => setFichaDados(d => ({ ...d, responsavel_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500 font-bold">
                               <option value="">Selecione o responsável...</option>
                               {lideres.map(l => (
                                 <option key={l.id} value={l.nome}>{l.nome} ({l.cargo || "Supervisor/Líder"})</option>
@@ -3293,11 +3293,11 @@ export default function RHPage() {
                           </label>
 
                           <label className="text-xs font-bold text-slate-600">Local / setor
-                            <input type="text" value={fichaDados.setor_entrega} onChange={e => setFichaDados(d => ({ ...d, setor_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                            <input type="text" value={fichaDados.setor_entrega} onChange={e => setFichaDados(d => ({ ...d, setor_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                           </label>
 
                           <label className="text-xs font-bold text-slate-600">Devolução conferida por (Chef / Supervisor)
-                            <select value={fichaDados.conferencia_devolucao || ""} onChange={e => setFichaDados(d => ({ ...d, conferencia_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-emerald-500 font-bold">
+                            <select value={fichaDados.conferencia_devolucao || ""} onChange={e => setFichaDados(d => ({ ...d, conferencia_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500 font-bold">
                               <option value="">Selecione o Chef / Supervisor / Responsável...</option>
                               {lideres.map(l => (
                                 <option key={l.id} value={l.nome}>{l.nome} ({l.cargo || "Chef / Supervisor"})</option>
@@ -3306,7 +3306,7 @@ export default function RHPage() {
                           </label>
 
                           <label className="text-xs font-bold text-slate-600">Horário da devolução
-                            <input type="time" value={fichaDados.horario_devolucao} onChange={e => setFichaDados(d => ({ ...d, horario_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                            <input type="time" value={fichaDados.horario_devolucao} onChange={e => setFichaDados(d => ({ ...d, horario_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                           </label>
                         </>
                       );
@@ -3353,14 +3353,14 @@ export default function RHPage() {
          const dataBR = valor => String(valor || "").slice(0, 10).split("-").reverse().join("/");
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalDiarias(null)}>
-            <div className="bg-white rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-1">
                   <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-emerald-600" /> Histórico completo do extra</h2>
-                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={17} /></button>
                </div>
-               <p className="text-xs font-bold text-slate-500 mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
+               <p className="text-xs font-bold text-muted mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
                {modalDiarias.loading ? (
-                  <p className="text-center font-bold text-slate-400 py-8">Carregando...</p>
+                  <p className="text-center font-bold text-subtle py-8">Carregando...</p>
                ) : (
                   <>
                      {modalDiarias.erroRecibos && (
@@ -3373,9 +3373,9 @@ export default function RHPage() {
                          ["Recibos emitidos", recibos.length],
                          ["Total já pago", fmtBRL(totalPago)],
                        ].map(([rotulo, valor]) => (
-                         <div key={rotulo} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                           <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">{rotulo}</p>
-                           <p className="mt-1 text-lg font-black text-slate-900">{valor}</p>
+                         <div key={rotulo} className="rounded-2xl border border-line bg-slate-50 p-3">
+                           <p className="text-3xs font-bold uppercase tracking-wider text-muted">{rotulo}</p>
+                           <p className="mt-1 text-lg font-black text-fg">{valor}</p>
                          </div>
                        ))}
                      </div>
@@ -3383,9 +3383,9 @@ export default function RHPage() {
                      <div className="mt-5">
                        <h3 className="mb-2 text-sm font-black text-slate-800">Dias, valores e horários</h3>
                        {dias.length === 0 ? (
-                         <p className="rounded-xl bg-slate-50 p-5 text-center text-sm font-medium text-slate-400">Nenhum dia contratado ou trabalhado registrado.</p>
+                         <p className="rounded-xl bg-slate-50 p-5 text-center text-sm font-medium text-subtle">Nenhum dia contratado ou trabalhado registrado.</p>
                        ) : (
-                         <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                         <div className="overflow-x-auto rounded-2xl border border-line">
                            <table className="w-full min-w-[720px] text-left text-xs">
                              <thead className="bg-slate-900 text-white"><tr><th className="p-3">Data</th><th className="p-3">Situação</th><th className="p-3">Horário do dia</th><th className="p-3">Valor</th><th className="p-3">Pagamento</th><th className="p-3">Ação</th></tr></thead>
 <tbody className="divide-y divide-slate-100">
@@ -3409,7 +3409,7 @@ export default function RHPage() {
                         <section>
                           <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de prestação</h3>
                           <div className="space-y-3">
-                            {recibos.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-400">Nenhum recibo emitido.</p> : recibos.map(recibo => {
+                            {recibos.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm text-subtle">Nenhum recibo emitido.</p> : recibos.map(recibo => {
                               const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador Extra";
                               const hEntrada = recibo.hora_entrada || recibo.dados?.entrada || "—";
                               const hSaida = recibo.hora_saida || recibo.dados?.saida_final || "—";
@@ -3417,11 +3417,11 @@ export default function RHPage() {
                               const topicos = String(recibo.dados?.topicos_funcao || "").split("\n").map(t => t.trim()).filter(Boolean);
 
                               return (
-                              <div key={recibo.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2">
-                                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-2">
+                              <div key={recibo.id} className="rounded-2xl border border-line bg-card p-4 shadow-sm space-y-2">
+                                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line-soft pb-2">
                                   <div>
-                                    <p className="font-black text-slate-900 text-sm">{recibo.numero}</p>
-                                    <p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-emerald-700">{fmtBRL(recibo.valor_total)}</b></p>
+                                    <p className="font-black text-fg text-sm">{recibo.numero}</p>
+                                    <p className="text-xs font-bold text-muted">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-emerald-700">{fmtBRL(recibo.valor_total)}</b></p>
                                   </div>
                                   <span className={`rounded-full px-2.5 py-1 text-3xs font-bold ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
                                 </div>
@@ -3430,8 +3430,8 @@ export default function RHPage() {
                                   <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
                                   <p className="font-medium text-slate-600">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
                                   {topicos.length > 0 && (
-                                    <div className="mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-2xs font-medium text-slate-700">
-                                      <p className="font-bold text-slate-500 text-3xs uppercase mb-0.5">Atribuições do dia:</p>
+                                    <div className="mt-1 bg-slate-50 border border-line rounded-xl p-2 text-2xs font-medium text-fg-soft">
+                                      <p className="font-bold text-muted text-3xs uppercase mb-0.5">Atribuições do dia:</p>
                                       {topicos.map((t, idx) => <p key={idx} className="truncate">• {t.replace(/^[•\-\*]\s*/, "")}</p>)}
                                     </div>
                                   )}
@@ -3452,8 +3452,8 @@ export default function RHPage() {
                                   </div>
                                 )}
 
-                                <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-line-soft">
+                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-slate-50 px-3 py-2 text-xs font-bold text-fg-soft hover:bg-elevated"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
                                   <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
                                   <label className="cursor-pointer rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 inline-flex items-center gap-1.5 shadow-sm">
                                     {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
@@ -3495,7 +3495,7 @@ export default function RHPage() {
                           <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
                           <div className="space-y-2">
                             {advertencias.length === 0 ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
-                              <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-bold text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
+                              <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-bold text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-fg-soft">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
                             ))}
                           </div>
                         </section>
@@ -3510,36 +3510,36 @@ export default function RHPage() {
       {/* MODAL: FERIADOS da unidade (dias que pagam +100% p/ quem trabalhar) */}
       {modalFeriados && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[85vh] flex flex-col">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-md my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[85vh] flex flex-col">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Feriados</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">Quem trabalhar nesses dias recebe +100% (dobro, CLT)</p>
+                     <p className="text-sm font-bold text-muted mt-1">Quem trabalhar nesses dias recebe +100% (dobro, CLT)</p>
                   </div>
-                  <button onClick={() => setModalFeriados(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalFeriados(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <form onSubmit={salvarFeriado} className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-4 shrink-0 space-y-3">
                   <div className="flex gap-3">
-                     <input type="date" value={feriadoForm.data} onChange={e=>setFeriadoForm({...feriadoForm, data: e.target.value})} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-400"/>
-                     <input type="text" placeholder="Nome (ex: Natal)" value={feriadoForm.nome} onChange={e=>setFeriadoForm({...feriadoForm, nome: e.target.value})} className="flex-1 p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-400"/>
+                     <input type="date" value={feriadoForm.data} onChange={e=>setFeriadoForm({...feriadoForm, data: e.target.value})} className="p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-rose-400"/>
+                     <input type="text" placeholder="Nome (ex: Natal)" value={feriadoForm.nome} onChange={e=>setFeriadoForm({...feriadoForm, nome: e.target.value})} className="flex-1 p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-rose-400"/>
                   </div>
                   <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm rounded-xl transition-colors">Adicionar Feriado</button>
                </form>
 
                <div className="flex items-center gap-2 mb-3 shrink-0">
-                  <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Mês:</label>
-                  <input type="month" value={mesFeriados} onChange={e=>{ setMesFeriados(e.target.value); carregarFeriados(e.target.value); }} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm text-slate-700 outline-none"/>
+                  <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Mês:</label>
+                  <input type="month" value={mesFeriados} onChange={e=>{ setMesFeriados(e.target.value); carregarFeriados(e.target.value); }} className="p-2 bg-slate-50 border border-line rounded-lg font-bold text-sm text-fg-soft outline-none"/>
                </div>
 
                <div className="overflow-y-auto space-y-2">
                   {feriadosLista.length === 0 ? (
-                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum feriado marcado neste mês.</p>
+                     <p className="text-sm font-medium text-subtle text-center py-4">Nenhum feriado marcado neste mês.</p>
                   ) : feriadosLista.map(fe => (
-                     <div key={fe.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
+                     <div key={fe.id} className="p-3 bg-slate-50 border border-line-soft rounded-xl flex items-center gap-3">
                         <span className="text-sm font-black text-rose-600 shrink-0">{fe.data?.split("-").reverse().slice(0, 2).join("/")}</span>
-                        <span className="flex-1 text-sm font-bold text-slate-700 truncate">{fe.nome || "Feriado"}</span>
-                        <button onClick={() => excluirFeriado(fe.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
+                        <span className="flex-1 text-sm font-bold text-fg-soft truncate">{fe.nome || "Feriado"}</span>
+                        <button onClick={() => excluirFeriado(fe.id)} className="p-2 text-subtle hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
                      </div>
                   ))}
                </div>
@@ -3550,13 +3550,13 @@ export default function RHPage() {
       {/* MODAL: DESLIGAMENTO & AVISO PRÉVIO */}
       {modalDeslig && funcDeslig && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Desligamento / Aviso Prévio</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-0.5">{funcDeslig.nome} · {funcDeslig.cargo || "Sem cargo"}</p>
+                     <p className="text-sm font-bold text-muted mt-0.5">{funcDeslig.nome} · {funcDeslig.cargo || "Sem cargo"}</p>
                   </div>
-                  <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* Se o funcionário já está cumprindo aviso */}
@@ -3565,17 +3565,17 @@ export default function RHPage() {
                      <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">⚠️ Atualmente Cumprindo Aviso Prévio</p>
                      <p className="text-xs text-amber-800 font-medium">Início em <b>{funcDeslig.inicio_aviso_previo ? new Date(funcDeslig.inicio_aviso_previo + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</b> ({funcDeslig.dias_aviso_previo || 30} dias contratados).</p>
                      <div className="mt-3 flex gap-2">
-                        <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-white border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
+                        <button type="button" onClick={() => handleCancelarAviso(funcDeslig)} className="py-2 px-3 bg-card border border-amber-300 text-amber-900 font-bold text-xs rounded-xl hover:bg-amber-100">Cancelar Aviso</button>
                      </div>
                   </div>
                )}
 
                {/* Alternador de Modo: Cumprir Aviso vs Desligar Imediatamente */}
-               <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-100 p-1.5 rounded-2xl">
-                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "aviso" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+               <div className="grid grid-cols-2 gap-2 mb-4 bg-elevated p-1.5 rounded-2xl">
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "aviso" ? "bg-card text-slate-800 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
                      1. Cumprindo Aviso Prévio
                   </button>
-                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-muted hover:text-fg-soft"}`}>
                      2. Desligar Imediatamente
                   </button>
                </div>
@@ -3588,17 +3588,17 @@ export default function RHPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            <div>
                               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Início do Aviso</label>
-                              <input type="date" value={desligForm.inicio_aviso} onChange={e=>setDesligForm({...desligForm, inicio_aviso: e.target.value})} className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500"/>
+                              <input type="date" value={desligForm.inicio_aviso} onChange={e=>setDesligForm({...desligForm, inicio_aviso: e.target.value})} className="w-full p-3 bg-card border border-amber-200 rounded-xl font-bold text-fg-soft outline-none focus:border-amber-500"/>
                            </div>
                            <div>
                               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Dias de Aviso</label>
-                              <input type="number" min="1" max="90" value={desligForm.dias_aviso} onChange={e=>setDesligForm({...desligForm, dias_aviso: e.target.value})} placeholder="Ex: 27 ou 30" className="w-full p-3 bg-white border border-amber-200 rounded-xl font-black text-amber-900 outline-none focus:border-amber-500"/>
+                              <input type="number" min="1" max="90" value={desligForm.dias_aviso} onChange={e=>setDesligForm({...desligForm, dias_aviso: e.target.value})} placeholder="Ex: 27 ou 30" className="w-full p-3 bg-card border border-amber-200 rounded-xl font-black text-amber-900 outline-none focus:border-amber-500"/>
                            </div>
                         </div>
 
                         <div>
                            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Aviso</label>
-                           <select value={desligForm.tipo_aviso} onChange={e=>setDesligForm({...desligForm, tipo_aviso: e.target.value})} className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500">
+                           <select value={desligForm.tipo_aviso} onChange={e=>setDesligForm({...desligForm, tipo_aviso: e.target.value})} className="w-full p-3 bg-card border border-amber-200 rounded-xl font-bold text-fg-soft outline-none focus:border-amber-500">
                               <option value="Trabalhado">Trabalhado (cumpre horário no restaurante)</option>
                               <option value="Indenizado">Indenizado (sem cumprimento presencial)</option>
                            </select>
@@ -3613,7 +3613,7 @@ export default function RHPage() {
                            const hj = new Date(); hj.setHours(0,0,0,0); ini.setHours(0,0,0,0);
                            const faltam = Math.ceil((fim - hj) / 86400000);
                            return (
-                              <div className="bg-white border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900">
+                              <div className="bg-card border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900">
                                  📅 Término previsto do aviso: <b>{fim.toLocaleDateString("pt-BR")}</b>
                                  {faltam > 0 ? <span className="block mt-0.5 text-amber-700">· Faltam <b>{faltam} dia(s)</b> de trabalho</span> : <span className="block mt-0.5 text-rose-700">· Prazo de aviso já finalizado!</span>}
                               </div>
@@ -3627,11 +3627,11 @@ export default function RHPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            <div>
                               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Data de Saída</label>
-                              <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-500"/>
+                              <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-rose-500"/>
                            </div>
                            <div>
                               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Recisão</label>
-                              <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-500">
+                              <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-rose-500">
                                  <option>Pedido de demissão</option>
                                  <option>Demissão sem justa causa</option>
                                  <option>Demissão por justa causa</option>
@@ -3644,12 +3644,12 @@ export default function RHPage() {
                   )}
 
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Motivo / Observações</label>
-                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: cumprindo aviso de 27 dias / iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-emerald-500 resize-none"/>
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Motivo / Observações</label>
+                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: cumprindo aviso de 27 dias / iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-sm text-fg-soft outline-none focus:border-emerald-500 resize-none"/>
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl">Cancelar</button>
+                     <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-elevated hover:bg-slate-200 text-slate-600 font-bold rounded-xl">Cancelar</button>
                      <button type="submit" className={`flex-1 py-3.5 text-white font-black rounded-xl flex items-center justify-center gap-2 transition-colors ${desligForm.modo === "aviso" ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20" : "bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"}`}>
                         <LogOut size={18}/> {desligForm.modo === "aviso" ? "Registrar Aviso Prévio" : "Desligar e Arquivar"}
                      </button>
@@ -3662,33 +3662,33 @@ export default function RHPage() {
       {/* MODAL: CENTRAL EXCLUSIVA DE OCORRÊNCIAS & DOCUMENTOS */}
       {modalOcorrencias && funcOcorrencias && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[92vh]">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-3xl p-4 sm:p-7 shadow-2xl animate-in zoom-in-95 my-4 flex flex-col max-h-[92vh]">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
+                     <p className="text-sm font-bold text-muted mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
                   </div>
-                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* ABAS */}
-               <div className="flex gap-1.5 border-b border-slate-200 overflow-x-auto shrink-0 mb-4 pb-1">
+               <div className="flex gap-1.5 border-b border-line overflow-x-auto shrink-0 mb-4 pb-1">
                   {[
                      { id: "atestados", rotulo: "🏥 Atestados Médicos", count: listaAtestados.length },
                      { id: "advertencias", rotulo: "⚠️ Advertências", count: listaAdvertencias.length },
                      { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
                      { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
                   ].map(tab => (
-                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}>
                         <span>{tab.rotulo}</span>
-                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-3xs ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-700"}`}>{tab.count}</span>}
+                        {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-3xs ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-fg-soft"}`}>{tab.count}</span>}
                      </button>
                   ))}
                </div>
 
                <div className="flex-1 overflow-y-auto pr-1">
                   {loadingOcorrencias ? (
-                     <div className="py-12 text-center font-bold text-slate-400">Carregando histórico do colaborador...</div>
+                     <div className="py-12 text-center font-bold text-subtle">Carregando histórico do colaborador...</div>
                   ) : (
                      <>
                         {/* ABA 1: ATESTADOS MÉDICOS */}
@@ -3698,26 +3698,26 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Início do Afastamento</label>
-                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Início do Afastamento</label>
+                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Qtd Dias Afastado</label>
-                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-cyan-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Qtd Dias Afastado</label>
+                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">CID (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">CID (Opcional)</label>
+                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                  </div>
 
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Médico / CRM (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-cyan-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Médico / CRM (Opcional)</label>
+                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
                                        <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
                                     </div>
                                  </div>
@@ -3729,9 +3729,9 @@ export default function RHPage() {
 
                               <div className="space-y-2">
                                  {listaAtestados.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhum atestado médico cadastrado para este colaborador.</p>
+                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhum atestado médico cadastrado para este colaborador.</p>
                                  ) : listaAtestados.map(a => (
-                                    <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                                    <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
                                        <div>
                                           <p className="font-bold text-slate-800 text-xs">🏥 Atestado Médico · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
                                           <p className="text-2xs font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
@@ -3755,12 +3755,12 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Data da Ocorrência</label>
-                                       <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Data da Ocorrência</label>
+                                       <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Tipo de Medida</label>
-                                       <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-rose-500">
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Tipo de Medida</label>
+                                       <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500">
                                           <option value="Advertência Verbal">Advertência Verbal</option>
                                           <option value="Advertência Escrita">Advertência Escrita</option>
                                           <option value="Suspensão (1 dia)">Suspensão (1 dia)</option>
@@ -3769,8 +3769,8 @@ export default function RHPage() {
                                     </div>
                                  </div>
                                  <div>
-                                    <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Motivo / Descrição Detalhada</label>
-                                    <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-rose-500 resize-none"/>
+                                    <label className="text-3xs font-bold text-muted uppercase block mb-1">Motivo / Descrição Detalhada</label>
+                                    <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-rose-500 resize-none"/>
                                  </div>
                                  <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Advertência
@@ -3779,13 +3779,13 @@ export default function RHPage() {
 
                               <div className="space-y-2">
                                  {listaAdvertencias.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhuma advertência disciplinar para este colaborador.</p>
+                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhuma advertência disciplinar para este colaborador.</p>
                                  ) : listaAdvertencias.map(a => (
-                                    <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+                                    <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex items-center justify-between gap-2 shadow-sm">
                                        <div>
                                           <span className="text-3xs font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">{a.tipo || "Advertência"}</span>
                                           <p className="font-bold text-slate-800 text-xs mt-1">{a.motivo || a.descricao}</p>
-                                          <p className="text-3xs font-bold text-slate-400 mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                                          <p className="text-3xs font-bold text-subtle mt-0.5">{a.data ? new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</p>
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir registro?")) { await removerAdvertencia(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
                                     </div>
@@ -3801,17 +3801,17 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Data</label>
-                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Data</label>
+                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-indigo-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Título / Pauta da Reunião</label>
-                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-indigo-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Título / Pauta da Reunião</label>
+                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-indigo-500"/>
                                     </div>
                                  </div>
                                  <div>
-                                    <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
-                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 text-xs outline-none focus:border-indigo-500 resize-none"/>
+                                    <label className="text-3xs font-bold text-muted uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
+                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-indigo-500 resize-none"/>
                                  </div>
                                  <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Reunião
@@ -3820,9 +3820,9 @@ export default function RHPage() {
 
                               <div className="space-y-2">
                                  {listaReunioes.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhuma reunião ou feedback registrado.</p>
+                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhuma reunião ou feedback registrado.</p>
                                  ) : listaReunioes.map(r => (
-                                    <div key={r.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
+                                    <div key={r.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
                                        <div>
                                           <p className="font-bold text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
                                           <p className="text-xs text-slate-600 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
@@ -3841,26 +3841,26 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Nome do Curso / Treinamento</label>
-                                       <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Nome do Curso / Treinamento</label>
+                                       <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Instituição / Instrutor</label>
-                                       <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Instituição / Instrutor</label>
+                                       <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Data Conclusão</label>
-                                       <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Data Conclusão</label>
+                                       <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Carga Horária</label>
-                                       <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Carga Horária</label>
+                                       <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-slate-500 uppercase block mb-1">Vencimento (Opcional)</label>
-                                       <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 text-xs outline-none focus:border-emerald-500"/>
+                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Vencimento (Opcional)</label>
+                                       <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
                                  <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
@@ -3870,12 +3870,12 @@ export default function RHPage() {
 
                               <div className="space-y-2">
                                  {listaTreinamentos.length === 0 ? (
-                                    <p className="text-center py-6 text-xs text-slate-400 font-bold">Nenhum treinamento registrado para este colaborador.</p>
+                                    <p className="text-center py-6 text-xs text-subtle font-bold">Nenhum treinamento registrado para este colaborador.</p>
                                  ) : listaTreinamentos.map(t => (
-                                    <div key={t.id} className="p-3 bg-white border border-slate-200 rounded-2xl flex justify-between gap-2 shadow-sm">
+                                    <div key={t.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
                                        <div>
                                           <p className="font-bold text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
-                                          <p className="text-2xs font-bold text-slate-500 mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-2xs font-bold text-muted mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
                                           {t.vencimento && <p className="text-3xs font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
@@ -3894,42 +3894,42 @@ export default function RHPage() {
       {/* MODAL: ADVERTÊNCIAS do colaborador */}
       {modalAdv && funcAdv && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Advertências</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{funcAdv.nome} · aparecem na vida do colaborador</p>
+                     <p className="text-sm font-bold text-muted mt-1">{funcAdv.nome} · aparecem na vida do colaborador</p>
                   </div>
-                  <button onClick={() => setModalAdv(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalAdv(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <form onSubmit={salvarAdvertencia} className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 shrink-0 space-y-3">
                   <p className="text-3xs font-bold uppercase tracking-widest text-red-600">Nova advertência</p>
                   <div className="flex gap-3">
-                     <input type="date" value={advForm.data} onChange={e=>setAdvForm({...advForm, data: e.target.value})} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400"/>
-                     <select value={advForm.gravidade} onChange={e=>setAdvForm({...advForm, gravidade: e.target.value})} className="flex-1 p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400">
+                     <input type="date" value={advForm.data} onChange={e=>setAdvForm({...advForm, data: e.target.value})} className="p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-red-400"/>
+                     <select value={advForm.gravidade} onChange={e=>setAdvForm({...advForm, gravidade: e.target.value})} className="flex-1 p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-red-400">
                         <option value="leve">Leve</option>
                         <option value="media">Média</option>
                         <option value="grave">Grave</option>
                      </select>
                   </div>
-                  <input type="text" placeholder="Motivo (ex: atraso sem justificativa)" value={advForm.motivo} onChange={e=>setAdvForm({...advForm, motivo: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400"/>
-                  <textarea placeholder="Descrição da ocorrência (opcional)" rows={2} value={advForm.descricao} onChange={e=>setAdvForm({...advForm, descricao: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-red-400 resize-none"/>
+                  <input type="text" placeholder="Motivo (ex: atraso sem justificativa)" value={advForm.motivo} onChange={e=>setAdvForm({...advForm, motivo: e.target.value})} className="w-full p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-red-400"/>
+                  <textarea placeholder="Descrição da ocorrência (opcional)" rows={2} value={advForm.descricao} onChange={e=>setAdvForm({...advForm, descricao: e.target.value})} className="w-full p-3 bg-card border border-line rounded-xl font-medium text-sm text-fg-soft outline-none focus:border-red-400 resize-none"/>
                   <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black text-sm rounded-xl transition-colors">Registrar Advertência</button>
                </form>
 
                <div className="overflow-y-auto space-y-2">
                   {advLista.length === 0 ? (
-                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhuma advertência registrada.</p>
+                     <p className="text-sm font-medium text-subtle text-center py-4">Nenhuma advertência registrada.</p>
                   ) : advLista.map(a => (
-                     <div key={a.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
+                     <div key={a.id} className="p-3 bg-slate-50 border border-line-soft rounded-xl flex items-center gap-3">
                         <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
                         <div className="flex-1 min-w-0">
-                           <p className="text-sm font-bold text-slate-700 truncate">{a.motivo}</p>
-                           <p className="text-3xs font-medium text-slate-400">{a.data ? a.data.split("-").reverse().join("/") : "—"}{a.descricao ? ` · ${a.descricao}` : ""}</p>
+                           <p className="text-sm font-bold text-fg-soft truncate">{a.motivo}</p>
+                           <p className="text-3xs font-medium text-subtle">{a.data ? a.data.split("-").reverse().join("/") : "—"}{a.descricao ? ` · ${a.descricao}` : ""}</p>
                         </div>
-                        <button onClick={() => imprimirTermoAdvertencia(funcAdv, a)} className="p-2 text-slate-400 hover:text-slate-700 rounded-lg" title="Imprimir termo para assinatura"><Printer size={14}/></button>
-                        <button onClick={() => excluirAdvertencia(a.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg" title="Excluir"><Trash2 size={14}/></button>
+                        <button onClick={() => imprimirTermoAdvertencia(funcAdv, a)} className="p-2 text-subtle hover:text-fg-soft rounded-lg" title="Imprimir termo para assinatura"><Printer size={14}/></button>
+                        <button onClick={() => excluirAdvertencia(a.id)} className="p-2 text-subtle hover:text-red-500 rounded-lg" title="Excluir"><Trash2 size={14}/></button>
                      </div>
                   ))}
                </div>
@@ -3946,24 +3946,24 @@ export default function RHPage() {
          const alerta = total >= BANCO_ALERTA_MIN;
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{funcBanco.nome} · mês atual</p>
+                     <p className="text-sm font-bold text-muted mt-1">{funcBanco.nome} · mês atual</p>
                   </div>
-                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* Acumulado do mês vs limite de 8h */}
-               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
+               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-line"}`}>
                   <div className="flex justify-between items-baseline mb-2">
-                     <span className={`text-3xs font-bold uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-500"}`}>
+                     <span className={`text-3xs font-bold uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-muted"}`}>
                         {critico ? "Limite de 8h atingido!" : alerta ? "Perto de estourar as 8h!" : "Acumulado no mês"}
                      </span>
-                     <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-slate-400">/ 8h00</span></span>
+                     <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-subtle">/ 8h00</span></span>
                   </div>
-                  <div className="h-2.5 rounded-full overflow-hidden bg-white border border-slate-200">
+                  <div className="h-2.5 rounded-full overflow-hidden bg-card border border-line">
                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: critico ? "#DC2626" : alerta ? "#F59E0B" : "#059669" }} />
                   </div>
                   {(alerta || critico) && <p className="text-2xs font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
@@ -3973,7 +3973,7 @@ export default function RHPage() {
                {total > 0 && (
                   <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 shrink-0">
                      <span className="text-3xs font-bold uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
-                     <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-white border border-emerald-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
+                     <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-card border border-emerald-200 rounded-lg font-bold text-sm text-fg-soft outline-none focus:border-emerald-500"/>
                      <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors">
                         Dar folga e zerar {fmtMin(total)}
                      </button>
@@ -3985,35 +3985,35 @@ export default function RHPage() {
                   <p className="text-3xs font-bold uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
                   <div className="flex flex-wrap items-end gap-3">
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block">Dia</label>
-                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block">Dia</label>
+                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-card border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-sky-500"/>
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block">Minutos que faltaram</label>
-                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block">Minutos que faltaram</label>
+                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
                      </div>
                      <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
                   </div>
-                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-white border border-slate-200 rounded-lg font-medium text-sm text-slate-700 outline-none focus:border-sky-500"/>
+                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-card border border-line rounded-lg font-medium text-sm text-fg-soft outline-none focus:border-sky-500"/>
                   <p className="text-3xs font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
                </form>
 
                {/* Lançamentos do mês */}
                <div className="overflow-y-auto space-y-2">
                   {lancs.length === 0 ? (
-                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum lançamento neste mês.</p>
+                     <p className="text-sm font-medium text-subtle text-center py-4">Nenhum lançamento neste mês.</p>
                   ) : lancs.map(b => (
-                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`}>
+                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-line-soft"}`}>
                         <div className="flex-1 min-w-0">
-                           <p className="text-sm font-bold text-slate-700">
+                           <p className="text-sm font-bold text-fg-soft">
                               {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
                               {b.tipo === "excesso"
                                  ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
                                  : <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span>}
                            </p>
-                           {b.observacao && <p className="text-2xs font-medium text-slate-400 truncate">{b.observacao}</p>}
+                           {b.observacao && <p className="text-2xs font-medium text-subtle truncate">{b.observacao}</p>}
                         </div>
-                        <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
+                        <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-subtle hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
                      </div>
                   ))}
                </div>
@@ -4024,21 +4024,21 @@ export default function RHPage() {
 
       {modalFolgas && funcParaFolgas && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-[800px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-[800px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Gerenciar Folgas</h2>
-                     <p className="text-xs font-bold text-slate-500">{funcParaFolgas.nome}</p>
+                     <p className="text-xs font-bold text-muted">{funcParaFolgas.nome}</p>
                   </div>
-                  <button onClick={() => setModalFolgas(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalFolgas(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                   {/* Coluna 1: Adicionar Folgas */}
                   <div>
-                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Folgas Fixas (Semanais)</p>
-                        <p className="text-sm font-medium text-slate-700 leading-snug">
+                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-line-soft">
+                        <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Folgas Fixas (Semanais)</p>
+                        <p className="text-sm font-medium text-fg-soft leading-snug">
                            As folgas semanais de <b>{funcParaFolgas.nome}</b> são os dias da semana que NÃO estão marcados na ficha de contratação.
                         </p>
                      </div>
@@ -4057,9 +4057,9 @@ export default function RHPage() {
                               const jaTemFolgaNesteDia = folgasEsporadicas.some(f => f.data_folga === dom.data);
 
                               return (
-                                 <div key={dom.data} className="flex flex-col bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+                                 <div key={dom.data} className="flex flex-col bg-card border border-line p-3 rounded-xl shadow-sm">
                                     <div className="flex items-center justify-between mb-1">
-                                       <span className="font-bold text-slate-700">Dom, {dom.label}</span>
+                                       <span className="font-bold text-fg-soft">Dom, {dom.label}</span>
                                        <button 
                                           onClick={() => handleAdicionarFolga(dom.data, "Domingo")} 
                                           disabled={jaTemFolgaNesteDia}
@@ -4079,27 +4079,27 @@ export default function RHPage() {
                      </div>
 
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
                         <div className="flex gap-2">
-                           <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
+                           <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-fg-soft"/>
                            <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
                         </div>
                      </div>
                   </div>
 
                   {/* Coluna 2: Folgas Agendadas */}
-                  <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
-                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2">Folgas Extras Agendadas</h3>
+                  <div className="bg-slate-50 rounded-2xl border border-line-soft p-4">
+                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-line pb-2">Folgas Extras Agendadas</h3>
                      <div className="space-y-3">
                         {folgasEsporadicas.length === 0 ? (
-                           <p className="text-center text-sm font-bold text-slate-400 py-4">Nenhuma folga extra agendada.</p>
+                           <p className="text-center text-sm font-bold text-subtle py-4">Nenhuma folga extra agendada.</p>
                         ) : folgasEsporadicas.map(folga => (
-                           <div key={folga.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                           <div key={folga.id} className="flex items-center justify-between bg-card p-3 rounded-xl border border-line shadow-sm">
                               <div>
-                                 <div className="font-black text-slate-700">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
+                                 <div className="font-black text-fg-soft">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
                                  <div className="text-3xs font-bold text-indigo-500 uppercase">{folga.descricao || "Folga Extra"}</div>
                               </div>
-                              <button onClick={() => handleRemoverFolga(folga.id)} className="text-slate-400 hover:text-rose-600 transition-colors bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
+                              <button onClick={() => handleRemoverFolga(folga.id)} className="text-subtle hover:text-rose-600 transition-colors bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
                            </div>
                         ))}
                      </div>
@@ -4112,18 +4112,18 @@ export default function RHPage() {
       {/* Modal Consumo de Funcionários (Vales / Lanches / etc) */}
       {modalConsumo && funcionarioConsumo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-[900px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-               <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0 border-b border-slate-100 pb-4">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-[900px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0 border-b border-line-soft pb-4">
                   <div className="flex items-center gap-3">
                      <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center">
                         <ShoppingBag size={24} />
                      </div>
                      <div>
                         <h2 className="font-black text-2xl text-slate-800">Consumo & Vales</h2>
-                        <p className="text-xs font-bold text-slate-500">{funcionarioConsumo.nome}</p>
+                        <p className="text-xs font-bold text-muted">{funcionarioConsumo.nome}</p>
                      </div>
                   </div>
-                  <button onClick={() => setModalConsumo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={20}/></button>
+                  <button onClick={() => setModalConsumo(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200 transition-colors"><X size={20}/></button>
                </div>
 
                <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
@@ -4139,16 +4139,16 @@ export default function RHPage() {
                      {/* Pratos do cardápio: clique para preencher descrição + valor */}
                      <div className="mb-5">
                         <div className="flex items-center justify-between mb-2">
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><UtensilsCrossed size={13} /> Pratos do Cardápio</label>
-                           {cardapioConsumo.length > 0 && <span className="text-3xs font-bold text-slate-400">{cardapioConsumo.length} itens</span>}
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest flex items-center gap-1.5"><UtensilsCrossed size={13} /> Pratos do Cardápio</label>
+                           {cardapioConsumo.length > 0 && <span className="text-3xs font-bold text-subtle">{cardapioConsumo.length} itens</span>}
                         </div>
                         {cardapioConsumo.length === 0 ? (
-                           <p className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
+                           <p className="text-xs font-medium text-subtle bg-slate-50 border border-line-soft rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
                         ) : (
                            <>
                               <div className="relative mb-2">
-                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                 <input type="text" value={buscaPrato} onChange={e => setBuscaPrato(e.target.value)} placeholder="Buscar prato..." className="w-full p-2.5 pl-9 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm outline-none focus:border-teal-500 text-slate-700" />
+                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
+                                 <input type="text" value={buscaPrato} onChange={e => setBuscaPrato(e.target.value)} placeholder="Buscar prato..." className="w-full p-2.5 pl-9 bg-slate-50 border border-line rounded-xl font-medium text-sm outline-none focus:border-teal-500 text-fg-soft" />
                               </div>
                               <div className="max-h-40 overflow-y-auto pr-1 space-y-1.5">
                                  {cardapioConsumo
@@ -4157,12 +4157,12 @@ export default function RHPage() {
                                        const selecionado = novoConsumo.descricao === p.nome;
                                        return (
                                           <button key={p.id} type="button" onClick={() => escolherPrato(p)}
-                                             className={`w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border text-left transition-all ${selecionado ? "bg-teal-50 border-teal-400" : "bg-white border-slate-200 hover:border-teal-300"}`}>
+                                             className={`w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border text-left transition-all ${selecionado ? "bg-teal-50 border-teal-400" : "bg-card border-line hover:border-teal-300"}`}>
                                              <div className="min-w-0">
                                                 <p className="font-bold text-sm text-slate-800 truncate">{p.nome}</p>
-                                                {p.categoria && <p className="text-3xs font-medium text-slate-400">{p.categoria}</p>}
+                                                {p.categoria && <p className="text-3xs font-medium text-subtle">{p.categoria}</p>}
                                              </div>
-                                             <span className="font-black text-sm text-slate-700 shrink-0">{fmtBRL(p.preco)}</span>
+                                             <span className="font-black text-sm text-fg-soft shrink-0">{fmtBRL(p.preco)}</span>
                                           </button>
                                        );
                                     })}
@@ -4173,24 +4173,24 @@ export default function RHPage() {
 
                      <div className="space-y-4 flex-1">
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Descrição do Consumo</label>
-                           <input type="text" value={novoConsumo.descricao} onChange={e=>setNovoConsumo({...novoConsumo, descricao: e.target.value})} placeholder="Ex: Almoço, Cerveja, Hambúrguer..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700"/>
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Descrição do Consumo</label>
+                           <input type="text" value={novoConsumo.descricao} onChange={e=>setNovoConsumo({...novoConsumo, descricao: e.target.value})} placeholder="Ex: Almoço, Cerveja, Hambúrguer..." className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft"/>
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data / Hora</label>
-                              <input type="datetime-local" value={novoConsumo.data_consumo} onChange={e=>setNovoConsumo({...novoConsumo, data_consumo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700"/>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Data / Hora</label>
+                              <input type="datetime-local" value={novoConsumo.data_consumo} onChange={e=>setNovoConsumo({...novoConsumo, data_consumo: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor Original (R$)</label>
-                              <input type="number" step="0.01" value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50.00" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-teal-500"/>
+                              <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Valor Original (R$)</label>
+                              <input type="number" step="0.01" value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50.00" className="w-full p-4 bg-slate-50 border border-line rounded-xl font-black text-fg-soft outline-none focus:border-teal-500"/>
                            </div>
                         </div>
 
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Forma de Pagamento</label>
-                           <select value={novoConsumo.forma_pagamento} onChange={e=>setNovoConsumo({...novoConsumo, forma_pagamento: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700 appearance-none">
+                           <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Forma de Pagamento</label>
+                           <select value={novoConsumo.forma_pagamento} onChange={e=>setNovoConsumo({...novoConsumo, forma_pagamento: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft appearance-none">
                               <option value="Desconto em Folha">Desconto em Folha (Fica Pendente)</option>
                               <option value="Dinheiro">Dinheiro (Pago na hora)</option>
                               <option value="Pix">PIX (Pago na hora)</option>
@@ -4199,7 +4199,7 @@ export default function RHPage() {
                         </div>
                      </div>
 
-                     <div className="mt-6 pt-6 border-t border-slate-100">
+                     <div className="mt-6 pt-6 border-t border-line-soft">
                         {novoConsumo.valor_original && (
                            <div className="flex items-center justify-between bg-slate-800 p-4 rounded-xl text-white mb-4">
                               <span className="font-bold">Total a Pagar (com {Math.round((paramsSis.desconto_func_pct / 100) * 100)}% desc.):</span>
@@ -4213,8 +4213,8 @@ export default function RHPage() {
                   </div>
 
                   {/* Lado Direito: Histórico */}
-                  <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex flex-col h-full overflow-hidden">
-                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2 flex items-center justify-between">
+                  <div className="bg-slate-50 rounded-2xl border border-line-soft p-4 flex flex-col h-full overflow-hidden">
+                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-line pb-2 flex items-center justify-between">
                         <span>Extrato de Consumo</span>
                         {listaConsumo.length > 0 && (
                            <span className="text-3xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{listaConsumo.length} itens</span>
@@ -4222,31 +4222,31 @@ export default function RHPage() {
                      </h3>
                      
                      <div className="space-y-3 overflow-y-auto flex-1 pr-1 pb-4">
-                        {loadingConsumo && <p className="text-center text-sm font-bold text-slate-400 py-4">Carregando histórico...</p>}
+                        {loadingConsumo && <p className="text-center text-sm font-bold text-subtle py-4">Carregando histórico...</p>}
                         {!loadingConsumo && listaConsumo.length === 0 && (
-                           <p className="text-center text-sm font-bold text-slate-400 py-4 flex flex-col items-center">
-                              <Store size={32} className="text-slate-300 mb-2"/>
+                           <p className="text-center text-sm font-bold text-subtle py-4 flex flex-col items-center">
+                              <Store size={32} className="text-dim mb-2"/>
                               Nenhum consumo registrado.
                            </p>
                         )}
                         {!loadingConsumo && listaConsumo.map(item => {
                            const isPago = item.status_pagamento === "Pago";
                            return (
-                              <div key={item.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group">
+                              <div key={item.id} className="bg-card p-3 rounded-xl border border-line shadow-sm relative group">
                                  <div className="flex justify-between items-start mb-2">
                                     <div>
                                        <div className="font-black text-slate-800 leading-tight">{item.descricao}</div>
-                                       <div className="text-3xs font-bold text-slate-400">
+                                       <div className="text-3xs font-bold text-subtle">
                                           {new Date(item.data_consumo).toLocaleString('pt-BR')}
                                        </div>
                                     </div>
                                     <div className="text-right">
                                        <div className="font-black text-teal-700">{fmtBRL(item.valor_desconto)}</div>
-                                       <div className="text-3xs font-medium text-slate-400 line-through">De {fmtBRL(item.valor_original)}</div>
+                                       <div className="text-3xs font-medium text-subtle line-through">De {fmtBRL(item.valor_original)}</div>
                                     </div>
                                  </div>
                                  
-                                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-line-soft">
                                     <div className="flex items-center gap-2">
                                        {isPago ? (
                                           <span className="flex items-center gap-1 text-3xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
@@ -4261,7 +4261,7 @@ export default function RHPage() {
                                        <select 
                                           value={item.forma_pagamento} 
                                           onChange={(e) => alterarFormaPagamentoConsumo(item.id, item.status_pagamento, e.target.value)}
-                                          className="text-3xs font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
+                                          className="text-3xs font-bold bg-slate-50 border border-line text-slate-600 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
                                        >
                                           <option value="Desconto em Folha">Desconto em Folha</option>
                                           <option value="Dinheiro">Dinheiro</option>
@@ -4276,7 +4276,7 @@ export default function RHPage() {
                                        )}
                                     </div>
                                     
-                                    <button onClick={() => apagarConsumo(item.id)} className="text-slate-400 hover:text-rose-600 transition-colors bg-slate-50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
+                                    <button onClick={() => apagarConsumo(item.id)} className="text-subtle hover:text-rose-600 transition-colors bg-slate-50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
                                        <Trash2 size={14}/>
                                     </button>
                                  </div>
@@ -4286,9 +4286,9 @@ export default function RHPage() {
                      </div>
                      
                      {!loadingConsumo && listaConsumo.length > 0 && (
-                        <div className="pt-4 border-t border-slate-200 mt-2">
+                        <div className="pt-4 border-t border-line mt-2">
                            <div className="flex justify-between items-center text-sm">
-                              <span className="font-bold text-slate-500 uppercase tracking-widest text-xs">Total Pendente</span>
+                              <span className="font-bold text-muted uppercase tracking-widest text-xs">Total Pendente</span>
                               <span className="font-black text-rose-600 text-lg">
                                  {fmtBRL(listaConsumo.filter(i => i.status_pagamento !== "Pago").reduce((acc, curr) => acc + curr.valor_desconto, 0))}
                               </span>
@@ -4303,13 +4303,13 @@ export default function RHPage() {
       {/* Modal Lancamento Financeiro (Desmembramento) */}
       {modalLancamento && funcParaLancamento && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-card rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95">
                <div className="flex items-center justify-between mb-6">
                   <div>
                      <h2 className="text-2xl font-black tracking-tight text-slate-800">Lançar Diária</h2>
-                     <p className="text-slate-500 font-medium text-sm">Desmembramento do Financeiro</p>
+                     <p className="text-muted font-medium text-sm">Desmembramento do Financeiro</p>
                   </div>
-                  <button onClick={() => setModalLancamento(false)} className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors">
+                  <button onClick={() => setModalLancamento(false)} className="w-10 h-10 flex items-center justify-center bg-elevated text-muted rounded-full hover:bg-slate-200 transition-colors">
                      <X size={20} />
                   </button>
                </div>
@@ -4322,20 +4322,20 @@ export default function RHPage() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">INSS (5%)</label>
-                        <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">INSS (5%)</label>
+                        <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">FGTS (8%)</label>
-                        <input type="text" value={formLancamento.fgts} onChange={e => setFormLancamento({...formLancamento, fgts: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">FGTS (8%)</label>
+                        <input type="text" value={formLancamento.fgts} onChange={e => setFormLancamento({...formLancamento, fgts: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
-                        <input type="text" value={formLancamento.taxa} onChange={e => setFormLancamento({...formLancamento, taxa: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
+                        <input type="text" value={formLancamento.taxa} onChange={e => setFormLancamento({...formLancamento, taxa: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor Fixo Base</label>
-                        <input type="text" value={formLancamento.fixo} onChange={e => setFormLancamento({...formLancamento, fixo: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">Valor Fixo Base</label>
+                        <input type="text" value={formLancamento.fixo} onChange={e => setFormLancamento({...formLancamento, fixo: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                   </div>
                   

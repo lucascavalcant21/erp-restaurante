@@ -117,21 +117,21 @@ export default function CalendarioEstoque() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-20">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/estoque")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/estoque")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Entradas e saídas</h1>
-            <p className="text-xs font-bold text-slate-500">Movimento do estoque por dia, semana ou mês</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Entradas e saídas</h1>
+            <p className="text-xs font-bold text-muted">Movimento do estoque por dia, semana ou mês</p>
           </div>
-          <select value={estoqueId} onChange={e => setEstoqueId(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold text-slate-700">
+          <select value={estoqueId} onChange={e => setEstoqueId(e.target.value)} className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft">
             <option value="todos">Todos os estoques</option>
             {estoques.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
           </select>
         </div>
 
         <div className="mx-auto mt-3 flex max-w-5xl flex-wrap items-center gap-2">
-          <div className="flex rounded-xl border border-slate-200 bg-white p-1">
+          <div className="flex rounded-xl border border-line bg-card p-1">
             {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"]].map(([v, r]) => (
               <button key={v} onClick={() => setModo(v)}
                 className={`h-9 rounded-lg px-4 text-sm font-black ${modo === v ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
@@ -140,50 +140,50 @@ export default function CalendarioEstoque() {
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setReferencia(andar(referencia, modo, -1))} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button onClick={() => setReferencia(andar(referencia, modo, -1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
             <span className="min-w-[190px] text-center text-sm font-black capitalize text-slate-800">{rotuloPeriodo(faixa, modo)}</span>
-            <button onClick={() => setReferencia(andar(referencia, modo, 1))} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
+            <button onClick={() => setReferencia(andar(referencia, modo, 1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
           </div>
           {!ehHoje && (
-            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">Hoje</button>
+            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">Hoje</button>
           )}
           <input type="date" value={isoData(referencia)} onChange={e => e.target.value && setReferencia(new Date(`${e.target.value}T12:00:00`))}
-            className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold text-slate-700" />
+            className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft" />
         </div>
       </div>
 
       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-emerald-200 bg-card p-4 shadow-sm">
                 <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-emerald-700"><ArrowUpRight size={13} /> Entrou</p>
-                <p className="mt-1 text-3xl font-black text-slate-900">{fmtQtd(totais.qtdE)}</p>
-                <p className="text-xs font-bold text-slate-500">{totais.entradas} movimentação(ões)</p>
+                <p className="mt-1 text-3xl font-black text-fg">{fmtQtd(totais.qtdE)}</p>
+                <p className="text-xs font-bold text-muted">{totais.entradas} movimentação(ões)</p>
               </div>
-              <div className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-rose-200 bg-card p-4 shadow-sm">
                 <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-rose-700"><ArrowDownRight size={13} /> Saiu</p>
-                <p className="mt-1 text-3xl font-black text-slate-900">{fmtQtd(totais.qtdS)}</p>
-                <p className="text-xs font-bold text-slate-500">{totais.saidas} movimentação(ões)</p>
+                <p className="mt-1 text-3xl font-black text-fg">{fmtQtd(totais.qtdS)}</p>
+                <p className="text-xs font-bold text-muted">{totais.saidas} movimentação(ões)</p>
               </div>
             </div>
 
             {carregando ? (
               <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
             ) : porDia.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-                <CalendarDays className="mx-auto text-slate-300" size={40} />
-                <p className="mt-3 font-black text-slate-700">Nada movimentado neste período</p>
-                <p className="mt-1 text-sm text-slate-500">Troque o período acima ou escolha outro estoque.</p>
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
+                <CalendarDays className="mx-auto text-dim" size={40} />
+                <p className="mt-3 font-black text-fg-soft">Nada movimentado neste período</p>
+                <p className="mt-1 text-sm text-muted">Troque o período acima ou escolha outro estoque.</p>
               </div>
             ) : porDia.map(([dia, lista]) => {
               const entrou = lista.filter(m => m.tipo === "entrada").reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
               const saiu = lista.filter(m => m.tipo === "saida").reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
               return (
-                <section key={dia} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+                <section key={dia} className="rounded-2xl border border-line bg-card shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft px-4 py-3">
                     <p className="text-sm font-black capitalize text-slate-800">
                       {new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}
                     </p>
@@ -202,8 +202,8 @@ export default function CalendarioEstoque() {
                             {entrada ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[15px] font-black text-slate-900">{m.insumo?.nome || "Produto removido"}</p>
-                            <p className="truncate text-2xs font-bold text-slate-500">
+                            <p className="truncate text-[15px] font-black text-fg">{m.insumo?.nome || "Produto removido"}</p>
+                            <p className="truncate text-2xs font-bold text-muted">
                               {hora}
                               {m.estoque?.nome ? ` · ${m.estoque.nome}` : ""}
                               {m.destino?.nome ? ` → ${m.destino.nome}` : ""}
@@ -222,7 +222,7 @@ export default function CalendarioEstoque() {
               );
             })}
 
-            <p className="flex items-center justify-center gap-1.5 pt-2 text-xs font-bold text-slate-400">
+            <p className="flex items-center justify-center gap-1.5 pt-2 text-xs font-bold text-subtle">
               <Package size={13} /> Etiqueta gerada entra como entrada; baixa e perda saem.
             </p>
           </>

@@ -31,7 +31,7 @@ function diasAtras(n) {
 // Verde é a única cor primária, então a escala de desempenho é a intensidade
 // dela; vermelho fica reservado para o que está de fato mal.
 function tomDoScore(score) {
-  if (score == null) return "text-slate-400";
+  if (score == null) return "text-subtle";
   if (score >= 90) return "text-emerald-700";
   if (score >= 75) return "text-emerald-600";
   if (score >= 60) return "text-amber-600";
@@ -67,26 +67,26 @@ export default function Rankings() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-20">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/operacao/inteligente")}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200">
             <ArrowLeft size={19} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Rankings</h1>
-            <p className="text-xs font-bold text-slate-500">Desempenho por pessoa e por setor ao longo do tempo</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Rankings</h1>
+            <p className="text-xs font-bold text-muted">Desempenho por pessoa e por setor ao longo do tempo</p>
           </div>
-          <div className="flex rounded-xl border border-slate-200 bg-white p-1">
+          <div className="flex rounded-xl border border-line bg-card p-1">
             {PERIODOS.map(p => (
               <button key={p.dias} onClick={() => setDias(p.dias)}
-                className={`h-9 rounded-lg px-3 text-sm font-black transition-colors ${dias === p.dias ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-800"}`}>
+                className={`h-9 rounded-lg px-3 text-sm font-black transition-colors ${dias === p.dias ? "bg-emerald-600 text-white" : "text-muted hover:text-slate-800"}`}>
                 {p.rotulo}
               </button>
             ))}
           </div>
           <button onClick={() => window.print()}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50 print:hidden">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50 print:hidden">
             <Printer size={17} /> Imprimir
           </button>
         </div>
@@ -106,10 +106,10 @@ export default function Rankings() {
         {carregando ? (
           <div className="grid min-h-60 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>
         ) : vazio ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <Users className="mx-auto text-slate-300" size={38} />
-            <p className="mt-3 font-black text-slate-700">Nenhuma rotina neste período</p>
-            <p className="mt-1 text-sm text-slate-500">O ranking se monta sozinho conforme as rotinas do dia forem acontecendo.</p>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
+            <Users className="mx-auto text-dim" size={38} />
+            <p className="mt-3 font-black text-fg-soft">Nenhuma rotina neste período</p>
+            <p className="mt-1 text-sm text-muted">O ranking se monta sozinho conforme as rotinas do dia forem acontecendo.</p>
           </div>
         ) : (
           <>
@@ -128,18 +128,18 @@ export default function Rankings() {
 
             <Secao titulo="Por pessoa" icone={Users}>
               {pessoas.ranqueados.length === 0 ? (
-                <p className="text-sm font-bold text-slate-500">
+                <p className="text-sm font-bold text-muted">
                   Ninguém tem {pessoas.minimo} rotinas ou mais no período — sem isso, o ranking premiaria quem fez menos.
                 </p>
               ) : (
                 <Tabela linhas={pessoas.ranqueados} rotuloCol="Pessoa" chave="nome" comPosicao />
               )}
               {pessoas.poucosDados.length > 0 && (
-                <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-slate-500">
+                <details className="mt-3 rounded-xl border border-line bg-slate-50 px-4 py-3">
+                  <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-muted">
                     Poucos dados para ranquear ({pessoas.poucosDados.length})
                   </summary>
-                  <p className="mt-2 text-xs font-bold text-slate-500">
+                  <p className="mt-2 text-xs font-bold text-muted">
                     Menos de {pessoas.minimo} rotinas no período. Quem fez uma e acertou aparece com 100%, e ordenar
                     isso junto colocaria quem trabalhou menos na frente.
                   </p>
@@ -154,16 +154,16 @@ export default function Rankings() {
 
             {falhas.length > 0 && (
               <Secao titulo="Rotinas que mais falham" icone={TrendingDown}>
-                <p className="mb-3 text-xs font-bold text-slate-500">
+                <p className="mb-3 text-xs font-bold text-muted">
                   Não fazer, fazer atrasado ou fazer com item não conforme. Rotina que falha sempre, com gente
                   diferente, costuma ser problema do processo — não de quem executa.
                 </p>
                 <div className="space-y-2">
                   {falhas.map(p => (
-                    <div key={p.nome} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <div key={p.nome} className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3">
                       <span className="min-w-0 flex-1 truncate font-black text-slate-800">{p.nome}</span>
-                      <span className="shrink-0 text-sm font-bold text-slate-500">{p.falhas} de {p.total}</span>
-                      <div className="h-2 w-24 shrink-0 overflow-hidden rounded-full bg-slate-100">
+                      <span className="shrink-0 text-sm font-bold text-muted">{p.falhas} de {p.total}</span>
+                      <div className="h-2 w-24 shrink-0 overflow-hidden rounded-full bg-elevated">
                         <div className="h-full rounded-full bg-red-400" style={{ width: `${Math.min(100, Math.round(p.falhas / p.total * 100))}%` }} />
                       </div>
                     </div>
@@ -185,7 +185,7 @@ export default function Rankings() {
                         <div className="w-full rounded-t-md bg-emerald-500"
                           style={{ height: `${d.score == null ? 2 : Math.max(2, d.score)}%` }} />
                       </div>
-                      <span className="text-3xs font-bold text-slate-400">{String(d.dia).slice(8, 10)}</span>
+                      <span className="text-3xs font-bold text-subtle">{String(d.dia).slice(8, 10)}</span>
                     </div>
                   ))}
                 </div>
@@ -200,7 +200,7 @@ export default function Rankings() {
 
 function Secao({ titulo, icone: Icone, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
       <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700">
         <Icone size={15} /> {titulo}
       </h2>
@@ -214,7 +214,7 @@ function Tabela({ linhas, rotuloCol, chave, comPosicao = false, capitalizar = fa
     <div className="overflow-x-auto">
       <table className="w-full min-w-[560px] text-left text-sm">
         <thead>
-          <tr className="text-3xs font-bold uppercase tracking-wider text-slate-400">
+          <tr className="text-3xs font-bold uppercase tracking-wider text-subtle">
             <th className="pb-2 pr-3">{rotuloCol}</th>
             <th className="pb-2 px-2 text-center">Feitas</th>
             <th className="pb-2 px-2 text-center">Atrasos</th>
@@ -226,16 +226,16 @@ function Tabela({ linhas, rotuloCol, chave, comPosicao = false, capitalizar = fa
         </thead>
         <tbody>
           {linhas.map((l, i) => (
-            <tr key={l.id || l[chave]} className="border-t border-slate-100">
+            <tr key={l.id || l[chave]} className="border-t border-line-soft">
               <td className={`py-2.5 pr-3 font-black text-slate-800 ${capitalizar ? "capitalize" : ""}`}>
-                {comPosicao && <span className="mr-2 text-slate-400 tabular-nums">{i + 1}º</span>}
+                {comPosicao && <span className="mr-2 text-subtle tabular-nums">{i + 1}º</span>}
                 {l[chave]}
               </td>
               <td className="px-2 text-center font-bold tabular-nums text-slate-600">{l.concluidas}/{l.total}</td>
               <td className="px-2 text-center font-bold tabular-nums text-slate-600">{l.atrasadas + l.comAtraso}</td>
               <td className="px-2 text-center font-bold tabular-nums text-slate-600">{l.naoConformes}</td>
-              <td className="px-2 text-center font-bold tabular-nums text-slate-500">{l.pontualidade == null ? "—" : `${l.pontualidade}%`}</td>
-              <td className="px-2 text-center font-bold tabular-nums text-slate-500">{l.qualidade == null ? "—" : `${l.qualidade}%`}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-muted">{l.pontualidade == null ? "—" : `${l.pontualidade}%`}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-muted">{l.qualidade == null ? "—" : `${l.qualidade}%`}</td>
               <td className={`pl-2 text-right text-base font-black tabular-nums ${tomDoScore(l.score)}`}>{l.score ?? "—"}</td>
             </tr>
           ))}

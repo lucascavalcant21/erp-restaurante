@@ -34,18 +34,18 @@ export default function CardapioGeradorPage() {
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
       
       {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
+      <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
          <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => abrirMenu()} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-slate-100 text-emerald-600 items-center justify-center shadow-inner">
+              <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-elevated text-emerald-600 items-center justify-center shadow-inner">
                  <QrCode size={28} />
               </div>
               <div>
-                 <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Cardápio Digital</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gere o QR Code para as mesas</p>
+                 <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-fg">Cardápio Digital</h1>
+                 <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Gere o QR Code para as mesas</p>
               </div>
             </div>
          </div>
@@ -57,18 +57,18 @@ export default function CardapioGeradorPage() {
             {/* LADO ESQUERDO (Ações e Link) */}
             <div>
                <h2 className="text-2xl font-black text-slate-800 mb-2">Compartilhe seu Menu</h2>
-               <p className="text-slate-500 font-medium mb-8">
+               <p className="text-muted font-medium mb-8">
                  Seus clientes não precisam baixar aplicativos. Basta eles apontarem a câmera para o QR Code e o seu cardápio será aberto instantaneamente no celular deles.
                </p>
 
-               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mb-6">
-                  <label className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Link Oficial</label>
-                  <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+               <div className="bg-card p-6 rounded-3xl border border-line shadow-sm mb-6">
+                  <label className="text-3xs font-bold uppercase tracking-widest text-muted mb-2 block">Link Oficial</label>
+                  <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-line-soft">
                      <input type="text" readOnly value={urlPublica} className="flex-1 bg-transparent text-sm font-bold text-slate-600 outline-none truncate"/>
-                     <button onClick={copiarLink} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 transition-colors" title="Copiar"><Copy size={16}/></button>
+                     <button onClick={copiarLink} className="p-2 bg-card rounded-lg border border-line text-muted hover:text-emerald-600 transition-colors" title="Copiar"><Copy size={16}/></button>
                   </div>
 
-                  <a href={urlPublica} target="_blank" className="mt-4 w-full py-4 bg-slate-50 hover:bg-slate-100 text-emerald-600 font-black rounded-xl transition-all flex items-center justify-center gap-2">
+                  <a href={urlPublica} target="_blank" className="mt-4 w-full py-4 bg-slate-50 hover:bg-elevated text-emerald-600 font-black rounded-xl transition-all flex items-center justify-center gap-2">
                      <ExternalLink size={18}/> Testar o Cardápio
                   </a>
                </div>
@@ -83,16 +83,16 @@ export default function CardapioGeradorPage() {
             </div>
 
             {/* LADO DIREITO (QR Code Viewer) */}
-            <div className="bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[40px] border border-slate-200 shadow-xl flex flex-col items-center justify-center text-center min-w-0">
+            <div className="bg-card p-5 sm:p-8 rounded-3xl sm:rounded-[40px] border border-line shadow-xl flex flex-col items-center justify-center text-center min-w-0">
                <h3 className="text-xl font-black text-slate-800 mb-2">O QR Code Oficial</h3>
-               <p className="text-sm text-slate-500 font-medium mb-8">Salve a imagem abaixo para enviar para a gráfica imprimir nos displays acrílicos das suas mesas.</p>
+               <p className="text-sm text-muted font-medium mb-8">Salve a imagem abaixo para enviar para a gráfica imprimir nos displays acrílicos das suas mesas.</p>
                
-               <div className="bg-white p-4 rounded-3xl border-4 border-slate-100 shadow-sm relative group cursor-pointer hover:border-slate-200 transition-colors">
+               <div className="bg-card p-4 rounded-3xl border-4 border-line-soft shadow-sm relative group cursor-pointer hover:border-line transition-colors">
                   {qrCodeUrl ? (
                      // eslint-disable-next-line @next/next/no-img-element
                      <img src={qrCodeUrl} alt="QR Code Cardapio" className="w-full max-w-64 aspect-square object-contain transition-transform group-hover:scale-105" />
                   ) : (
-                     <div className="w-full max-w-64 aspect-square flex items-center justify-center bg-slate-50 text-slate-500">
+                     <div className="w-full max-w-64 aspect-square flex items-center justify-center bg-slate-50 text-muted">
                         <QrCode size={64}/>
                      </div>
                   )}

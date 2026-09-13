@@ -15,12 +15,12 @@ export default function BarHubPage() {
       
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-6xl mx-auto flex items-center gap-3 sm:gap-4">
-         <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-2xl sm:rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+         <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-2xl sm:rounded-3xl bg-elevated text-emerald-600 flex items-center justify-center shadow-inner">
             <GlassWater size={32} />
          </div>
          <div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Op. Bar</h1>
-            <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Bebidas e Produção</p>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-fg">Op. Bar</h1>
+            <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Gestão de Bebidas e Produção</p>
          </div>
       </div>
 
@@ -30,7 +30,7 @@ export default function BarHubPage() {
          {/* ITEM GIGANTE: Produção do Dia */}
          <button 
            onClick={() => router.push("/dashboard/operacao/producao?dept=bar")}
-           className="col-span-2 lg:col-span-3 row-span-2 rounded-3xl sm:rounded-[32px] p-5 sm:p-8 relative overflow-hidden group text-left border border-slate-200 bg-white hover:border-emerald-300 transition-all shadow-sm"
+           className="col-span-2 lg:col-span-3 row-span-2 rounded-3xl sm:rounded-[32px] p-5 sm:p-8 relative overflow-hidden group text-left border border-line bg-card hover:border-emerald-300 transition-all shadow-sm"
          >
             <div className="absolute -bottom-10 -right-10 opacity-5 transform group-hover:scale-110 transition-transform duration-700">
                <Flame size={250} />
@@ -40,46 +40,46 @@ export default function BarHubPage() {
                   <Flame size={28} />
                </div>
                <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2 tracking-tight">Produção do Dia</h2>
-                  <p className="text-slate-500 font-medium text-sm max-w-xs">Controle de lotes de preparo, bases de drinks e xaropes diários.</p>
+                  <h2 className="text-2xl sm:text-3xl font-black text-fg mb-2 tracking-tight">Produção do Dia</h2>
+                  <p className="text-muted font-medium text-sm max-w-xs">Controle de lotes de preparo, bases de drinks e xaropes diários.</p>
                </div>
             </div>
          </button>
 
          {/* ITENS MÉDIOS: Cardápio e Fichas */}
-         <button onClick={() => router.push("/dashboard/operacao/cardapio")} className="col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
+         <button onClick={() => router.push("/dashboard/operacao/cardapio")} className="col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-card border border-line hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="flex justify-between items-start">
                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-50 group-hover:text-emerald-600 transition-colors"><FileText size={20} /></div>
-               <Link size={16} className="text-slate-500" />
+               <Link size={16} className="text-muted" />
             </div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Cardápio Digital</h3>
-               <p className="text-3xs uppercase font-bold text-slate-500 mt-0.5">Gestão de Drinks e QR Code</p>
+               <p className="text-3xs uppercase font-bold text-muted mt-0.5">Gestão de Drinks e QR Code</p>
             </div>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
+         <button onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-card border border-line hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Ficha Técnica</h3>
-               <p className="text-3xs uppercase font-bold text-slate-500 mt-0.5">Rendimentos e Custos</p>
+               <p className="text-3xs uppercase font-bold text-muted mt-0.5">Rendimentos e Custos</p>
             </div>
          </button>
 
          {/* ITENS NORMAIS (1x1) */}
-         <button onClick={() => router.push("/dashboard/operacao/ingredientes?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/ingredientes?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <FlaskConical size={24} className="text-slate-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm">Ingredientes</h3>
+            <h3 className="font-bold text-fg-soft text-sm">Ingredientes</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/estoque?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/estoque?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <Package size={24} className="text-slate-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm">Estoque Físico</h3>
+            <h3 className="font-bold text-fg-soft text-sm">Estoque Físico</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/compras")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/compras")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <ShoppingCart size={24} className="text-slate-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm">Lista de Compras</h3>
+            <h3 className="font-bold text-fg-soft text-sm">Lista de Compras</h3>
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-violet-50 border border-violet-200 hover:border-violet-400 transition-all flex flex-col justify-center items-center gap-2 group text-center">
@@ -87,32 +87,32 @@ export default function BarHubPage() {
             <h3 className="font-bold text-violet-800 text-sm">Memorando de Amanhã</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/produtos?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/produtos?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <PlusCircle size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm leading-tight">Criação de Drinks</h3>
+            <h3 className="font-bold text-fg-soft text-sm leading-tight">Criação de Drinks</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/engenharia?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/engenharia?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <BarChart size={24} className="text-slate-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm leading-tight">Engenharia Cardápio</h3>
+            <h3 className="font-bold text-fg-soft text-sm leading-tight">Engenharia Cardápio</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/validade")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/validade")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <CalendarClock size={24} className="text-slate-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm leading-tight">Controle Validade</h3>
+            <h3 className="font-bold text-fg-soft text-sm leading-tight">Controle Validade</h3>
          </button>
 
          {/* DOCK INFERIOR (Checklists) */}
          <div className="col-span-2 lg:col-span-5 flex flex-col md:flex-row gap-4 mt-2">
             
-            <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
-               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm"><CheckSquare size={20} /></div>
-               <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-3xs uppercase font-bold text-slate-500">Abertura e Fechamento Bar</p></div>
+            <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-line hover:bg-elevated transition-all flex items-center gap-4 group">
+               <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-emerald-600 shadow-sm"><CheckSquare size={20} /></div>
+               <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-3xs uppercase font-bold text-muted">Abertura e Fechamento Bar</p></div>
             </button>
 
-            <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
-               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm"><Sparkles size={20} /></div>
-               <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-3xs uppercase font-bold text-slate-500">Higiene Diária e Semanal</p></div>
+            <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-line hover:bg-elevated transition-all flex items-center gap-4 group">
+               <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-emerald-600 shadow-sm"><Sparkles size={20} /></div>
+               <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-3xs uppercase font-bold text-muted">Higiene Diária e Semanal</p></div>
             </button>
 
          </div>

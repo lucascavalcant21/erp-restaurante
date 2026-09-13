@@ -283,7 +283,7 @@ function ProtecaoSetorDaArea({ children }) {
   }, [consulta, deptAtual, pathname, router]);
 
   if (areaTravada === undefined || !rotaPermitida || !setorCorreto) {
-    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Carregando área correta...</div>;
+    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-muted">Carregando área correta...</div>;
   }
   return children;
 }
@@ -304,7 +304,7 @@ function ProtecaoPermissao({ sessao, children }) {
   }, [permitido, pathname, router, search, sessao]);
 
   if (!sessao || !permitido) {
-    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Verificando acesso...</div>;
+    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-muted">Verificando acesso...</div>;
   }
   return children;
 }
@@ -337,17 +337,17 @@ function SidebarSection({ section, idx, isExpanded, onToggle, pathname, dept, se
         className={`w-full min-h-10 px-3 py-2 text-xs font-bold flex items-center justify-between rounded-xl transition-all group outline-none text-left ${
           hasActiveItem
             ? "bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20"
-            : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            : "text-subtle hover:text-white hover:bg-slate-800/60"
         }`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <Icon size={17} className={`transition-colors shrink-0 ${hasActiveItem ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+          <Icon size={17} className={`transition-colors shrink-0 ${hasActiveItem ? "text-emerald-400" : "text-muted group-hover:text-dim"}`} />
           <span className="truncate tracking-tight">{section.category}</span>
         </div>
         {!isSingleItem && (
           <ChevronDown
             size={15}
-            className={`text-slate-500 transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-180 text-emerald-400" : ""}`}
+            className={`text-muted transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-180 text-emerald-400" : ""}`}
           />
         )}
       </button>
@@ -371,7 +371,7 @@ function SidebarSection({ section, idx, isExpanded, onToggle, pathname, dept, se
                 className={`w-full min-h-8 px-2.5 py-1.5 text-xs font-medium flex items-center gap-2 rounded-lg transition-colors text-left truncate ${
                   isItemActive
                     ? "bg-emerald-500/20 text-emerald-300 font-bold"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                    : "text-subtle hover:text-slate-200 hover:bg-slate-800/40"
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isItemActive ? "bg-emerald-400 shadow-sm shadow-emerald-400" : "bg-slate-600"}`} />
@@ -445,7 +445,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
             <span className="text-lg font-black text-white tracking-tight">Hefisto</span>
           </button>
           
-          <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white relative z-10 rounded-xl xl:hidden">
+          <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-subtle hover:text-white relative z-10 rounded-xl xl:hidden">
             <X size={20} />
           </button>
         </div>
@@ -493,7 +493,7 @@ function TopHeader({ onToggleSidebar }) {
   return (
     <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
-         <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
+         <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-muted hover:text-slate-800 hover:bg-elevated rounded-xl transition-colors shrink-0">
             <Menu size={22} />
          </button>
          <h1 className="text-base lg:text-lg font-black text-slate-800 hidden md:block tracking-tight truncate min-w-0">
@@ -522,7 +522,7 @@ function MobileBottomNav({ sessao, onMenu }) {
 
   return (
     <nav aria-label="Atalhos do meu perfil"
-      className="erp-mobile-nav print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-xl md:hidden">
+      className="erp-mobile-nav print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 backdrop-blur-xl md:hidden">
       <div className="grid min-h-[62px] items-stretch" style={{ gridTemplateColumns: `repeat(${visiveis.length + 1}, minmax(0, 1fr))` }}>
         {visiveis.map((item) => {
           const Icon = item.icon;
@@ -530,14 +530,14 @@ function MobileBottomNav({ sessao, onMenu }) {
           const ativo = pathname === base || (base !== "/dashboard" && pathname.startsWith(`${base}/`));
           return (
             <button key={item.href} type="button" onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
-              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold transition-colors ${ativo ? "text-emerald-700" : "text-slate-400"}`}>
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold transition-colors ${ativo ? "text-emerald-700" : "text-subtle"}`}>
               <span className={`flex h-8 w-10 items-center justify-center rounded-xl ${ativo ? "bg-emerald-100" : "bg-transparent"}`}><Icon size={18} /></span>
               <span className="w-full truncate">{item.label}</span>
             </button>
           );
         })}
         <button type="button" onClick={onMenu}
-          className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold text-slate-400">
+          className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold text-subtle">
           <span className="flex h-8 w-10 items-center justify-center rounded-xl"><Menu size={19} /></span>
           <span>Menu</span>
         </button>
@@ -717,7 +717,7 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0`}>
+    <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-card print:block print:h-auto print:min-h-0`}>
       {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
       <div className="print:hidden h-full flex shrink-0">
          <Suspense fallback={null}>
@@ -737,7 +737,7 @@ export default function DashboardLayout({ children }) {
         
         {/* Main Content Area com Scrollbar customizada */}
         <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">
-          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Carregando...</div>}>
+          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-muted">Carregando...</div>}>
             <ProtecaoPermissao sessao={sessao}>
               <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
             </ProtecaoPermissao>

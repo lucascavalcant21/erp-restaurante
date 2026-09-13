@@ -123,7 +123,7 @@ function TecladoSenha({ cor, onSuccess, onClose, senha }) {
     <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-6 w-full max-w-xs text-center max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         <p className="text-lg font-black text-white">Sair da área</p>
-        <p className="text-slate-400 font-medium text-xs mb-5">Digite a senha desta área para destravar</p>
+        <p className="text-subtle font-medium text-xs mb-5">Digite a senha desta área para destravar</p>
         <div className="flex gap-3 justify-center mb-5">
           {[0, 1, 2, 3].map(i => (
             <div key={i} className="w-4 h-4 rounded-full transition-colors" style={{ background: i < pin.length ? cor : "#334155" }} />
@@ -133,13 +133,13 @@ function TecladoSenha({ cor, onSuccess, onClose, senha }) {
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((d, i) => (
             <button key={i} disabled={d === ""}
               onClick={() => d === "⌫" ? setPin(p => p.slice(0, -1)) : d !== "" && digito(String(d))}
-              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-slate-300 hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
+              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-dim hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
               {d}
             </button>
           ))}
         </div>
         {erro && <p className="text-red-400 text-xs font-bold mb-2">{erro}</p>}
-        <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xs font-bold">Cancelar</button>
+        <button onClick={onClose} className="text-muted hover:text-dim text-xs font-bold">Cancelar</button>
       </div>
     </div>
   );
@@ -204,11 +204,11 @@ function AreaRunner() {
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{area.nome}</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-3xs">{unidadeInfo?.nome || ""} · estação de trabalho</p>
+              <p className="text-muted font-bold uppercase tracking-widest text-3xs">{unidadeInfo?.nome || ""} · estação de trabalho</p>
             </div>
           </div>
           <button onClick={() => setPedindoSenha(true)} title="Sair da área (senha)"
-            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-slate-500 hover:text-slate-300 bg-slate-900 border border-slate-800 transition-colors flex-shrink-0">
+            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-muted hover:text-dim bg-slate-900 border border-slate-800 transition-colors flex-shrink-0">
             <Lock size={14} /> <span className="hidden sm:inline">Travado</span>
           </button>
         </div>
@@ -219,7 +219,7 @@ function AreaRunner() {
             <div key={col.titulo} className="rounded-2xl sm:rounded-3xl p-3 sm:p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="w-2 h-2 rounded-full" style={{ background: area.cor }} />
-                <p className="text-2xs font-bold uppercase tracking-widest text-slate-400">{col.titulo}</p>
+                <p className="text-2xs font-bold uppercase tracking-widest text-subtle">{col.titulo}</p>
               </div>
               <div className="space-y-2.5">
                 {col.itens.map(item => (
@@ -247,7 +247,7 @@ function AreaRunner() {
 
 export default function AreaPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando área...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando área...</div>}>
       <AreaRunner />
     </Suspense>
   );

@@ -194,42 +194,42 @@ export default function CadastroExtraPage() {
     return <div className="grid min-h-[60vh] place-items-center"><Loader2 size={28} className="animate-spin text-emerald-600" /></div>;
   }
 
-  const rotulo = "text-xs font-black uppercase tracking-widest text-slate-500";
-  const campo = "w-full p-4 mt-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500";
+  const rotulo = "text-xs font-black uppercase tracking-widest text-muted";
+  const campo = "w-full p-4 mt-1.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
       {/* Cabeçalho */}
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
           <button onClick={() => router.back()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200">
             <ArrowLeft size={19} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-black text-slate-900 sm:text-xl">
+            <h1 className="truncate text-lg font-black text-fg sm:text-xl">
               {novo ? "Novo extra" : "Editar extra"}
             </h1>
-            <p className="text-xs font-bold text-slate-500">Freelancer / diarista · dados do recibo inclusos</p>
+            <p className="text-xs font-bold text-muted">Freelancer / diarista · dados do recibo inclusos</p>
           </div>
           {!novo && <div className="flex gap-2">
             <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100"><FileDown size={17}/> Pré-admissão eSocial</button>
-            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"><FileDown size={17}/> PDF</button>
-            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
+            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-slate-50"><FileDown size={17}/> PDF</button>
+            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
           </div>}
         </div>
       </div>
 
       <main className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
         {/* Identificação */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Identificação</p>
           <div className="flex gap-4">
             <label className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:border-emerald-400">
               {form.foto ? (
                 <img src={`data:image/jpeg;base64,${form.foto}`} alt="Foto" className="h-full w-full object-cover" />
               ) : (
-                <span className="grid h-full w-full place-items-center text-slate-400"><Camera size={24} /></span>
+                <span className="grid h-full w-full place-items-center text-subtle"><Camera size={24} /></span>
               )}
               <input type="file" accept="image/*" onChange={escolherFoto} className="hidden" />
             </label>
@@ -266,7 +266,7 @@ export default function CadastroExtraPage() {
         </section>
 
         {/* Dados pessoais */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Dados pessoais</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
@@ -298,20 +298,20 @@ export default function CadastroExtraPage() {
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2.5">
               <input type="checkbox" checked={!!form.tem_filhos} onChange={e => set("tem_filhos", e.target.checked)} className="h-5 w-5 accent-emerald-600" />
-              <span className="text-sm font-bold text-slate-700">Tem filhos</span>
+              <span className="text-sm font-bold text-fg-soft">Tem filhos</span>
             </label>
             {form.tem_filhos && (
               <label className="flex items-center gap-2">
                 <span className="text-sm font-bold text-slate-600">Quantos?</span>
                 <input type="number" min="0" value={form.qtd_filhos} onChange={e => set("qtd_filhos", e.target.value)}
-                  className="h-11 w-20 rounded-xl border border-slate-200 bg-slate-50 px-3 text-center font-black text-slate-800 outline-none focus:border-emerald-500" />
+                  className="h-11 w-20 rounded-xl border border-line bg-slate-50 px-3 text-center font-black text-slate-800 outline-none focus:border-emerald-500" />
               </label>
             )}
           </div>
         </section>
 
         {/* Endereço */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Endereço</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2">
@@ -338,13 +338,13 @@ export default function CadastroExtraPage() {
         </section>
 
         {/* Pagamento e jornada */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Pagamento e jornada</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={rotulo}>Valor da diária (R$)</span>
               <input type="number" step="0.01" value={form.salario} onChange={e => set("salario", e.target.value)}
-                className="w-full p-4 mt-1.5 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
+                className="w-full p-4 mt-1.5 bg-slate-50 border border-line rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
             </label>
             <label className="block">
               <span className={rotulo}>Chave PIX</span>
@@ -368,65 +368,65 @@ export default function CadastroExtraPage() {
         {/* Dados do recibo */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
-          <p className="mb-4 mt-1 text-[13px] font-medium text-slate-500">
+          <p className="mb-4 mt-1 text-[13px] font-medium text-muted">
             Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.
           </p>
           <label className="block">
             <span className={rotulo}>O que a função faz (sai impresso no recibo)</span>
             <textarea rows={3} value={form.topicos_funcao} onChange={e => set("topicos_funcao", e.target.value)}
               placeholder="Ex.: Atender mesas, levar pedidos, repor bebidas, apoiar a limpeza do salão."
-              className="w-full p-3.5 mt-1.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800 outline-none focus:border-emerald-500" />
+              className="w-full p-3.5 mt-1.5 bg-card border border-line rounded-xl font-medium text-slate-800 outline-none focus:border-emerald-500" />
           </label>
           <label className="mt-4 block">
             <span className={rotulo}>Itens emprestados (separe por vírgula)</span>
             <input value={form.itens_emprestados} onChange={e => set("itens_emprestados", e.target.value)}
               placeholder="Uniforme / Camisa, Avental, Cartão de Consumo"
-              className="w-full p-4 mt-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
+              className="w-full p-4 mt-1.5 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
           </label>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className="block">
               <span className={rotulo}>Forma de pagamento</span>
               <select value={form.forma_pagamento} onChange={e => set("forma_pagamento", e.target.value)}
-                className="w-full p-4 mt-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500">
+                className="w-full p-4 mt-1.5 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500">
                 {FORMAS_PAGAMENTO.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </label>
             <label className="block">
               <span className={rotulo}>Vale transporte (R$)</span>
               <input type="number" step="0.01" value={form.vale_transporte_val} onChange={e => set("vale_transporte_val", e.target.value)}
-                placeholder="0,00" className="w-full p-4 mt-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                placeholder="0,00" className="w-full p-4 mt-1.5 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
             </label>
             <label className="block">
               <span className={rotulo}>Setor</span>
               <input value={form.setor_entrega} onChange={e => set("setor_entrega", e.target.value)}
-                placeholder="Salão, Cozinha, Bar" className="w-full p-4 mt-1.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                placeholder="Salão, Cozinha, Bar" className="w-full p-4 mt-1.5 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
             </label>
           </div>
           <label className="mt-4 flex items-center gap-2.5">
             <input type="checkbox" checked={form.janta_ofertada !== false} onChange={e => set("janta_ofertada", e.target.checked)} className="h-5 w-5 accent-emerald-600" />
-            <span className="text-sm font-bold text-slate-700">A casa oferece a janta</span>
+            <span className="text-sm font-bold text-fg-soft">A casa oferece a janta</span>
           </label>
         </section>
 
         {/* Histórico de recibos desta pessoa */}
         {!novo && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-700"><ReceiptText size={14} /> Recibos desta pessoa</p>
-            <p className="text-sm font-black text-slate-700">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
+            <p className="text-sm font-black text-fg-soft">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
           </div>
           {emAberto > 0 && (
             <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[13px] font-bold text-amber-800">Em aberto: {moeda(emAberto)}</p>
           )}
           <div className="mt-3 space-y-2">
             {recibos.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm font-bold text-slate-500">Nenhum recibo emitido para esta pessoa ainda.</p>
+              <p className="rounded-xl bg-slate-50 p-4 text-sm font-bold text-muted">Nenhum recibo emitido para esta pessoa ainda.</p>
             ) : recibos.map(r => (
               <div key={r.id}
-                className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left">
+                className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left">
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-black text-slate-900">{dataBR(r.data_trabalho)}</span>
-                  <span className="block text-xs font-bold text-slate-500">
+                  <span className="block text-[15px] font-black text-fg">{dataBR(r.data_trabalho)}</span>
+                  <span className="block text-xs font-bold text-muted">
                     {r.funcao_exercida || form.cargo || "Extra"}
                     {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
                   </span>
@@ -442,11 +442,11 @@ export default function CadastroExtraPage() {
       </main>
 
       {/* Botão fixo: salvar sempre à mão */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:p-4"
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 backdrop-blur sm:p-4"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto flex max-w-3xl gap-3">
           <button onClick={() => router.back()}
-            className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">
+            className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">
             Cancelar
           </button>
           <button onClick={() => salvar(false)} disabled={salvando}

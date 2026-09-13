@@ -76,7 +76,7 @@ export default function ConfiguracoesFiscaisPage() {
   };
 
   if (loading) {
-    return <div className="p-4 sm:p-8 text-slate-500 animate-pulse flex items-center gap-3">
+    return <div className="p-4 sm:p-8 text-muted animate-pulse flex items-center gap-3">
       <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
       Carregando dados fiscais...
     </div>;
@@ -90,7 +90,7 @@ export default function ConfiguracoesFiscaisPage() {
             <FileText className="text-emerald-500" size={32} />
             Configurações Fiscais
           </h1>
-          <p className="text-slate-500 mt-2">Dados obrigatórios para emissão de NFC-e e SAT</p>
+          <p className="text-muted mt-2">Dados obrigatórios para emissão de NFC-e e SAT</p>
         </div>
       </div>
 
@@ -105,30 +105,30 @@ export default function ConfiguracoesFiscaisPage() {
       <form onSubmit={handleSave} className="space-y-6">
         
         {/* Bloco Empresa */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="bg-card p-6 rounded-2xl shadow-sm border border-line">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
-            <Building2 className="text-slate-400" size={20} />
+            <Building2 className="text-subtle" size={20} />
             Dados da Empresa
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">CNPJ</label>
+              <label className="block text-sm font-bold text-fg-soft mb-2">CNPJ</label>
               <input 
                 type="text" 
                 value={dadosLoja.cnpj}
                 onChange={e => setDadosLoja({...dadosLoja, cnpj: e.target.value})}
                 placeholder="00.000.000/0001-00"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Regime Tributário</label>
+              <label className="block text-sm font-bold text-fg-soft mb-2">Regime Tributário</label>
               <select 
                 value={dadosLoja.regime_tributario}
                 onChange={e => setDadosLoja({...dadosLoja, regime_tributario: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               >
                 <option value="Simples Nacional">Simples Nacional</option>
                 <option value="Lucro Presumido">Lucro Presumido</option>
@@ -137,56 +137,56 @@ export default function ConfiguracoesFiscaisPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Inscrição Estadual (IE)</label>
+              <label className="block text-sm font-bold text-fg-soft mb-2">Inscrição Estadual (IE)</label>
               <input 
                 type="text" 
                 value={dadosLoja.inscricao_estadual}
                 onChange={e => setDadosLoja({...dadosLoja, inscricao_estadual: e.target.value})}
                 placeholder="Isento ou Número"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Inscrição Municipal (IM)</label>
+              <label className="block text-sm font-bold text-fg-soft mb-2">Inscrição Municipal (IM)</label>
               <input 
                 type="text" 
                 value={dadosLoja.inscricao_municipal}
                 onChange={e => setDadosLoja({...dadosLoja, inscricao_municipal: e.target.value})}
                 placeholder="Opcional"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
           </div>
         </div>
 
         {/* Bloco Endereço */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="bg-card p-6 rounded-2xl shadow-sm border border-line">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
-            <FileText className="text-slate-400" size={20} />
+            <FileText className="text-subtle" size={20} />
             Endereço Fiscal
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">Logradouro Completo</label>
+              <label className="block text-sm font-bold text-fg-soft mb-2">Logradouro Completo</label>
               <input 
                 type="text" 
                 value={dadosLoja.endereco_fiscal}
                 onChange={e => setDadosLoja({...dadosLoja, endereco_fiscal: e.target.value})}
                 placeholder="Rua Exemplo, 123, Bairro - Cidade/UF - CEP"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Código IBGE da Cidade</label>
+              <label className="block text-sm font-bold text-fg-soft mb-2">Código IBGE da Cidade</label>
               <input 
                 type="text" 
                 value={dadosLoja.codigo_ibge}
                 onChange={e => setDadosLoja({...dadosLoja, codigo_ibge: e.target.value})}
                 placeholder="Ex: 3550308 (São Paulo)"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function ConfiguracoesFiscaisPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-slate-400 mb-2">Token de Integração</label>
+              <label className="block text-sm font-bold text-subtle mb-2">Token de Integração</label>
               <input 
                 type="password" 
                 value={dadosLoja.token_nfe}
@@ -212,7 +212,7 @@ export default function ConfiguracoesFiscaisPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-slate-400 mb-2">Ambiente</label>
+              <label className="block text-sm font-bold text-subtle mb-2">Ambiente</label>
               <select 
                 value={dadosLoja.ambiente_nfe}
                 onChange={e => setDadosLoja({...dadosLoja, ambiente_nfe: e.target.value})}

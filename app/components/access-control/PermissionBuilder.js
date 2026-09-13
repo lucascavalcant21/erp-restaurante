@@ -51,17 +51,17 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
   };
 
   return (
-    <div className="grid min-h-[32rem] grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white lg:grid-cols-[15rem_1fr]">
-      <aside className="border-b border-slate-200 bg-slate-50 p-3 lg:border-b-0 lg:border-r">
-        <p className="px-2 pb-2 text-3xs font-bold uppercase tracking-[.18em] text-slate-400">Módulos</p>
+    <div className="grid min-h-[32rem] grid-cols-1 overflow-hidden rounded-2xl border border-line bg-card lg:grid-cols-[15rem_1fr]">
+      <aside className="border-b border-line bg-slate-50 p-3 lg:border-b-0 lg:border-r">
+        <p className="px-2 pb-2 text-3xs font-bold uppercase tracking-[.18em] text-subtle">Módulos</p>
         <div className="space-y-1">
           {PERMISSION_MODULES.map((item) => {
             const keys = item.pages.flatMap((page) => page.actions.map((action) => permissionKey(item.id, page.id, action)));
             const count = keys.filter((key) => selected.has(key)).length;
             return (
               <button key={item.id} type="button" onClick={() => setModuleId(item.id)}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${moduleId === item.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-white"}`}>
-                <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-3xs ${count ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${moduleId === item.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-card"}`}>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-3xs ${count ? "bg-emerald-500 text-white" : "bg-slate-200 text-muted"}`}>
                   {count ? <Check size={13} /> : "—"}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -77,7 +77,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
           <div>
             <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">{module.label}</p>
             <h3 className="mt-1 text-xl font-black text-slate-800">Páginas e ações</h3>
-            <p className="mt-1 text-sm text-slate-500">{moduleCount} de {moduleKeys.length} permissões selecionadas</p>
+            <p className="mt-1 text-sm text-muted">{moduleCount} de {moduleKeys.length} permissões selecionadas</p>
           </div>
           <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
             <input type="checkbox" checked={moduleCount === moduleKeys.length}
@@ -96,24 +96,24 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
         </div>
 
         {copySources.length > 0 && (
-          <div className="mb-5 flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row">
-            <select value={copyId} onChange={(event) => setCopyId(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium">
+          <div className="mb-5 flex flex-col gap-2 rounded-xl border border-line bg-slate-50 p-3 sm:flex-row">
+            <select value={copyId} onChange={(event) => setCopyId(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm font-medium">
               <option value="">Copiar permissões de usuário ou perfil...</option>
               {copySources.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}
             </select>
-            <button type="button" disabled={!copyId} onClick={copy} className="flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm disabled:opacity-40"><Copy size={15}/> Copiar</button>
+            <button type="button" disabled={!copyId} onClick={copy} className="flex items-center justify-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-bold text-fg-soft shadow-sm disabled:opacity-40"><Copy size={15}/> Copiar</button>
           </div>
         )}
 
         <div className="space-y-4">
           {module.pages.map((page) => (
-            <div key={page.id} className="rounded-xl border border-slate-200 p-4">
+            <div key={page.id} className="rounded-xl border border-line p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
                   <p className="font-black text-slate-800">{page.label}</p>
-                  <p className="text-2xs text-slate-400">{page.route}</p>
+                  <p className="text-2xs text-subtle">{page.route}</p>
                 </div>
-                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-500">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-muted">
                   <input type="checkbox"
                     checked={page.actions.every((action) => selected.has(permissionKey(module.id, page.id, action)))}
                     onChange={(event) => {
@@ -131,7 +131,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
                 {page.actions.map((action) => {
                   const key = permissionKey(module.id, page.id, action);
                   return (
-                    <label key={key} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${selected.has(key) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-100 bg-slate-50 text-slate-600"}`}>
+                    <label key={key} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${selected.has(key) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-line-soft bg-slate-50 text-slate-600"}`}>
                       <input type="checkbox" checked={selected.has(key)} onChange={(event) => setKey(key, event.target.checked)} className="accent-emerald-600" />
                       {ACTION_LABELS[action] || action}
                     </label>

@@ -213,7 +213,7 @@ export default function VidaColaboradorPage() {
               {liderados.length > 0 && <span className="erp-badge erp-badge-ok"><Users size={12} /> Lidera {liderados.length} pessoa(s)</span>}
               {isFree && (
                 <span className="erp-badge erp-badge-warn flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (sel.avaliacao_estrelas || 0) ? "fill-amber-500 text-amber-500" : "text-slate-300"} />)}
+                  {[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (sel.avaliacao_estrelas || 0) ? "fill-amber-500 text-amber-500" : "text-dim"} />)}
                 </span>
               )}
             </div>
@@ -585,7 +585,7 @@ export default function VidaColaboradorPage() {
             if (a !== "Todos" && n === 0) return null;
             return (
               <button key={a} onClick={() => setAreaFiltro(a)}
-                className={`px-3 py-1.5 rounded-full text-2xs font-bold whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : ""}`}
+                className={`px-3 py-1.5 rounded-full text-2xs font-bold whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-card dark:text-fg" : ""}`}
                 style={areaFiltro === a ? {} : { background: "var(--elevated)", color: "var(--muted)" }}>
                 {a} <span className={areaFiltro === a ? "opacity-60" : ""} style={areaFiltro === a ? {} : { color: "var(--dim)" }}>({n})</span>
               </button>

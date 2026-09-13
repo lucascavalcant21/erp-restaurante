@@ -101,10 +101,10 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Clientes na Base</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Clientes na Base</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.totalCli}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-emerald-600"><Users size={20}/></div>
+            <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center text-emerald-600"><Users size={20}/></div>
           </div>
           <p className="text-xs font-bold text-emerald-500 flex items-center gap-1 mt-3">
             <TrendingUp size={12}/> +{(kpis.totalCli * 0.1).toFixed(0)} este mês
@@ -114,31 +114,31 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Score NPS</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Score NPS</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.npsAvg}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><Star size={20} className="fill-emerald-600"/></div>
           </div>
-          <p className="text-xs font-bold text-slate-500 mt-3">{kpis.npsAvg > 80 ? "Zona de Excelência" : "Atenção Requerida"}</p>
+          <p className="text-xs font-bold text-muted mt-3">{kpis.npsAvg > 80 ? "Zona de Excelência" : "Atenção Requerida"}</p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">Taxa de Retorno</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Taxa de Retorno</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.taxaRetorno}%</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-emerald-600"><Heart size={20}/></div>
+            <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center text-emerald-600"><Heart size={20}/></div>
           </div>
-          <p className="text-xs font-bold text-slate-500 mt-3">Clientes fidelizados</p>
+          <p className="text-xs font-bold text-muted mt-3">Clientes fidelizados</p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 border-none text-white relative overflow-hidden">
           <div className="absolute -right-4 -top-4 opacity-10"><Award size={120} /></div>
           <div className="relative z-10">
-            <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-1">LTV Médio</p>
+            <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">LTV Médio</p>
             <p className="text-3xl font-black tracking-tighter">{fmtBRL(kpis.avgLtv)}</p>
-            <p className="text-xs font-bold text-slate-500 mt-3">Gasto de vida útil</p>
+            <p className="text-xs font-bold text-muted mt-3">Gasto de vida útil</p>
           </div>
         </Card>
       </div>
@@ -146,10 +146,10 @@ export default function CRMPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Ranking de Top Clientes */}
         <Card className="p-0 overflow-hidden">
-          <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+          <div className="p-5 border-b border-line-soft bg-slate-50 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Top Clientes (LTV)</h3>
-              <p className="text-3xs font-medium text-slate-500 mt-1">Os que mais gastaram historicamente</p>
+              <p className="text-3xs font-medium text-muted mt-1">Os que mais gastaram historicamente</p>
             </div>
             <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Ver todos</button>
           </div>
@@ -162,30 +162,30 @@ export default function CRMPage() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-800">{cliente.nome}</p>
-                    <p className="text-2xs font-medium text-slate-500">{cliente.total_pedidos} visitas • LTV</p>
+                    <p className="text-2xs font-medium text-muted">{cliente.total_pedidos} visitas • LTV</p>
                   </div>
                 </div>
                 <span className="text-sm font-black text-emerald-600">{fmtBRL(cliente.total_gasto)}</span>
               </div>
             ))}
             {clientes.length === 0 && (
-               <div className="p-8 text-center text-slate-500 font-medium">Nenhum cliente registrado</div>
+               <div className="p-8 text-center text-muted font-medium">Nenhum cliente registrado</div>
             )}
           </div>
         </Card>
 
         {/* Alertas de Avaliações */}
         <Card className="p-0 overflow-hidden">
-          <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+          <div className="p-5 border-b border-line-soft bg-slate-50 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Atenção: Avaliações</h3>
-              <p className="text-3xs font-medium text-slate-500 mt-1">Reviews recentes com nota baixa</p>
+              <p className="text-3xs font-medium text-muted mt-1">Reviews recentes com nota baixa</p>
             </div>
             <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Abrir NPS</button>
           </div>
           <div className="p-4 space-y-4">
             {avaliacoes.filter(a => Number(a.nota) <= 5).slice(0,4).map((av) => (
-              <div key={av.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <div key={av.id} className="bg-slate-50 border border-line rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <HeartCrack size={16} className="text-slate-600"/>
@@ -193,7 +193,7 @@ export default function CRMPage() {
                   </div>
                   <span className="text-3xs font-bold text-slate-600 uppercase tracking-widest">{av.origem} (Nota {av.nota})</span>
                 </div>
-                <p className="text-sm text-slate-700 italic">"{av.comentario}"</p>
+                <p className="text-sm text-fg-soft italic">"{av.comentario}"</p>
               </div>
             ))}
             {avaliacoes.filter(a => Number(a.nota) <= 5).length === 0 && (
@@ -211,37 +211,37 @@ export default function CRMPage() {
   // Renderização da Aba Base de Clientes
   const renderBase = () => (
     <Card className="p-0 overflow-hidden">
-      <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50">
+      <div className="p-5 border-b border-line-soft flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input 
               type="text" 
               placeholder="Buscar cliente..." 
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64"
+              className="pl-9 pr-4 py-2 border border-line rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64"
             />
           </div>
         </div>
       </div>
-      <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+      <div className="rounded-2xl overflow-hidden shadow-md border border-line">
         {/* Cabeçalho */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center">
-          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Cliente</span>
-          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Contato</span>
-          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300">Status</span>
-          <span className="text-2xs font-bold uppercase tracking-widest text-slate-300 text-right">LTV Total</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-dim">Cliente</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-dim">Contato</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-dim">Status</span>
+          <span className="text-2xs font-bold uppercase tracking-widest text-dim text-right">LTV Total</span>
         </div>
         {/* Linhas */}
-        <div className="bg-white divide-y divide-slate-100">
+        <div className="bg-card divide-y divide-slate-100">
           {clientesFiltrados.map((cliente) => (
             <div key={cliente.id} className="px-5 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center hover:bg-blue-50/40 transition-all duration-150">
               <div className="flex items-center gap-3">
                 <div className="w-1 h-10 rounded-full bg-blue-500 shrink-0" />
                 <div>
                   <p className="font-bold text-slate-800 text-sm">{cliente.nome}</p>
-                  <p className="text-3xs font-medium uppercase tracking-widest text-slate-500 mt-0.5">{cliente.total_pedidos} visitas</p>
+                  <p className="text-3xs font-medium uppercase tracking-widest text-muted mt-0.5">{cliente.total_pedidos} visitas</p>
                 </div>
               </div>
               <span className="text-sm text-slate-600 font-medium">{cliente.telefone || cliente.tel || "Não inf."}</span>
@@ -257,7 +257,7 @@ export default function CRMPage() {
             </div>
           ))}
           {clientesFiltrados.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-16 text-subtle">
               <Users size={40} className="mb-3 opacity-30" />
               <p className="font-bold text-sm">Nenhum cliente encontrado na busca.</p>
             </div>
@@ -270,31 +270,31 @@ export default function CRMPage() {
   // Renderização da Aba Avaliações (NPS)
   const renderNPS = () => (
     <Card className="p-0 overflow-hidden bg-slate-50">
-      <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+      <div className="p-5 border-b border-line-soft flex items-center justify-between bg-card">
         <div>
           <h3 className="text-lg font-black text-slate-800 tracking-tighter">Feedbacks e Avaliações</h3>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Resumo de satisfação</p>
+          <p className="text-xs font-medium text-muted uppercase tracking-widest">Resumo de satisfação</p>
         </div>
       </div>
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {avaliacoes.map((av) => (
-          <div key={av.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div key={av.id} className="bg-card p-5 rounded-2xl border border-line shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex text-slate-500">
+                <div className="flex text-muted">
                   {/* Converte nota 0-10 para 1-5 estrelas simbolicamente */}
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={14} className={i < (av.nota/2) ? "fill-yellow-400" : "text-slate-200"} />
                   ))}
                 </div>
-                <span className="text-3xs font-bold text-slate-500 uppercase tracking-widest">{av.origem}</span>
+                <span className="text-3xs font-bold text-muted uppercase tracking-widest">{av.origem}</span>
               </div>
-              <p className="text-sm font-medium text-slate-700 italic">"{av.comentario || 'Sem comentário'}"</p>
+              <p className="text-sm font-medium text-fg-soft italic">"{av.comentario || 'Sem comentário'}"</p>
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-4 pt-4 border-t border-line-soft flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-800">{av.nome}</p>
-                <p className="text-3xs text-slate-500">{av.data}</p>
+                <p className="text-3xs text-muted">{av.data}</p>
               </div>
             </div>
           </div>
@@ -306,10 +306,10 @@ export default function CRMPage() {
   // Renderização da Aba Campanhas
   const renderCampanhas = () => (
     <div className="space-y-6">
-       <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+       <div className="flex justify-between items-center bg-card p-6 rounded-2xl border border-line shadow-sm">
           <div>
             <h3 className="font-black text-xl text-slate-800">Campanhas e Cashback</h3>
-            <p className="text-sm font-medium text-slate-500 mt-1">Acorde clientes inativos com SMS ou WhatsApp</p>
+            <p className="text-sm font-medium text-muted mt-1">Acorde clientes inativos com SMS ou WhatsApp</p>
           </div>
           <button onClick={() => setModalCampanha(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
             <Plus size={18}/> Criar Campanha
@@ -335,26 +335,26 @@ export default function CRMPage() {
                 </div>
                 <p className="text-sm text-slate-600 mb-6">{c.descricao}</p>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-line-soft pt-4">
                    <div>
-                      <p className="text-3xs font-bold text-slate-500 uppercase">Atingidos</p>
+                      <p className="text-3xs font-bold text-muted uppercase">Atingidos</p>
                       <p className="font-black text-slate-800 text-lg">{c.clientes_atingidos || 0}</p>
                    </div>
                    <div>
-                      <p className="text-3xs font-bold text-slate-500 uppercase">Conversão</p>
+                      <p className="text-3xs font-bold text-muted uppercase">Conversão</p>
                       <p className="font-black text-slate-800 text-lg">
                         {c.meta_clientes > 0 ? Math.round(((c.clientes_atingidos||0) / c.meta_clientes)*100) : 0}%
                       </p>
                    </div>
                    <div>
-                      <p className="text-3xs font-bold text-slate-500 uppercase">Receita (ROI)</p>
+                      <p className="text-3xs font-bold text-muted uppercase">Receita (ROI)</p>
                       <p className="font-black text-emerald-600 text-lg">{fmtBRL(c.receita_gerada)}</p>
                    </div>
                 </div>
              </Card>
           ))}
           {campanhas.length === 0 && (
-             <div className="col-span-2 p-10 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+             <div className="col-span-2 p-10 text-center text-muted font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-300">
                Nenhuma campanha criada ainda.
              </div>
           )}
@@ -365,12 +365,12 @@ export default function CRMPage() {
   return (
     <div className="min-h-screen pb-20">
       {/* HEADER DA TORRE DE CRM */}
-      <div className="px-4 pt-8 md:pt-12 pb-6 bg-[var(--surface)] sticky top-0 z-30 border-b border-slate-100 shadow-sm">
+      <div className="px-4 pt-8 md:pt-12 pb-6 bg-[var(--surface)] sticky top-0 z-30 border-b border-line-soft shadow-sm">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 max-w-6xl mx-auto">
           <div>
-            <p className="text-3xs md:text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Marketing</p>
+            <p className="text-3xs md:text-xs font-bold uppercase tracking-widest text-muted mb-1">Marketing</p>
             <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tighter text-slate-800">Relacionamento.</h1>
-            <p className="text-sm font-semibold text-slate-500 mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
+            <p className="text-sm font-semibold text-muted mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => { setActiveTab('campanhas'); setModalCampanha(true); }} className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shadow-emerald-600/20 shadow-xl">
@@ -393,7 +393,7 @@ export default function CRMPage() {
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
                 activeTab === tab.id 
                   ? "bg-slate-800 text-white shadow-md" 
-                  : "bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  : "bg-transparent text-muted hover:bg-elevated hover:text-slate-800"
               }`}
             >
               <tab.icon size={16} />
@@ -422,31 +422,31 @@ export default function CRMPage() {
       {/* MODAL NOVA CAMPANHA */}
       {modalCampanha && (
          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 my-3 sm:my-0 max-h-[94vh] overflow-y-auto">
+            <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 my-3 sm:my-0 max-h-[94vh] overflow-y-auto">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="font-black text-2xl text-slate-800">Criar Campanha</h2>
-                  <button onClick={() => setModalCampanha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalCampanha(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="space-y-4">
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Campanha</label>
-                     <input type="text" value={novaCampanha.nome} onChange={e=>setNovaCampanha({...novaCampanha, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Ex: Resgate Inverno"/>
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest">Nome da Campanha</label>
+                     <input type="text" value={novaCampanha.nome} onChange={e=>setNovaCampanha({...novaCampanha, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Ex: Resgate Inverno"/>
                   </div>
                   
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mensagem/Descrição</label>
-                     <textarea value={novaCampanha.descricao} onChange={e=>setNovaCampanha({...novaCampanha, descricao: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 resize-none h-24" placeholder="Sua msg aqui..."/>
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest">Mensagem/Descrição</label>
+                     <textarea value={novaCampanha.descricao} onChange={e=>setNovaCampanha({...novaCampanha, descricao: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-medium outline-none focus:border-emerald-500 resize-none h-24" placeholder="Sua msg aqui..."/>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Código do Cupom</label>
-                        <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500" placeholder="Ex: VOLTA10"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Código do Cupom</label>
+                        <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500" placeholder="Ex: VOLTA10"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Desconto (R$ ou %)</label>
-                        <input type="number" value={novaCampanha.desconto} onChange={e=>setNovaCampanha({...novaCampanha, desconto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="10"/>
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Desconto (R$ ou %)</label>
+                        <input type="number" value={novaCampanha.desconto} onChange={e=>setNovaCampanha({...novaCampanha, desconto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="10"/>
                      </div>
                   </div>
                </div>

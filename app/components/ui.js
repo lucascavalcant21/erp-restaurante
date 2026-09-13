@@ -274,7 +274,7 @@ export function Toggle({ active, onChange }) {
   return (
     <button onClick={onChange} className="w-10 h-6 rounded-full relative transition-colors flex-shrink-0"
       style={{ background: active ? "var(--accent-strong)" : "var(--elevated)" }}>
-      <div className="w-4 h-4 rounded-full bg-white absolute top-1 transition-all shadow-sm"
+      <div className="w-4 h-4 rounded-full bg-card absolute top-1 transition-all shadow-sm"
         style={{ left: active ? "calc(100% - 20px)" : "4px" }} />
     </button>
   );

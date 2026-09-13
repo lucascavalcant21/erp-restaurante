@@ -40,7 +40,7 @@ function CardInstalar() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
       <div className="bg-emerald-50 border-b border-emerald-100 p-4 flex items-center gap-2">
         <Smartphone size={18} className="text-emerald-600" />
         <h2 className="font-bold text-emerald-800">Instalar o Aplicativo (tablet, celular e computador)</h2>
@@ -56,17 +56,17 @@ function CardInstalar() {
             </button>
             {(mostrarComo || !temPrompt) && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <p className="font-black text-slate-700 mb-1">Android (Chrome)</p>
+                <div className="bg-slate-50 border border-line rounded-xl p-4">
+                  <p className="font-black text-fg-soft mb-1">Android (Chrome)</p>
                   <p className="text-slate-600 font-medium">Toque no menu <b>⋮</b> (canto superior direito) → <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.</p>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <p className="font-black text-slate-700 mb-1">iPhone / iPad (Safari)</p>
+                <div className="bg-slate-50 border border-line rounded-xl p-4">
+                  <p className="font-black text-fg-soft mb-1">iPhone / iPad (Safari)</p>
                   <p className="text-slate-600 font-medium">Toque em <b>Compartilhar</b> (quadrado com seta) → <b>"Adicionar à Tela de Início"</b>.</p>
                 </div>
               </div>
             )}
-            <p className="text-2xs text-slate-400 font-medium mt-3">Se já instalou antes e mudou a versão, desinstale e instale de novo para pegar a tela cheia nova.</p>
+            <p className="text-2xs text-subtle font-medium mt-3">Se já instalou antes e mudou a versão, desinstale e instale de novo para pegar a tela cheia nova.</p>
           </>
         )}
       </div>
@@ -114,23 +114,23 @@ function CardParametros({ unidadeAtiva }) {
     ]],
   ];
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
-        <SlidersHorizontal size={18} className="text-slate-500" />
+    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+        <SlidersHorizontal size={18} className="text-muted" />
         <h2 className="font-bold text-slate-800">Parâmetros do Sistema</h2>
       </div>
       <div className="p-6 space-y-6">
         {GRUPOS.map(([titulo, campos]) => (
           <div key={titulo}>
-            <p className="text-2xs font-bold uppercase tracking-widest text-slate-400 mb-3">{titulo}</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-subtle mb-3">{titulo}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {campos.map(([k, label, hint]) => (
                 <div key={k}>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+                  <label className="text-xs font-bold text-muted uppercase tracking-widest">{label}</label>
                   <input type="number" min="0" step="1" value={p[k]}
                     onChange={e => setP(prev => ({ ...prev, [k]: e.target.value === "" ? "" : Number(e.target.value) }))}
-                    className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500" />
-                  <p className="text-3xs text-slate-400 font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
+                    className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
+                  <p className="text-3xs text-subtle font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
                 </div>
               ))}
             </div>
@@ -141,7 +141,7 @@ function CardParametros({ unidadeAtiva }) {
             className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar parâmetros
           </button>
-          <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-slate-500 hover:text-slate-700">Voltar aos padrões</button>
+          <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-muted hover:text-fg-soft">Voltar aos padrões</button>
           {ok && <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
         </div>
       </div>
@@ -196,28 +196,28 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
 
   if (!categorias) return null;
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
         <Tag size={18} className="text-emerald-600" />
         <div>
           <h2 className="font-bold text-slate-800">Validades padrão das etiquetas</h2>
-          <p className="text-2xs text-slate-500 font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
+          <p className="text-2xs text-muted font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
         </div>
       </div>
       <div className="p-6 space-y-3">
         {categorias.map((item, indice) => (
           <div key={item.id} className="grid grid-cols-[1fr_110px_40px] gap-2 items-end">
             <div>
-              <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Categoria</label>
+              <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Categoria</label>
               <input value={item.nome} onChange={(e) => alterar(indice, "nome", e.target.value)}
                 placeholder="Ex.: Molhos e bases"
-                className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
             </div>
             <div>
-              <label className="text-3xs font-bold uppercase tracking-widest text-slate-400">Validade (dias)</label>
+              <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Validade (dias)</label>
               <input type="number" min="0" max="3650" value={item.dias}
                 onChange={(e) => alterar(indice, "dias", e.target.value)}
-                className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500" />
+                className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
             </div>
             <button type="button" onClick={() => setCategorias((lista) => lista.filter((_, i) => i !== indice))}
               title="Remover categoria" className="h-11 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center">
@@ -266,34 +266,34 @@ function CardCargos({ unidadeAtiva }) {
   const excluir = async (c) => { if (!confirm(`Excluir a função "${c.nome}"?`)) return; await removerCargo(c.id); setLista(p => p.filter(x => x.id !== c.id)); };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
-        <Briefcase size={18} className="text-slate-500" />
+    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+        <Briefcase size={18} className="text-muted" />
         <div>
           <h2 className="font-bold text-slate-800">Funções / Cargos</h2>
-          <p className="text-2xs text-slate-500 font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
+          <p className="text-2xs text-muted font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
         </div>
       </div>
       <div className="p-6 space-y-4">
         {lista.length > 0 && (
           <div className="space-y-2">
             {lista.map(c => (
-              <div key={c.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-xl p-3">
+              <div key={c.id} className="flex items-center justify-between gap-2 border border-line rounded-xl p-3">
                 <div className="min-w-0 flex items-center gap-2">
                   <span className="font-bold text-slate-800 truncate">{c.nome}</span>
                   {c.eh_supervisor && <span className="text-3xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Supervisor</span>}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => alternarSup(c)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
+                  <button onClick={() => alternarSup(c)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-elevated text-fg-soft hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
                   <button onClick={() => excluir(c)} title="Excluir" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
                 </div>
               </div>
             ))}
           </div>
         )}
-        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
           <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nova função (ex: Chef de Fila)"
-            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+            className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
           <label className="flex items-center gap-2 text-sm font-bold text-slate-600 px-2 whitespace-nowrap cursor-pointer">
             <input type="checkbox" checked={ehSup} onChange={e => setEhSup(e.target.checked)} style={{ accentColor: "#F59E0B" }} /> É supervisor
           </label>
@@ -338,36 +338,36 @@ function CardUnidades() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
-        <Store size={18} className="text-slate-500" />
+    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+        <Store size={18} className="text-muted" />
         <div>
           <h2 className="font-bold text-slate-800">Unidades (lojas)</h2>
-          <p className="text-2xs text-slate-500 font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
+          <p className="text-2xs text-muted font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
         </div>
       </div>
       <div className="p-6 space-y-4">
         <div className="space-y-2">
           {reais.map(u => (
-            <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-slate-200"}`}>
+            <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-line"}`}>
               <div className="min-w-0">
                 <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-3xs font-bold uppercase tracking-widest text-emerald-600">Ativa</span>}</p>
-                {u.cidade && <p className="text-2xs text-slate-500 truncate">{u.cidade}</p>}
+                {u.cidade && <p className="text-2xs text-muted truncate">{u.cidade}</p>}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {unidadeAtiva !== u.id && (
-                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">Usar</button>
+                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-elevated text-fg-soft hover:bg-slate-200">Usar</button>
                 )}
                 <button onClick={() => excluir(u)} title="Excluir unidade" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
               </div>
             </div>
           ))}
-          {reais.length === 0 && <p className="text-sm text-slate-400 font-medium">Nenhuma unidade cadastrada ainda.</p>}
+          {reais.length === 0 && <p className="text-sm text-subtle font-medium">Nenhuma unidade cadastrada ainda.</p>}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
           <input value={nova} onChange={e => setNova(e.target.value)} placeholder="Nome da nova unidade (ex: Filial Centro)"
-            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+            className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
           <button onClick={criar} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
             <Plus size={16} /> {salvando ? "Criando..." : "Criar unidade"}
           </button>
@@ -380,24 +380,24 @@ function CardUnidades() {
 
 function CardControleAcessos() {
   return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 p-4">
+    <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+      <div className="flex items-center gap-2 border-b border-line-soft bg-slate-50 p-4">
         <ShieldCheck size={18} className="text-violet-600" />
         <div>
           <h2 className="font-bold text-slate-800">Usuários, perfis e permissões</h2>
-          <p className="text-2xs font-medium text-slate-500">Controle acessos por empresa, unidade, setor, página e ação.</p>
+          <p className="text-2xs font-medium text-muted">Controle acessos por empresa, unidade, setor, página e ação.</p>
         </div>
       </div>
       <div className="grid gap-3 p-5 sm:grid-cols-2">
-        <a href="/dashboard/configuracoes/usuarios" className="group rounded-xl border border-slate-200 p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
+        <a href="/dashboard/configuracoes/usuarios" className="group rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Users size={20} className="mb-3 text-emerald-600" />
           <p className="font-black text-slate-800">Usuários e acessos</p>
-          <p className="mt-1 text-xs text-slate-500">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
+          <p className="mt-1 text-xs text-muted">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
         </a>
-        <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-slate-200 p-4 transition hover:border-violet-300 hover:bg-violet-50">
+        <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-line p-4 transition hover:border-violet-300 hover:bg-violet-50">
           <ShieldCheck size={20} className="mb-3 text-violet-600" />
           <p className="font-black text-slate-800">Perfis de acesso</p>
-          <p className="mt-1 text-xs text-slate-500">Monte permissões reutilizáveis por módulo, página e ação.</p>
+          <p className="mt-1 text-xs text-muted">Monte permissões reutilizáveis por módulo, página e ação.</p>
         </a>
       </div>
     </div>
@@ -430,20 +430,20 @@ function CardSenhas({ unidadeAtiva }) {
     ["pin_gerente", "PIN do Gerente", "Libera entrada atrasada, destrava o Modo Tablet e sai das estações de área"],
   ];
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
-        <Lock size={18} className="text-slate-500" />
+    <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+        <Lock size={18} className="text-muted" />
         <h2 className="font-bold text-slate-800">Senhas e PINs (4 números)</h2>
       </div>
       <div className="p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           {CAMPOS_PIN.map(([k, label, hint]) => (
             <div key={k}>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+              <label className="text-xs font-bold text-muted uppercase tracking-widest">{label}</label>
               <input type="text" inputMode="numeric" maxLength={4} value={pins[k] || ""}
                 onChange={e => setPins(p => ({ ...p, [k]: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
-              <p className="text-3xs text-slate-400 font-medium mt-1">{hint}</p>
+                className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-black text-fg-soft tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
+              <p className="text-3xs text-subtle font-medium mt-1">{hint}</p>
             </div>
           ))}
         </div>
@@ -561,8 +561,8 @@ export default function ConfiguracoesPage() {
 
   if (loading) return <div className="p-6"><SkeletonList /></div>;
 
-  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none";
-  const labelCls = "block text-xs font-bold text-slate-500 mb-1.5 uppercase";
+  const inputCls = "w-full bg-slate-50 border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none";
+  const labelCls = "block text-xs font-bold text-muted mb-1.5 uppercase";
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto w-full font-sans">
@@ -573,17 +573,17 @@ export default function ConfiguracoesPage() {
         </div>
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Configurações da Loja</h1>
-          <p className="text-sm text-slate-500 font-medium">Dados cadastrais, fiscais e físicos da unidade — usados nos documentos impressos (atas, orçamentos, fichas).</p>
+          <p className="text-sm text-muted font-medium">Dados cadastrais, fiscais e físicos da unidade — usados nos documentos impressos (atas, orçamentos, fichas).</p>
         </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
 
         {/* CARD 1: Informações Públicas */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
-            <Store size={18} className="text-slate-500" />
-            <h2 className="font-bold text-slate-700">Informações Públicas</h2>
+        <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
+          <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+            <Store size={18} className="text-muted" />
+            <h2 className="font-bold text-fg-soft">Informações Públicas</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="col-span-1 md:col-span-2">
@@ -606,10 +606,10 @@ export default function ConfiguracoesPage() {
         </div>
 
         {/* CARD 2: Dados Fiscais */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
+          <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
             <Landmark size={18} className="text-emerald-600" />
-            <h2 className="font-bold text-slate-700">Dados Fiscais</h2>
+            <h2 className="font-bold text-fg-soft">Dados Fiscais</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -646,16 +646,16 @@ export default function ConfiguracoesPage() {
         </div>
 
         {/* CARD 3: Endereço Físico */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
+          <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
             <MapPin size={18} className="text-emerald-600" />
-            <h2 className="font-bold text-slate-700">Endereço Físico</h2>
+            <h2 className="font-bold text-fg-soft">Endereço Físico</h2>
           </div>
           <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
             <div className="col-span-2 md:col-span-2">
               <label className={`${labelCls} flex items-center gap-1`}>CEP {buscandoCep && <Loader2 size={11} className="animate-spin" />}</label>
               <input type="text" name="cep" value={dadosLoja.cep} onChange={handleChange} onBlur={e => buscarCep(e.target.value)} className={inputCls} placeholder="00000-000" />
-              <p className="text-3xs text-slate-400 mt-1">Digite o CEP e o endereço preenche sozinho.</p>
+              <p className="text-3xs text-subtle mt-1">Digite o CEP e o endereço preenche sozinho.</p>
             </div>
             <div className="col-span-2 md:col-span-3">
               <label className={labelCls}>Endereço (rua/avenida)</label>
@@ -681,13 +681,13 @@ export default function ConfiguracoesPage() {
         </div>
 
         {/* BOTÕES */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-line">
           {sucesso ? (
             <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-4 py-2 rounded-lg">
               <CheckCircle size={16} /> Configurações salvas com sucesso!
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-slate-400 font-medium text-xs">
+            <div className="flex items-center gap-2 text-subtle font-medium text-xs">
               <AlertCircle size={14} /> Esses dados saem no cabeçalho das atas, orçamentos e demais impressos.
             </div>
           )}

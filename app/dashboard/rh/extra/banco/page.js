@@ -118,14 +118,14 @@ export default function BancoDeExtras() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-20">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Banco de extras</h1>
-            <p className="text-xs font-bold text-slate-500">Quem se cadastrou pelo link público</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Banco de extras</h1>
+            <p className="text-xs font-bold text-muted">Quem se cadastrou pelo link público</p>
           </div>
-          <button onClick={copiarLink} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
+          <button onClick={copiarLink} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
             {linkCopiado ? <><Check size={18} /> Link copiado</> : <><Copy size={18} /> Copiar link</>}
           </button>
           <a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700"><ExternalLink size={18} /> Abrir portal</a>
@@ -136,15 +136,15 @@ export default function BancoDeExtras() {
         {/* Filtros */}
         <div className="erp-busca-fixa grid gap-3 sm:grid-cols-[1fr_200px_170px]">
           <label className="relative flex items-center">
-            <Search className="absolute left-3.5 text-slate-400" size={18} />
+            <Search className="absolute left-3.5 text-subtle" size={18} />
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por nome, função ou telefone..."
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-11 pr-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+              className="h-12 w-full rounded-xl border border-slate-300 bg-card pl-11 pr-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
           </label>
-          <select value={funcao} onChange={e => setFuncao(e.target.value)} className="h-12 rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-700">
+          <select value={funcao} onChange={e => setFuncao(e.target.value)} className="h-12 rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg-soft">
             <option value="">Todas as funções</option>
             {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
-          <select value={status} onChange={e => setStatus(e.target.value)} className="h-12 rounded-xl border border-slate-300 bg-white px-3 font-bold text-slate-700">
+          <select value={status} onChange={e => setStatus(e.target.value)} className="h-12 rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg-soft">
             <option value="novo">Novos</option>
             <option value="aprovado">Aprovados</option>
             <option value="arquivado">Arquivados</option>
@@ -155,22 +155,22 @@ export default function BancoDeExtras() {
         {aviso && <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{aviso}</p>}
 
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
           <div className="grid min-h-52 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>
         ) : filtrados.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <UsersRound className="mx-auto text-slate-300" size={42} />
-            <p className="mt-3 font-black text-slate-700">Nenhum cadastro por aqui</p>
-            <p className="mt-1 text-sm text-slate-500">Mande o link de cadastro no WhatsApp para começar a formar seu banco.</p>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
+            <UsersRound className="mx-auto text-dim" size={42} />
+            <p className="mt-3 font-black text-fg-soft">Nenhum cadastro por aqui</p>
+            <p className="mt-1 text-sm text-muted">Mande o link de cadastro no WhatsApp para começar a formar seu banco.</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {filtrados.map(e => (
-              <article key={e.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <article key={e.id} className="rounded-2xl border border-line bg-card p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[16px] font-black text-slate-900 truncate">{e.nome}</p>
+                    <p className="text-[16px] font-black text-fg truncate">{e.nome}</p>
                     <p className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-700">
                       <Briefcase size={14} /> {e.funcao_principal}{e.funcao_secundaria ? ` · ${e.funcao_secundaria}` : ""}
                     </p>
@@ -181,10 +181,10 @@ export default function BancoDeExtras() {
                 </div>
 
                 <div className="mt-3 space-y-1.5 text-[13px] font-semibold text-slate-600">
-                  <p className="flex items-center gap-1.5"><Phone size={14} className="text-slate-400" /> {e.telefone}</p>
-                  {(e.bairro || e.cidade) && <p className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> {[e.bairro, e.cidade].filter(Boolean).join(" · ")}</p>}
+                  <p className="flex items-center gap-1.5"><Phone size={14} className="text-subtle" /> {e.telefone}</p>
+                  {(e.bairro || e.cidade) && <p className="flex items-center gap-1.5"><MapPin size={14} className="text-subtle" /> {[e.bairro, e.cidade].filter(Boolean).join(" · ")}</p>}
                   {Array.isArray(e.dias_disponiveis) && e.dias_disponiveis.length > 0 && (
-                    <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-slate-400" /> {e.dias_disponiveis.map(rotuloDia).join(", ")}{horario(e) ? ` · ${horario(e)}` : ""}</p>
+                    <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-subtle" /> {e.dias_disponiveis.map(rotuloDia).join(", ")}{horario(e) ? ` · ${horario(e)}` : ""}</p>
                   )}
                   {e.nacionalidade && <p>Nacionalidade: <b className="text-slate-800">{e.nacionalidade}</b></p>}
                   {Number(e.valor_diaria_pretendido) > 0 && <p>Diária pretendida: <b className="text-slate-800">{moeda(e.valor_diaria_pretendido)}</b></p>}
@@ -194,11 +194,11 @@ export default function BancoDeExtras() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <a href={`https://wa.me/55${String(e.telefone).replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
-                    className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 hover:bg-slate-50">
+                    className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-card px-3 text-sm font-black text-fg-soft hover:bg-slate-50">
                     <Phone size={15} /> WhatsApp
                   </a>
                   <button onClick={() => setEditando({ ...e })} title="Corrigir dados"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50"><Pencil size={16} /></button>
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-muted hover:bg-slate-50"><Pencil size={16} /></button>
                   {e.status === "novo" && (
                     <>
                       <button onClick={() => aprovar(e)} disabled={aprovando === e.id}
@@ -206,7 +206,7 @@ export default function BancoDeExtras() {
                         {aprovando === e.id ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />} Cadastrar
                       </button>
                       <button onClick={() => arquivar(e)} title="Arquivar"
-                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50">
+                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-muted hover:bg-slate-50">
                         <Archive size={16} />
                       </button>
                     </>
@@ -217,7 +217,7 @@ export default function BancoDeExtras() {
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-2xs font-bold text-slate-400">Cadastrado em {dataBR(e.created_at)}</p>
+                <p className="mt-2 text-2xs font-bold text-subtle">Cadastrado em {dataBR(e.created_at)}</p>
               </article>
             ))}
           </div>
@@ -227,65 +227,65 @@ export default function BancoDeExtras() {
       {/* Correção do cadastro antes de aprovar */}
       {editando && (
         <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={() => !salvandoEdicao && setEditando(null)}>
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={ev => ev.stopPropagation()}>
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={ev => ev.stopPropagation()}>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-slate-900">Corrigir cadastro</h2>
-                <p className="text-sm text-slate-500">Ajuste antes de cadastrar como extra.</p>
+                <h2 className="text-lg font-black text-fg">Corrigir cadastro</h2>
+                <p className="text-sm text-muted">Ajuste antes de cadastrar como extra.</p>
               </div>
-              <button onClick={() => setEditando(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={18} /></button>
+              <button onClick={() => setEditando(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elevated text-muted"><X size={18} /></button>
             </div>
 
             <div className="space-y-4">
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Nome</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-muted">Nome</span>
                 <input value={editando.nome || ""} onChange={ev => setEditando(v => ({ ...v, nome: ev.target.value }))}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Telefone</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Telefone</span>
                   <input value={editando.telefone || ""} onChange={ev => setEditando(v => ({ ...v, telefone: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Diária combinada (R$)</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Diária combinada (R$)</span>
                   <input type="number" step="0.01" value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-emerald-700 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Função principal</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Função principal</span>
                   <select value={editando.funcao_principal || ""} onChange={ev => setEditando(v => ({ ...v, funcao_principal: ev.target.value }))}
-                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-fg-soft outline-none focus:border-emerald-600">
                     {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Segunda função</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Segunda função</span>
                   <select value={editando.funcao_secundaria || ""} onChange={ev => setEditando(v => ({ ...v, funcao_secundaria: ev.target.value }))}
-                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-fg-soft outline-none focus:border-emerald-600">
                     <option value="">Nenhuma</option>
                     {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Bairro</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Bairro</span>
                   <input value={editando.bairro || ""} onChange={ev => setEditando(v => ({ ...v, bairro: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Cidade</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Cidade</span>
                   <input value={editando.cidade || ""} onChange={ev => setEditando(v => ({ ...v, cidade: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
               </div>
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Chave PIX</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-muted">Chave PIX</span>
                 <input value={editando.chave_pix || ""} onChange={ev => setEditando(v => ({ ...v, chave_pix: ev.target.value }))}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
               </label>
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Observações do RH</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-muted">Observações do RH</span>
                 <textarea rows={3} value={editando.observacoes || ""} onChange={ev => setEditando(v => ({ ...v, observacoes: ev.target.value }))}
                   className="mt-1.5 w-full rounded-xl border border-slate-300 p-3.5 font-medium text-slate-800 outline-none focus:border-emerald-600"
                   placeholder="Só o RH vê." />

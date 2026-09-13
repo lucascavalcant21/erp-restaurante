@@ -106,12 +106,12 @@ function EtiquetasSalvas({ unidadeAtiva }) {
       {/* SIMULAÇÃO NO TELEFONE / TABLET — como o QR (rastreio) aparece ao ser lido */}
       {sim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4" onClick={() => setSim(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+          <div className="bg-card rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-slate-800">Como aparece no {aparelho}</h3>
-              <button onClick={() => setSim(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
+              <button onClick={() => setSim(null)} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-muted"><X size={16} /></button>
             </div>
-            <div className="flex gap-1 p-1 rounded-xl bg-slate-100 mb-4 w-max mx-auto">
+            <div className="flex gap-1 p-1 rounded-xl bg-elevated mb-4 w-max mx-auto">
               {[["telefone", "Telefone", Smartphone], ["tablet", "Tablet", Tablet]].map(([v, l, Ic]) => (
                 <button key={v} onClick={() => setAparelho(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
                   style={aparelho === v ? { background: "#fff", color: "#0f172a", boxShadow: "0 1px 2px rgba(0,0,0,.12)" } : { color: "#64748b" }}>
@@ -121,9 +121,9 @@ function EtiquetasSalvas({ unidadeAtiva }) {
             </div>
             {/* Moldura do aparelho com a página de rastreio dentro */}
             <div className="mx-auto rounded-[34px] border-[10px] border-slate-900 bg-slate-900 shadow-xl overflow-hidden" style={{ width: molduraTel.w, maxWidth: "100%", height: molduraTel.h, maxHeight: "62vh" }}>
-              <iframe title={`Simulação ${sim.codigo}`} src={`${origem}/rastreio/${sim.codigo}`} className="w-full h-full bg-white border-0" />
+              <iframe title={`Simulação ${sim.codigo}`} src={`${origem}/rastreio/${sim.codigo}`} className="w-full h-full bg-card border-0" />
             </div>
-            <p className="text-2xs text-center text-slate-400 mt-3">É exatamente a página que abre quando alguém aponta a câmera para o QR desta etiqueta.</p>
+            <p className="text-2xs text-center text-subtle mt-3">É exatamente a página que abre quando alguém aponta a câmera para o QR desta etiqueta.</p>
           </div>
         </div>
       )}
@@ -758,7 +758,7 @@ function EtiquetasRunner() {
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/15"><Mic size={25} /></span>
             <span><strong className="block text-lg font-black">Etiquetas por voz</strong><span className="mt-1 block text-sm font-semibold text-violet-50">Fale vários produtos e quantidades diferentes, confira e confirme a impressão por voz</span></span>
           </span>
-          <span className="hidden rounded-xl bg-white px-4 py-2 text-sm font-black text-violet-700 sm:block">Abrir voz</span>
+          <span className="hidden rounded-xl bg-card px-4 py-2 text-sm font-black text-violet-700 sm:block">Abrir voz</span>
         </button>
         <Toast show={!!salvou}>{salvou}</Toast>
 
@@ -894,7 +894,7 @@ function EtiquetasRunner() {
                   <div className="flex items-center gap-2 mt-1">
                     {impressoraStatus === "conectada"
                       ? <CheckCircle2 size={16} className="text-emerald-600" />
-                      : <WifiOff size={16} className="text-slate-400" />}
+                      : <WifiOff size={16} className="text-subtle" />}
                     <span className="text-sm font-bold" style={{ color: impressoraStatus === "conectada" ? "#059669" : "var(--muted)" }}>
                       {impressoraStatus === "conectada" ? `Conectada: ${impressoraNome}`
                         : impressoraStatus === "conectando" ? "Aguardando autorização..."
@@ -937,7 +937,7 @@ function EtiquetasRunner() {
                     <div className="flex items-center gap-2 min-w-0">
                       {btNome
                         ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                        : <WifiOff size={16} className="text-slate-400 shrink-0" />}
+                        : <WifiOff size={16} className="text-subtle shrink-0" />}
                       <span className="text-sm font-bold truncate" style={{ color: btNome ? "#059669" : "var(--muted)" }}>
                         {btNome ? `Conectada: ${btNome}` : "Nenhuma impressora pareada"}
                       </span>
@@ -1016,7 +1016,7 @@ function EtiquetasRunner() {
                 ))}
               </div>
             </div>
-            <div className="flex justify-center overflow-auto p-4 bg-slate-100 rounded-2xl border border-slate-200">
+            <div className="flex justify-center overflow-auto p-4 bg-elevated rounded-2xl border border-line">
               <div id="area-impressao" className="flex flex-col gap-4" style={{ width: dim.paginaW }}>
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (
                   modelo === "nome" ? (

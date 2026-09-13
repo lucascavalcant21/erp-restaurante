@@ -102,7 +102,7 @@ export default function KDSPage() {
       {/* HEADER DO KDS */}
       <div className="px-3 sm:px-6 py-3 sm:py-4 bg-slate-900 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50">
          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-white rounded-xl transition-colors active:scale-95">
+            <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-slate-800 hover:bg-slate-700 text-muted hover:text-white rounded-xl transition-colors active:scale-95">
                <ArrowLeft size={24} />
             </button>
             
@@ -112,7 +112,7 @@ export default function KDSPage() {
 
             <div>
                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">KDS Produção</h1>
-               <p className="text-xs sm:text-sm font-bold text-slate-500 flex items-center gap-2 mt-0.5 truncate">
+               <p className="text-xs sm:text-sm font-bold text-muted flex items-center gap-2 mt-0.5 truncate">
                  {unidadeInfo.nome} <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Sync ON
                </p>
             </div>
@@ -145,7 +145,7 @@ export default function KDSPage() {
          {pedidos.length === 0 && !loading ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-600 px-4 text-center">
                <LayoutGrid size={100} className="mb-6 opacity-20" />
-               <h2 className="text-2xl sm:text-4xl font-black text-slate-500 tracking-tight">Cozinha Limpa</h2>
+               <h2 className="text-2xl sm:text-4xl font-black text-muted tracking-tight">Cozinha Limpa</h2>
                <p className="text-base sm:text-xl font-bold mt-3 text-slate-600">Nenhum pedido na fila de preparo.</p>
             </div>
          ) : (
@@ -175,20 +175,20 @@ export default function KDSPage() {
                         {/* Cabeçalho Ticket */}
                          <div className={`p-3 sm:p-5 flex items-center justify-between gap-3 border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-900 border-slate-800'}`}>
                            <div>
-                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-slate-500' : 'text-white'}`}>
+                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-muted' : 'text-white'}`}>
                                  #{pedido.id.slice(0, 4).toUpperCase()}
                               </p>
-                              <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                              <p className="text-sm font-bold text-muted mt-1 uppercase tracking-widest">
                                  {pedido.cliente ? `👤 ${pedido.cliente}` : "BALCÃO"}
                               </p>
                            </div>
                            <div className={`px-4 py-2 rounded-xl flex flex-col items-end border ${
                               isAtrasado ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-slate-800/50 border-slate-700'
                            }`}>
-                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-slate-600 animate-pulse' : 'text-slate-500'}`}>
+                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-slate-600 animate-pulse' : 'text-muted'}`}>
                                  <Clock size={20} /> {minutos}m
                               </p>
-                              <p className="text-3xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
+                              <p className="text-3xs font-bold text-muted uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
                            </div>
                         </div>
 
@@ -200,13 +200,13 @@ export default function KDSPage() {
                               // Configs Visuais por Status
                               let stBg = "bg-slate-800";
                               let stBorder = "border-slate-700";
-                              let stText = "text-slate-500";
+                              let stText = "text-muted";
                               let stIcon = <div className="w-6 h-6 rounded-full border-4 border-slate-600" />;
                               
                               if (st === "preparando") {
                                  stBg = "bg-emerald-500/20";
                                  stBorder = "border-emerald-500/50";
-                                 stText = "text-slate-500";
+                                 stText = "text-muted";
                                  stIcon = <Flame size={24} className="text-slate-600 animate-pulse" />;
                               } else if (st === "pronto") {
                                  stBg = "bg-emerald-500/20";
@@ -248,7 +248,7 @@ export default function KDSPage() {
                               className={`w-full py-5 rounded-[20px] font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
                                  todosProntos 
                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse" 
-                                   : "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                                   : "bg-slate-800 text-muted hover:bg-slate-700"
                               }`}
                            >
                               <Check size={24} /> Entregar Pedido

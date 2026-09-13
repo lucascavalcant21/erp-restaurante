@@ -316,13 +316,13 @@ const idUsuario = sessao => sessao?.id || sessao?.user?.id || null;
 function Modal({ titulo, descricao, onClose, children, largo = false }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-sm sm:items-center sm:p-5">
-      <div className={`max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl ${largo ? "sm:max-w-3xl" : "sm:max-w-xl"}`}>
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-100 bg-white px-5 py-4 sm:px-6">
+      <div className={`max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card shadow-2xl sm:rounded-3xl ${largo ? "sm:max-w-3xl" : "sm:max-w-xl"}`}>
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-line-soft bg-card px-5 py-4 sm:px-6">
           <div>
-            <h2 className="text-lg font-black text-slate-900">{titulo}</h2>
-            {descricao && <p className="mt-1 text-sm text-slate-500">{descricao}</p>}
+            <h2 className="text-lg font-black text-fg">{titulo}</h2>
+            {descricao && <p className="mt-1 text-sm text-muted">{descricao}</p>}
           </div>
-          <button onClick={onClose} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar"><X size={20} /></button>
+          <button onClick={onClose} className="rounded-xl p-2 text-muted hover:bg-elevated" aria-label="Fechar"><X size={20} /></button>
         </div>
         <div className="p-5 sm:p-6">{children}</div>
       </div>
@@ -331,7 +331,7 @@ function Modal({ titulo, descricao, onClose, children, largo = false }) {
 }
 
 function Campo({ label, children }) {
-  return <label className="block text-sm font-bold text-slate-700"><span className="mb-2 block">{label}</span>{children}</label>;
+  return <label className="block text-sm font-bold text-fg-soft"><span className="mb-2 block">{label}</span>{children}</label>;
 }
 
 function BotaoSalvar({ carregando, children = "Salvar" }) {
@@ -1266,14 +1266,14 @@ function EstoqueRunner() {
   const ativo = estoqueAtual?.status === "ativo";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-7">
+    <div className="min-h-screen bg-slate-50 pb-16 text-fg">
+      <header className="border-b border-line bg-card px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <button onClick={abrirMenu} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" aria-label="Voltar ao módulo"><ArrowLeft size={21} /></button>
+            <button onClick={abrirMenu} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-slate-600 hover:bg-slate-50" aria-label="Voltar ao módulo"><ArrowLeft size={21} /></button>
             <div>
               <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Estoque</h1>
-              <p className="text-sm text-slate-500">Saldos e movimentações separados por área · {unidadeInfo?.nome || "Unidade"}</p>
+              <p className="text-sm text-muted">Saldos e movimentações separados por área · {unidadeInfo?.nome || "Unidade"}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1288,14 +1288,14 @@ function EstoqueRunner() {
                   if (pin === String(pinGerente)) definirQuiosque(false);
                   else avisar("PIN incorreto.", "erro");
                 }}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 font-black text-slate-600 hover:bg-slate-50"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-card px-4 font-black text-slate-600 hover:bg-slate-50"
                 title="Valores ocultos — PIN do gerente para mostrar">
                 <Lock size={18} /> Valores ocultos
               </button>
             ) : (
               <>
                 <button onClick={() => definirQuiosque(true)}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 font-bold hover:bg-slate-50"
                   title="Esconde custo e valor de estoque — para o tablet no salão">
                   <Lock size={18} /> Modo quiosque
                 </button>
@@ -1311,7 +1311,7 @@ function EstoqueRunner() {
                   title="Tela simples para dar entrada e baixa no dia a dia">
                   <Tablet size={18} /> Modo operação
                 </button>
-                <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50">
+                <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 font-bold hover:bg-slate-50">
                   <Settings2 size={18} /> Gerenciar estoques
                 </button>
               </>
@@ -1327,11 +1327,11 @@ function EstoqueRunner() {
           </div>
         )}
 
-        <section className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs">
+        <section className="bg-card rounded-2xl border border-line p-3 shadow-xs">
           <div className="flex items-center justify-between gap-3 mb-2 px-1">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Setores de Estoque</p>
-              <p className="text-xs text-slate-400">Selecione o estoque para visualizar os saldos</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted">Setores de Estoque</p>
+              <p className="text-xs text-subtle">Selecione o estoque para visualizar os saldos</p>
             </div>
             <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-emerald-700 hover:underline">
               Editar Área
@@ -1348,7 +1348,7 @@ function EstoqueRunner() {
                   className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
                     isSelected
                       ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900"
-                      : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
+                      : "border border-line bg-slate-50 text-fg-soft hover:bg-elevated hover:border-slate-300"
                   } ${estoque.status !== "ativo" ? "opacity-55" : ""}`}
                 >
                   <div className={`grid h-6 w-6 place-items-center rounded-md ${isSelected ? "bg-white/20 text-emerald-400" : "bg-slate-200 text-slate-600"}`}>
@@ -1366,12 +1366,12 @@ function EstoqueRunner() {
 
         {estoqueAtual && (
           <>
-            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card p-3.5 shadow-sm">
               <div className="flex items-center gap-2.5">
                 <span className="h-3.5 w-3.5 rounded-full shrink-0" style={{ backgroundColor: estoqueAtual.cor || "#047857" }} />
                 <div>
-                  <h2 className="text-base font-black text-slate-900 leading-tight">{estoqueAtual.nome}</h2>
-                  <span className="text-2xs font-bold text-slate-500">{itensDaArea.length} produtos cadastrados</span>
+                  <h2 className="text-base font-black text-fg leading-tight">{estoqueAtual.nome}</h2>
+                  <span className="text-2xs font-bold text-muted">{itensDaArea.length} produtos cadastrados</span>
                 </div>
               </div>
 
@@ -1382,17 +1382,17 @@ function EstoqueRunner() {
                 <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white hover:bg-slate-800 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackageMinus size={16} /> Nova baixa
                 </button>
-                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <ClipboardCheck size={16} className="text-emerald-600" /> Contagem
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => { setVozAberta(true); setVozItens([]); setVozTexto(""); setVozErro(""); setVozNaoAchados([]); }}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
                   <Mic size={16} /> Contagem por voz
                 </button>
-                <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
                 </button>
-                <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
                 </button>
                 <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
@@ -1413,26 +1413,26 @@ function EstoqueRunner() {
                   key={label}
                   type="button"
                   onClick={action}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-xs transition-all hover:border-slate-300 hover:shadow-sm active:scale-95 cursor-pointer"
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-card p-3 text-left shadow-xs transition-all hover:border-slate-300 hover:shadow-sm active:scale-95 cursor-pointer"
                 >
                   <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl font-black ${color}`}>
                     <Icon size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-3xs font-extrabold uppercase tracking-wider text-slate-500 truncate">{label}</p>
-                    <strong className="text-sm font-black text-slate-900 leading-tight block truncate">{value}</strong>
+                    <p className="text-3xs font-extrabold uppercase tracking-wider text-muted truncate">{label}</p>
+                    <strong className="text-sm font-black text-fg leading-tight block truncate">{value}</strong>
                   </div>
                 </button>
               ))}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-              <div className="grid grid-cols-2 gap-x-4 border-b border-slate-200 bg-slate-50/50 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
+            <section className="rounded-2xl border border-line bg-card shadow-xs overflow-hidden">
+              <div className="grid grid-cols-2 gap-x-4 border-b border-line bg-slate-50/50 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
                 {[
                   ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-muted hover:text-fg-soft"}`}>{label}</button>
                 ))}
                 {/* Entradas e saídas em forma de calendário, fora das abas. */}
                 <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
@@ -1442,22 +1442,22 @@ function EstoqueRunner() {
                 {/* Recomeço de contagem. Fica discreto de propósito: é a única
                     ação da tela que não tem desfazer. */}
                 <button onClick={() => setModalZerar({ confirmacao: "", alvos: estoqueAtual?.id ? [estoqueAtual.id] : [], salvando: false })}
-                  className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-slate-400 hover:text-red-600 sm:py-3.5 sm:text-sm">
+                  className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-subtle hover:text-red-600 sm:py-3.5 sm:text-sm">
                   Zerar estoque
                 </button>
               </div>
 
               {aba === "atual" || aba === "alertas" ? (
                 <>
-                  <div className="border-b border-slate-100 px-4 py-3 sm:px-6">
+                  <div className="border-b border-line-soft px-4 py-3 sm:px-6">
                     {grupos.length > 1 && (
                       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                        <span className="text-xs font-bold text-slate-500 shrink-0">Grupo:</span>
+                        <span className="text-xs font-bold text-muted shrink-0">Grupo:</span>
                         {grupos.map(grupo => (
                           <button
                             key={grupo}
                             onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-700 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-700 text-white shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
                           >
                             {grupo} ({contagemGrupos[grupo] || 0})
                           </button>
@@ -1466,10 +1466,10 @@ function EstoqueRunner() {
                     )}
                     
                     {/* Bar Temperature / Cozinha Ready Food Quick Filter Badges */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-line-soft">
                       {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug?.includes("bar") || estoqueAtual?.nome?.toLowerCase()?.includes("bar")) ? (
                         <>
-                          <span className="text-xs font-bold text-slate-500 mr-1">Temperatura Bar:</span>
+                          <span className="text-xs font-bold text-muted mr-1">Temperatura Bar:</span>
                           {[
                             ["todos_temp", "Todos os Itens"],
                             ["apenas_gelado", "Gelados (Expositor)"],
@@ -1479,7 +1479,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1487,7 +1487,7 @@ function EstoqueRunner() {
                         </>
                       ) : (
                         <>
-                          <span className="text-xs font-bold text-slate-500 mr-1">Estado Insumo/Comida:</span>
+                          <span className="text-xs font-bold text-muted mr-1">Estado Insumo/Comida:</span>
                           {[
                             ["todos_estado", "Todos os Itens"],
                             ["insumos", "Insumos Brutos"],
@@ -1498,7 +1498,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1509,19 +1509,19 @@ function EstoqueRunner() {
                   </div>
                   <div className="erp-busca-fixa grid gap-3 p-4 lg:grid-cols-[1fr_180px_170px_160px] bg-slate-50/30">
                     <label className="relative flex items-center">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold z-10" size={18} />
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-bold z-10" size={18} />
                       <input
                         value={filtros.busca}
                         onChange={e => setFiltros({ ...filtros, busca: e.target.value })}
                         placeholder="Buscar por nome, marca ou código..."
-                        className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs font-bold text-slate-900 shadow-xs transition-all focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 placeholder:text-slate-400"
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-card pl-10 pr-3 text-xs font-bold text-fg shadow-xs transition-all focus:border-emerald-600 focus:bg-card focus:outline-none focus:ring-2 focus:ring-emerald-500/20 placeholder:text-subtle"
                       />
                     </label>
-                    <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">{categorias.map(v => <option key={v}>{v}</option>)}</select>
-                    <select value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
+                    <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-card px-3 text-xs font-bold text-fg-soft">{categorias.map(v => <option key={v}>{v}</option>)}</select>
+                    <select value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-card px-3 text-xs font-bold text-fg-soft">
                       <option value="todos">Todos os status</option><option value="abaixo">Abaixo do mínimo</option><option value="validade">Validade próxima</option><option value="sem-saldo">Sem saldo</option>
                     </select>
-                    <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">{locais.map(v => <option key={v}>{v}</option>)}</select>
+                    <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-card px-3 text-xs font-bold text-fg-soft">{locais.map(v => <option key={v}>{v}</option>)}</select>
                     {/* Separar a lista por onde a coisa fica (expositor, balcão, depósito...) */}
                     {(estoqueAtual?.locais_internos || []).length > 0 && (
                       <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-bold text-emerald-800">
@@ -1551,24 +1551,24 @@ function EstoqueRunner() {
       {/* CONTAGEM POR VOZ: dita o inventário e confere antes de gravar */}
       {vozAberta && (
         <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={() => !vozSalvando && setVozAberta(false)}>
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={e => e.stopPropagation()}>
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={e => e.stopPropagation()}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-slate-900">Contagem por voz</h2>
-                <p className="text-sm text-slate-500">Fale item e quantidade: “banana cinco quilos, tomate três caixas”.</p>
+                <h2 className="text-lg font-black text-fg">Contagem por voz</h2>
+                <p className="text-sm text-muted">Fale item e quantidade: “banana cinco quilos, tomate três caixas”.</p>
               </div>
-              <button onClick={() => setVozAberta(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={18} /></button>
+              <button onClick={() => setVozAberta(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elevated text-muted"><X size={18} /></button>
             </div>
 
             <button onClick={iniciarContagemVoz} disabled={vozLendo || vozSalvando}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black transition-all disabled:opacity-60 ${
-                vozOuvindo ? "bg-emerald-600 text-white" : "border-2 border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"}`}>
-              {vozOuvindo ? <><span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" /><span className="relative inline-flex h-3 w-3 rounded-full bg-white" /></span> Ouvindo... toque para parar</>
+                vozOuvindo ? "bg-emerald-600 text-white" : "border-2 border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
+              {vozOuvindo ? <><span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-card opacity-70" /><span className="relative inline-flex h-3 w-3 rounded-full bg-card" /></span> Ouvindo... toque para parar</>
                 : vozLendo ? <><Loader2 size={19} className="animate-spin" /> Entendendo...</>
                 : <><Mic size={19} /> Falar a contagem</>}
             </button>
 
-            {vozTexto && <p className="mt-3 rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm font-medium text-slate-700">{vozTexto}</p>}
+            {vozTexto && <p className="mt-3 rounded-xl bg-slate-50 border border-line p-3 text-sm font-medium text-fg-soft">{vozTexto}</p>}
             {vozErro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{vozErro}</p>}
             {vozNaoAchados.length > 0 && (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">
@@ -1578,26 +1578,26 @@ function EstoqueRunner() {
 
             {vozItens.length > 0 && (
               <>
-                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-slate-500">Confira antes de gravar</p>
+                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-muted">Confira antes de gravar</p>
                 <div className="mt-2 space-y-2">
                   {vozItens.map((linha, i) => (
-                    <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
+                    <div key={i} className="flex items-center gap-2 rounded-xl border border-line bg-card p-2.5">
                       <div className="min-w-0 flex-1">
                         <p className="text-[15px] font-black text-slate-800 truncate">{linha.item.nome}</p>
-                        <p className="text-xs font-bold text-slate-400">saldo atual {fmtQtd(linha.item.quantidade_atual)} {mostrarUn(linha.item.unidade_medida)}</p>
+                        <p className="text-xs font-bold text-subtle">saldo atual {fmtQtd(linha.item.quantidade_atual)} {mostrarUn(linha.item.unidade_medida)}</p>
                       </div>
                       <input type="number" step="0.001" min="0" value={linha.quantidade}
                         onChange={e => setVozItens(a => a.map((x, j) => j === i ? { ...x, quantidade: Number(e.target.value) } : x))}
                         className="h-11 w-24 rounded-xl border-2 border-emerald-200 px-2 text-center font-black text-emerald-700 outline-none focus:border-emerald-500" />
-                      <button onClick={() => setVozItens(a => a.filter((_, j) => j !== i))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-rose-600"><X size={16} /></button>
+                      <button onClick={() => setVozItens(a => a.filter((_, j) => j !== i))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line text-rose-600"><X size={16} /></button>
                     </div>
                   ))}
                 </div>
 
                 <label className="mt-4 block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Quem está contando *</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Quem está contando *</span>
                   <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })}
-                    className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-slate-200 bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
+                    className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-line bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
                     <option value="">Selecione o responsável...</option>
                     {colaboradoresFiltrados.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
                   </select>
@@ -1621,7 +1621,7 @@ function EstoqueRunner() {
         >
           <form onSubmit={executarOperacao} className="space-y-4">
             <Campo label={`Produto (${modal.tipo === "entrada" ? `Estoque ${estoqueAtual?.nome || ""}` : "Disponível no estoque"})`}>
-              <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:bg-slate-100">
+              <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:bg-elevated">
                 <option value="">Selecione o produto...</option>
                 {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itensDaArea).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
@@ -1631,10 +1631,10 @@ function EstoqueRunner() {
             {modal.tipo === "entrada" && !modal.item && (novoProduto ? (
               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
                 <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
+                <p className="mt-1 text-xs font-semibold text-muted">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_90px_100px_120px]">
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Produto</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Produto</span>
                     <input autoFocus value={novoProduto.nome} onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value }))}
                       placeholder="Nome do produto" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1643,19 +1643,19 @@ function EstoqueRunner() {
                       cadastrado aqui nascia sem volume — e sem volume a ficha
                       técnica não sabe quanto sai de cada garrafa. */}
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Volume</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Volume</span>
                     <input inputMode="decimal" value={novoProduto.volume} onChange={e => setNovoProduto(p => ({ ...p, volume: e.target.value }))}
                       placeholder="750" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Medida</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Medida</span>
                     <select value={novoProduto.unidade} onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value }))}
-                      className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                      className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-fg-soft outline-none focus:border-emerald-600">
                       {["ml", "l", "g", "kg", "un"].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Custo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Custo</span>
                     <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
                       placeholder="0,00" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1664,9 +1664,9 @@ function EstoqueRunner() {
                     esta unidade que aparece na contagem ("3 garrafas"), e o
                     volume diz quanto tem em cada uma. */}
                 <label className="mt-2 flex flex-col gap-1">
-                  <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Como se compra (opcional)</span>
+                  <span className="text-3xs font-bold uppercase tracking-widest text-muted">Como se compra (opcional)</span>
                   <select value={novoProduto.unidadeComercial || ""} onChange={e => setNovoProduto(p => ({ ...p, unidadeComercial: e.target.value }))}
-                    className="h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    className="h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-fg-soft outline-none focus:border-emerald-600">
                     <option value="">A granel — conta na própria medida</option>
                     {["garrafa", "lata", "caixa", "pacote", "fardo", "pote", "unidade"].map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
@@ -1676,12 +1676,12 @@ function EstoqueRunner() {
                     depois para preencher o que ainda não faltou. */}
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Estoque mínimo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Estoque mínimo</span>
                     <input inputMode="decimal" value={novoProduto.minimo || ""} onChange={e => setNovoProduto(p => ({ ...p, minimo: e.target.value }))}
                       placeholder="Avisa quando cair abaixo" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Estoque máximo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Estoque máximo</span>
                     <input inputMode="decimal" value={novoProduto.maximo || ""} onChange={e => setNovoProduto(p => ({ ...p, maximo: e.target.value }))}
                       placeholder="Quanto cabe / quanto comprar" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1690,10 +1690,10 @@ function EstoqueRunner() {
                     categoria" nunca mais é classificado depois. */}
                 {categoriasDisponiveis(estoqueAtual).length > 0 && (
                   <div className="mt-2">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-slate-500">Categoria</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Categoria</span>
                     <div className="mt-1 flex gap-2">
                       <select value={novoProduto.categoria} onChange={e => setNovoProduto(p => ({ ...p, categoria: e.target.value }))}
-                        className="h-12 flex-1 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                        className="h-12 flex-1 rounded-xl border border-slate-300 px-2 font-bold text-fg-soft outline-none focus:border-emerald-600">
                         {categoriasDisponiveis(estoqueAtual).map(c => <option key={c} value={c}>{c}</option>)}
                         <option value="Sem categoria">Sem categoria</option>
                       </select>
@@ -1712,7 +1712,7 @@ function EstoqueRunner() {
                       <input value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); criarCategoria(estoqueAtual); } }}
                         placeholder="Criar nova categoria..."
-                        className="h-11 flex-1 rounded-xl border border-slate-200 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600" />
+                        className="h-11 flex-1 rounded-xl border border-line px-3 font-bold text-fg-soft outline-none focus:border-emerald-600" />
                       <button type="button" onClick={() => criarCategoria(estoqueAtual)} disabled={!novaCategoria.trim()}
                         className="h-11 shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-700 disabled:opacity-40">
                         Criar
@@ -1721,7 +1721,7 @@ function EstoqueRunner() {
                   </div>
                 )}
                 <div className="mt-3 flex gap-2">
-                  <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600">Cancelar</button>
+                  <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-line bg-card px-4 text-sm font-bold text-slate-600">Cancelar</button>
                   <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
                     className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
                     {novoProduto.salvando ? "Cadastrando..." : "Cadastrar e usar"}
@@ -1777,7 +1777,7 @@ function EstoqueRunner() {
                                   const tot = (Number(frio) || 0) + (Number(quente) || 0);
                                   setOperacao({ ...operacao, qtd_frio: frio, quantidade: String(tot) });
                                 }}
-                                className="h-12 w-full rounded-xl border-2 border-sky-300 bg-white text-center font-black text-lg text-sky-950 outline-none focus:border-sky-500"
+                                className="h-12 w-full rounded-xl border-2 border-sky-300 bg-card text-center font-black text-lg text-sky-950 outline-none focus:border-sky-500"
                               />
                             </div>
                             <div>
@@ -1794,11 +1794,11 @@ function EstoqueRunner() {
                                   const tot = (Number(frio) || 0) + (Number(quente) || 0);
                                   setOperacao({ ...operacao, qtd_quente: quente, quantidade: String(tot) });
                                 }}
-                                className="h-12 w-full rounded-xl border-2 border-amber-300 bg-white text-center font-black text-lg text-amber-950 outline-none focus:border-amber-500"
+                                className="h-12 w-full rounded-xl border-2 border-amber-300 bg-card text-center font-black text-lg text-amber-950 outline-none focus:border-amber-500"
                               />
                             </div>
                           </div>
-                          <div className="flex items-center justify-between text-xs font-bold text-slate-700 bg-white p-2.5 rounded-xl border border-sky-200">
+                          <div className="flex items-center justify-between text-xs font-bold text-fg-soft bg-card p-2.5 rounded-xl border border-sky-200">
                             <span>📦 Saldo Total do Bar (Frio + Quente):</span>
                             <span className="text-sm font-black text-emerald-600">{fmtQtd(operacao.quantidade)} {mostrarUn(itemMod?.unidade_medida)}</span>
                           </div>
@@ -1806,11 +1806,11 @@ function EstoqueRunner() {
                       ) : (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <label className="block text-xs font-bold text-slate-700">
+                            <label className="block text-xs font-bold text-fg-soft">
                               {modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}
                             </label>
                             {itemMod && (
-                              <span className="text-3xs font-bold text-slate-500">
+                              <span className="text-3xs font-bold text-muted">
                                 Cadastro: <strong className="text-slate-800 uppercase">{mostrarUn(itemMod.unidade_medida)}</strong>
                               </span>
                             )}
@@ -1823,7 +1823,7 @@ function EstoqueRunner() {
                               type="number"
                               value={operacao.quantidade}
                               onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })}
-                              className="h-14 flex-1 min-w-0 rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-slate-900 outline-none focus:border-emerald-500"
+                              className="h-14 flex-1 min-w-0 rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-fg outline-none focus:border-emerald-500"
                               placeholder="0"
                             />
                             {itemMod && ["kg", "g", "l", "ml"].includes(String(itemMod.unidade_medida || "").toLowerCase()) && (
@@ -1834,7 +1834,7 @@ function EstoqueRunner() {
                                   const unBase = String(itemMod.unidade_medida).toLowerCase();
                                   setOperacao({ ...operacao, unidade_digitada: novaUn });
                                 }}
-                                className="h-14 rounded-2xl border-2 border-slate-300 bg-slate-100 px-3 font-bold text-xs text-slate-800 outline-none"
+                                className="h-14 rounded-2xl border-2 border-slate-300 bg-elevated px-3 font-bold text-xs text-slate-800 outline-none"
                               >
                                 {["kg", "g"].includes(String(itemMod.unidade_medida).toLowerCase()) ? (
                                   <>
@@ -1867,12 +1867,12 @@ function EstoqueRunner() {
                       )}
                       {modal.tipo === "transferencia" ? (
                         <Campo label="Estoque de destino">
-                          <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-bold text-slate-800">
+                          <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-14 w-full rounded-2xl border border-line px-3 font-bold text-slate-800">
                             <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
                           </select>
                         </Campo>
                       ) : (
-                        <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" /></Campo>
+                        <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-line px-3 font-semibold text-slate-800" /></Campo>
                       )}
                     </div>
                     {modal.tipo === "contagem" && itemMod && (() => {
@@ -1883,7 +1883,7 @@ function EstoqueRunner() {
                       const valorDiff = diff * custo;
                       const unName = mostrarUn(itemMod?.unidade_medida || itemMod?.unidade_comercial || "un");
                       return (
-                        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
+                        <div className="mt-3 rounded-2xl border border-line bg-slate-50 p-3.5 space-y-2 text-xs">
                           <div className="flex justify-between items-center text-slate-600 font-medium">
                             <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({dinheiro(saldoSistema * custo)})</span>
                             <span>Custo Un.: <b>{dinheiro(custo)}/{unName}</b></span>
@@ -1903,13 +1903,13 @@ function EstoqueRunner() {
                     })()}
                     {modal.tipo !== "contagem" && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
-                        <span className="w-full text-2xs font-bold uppercase text-slate-400 tracking-wider">Atalhos Rápidos de Quantidade:</span>
+                        <span className="w-full text-2xs font-bold uppercase text-subtle tracking-wider">Atalhos Rápidos de Quantidade:</span>
                         {[1, 2, 5, 10, 20, 50].map(val => (
                           <button
                             key={val}
                             type="button"
                             onClick={() => setOperacao(prev => ({ ...prev, quantidade: String((Number(prev.quantidade) || 0) + val) }))}
-                            className="flex-1 min-w-[48px] py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-100 text-slate-900 hover:text-emerald-900 font-black text-sm border border-slate-200 active:scale-95 transition-all"
+                            className="flex-1 min-w-[48px] py-2.5 rounded-xl bg-elevated hover:bg-emerald-100 text-fg hover:text-emerald-900 font-black text-sm border border-line active:scale-95 transition-all"
                           >
                             +{val}
                           </button>
@@ -1932,7 +1932,7 @@ function EstoqueRunner() {
                 return (
                   <div className="space-y-2">
                     <Campo label={`Quantidade recebida (${unLabel}s)`}>
-                      <input required min="0" step="1" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder={`Ex.: 10 ${unLabel}s`} />
+                      <input required min="0" step="1" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" placeholder={`Ex.: 10 ${unLabel}s`} />
                     </Campo>
                     <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
                   </div>
@@ -1958,13 +1958,13 @@ function EstoqueRunner() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       {[["conteudo", `Por conteúdo (${unConteudo})`], ["unidade", `Por ${unLabel} fechada`]].map(([v, l]) => (
-                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600"}`}>{l}</button>
+                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-line text-slate-600"}`}>{l}</button>
                       ))}
                     </div>
                     <Campo label={operacao.modo === "unidade" ? `Quantidade (${unLabel}s)` : `Quantidade (${unConteudo})`}>
-                      <input required min="0" step={operacao.modo === "unidade" ? "1" : "0.001"} type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                      <input required min="0" step={operacao.modo === "unidade" ? "1" : "0.001"} type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
                     </Campo>
-                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Saldo: {div.fechadas} {unLabel}s{div.aberto > 0 ? ` + ${fmtEquiv(div.aberto, unConteudo)}` : ""}. {preview}</p>
+                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-fg-soft">Saldo: {div.fechadas} {unLabel}s{div.aberto > 0 ? ` + ${fmtEquiv(div.aberto, unConteudo)}` : ""}. {preview}</p>
                   </div>
                 );
               }
@@ -1974,13 +1974,13 @@ function EstoqueRunner() {
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-3">
                     <Campo label={`${unLabel.charAt(0).toUpperCase() + unLabel.slice(1)}s fechadas`}>
-                      <input required min="0" step="1" type="number" value={operacao.fechadas} onChange={e => setOperacao({ ...operacao, fechadas: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                      <input required min="0" step="1" type="number" value={operacao.fechadas} onChange={e => setOperacao({ ...operacao, fechadas: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
                     </Campo>
                     <Campo label={`Aberto (${unConteudo})`}>
-                      <input min="0" step="0.001" type="number" value={operacao.aberto} onChange={e => setOperacao({ ...operacao, aberto: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                      <input min="0" step="0.001" type="number" value={operacao.aberto} onChange={e => setOperacao({ ...operacao, aberto: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
                     </Campo>
                   </div>
-                  <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
+                  <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-fg-soft">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
                 </div>
               );
             })()}
@@ -2009,13 +2009,13 @@ function EstoqueRunner() {
                   <button type="button" onClick={() => { if (pinDigitado === String(pinGerente)) { setUnidadeLiberada(true); setPinDigitado(null); } else avisar("PIN incorreto.", "erro"); }}
                     className="h-11 rounded-xl bg-amber-600 px-4 text-sm font-black text-white">Liberar</button>
                   <button type="button" onClick={() => setPinDigitado(null)}
-                    className="h-11 rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-800">Cancelar</button>
+                    className="h-11 rounded-xl border border-amber-300 bg-card px-4 text-sm font-bold text-amber-800">Cancelar</button>
                 </div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></Campo>
-              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></Campo>
+              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-elevated disabled:text-muted" /></Campo>
+              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-elevated disabled:text-muted" /></Campo>
               {!unidadeLiberada && (
                 <button type="button" onClick={() => setPinDigitado("")} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800">
                   <Lock size={16} /> Liberar mínimo e máximo com PIN
@@ -2023,8 +2023,8 @@ function EstoqueRunner() {
               )}
               <Campo label="Custo unitário">
                 <div className="relative">
-                  <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
-                  <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 pl-10 pr-3 font-semibold" placeholder="0,00" />
+                  <span className="absolute left-3.5 top-3 text-sm font-extrabold text-muted">R$</span>
+                  <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-line pl-10 pr-3 font-semibold" placeholder="0,00" />
                 </div>
               </Campo>
               {/* Unidade de medida: trocar não converte o saldo que já existe,
@@ -2038,18 +2038,18 @@ function EstoqueRunner() {
                   </select>
                 ) : (
                   <button type="button" onClick={() => { setPinDigitado(""); }}
-                    className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 px-3 text-left">
-                    <span className="font-bold text-slate-700">{String(formItem.unidade_medida || "un").toLowerCase()}</span>
+                    className="flex h-12 w-full items-center justify-between rounded-xl border border-line px-3 text-left">
+                    <span className="font-bold text-fg-soft">{String(formItem.unidade_medida || "un").toLowerCase()}</span>
                     <span className="text-xs font-bold text-emerald-700">Alterar</span>
                   </button>
                 )}
               </Campo>
-              {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
+              {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" /></Campo>}
               {/* Onde a coisa fica dentro do estoque: expositor, balcão, depósito... */}
               <Campo label="Onde fica">
                 <input list="locais-do-estoque" value={formItem.local_interno || ""} onChange={e => setFormItem({ ...formItem, local_interno: e.target.value })}
                   placeholder={(estoqueAtual?.locais_internos || [])[0] || "Ex.: Balcão refrigerado"}
-                  className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                  className="h-12 w-full rounded-xl border border-line px-3" />
                 <datalist id="locais-do-estoque">
                   {(estoqueAtual?.locais_internos || []).map(l => <option key={l} value={l} />)}
                 </datalist>
@@ -2057,8 +2057,8 @@ function EstoqueRunner() {
             </div>
             {/* Embalagem — valem para o produto em todos os estoques */}
             {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
-              <div className="rounded-xl border border-slate-200 p-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Bebida / embalado</p>
+              <div className="rounded-xl border border-line p-3">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Bebida / embalado</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Campo label="Unidade comercial">
                     {(() => {
@@ -2074,7 +2074,7 @@ function EstoqueRunner() {
                         opcoes = ehFruta ? ["unidade", "g", "kg"] : ["garrafa", "lata", "barril"];
                       }
                       return (
-                        <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
+                        <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3">
                           <option value="">Selecione...</option>
                           {opcoes.map(u => (
                             <option key={u} value={u}>
@@ -2100,14 +2100,14 @@ function EstoqueRunner() {
         <Modal titulo={formEstoque.id ? "Editar estoque" : "Novo estoque"} descricao="Cadastre uma área independente de saldo e movimentações." onClose={() => setModal(null)} largo>
           <form onSubmit={salvarConfiguracaoEstoque} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Campo label="Nome"><input required value={formEstoque.nome || ""} onChange={e => setFormEstoque({ ...formEstoque, nome: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Tipo"><select value={formEstoque.tipo || "materiais"} onChange={e => setFormEstoque({ ...formEstoque, tipo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">{TIPOS_ESTOQUE.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></Campo>
-              <Campo label="Status"><select value={formEstoque.status || "ativo"} onChange={e => setFormEstoque({ ...formEstoque, status: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></Campo>
-              <Campo label="Cor"><input type="color" value={formEstoque.cor || "#059669"} onChange={e => setFormEstoque({ ...formEstoque, cor: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 p-2" /></Campo>
-              <Campo label="Locais internos (separados por vírgula)"><input value={formEstoque.locais_texto || ""} onChange={e => setFormEstoque({ ...formEstoque, locais_texto: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder="Despensa, Câmara fria" /></Campo>
-              <Campo label="Perfis autorizados (separados por vírgula)"><input value={formEstoque.permissoes_texto || ""} onChange={e => setFormEstoque({ ...formEstoque, permissoes_texto: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder="administrador, estoque" /></Campo>
+              <Campo label="Nome"><input required value={formEstoque.nome || ""} onChange={e => setFormEstoque({ ...formEstoque, nome: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" /></Campo>
+              <Campo label="Tipo"><select value={formEstoque.tipo || "materiais"} onChange={e => setFormEstoque({ ...formEstoque, tipo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3">{TIPOS_ESTOQUE.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></Campo>
+              <Campo label="Status"><select value={formEstoque.status || "ativo"} onChange={e => setFormEstoque({ ...formEstoque, status: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></Campo>
+              <Campo label="Cor"><input type="color" value={formEstoque.cor || "#059669"} onChange={e => setFormEstoque({ ...formEstoque, cor: e.target.value })} className="h-12 w-full rounded-xl border border-line p-2" /></Campo>
+              <Campo label="Locais internos (separados por vírgula)"><input value={formEstoque.locais_texto || ""} onChange={e => setFormEstoque({ ...formEstoque, locais_texto: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" placeholder="Despensa, Câmara fria" /></Campo>
+              <Campo label="Perfis autorizados (separados por vírgula)"><input value={formEstoque.permissoes_texto || ""} onChange={e => setFormEstoque({ ...formEstoque, permissoes_texto: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" placeholder="administrador, estoque" /></Campo>
             </div>
-            <Campo label="Descrição"><textarea value={formEstoque.descricao || ""} onChange={e => setFormEstoque({ ...formEstoque, descricao: e.target.value })} className="min-h-20 w-full rounded-xl border border-slate-200 p-3" /></Campo>
+            <Campo label="Descrição"><textarea value={formEstoque.descricao || ""} onChange={e => setFormEstoque({ ...formEstoque, descricao: e.target.value })} className="min-h-20 w-full rounded-xl border border-line p-3" /></Campo>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={!!formEstoque.controla_validade} onChange={e => setFormEstoque({ ...formEstoque, controla_validade: e.target.checked })} /> Controlar validade</label>
               <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formEstoque.controla_minimo !== false} onChange={e => setFormEstoque({ ...formEstoque, controla_minimo: e.target.checked })} /> Controlar estoque mínimo</label>
@@ -2121,7 +2121,7 @@ function EstoqueRunner() {
         <Modal titulo={`Importar lista para ${estoqueAtual?.nome}`} descricao="Cada linha: produto; saldo; unidade; mínimo; local." onClose={() => setModal(null)} largo>
           <form onSubmit={importarLista} className="space-y-4">
             <div className="rounded-xl bg-emerald-50 p-3 font-mono text-xs text-emerald-900">Arroz branco; 12; kg; 5; Despensa seca<br />Detergente; 24; un; 6; Armário 02</div>
-            <textarea required value={textoImportacao} onChange={e => setTextoImportacao(e.target.value)} className="min-h-64 w-full rounded-xl border border-slate-200 p-3 font-mono text-sm" placeholder="Cole sua lista aqui..." />
+            <textarea required value={textoImportacao} onChange={e => setTextoImportacao(e.target.value)} className="min-h-64 w-full rounded-xl border border-line p-3 font-mono text-sm" placeholder="Cole sua lista aqui..." />
             <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Importar</BotaoSalvar></div>
           </form>
         </Modal>
@@ -2133,10 +2133,10 @@ function EstoqueRunner() {
             {(() => {
               const movsItem = movimentos.filter(m => String(m.insumo_id) === String(modal.item?.insumo_id) || String(m.insumo_nome || "").toLowerCase() === String(modal.item?.nome || "").toLowerCase());
               if (!movsItem.length) {
-                return <div className="p-8 text-center text-slate-500 font-bold">Nenhuma movimentação registrada para este produto.</div>;
+                return <div className="p-8 text-center text-muted font-bold">Nenhuma movimentação registrada para este produto.</div>;
               }
               return (
-                <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200">
+                <div className="max-h-96 overflow-y-auto rounded-xl border border-line">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-900 text-white">
                       <tr>
@@ -2152,9 +2152,9 @@ function EstoqueRunner() {
                         <tr key={m.id} className="hover:bg-slate-50">
                           <td className="p-3 font-medium text-slate-600">{fmtData(m.data_movimento, true)}</td>
                           <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>{m.tipo}</span></td>
-                          <td className="p-3 font-extrabold text-slate-900">{fmtQtd(m.quantidade)} {mostrarUn(m.unidade_medida)}</td>
+                          <td className="p-3 font-extrabold text-fg">{fmtQtd(m.quantidade)} {mostrarUn(m.unidade_medida)}</td>
                           <td className="p-3 text-slate-600">{m.usuario_nome || m.responsavel_nome || "Sistema"}</td>
-                          <td className="p-3 text-slate-500 italic">{m.observacao || "—"}</td>
+                          <td className="p-3 text-muted italic">{m.observacao || "—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2163,7 +2163,7 @@ function EstoqueRunner() {
               );
             })()}
             <div className="flex justify-end">
-              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-slate-100 px-5 font-bold text-slate-700 hover:bg-slate-200">Fechar</button>
+              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-elevated px-5 font-bold text-fg-soft hover:bg-slate-200">Fechar</button>
             </div>
           </div>
         </Modal>
@@ -2178,8 +2178,8 @@ function EstoqueRunner() {
             {/* Marcar mais de um é possível, mas exige marcar: zerar bar e
                 cozinha de um clique só seria fácil demais para uma ação sem volta. */}
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Quais estoques zerar</span>
-              <div className="mt-1.5 max-h-44 space-y-1 overflow-auto rounded-xl border border-slate-200 p-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted">Quais estoques zerar</span>
+              <div className="mt-1.5 max-h-44 space-y-1 overflow-auto rounded-xl border border-line p-2">
                 {estoquesVisiveis.map(e => {
                   const marcado = (modalZerar.alvos || []).includes(e.id);
                   return (
@@ -2191,25 +2191,25 @@ function EstoqueRunner() {
                             ? (m.alvos || []).filter(id => id !== e.id)
                             : [...(m.alvos || []), e.id],
                         }))} />
-                      <span className="text-sm font-bold text-slate-700">{e.nome}</span>
+                      <span className="text-sm font-bold text-fg-soft">{e.nome}</span>
                     </label>
                   );
                 })}
               </div>
             </div>
             <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Motivo (opcional)</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-muted">Motivo (opcional)</span>
               <input value={modalZerar.motivo || ""} onChange={e => setModalZerar(m => ({ ...m, motivo: e.target.value }))}
                 placeholder="Ex.: recontagem geral de agosto"
-                className="mt-1 h-12 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-800 outline-none focus:border-emerald-600" />
+                className="mt-1 h-12 w-full rounded-xl border border-line px-3 font-semibold text-slate-800 outline-none focus:border-emerald-600" />
             </label>
             <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Digite ZERAR para confirmar</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-muted">Digite ZERAR para confirmar</span>
               <input autoFocus value={modalZerar.confirmacao} onChange={e => setModalZerar(m => ({ ...m, confirmacao: e.target.value }))}
-                className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-center font-black tracking-widest text-slate-900 outline-none focus:border-red-500" />
+                className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-center font-black tracking-widest text-fg outline-none focus:border-red-500" />
             </label>
             <div className="flex gap-2">
-              <button onClick={() => setModalZerar(null)} className="h-12 flex-1 rounded-xl border border-slate-200 bg-white font-bold text-slate-600">Cancelar</button>
+              <button onClick={() => setModalZerar(null)} className="h-12 flex-1 rounded-xl border border-line bg-card font-bold text-slate-600">Cancelar</button>
               <button onClick={confirmarZerar} disabled={modalZerar.salvando}
                 className="h-12 flex-1 rounded-xl bg-red-600 font-black text-white hover:bg-red-700 disabled:opacity-60">
                 {modalZerar.salvando ? "Zerando..." : "Zerar estoque"}
@@ -2227,14 +2227,14 @@ function EstoqueRunner() {
                 setModal(null);
                 imprimirRelatorio(estoqueAtual, itensDaArea, unidadeInfo);
               }}
-              className="flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-line p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
             >
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <Printer size={24} />
               </div>
               <div>
-                <strong className="block text-base font-extrabold text-slate-900">Gerar PDF / Imprimir Relatório</strong>
-                <p className="text-xs text-slate-500">Relatório formatado por categorias com subtotais e valor total.</p>
+                <strong className="block text-base font-extrabold text-fg">Gerar PDF / Imprimir Relatório</strong>
+                <p className="text-xs text-muted">Relatório formatado por categorias com subtotais e valor total.</p>
               </div>
             </button>
 
@@ -2244,14 +2244,14 @@ function EstoqueRunner() {
                 exportarExcel(estoqueAtual, itensDaArea, unidadeInfo);
                 avisar("Relatório em Excel (.csv) gerado com sucesso!");
               }}
-              className="flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-line p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
             >
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-800 group-hover:bg-sky-600 group-hover:text-white transition-colors">
                 <Download size={24} />
               </div>
               <div>
-                <strong className="block text-base font-extrabold text-slate-900">Baixar Planilha Excel (.csv)</strong>
-                <p className="text-xs text-slate-500">Arquivo formatado compatível com Microsoft Excel e Google Sheets.</p>
+                <strong className="block text-base font-extrabold text-fg">Baixar Planilha Excel (.csv)</strong>
+                <p className="text-xs text-muted">Arquivo formatado compatível com Microsoft Excel e Google Sheets.</p>
               </div>
             </button>
 
@@ -2267,8 +2267,8 @@ function EstoqueRunner() {
                 <Share2 size={24} />
               </div>
               <div>
-                <strong className="block text-base font-extrabold text-slate-900">Lista de compras no WhatsApp</strong>
-                <p className="text-xs text-slate-500">Abre o WhatsApp com os itens abaixo do mínimo — nome, marca, valor e fornecedor, agrupados por fornecedor.</p>
+                <strong className="block text-base font-extrabold text-fg">Lista de compras no WhatsApp</strong>
+                <p className="text-xs text-muted">Abre o WhatsApp com os itens abaixo do mínimo — nome, marca, valor e fornecedor, agrupados por fornecedor.</p>
               </div>
             </button>
 
@@ -2283,19 +2283,19 @@ function EstoqueRunner() {
                   avisar("Não foi possível acessar a área de transferência.");
                 }
               }}
-              className="flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-line p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
             >
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-teal-100 text-teal-800 group-hover:bg-teal-600 group-hover:text-white transition-colors">
                 <Share2 size={24} />
               </div>
               <div>
-                <strong className="block text-base font-extrabold text-slate-900">Copiar resumo do estoque</strong>
-                <p className="text-xs text-slate-500">Copia o resumo completo (saldos por categoria) para colar no grupo do WhatsApp.</p>
+                <strong className="block text-base font-extrabold text-fg">Copiar resumo do estoque</strong>
+                <p className="text-xs text-muted">Copia o resumo completo (saldos por categoria) para colar no grupo do WhatsApp.</p>
               </div>
             </button>
 
             <div className="flex justify-end pt-2">
-              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-slate-100 px-5 font-bold text-slate-700 hover:bg-slate-200">Cancelar</button>
+              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-elevated px-5 font-bold text-fg-soft hover:bg-slate-200">Cancelar</button>
             </div>
           </div>
         </Modal>
@@ -2390,20 +2390,20 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
     setColapsadas(mapa);
   };
 
-  if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
-  if (!itens || !itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
+  if (loading) return <div className="grid min-h-64 place-items-center text-muted"><Loader2 className="animate-spin" /></div>;
+  if (!itens || !itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-dim" /><p className="font-black text-fg-soft">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-muted">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 text-xs font-bold text-slate-600">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-line text-xs font-bold text-slate-600">
         <span>Total de {agrupadoPorCategoria.length} {agruparPor === "local" ? "lugar(es)" : "categoria(s)"} no resultado</span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={expandirTodas} className="rounded-lg px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition">Expandir todas</button>
-          <button type="button" onClick={recolherTodas} className="rounded-lg px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition">Recolher todas</button>
+          <button type="button" onClick={expandirTodas} className="rounded-lg px-2.5 py-1 bg-card border border-line hover:bg-slate-50 text-fg-soft transition">Expandir todas</button>
+          <button type="button" onClick={recolherTodas} className="rounded-lg px-2.5 py-1 bg-card border border-line hover:bg-slate-50 text-fg-soft transition">Recolher todas</button>
         </div>
       </div>
 
-      <div className="hidden overflow-x-auto lg:block rounded-b-2xl border-x border-b border-slate-200 bg-white shadow-sm">
+      <div className="hidden overflow-x-auto lg:block rounded-b-2xl border-x border-b border-line bg-card shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="sticky top-0 z-20 bg-slate-900 text-xs font-bold uppercase tracking-wider text-white shadow-md"><tr>
             <th className="px-5 py-4 whitespace-nowrap">Produto</th>
@@ -2425,17 +2425,17 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                 <Fragment key={categoria}>
                   <tr
                     onClick={() => toggleColapso(categoria)}
-                    className="bg-slate-100/90 border-y border-slate-200 cursor-pointer hover:bg-slate-200/80 transition-colors select-none"
+                    className="bg-slate-100/90 border-y border-line cursor-pointer hover:bg-slate-200/80 transition-colors select-none"
                   >
                     <td colSpan={estoque?.controla_validade ? 11 : 10} className="px-5 py-3">
                       <div className="flex items-center justify-between">
-                        <div className="inline-flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-slate-900">
-                          <div className="grid h-6 w-6 place-items-center rounded-lg bg-slate-200 text-slate-700">
+                        <div className="inline-flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-fg">
+                          <div className="grid h-6 w-6 place-items-center rounded-lg bg-slate-200 text-fg-soft">
                             {isColapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
                           </div>
                           <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
                           {categoria}
-                          <span className="rounded-full bg-white px-2.5 py-0.5 text-2xs font-bold text-slate-700 shadow-sm border border-slate-200">
+                          <span className="rounded-full bg-card px-2.5 py-0.5 text-2xs font-bold text-fg-soft shadow-sm border border-line">
                             {lista.length} {lista.length === 1 ? "item" : "itens"}
                           </span>
                         </div>
@@ -2443,7 +2443,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
                             Subtotal: {dinheiro(subtotal)}
                           </span>
-                          <span className="text-2xs font-bold text-slate-400">
+                          <span className="text-2xs font-bold text-subtle">
                             {isColapsed ? "Clique para abrir" : "Clique para recolher"}
                           </span>
                         </div>
@@ -2454,7 +2454,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     const status = statusItemEstoque(item, estoque || {});
                     const valTotalItem = calcularValorItem(item);
                     return <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3.5 min-w-[240px] max-w-[320px]"><strong className="block text-slate-900 font-black text-sm leading-snug whitespace-normal break-words">{item.nome}</strong><span className="text-xs text-slate-400 font-extrabold block mt-0.5">{item.codigo_interno || item.marca || "Sem código"}</span></td>
+                      <td className="px-5 py-3.5 min-w-[240px] max-w-[320px]"><strong className="block text-fg font-black text-sm leading-snug whitespace-normal break-words">{item.nome}</strong><span className="text-xs text-subtle font-extrabold block mt-0.5">{item.codigo_interno || item.marca || "Sem código"}</span></td>
                       <td className="px-4 py-3.5 whitespace-nowrap">{(() => {
                         const cat = String(item.categoria || "").trim();
                         const cores = {
@@ -2479,20 +2479,20 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                         const cl = cores[cat] || "bg-emerald-100 text-emerald-950 border-emerald-300";
                         return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-bold border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
                       })()}</td>
-                      <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{dinheiro(item.custo_unitario || 0)}</strong></td>
-                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                      <td className="px-4 py-3.5 whitespace-nowrap font-bold text-fg-soft">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-fg">{dinheiro(item.custo_unitario || 0)}</strong></td>
+                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-subtle mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
-                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
-                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
+                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
+                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
                       <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-600">{fmtData(item.ultima_movimentacao_em, true)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
                         <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
                         <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
-                        <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
+                        <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-slate-50 text-fg-soft hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
                         <SimuladorRendimento item={item} variant="icon" />
-                        <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
+                        <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-slate-50 text-fg-soft hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
                       </div></td>
                     </tr>;
                   })}
@@ -2509,7 +2509,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
             <div key={categoria} className="p-3 space-y-3">
               <div
                 onClick={() => toggleColapso(categoria)}
-                className="flex items-center justify-between rounded-xl bg-slate-100 px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer active:bg-slate-200 transition"
+                className="flex items-center justify-between rounded-xl bg-elevated px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer active:bg-slate-200 transition"
               >
                 <div className="flex items-center gap-2 uppercase tracking-wider">
                   {isColapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
@@ -2520,17 +2520,17 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
               {!isColapsed && lista.map(item => {
                 const status = statusItemEstoque(item, estoque);
                 const valTotalItem = calcularValorItem(item);
-                return <article key={item.id} className="p-4 bg-white rounded-2xl border-2 border-slate-200 shadow-sm active:border-emerald-500 transition-all">
+                return <article key={item.id} className="p-4 bg-card rounded-2xl border-2 border-line shadow-sm active:border-emerald-500 transition-all">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
+                      <strong className="text-base sm:text-lg font-black text-fg leading-snug block truncate">{item.nome}</strong>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
+                        <span className="rounded-md bg-elevated px-2 py-0.5 text-xs font-bold text-fg-soft">{item.categoria || "Sem categoria"}</span>
                         {(estoqueAtual?.locais_internos || []).length > 0 ? (
                           // Realocar é escolher o lugar aqui mesmo: um toque e
                           // o produto muda de grupo na lista.
                           <select value={item.local_interno || ""} onChange={e => realocarItem(item, e.target.value)}
-                            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
+                            className="rounded-md border border-line bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
                             aria-label={`Lugar de ${item.nome}`}>
                             <option value="">Sem lugar</option>
                             {(estoqueAtual.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
@@ -2539,19 +2539,19 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                             )}
                           </select>
                         ) : item.local_interno ? (
-                          <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">{item.local_interno}</span>
+                          <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-muted">{item.local_interno}</span>
                         ) : null}
                       </div>
-                      <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
+                      <p className="mt-1.5 text-xs font-semibold text-muted">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
                     </div>
                     <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
-                      <span className="block text-3xs font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
+                      <span className="block text-3xs font-extrabold uppercase tracking-wider text-subtle">Saldo Atual</span>
                       {(() => {
                         const s = saldoEmbalado(item);
                         return s ? (
                           <>
                             <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{s.principal}</strong>
-                            <span className="block text-3xs font-semibold text-slate-300">{s.secundario}</span>
+                            <span className="block text-3xs font-semibold text-dim">{s.secundario}</span>
                           </>
                         ) : (
                           <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
@@ -2568,10 +2568,10 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     </button>
                   </div>
                   <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                    <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                    <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-elevated hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
                       <History size={16} /> Histórico
                     </button>
-                    <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                    <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-elevated hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
                       <Settings2 size={16} /> Configurar
                     </button>
                   </div>
@@ -2639,7 +2639,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
   }, [movimentos, modo, busca, tipoFiltro, colabFiltro, periodoFiltro]);
 
   if (!movimentos || !movimentos.length) {
-    return <div className="grid min-h-64 place-items-center text-sm font-semibold text-slate-500">Nenhuma movimentação registrada nesta área.</div>;
+    return <div className="grid min-h-64 place-items-center text-sm font-semibold text-muted">Nenhuma movimentação registrada nesta área.</div>;
   }
 
   return (
@@ -2647,19 +2647,19 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
       {/* Filtros do Histórico */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="relative">
-          <Search className="absolute left-3 top-3 text-slate-400" size={18} />
+          <Search className="absolute left-3 top-3 text-subtle" size={18} />
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
             placeholder="Filtrar produto..."
-            className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm font-medium outline-none focus:border-emerald-500"
+            className="h-11 w-full rounded-xl border border-line pl-10 pr-3 text-sm font-medium outline-none focus:border-emerald-500"
           />
         </label>
 
         <select
           value={periodoFiltro}
           onChange={e => setPeriodoFiltro(e.target.value)}
-          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-800"
+          className="h-11 rounded-xl border border-line px-3 text-sm font-bold text-slate-800"
         >
           <option value="todos">🗓️ Todos os períodos</option>
           <option value="hoje">📅 Hoje</option>
@@ -2670,7 +2670,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
         <select
           value={tipoFiltro}
           onChange={e => setTipoFiltro(e.target.value)}
-          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-800"
+          className="h-11 rounded-xl border border-line px-3 text-sm font-bold text-slate-800"
         >
           <option value="todos">Todos os tipos de ação</option>
           <option value="entrada">🟢 Entradas (+ Adicionar)</option>
@@ -2681,7 +2681,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
         <select
           value={colabFiltro}
           onChange={e => setColabFiltro(e.target.value)}
-          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-800"
+          className="h-11 rounded-xl border border-line px-3 text-sm font-bold text-slate-800"
         >
           <option value="todos">Todos os colaboradores</option>
           {colaboradoresUnicos.map(c => (
@@ -2692,9 +2692,9 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
 
       {/* Lista de Movimentações */}
       {!listaFiltrada.length ? (
-        <div className="p-8 text-center text-sm font-bold text-slate-500">Nenhum registro encontrado com esses filtros.</div>
+        <div className="p-8 text-center text-sm font-bold text-muted">Nenhum registro encontrado com esses filtros.</div>
       ) : (
-        <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="divide-y divide-slate-100 rounded-2xl border border-line bg-card shadow-sm overflow-hidden">
           {listaFiltrada.map(mov => {
             const ehEntrada = ["entrada", "transferencia_entrada"].includes(mov.tipo);
             const ehSaida = ["saida", "transferencia_saida"].includes(mov.tipo);
@@ -2719,18 +2719,18 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                     {badgeConfig.icon}
                   </div>
                   <div className="min-w-0">
-                    <strong className="block truncate text-base font-black text-slate-900">{nomeProduto}</strong>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                    <strong className="block truncate text-base font-black text-fg">{nomeProduto}</strong>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
                       <span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs border ${badgeConfig.bg}`}>{badgeConfig.label}</span>
                       <span>·</span>
                       <span className="inline-flex items-center gap-1 font-bold text-slate-800">
-                        <User size={13} className="text-slate-400" />
+                        <User size={13} className="text-subtle" />
                         {mov.usuario_nome || mov.responsavel_nome || "Sistema"}
                       </span>
                       <span>·</span>
                       <span className="font-semibold text-slate-600">📅 {fmtData(mov.data_movimento, true)}</span>
                     </div>
-                    {mov.observacao && <p className="mt-1 text-xs text-slate-500 italic">“{mov.observacao}”</p>}
+                    {mov.observacao && <p className="mt-1 text-xs text-muted italic">“{mov.observacao}”</p>}
                     {ehContagem && (() => {
                       const ins = mov.insumo || itensDaArea.find(i => (i.insumo_id === mov.insumo_id || i.id === mov.insumo_id));
                       const custo = Number(ins?.preco_normalizado || ins?.custo_unitario || 0);
@@ -2742,7 +2742,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                       return (
                         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs font-bold">
                           {mov.saldo_anterior !== undefined && (
-                            <span className="text-slate-500">Sistema: {fmtQtd(anterior)} → Contado: {fmtQtd(posterior)}</span>
+                            <span className="text-muted">Sistema: {fmtQtd(anterior)} → Contado: {fmtQtd(posterior)}</span>
                           )}
                           {custo > 0 && Math.abs(diff) > 0.001 && (
                             <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-3xs font-bold ${
@@ -2758,10 +2758,10 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <strong className={`text-lg font-black ${ehEntrada ? "text-emerald-700" : ehSaida ? "text-red-600" : "text-slate-900"}`}>
+                  <strong className={`text-lg font-black ${ehEntrada ? "text-emerald-700" : ehSaida ? "text-red-600" : "text-fg"}`}>
                     {ehEntrada ? "+" : ehSaida ? "−" : ""} {fmtQtd(qtd)} {unMedida}
                   </strong>
-                  {mov.destino?.nome && <p className="text-xs font-bold text-slate-500">Destino: {mov.destino.nome}</p>}
+                  {mov.destino?.nome && <p className="text-xs font-bold text-muted">Destino: {mov.destino.nome}</p>}
                 </div>
               </div>
             );

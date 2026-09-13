@@ -25,16 +25,16 @@ const TYPES = [
   ["consulta","Somente consulta"],["terminal_ponto","Terminal de ponto"],
 ];
 const DAYS = [["0","D"],["1","S"],["2","T"],["3","Q"],["4","Q"],["5","S"],["6","S"]];
-const INPUT = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-500";
-const LABEL = "mb-1 block text-3xs font-black uppercase tracking-[.14em] text-slate-400";
+const INPUT = "w-full rounded-xl border border-line bg-slate-50 px-3 py-2.5 text-sm font-semibold text-fg-soft outline-none focus:border-emerald-500";
+const LABEL = "mb-1 block text-3xs font-black uppercase tracking-[.14em] text-subtle";
 
 function Modal({ title, subtitle, onClose, wide = false, children }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/70 p-3 py-8 backdrop-blur-sm">
-      <div className={`w-full ${wide ? "max-w-6xl" : "max-w-3xl"} overflow-hidden rounded-2xl bg-white shadow-2xl`}>
-        <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-          <div><h2 className="text-lg font-black text-slate-800">{title}</h2>{subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}</div>
-          <button onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X size={19}/></button>
+      <div className={`w-full ${wide ? "max-w-6xl" : "max-w-3xl"} overflow-hidden rounded-2xl bg-card shadow-2xl`}>
+        <header className="flex items-start justify-between gap-4 border-b border-line-soft px-5 py-4">
+          <div><h2 className="text-lg font-black text-slate-800">{title}</h2>{subtitle && <p className="text-sm text-muted">{subtitle}</p>}</div>
+          <button onClick={onClose} className="rounded-lg p-2 text-subtle hover:bg-elevated"><X size={19}/></button>
         </header>
         {children}
       </div>
@@ -43,7 +43,7 @@ function Modal({ title, subtitle, onClose, wide = false, children }) {
 }
 
 function Status({ value }) {
-  const styles = { ativo: "bg-emerald-50 text-emerald-700", bloqueado: "bg-amber-50 text-amber-700", desativado: "bg-slate-100 text-slate-500" };
+  const styles = { ativo: "bg-emerald-50 text-emerald-700", bloqueado: "bg-amber-50 text-amber-700", desativado: "bg-elevated text-muted" };
   return <span className={`rounded-full px-2.5 py-1 text-3xs font-bold uppercase ${styles[value] || styles.desativado}`}>{value}</span>;
 }
 
@@ -178,7 +178,7 @@ export default function UsuariosAcessosPage() {
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white"><ShieldCheck size={23}/></div>
-          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">Configurações</p><h1 className="text-2xl font-black text-slate-800">Usuários e acessos</h1><p className="text-sm text-slate-500">Login, escopos, segurança e permissões individuais.</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">Configurações</p><h1 className="text-2xl font-black text-slate-800">Usuários e acessos</h1><p className="text-sm text-muted">Login, escopos, segurança e permissões individuais.</p></div>
         </div>
         <button onClick={() => openForm()} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-200"><Plus size={17}/> Novo usuário</button>
       </header>
@@ -187,8 +187,8 @@ export default function UsuariosAcessosPage() {
       {notice && <div className="mb-4 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{notice}<button onClick={() => setNotice("")}><X size={16}/></button></div>}
       {!!data?.legacyCount && <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-amber-900">{data.legacyCount} acessos antigos precisam ser protegidos</p><p className="text-sm text-amber-700">Migre-os para o Supabase Auth e remova as senhas em texto puro.</p></div><button disabled={saving} onClick={migrate} className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-black text-white">Migrar agora</button></div>}
 
-      <div className="mb-5 grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-2 xl:grid-cols-7">
-        <label className="relative xl:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate-400"/><input value={filters.text} onChange={(e) => setFilters({...filters,text:e.target.value})} placeholder="Nome ou login" className={INPUT+" pl-9"}/></label>
+      <div className="mb-5 grid grid-cols-1 gap-2 rounded-2xl border border-line bg-card p-3 sm:grid-cols-2 xl:grid-cols-7">
+        <label className="relative xl:col-span-2"><Search size={15} className="absolute left-3 top-3 text-subtle"/><input value={filters.text} onChange={(e) => setFilters({...filters,text:e.target.value})} placeholder="Nome ou login" className={INPUT+" pl-9"}/></label>
         <select value={filters.profile} onChange={(e) => setFilters({...filters,profile:e.target.value})} className={INPUT}><option value="">Todos os perfis</option>{profiles.map((p)=><option key={p.id} value={p.id}>{p.nome}</option>)}</select>
         <select value={filters.sector} onChange={(e) => setFilters({...filters,sector:e.target.value})} className={INPUT}><option value="">Todos os setores</option>{data?.sectors.map((s)=><option key={s.id} value={s.id}>{s.nome}</option>)}</select>
         <select value={filters.unit} onChange={(e) => setFilters({...filters,unit:e.target.value})} className={INPUT}><option value="">Todas as unidades</option>{data?.units.map((u)=><option key={u.id} value={u.id}>{u.nome}</option>)}</select>
@@ -196,29 +196,29 @@ export default function UsuariosAcessosPage() {
         <select value={filters.last} onChange={(e) => setFilters({...filters,last:e.target.value})} className={INPUT}><option value="">Qualquer acesso</option><option value="7d">Últimos 7 dias</option><option value="never">Nunca acessou</option></select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[82rem] text-left">
-            <thead className="bg-slate-50 text-3xs font-bold uppercase tracking-[.12em] text-slate-400"><tr>
+            <thead className="bg-slate-50 text-3xs font-bold uppercase tracking-[.12em] text-subtle"><tr>
               <th className="px-4 py-3">Nome</th><th className="px-4 py-3">Funcionário</th><th className="px-4 py-3">Login</th><th className="px-4 py-3">Perfil</th><th className="px-4 py-3">Setor / unidade</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Último acesso</th><th className="px-4 py-3">Criação</th><th className="px-4 py-3">Criado por</th><th className="px-4 py-3">Ações</th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {users.map((user) => {
                 const employee = (data?.employees || []).find((item) => item.id === user.funcionario_id);
                 return <tr key={user.id} className="text-sm text-slate-600 hover:bg-slate-50/70">
-                  <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{avatarInitials(user.nome)}</span><div><p className="font-black text-slate-800">{user.nome}</p><p className="text-xs text-slate-400">{TYPES.find(([id])=>id===user.tipo_acesso)?.[1]}</p></div></div></td>
+                  <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{avatarInitials(user.nome)}</span><div><p className="font-black text-slate-800">{user.nome}</p><p className="text-xs text-subtle">{TYPES.find(([id])=>id===user.tipo_acesso)?.[1]}</p></div></div></td>
                   <td className="px-4 py-3">{employee?.nome || "—"}</td><td className="px-4 py-3 font-bold">{user.login}</td><td className="px-4 py-3">{profileName(user.perfil_id)}</td>
-                  <td className="px-4 py-3"><p className="font-bold">{sectorName(user.setor_principal_id)}</p><p className="text-xs text-slate-400">{unitName(user.unidade_principal_id)}</p></td>
+                  <td className="px-4 py-3"><p className="font-bold">{sectorName(user.setor_principal_id)}</p><p className="text-xs text-subtle">{unitName(user.unidade_principal_id)}</p></td>
                   <td className="px-4 py-3"><Status value={user.status}/></td><td className="px-4 py-3">{formatLastAccess(user.ultimo_acesso_em)}</td><td className="px-4 py-3">{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td className="px-4 py-3">{(data?.users || []).find((item)=>item.auth_user_id===user.criado_por)?.nome||"Sistema"}</td>
                   <td className="px-4 py-3"><div className="flex gap-1">
-                    <button title="Visualizar" onClick={()=>{setForm(user);setModal("view")}} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><Eye size={15}/></button>
+                    <button title="Visualizar" onClick={()=>{setForm(user);setModal("view")}} className="rounded-lg p-2 text-muted hover:bg-elevated"><Eye size={15}/></button>
                     <button title="Editar" onClick={()=>openForm(user)} className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Pencil size={15}/></button>
                     <button title="Alterar permissões" onClick={()=>openPermissions(user)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50"><ShieldCheck size={15}/></button>
                     <button title="Redefinir senha" onClick={()=>{setForm({...user,password:"",confirmPassword:""});setModal("password")}} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"><KeyRound size={15}/></button>
                     {user.status==="ativo"?<button title="Bloquear" onClick={()=>status(user,"bloqueado")} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"><Lock size={15}/></button>:<button title="Desbloquear" onClick={()=>status(user,"ativo")} className="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50"><CheckCircle2 size={15}/></button>}
-                    <button title="Desativar" onClick={()=>status(user,"desativado")} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><Ban size={15}/></button>
+                    <button title="Desativar" onClick={()=>status(user,"desativado")} className="rounded-lg p-2 text-muted hover:bg-elevated"><Ban size={15}/></button>
                     <button title="Duplicar" onClick={()=>openForm(user,true)} className="rounded-lg p-2 text-cyan-600 hover:bg-cyan-50"><Copy size={15}/></button>
-                    <button title="Histórico" onClick={()=>{setForm(user);setModal("history")}} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><History size={15}/></button>
+                    <button title="Histórico" onClick={()=>{setForm(user);setModal("history")}} className="rounded-lg p-2 text-muted hover:bg-elevated"><History size={15}/></button>
                     <button title="Excluir" onClick={()=>remove(user)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={15}/></button>
                   </div></td>
                 </tr>;
@@ -226,7 +226,7 @@ export default function UsuariosAcessosPage() {
             </tbody>
           </table>
         </div>
-        {!users.length && <div className="p-12 text-center text-sm font-bold text-slate-400">Nenhum usuário encontrado.</div>}
+        {!users.length && <div className="p-12 text-center text-sm font-bold text-subtle">Nenhum usuário encontrado.</div>}
       </div>
 
       {modal==="form" && <Modal title={form.id?"Editar usuário":"Novo usuário"} subtitle="Dados pessoais, vínculo, escopo e políticas de segurança." onClose={()=>setModal(null)}>
@@ -247,7 +247,7 @@ export default function UsuariosAcessosPage() {
           <div><label className={LABEL}>Perfil de acesso</label><select value={form.perfil_id||""} onChange={e=>setForm({...form,perfil_id:e.target.value})} className={INPUT}><option value="">Personalizado</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}</select></div>
           <div><label className={LABEL}>Página inicial</label><input value={form.pagina_inicial} onChange={e=>setForm({...form,pagina_inicial:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Status</label><select value={form.status} onChange={e=>setForm({...form,status:e.target.value})} className={INPUT}><option value="ativo">Ativo</option><option value="bloqueado">Bloqueado</option><option value="desativado">Desativado</option></select></div>
-          <div className="sm:col-span-2"><label className={LABEL}>Dias permitidos</label><div className="flex gap-2">{DAYS.map(([day,label])=><button type="button" key={day} onClick={()=>{const n=Number(day),days=form.allowed_days.includes(n)?form.allowed_days.filter(x=>x!==n):[...form.allowed_days,n];setForm({...form,allowed_days:days})}} className={`h-9 w-9 rounded-lg text-xs font-bold ${form.allowed_days.includes(Number(day))?"bg-emerald-600 text-white":"bg-slate-100 text-slate-400"}`}>{label}</button>)}</div></div>
+          <div className="sm:col-span-2"><label className={LABEL}>Dias permitidos</label><div className="flex gap-2">{DAYS.map(([day,label])=><button type="button" key={day} onClick={()=>{const n=Number(day),days=form.allowed_days.includes(n)?form.allowed_days.filter(x=>x!==n):[...form.allowed_days,n];setForm({...form,allowed_days:days})}} className={`h-9 w-9 rounded-lg text-xs font-bold ${form.allowed_days.includes(Number(day))?"bg-emerald-600 text-white":"bg-elevated text-subtle"}`}>{label}</button>)}</div></div>
           <div><label className={LABEL}>Horário inicial</label><input type="time" value={form.allowed_start_time||""} onChange={e=>setForm({...form,allowed_start_time:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Horário final</label><input type="time" value={form.allowed_end_time||""} onChange={e=>setForm({...form,allowed_end_time:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Acesso válido a partir de</label><input type="datetime-local" value={form.valid_from||""} onChange={e=>setForm({...form,valid_from:e.target.value})} className={INPUT}/></div>
@@ -257,16 +257,16 @@ export default function UsuariosAcessosPage() {
           <div><label className={LABEL}>IPs externos autorizados</label><input value={form.allowed_ips_text||""} onChange={e=>setForm({...form,allowed_ips_text:e.target.value})} placeholder="Separados por vírgula" className={INPUT}/></div>
           <div className="sm:col-span-2 grid gap-2 sm:grid-cols-3">{[["exigir_troca_senha","Trocar senha no primeiro acesso"],["encerrar_sessoes_anteriores","Encerrar sessões anteriores"],["acesso_externo","Permitir acesso externo"]].map(([key,label])=><label key={key} className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-600"><input type="checkbox" checked={!!form[key]} onChange={e=>setForm({...form,[key]:e.target.checked})} className="accent-emerald-600"/>{label}</label>)}</div>
         </div>
-        <footer className="flex justify-end gap-2 border-t border-slate-100 p-4"><button onClick={()=>setModal(null)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-500">Cancelar</button><button disabled={saving} onClick={submitUser} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">{saving?"Salvando...":"Salvar usuário"}</button></footer>
+        <footer className="flex justify-end gap-2 border-t border-line-soft p-4"><button onClick={()=>setModal(null)} className="rounded-xl px-4 py-2 text-sm font-bold text-muted">Cancelar</button><button disabled={saving} onClick={submitUser} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">{saving?"Salvando...":"Salvar usuário"}</button></footer>
       </Modal>}
 
-      {modal==="permissions"&&<Modal wide title={`Permissões de ${form.nome}`} subtitle="Tudo bloqueado, exceto o que estiver selecionado." onClose={()=>setModal(null)}><div className="p-4"><PermissionBuilder value={permissionValue} onChange={setPermissionValue} copySources={[...(data?.profiles || []).map(p=>({id:`p-${p.id}`,label:`Perfil: ${p.nome}`,permissions:p.permissions})),...(data?.users || []).filter(u=>u.id!==form.id).map(u=>({id:`u-${u.id}`,label:`Usuário: ${u.nome}`,permissions:data.userPermissions.filter(x=>x.usuario_id===u.id&&x.effect==="allow").map(x=>x.permission_key)}))]}/></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-slate-500">Cancelar</button><button disabled={saving} onClick={savePermissions} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">Salvar permissões</button></footer></Modal>}
+      {modal==="permissions"&&<Modal wide title={`Permissões de ${form.nome}`} subtitle="Tudo bloqueado, exceto o que estiver selecionado." onClose={()=>setModal(null)}><div className="p-4"><PermissionBuilder value={permissionValue} onChange={setPermissionValue} copySources={[...(data?.profiles || []).map(p=>({id:`p-${p.id}`,label:`Perfil: ${p.nome}`,permissions:p.permissions})),...(data?.users || []).filter(u=>u.id!==form.id).map(u=>({id:`u-${u.id}`,label:`Usuário: ${u.nome}`,permissions:data.userPermissions.filter(x=>x.usuario_id===u.id&&x.effect==="allow").map(x=>x.permission_key)}))]}/></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-muted">Cancelar</button><button disabled={saving} onClick={savePermissions} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">Salvar permissões</button></footer></Modal>}
 
-      {modal==="password"&&<Modal title={`Redefinir senha de ${form.nome}`} onClose={()=>setModal(null)}><div className="space-y-4 p-5"><div><label className={LABEL}>Nova senha temporária</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className={INPUT}/></div><div><label className={LABEL}>Confirmar senha</label><input type="password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})} className={INPUT}/></div><p className="text-sm text-slate-500">O usuário será obrigado a criar uma senha própria no próximo acesso.</p></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-slate-500">Cancelar</button><button onClick={resetPassword} className="rounded-xl bg-amber-600 px-5 py-2 text-sm font-black text-white">Redefinir senha</button></footer></Modal>}
+      {modal==="password"&&<Modal title={`Redefinir senha de ${form.nome}`} onClose={()=>setModal(null)}><div className="space-y-4 p-5"><div><label className={LABEL}>Nova senha temporária</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className={INPUT}/></div><div><label className={LABEL}>Confirmar senha</label><input type="password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})} className={INPUT}/></div><p className="text-sm text-muted">O usuário será obrigado a criar uma senha própria no próximo acesso.</p></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-muted">Cancelar</button><button onClick={resetPassword} className="rounded-xl bg-amber-600 px-5 py-2 text-sm font-black text-white">Redefinir senha</button></footer></Modal>}
 
-      {modal==="view"&&<Modal title={form.nome} subtitle={form.login} onClose={()=>setModal(null)}><div className="grid grid-cols-2 gap-4 p-5 text-sm">{[["Perfil",profileName(form.perfil_id)],["Tipo",TYPES.find(([id])=>id===form.tipo_acesso)?.[1]],["Setor",sectorName(form.setor_principal_id)],["Unidade",unitName(form.unidade_principal_id)],["Status",form.status],["Último acesso",formatLastAccess(form.ultimo_acesso_em)],["E-mail",form.email||"—"],["Telefone",form.telefone||"—"],["Cargo",form.cargo||"—"],["Página inicial",form.pagina_inicial]].map(([k,v])=><div key={k}><p className={LABEL}>{k}</p><p className="font-bold text-slate-700">{v}</p></div>)}</div></Modal>}
+      {modal==="view"&&<Modal title={form.nome} subtitle={form.login} onClose={()=>setModal(null)}><div className="grid grid-cols-2 gap-4 p-5 text-sm">{[["Perfil",profileName(form.perfil_id)],["Tipo",TYPES.find(([id])=>id===form.tipo_acesso)?.[1]],["Setor",sectorName(form.setor_principal_id)],["Unidade",unitName(form.unidade_principal_id)],["Status",form.status],["Último acesso",formatLastAccess(form.ultimo_acesso_em)],["E-mail",form.email||"—"],["Telefone",form.telefone||"—"],["Cargo",form.cargo||"—"],["Página inicial",form.pagina_inicial]].map(([k,v])=><div key={k}><p className={LABEL}>{k}</p><p className="font-bold text-fg-soft">{v}</p></div>)}</div></Modal>}
 
-      {modal==="history"&&<Modal title={`Histórico de ${form.nome}`} subtitle="Acessos permitidos, falhas e bloqueios." onClose={()=>setModal(null)}><div className="max-h-[30rem] divide-y overflow-y-auto p-5">{(data.accessLogs||[]).filter(log=>log.usuario_id===form.id).map(log=><div key={log.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-bold text-slate-700">{log.evento.replaceAll("_"," ")}</p><p className="text-xs text-slate-400">{log.ip||"IP não informado"} · {log.device_id||"dispositivo não identificado"}</p></div><div className="text-right"><Status value={log.sucesso?"ativo":"bloqueado"}/><p className="mt-1 text-xs text-slate-400">{formatLastAccess(log.created_at)}</p></div></div>)}{!(data.accessLogs||[]).some(log=>log.usuario_id===form.id)&&<p className="py-8 text-center text-sm font-bold text-slate-400">Nenhum acesso registrado.</p>}</div></Modal>}
+      {modal==="history"&&<Modal title={`Histórico de ${form.nome}`} subtitle="Acessos permitidos, falhas e bloqueios." onClose={()=>setModal(null)}><div className="max-h-[30rem] divide-y overflow-y-auto p-5">{(data.accessLogs||[]).filter(log=>log.usuario_id===form.id).map(log=><div key={log.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-bold text-fg-soft">{log.evento.replaceAll("_"," ")}</p><p className="text-xs text-subtle">{log.ip||"IP não informado"} · {log.device_id||"dispositivo não identificado"}</p></div><div className="text-right"><Status value={log.sucesso?"ativo":"bloqueado"}/><p className="mt-1 text-xs text-subtle">{formatLastAccess(log.created_at)}</p></div></div>)}{!(data.accessLogs||[]).some(log=>log.usuario_id===form.id)&&<p className="py-8 text-center text-sm font-bold text-subtle">Nenhum acesso registrado.</p>}</div></Modal>}
     </div>
   );
 }

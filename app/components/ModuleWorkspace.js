@@ -60,12 +60,12 @@ export default function ModuleWorkspace({ config }) {
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-3xs font-bold uppercase tracking-[0.18em] ${tema.badge}`}>
                   <ModuloIcon size={13} /> Módulo integrado · {config.shortTitle}
                 </span>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-3xs font-bold uppercase tracking-wider text-slate-300">
+                <span className="rounded-full bg-white/10 px-3 py-1 text-3xs font-bold uppercase tracking-wider text-dim">
                   {etapas.length + complementos.length} áreas conectadas
                 </span>
               </div>
               <h1 className="max-w-4xl text-2xl font-black tracking-tight text-white sm:text-3xl lg:text-4xl">{config.title}</h1>
-              <p className="mt-2 max-w-3xl text-sm font-medium leading-relaxed text-slate-300 sm:text-base">{config.description}</p>
+              <p className="mt-2 max-w-3xl text-sm font-medium leading-relaxed text-dim sm:text-base">{config.description}</p>
             </div>
 
             <button type="button" onClick={() => router.push(config.primary.href)}
@@ -80,17 +80,17 @@ export default function ModuleWorkspace({ config }) {
               return (
                 <button key={etapa.href} type="button" onClick={() => router.push(etapa.href)}
                   className={`group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition-all ${index === 0
-                    ? "border-white/30 bg-white text-slate-950 shadow-xl"
+                    ? "border-white/30 bg-card text-slate-950 shadow-xl"
                     : "border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10"}`}>
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${index === 0 ? tema.active : "bg-white/10 text-slate-200"}`}>
                     <Icon size={18} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className={`block text-3xs font-bold uppercase tracking-widest ${index === 0 ? "text-slate-400" : "text-slate-500"}`}>Etapa {index + 1}</span>
+                    <span className={`block text-3xs font-bold uppercase tracking-widest ${index === 0 ? "text-subtle" : "text-muted"}`}>Etapa {index + 1}</span>
                     <span className="block text-sm font-black leading-tight break-words">{etapa.label}</span>
-                    <span className={`block text-2xs font-medium leading-snug break-words ${index === 0 ? "text-slate-500" : "text-slate-400"}`}>{etapa.hint}</span>
+                    <span className={`block text-2xs font-medium leading-snug break-words ${index === 0 ? "text-muted" : "text-subtle"}`}>{etapa.hint}</span>
                   </span>
-                  <ArrowRight size={15} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${index === 0 ? "text-slate-400" : "text-slate-600"}`} />
+                  <ArrowRight size={15} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${index === 0 ? "text-subtle" : "text-slate-600"}`} />
                 </button>
               );
             })}
@@ -102,10 +102,10 @@ export default function ModuleWorkspace({ config }) {
               <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tema.icon}`}><Layers3 size={17} /></span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-black">Fluxo completo de {config.shortTitle}</span>
-                <span className="block text-2xs font-medium leading-snug text-slate-400">{config.flowHint}</span>
+                <span className="block text-2xs font-medium leading-snug text-subtle">{config.flowHint}</span>
               </span>
-              <span className="hidden rounded-full bg-white/10 px-2.5 py-1 text-3xs font-bold text-slate-300 sm:block">{complementos.length} submódulos</span>
-              <ChevronDown size={17} className={`shrink-0 text-slate-400 transition-transform ${fluxoAberto ? "rotate-180" : ""}`} />
+              <span className="hidden rounded-full bg-white/10 px-2.5 py-1 text-3xs font-bold text-dim sm:block">{complementos.length} submódulos</span>
+              <ChevronDown size={17} className={`shrink-0 text-subtle transition-transform ${fluxoAberto ? "rotate-180" : ""}`} />
             </button>
             <div className={`grid transition-all duration-300 ${fluxoAberto ? "grid-rows-[1fr] border-t border-white/10" : "grid-rows-[0fr]"}`}>
               <div className="min-h-0 overflow-hidden">
@@ -117,9 +117,9 @@ export default function ModuleWorkspace({ config }) {
                         className="group flex min-h-[88px] min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left text-white transition-all hover:border-white/20 hover:bg-white/10">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200"><Icon size={16} /></span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-3xs font-bold uppercase tracking-widest text-slate-500">Área {etapas.length + index + 1}</span>
+                          <span className="block text-3xs font-bold uppercase tracking-widest text-muted">Área {etapas.length + index + 1}</span>
                           <span className="block text-xs font-bold leading-tight break-words">{item.label}</span>
-                          <span className="mt-0.5 block text-3xs font-medium leading-snug text-slate-400 break-words">{item.hint}</span>
+                          <span className="mt-0.5 block text-3xs font-medium leading-snug text-subtle break-words">{item.hint}</span>
                         </span>
                         <ArrowRight size={13} className="shrink-0 text-slate-600 transition-transform group-hover:translate-x-0.5" />
                       </button>
@@ -131,7 +131,7 @@ export default function ModuleWorkspace({ config }) {
           </div>
 
           <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/10 p-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <span className="hidden items-center gap-1.5 px-2 text-3xs font-bold uppercase tracking-widest text-slate-400 lg:flex"><Sparkles size={13} /> Ferramentas</span>
+            <span className="hidden items-center gap-1.5 px-2 text-3xs font-bold uppercase tracking-widest text-subtle lg:flex"><Sparkles size={13} /> Ferramentas</span>
             {ferramentas.map((item) => {
               const Icon = item.icon;
               return (

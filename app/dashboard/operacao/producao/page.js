@@ -313,18 +313,18 @@ function ProducaoRunner() {
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
+      <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => abrirMenu()} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line">
                  <ArrowLeft size={20}/>
               </button>
-               <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${isBar ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'}`}>
+               <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${isBar ? 'bg-elevated text-emerald-600' : 'bg-elevated text-emerald-600'}`}>
                  {isBar ? <Droplets size={28} /> : <Flame size={28} />}
               </div>
               <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-fg">Produção do Dia</h1>
+                 <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
@@ -341,7 +341,7 @@ function ProducaoRunner() {
                      <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
                   </div>
                )}
-               <button onClick={toggleFullscreen} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200" title="Tela Cheia">
+               <button onClick={toggleFullscreen} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line" title="Tela Cheia">
                   <Maximize size={20}/>
                </button>
             </div>
@@ -349,13 +349,13 @@ function ProducaoRunner() {
       </div>
 
       <section className="mx-auto mt-4 max-w-5xl px-4 sm:px-6">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-card p-2 shadow-sm lg:grid-cols-4">
           {[
             ["1", "Ver o que está pronto", `${saldosProntos.length} item(ns) disponíveis`],
             ["2", "Planejar a produção", `${itensPlanejados.length} item(ns) no plano`],
             ["3", "Conferir ingredientes", "Cálculo automático"],
             ["4", "Produzir e salvar", "Baixa e histórico juntos"],
-          ].map(([numeroEtapa, titulo, texto]) => <div key={numeroEtapa} className="flex min-w-0 items-center gap-3 rounded-xl bg-slate-100 p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600 font-black text-white">{numeroEtapa}</span><span className="min-w-0"><b className="block truncate text-xs text-slate-800 sm:text-sm">{titulo}</b><small className="block truncate font-bold text-slate-500">{texto}</small></span></div>)}
+          ].map(([numeroEtapa, titulo, texto]) => <div key={numeroEtapa} className="flex min-w-0 items-center gap-3 rounded-xl bg-elevated p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-600 font-black text-white">{numeroEtapa}</span><span className="min-w-0"><b className="block truncate text-xs text-slate-800 sm:text-sm">{titulo}</b><small className="block truncate font-bold text-muted">{texto}</small></span></div>)}
         </div>
       </section>
 
@@ -377,17 +377,17 @@ function ProducaoRunner() {
                         <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {deptUrl === "bar" ? "Bar" : "Cozinha"}</p>
                      </div>
                      <button onClick={() => router.push("/dashboard/operacao/producao/memorando")}
-                        className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
+                        className="shrink-0 rounded-xl border border-emerald-300 bg-card px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
                         Abrir memorando
                      </button>
                   </div>
                   <div className="space-y-2">
                      {itens.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-white px-3 py-2.5">
+                        <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-card px-3 py-2.5">
                            <div className="min-w-0">
                               <p className="text-[15px] font-black text-slate-800 truncate">{item.ficha.nome_receita}</p>
                               {(item.responsavel || item.observacao) && (
-                                 <p className="text-xs font-bold text-slate-500 truncate">
+                                 <p className="text-xs font-bold text-muted truncate">
                                     {item.responsavel || ""}{item.responsavel && item.observacao ? " · " : ""}{item.observacao || ""}
                                  </p>
                               )}
@@ -407,41 +407,41 @@ function ProducaoRunner() {
          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <button onClick={() => setModalPlanejar(true)} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-amber-700"><ClipboardList size={17}/> Produção planejada</span>
-               <strong className="mt-2 block text-2xl font-black text-slate-900">{itensPlanejados.length} item(ns)</strong>
+               <strong className="mt-2 block text-2xl font-black text-fg">{itensPlanejados.length} item(ns)</strong>
                <span className="mt-1 block text-xs font-bold text-slate-600">Para {dataPlano ? dataPlano.split("-").reverse().join("/") : "a data escolhida"}</span>
             </button>
             <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
                <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-emerald-700"><History size={17}/> Produzido nos últimos 30 dias</span>
-               <strong className="mt-2 block text-2xl font-black text-slate-900">{totalProduzido.toLocaleString("pt-BR")} porções</strong>
+               <strong className="mt-2 block text-2xl font-black text-fg">{totalProduzido.toLocaleString("pt-BR")} porções</strong>
                <span className="mt-1 block text-xs font-bold text-slate-600">{producoes.length} lançamento(s) registrado(s)</span>
             </article>
             <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-slate-300 bg-slate-900 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-slate-300"><Boxes size={17}/> Estoque produzido</span>
+               <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-dim"><Boxes size={17}/> Estoque produzido</span>
                <strong className="mt-2 block text-xl font-black">{saldosProntos.length} item(ns) prontos</strong>
-               <span className="mt-1 block text-xs font-bold text-slate-300">Toque para ver quantidades e locais</span>
+               <span className="mt-1 block text-xs font-bold text-dim">Toque para ver quantidades e locais</span>
             </button>
          </div>
 
-         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-slate-900"><CheckCircle2 size={18} className="text-emerald-600"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-bold text-emerald-700">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-bold text-emerald-700">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-slate-500">{item.local_interno}</small>}</div>)}</div></div>}
+         {saldosProntos.length > 0 && <div className="mt-3 rounded-2xl border border-line bg-card p-4 shadow-sm"><div className="mb-3 flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 font-black text-fg"><CheckCircle2 size={18} className="text-emerald-600"/>Já temos pronto</h2><button onClick={() => router.push(estoqueHref)} className="text-xs font-bold text-emerald-700">Ver estoque completo</button></div><div className="flex gap-2 overflow-x-auto pb-1">{saldosProntos.slice(0, 12).map(item => <div key={item.id} className="min-w-40 rounded-xl bg-emerald-50 px-3 py-2"><b className="block truncate text-sm text-slate-800">{item.nome}</b><span className="text-xs font-bold text-emerald-700">{Number(item.quantidade_atual || 0).toLocaleString("pt-BR")} {item.unidade_medida || "un"}</span>{item.local_interno && <small className="block truncate font-bold text-muted">{item.local_interno}</small>}</div>)}</div></div>}
 
          {(itensPlanejados.length > 0 || producoes.length > 0) && (
             <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+               <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                     <h2 className="text-base font-black text-slate-900">O que quero produzir</h2>
+                     <h2 className="text-base font-black text-fg">O que quero produzir</h2>
                      <button onClick={() => setModalPlanejar(true)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-800">Editar plano</button>
                   </div>
-                  {itensPlanejados.length === 0 ? <p className="text-sm font-bold text-slate-500">Nenhuma produção planejada.</p> : (
+                  {itensPlanejados.length === 0 ? <p className="text-sm font-bold text-muted">Nenhuma produção planejada.</p> : (
                      <div className="space-y-2">
-                        {itensPlanejados.slice(0, 6).map(item => <div key={item.ficha.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="truncate text-sm font-black text-slate-700">{item.ficha.nome_receita}</span><strong className="shrink-0 text-sm text-amber-700">{Number(String(item.qtd).replace(",", ".")).toLocaleString("pt-BR")} porções</strong></div>)}
+                        {itensPlanejados.slice(0, 6).map(item => <div key={item.ficha.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="truncate text-sm font-black text-fg-soft">{item.ficha.nome_receita}</span><strong className="shrink-0 text-sm text-amber-700">{Number(String(item.qtd).replace(",", ".")).toLocaleString("pt-BR")} porções</strong></div>)}
                      </div>
                   )}
                </div>
-               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h2 className="mb-3 text-base font-black text-slate-900">Últimas produções feitas</h2>
-                  {producoes.length === 0 ? <p className="text-sm font-bold text-slate-500">Ainda não há produção registrada.</p> : (
+               <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
+                  <h2 className="mb-3 text-base font-black text-fg">Últimas produções feitas</h2>
+                  {producoes.length === 0 ? <p className="text-sm font-bold text-muted">Ainda não há produção registrada.</p> : (
                      <div className="space-y-2">
-                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-slate-700">{item.fichas_tecnicas?.nome_receita || "Pré-preparo"}</strong><small className="font-bold text-slate-400">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-emerald-700">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
+                        {producoes.slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2"><span className="min-w-0"><strong className="block truncate text-sm text-fg-soft">{item.fichas_tecnicas?.nome_receita || "Pré-preparo"}</strong><small className="font-bold text-subtle">{new Date(item.created_at).toLocaleString("pt-BR")} · {item.colaboradores?.nome || "Responsável não informado"}</small></span><strong className="shrink-0 text-sm text-emerald-700">{Number(item.quantidade_produzida || 0).toLocaleString("pt-BR")} porções</strong></div>)}
                      </div>
                   )}
                </div>
@@ -451,16 +451,16 @@ function ProducaoRunner() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div><h2 className="text-xl font-black text-slate-800 mb-1">Produzir agora</h2><p className="text-slate-500 font-medium">Escolha a receita; os ingredientes e a baixa aparecem antes da confirmação.</p></div>
-            <label className="relative block w-full sm:w-80"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={buscaFicha} onChange={e => setBuscaFicha(e.target.value)} placeholder="Buscar receita..." className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 font-bold outline-none focus:border-emerald-500"/></label>
+            <div><h2 className="text-xl font-black text-slate-800 mb-1">Produzir agora</h2><p className="text-muted font-medium">Escolha a receita; os ingredientes e a baixa aparecem antes da confirmação.</p></div>
+            <label className="relative block w-full sm:w-80"><Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle"/><input value={buscaFicha} onChange={e => setBuscaFicha(e.target.value)} placeholder="Buscar receita..." className="h-12 w-full rounded-xl border border-line bg-card pl-10 pr-4 font-bold outline-none focus:border-emerald-500"/></label>
          </div>
 
          {loading ? (
-            <p className="font-bold text-slate-500">Carregando fichas...</p>
+            <p className="font-bold text-muted">Carregando fichas...</p>
          ) : fichas.length === 0 ? (
-            <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
-               <h3 className="text-xl font-black text-slate-700">Nenhuma ficha cadastrada</h3>
-               <p className="text-slate-500 mt-2 font-medium">Crie suas Fichas Técnicas primeiro para poder produzir.</p>
+            <div className="text-center p-10 bg-card border border-line rounded-3xl">
+               <h3 className="text-xl font-black text-fg-soft">Nenhuma ficha cadastrada</h3>
+               <p className="text-muted mt-2 font-medium">Crie suas Fichas Técnicas primeiro para poder produzir.</p>
             </div>
          ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -470,7 +470,7 @@ function ProducaoRunner() {
                   <button
                      key={f.id}
                      onClick={() => abrirProduzir(f)}
-                     className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all relative group text-left flex flex-col"
+                     className="bg-card p-4 rounded-2xl border border-line shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all relative group text-left flex flex-col"
                   >
                      <div className="flex justify-between items-start mb-4">
                         <span className={`w-12 h-12 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
@@ -483,9 +483,9 @@ function ProducaoRunner() {
                         )}
                      </div>
                      <h3 className="text-lg font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
-                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
+                     <p className="text-xs font-bold text-muted uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
 
-                     <div className="mt-auto pt-4 border-t border-slate-100">
+                     <div className="mt-auto pt-4 border-t border-line-soft">
                         <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-emerald-600' : 'text-emerald-600'}`}>
                            {isBar ? <Droplets size={16}/> : <Flame size={16}/>} Iniciar Produção
                         </span>
@@ -500,19 +500,19 @@ function ProducaoRunner() {
       {/* Modal: planejar a produção do dia e imprimir a planilha */}
       {modalPlanejar && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]">
-               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-5 border-b border-slate-100 shrink-0">
+            <div className="bg-card rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]">
+               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-5 border-b border-line-soft shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Produção do Dia — Planejamento</h2>
-                     <p className="text-xs font-bold text-slate-500 mt-1">Defina o que produzir e quanto. Designe quem faz (ou deixe em branco para escreverem o nome na folha).</p>
+                     <p className="text-xs font-bold text-muted mt-1">Defina o que produzir e quanto. Designe quem faz (ou deixe em branco para escreverem o nome na folha).</p>
                   </div>
-                  <button onClick={() => setModalPlanejar(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalPlanejar(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="p-4 sm:p-8 pt-4 sm:pt-5 overflow-y-auto space-y-3">
                   <div className="flex items-center gap-3">
-                     <label className="text-3xs font-bold uppercase tracking-widest text-slate-500">Data da produção</label>
-                     <input type="date" value={dataPlano} onChange={e=>setDataPlano(e.target.value)} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                     <label className="text-3xs font-bold uppercase tracking-widest text-muted">Data da produção</label>
+                     <input type="date" value={dataPlano} onChange={e=>setDataPlano(e.target.value)} className="p-2.5 bg-slate-50 border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                      {itensPlanejados.length > 0 && (
                         <button onClick={() => { if (confirm("Limpar o planejamento do dia?")) setPlano({}); }} className="ml-auto text-3xs font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar tudo</button>
                      )}
@@ -522,14 +522,14 @@ function ProducaoRunner() {
                      const item = plano[f.id] || {};
                      const ativo = Number(String(item.qtd || "").replace(",", ".")) > 0;
                      return (
-                        <div key={f.id} className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 transition-colors ${ativo ? "border-emerald-300 bg-emerald-50/40" : "border-slate-200 bg-slate-50/50"}`}>
-                           <p className={`flex-1 font-bold text-sm ${ativo ? "text-slate-800" : "text-slate-500"}`}>{f.nome_receita}</p>
+                        <div key={f.id} className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 transition-colors ${ativo ? "border-emerald-300 bg-emerald-50/40" : "border-line bg-slate-50/50"}`}>
+                           <p className={`flex-1 font-bold text-sm ${ativo ? "text-slate-800" : "text-muted"}`}>{f.nome_receita}</p>
                            <div className="flex items-center gap-2">
                               <input type="number" min="0" placeholder="0" value={item.qtd || ""} onChange={e=>setPlanoItem(f.id, { qtd: e.target.value })}
-                                 className="w-20 p-2.5 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
-                              <span className="text-3xs font-bold text-slate-400 uppercase">porç.</span>
+                                 className="w-20 p-2.5 text-center bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                              <span className="text-3xs font-bold text-subtle uppercase">porç.</span>
                               <select value={item.resp || ""} onChange={e=>setPlanoItem(f.id, { resp: e.target.value })}
-                                 className="p-2.5 bg-white border border-slate-200 rounded-lg font-bold text-xs text-slate-600 outline-none focus:border-emerald-500 max-w-[170px]">
+                                 className="p-2.5 bg-card border border-line rounded-lg font-bold text-xs text-slate-600 outline-none focus:border-emerald-500 max-w-[170px]">
                                  <option value="">Nome em branco (escrever à mão)</option>
                                  {colaboradores.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
                               </select>
@@ -539,8 +539,8 @@ function ProducaoRunner() {
                   })}
                </div>
 
-               <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <p className="flex-1 text-xs font-bold text-slate-500">{itensPlanejados.length} item(ns) no plano</p>
+               <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-slate-50 rounded-b-[32px] shrink-0 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <p className="flex-1 text-xs font-bold text-muted">{itensPlanejados.length} item(ns) no plano</p>
                   <button onClick={imprimirPlanoDoDia} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-emerald-600/20">
                      <Printer size={18}/> Imprimir Planilha do Dia
                   </button>
@@ -551,48 +551,48 @@ function ProducaoRunner() {
 
       {modalProduzir && fichaAtual && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-lg p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
+            <div className="bg-card rounded-[32px] w-full max-w-lg p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Registrar Produção</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{fichaAtual.nome_receita}</p>
+                     <p className="text-sm font-bold text-muted mt-1">{fichaAtual.nome_receita}</p>
                   </div>
-                  <button onClick={() => setModalProduzir(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalProduzir(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="space-y-6">
                   {/* Quem fez? */}
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Quem está preparando?</label>
-                     <select value={colabSelecionado} onChange={e=>setColabSelecionado(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-slate-800">
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Quem está preparando?</label>
+                     <select value={colabSelecionado} onChange={e=>setColabSelecionado(e.target.value)} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-slate-800">
                         <option value="">-- Selecione seu nome --</option>
                         {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.cargo})</option>)}
                      </select>
                   </div>
 
                   {fichaAtual.eh_base && <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Onde será guardado?</label>
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Onde será guardado?</label>
                      <div className="grid grid-cols-2 gap-2 mb-2">
                         {(isBar ? ["Geladeira do Bar", "Prateleira do Bar", "Freezer do Bar", "Câmara fria"] : ["Freezer 1", "Freezer 2", "Geladeira", "Câmara fria"]).map(local => (
-                           <button type="button" key={local} onClick={() => setLocalArmazenamento(local)} className={`min-h-11 rounded-xl border px-3 text-sm font-black ${localArmazenamento === local ? "border-amber-600 bg-amber-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{local}</button>
+                           <button type="button" key={local} onClick={() => setLocalArmazenamento(local)} className={`min-h-11 rounded-xl border px-3 text-sm font-black ${localArmazenamento === local ? "border-amber-600 bg-amber-600 text-white" : "border-line bg-card text-slate-600"}`}>{local}</button>
                         ))}
                      </div>
-                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={isBar ? "Ex.: Geladeira dos xaropes" : "Ex.: Freezer 3"} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-600" />
+                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={isBar ? "Ex.: Geladeira dos xaropes" : "Ex.: Freezer 3"} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-amber-600" />
                      <p className="mt-2 text-xs font-semibold text-amber-700">O saldo produzido ficará separado neste local.</p>
                   </div>}
 
                   {/* Quantidade */}
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block text-center mb-4">Quantas porções você fez?</label>
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-line">
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block text-center mb-4">Quantas porções você fez?</label>
                      <div className="flex items-center justify-center gap-4">
-                        <button onClick={()=>setQtdProd(p => Math.max(1, Number(p)-1))} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-500 hover:text-slate-800">-</button>
+                        <button onClick={()=>setQtdProd(p => Math.max(1, Number(p)-1))} className="w-14 h-14 rounded-full bg-card border border-line flex items-center justify-center text-3xl font-black text-muted hover:text-slate-800">-</button>
                         <input 
                            type="number" 
                            value={qtdProd} 
                            onChange={e=>setQtdProd(e.target.value)} 
                            className="w-24 p-2 text-center text-4xl font-black text-slate-800 bg-transparent outline-none"
                         />
-                        <button onClick={()=>setQtdProd(p => Number(p)+1)} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-500 hover:text-slate-800">+</button>
+                        <button onClick={()=>setQtdProd(p => Number(p)+1)} className="w-14 h-14 rounded-full bg-card border border-line flex items-center justify-center text-3xl font-black text-muted hover:text-slate-800">+</button>
                      </div>
                   </div>
 
@@ -621,11 +621,11 @@ function ProducaoRunner() {
 
                   {/* Preview da Baixa */}
                   <div className="pt-2">
-                     <p className="text-3xs font-bold uppercase tracking-widest text-slate-500 mb-3">Previsão de Baixa no Estoque:</p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Previsão de Baixa no Estoque:</p>
                      <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
                         {calcularConsumoProducao(fichaAtual, Number(qtdProd), fichas).itens.map(item => {
                            return (
-                              <div key={item.insumo.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">
+                              <div key={item.insumo.id} className="flex justify-between items-center bg-card p-2 rounded border border-line-soft">
                                  <span className="font-bold text-slate-600 text-sm">{item.insumo.nome}</span>
                                  <span className="font-black text-slate-600 text-sm">- {item.quantidade.toFixed(3)} {item.insumo.unidade_medida}</span>
                               </div>
@@ -648,7 +648,7 @@ function ProducaoRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando Produção...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando Produção...</div>}>
        <ProducaoRunner />
     </Suspense>
   );

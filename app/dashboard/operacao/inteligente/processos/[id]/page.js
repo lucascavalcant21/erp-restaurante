@@ -46,8 +46,8 @@ const AGENDA_VAZIA = () => ({
   turno: "", responsavel_id: "", funcao_responsavel: "", ativo: true,
 });
 
-const rotulo = "text-2xs font-black uppercase tracking-widest text-slate-500";
-const campo = "mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] font-semibold text-slate-800 outline-none focus:border-emerald-600";
+const rotulo = "text-2xs font-black uppercase tracking-widest text-muted";
+const campo = "mt-1 w-full rounded-xl border border-slate-300 bg-card px-3 py-2.5 text-[15px] font-semibold text-slate-800 outline-none focus:border-emerald-600";
 
 export default function ConstrutorProcesso() {
   const { id } = useParams();
@@ -293,12 +293,12 @@ export default function ConstrutorProcesso() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-32">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-black text-slate-900 sm:text-xl">{novo ? "Novo processo" : processo.nome || "Processo"}</h1>
-            <p className="text-xs font-bold text-slate-500">{secoes.length} seções · {totalItens} itens · {agendas.length} agendamento(s)</p>
+            <h1 className="truncate text-lg font-black text-fg sm:text-xl">{novo ? "Novo processo" : processo.nome || "Processo"}</h1>
+            <p className="text-xs font-bold text-muted">{secoes.length} seções · {totalItens} itens · {agendas.length} agendamento(s)</p>
           </div>
         </div>
       </div>
@@ -313,7 +313,7 @@ export default function ConstrutorProcesso() {
         )}
 
         {/* Identificação */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">O processo</p>
           <label className="block">
             <span className={rotulo}>Nome *</span>
@@ -347,31 +347,31 @@ export default function ConstrutorProcesso() {
             <label className="flex items-center gap-2.5">
               <input type="checkbox" checked={processo.exige_todos_obrigatorios !== false}
                 onChange={e => setProcesso(p => ({ ...p, exige_todos_obrigatorios: e.target.checked }))} className="h-5 w-5 accent-emerald-600" />
-              <span className="text-sm font-bold text-slate-700">Só deixa concluir com todos os itens obrigatórios respondidos</span>
+              <span className="text-sm font-bold text-fg-soft">Só deixa concluir com todos os itens obrigatórios respondidos</span>
             </label>
             <label className="flex items-center gap-2.5">
               <input type="checkbox" checked={processo.permite_concluir_com_nc !== false}
                 onChange={e => setProcesso(p => ({ ...p, permite_concluir_com_nc: e.target.checked }))} className="h-5 w-5 accent-emerald-600" />
-              <span className="text-sm font-bold text-slate-700">Permite concluir mesmo com item crítico reprovado</span>
+              <span className="text-sm font-bold text-fg-soft">Permite concluir mesmo com item crítico reprovado</span>
             </label>
           </div>
         </section>
 
         {/* Seções e itens */}
         {secoes.map((secao, iS) => (
-          <section key={secao.chave} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <section key={secao.chave} className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <span className={rotulo}>Seção {iS + 1}</span>
                 <input value={secao.titulo} onChange={e => mudarSecao(iS, "titulo", e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[16px] font-black text-slate-900 outline-none focus:border-emerald-600" />
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[16px] font-black text-fg outline-none focus:border-emerald-600" />
                 <input value={secao.descricao || ""} onChange={e => mudarSecao(iS, "descricao", e.target.value)}
                   placeholder="Explicação da seção (opcional)"
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 outline-none focus:border-emerald-600" />
+                  className="mt-2 w-full rounded-xl border border-line px-3 py-2 text-sm font-semibold text-slate-600 outline-none focus:border-emerald-600" />
               </div>
               <div className="flex shrink-0 flex-col gap-1">
-                <button onClick={() => moverSecao(iS, -1)} disabled={iS === 0} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"><ChevronUp size={16} /></button>
-                <button onClick={() => moverSecao(iS, 1)} disabled={iS === secoes.length - 1} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"><ChevronDown size={16} /></button>
+                <button onClick={() => moverSecao(iS, -1)} disabled={iS === 0} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted hover:bg-slate-50 disabled:opacity-30"><ChevronUp size={16} /></button>
+                <button onClick={() => moverSecao(iS, 1)} disabled={iS === secoes.length - 1} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted hover:bg-slate-50 disabled:opacity-30"><ChevronDown size={16} /></button>
                 <button onClick={() => removerSecao(iS)} disabled={secoes.length === 1} className="grid h-9 w-9 place-items-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-30"><Trash2 size={16} /></button>
               </div>
             </div>
@@ -381,12 +381,12 @@ export default function ConstrutorProcesso() {
                 const info = tipoInfo(item.tipo);
                 const expandido = aberto === item.chave;
                 return (
-                  <div key={item.chave} className={`rounded-2xl border ${expandido ? "border-emerald-300 bg-emerald-50/40" : "border-slate-200"}`}>
+                  <div key={item.chave} className={`rounded-2xl border ${expandido ? "border-emerald-300 bg-emerald-50/40" : "border-line"}`}>
                     <div className="flex items-start gap-2 p-3">
                       <button onClick={() => setAberto(expandido ? "" : item.chave)} className="min-w-0 flex-1 text-left">
-                        <p className="text-[15px] font-black text-slate-900">{item.titulo || <span className="text-slate-400">Item sem título</span>}</p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs font-bold text-slate-500">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5">{info.rotulo}</span>
+                        <p className="text-[15px] font-black text-fg">{item.titulo || <span className="text-subtle">Item sem título</span>}</p>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs font-bold text-muted">
+                          <span className="rounded bg-elevated px-1.5 py-0.5">{info.rotulo}</span>
                           {ehNumerico(item.tipo) && (item.valor_min !== "" || item.valor_max !== "") && (
                             <span>{item.valor_min !== "" ? item.valor_min : "—"} a {item.valor_max !== "" ? item.valor_max : "—"}{item.unidade_medida}</span>
                           )}
@@ -397,9 +397,9 @@ export default function ConstrutorProcesso() {
                         </p>
                       </button>
                       <div className="flex shrink-0 gap-1">
-                        <button onClick={() => moverItem(iS, iI, -1)} disabled={iI === 0} className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30"><ChevronUp size={15} /></button>
-                        <button onClick={() => moverItem(iS, iI, 1)} disabled={iI === secao.itens.length - 1} className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30"><ChevronDown size={15} /></button>
-                        <button onClick={() => duplicarItem(iS, iI)} className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"><Copy size={15} /></button>
+                        <button onClick={() => moverItem(iS, iI, -1)} disabled={iI === 0} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-elevated disabled:opacity-30"><ChevronUp size={15} /></button>
+                        <button onClick={() => moverItem(iS, iI, 1)} disabled={iI === secao.itens.length - 1} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-elevated disabled:opacity-30"><ChevronDown size={15} /></button>
+                        <button onClick={() => duplicarItem(iS, iI)} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-elevated"><Copy size={15} /></button>
                         <button onClick={() => removerItem(iS, iI)} className="grid h-9 w-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button>
                       </div>
                     </div>
@@ -428,7 +428,7 @@ export default function ConstrutorProcesso() {
                               </optgroup>
                             ))}
                           </select>
-                          <span className="mt-1 block text-xs font-medium text-slate-500">{info.ajuda}</span>
+                          <span className="mt-1 block text-xs font-medium text-muted">{info.ajuda}</span>
                         </label>
 
                         {ehNumerico(item.tipo) && (
@@ -455,9 +455,9 @@ export default function ConstrutorProcesso() {
                               {(item.opcoes || []).map((op, iO) => (
                                 <div key={iO} className="flex gap-2">
                                   <input value={op} onChange={e => mudarItem(iS, iI, { opcoes: item.opcoes.map((x, k) => k === iO ? e.target.value : x) })}
-                                    placeholder={`Opção ${iO + 1}`} className="h-11 flex-1 rounded-xl border border-slate-300 px-3 font-semibold text-slate-700 outline-none focus:border-emerald-600" />
+                                    placeholder={`Opção ${iO + 1}`} className="h-11 flex-1 rounded-xl border border-slate-300 px-3 font-semibold text-fg-soft outline-none focus:border-emerald-600" />
                                   <button onClick={() => mudarItem(iS, iI, { opcoes: item.opcoes.filter((_, k) => k !== iO) })}
-                                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-slate-400 hover:text-rose-600"><Trash2 size={16} /></button>
+                                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-subtle hover:text-rose-600"><Trash2 size={16} /></button>
                                 </div>
                               ))}
                               <button onClick={() => mudarItem(iS, iI, { opcoes: [...(item.opcoes || []), ""] })}
@@ -493,7 +493,7 @@ export default function ConstrutorProcesso() {
                           ].map(([chave, texto]) => (
                             <label key={chave} className="flex items-center gap-2.5">
                               <input type="checkbox" checked={!!item[chave]} onChange={e => mudarItem(iS, iI, { [chave]: e.target.checked })} className="h-5 w-5 accent-emerald-600" />
-                              <span className="text-sm font-bold text-slate-700">{texto}</span>
+                              <span className="text-sm font-bold text-fg-soft">{texto}</span>
                             </label>
                           ))}
                         </div>
@@ -514,10 +514,10 @@ export default function ConstrutorProcesso() {
                         </div>
 
                         {/* Condicional */}
-                        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                          <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-slate-500"><Settings2 size={13} /> Mostrar só em certos casos</p>
+                        <div className="mt-3 rounded-xl border border-line bg-card p-3">
+                          <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted"><Settings2 size={13} /> Mostrar só em certos casos</p>
                           {candidatosCondicao(iS, iI).length === 0 ? (
-                            <p className="mt-1.5 text-[13px] font-medium text-slate-500">Depende de um item anterior de resposta fechada. Não há nenhum antes deste.</p>
+                            <p className="mt-1.5 text-[13px] font-medium text-muted">Depende de um item anterior de resposta fechada. Não há nenhum antes deste.</p>
                           ) : (
                             <div className="mt-2 grid gap-2 sm:grid-cols-2">
                               <select value={item.depende_chave || ""} onChange={e => mudarItem(iS, iI, { depende_chave: e.target.value, depende_valor: "" })} className={campo}>
@@ -553,13 +553,13 @@ export default function ConstrutorProcesso() {
         </button>
 
         {/* Agendamento */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-700"><Clock size={14} /> Quando esta rotina acontece</p>
-              <p className="mt-1 text-sm font-medium text-slate-500">A execução aparece sozinha na Central, no horário marcado.</p>
+              <p className="mt-1 text-sm font-medium text-muted">A execução aparece sozinha na Central, no horário marcado.</p>
             </div>
-            <button onClick={addAgenda} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-white px-3.5 font-black text-emerald-700 hover:bg-emerald-50">
+            <button onClick={addAgenda} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-card px-3.5 font-black text-emerald-700 hover:bg-emerald-50">
               <Plus size={17} /> Horário
             </button>
           </div>
@@ -571,7 +571,7 @@ export default function ConstrutorProcesso() {
           ) : (
             <div className="mt-4 space-y-4">
               {agendas.map((a, iA) => (
-                <div key={a.chave} className="rounded-2xl border border-slate-200 p-3.5">
+                <div key={a.chave} className="rounded-2xl border border-line p-3.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[14px] font-black text-slate-800">{descreverAgenda(a)}</p>
                     <button onClick={() => removerAgenda(iA)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50"><Trash2 size={16} /></button>
@@ -598,7 +598,7 @@ export default function ConstrutorProcesso() {
                           const marcado = (a.dias_semana || []).includes(d.valor);
                           return (
                             <button key={d.valor} onClick={() => alternarDia(iA, d.valor)}
-                              className={`h-11 min-w-[58px] rounded-xl border-2 text-sm font-black ${marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}>
+                              className={`h-11 min-w-[58px] rounded-xl border-2 text-sm font-black ${marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
                               {d.rotulo}
                             </button>
                           );
@@ -664,10 +664,10 @@ export default function ConstrutorProcesso() {
         </section>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:p-4"
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 backdrop-blur sm:p-4"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto flex max-w-4xl gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
           <button onClick={salvar} disabled={salvando}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
             {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : <><Save size={18} /> Salvar processo</>}

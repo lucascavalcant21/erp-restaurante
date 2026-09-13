@@ -89,7 +89,7 @@ export default function ModoCozinha({
                     <button onClick={() => alternar(chave)}
                       className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-white/5">
                       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 ${
-                        feito ? "border-emerald-400 bg-emerald-400 text-slate-900" : "border-white/25"}`}>
+                        feito ? "border-emerald-400 bg-emerald-400 text-fg" : "border-white/25"}`}>
                         {feito ? <Check size={16} strokeWidth={3} /> : null}
                       </span>
                       <span className={`min-w-0 flex-1 text-lg font-semibold ${feito ? "text-white/35 line-through" : ""}`}>
@@ -138,7 +138,7 @@ export default function ModoCozinha({
                       className={`flex w-full gap-3 rounded-2xl p-4 text-left transition ${
                         feito ? "bg-white/5" : "bg-white/10 hover:bg-white/15"}`}>
                       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-extrabold ${
-                        feito ? "bg-emerald-400 text-slate-900" : "bg-white/15"}`}>
+                        feito ? "bg-emerald-400 text-fg" : "bg-white/15"}`}>
                         {feito ? <Check size={20} strokeWidth={3} /> : i + 1}
                       </span>
                       <span className={`min-w-0 flex-1 ${feito ? "text-white/35" : ""}`}>
@@ -180,7 +180,7 @@ export default function ModoCozinha({
                     <button onClick={() => alternar(chave)}
                       className="flex w-full items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-left hover:bg-white/15">
                       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold ${
-                        feito ? "bg-emerald-400 text-slate-900" : "bg-white/15"}`}>
+                        feito ? "bg-emerald-400 text-fg" : "bg-white/15"}`}>
                         {feito ? <Check size={17} strokeWidth={3} /> : i + 1}
                       </span>
                       <span className={`text-lg font-semibold ${feito ? "text-white/35 line-through" : ""}`}>

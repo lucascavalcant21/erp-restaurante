@@ -493,34 +493,34 @@ export default function GuiaDeFuncoes() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 shadow-sm">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6 shadow-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black text-slate-900 sm:text-xl">Guia de Funções</h1>
+              <h1 className="text-lg font-black text-fg sm:text-xl">Guia de Funções</h1>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-3xs font-bold text-emerald-800 border border-emerald-200">Rotina Interativa</span>
             </div>
-            <p className="text-xs font-bold text-slate-500">A rotina de cada função, hora a hora — sem nomes, por posição</p>
+            <p className="text-xs font-bold text-muted">A rotina de cada função, hora a hora — sem nomes, por posição</p>
           </div>
 
           {/* Navegação por Abas Principais */}
-          <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+          <div className="flex rounded-xl bg-elevated p-1 border border-line text-xs font-bold">
             <button
               onClick={() => setAbaAtiva("guia")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "guia" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "guia" ? "bg-card text-fg shadow-sm" : "text-muted hover:text-fg"}`}
             >
               <ListChecks size={15} /> <span>Fichas & Edição</span>
             </button>
             <button
               onClick={() => setAbaAtiva("checklist")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-emerald-600 text-white shadow-sm" : "text-muted hover:text-fg"}`}
             >
               <CheckSquare size={15} /> <span>Modo Checklist</span>
             </button>
             <button
               onClick={() => setAbaAtiva("painel")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "painel" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "painel" ? "bg-slate-900 text-white shadow-sm" : "text-muted hover:text-fg"}`}
             >
               <BarChart3 size={15} /> <span>Painel Gerência</span>
             </button>
@@ -536,27 +536,27 @@ export default function GuiaDeFuncoes() {
                     {salvando ? "Salvando..." : "Salvar alterações"}
                   </button>
                   <button onClick={cancelarEdicao} disabled={salvando}
-                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
                     <X size={15} /> Cancelar
                   </button>
                 </>
               ) : (
                 <button onClick={iniciarEdicao}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50">
+                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-slate-50">
                   <Save size={15} /> Editar horários
                 </button>
               )}
               <button onClick={adicionarFuncao} title="Cria uma função nova e abre a edição"
-                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
                 <Plus size={15} /> Nova função
               </button>
               {editando && (
-                <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-slate-600 hover:bg-slate-50">
                   <RotateCcw size={15} /> Voltar ao padrão
                 </button>
               )}
               <button onClick={imprimirPlanilha} title="Todas as funções numa tabela só, para a mesa da gerência"
-                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50">
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-slate-50">
                 <Table size={15} /> Planilha
               </button>
               <button onClick={imprimir} title="Uma função por página, para a parede do setor"
@@ -579,7 +579,7 @@ export default function GuiaDeFuncoes() {
 
       <div className="mx-auto mt-6 max-w-5xl px-4 sm:px-6">
         {carregando ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="flex flex-col items-center justify-center py-20 text-subtle">
             <Loader2 size={32} className="animate-spin mb-3 text-emerald-600" />
             <p className="text-sm font-bold">Carregando o guia de funções...</p>
           </div>
@@ -592,15 +592,15 @@ export default function GuiaDeFuncoes() {
           /* 📱 ABA 2: MODO CHECKLIST DINÂMICO DO TURNO (EXECUÇÃO) */
           <div className="space-y-6">
             {/* Seletor de Função e Relógio em Tempo Real */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-5 rounded-3xl border border-line shadow-sm">
               <div className="flex-1 w-full">
-                <label className="text-3xs font-bold uppercase tracking-widest text-slate-400 block mb-1.5">Selecione a sua função no turno</label>
+                <label className="text-3xs font-bold uppercase tracking-widest text-subtle block mb-1.5">Selecione a sua função no turno</label>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {funcoesOrdenadas.map(f => (
                     <button
                       key={f.id}
                       onClick={() => setFuncaoChecklistId(f.id)}
-                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border ${funcaoChecklistId === f.id ? "bg-slate-900 text-white border-slate-900 shadow-md" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border ${funcaoChecklistId === f.id ? "bg-slate-900 text-white border-slate-900 shadow-md" : "bg-slate-50 text-slate-600 border-line hover:bg-elevated"}`}
                     >
                       <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ background: f.cor }}></span>
                       {f.funcao}
@@ -611,7 +611,7 @@ export default function GuiaDeFuncoes() {
               <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl flex items-center gap-3 shrink-0 self-end sm:self-center">
                 <Clock size={20} className="text-emerald-400 animate-pulse" />
                 <div>
-                  <span className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Horário Atual</span>
+                  <span className="text-3xs font-bold text-subtle uppercase tracking-widest block">Horário Atual</span>
                   <span className="text-xl font-black tabular-nums">{horaAtual}</span>
                 </div>
               </div>
@@ -623,17 +623,17 @@ export default function GuiaDeFuncoes() {
                 {(() => {
                   const prog = calcularProgressoFuncao(funcaoAtivaChecklist, concluidos);
                   return (
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                    <div className="bg-card p-4 rounded-2xl border border-line flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white" style={{ background: funcaoAtivaChecklist.cor }}>
                           {prog.pct}%
                         </div>
                         <div>
-                          <h3 className="font-black text-slate-900 text-base">{funcaoAtivaChecklist.funcao}</h3>
-                          <p className="text-xs font-bold text-slate-400">{prog.concluidos} de {prog.total} tarefas concluídas no turno de hoje</p>
+                          <h3 className="font-black text-fg text-base">{funcaoAtivaChecklist.funcao}</h3>
+                          <p className="text-xs font-bold text-subtle">{prog.concluidos} de {prog.total} tarefas concluídas no turno de hoje</p>
                         </div>
                       </div>
-                      <div className="w-full sm:w-48 bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+                      <div className="w-full sm:w-48 bg-elevated h-3 rounded-full overflow-hidden border border-line">
                         <div className="bg-emerald-600 h-full transition-all duration-500" style={{ width: `${prog.pct}%` }}></div>
                       </div>
                     </div>
@@ -642,7 +642,7 @@ export default function GuiaDeFuncoes() {
 
                 {/* Blocos de Horário e Tarefas */}
                 {funcaoAtivaChecklist.blocos.map((bloco, idxBloco) => (
-                  <div key={idxBloco} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                  <div key={idxBloco} className="bg-card rounded-3xl border border-line overflow-hidden shadow-sm">
                     {Boolean(bloco.titulo && bloco.titulo !== "Período" && bloco.titulo.trim()) && (
                       <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -650,7 +650,7 @@ export default function GuiaDeFuncoes() {
                           <h4 className="font-black text-sm uppercase tracking-wide">{bloco.titulo}</h4>
                         </div>
                         {periodoDoBloco(bloco) !== "—" && (
-                          <span className="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1 rounded-full">{periodoDoBloco(bloco)}</span>
+                          <span className="text-xs font-bold text-dim bg-slate-800 px-3 py-1 rounded-full">{periodoDoBloco(bloco)}</span>
                         )}
                       </div>
                     )}
@@ -671,8 +671,8 @@ export default function GuiaDeFuncoes() {
                                 : status === "ativo"
                                 ? "bg-emerald-50/50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-md"
                                 : status === "passado"
-                                ? "bg-slate-50 border-slate-200 opacity-80"
-                                : "bg-white border-slate-200"
+                                ? "bg-slate-50 border-line opacity-80"
+                                : "bg-card border-line"
                             }`}
                           >
                             {/* Alerta de Tempo Restante */}
@@ -685,7 +685,7 @@ export default function GuiaDeFuncoes() {
 
                             <div className="flex items-center justify-between mb-3 border-b border-slate-200/60 pb-2">
                               <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${status === "ativo" ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${status === "ativo" ? "bg-emerald-600 text-white" : "bg-slate-200 text-fg-soft"}`}>
                                   {periodoDoHorario(horario)}
                                 </span>
                                 {status === "ativo" && (
@@ -717,11 +717,11 @@ export default function GuiaDeFuncoes() {
                                       className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                                         estaConcluido
                                           ? "bg-emerald-100/60 border-emerald-300 text-emerald-900"
-                                          : "bg-white border-slate-200 hover:border-slate-300 text-slate-800"
+                                          : "bg-card border-line hover:border-slate-300 text-slate-800"
                                       }`}
                                     >
                                       <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors border ${
-                                        estaConcluido ? "bg-emerald-600 border-emerald-600 text-white" : "border-slate-300 bg-white"
+                                        estaConcluido ? "bg-emerald-600 border-emerald-600 text-white" : "border-slate-300 bg-card"
                                       }`}>
                                         {estaConcluido && <Check size={14} strokeWidth={3} />}
                                       </div>
@@ -749,10 +749,10 @@ export default function GuiaDeFuncoes() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-black">Painel da Gerência — Rotina do Dia</h2>
-                  <p className="text-xs text-slate-400 font-bold mt-1">Acompanhamento em tempo real do cumprimento do Guia de Funções por Setor</p>
+                  <p className="text-xs text-subtle font-bold mt-1">Acompanhamento em tempo real do cumprimento do Guia de Funções por Setor</p>
                 </div>
                 <div className="bg-slate-800 px-4 py-2 rounded-2xl text-right border border-slate-700">
-                  <span className="text-3xs font-bold text-slate-400 uppercase tracking-widest block">Data</span>
+                  <span className="text-3xs font-bold text-subtle uppercase tracking-widest block">Data</span>
                   <span className="text-sm font-black">{new Date().toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}</span>
                 </div>
               </div>
@@ -763,18 +763,18 @@ export default function GuiaDeFuncoes() {
               {Object.keys(progressoGerencia).map(setorKey => {
                 const s = progressoGerencia[setorKey];
                 return (
-                  <div key={setorKey} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                  <div key={setorKey} className="bg-card p-5 rounded-3xl border border-line shadow-sm space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{setorKey}</span>
-                      <span className="text-lg font-black text-slate-900">{s.pct}%</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-subtle">{setorKey}</span>
+                      <span className="text-lg font-black text-fg">{s.pct}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+                    <div className="w-full bg-elevated h-3 rounded-full overflow-hidden border border-line">
                       <div
                         className={`h-full transition-all duration-500 ${s.pct >= 80 ? "bg-emerald-600" : s.pct >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
                         style={{ width: `${s.pct}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs font-bold text-slate-500">
+                    <p className="text-xs font-bold text-muted">
                       {s.concluidos} de {s.total} tarefas executadas ({s.funcoesCount} função/funções)
                     </p>
                   </div>
@@ -783,8 +783,8 @@ export default function GuiaDeFuncoes() {
             </div>
 
             {/* Status por Função Individual */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <h3 className="font-black text-slate-900 text-base">Detalhamento por Função no Turno de Hoje</h3>
+            <div className="bg-card p-6 rounded-3xl border border-line shadow-sm space-y-4">
+              <h3 className="font-black text-fg text-base">Detalhamento por Função no Turno de Hoje</h3>
               <div className="divide-y divide-slate-100">
                 {funcoesOrdenadas.map(f => {
                   const p = calcularProgressoFuncao(f, concluidos);
@@ -793,16 +793,16 @@ export default function GuiaDeFuncoes() {
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 rounded-full shrink-0" style={{ background: f.cor }}></div>
                         <div>
-                          <p className="font-black text-slate-900 text-sm">{f.funcao}</p>
-                          <p className="text-xs font-bold text-slate-400">{f.setor || "Sem setor"}</p>
+                          <p className="font-black text-fg text-sm">{f.funcao}</p>
+                          <p className="text-xs font-bold text-subtle">{f.setor || "Sem setor"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 w-full sm:w-auto justify-between">
                         <div className="text-right">
                           <span className="text-xs font-bold text-slate-800">{p.concluidos} / {p.total} tarefas</span>
-                          <span className="text-2xs font-bold text-slate-400 block">{p.pct}% concluído</span>
+                          <span className="text-2xs font-bold text-subtle block">{p.pct}% concluído</span>
                         </div>
-                        <div className="w-24 bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                        <div className="w-24 bg-elevated h-2.5 rounded-full overflow-hidden border border-line">
                           <div className="bg-emerald-600 h-full" style={{ width: `${p.pct}%` }}></div>
                         </div>
                       </div>
@@ -816,8 +816,8 @@ export default function GuiaDeFuncoes() {
           /* 📋 ABA 1: GUIA DE FUNÇÕES (LISTAGEM / EDIÇÃO / IMPRESSÃO) */
           <div className="space-y-6">
             {funcoesExibidas.map((funcao) => (
-              <article key={funcao.id} data-funcao-id={funcao.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:border-slate-300">
-                <header className="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 p-4 text-white sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <article key={funcao.id} data-funcao-id={funcao.id} className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm transition-all hover:border-slate-300">
+                <header className="flex flex-col gap-3 border-b border-line bg-slate-900 p-4 text-white sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   {editando ? (
                     <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
                       <input type="color" value={funcao.cor || "#475569"} onChange={e => alterarFuncao(funcao.id, "cor", e.target.value)} title="Cor da faixa no cartaz impresso" className="h-10 w-12 cursor-pointer rounded-lg border border-slate-700 bg-slate-800 p-1" />
@@ -838,7 +838,7 @@ export default function GuiaDeFuncoes() {
                         <div className="w-4 h-10 rounded-full" style={{ background: funcao.cor }}></div>
                         <div>
                           <h2 className="text-lg font-black uppercase text-white">{funcao.funcao}</h2>
-                          <p className="text-xs font-bold text-slate-400">{funcao.setor}</p>
+                          <p className="text-xs font-bold text-subtle">{funcao.setor}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -852,15 +852,15 @@ export default function GuiaDeFuncoes() {
 
                 <div className="space-y-4 p-4">
                   {funcao.blocos.map((bloco, indice) => (
-                    <div key={indice} className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50">
+                    <div key={indice} className="rounded-2xl border border-line overflow-hidden bg-slate-50/50">
                       {editando ? (
                         <div className="p-4 space-y-3">
                           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                            <input value={bloco.titulo || ""} onChange={e => alterarBloco(funcao.id, indice, "titulo", e.target.value)} placeholder="Período Maior (Ex: Abertura do Salão 1)" className="h-10 flex-1 bg-white border border-slate-200 px-3 font-black text-sm rounded-xl" />
+                            <input value={bloco.titulo || ""} onChange={e => alterarBloco(funcao.id, indice, "titulo", e.target.value)} placeholder="Período Maior (Ex: Abertura do Salão 1)" className="h-10 flex-1 bg-card border border-line px-3 font-black text-sm rounded-xl" />
                             <div className="flex items-center gap-1.5">
-                              <input type="time" value={bloco.hora || ""} onChange={e => alterarBloco(funcao.id, indice, "hora", e.target.value)} className="h-10 bg-white border border-slate-200 px-2 font-bold text-sm rounded-xl" />
-                              <span className="text-xs font-bold text-slate-400">até</span>
-                              <input type="time" value={bloco.fim || ""} onChange={e => alterarBloco(funcao.id, indice, "fim", e.target.value)} className="h-10 bg-white border border-slate-200 px-2 font-bold text-sm rounded-xl" />
+                              <input type="time" value={bloco.hora || ""} onChange={e => alterarBloco(funcao.id, indice, "hora", e.target.value)} className="h-10 bg-card border border-line px-2 font-bold text-sm rounded-xl" />
+                              <span className="text-xs font-bold text-subtle">até</span>
+                              <input type="time" value={bloco.fim || ""} onChange={e => alterarBloco(funcao.id, indice, "fim", e.target.value)} className="h-10 bg-card border border-line px-2 font-bold text-sm rounded-xl" />
                             </div>
                             <button onClick={() => removerBloco(funcao.id, indice)} className="h-10 px-3 bg-red-50 text-red-600 font-bold text-xs rounded-xl flex items-center gap-1 border border-red-200">
                               <Trash2 size={14} /> Excluir Período
@@ -869,16 +869,16 @@ export default function GuiaDeFuncoes() {
 
                           <div className="space-y-3 pt-2">
                             {(bloco.horarios || []).map((horario, idxHorario) => (
-                              <div key={idxHorario} className={`p-4.5 rounded-2xl border-2 space-y-3 shadow-sm transition-all ${horario.intervalo ? "border-amber-300 bg-amber-50/90" : "border-slate-300/90 bg-white"}`}>
+                              <div key={idxHorario} className={`p-4.5 rounded-2xl border-2 space-y-3 shadow-sm transition-all ${horario.intervalo ? "border-amber-300 bg-amber-50/90" : "border-slate-300/90 bg-card"}`}>
                                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between border-b border-slate-200/80 pb-2.5">
-                                  <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                                  <div className="flex items-center gap-1.5 bg-elevated p-1.5 rounded-xl border border-line">
                                     <Clock size={15} className="text-slate-600 ml-1" />
-                                    <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "hora", e.target.value)} className="h-9 bg-white border border-slate-300 px-2 font-bold text-xs rounded-lg outline-none focus:border-emerald-500" />
-                                    <span className="text-xs font-bold text-slate-500">até</span>
-                                    <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "fim", e.target.value)} className="h-9 bg-white border border-slate-300 px-2 font-bold text-xs rounded-lg outline-none focus:border-emerald-500" />
+                                    <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "hora", e.target.value)} className="h-9 bg-card border border-slate-300 px-2 font-bold text-xs rounded-lg outline-none focus:border-emerald-500" />
+                                    <span className="text-xs font-bold text-muted">até</span>
+                                    <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "fim", e.target.value)} className="h-9 bg-card border border-slate-300 px-2 font-bold text-xs rounded-lg outline-none focus:border-emerald-500" />
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all ${horario.intervalo ? "bg-amber-200 text-amber-900 border-amber-400" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"}`}>
+                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all ${horario.intervalo ? "bg-amber-200 text-amber-900 border-amber-400" : "bg-elevated text-fg-soft border-line hover:bg-slate-200"}`}>
                                       <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo" : "É intervalo?"}
                                     </button>
                                     <button onClick={() => removerHorario(funcao.id, indice, idxHorario)} title="Excluir este horário" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center border border-red-200 hover:bg-red-100">
@@ -889,7 +889,7 @@ export default function GuiaDeFuncoes() {
 
                                 {!horario.intervalo && (
                                   <div className="space-y-2 pt-1">
-                                    <p className="text-3xs font-bold uppercase tracking-wider text-slate-500">Tarefas deste horário (linha por linha)</p>
+                                    <p className="text-3xs font-bold uppercase tracking-wider text-muted">Tarefas deste horário (linha por linha)</p>
                                     {tarefasDoHorario(horario).map((t, idxT) => (
                                       <div
                                         key={idxT}
@@ -905,7 +905,7 @@ export default function GuiaDeFuncoes() {
                                         className={`flex items-center gap-1.5 p-1 rounded-xl transition-all ${dragIndex === idxT ? "opacity-50 border border-emerald-400 bg-emerald-50/50" : ""}`}
                                       >
                                         <div className="flex items-center gap-0.5 shrink-0">
-                                          <span className="grid h-7 w-7 cursor-grab active:cursor-grabbing place-items-center rounded-lg bg-slate-200/80 text-slate-500 hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta tarefa">
+                                          <span className="grid h-7 w-7 cursor-grab active:cursor-grabbing place-items-center rounded-lg bg-slate-200/80 text-muted hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta tarefa">
                                             <GripVertical size={14} />
                                           </span>
                                           <div className="flex flex-col gap-0.5">
@@ -914,7 +914,7 @@ export default function GuiaDeFuncoes() {
                                               disabled={idxT === 0}
                                               onClick={() => moverTarefaNoHorario(funcao.id, indice, idxHorario, idxT, idxT - 1)}
                                               title="Mover para cima"
-                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
+                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
                                             >
                                               <ChevronUp size={10} />
                                             </button>
@@ -923,16 +923,16 @@ export default function GuiaDeFuncoes() {
                                               disabled={idxT === tarefasDoHorario(horario).length - 1}
                                               onClick={() => moverTarefaNoHorario(funcao.id, indice, idxHorario, idxT, idxT + 1)}
                                               title="Mover para baixo"
-                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
+                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
                                             >
                                               <ChevronDown size={10} />
                                             </button>
                                           </div>
-                                          <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-3xs font-bold text-slate-600 flex items-center justify-center shrink-0 ml-0.5">{idxT + 1}</span>
+                                          <span className="w-6 h-6 rounded-full bg-elevated border border-line text-3xs font-bold text-slate-600 flex items-center justify-center shrink-0 ml-0.5">{idxT + 1}</span>
                                         </div>
 
-                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-300 px-3 text-xs font-bold rounded-xl outline-none focus:border-emerald-500 focus:bg-white" />
-                                        <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-slate-400 hover:text-red-600 flex items-center justify-center shrink-0">
+                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-300 px-3 text-xs font-bold rounded-xl outline-none focus:border-emerald-500 focus:bg-card" />
+                                        <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-subtle hover:text-red-600 flex items-center justify-center shrink-0">
                                           <Trash2 size={15} />
                                         </button>
                                       </div>
@@ -944,7 +944,7 @@ export default function GuiaDeFuncoes() {
                                 )}
                               </div>
                             ))}
-                            <button onClick={() => adicionarHorario(funcao.id, indice)} className="text-xs font-bold text-slate-700 hover:underline flex items-center gap-1 pt-1">
+                            <button onClick={() => adicionarHorario(funcao.id, indice)} className="text-xs font-bold text-fg-soft hover:underline flex items-center gap-1 pt-1">
                               <Plus size={13} /> Adicionar horário menor dentro deste período
                             </button>
                           </div>
@@ -954,7 +954,7 @@ export default function GuiaDeFuncoes() {
                           {Boolean(bloco.titulo && bloco.titulo !== "Período" && bloco.titulo.trim()) && (
                             <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
                               <span className="font-bold text-xs uppercase">{bloco.titulo}</span>
-                              {periodoDoBloco(bloco) !== "—" && <span className="text-xs font-bold text-slate-300">{periodoDoBloco(bloco)}</span>}
+                              {periodoDoBloco(bloco) !== "—" && <span className="text-xs font-bold text-dim">{periodoDoBloco(bloco)}</span>}
                             </div>
                           )}
                           <div className="p-4 space-y-3 bg-slate-50/50">
@@ -964,11 +964,11 @@ export default function GuiaDeFuncoes() {
                                 className={`p-4 rounded-2xl border transition-all ${
                                   h.intervalo
                                     ? "bg-amber-50/90 border-amber-200 text-amber-900"
-                                    : "bg-white border-slate-200 shadow-sm"
+                                    : "bg-card border-line shadow-sm"
                                 }`}
                               >
                                 <span className={`text-xs font-bold px-2.5 py-1 rounded-md inline-block mb-2 ${
-                                  h.intervalo ? "bg-amber-200/80 text-amber-900" : "bg-slate-100 text-slate-800"
+                                  h.intervalo ? "bg-amber-200/80 text-amber-900" : "bg-elevated text-slate-800"
                                 }`}>
                                   {periodoDoHorario(h)}
                                 </span>
@@ -979,7 +979,7 @@ export default function GuiaDeFuncoes() {
                                     <span>INTERVALO / PAUSA</span>
                                   </div>
                                 ) : (
-                                  <ul className="list-disc list-inside space-y-1.5 text-xs font-bold text-slate-700">
+                                  <ul className="list-disc list-inside space-y-1.5 text-xs font-bold text-fg-soft">
                                     {tarefasDoHorario(h).map((t, idxT) => (
                                       <li key={idxT}>{t}</li>
                                     ))}
@@ -994,7 +994,7 @@ export default function GuiaDeFuncoes() {
                   ))}
 
                   {editando && (
-                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-white border-2 border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
+                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-card border-2 border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
                       <Plus size={15} /> Adicionar Período Maior (Ex: Abertura, Serviço, Fechamento)
                     </button>
                   )}

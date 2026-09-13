@@ -80,7 +80,7 @@ export default function FechamentoFolhaPage() {
   const totalCalculado = pagamentos.reduce((acc, p) => acc + p.valor_liquido, 0);
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
-    return <div className="p-10 text-center font-bold text-slate-500">Por favor, selecione uma unidade/loja específica no menu lateral.</div>;
+    return <div className="p-10 text-center font-bold text-muted">Por favor, selecione uma unidade/loja específica no menu lateral.</div>;
   }
 
   return (
@@ -89,15 +89,15 @@ export default function FechamentoFolhaPage() {
       <div className="bg-slate-900 pt-8 pb-12 px-6 shadow-2xl relative text-white border-b border-slate-800">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
-               <button onClick={() => abrirMenu()} className="text-slate-400 hover:text-white mb-4 flex items-center gap-2 font-bold transition-colors">
+               <button onClick={() => abrirMenu()} className="text-subtle hover:text-white mb-4 flex items-center gap-2 font-bold transition-colors">
                   <ArrowLeft size={18}/> Voltar
                </button>
                <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Fechamento de Folha</h1>
-               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Geração de Holerites e CMO Automático</p>
+               <p className="text-subtle font-bold uppercase tracking-widest text-xs mt-1">Geração de Holerites e CMO Automático</p>
             </div>
             
             <div className="flex gap-4 items-center bg-slate-800 p-2 pl-4 rounded-2xl border border-slate-700">
-               <span className="font-bold text-sm text-slate-400 uppercase tracking-widest">Competência:</span>
+               <span className="font-bold text-sm text-subtle uppercase tracking-widest">Competência:</span>
                <input 
                   type="month" 
                   value={mesAno} 
@@ -109,20 +109,20 @@ export default function FechamentoFolhaPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 -mt-6">
-         <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-slate-200/50 border border-slate-200">
+         <div className="bg-card rounded-[32px] p-6 shadow-xl shadow-slate-200/50 border border-line">
             
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-line-soft">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
                      <Calculator size={24}/>
                   </div>
                   <div>
                      <h2 className="text-xl font-black text-slate-800">Cálculo de Pagamentos</h2>
-                     <p className="text-sm text-slate-500 font-medium">Revise os dias e ajuste os descontos antes de finalizar.</p>
+                     <p className="text-sm text-muted font-medium">Revise os dias e ajuste os descontos antes de finalizar.</p>
                   </div>
                </div>
                <div className="text-right">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Total da Folha</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-subtle mb-1">Total da Folha</p>
                   <p className="text-3xl font-black text-slate-800">{fmtBRL(totalCalculado)}</p>
                </div>
             </div>
@@ -135,19 +135,19 @@ export default function FechamentoFolhaPage() {
             </div>
 
             {loading ? (
-               <div className="py-20 text-center text-slate-500 flex flex-col items-center">
+               <div className="py-20 text-center text-muted flex flex-col items-center">
                   <Loader2 size={32} className="animate-spin mb-4 text-indigo-500"/>
                   <p className="font-bold">Calculando pagamentos...</p>
                </div>
             ) : pagamentos.length === 0 ? (
-               <div className="py-20 text-center text-slate-500">
+               <div className="py-20 text-center text-muted">
                   <p className="font-bold">Nenhum funcionário encontrado para esta unidade.</p>
                </div>
             ) : (
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1040px]">
                      <thead>
-                        <tr className="text-3xs uppercase font-bold tracking-widest text-slate-400 border-b-2 border-slate-100">
+                        <tr className="text-3xs uppercase font-bold tracking-widest text-subtle border-b-2 border-line-soft">
                            <th className="pb-4 pl-4 min-w-[210px]">Colaborador</th>
                            <th className="pb-4 text-center whitespace-nowrap">Dias Trabs.</th>
                            <th className="pb-4 text-right whitespace-nowrap">Base</th>
@@ -162,18 +162,18 @@ export default function FechamentoFolhaPage() {
                            <tr key={p.colaborador_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
                               <td className="py-4 pl-4">
                                  <p className="text-slate-800">{p.nome}</p>
-                                 <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                 <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-elevated text-slate-600'}`}>
                                     {p.tipo_contrato} {p.tipo_contrato === 'Freelancer' && `(${fmtBRL(p.salario_cadastrado)}/dia)`}
                                  </span>
                               </td>
                               
                               <td className="py-4 text-center">
-                                 <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-black">
+                                 <span className="bg-elevated text-fg-soft px-3 py-1 rounded-lg font-black">
                                     {p.dias_trabalhados}
                                  </span>
                               </td>
 
-                              <td className="py-4 text-right text-slate-500 whitespace-nowrap">
+                              <td className="py-4 text-right text-muted whitespace-nowrap">
                                  {fmtBRL(p.base_calculada)}
                               </td>
 
@@ -183,7 +183,7 @@ export default function FechamentoFolhaPage() {
                                     value={p.acrescimos || ''}
                                     onChange={(e) => handleMudarValor(p.colaborador_id, 'acrescimos', e.target.value)}
                                     placeholder="0,00"
-                                    className="w-24 text-right p-2 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-emerald-600 font-bold"
+                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-indigo-500 text-emerald-600 font-bold"
                                  />
                               </td>
 
@@ -193,7 +193,7 @@ export default function FechamentoFolhaPage() {
                                  </span>
                                  {p.vales_detalhes.length > 0 && (
                                     <div className="absolute z-10 hidden group-hover/vale:block bottom-full right-0 mb-2 bg-slate-900 text-white text-xs p-3 rounded-xl shadow-xl w-64 text-left font-medium">
-                                       <p className="font-bold text-slate-400 mb-2 uppercase tracking-widest text-3xs">Vales Pendentes:</p>
+                                       <p className="font-bold text-subtle mb-2 uppercase tracking-widest text-3xs">Vales Pendentes:</p>
                                        {p.vales_detalhes.map(v => (
                                           <div key={v.id} className="flex justify-between border-b border-slate-700 pb-1 mb-1 last:border-0 last:mb-0">
                                              <span className="truncate pr-2">{v.descricao}</span>
@@ -210,12 +210,12 @@ export default function FechamentoFolhaPage() {
                                     value={p.descontos_manuais || ''}
                                     onChange={(e) => handleMudarValor(p.colaborador_id, 'descontos_manuais', e.target.value)}
                                     placeholder="0,00"
-                                    className="w-24 text-right p-2 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-rose-500 font-bold"
+                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-indigo-500 text-rose-500 font-bold"
                                  />
                               </td>
 
                               <td className="py-4 pr-4 text-right whitespace-nowrap">
-                                 <p className="text-lg font-black text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl inline-block whitespace-nowrap shadow-inner">
+                                 <p className="text-lg font-black text-fg bg-elevated px-3 py-1.5 rounded-xl inline-block whitespace-nowrap shadow-inner">
                                     {fmtBRL(p.valor_liquido)}
                                  </p>
                               </td>
@@ -226,7 +226,7 @@ export default function FechamentoFolhaPage() {
                </div>
             )}
             
-            <div className="mt-8 flex justify-end border-t border-slate-100 pt-6">
+            <div className="mt-8 flex justify-end border-t border-line-soft pt-6">
                <button 
                   onClick={handleFinalizar}
                   disabled={salvando || pagamentos.length === 0}

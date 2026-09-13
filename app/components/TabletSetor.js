@@ -1071,7 +1071,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="m-0 text-2xs font-bold uppercase tracking-widest text-amber-700">Central de produção</p>
-                  <h2 className="mt-1 text-xl font-black text-slate-900">Produzir, planejar e consultar o que já foi feito</h2>
+                  <h2 className="mt-1 text-xl font-black text-fg">Produzir, planejar e consultar o que já foi feito</h2>
                   <p className="mt-1 text-sm font-bold text-slate-600">A produção registrada entra automaticamente neste estoque de pré-preparos.</p>
                 </div>
                 <button type="button" onClick={() => router.push(`/dashboard/operacao/producao?dept=${departamento}`)} className="flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 font-black text-white shadow-lg shadow-amber-600/20">

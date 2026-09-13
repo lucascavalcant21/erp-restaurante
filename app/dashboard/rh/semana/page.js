@@ -109,33 +109,33 @@ export default function SemanaPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Semana do restaurante</h1>
-            <p className="text-xs font-bold text-slate-500">Escala, extras e custo de cada dia</p>
+            <h1 className="text-lg font-black text-fg sm:text-xl">Semana do restaurante</h1>
+            <p className="text-xs font-bold text-muted">Escala, extras e custo de cada dia</p>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => andar(-1)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button onClick={() => andar(-1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
             <span className="min-w-[130px] text-center text-sm font-black text-slate-800">{faixa}</span>
-            <button onClick={() => andar(1)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
+            <button onClick={() => andar(1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
           </div>
-          <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">Esta semana</button>
+          <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">Esta semana</button>
         </div>
       </div>
 
       <main className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
           <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
         ) : (
           <>
-            <section className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm">
               <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Diárias de extras na semana</p>
-              <p className="mt-1 text-3xl font-black text-slate-900 sm:text-4xl">{brl(totalSemana)}</p>
-              <p className="mt-1 text-sm font-bold text-slate-500">
+              <p className="mt-1 text-3xl font-black text-fg sm:text-4xl">{brl(totalSemana)}</p>
+              <p className="mt-1 text-sm font-bold text-muted">
                 {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(c => !ehExtra(c)).length} contratado(s) na escala
                 {semana.reduce((s, d) => s + d.eventosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.eventosDoDia.length, 0)} evento(s)`}
                 {semana.reduce((s, d) => s + d.feriadosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.feriadosDoDia.length, 0)} feriado(s)`}
@@ -147,13 +147,13 @@ export default function SemanaPage() {
                 const ehHoje = dia.iso === hoje;
                 return (
                   <section key={dia.iso}
-                    className={`rounded-2xl border bg-white p-4 shadow-sm ${ehHoje ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
+                    className={`rounded-2xl border bg-card p-4 shadow-sm ${ehHoje ? "border-emerald-400 ring-2 ring-emerald-100" : "border-line"}`}>
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[15px] font-black text-slate-900">
+                      <p className="text-[15px] font-black text-fg">
                         {DIAS[dia.diaSemana]}
                         {ehHoje && <span className="ml-2 rounded-md bg-emerald-100 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">hoje</span>}
                       </p>
-                      <p className="text-xs font-bold text-slate-400">{dia.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
+                      <p className="text-xs font-bold text-subtle">{dia.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
                     </div>
 
                     {/* Feriado e evento vêm ANTES da escala: são eles que mudam
@@ -174,15 +174,15 @@ export default function SemanaPage() {
                       </button>
                     ))}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-slate-500">
+                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted">
                       <Users size={13} /> Escala · {dia.escalados.length}
                     </p>
                     {dia.escalados.length === 0 ? (
-                      <p className="mt-1 text-[13px] font-bold text-slate-400">Ninguém escalado.</p>
+                      <p className="mt-1 text-[13px] font-bold text-subtle">Ninguém escalado.</p>
                     ) : (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {dia.escalados.map(c => (
-                          <span key={c.id} className="rounded-lg bg-slate-100 px-2 py-1 text-2xs font-bold text-slate-700">
+                          <span key={c.id} className="rounded-lg bg-elevated px-2 py-1 text-2xs font-bold text-fg-soft">
                             {String(c.nome || "").split(" ")[0]}
                             {c.horario_entrada ? ` ${String(c.horario_entrada).slice(0, 5)}` : ""}
                           </span>
@@ -190,11 +190,11 @@ export default function SemanaPage() {
                       </div>
                     )}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-slate-500">
+                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted">
                       <UserRound size={13} /> Extras · {dia.diarias.length}
                     </p>
                     {dia.diarias.length === 0 ? (
-                      <p className="mt-1 text-[13px] font-bold text-slate-400">Sem extras neste dia.</p>
+                      <p className="mt-1 text-[13px] font-bold text-subtle">Sem extras neste dia.</p>
                     ) : (
                       <div className="mt-1.5 space-y-1">
                         {dia.diarias.map(r => (
@@ -205,7 +205,7 @@ export default function SemanaPage() {
                             <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_total)}</span>
                           </div>
                         ))}
-                        <p className="pt-1 text-right text-2xs font-bold text-slate-500">Dia: {brl(dia.custoDiarias)}</p>
+                        <p className="pt-1 text-right text-2xs font-bold text-muted">Dia: {brl(dia.custoDiarias)}</p>
                       </div>
                     )}
                   </section>
@@ -213,7 +213,7 @@ export default function SemanaPage() {
               })}
             </div>
 
-            <p className="flex items-center justify-center gap-1.5 pt-2 text-xs font-bold text-slate-400">
+            <p className="flex items-center justify-center gap-1.5 pt-2 text-xs font-bold text-subtle">
               <CalendarDays size={13} /> Escala vem do RH; diárias, dos recibos dos extras; feriados e eventos, dos módulos deles.
             </p>
           </>

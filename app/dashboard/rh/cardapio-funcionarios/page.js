@@ -140,13 +140,13 @@ export default function CardapioFuncionarios() {
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
          <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors shadow-sm"><ArrowLeft size={18}/></button>
-           <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+           <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:bg-slate-50 transition-colors shadow-sm"><ArrowLeft size={18}/></button>
+           <div className="w-16 h-16 rounded-3xl bg-elevated text-emerald-600 flex items-center justify-center shadow-inner">
               <Utensils size={32} />
            </div>
            <div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Cardápio da Equipe</h1>
-              <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Refeitório de Funcionários</p>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-fg">Cardápio da Equipe</h1>
+              <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Refeitório de Funcionários</p>
            </div>
          </div>
          <button onClick={imprimirCardapio} className="flex items-center gap-2 bg-slate-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-lg shadow-slate-800/20">
@@ -156,11 +156,11 @@ export default function CardapioFuncionarios() {
 
       <div className="max-w-5xl mx-auto px-6">
          {loading ? (
-           <div className="text-center p-10 font-bold text-slate-500">Carregando fichas técnicas...</div>
+           <div className="text-center p-10 font-bold text-muted">Carregando fichas técnicas...</div>
          ) : (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {Object.entries(semana).map(([dia, pratos]) => (
-               <div key={dia} className="bg-white rounded-[24px] border border-slate-200 shadow-sm p-5 flex flex-col">
+               <div key={dia} className="bg-card rounded-[24px] border border-line shadow-sm p-5 flex flex-col">
                  <div className="flex items-center justify-between mb-4">
                    <h2 className="font-black text-lg text-slate-800">{dia}</h2>
                    <button onClick={() => setDiaSelecionado(dia)} className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"><Plus size={16}/></button>
@@ -168,11 +168,11 @@ export default function CardapioFuncionarios() {
                  
                  <div className="flex-1 space-y-2">
                    {pratos.length === 0 ? (
-                     <div className="text-center py-6 text-slate-400 font-medium text-sm border-2 border-dashed border-slate-100 rounded-xl">Sem pratos definidos</div>
+                     <div className="text-center py-6 text-subtle font-medium text-sm border-2 border-dashed border-line-soft rounded-xl">Sem pratos definidos</div>
                    ) : pratos.map((p, idx) => (
-                     <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                       <span className="font-bold text-slate-700 text-sm line-clamp-1">{p.nome_receita}</span>
-                       <button onClick={() => removeReceita(idx, dia)} className="text-slate-400 hover:text-red-500 p-1"><X size={14}/></button>
+                     <div key={idx} className="flex items-center justify-between bg-slate-50 border border-line-soft p-3 rounded-xl">
+                       <span className="font-bold text-fg-soft text-sm line-clamp-1">{p.nome_receita}</span>
+                       <button onClick={() => removeReceita(idx, dia)} className="text-subtle hover:text-red-500 p-1"><X size={14}/></button>
                      </div>
                    ))}
                  </div>
@@ -185,27 +185,27 @@ export default function CardapioFuncionarios() {
       {/* Modal Selecionar Receita */}
       {diaSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] w-full max-w-lg p-6 sm:p-8 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+          <div className="bg-card rounded-[32px] w-full max-w-lg p-6 sm:p-8 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
              <div className="flex items-center justify-between mb-6">
                <h3 className="text-2xl font-black text-slate-800">Prato para {diaSelecionado}</h3>
-               <button onClick={() => setDiaSelecionado(null)} className="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><X size={20}/></button>
+               <button onClick={() => setDiaSelecionado(null)} className="p-2 bg-elevated text-muted rounded-full hover:bg-slate-200"><X size={20}/></button>
              </div>
              
-             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center gap-3 mb-4 shrink-0">
-               <Search size={18} className="text-slate-400"/>
-               <input autoFocus type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-transparent outline-none font-medium text-slate-700"/>
+             <div className="bg-slate-50 p-3 rounded-xl border border-line flex items-center gap-3 mb-4 shrink-0">
+               <Search size={18} className="text-subtle"/>
+               <input autoFocus type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full bg-transparent outline-none font-medium text-fg-soft"/>
              </div>
 
              <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                {fichasFiltradas.length === 0 ? (
-                 <div className="text-center p-6 text-slate-500 font-medium text-sm">Nenhuma receita encontrada.</div>
+                 <div className="text-center p-6 text-muted font-medium text-sm">Nenhuma receita encontrada.</div>
                ) : fichasFiltradas.map(f => (
-                 <button key={f.id} onClick={() => addReceita(f, diaSelecionado)} className="w-full text-left bg-white border border-slate-200 p-4 rounded-xl hover:border-emerald-500 hover:shadow-sm transition-all group flex items-center justify-between">
+                 <button key={f.id} onClick={() => addReceita(f, diaSelecionado)} className="w-full text-left bg-card border border-line p-4 rounded-xl hover:border-emerald-500 hover:shadow-sm transition-all group flex items-center justify-between">
                    <div>
                      <div className="font-bold text-slate-800 group-hover:text-emerald-700">{f.nome_receita}</div>
-                     <div className="text-2xs font-semibold text-slate-500 mt-1">Rende {f.rendimento_porcoes} {f.rendimento_unidade}</div>
+                     <div className="text-2xs font-semibold text-muted mt-1">Rende {f.rendimento_porcoes} {f.rendimento_unidade}</div>
                    </div>
-                   <Plus size={18} className="text-slate-300 group-hover:text-emerald-500"/>
+                   <Plus size={18} className="text-dim group-hover:text-emerald-500"/>
                  </button>
                ))}
              </div>

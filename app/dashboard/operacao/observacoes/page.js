@@ -44,7 +44,7 @@ export default function ObservacoesPage() {
     carregar();
   };
 
-  if (loading) return <div className="p-10 text-center font-bold text-slate-500">Carregando...</div>;
+  if (loading) return <div className="p-10 text-center font-bold text-muted">Carregando...</div>;
 
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto animate-in fade-in">
@@ -53,22 +53,22 @@ export default function ObservacoesPage() {
           <h1 className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-3">
             <MessageSquareText size={28} className="text-[#4970AF]" /> Observações Fixas
           </h1>
-          <p className="text-slate-500 font-bold mt-1">Crie botões rápidos para o garçom usar no Salão (Ex: "Com gelo", "Para Viagem")</p>
+          <p className="text-muted font-bold mt-1">Crie botões rápidos para o garçom usar no Salão (Ex: "Com gelo", "Para Viagem")</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="w-full sm:w-auto bg-[#4970AF] hover:bg-[#3A5B99] text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
           <Plus size={18} /> Nova Observação
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-6">
+      <div className="bg-card rounded-3xl shadow-sm border border-line p-4 sm:p-6">
          {observacoes.length === 0 ? (
-            <p className="text-center text-slate-400 font-bold py-10">Nenhuma observação cadastrada. Crie a primeira!</p>
+            <p className="text-center text-subtle font-bold py-10">Nenhuma observação cadastrada. Crie a primeira!</p>
          ) : (
             <div className="flex flex-wrap gap-3">
                {observacoes.map(obs => (
-                  <div key={obs.id} className="max-w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-[#4970AF] transition-colors group">
-                     <span className="font-bold text-slate-700 uppercase break-words min-w-0">{obs.texto}</span>
-                     <button onClick={() => handleExcluir(obs.id)} className="text-slate-400 hover:text-red-500 transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0">
+                  <div key={obs.id} className="max-w-full bg-slate-50 border border-line rounded-xl px-4 py-3 flex items-center gap-3 hover:border-[#4970AF] transition-colors group">
+                     <span className="font-bold text-fg-soft uppercase break-words min-w-0">{obs.texto}</span>
+                     <button onClick={() => handleExcluir(obs.id)} className="text-subtle hover:text-red-500 transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0">
                         <Trash2 size={16}/>
                      </button>
                   </div>
@@ -79,15 +79,15 @@ export default function ObservacoesPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] p-5 sm:p-8 w-full max-w-sm max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
+          <div className="bg-card rounded-[32px] p-5 sm:p-8 w-full max-w-sm max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800">Nova Observação</h2>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24}/></button>
+              <button onClick={() => setModalOpen(false)} className="text-subtle hover:text-slate-600"><X size={24}/></button>
             </div>
             <form onSubmit={handleSalvar} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Texto da Observação</label>
-                <input type="text" autoFocus required value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-black text-slate-700 uppercase outline-none focus:border-[#4970AF]" placeholder="Ex: AO PONTO" />
+                <label className="block text-xs font-bold text-muted uppercase mb-2">Texto da Observação</label>
+                <input type="text" autoFocus required value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-black text-fg-soft uppercase outline-none focus:border-[#4970AF]" placeholder="Ex: AO PONTO" />
               </div>
               <button type="submit" disabled={processando} className="w-full mt-6 bg-[#4970AF] hover:bg-[#3A5B99] text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50">
                 {processando ? 'Salvando...' : 'Adicionar Botão'}

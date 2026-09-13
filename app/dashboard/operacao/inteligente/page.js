@@ -99,23 +99,23 @@ export default function CentralOperacional() {
           <input type="date" value={dia} onChange={e => setDia(e.target.value)}
             className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft" />
           <button onClick={() => carregar({ gerar: true })} disabled={gerando}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft disabled:opacity-60">
             <RefreshCw size={17} className={gerando ? "animate-spin" : ""} /> Atualizar
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/rankings")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             <Trophy size={17} /> Rankings
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/tv")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             <MonitorPlay size={17} /> Modo TV
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             <ClipboardList size={17} /> Processos
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/nao-conformidades")}
-            className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700">
+            className="flex h-11 items-center gap-2 rounded-xl bg-accent px-4 font-black text-accent-fg hover:bg-accent">
             <ShieldAlert size={18} /> Não conformidades
           </button>
         </div>
@@ -151,7 +151,7 @@ export default function CentralOperacional() {
                 {[["Pontualidade", score.pontualidade], ["Execução", score.execucao], ["Qualidade", score.qualidade]].map(([rot, val]) => (
                   <div key={rot} className="rounded-2xl border border-line bg-card p-3">
                     <p className="text-3xs font-bold uppercase tracking-wider text-subtle">{rot}</p>
-                    <p className="text-lg font-black text-emerald-700">{val}%</p>
+                    <p className="text-lg font-black text-accent">{val}%</p>
                   </div>
                 ))}
               </div>
@@ -160,21 +160,21 @@ export default function CentralOperacional() {
             {/* Acontecendo agora */}
             <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-700">Acontecendo hoje</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-accent">Acontecendo hoje</h2>
                 {filtroStatus && (
-                  <button onClick={() => setFiltroStatus("")} className="text-xs font-bold text-emerald-700">Ver todos</button>
+                  <button onClick={() => setFiltroStatus("")} className="text-xs font-bold text-accent">Ver todos</button>
                 )}
               </div>
 
               {carregando ? (
-                <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+                <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
               ) : lista.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
                   <ListChecks className="mx-auto text-dim" size={38} />
                   <p className="mt-3 font-black text-fg-soft">Nenhuma rotina para este dia</p>
                   <p className="mt-1 text-sm text-muted">Crie um processo e agende o horário para ele aparecer aqui.</p>
                   <button onClick={() => router.push("/dashboard/operacao/inteligente/nao-conformidades")}
-                    className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Ver não conformidades</button>
+                    className="mt-4 rounded-xl bg-accent px-5 py-3 text-sm font-black text-accent-fg">Ver não conformidades</button>
                 </div>
               ) : (
                 <div className="space-y-2">

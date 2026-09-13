@@ -247,7 +247,7 @@ export default function KDSPage() {
                               onClick={() => handleFinalizarPedido(pedido)}
                               className={`w-full py-5 rounded-[20px] font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
                                  todosProntos 
-                                   ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse" 
+                                   ? "bg-emerald-500 hover:bg-accent text-accent-fg shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse" 
                                    : "bg-slate-800 text-muted hover:bg-slate-700"
                               }`}
                            >

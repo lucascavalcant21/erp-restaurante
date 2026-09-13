@@ -345,7 +345,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
             <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 whitespace-nowrap">
                <ExternalLink size={18} /> Abrir portal
             </a>
-            <button type="button" onClick={copiarLinkPortal} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold transition-colors border whitespace-nowrap ${linkCopiado ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-card text-indigo-700 border-indigo-200 hover:bg-indigo-50"}`}>
+            <button type="button" onClick={copiarLinkPortal} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold transition-colors border whitespace-nowrap ${linkCopiado ? "bg-accent-soft text-accent-strong border-emerald-200" : "bg-card text-indigo-700 border-indigo-200 hover:bg-indigo-50"}`}>
                {linkCopiado ? <Check size={18} /> : <Copy size={18} />} {linkCopiado ? "Link copiado" : "Copiar link"}
             </button>
          </div>
@@ -412,7 +412,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                                   {sit === "reprovado" && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-3xs font-bold uppercase tracking-widest text-slate-600">Reprovado</span>}
                                   {sit !== "aprovado" && (
                                     <button type="button" onClick={() => decidir(c.id, APROVADO)}
-                                       className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Aprovar</button>
+                                       className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-fg hover:bg-accent">Aprovar</button>
                                   )}
                                   {sit !== "reprovado" && (
                                     <button type="button" onClick={() => decidir(c.id, REPROVADO)}
@@ -425,7 +425,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                             {sit === "aprovado" && c.telefone && (
                               <div className="mt-3 flex gap-2 border-t border-line-soft pt-3" onClick={e => e.stopPropagation()}>
                                 <a href={`https://wa.me/55${String(c.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
-                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-2xs font-bold text-emerald-700 hover:bg-emerald-100">
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1.5 text-2xs font-bold text-accent-strong hover:bg-emerald-100">
                                   <Phone size={13} /> Chamar
                                 </a>
                                 <button type="button" title="Compartilhar contato"
@@ -462,7 +462,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
               {idsSelecionados.length} marcado{idsSelecionados.length > 1 ? "s" : ""}
             </span>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(APROVADO)}
-              className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
+              className="rounded-xl bg-accent px-3.5 py-2 text-xs font-bold text-accent-fg hover:bg-accent disabled:opacity-50">
               Aprovar
             </button>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(REPROVADO)}
@@ -683,7 +683,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                                  {resposta ? (
                                     <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
                                        <p className="font-bold text-sm text-emerald-900">{resposta.texto}</p>
-                                       {resposta.tag && <span className="inline-flex mt-2 text-3xs font-bold uppercase tracking-wider text-emerald-700 bg-card border border-emerald-200 rounded-full px-2 py-1">{resposta.tag}</span>}
+                                       {resposta.tag && <span className="inline-flex mt-2 text-3xs font-bold uppercase tracking-wider text-accent bg-card border border-emerald-200 rounded-full px-2 py-1">{resposta.tag}</span>}
                                     </div>
                                  ) : (
                                     <p className="text-sm font-bold text-subtle bg-slate-50 rounded-xl p-3">Resposta não disponível neste cadastro antigo.</p>

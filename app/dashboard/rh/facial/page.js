@@ -141,7 +141,7 @@ export default function CadastroFacialPage() {
                       <p className="text-[15px] font-black text-slate-800 truncate">{c.nome}</p>
                       <p className="text-xs font-bold text-muted truncate">
                         {c.cargo || "Equipe"}
-                        {temRosto(c) && <span className="ml-2 text-emerald-700">· rosto cadastrado</span>}
+                        {temRosto(c) && <span className="ml-2 text-accent">· rosto cadastrado</span>}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -152,7 +152,7 @@ export default function CadastroFacialPage() {
                         </button>
                       )}
                       <button onClick={() => { setPessoa(c); setCapturas([]); setConsentiu(false); setErro(""); }}
-                        className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-700">
+                        className="rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-accent-fg hover:bg-accent">
                         {temRosto(c) ? "Refazer" : "Cadastrar"}
                       </button>
                     </div>
@@ -165,7 +165,7 @@ export default function CadastroFacialPage() {
         ) : !consentiu ? (
           /* Termo — biometria exige consentimento específico (LGPD art. 5º, II) */
           <div className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm">
-            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Autorização do funcionário</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-accent">Autorização do funcionário</p>
             <h2 className="mt-1 text-xl font-black text-fg">{pessoa.nome}</h2>
             <div className="mt-4 rounded-xl bg-slate-50 border border-line p-4 text-[13px] font-medium leading-relaxed text-fg-soft">
               <p>Eu autorizo o uso do meu reconhecimento facial <b>exclusivamente para registrar meu ponto</b> nesta empresa.</p>
@@ -178,7 +178,7 @@ export default function CadastroFacialPage() {
               </ul>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button onClick={() => setConsentiu(true)} className="flex-1 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700">
+              <button onClick={() => setConsentiu(true)} className="flex-1 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent">
                 {pessoa.nome.split(" ")[0]} autoriza — continuar
               </button>
               <button onClick={() => setPessoa(null)} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600">
@@ -191,11 +191,11 @@ export default function CadastroFacialPage() {
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="min-w-0">
                 <h2 className="text-lg font-black text-fg truncate">{pessoa.nome}</h2>
-                <p className="text-[13px] font-bold text-emerald-700">
+                <p className="text-[13px] font-bold text-accent">
                   {capturas.length < CAPTURAS_NECESSARIAS ? ORIENTACOES[capturas.length] : "Capturas concluídas"}
                 </p>
               </div>
-              <span className="shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-black text-white">
+              <span className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-black text-accent-fg">
                 {capturas.length}/{CAPTURAS_NECESSARIAS}
               </span>
             </div>
@@ -217,12 +217,12 @@ export default function CadastroFacialPage() {
               </button>
               {capturas.length < CAPTURAS_NECESSARIAS ? (
                 <button onClick={capturar} disabled={ocupado || !!status}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                   {ocupado ? <><Loader2 size={19} className="animate-spin" /> Lendo o rosto...</> : <><Camera size={19} /> Capturar {capturas.length + 1} de {CAPTURAS_NECESSARIAS}</>}
                 </button>
               ) : (
                 <button onClick={salvar} disabled={salvando}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                   {salvando ? <><Loader2 size={19} className="animate-spin" /> Salvando...</> : <><Check size={19} /> Salvar cadastro facial</>}
                 </button>
               )}

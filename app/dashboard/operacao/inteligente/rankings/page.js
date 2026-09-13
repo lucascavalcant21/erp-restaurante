@@ -80,13 +80,13 @@ export default function Rankings() {
           <div className="flex rounded-xl border border-line bg-card p-1">
             {PERIODOS.map(p => (
               <button key={p.dias} onClick={() => setDias(p.dias)}
-                className={`h-9 rounded-lg px-3 text-sm font-black transition-colors ${dias === p.dias ? "bg-emerald-600 text-white" : "text-muted hover:text-slate-800"}`}>
+                className={`h-9 rounded-lg px-3 text-sm font-black transition-colors ${dias === p.dias ? "bg-accent text-accent-fg" : "text-muted hover:text-slate-800"}`}>
                 {p.rotulo}
               </button>
             ))}
           </div>
           <button onClick={() => window.print()}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50 print:hidden">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft print:hidden">
             <Printer size={17} /> Imprimir
           </button>
         </div>
@@ -104,7 +104,7 @@ export default function Rankings() {
         )}
 
         {carregando ? (
-          <div className="grid min-h-60 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>
+          <div className="grid min-h-60 place-items-center"><Loader2 className="animate-spin text-success" size={30} /></div>
         ) : vazio ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <Users className="mx-auto text-dim" size={38} />
@@ -201,7 +201,7 @@ export default function Rankings() {
 function Secao({ titulo, icone: Icone, children }) {
   return (
     <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-      <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700">
+      <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent">
         <Icone size={15} /> {titulo}
       </h2>
       {children}

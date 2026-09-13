@@ -893,7 +893,7 @@ function EtiquetasRunner() {
                   <SectionLabel>Impressora térmica direta</SectionLabel>
                   <div className="flex items-center gap-2 mt-1">
                     {impressoraStatus === "conectada"
-                      ? <CheckCircle2 size={16} className="text-emerald-600" />
+                      ? <CheckCircle2 size={16} className="text-success" />
                       : <WifiOff size={16} className="text-subtle" />}
                     <span className="text-sm font-bold" style={{ color: impressoraStatus === "conectada" ? "#059669" : "var(--muted)" }}>
                       {impressoraStatus === "conectada" ? `Conectada: ${impressoraNome}`
@@ -936,7 +936,7 @@ function EtiquetasRunner() {
                   <div className="flex items-center justify-between gap-3 mt-1">
                     <div className="flex items-center gap-2 min-w-0">
                       {btNome
-                        ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                        ? <CheckCircle2 size={16} className="text-success shrink-0" />
                         : <WifiOff size={16} className="text-subtle shrink-0" />}
                       <span className="text-sm font-bold truncate" style={{ color: btNome ? "#059669" : "var(--muted)" }}>
                         {btNome ? `Conectada: ${btNome}` : "Nenhuma impressora pareada"}

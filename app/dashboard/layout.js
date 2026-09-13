@@ -530,7 +530,7 @@ function MobileBottomNav({ sessao, onMenu }) {
           const ativo = pathname === base || (base !== "/dashboard" && pathname.startsWith(`${base}/`));
           return (
             <button key={item.href} type="button" onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
-              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold transition-colors ${ativo ? "text-emerald-700" : "text-subtle"}`}>
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold transition-colors ${ativo ? "text-accent" : "text-subtle"}`}>
               <span className={`flex h-8 w-10 items-center justify-center rounded-xl ${ativo ? "bg-emerald-100" : "bg-transparent"}`}><Icon size={18} /></span>
               <span className="w-full truncate">{item.label}</span>
             </button>

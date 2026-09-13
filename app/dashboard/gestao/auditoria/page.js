@@ -153,7 +153,7 @@ export default function AuditoriaPerdasPage() {
                 return <Card key={registro.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      {sucesso ? <CheckCircle2 size={17} className="text-emerald-600" /> : <XCircle size={17} className="text-rose-600" />}
+                      {sucesso ? <CheckCircle2 size={17} className="text-success" /> : <XCircle size={17} className="text-rose-600" />}
                       <strong className="text-sm" style={{ color: "var(--fg)" }}>{rotuloAcao(registro.acao)}</strong>
                       <span className={`erp-badge ${sucesso ? "erp-badge-success" : "erp-badge-danger"}`}>{registro.resultado || "registrado"}</span>
                     </div>

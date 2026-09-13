@@ -298,19 +298,19 @@ export default function FinanceiroPage() {
   };
 
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="p-8 text-center font-bold text-muted">Selecione uma unidade para abrir o caixa.</div>;
-  if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-muted"><Loader2 className="animate-spin text-emerald-600" size={42} /><b>Carregando o caixa...</b></div>;
+  if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-muted"><Loader2 className="animate-spin text-success" size={42} /><b>Carregando o caixa...</b></div>;
 
   return (
     <div className="min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-[1500px]">
         <header className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-700">Financeiro · {unidadeInfo?.nome}</p>
+            <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Financeiro · {unidadeInfo?.nome}</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-fg sm:text-4xl">Fluxo de caixa do balcão</h1>
             <p className="mt-1 font-medium text-muted">Vendas, recebimentos, despesas e ponto de equilíbrio diário.</p>
           </div>
           <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl bg-slate-200/80 p-1.5">
-            {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-black ${periodo === p.id ? "bg-card text-emerald-700 shadow-sm" : "text-slate-600"}`}>{p.label}</button>)}
+            {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-black ${periodo === p.id ? "bg-card text-accent shadow-sm" : "text-slate-600"}`}>{p.label}</button>)}
           </div>
         </header>
 
@@ -322,7 +322,7 @@ export default function FinanceiroPage() {
         <section className="mb-6 rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-white via-slate-50/50 to-emerald-50/30 p-5 shadow-sm sm:p-6">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent text-accent-fg shadow-lg shadow-emerald-600/20">
                 <Target size={24} />
               </div>
               <div>
@@ -337,7 +337,7 @@ export default function FinanceiroPage() {
               <button
                 type="button"
                 onClick={() => setModalPE(true)}
-                className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-card px-4 py-2.5 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 transition-all"
+                className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-card px-4 py-2.5 text-xs font-bold text-accent-strong shadow-sm hover:bg-accent-soft transition-all"
               >
                 <Settings2 size={16} /> Ajustar Custos Fixos & Dias
               </button>
@@ -348,7 +348,7 @@ export default function FinanceiroPage() {
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* CARD 1: META DIÁRIA */}
             <div className="rounded-2xl border-2 border-emerald-300 bg-card p-5 shadow-sm">
-              <span className="text-2xs font-bold uppercase tracking-wider text-emerald-700">Venda Diária Necessária</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-accent">Venda Diária Necessária</span>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">{fmtBRL(calculoPE.metaVendaDiaria)}</p>
               <p className="mt-2 text-xs font-bold text-muted">
                 Para cobrir <b className="text-slate-800">{fmtBRL(calculoPE.custoFixoDiario)}/dia</b> de custos fixos + CMO ({calculoPE.dias} dias úteis)
@@ -366,7 +366,7 @@ export default function FinanceiroPage() {
                       setFormVenda({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
                       setModalVenda(true);
                     }}
-                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-2xs font-bold text-white hover:bg-emerald-700 transition shadow-sm cursor-pointer"
+                    className="flex items-center gap-1 rounded-lg bg-accent px-2 py-1 text-2xs font-bold text-accent-fg hover:bg-accent transition shadow-sm cursor-pointer"
                   >
                     <Plus size={13} /> Lançar Venda
                   </button>
@@ -389,7 +389,7 @@ export default function FinanceiroPage() {
                 {calculoPE.faltaHoje > 0 ? (
                   <>Falta vender <b className="text-slate-800">{fmtBRL(calculoPE.faltaHoje)}</b> para o ponto de equilíbrio.</>
                 ) : (
-                  <span className="text-emerald-700 font-black">🎉 Ponto de equilíbrio atingido hoje! O restante é lucro!</span>
+                  <span className="text-accent font-black">🎉 Ponto de equilíbrio atingido hoje! O restante é lucro!</span>
                 )}
               </p>
             </div>
@@ -532,17 +532,17 @@ export default function FinanceiroPage() {
 
         <section className="mb-5 grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-2"><CreditCard className="text-emerald-600" /><h2 className="text-lg font-black text-fg">Formas de pagamento pagas</h2></div>
+            <div className="mb-4 flex items-center gap-2"><CreditCard className="text-success" /><h2 className="text-lg font-black text-fg">Formas de pagamento pagas</h2></div>
             <div className="space-y-2">
               {!resumo.pagamentos.length && <p className="py-8 text-center font-semibold text-subtle">Nenhum pagamento no período.</p>}
               {resumo.pagamentos.map(([nome, valor]) => <div key={nome} className="flex items-center justify-between gap-4 rounded-xl bg-elevated p-3"><span className="font-bold text-fg-soft">{nome}</span><b className="text-fg">{fmtBRL(valor)}</b></div>)}
             </div>
           </div>
           <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-2"><ShoppingBag className="text-emerald-600" /><h2 className="text-lg font-black text-fg">Itens vendidos</h2></div>
+            <div className="mb-4 flex items-center gap-2"><ShoppingBag className="text-success" /><h2 className="text-lg font-black text-fg">Itens vendidos</h2></div>
             <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
               {!resumo.itens.length && <p className="py-8 text-center font-semibold text-subtle">Nenhum item vendido no período.</p>}
-              {resumo.itens.map(item => <div key={item.nome} className="flex items-center justify-between gap-4 rounded-xl bg-elevated p-3"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{item.nome}</p><p className="text-xs font-bold text-muted">{item.quantidade.toLocaleString("pt-BR")} vendido(s)</p></div><b className="shrink-0 text-emerald-700">{fmtBRL(item.total)}</b></div>)}
+              {resumo.itens.map(item => <div key={item.nome} className="flex items-center justify-between gap-4 rounded-xl bg-elevated p-3"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{item.nome}</p><p className="text-xs font-bold text-muted">{item.quantidade.toLocaleString("pt-BR")} vendido(s)</p></div><b className="shrink-0 text-accent">{fmtBRL(item.total)}</b></div>)}
             </div>
           </div>
         </section>
@@ -607,7 +607,7 @@ export default function FinanceiroPage() {
                       key={dias}
                       type="button"
                       onClick={() => setParamsPE(p => ({ ...p, diasTrabalho: dias }))}
-                      className={`h-9 px-3 rounded-lg text-xs font-bold transition ${Number(paramsPE.diasTrabalho) === dias ? "bg-emerald-600 text-white" : "bg-elevated text-fg-soft"}`}
+                      className={`h-9 px-3 rounded-lg text-xs font-bold transition ${Number(paramsPE.diasTrabalho) === dias ? "bg-accent text-accent-fg" : "bg-elevated text-fg-soft"}`}
                     >
                       {dias} dias
                     </button>
@@ -705,7 +705,7 @@ export default function FinanceiroPage() {
                     salvarParamsPE(paramsPE);
                     setModalPE(false);
                   }}
-                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base rounded-2xl transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-accent hover:bg-accent text-accent-fg font-black text-base rounded-2xl transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
                 >
                   <Check size={20} /> Salvar Parâmetros e Recalcular
                 </button>
@@ -726,7 +726,7 @@ export default function FinanceiroPage() {
               <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" /></label>
             </div>
             <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
-            <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-elevated font-black text-slate-600">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-emerald-600 font-black text-white disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
+            <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-elevated font-black text-slate-600">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-accent font-black text-accent-fg disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
           </div>
         </form>
       </div>}
@@ -784,7 +784,7 @@ export default function FinanceiroPage() {
               </div>
               <div className="pt-2 flex gap-3">
                 <button type="button" onClick={() => setModalVenda(false)} className="flex-1 py-3.5 bg-elevated rounded-xl font-black text-fg-soft">Cancelar</button>
-                <button disabled={salvandoVenda} className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black disabled:opacity-50 transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                <button disabled={salvandoVenda} className="flex-1 py-3.5 bg-accent hover:bg-accent text-accent-fg rounded-xl font-black disabled:opacity-50 transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
                   {salvandoVenda ? "Gravando..." : "Confirmar Venda"}
                 </button>
               </div>

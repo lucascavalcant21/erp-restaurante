@@ -92,7 +92,7 @@ export default function PizzaDoPrato({
           ) : (
             <>
               <span className="text-3xs font-bold uppercase tracking-wider text-subtle">Sobra</span>
-              <span className="text-lg font-black text-emerald-600">{pctLucro.toFixed(0)}%</span>
+              <span className="text-lg font-black text-success">{pctLucro.toFixed(0)}%</span>
               <span className="text-3xs font-bold text-muted">{fmt(lucro)}</span>
             </>
           )}
@@ -110,7 +110,7 @@ export default function PizzaDoPrato({
                 aria-expanded={aberto === f.id}
                 className="flex w-full items-center gap-2 text-left text-2xs disabled:cursor-default">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.cor }} />
-                <span className={`min-w-0 flex-1 truncate font-black ${f.id === "lucro" ? "text-emerald-700" : "text-fg-soft"}`}>
+                <span className={`min-w-0 flex-1 truncate font-black ${f.id === "lucro" ? "text-accent" : "text-fg-soft"}`}>
                   {f.rotulo}
                   {!!f.partes.length && (
                     <ChevronDown size={11} className={`ml-1 inline shrink-0 text-subtle transition-transform ${aberto === f.id ? "" : "-rotate-90"}`} />

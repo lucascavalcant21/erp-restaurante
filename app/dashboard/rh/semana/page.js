@@ -121,7 +121,7 @@ export default function SemanaPage() {
             <span className="min-w-[130px] text-center text-sm font-black text-slate-800">{faixa}</span>
             <button onClick={() => andar(1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
           </div>
-          <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">Esta semana</button>
+          <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">Esta semana</button>
         </div>
       </div>
 
@@ -129,11 +129,11 @@ export default function SemanaPage() {
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
           <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
-          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
         ) : (
           <>
             <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm">
-              <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Diárias de extras na semana</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-accent">Diárias de extras na semana</p>
               <p className="mt-1 text-3xl font-black text-fg sm:text-4xl">{brl(totalSemana)}</p>
               <p className="mt-1 text-sm font-bold text-muted">
                 {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(c => !ehExtra(c)).length} contratado(s) na escala

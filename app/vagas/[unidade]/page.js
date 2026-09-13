@@ -25,7 +25,7 @@ function Campo({ label, children }) {
   return (
     <label className="block">
       <span className="text-xs font-bold uppercase tracking-wider text-muted">
-        {label}<span className="text-emerald-600"> *</span>
+        {label}<span className="text-success"> *</span>
       </span>
       <div className="mt-1.5">{children}</div>
     </label>
@@ -139,7 +139,7 @@ export default function PaginaPublicaVagas() {
   if (carregando) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50">
-        <Loader2 size={30} className="animate-spin text-emerald-600" />
+        <Loader2 size={30} className="animate-spin text-success" />
       </div>
     );
   }
@@ -162,7 +162,7 @@ export default function PaginaPublicaVagas() {
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       {/* Cabeçalho */}
-      <header className="bg-emerald-700 px-5 py-8 text-white sm:py-10">
+      <header className="bg-accent px-5 py-8 text-accent-fg sm:py-10">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-2xl font-black leading-tight sm:text-3xl">{config.titulo}</h1>
           <p className="mt-2 text-sm font-medium leading-relaxed text-emerald-50">{config.subtitulo}</p>
@@ -174,7 +174,7 @@ export default function PaginaPublicaVagas() {
         {vagasAtivas.length > 0 && (
           <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
             <div className="mb-4 flex items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-lg font-black text-white">1</span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-lg font-black text-accent-fg">1</span>
               <div>
                 <h2 className="text-lg font-black text-fg">Escolha sua área de trabalho</h2>
                 <p className="text-sm font-semibold text-slate-600">Toque na vaga que mais combina com você para continuar.</p>
@@ -191,30 +191,30 @@ export default function PaginaPublicaVagas() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="flex items-center gap-2 text-lg font-black text-fg">
-                        <Briefcase size={19} className="shrink-0 text-emerald-600" /> {vaga.cargo}
+                        <Briefcase size={19} className="shrink-0 text-success" /> {vaga.cargo}
                       </p>
                       <div className="mt-2 space-y-1 text-sm font-semibold text-slate-600">
-                        {vaga.salario && <p className="flex items-center gap-1.5"><Wallet size={14} className="text-emerald-600" /> {vaga.salario}{vaga.alimentacao ? ` + ${vaga.alimentacao} alimentação` : ""}</p>}
-                        {vaga.taxa && <p className="flex items-center gap-1.5"><CircleDollarSign size={14} className="text-emerald-600" /> Taxa de serviço (média): {vaga.taxa}</p>}
-                        {vaga.horario_trabalho && <p className="flex items-center gap-1.5"><Clock size={14} className="text-emerald-600" /> Horário: {vaga.horario_trabalho}</p>}
-                        {vaga.dias_trabalho && <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-emerald-600" /> {vaga.dias_trabalho}</p>}
+                        {vaga.salario && <p className="flex items-center gap-1.5"><Wallet size={14} className="text-success" /> {vaga.salario}{vaga.alimentacao ? ` + ${vaga.alimentacao} alimentação` : ""}</p>}
+                        {vaga.taxa && <p className="flex items-center gap-1.5"><CircleDollarSign size={14} className="text-success" /> Taxa de serviço (média): {vaga.taxa}</p>}
+                        {vaga.horario_trabalho && <p className="flex items-center gap-1.5"><Clock size={14} className="text-success" /> Horário: {vaga.horario_trabalho}</p>}
+                        {vaga.dias_trabalho && <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-success" /> {vaga.dias_trabalho}</p>}
                         {vaga.folga && <p className="pl-5">Folga: {vaga.folga}</p>}
                         {vaga.domingo_folga && <p className="pl-5">{vaga.domingo_folga}</p>}
                       </div>
                     </div>
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 ${form.cargoPretendido === vaga.cargo ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-card text-transparent"}`}><CheckCircle2 size={19} /></span>
+                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 ${form.cargoPretendido === vaga.cargo ? "border-emerald-600 bg-accent text-accent-fg" : "border-slate-300 bg-card text-transparent"}`}><CheckCircle2 size={19} /></span>
                   </div>
                   {Array.isArray(vaga.requisitos) && vaga.requisitos.length > 0 && (
                     <div className="mt-3 rounded-xl border border-line-soft bg-slate-50 p-3">
                       <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
-                        <ListChecks size={15} className="text-emerald-600" /> Pré-requisitos
+                        <ListChecks size={15} className="text-success" /> Pré-requisitos
                       </p>
                       <ul className="mt-2 space-y-1 text-xs font-medium leading-relaxed text-slate-600">
                         {vaga.requisitos.map((requisito, indice) => <li key={`${vaga.id}-req-${indice}`}>• {requisito}</li>)}
                       </ul>
                     </div>
                   )}
-                  <span className={`mt-3 flex min-h-10 w-full items-center justify-center rounded-xl text-sm font-black ${form.cargoPretendido === vaga.cargo ? "bg-emerald-600 text-white" : "bg-elevated text-slate-600"}`}>
+                  <span className={`mt-3 flex min-h-10 w-full items-center justify-center rounded-xl text-sm font-black ${form.cargoPretendido === vaga.cargo ? "bg-accent text-accent-fg" : "bg-elevated text-slate-600"}`}>
                     {form.cargoPretendido === vaga.cargo ? "Área selecionada" : "Selecionar esta área"}
                   </span>
                 </button>
@@ -231,8 +231,8 @@ export default function PaginaPublicaVagas() {
           </div>
           {form.cargoPretendido ? (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <span><span className="block text-xs font-bold uppercase tracking-wide text-emerald-700">Área escolhida</span><strong className="text-base text-fg">{form.cargoPretendido}</strong></span>
-              <button type="button" onClick={() => { set("cargoPretendido", ""); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg bg-card px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm">Trocar área</button>
+              <span><span className="block text-xs font-bold uppercase tracking-wide text-accent">Área escolhida</span><strong className="text-base text-fg">{form.cargoPretendido}</strong></span>
+              <button type="button" onClick={() => { set("cargoPretendido", ""); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg bg-card px-3 py-2 text-xs font-bold text-accent shadow-sm">Trocar área</button>
             </div>
           ) : <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800">Escolha uma área de trabalho acima antes de enviar.</div>}
           <div className="space-y-4">
@@ -291,12 +291,12 @@ export default function PaginaPublicaVagas() {
 
         {/* Teste de perfil */}
         <section className="mt-5 rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-700">Teste de perfil</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-accent">Teste de perfil</h2>
           <p className="mb-4 mt-1 text-sm font-medium text-muted">Não existe resposta certa ou errada. Escolha a opção mais parecida com você.</p>
           <div className="space-y-5">
             {PERGUNTAS_RECRUTAMENTO.map((p, i) => (
               <div key={p.id}>
-                <p className="text-sm font-black text-slate-800">{i + 1}. {p.pergunta}<span className="text-emerald-600"> *</span></p>
+                <p className="text-sm font-black text-slate-800">{i + 1}. {p.pergunta}<span className="text-success"> *</span></p>
                 <div className="mt-2 space-y-2">
                   {p.opcoes.map((op, idx) => {
                     const marcada = respostas[p.id] === op.texto;
@@ -323,7 +323,7 @@ export default function PaginaPublicaVagas() {
         )}
 
         <button onClick={enviar} disabled={enviando}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700 disabled:opacity-60">
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-base font-black text-accent-fg shadow-lg shadow-emerald-600/25 hover:bg-accent disabled:opacity-60">
           {enviando ? <><Loader2 size={19} className="animate-spin" /> Enviando...</> : <><Send size={19} /> Enviar minha inscrição</>}
         </button>
         <p className="mt-3 text-center text-xs font-medium text-subtle">

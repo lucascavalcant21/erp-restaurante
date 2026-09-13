@@ -175,7 +175,7 @@ export default function ManutencaoPage() {
                     {concluido ? (
                       <button onClick={() => imprimirRecibo(s)} className="px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}><Printer size={13} /> Recibo</button>
                     ) : (
-                      <button onClick={() => abrirFinalizar(s)} className="px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"><CheckCircle2 size={13} /> Finalizar</button>
+                      <button onClick={() => abrirFinalizar(s)} className="px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 bg-accent text-accent-fg hover:bg-accent"><CheckCircle2 size={13} /> Finalizar</button>
                     )}
                     <button onClick={() => abrirEditar(s)} className="p-2 rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }} title="Editar">✎</button>
                     <button onClick={() => excluir(s)} className="p-2 rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }} title="Excluir"><Trash2 size={14} /></button>

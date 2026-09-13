@@ -134,7 +134,7 @@ export default function CalendarioEstoque() {
           <div className="flex rounded-xl border border-line bg-card p-1">
             {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"]].map(([v, r]) => (
               <button key={v} onClick={() => setModo(v)}
-                className={`h-9 rounded-lg px-4 text-sm font-black ${modo === v ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                className={`h-9 rounded-lg px-4 text-sm font-black ${modo === v ? "bg-accent text-accent-fg" : "text-slate-600 hover:bg-slate-50"}`}>
                 {r}
               </button>
             ))}
@@ -145,7 +145,7 @@ export default function CalendarioEstoque() {
             <button onClick={() => setReferencia(andar(referencia, modo, 1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
           </div>
           {!ehHoje && (
-            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">Hoje</button>
+            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">Hoje</button>
           )}
           <input type="date" value={isoData(referencia)} onChange={e => e.target.value && setReferencia(new Date(`${e.target.value}T12:00:00`))}
             className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft" />
@@ -159,7 +159,7 @@ export default function CalendarioEstoque() {
           <>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-emerald-200 bg-card p-4 shadow-sm">
-                <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-emerald-700"><ArrowUpRight size={13} /> Entrou</p>
+                <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-accent"><ArrowUpRight size={13} /> Entrou</p>
                 <p className="mt-1 text-3xl font-black text-fg">{fmtQtd(totais.qtdE)}</p>
                 <p className="text-xs font-bold text-muted">{totais.entradas} movimentação(ões)</p>
               </div>
@@ -171,7 +171,7 @@ export default function CalendarioEstoque() {
             </div>
 
             {carregando ? (
-              <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+              <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
             ) : porDia.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
                 <CalendarDays className="mx-auto text-dim" size={40} />
@@ -188,7 +188,7 @@ export default function CalendarioEstoque() {
                       {new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}
                     </p>
                     <p className="flex gap-3 text-xs font-bold">
-                      <span className="text-emerald-700">+{fmtQtd(entrou)}</span>
+                      <span className="text-accent">+{fmtQtd(entrou)}</span>
                       <span className="text-rose-700">−{fmtQtd(saiu)}</span>
                     </p>
                   </div>
@@ -198,7 +198,7 @@ export default function CalendarioEstoque() {
                       const hora = new Date(m.data_movimento || m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
                       return (
                         <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${entrada ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${entrada ? "bg-accent-soft text-accent-strong" : "bg-rose-50 text-rose-700"}`}>
                             {entrada ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -211,7 +211,7 @@ export default function CalendarioEstoque() {
                               {m.observacao ? ` · ${m.observacao}` : ""}
                             </p>
                           </div>
-                          <span className={`shrink-0 text-base font-black ${entrada ? "text-emerald-700" : "text-rose-700"}`}>
+                          <span className={`shrink-0 text-base font-black ${entrada ? "text-accent" : "text-rose-700"}`}>
                             {entrada ? "+" : "−"}{fmtQtd(m.quantidade)} {m.insumo?.unidade_medida || ""}
                           </span>
                         </div>

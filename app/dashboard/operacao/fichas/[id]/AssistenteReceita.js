@@ -143,7 +143,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
                 {msg.proposta ? (
                   <button
                     onClick={() => { onAplicar?.(msg.proposta); onFechar?.(); }}
-                    className="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+                    className="mt-2 w-full rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent-strong hover:bg-emerald-100">
                     {msg.proposta.rotulo}
                   </button>
                 ) : null}

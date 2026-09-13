@@ -85,11 +85,11 @@ export default function ProcessosPage() {
             <p className="text-xs font-bold text-muted">Os modelos que a equipe executa todo dia</p>
           </div>
           <button onClick={() => setModelos(v => !v)}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             <Layers size={17} /> Modelos prontos
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/processos/novo")}
-            className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700">
+            className="flex h-11 items-center gap-2 rounded-xl bg-accent px-4 font-black text-accent-fg hover:bg-accent">
             <Plus size={18} /> Novo processo
           </button>
         </div>
@@ -103,7 +103,7 @@ export default function ProcessosPage() {
       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {modelos && (
           <section className="rounded-2xl border-2 border-emerald-200 bg-card p-4 shadow-sm sm:p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Começar de um modelo pronto</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent">Começar de um modelo pronto</p>
             <p className="mb-3 mt-1 text-sm font-medium text-muted">O processo é criado já preenchido. Depois é só ajustar.</p>
             <div className="grid gap-2.5 sm:grid-cols-2">
               {MODELOS_PROCESSO.map(m => (
@@ -111,7 +111,7 @@ export default function ProcessosPage() {
                   className="rounded-xl border border-line p-3.5 text-left transition-colors hover:border-emerald-400 hover:bg-emerald-50/60">
                   <p className="text-[15px] font-black text-fg">{m.nome}</p>
                   <p className="mt-0.5 text-[13px] font-medium text-muted">{m.descricao}</p>
-                  <p className="mt-1.5 text-2xs font-bold uppercase tracking-wider text-emerald-700">
+                  <p className="mt-1.5 text-2xs font-bold uppercase tracking-wider text-accent">
                     {m.secoes.length} seções · {m.secoes.reduce((s, x) => s + x.itens.length, 0)} itens
                   </p>
                 </button>
@@ -123,7 +123,7 @@ export default function ProcessosPage() {
         <div className="flex items-center gap-2">
           {[{ v: false, r: "Ativos" }, { v: true, r: "Arquivados" }].map(o => (
             <button key={String(o.v)} onClick={() => setVerArquivados(o.v)}
-              className={`h-10 rounded-xl px-4 text-sm font-black ${verArquivados === o.v ? "bg-emerald-600 text-white" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
+              className={`h-10 rounded-xl px-4 text-sm font-black ${verArquivados === o.v ? "bg-accent text-accent-fg" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
               {o.r}
             </button>
           ))}
@@ -132,7 +132,7 @@ export default function ProcessosPage() {
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
           <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
-          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
         ) : lista.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <ClipboardList className="mx-auto text-dim" size={40} />
@@ -140,7 +140,7 @@ export default function ProcessosPage() {
             {!verArquivados && (
               <>
                 <p className="mt-1 text-sm text-muted">Crie o primeiro do zero ou comece por um modelo pronto.</p>
-                <button onClick={() => setModelos(true)} className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700">Ver modelos prontos</button>
+                <button onClick={() => setModelos(true)} className="mt-4 rounded-xl bg-accent px-5 py-3 text-sm font-black text-accent-fg hover:bg-accent">Ver modelos prontos</button>
               </>
             )}
           </div>
@@ -165,13 +165,13 @@ export default function ProcessosPage() {
                         {ags.length === 0 ? (
                           <span className="flex items-center gap-1 text-amber-700"><AlertTriangle size={13} /> sem agendamento</span>
                         ) : ags.map(a => (
-                          <span key={a.id} className="flex items-center gap-1 text-emerald-700"><Clock size={13} /> {descreverAgenda(a)}</span>
+                          <span key={a.id} className="flex items-center gap-1 text-accent"><Clock size={13} /> {descreverAgenda(a)}</span>
                         ))}
                       </div>
                     </button>
                     <div className="flex shrink-0 gap-2">
                       <button onClick={() => router.push(`/dashboard/operacao/inteligente/processos/${p.id}`)} title="Editar"
-                        className="grid h-11 w-11 place-items-center rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50"><Pencil size={17} /></button>
+                        className="grid h-11 w-11 place-items-center rounded-xl border border-emerald-200 text-accent-strong hover:bg-accent-soft"><Pencil size={17} /></button>
                       <button onClick={() => duplicar(p)} disabled={ocupado === p.id} title="Duplicar"
                         className="grid h-11 w-11 place-items-center rounded-xl border border-line text-slate-600 hover:bg-slate-50 disabled:opacity-50">
                         {ocupado === p.id ? <Loader2 size={17} className="animate-spin" /> : <Copy size={17} />}

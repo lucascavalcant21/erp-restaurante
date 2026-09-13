@@ -93,7 +93,7 @@ export default function RecipeWorkspace({
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=cozinha`)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${!bar ? "bg-card text-emerald-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${!bar ? "bg-card text-accent shadow-sm" : "text-muted hover:text-slate-800"}`}
                   >
                     👨‍🍳 Cozinha
                   </button>
@@ -121,7 +121,7 @@ export default function RecipeWorkspace({
               <button
                 type="button"
                 onClick={onPrimary}
-                className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold text-white shadow-md transition-all active:scale-[.98] ${bar ? "bg-violet-600 hover:bg-violet-700 shadow-violet-600/20" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"}`}
+                className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold text-accent-fg shadow-md transition-all active:scale-[.98] ${bar ? "bg-violet-600 hover:bg-violet-700 shadow-violet-600/20" : "bg-accent hover:bg-accent shadow-emerald-600/20"}`}
               >
                 <PrimaryIcon size={16} /> {primaryLabel}
               </button>
@@ -149,19 +149,19 @@ export default function RecipeWorkspace({
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                     ativo
-                      ? (bar ? "bg-violet-600 text-white" : "bg-emerald-600 text-white")
+                      ? (bar ? "bg-violet-600 text-accent-fg" : "bg-accent text-accent-fg")
                       : "bg-card border border-line text-muted"
                   }`}
                 >
                   <Icon size={17} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-3xs font-bold uppercase tracking-widest ${ativo ? (bar ? "text-violet-600" : "text-emerald-600") : "text-subtle"}`}>
+                  <span className={`block text-3xs font-bold uppercase tracking-widest ${ativo ? (bar ? "text-violet-600" : "text-success") : "text-subtle"}`}>
                     Etapa {index + 1}
                   </span>
                   <span className="block text-xs font-bold leading-tight break-words">{etapa.label}</span>
                 </span>
-                <ArrowRight size={14} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? (bar ? "text-violet-600" : "text-emerald-600") : "text-subtle"}`} />
+                <ArrowRight size={14} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? (bar ? "text-violet-600" : "text-success") : "text-subtle"}`} />
               </button>
             );
           })}

@@ -119,7 +119,7 @@ export default function CardapioPublicoPage() {
            <CheckCircle size={80} className="mb-6 animate-bounce"/>
            <h1 className="text-3xl sm:text-4xl font-black mb-4 tracking-tighter">Pedido Recebido!</h1>
            <p className="text-emerald-100 font-medium mb-8">Nossa equipe já recebeu o seu pedido. Caso precise de algo, acione o garçom ou aguarde a entrega.</p>
-           <button onClick={() => { setPedidoEnviado(false); setModalCart(false); setTelaCheckout(false); }} className="w-full max-w-xs sm:w-auto px-6 sm:px-8 py-4 bg-card text-emerald-600 font-black rounded-2xl active:scale-95 transition-transform shadow-xl shadow-emerald-900/20">
+           <button onClick={() => { setPedidoEnviado(false); setModalCart(false); setTelaCheckout(false); }} className="w-full max-w-xs sm:w-auto px-6 sm:px-8 py-4 bg-card text-success font-black rounded-2xl active:scale-95 transition-transform shadow-xl shadow-emerald-900/20">
               Fazer novo pedido
            </button>
         </div>

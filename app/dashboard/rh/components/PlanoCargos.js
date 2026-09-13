@@ -476,7 +476,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
       <div className="bg-card rounded-3xl border border-line p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-line-soft pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+            <div className="p-2 bg-accent-soft text-accent-strong rounded-xl">
               <PieChart size={20} />
             </div>
             <div>
@@ -571,7 +571,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <div>
                   {/* TOPO: DEPARTAMENTO & NÍVEL */}
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-3xs font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100">
+                    <span className="text-3xs font-bold uppercase tracking-widest bg-accent-soft text-accent-strong px-2.5 py-1 rounded-lg border border-emerald-100">
                       {c.departamento || "Geral"}
                     </span>
                     <span className="text-3xs font-bold text-muted bg-elevated px-2 py-0.5 rounded-md">
@@ -580,7 +580,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   </div>
 
                   {/* NOME DO CARGO */}
-                  <h3 className="text-lg font-black text-fg group-hover:text-emerald-600 transition-colors">
+                  <h3 className="text-lg font-black text-fg group-hover:text-success transition-colors">
                     {c.nome}
                   </h3>
 
@@ -600,7 +600,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                       <ul className="text-2xs font-medium text-fg-soft space-y-0.5 pt-1">
                         {reqs.map((r, idx) => (
                           <li key={idx} className="flex items-start gap-1.5">
-                            <span className="text-emerald-600 font-bold">•</span>
+                            <span className="text-success font-bold">•</span>
                             <span>{r}</span>
                           </li>
                         ))}
@@ -628,7 +628,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     )}
                     <div className="flex justify-between items-center pt-2 border-t border-line mt-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-fg-soft">Remuneração Total:</span>
-                      <span className="text-base font-black text-emerald-600">{fmtBRL(remTotal)}</span>
+                      <span className="text-base font-black text-success">{fmtBRL(remTotal)}</span>
                     </div>
                   </div>
                 </div>
@@ -642,7 +642,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     </span>
                     <button
                       onClick={() => abrirAlocacao(c)}
-                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
+                      className="text-xs font-bold text-accent-strong hover:text-accent-strong bg-accent-soft hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
                     >
                       <UserCheck size={13} /> Promover / Alocar
                     </button>
@@ -772,7 +772,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 2200"
                     value={form.salario_base}
                     onChange={e => setForm({ ...form, salario_base: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-emerald-700 outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-accent outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
                 <div>
@@ -842,7 +842,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl transition-colors shadow-lg shadow-emerald-600/20"
+                  className="flex-1 py-3.5 bg-accent hover:bg-accent text-accent-fg font-black rounded-2xl transition-colors shadow-lg shadow-emerald-600/20"
                 >
                   {saving ? "Salvando..." : "Salvar Cargo"}
                 </button>
@@ -858,7 +858,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
           <div className="bg-card w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-line-soft pb-4">
               <div>
-                <span className="text-3xs font-bold uppercase tracking-widest text-emerald-600">Alocação / Promoção</span>
+                <span className="text-3xs font-bold uppercase tracking-widest text-success">Alocação / Promoção</span>
                 <h3 className="text-lg font-black text-fg">Vincular a: {cargoAlocar.nome}</h3>
               </div>
               <button onClick={() => setModalAlocar(false)} className="text-subtle hover:text-slate-600 font-black">
@@ -907,7 +907,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <p>• Salário base ajustado para <b>{fmtBRL(cargoAlocar.salario_base)}</b>.</p>
                 {cargoAlocar.vale_alimentacao > 0 && <p>• Vale Alimentação: <b>{fmtBRL(cargoAlocar.vale_alimentacao)}</b>.</p>}
                 {cargoAlocar.taxa_servico > 0 && <p>• Taxa de Serviço estimada: <b>{fmtBRL(cargoAlocar.taxa_servico)}</b>.</p>}
-                <p className="pt-1 text-2xs text-emerald-700 font-bold">• 📜 O Certificado Oficial em PDF poderá ser impresso em seguida.</p>
+                <p className="pt-1 text-2xs text-accent font-bold">• 📜 O Certificado Oficial em PDF poderá ser impresso em seguida.</p>
               </div>
 
               <div className="pt-2 flex gap-3">
@@ -921,7 +921,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl transition-colors shadow-lg shadow-emerald-600/20"
+                  className="flex-1 py-3 bg-accent hover:bg-accent text-accent-fg font-black rounded-2xl transition-colors shadow-lg shadow-emerald-600/20"
                 >
                   {saving ? "Salvando..." : "Confirmar Promoção"}
                 </button>

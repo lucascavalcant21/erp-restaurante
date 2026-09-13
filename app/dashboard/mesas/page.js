@@ -111,16 +111,16 @@ export default function MesasPDVPage() {
       <div className="px-3 sm:px-6 py-3 sm:py-4 bg-card border-b border-line flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm z-10">
          <div className="flex items-center gap-3 sm:gap-6 min-w-0 overflow-x-auto pb-1 lg:pb-0">
             <h1 className="font-black text-xl sm:text-2xl text-slate-800 tracking-tight flex items-center gap-2 shrink-0">
-              <Map className="text-emerald-600"/> Salão
+              <Map className="text-success"/> Salão
             </h1>
             <div className="h-8 w-px bg-slate-200 shrink-0"></div>
             
             {/* KPIs Rápidos */}
             <div className="flex gap-2 sm:gap-3 shrink-0">
-              <div className="px-3 sm:px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-2 bg-accent-soft text-accent-strong rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> {mesasLivres} Livres
               </div>
-              <div className="px-3 sm:px-4 py-2 bg-slate-50 text-emerald-700 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-2 bg-slate-50 text-accent rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div> {mesasOcupadas} Ocupadas
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function MesasPDVPage() {
                 className="pl-12 pr-4 py-3 bg-elevated rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full lg:w-64 transition-all"
               />
             </div>
-            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-card border border-line text-muted hover:bg-slate-50 hover:text-emerald-600 flex items-center justify-center transition-colors shadow-sm active:scale-95">
+            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-card border border-line text-muted hover:bg-slate-50 hover:text-success flex items-center justify-center transition-colors shadow-sm active:scale-95">
               <RefreshCw size={20} />
             </button>
             <button onClick={handleAdicionarMesa} disabled={salvando} className="px-3 sm:px-5 py-3 rounded-2xl bg-slate-800 text-white font-black text-sm uppercase tracking-wide sm:tracking-widest hover:bg-slate-900 shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center gap-2 shrink-0">
@@ -157,7 +157,7 @@ export default function MesasPDVPage() {
               </div>
               <p className="font-black text-2xl mb-2 text-slate-800">O Salão está vazio</p>
               <p className="mb-8 font-medium">Adicione mesas para começar a operar.</p>
-               <button onClick={() => gerarMesas(unidadeAtiva, 12).then(()=>carregar(true))} className="px-5 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-emerald-700 active:scale-95 transition-all">
+               <button onClick={() => gerarMesas(unidadeAtiva, 12).then(()=>carregar(true))} className="px-5 sm:px-8 py-3 sm:py-4 bg-accent text-accent-fg font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-accent active:scale-95 transition-all">
                 Gerar 12 Mesas Automaticamente
               </button>
            </div>
@@ -184,7 +184,7 @@ export default function MesasPDVPage() {
                   }`}
                 >
                   {/* Numero da Mesa */}
-                  <h3 className={`font-black tracking-tighter leading-none transition-colors ${mesaMuitoCompacta ? "text-2xl" : mesaCompacta ? "text-3xl" : "text-4xl sm:text-5xl"} ${ocupada ? 'text-white' : 'text-slate-800 group-hover:text-emerald-600'}`}>
+                  <h3 className={`font-black tracking-tighter leading-none transition-colors ${mesaMuitoCompacta ? "text-2xl" : mesaCompacta ? "text-3xl" : "text-4xl sm:text-5xl"} ${ocupada ? 'text-white' : 'text-slate-800 group-hover:text-success'}`}>
                     {m.numero.replace(/Mesa /i, "")}
                   </h3>
                   
@@ -199,7 +199,7 @@ export default function MesasPDVPage() {
                     </div>
                   ) : (
                     <div className="mt-auto w-full">
-                       <span className={`inline-block rounded-lg bg-elevated text-muted font-bold uppercase group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-3xs" : "px-4 py-2 text-xs tracking-widest"}`}>
+                       <span className={`inline-block rounded-lg bg-elevated text-muted font-bold uppercase group-hover:bg-accent-soft group-hover:text-accent-strong transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-3xs" : "px-4 py-2 text-xs tracking-widest"}`}>
                          Livre
                        </span>
                     </div>
@@ -245,7 +245,7 @@ export default function MesasPDVPage() {
                
                <button 
                  onClick={() => router.push(`/dashboard/vendas?novaMesa=${mesaSelecionada.id}`)} 
-                 className="w-full p-4 sm:p-6 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-2 border-emerald-200 rounded-3xl flex flex-col items-center justify-center gap-3 transition-colors mb-6 sm:mb-10 active:scale-95 group"
+                 className="w-full p-4 sm:p-6 bg-accent-soft hover:bg-emerald-100 text-accent-strong border-2 border-emerald-200 rounded-3xl flex flex-col items-center justify-center gap-3 transition-colors mb-6 sm:mb-10 active:scale-95 group"
                >
                  <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center shadow-sm text-emerald-500 group-hover:scale-110 transition-transform">
                    <Plus size={32} />
@@ -265,17 +265,17 @@ export default function MesasPDVPage() {
                          onClick={() => router.push(`/dashboard/vendas?comanda=${c.id}`)} 
                           className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-card border-2 border-line-soft hover:border-emerald-500 rounded-3xl transition-all text-left w-full shadow-sm hover:shadow-lg group active:scale-95"
                        >
-                         <div className="w-14 h-14 rounded-full bg-slate-50 text-emerald-600 font-black flex items-center justify-center text-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                         <div className="w-14 h-14 rounded-full bg-slate-50 text-emerald-600 font-black flex items-center justify-center text-2xl group-hover:bg-accent group-hover:text-accent-fg transition-colors">
                            {c.nome_cliente?.[0]?.toUpperCase()||"C"}
                          </div>
                          <div className="flex-1">
                            <p className="font-black text-slate-800 text-lg mb-1">{c.nome_cliente || "Sem nome"}</p>
                            <div className="flex items-center gap-3">
                              <span className="text-xs font-bold text-muted bg-elevated px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
-                             <span className="text-sm font-black text-emerald-600">{fmtBRL(totalComanda)}</span>
+                             <span className="text-sm font-black text-success">{fmtBRL(totalComanda)}</span>
                            </div>
                          </div>
-                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-muted group-hover:bg-elevated group-hover:text-emerald-600 transition-colors">
+                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-muted group-hover:bg-elevated group-hover:text-success transition-colors">
                            <ChevronRight size={24}/>
                          </div>
                        </button>

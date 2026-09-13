@@ -297,7 +297,7 @@ export default function GestorOnlinePage() {
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-line-soft">
                 <span className="text-xs font-bold text-subtle uppercase tracking-widest">Total</span>
-                <span className="text-2xl font-black text-emerald-600">{fmtBRL(detalhe.valor_total || 0)}</span>
+                <span className="text-2xl font-black text-success">{fmtBRL(detalhe.valor_total || 0)}</span>
               </div>
             </div>
             <div className="p-4 border-t border-line-soft">

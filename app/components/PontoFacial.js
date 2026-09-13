@@ -64,7 +64,7 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm">
       <div className="w-full max-w-md overflow-hidden rounded-3xl bg-card shadow-2xl">
         <div className="flex items-center gap-3 border-b border-line-soft px-4 py-3.5">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><ScanFace size={20} /></div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-fg"><ScanFace size={20} /></div>
           <div className="min-w-0 flex-1">
             <p className="font-black text-fg">Ponto por reconhecimento</p>
             <p className="text-2xs font-bold text-subtle">{cadastrados.length} funcionário(s) com rosto cadastrado</p>
@@ -95,13 +95,13 @@ export default function PontoFacial({ funcionarios, onIdentificado, onFechar }) 
               <button onClick={() => { setAchado(null); setErro(""); }} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600">
                 Não sou eu
               </button>
-              <button onClick={confirmar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700">
+              <button onClick={confirmar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent">
                 <Check size={19} /> Sou eu, registrar
               </button>
             </div>
           ) : (
             <button onClick={reconhecer} disabled={lendo || !!status}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
               {lendo ? <><Loader2 size={19} className="animate-spin" /> Reconhecendo...</> : <><ScanFace size={19} /> Reconhecer meu rosto</>}
             </button>
           )}

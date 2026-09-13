@@ -196,7 +196,7 @@ export default function PainelChamadaTV() {
                 ) : (
                    prontos.map((p, index) => (
                       <div key={p.id} className={`border-2 rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex items-center justify-center text-center shadow-2xl transition-all min-w-0 ${index === 0 ? 'bg-emerald-950/40 border-emerald-500 shadow-emerald-500/20' : 'bg-zinc-900 border-zinc-800'}`}>
-                         <span className={`font-black truncate w-full ${index === 0 ? 'text-4xl sm:text-5xl lg:text-7xl text-emerald-400' : 'text-3xl sm:text-4xl lg:text-5xl text-emerald-600'}`}>
+                         <span className={`font-black truncate w-full ${index === 0 ? 'text-4xl sm:text-5xl lg:text-7xl text-emerald-400' : 'text-3xl sm:text-4xl lg:text-5xl text-success'}`}>
                             {formatarNome(p)}
                          </span>
                       </div>

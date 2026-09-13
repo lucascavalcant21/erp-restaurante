@@ -200,7 +200,7 @@ export default function TreinamentoPage() {
             <BookOpen size={42} className="mx-auto mb-3 text-dim" />
             <h2 className="text-xl font-black">Nenhum treinamento nesta trilha</h2>
             <p className="mt-1 text-sm font-medium text-muted">Crie módulos com textos, explicações e vídeos para preparar a equipe.</p>
-            <button onClick={abrirNovo} className="mt-5 rounded-xl bg-emerald-600 px-5 py-3 font-black text-white">Criar primeiro conteúdo</button>
+            <button onClick={abrirNovo} className="mt-5 rounded-xl bg-accent px-5 py-3 font-black text-accent-fg">Criar primeiro conteúdo</button>
           </div>
         ) : (
           <div className="space-y-7">
@@ -236,7 +236,7 @@ export default function TreinamentoPage() {
                           {item.link_video ? (
                             <a href={item.link_video} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 text-sm font-black text-white"><PlaySquare size={17} /> Assistir</a>
                           ) : <span className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-elevated text-sm font-bold text-muted"><BookOpen size={16} /> Leitura</span>}
-                          <button onClick={() => compartilhar(item)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-3 text-sm font-black text-emerald-700"><Share2 size={17} /> Compartilhar</button>
+                          <button onClick={() => compartilhar(item)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent-soft px-3 text-sm font-black text-accent-strong"><Share2 size={17} /> Compartilhar</button>
                         </div>
                       </div>
                     </article>
@@ -298,7 +298,7 @@ export default function TreinamentoPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button onClick={() => setModalNovo(false)} className="min-h-12 rounded-xl bg-elevated font-black text-slate-600">Cancelar</button>
-              <button onClick={handleSalvar} disabled={salvando || !form.titulo.trim() || (!form.conteudo_texto.trim() && !form.link_video.trim() && !form.arquivo_video)} className="min-h-12 rounded-xl bg-emerald-600 font-black text-white disabled:bg-slate-300">{salvando ? "Enviando..." : "Publicar"}</button>
+              <button onClick={handleSalvar} disabled={salvando || !form.titulo.trim() || (!form.conteudo_texto.trim() && !form.link_video.trim() && !form.arquivo_video)} className="min-h-12 rounded-xl bg-accent font-black text-accent-fg disabled:bg-slate-300">{salvando ? "Enviando..." : "Publicar"}</button>
             </div>
           </div>
         </div>

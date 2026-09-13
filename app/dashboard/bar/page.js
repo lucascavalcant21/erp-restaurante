@@ -15,7 +15,7 @@ export default function BarHubPage() {
       
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-6xl mx-auto flex items-center gap-3 sm:gap-4">
-         <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-2xl sm:rounded-3xl bg-elevated text-emerald-600 flex items-center justify-center shadow-inner">
+         <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-2xl sm:rounded-3xl bg-elevated text-success flex items-center justify-center shadow-inner">
             <GlassWater size={32} />
          </div>
          <div>
@@ -49,7 +49,7 @@ export default function BarHubPage() {
          {/* ITENS MÉDIOS: Cardápio e Fichas */}
          <button onClick={() => router.push("/dashboard/operacao/cardapio")} className="col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-card border border-line hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="flex justify-between items-start">
-               <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-50 group-hover:text-emerald-600 transition-colors"><FileText size={20} /></div>
+               <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-50 group-hover:text-success transition-colors"><FileText size={20} /></div>
                <Link size={16} className="text-muted" />
             </div>
             <div>
@@ -59,7 +59,7 @@ export default function BarHubPage() {
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-card border border-line hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
+            <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-accent-soft group-hover:text-accent-strong transition-colors"><LayoutList size={20} /></div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Ficha Técnica</h3>
                <p className="text-3xs uppercase font-bold text-muted mt-0.5">Rendimentos e Custos</p>
@@ -106,12 +106,12 @@ export default function BarHubPage() {
          <div className="col-span-2 lg:col-span-5 flex flex-col md:flex-row gap-4 mt-2">
             
             <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-line hover:bg-elevated transition-all flex items-center gap-4 group">
-               <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-emerald-600 shadow-sm"><CheckSquare size={20} /></div>
+               <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-success shadow-sm"><CheckSquare size={20} /></div>
                <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-3xs uppercase font-bold text-muted">Abertura e Fechamento Bar</p></div>
             </button>
 
             <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-line hover:bg-elevated transition-all flex items-center gap-4 group">
-               <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-emerald-600 shadow-sm"><Sparkles size={20} /></div>
+               <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-success shadow-sm"><Sparkles size={20} /></div>
                <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-3xs uppercase font-bold text-muted">Higiene Diária e Semanal</p></div>
             </button>
 

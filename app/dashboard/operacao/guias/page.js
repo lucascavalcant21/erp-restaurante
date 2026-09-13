@@ -292,7 +292,7 @@ export default function GuiaDeUso() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setEditando(v => !v)}
-              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-line bg-card text-fg-soft hover:bg-slate-50"}`}>
+              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors ${editando ? "bg-accent text-accent-fg hover:bg-accent" : "border border-line bg-card text-fg-soft hover:bg-slate-50"}`}>
               <Save size={15} /> {editando ? "Concluir edição" : "Editar"}
             </button>
             <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-slate-50">
@@ -306,7 +306,7 @@ export default function GuiaDeUso() {
       </div>
 
       <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-        {aviso && <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{aviso}</div>}
+        {aviso && <div className="mb-3 rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong">{aviso}</div>}
 
         {semTabela ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -331,7 +331,7 @@ export default function GuiaDeUso() {
               <span className="flex-1" />
               {editando && TIPOS_USO.map(opcao => (
                 <button key={opcao.id} onClick={() => novoGuia(opcao.id)}
-                  className="flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-400 hover:text-emerald-700">
+                  className="flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-400 hover:text-accent">
                   <Plus size={14} /> {opcao.rotulo}
                 </button>
               ))}
@@ -376,7 +376,7 @@ export default function GuiaDeUso() {
                                 </button>
                               </div>
                             ) : (
-                              <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-500 hover:text-emerald-700 shrink-0">
+                              <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-500 hover:text-accent shrink-0">
                                 <Camera size={15} /> Add foto do equipamento
                                 <input type="file" accept="image/*" className="hidden" onChange={e => uploadFotoGuia(guia.id, e.target.files[0])} />
                               </label>
@@ -479,7 +479,7 @@ export default function GuiaDeUso() {
                               ))}
                             </ol>
                             {editando && (
-                              <button onClick={() => adicionarPasso(guia.id, indiceSecao)} className="mt-2 flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-2.5 text-2xs font-bold text-muted hover:border-emerald-400 hover:text-emerald-700">
+                              <button onClick={() => adicionarPasso(guia.id, indiceSecao)} className="mt-2 flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-2.5 text-2xs font-bold text-muted hover:border-emerald-400 hover:text-accent">
                                 <Plus size={13} /> Passo
                               </button>
                             )}
@@ -487,10 +487,10 @@ export default function GuiaDeUso() {
                         ))}
                         {editando && (
                           <div className="flex flex-wrap gap-2">
-                            <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-bold text-muted hover:border-emerald-400 hover:text-emerald-700">
+                            <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-bold text-muted hover:border-emerald-400 hover:text-accent">
                               <Plus size={14} /> Seção
                             </button>
-                            <button onClick={() => gravar(guia)} className="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700">
+                            <button onClick={() => gravar(guia)} className="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-bold text-accent-fg hover:bg-accent">
                               <Save size={14} /> Salvar este guia
                             </button>
                           </div>

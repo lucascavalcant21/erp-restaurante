@@ -275,7 +275,7 @@ export default function ControlesCozinha() {
 
         {/* Abas */}
         <div className="mb-3 flex flex-wrap gap-1.5 rounded-xl bg-elevated p-1.5">
-          <button onClick={() => setAbaAtiva("limpeza")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "limpeza" ? "bg-card text-emerald-700 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+          <button onClick={() => setAbaAtiva("limpeza")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "limpeza" ? "bg-card text-accent shadow-sm" : "text-muted hover:text-fg-soft"}`}>
             <Sparkles size={16} /> Limpeza
           </button>
           <button onClick={() => setAbaAtiva("gas")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "gas" ? "bg-card text-orange-600 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
@@ -284,7 +284,7 @@ export default function ControlesCozinha() {
           <button onClick={() => setAbaAtiva("oleo")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "oleo" ? "bg-card text-amber-600 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
             <Droplets size={16} /> Óleo de Fritura
           </button>
-          <button onClick={() => setAbaAtiva("agenda")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "agenda" ? "bg-card text-emerald-700 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+          <button onClick={() => setAbaAtiva("agenda")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "agenda" ? "bg-card text-accent shadow-sm" : "text-muted hover:text-fg-soft"}`}>
             <CalendarCheck size={16} /> Agenda de Limpezas
           </button>
         </div>
@@ -347,7 +347,7 @@ export default function ControlesCozinha() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2 w-full md:w-auto">
-                    <button onClick={() => { setExecAlvo(item); setExecForm({}); }} className="w-full md:w-auto px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-sm rounded-lg transition-colors">
+                    <button onClick={() => { setExecAlvo(item); setExecForm({}); }} className="w-full md:w-auto px-4 py-2 bg-accent text-accent-fg hover:bg-accent font-bold text-sm rounded-lg transition-colors">
                       Registrar Limpeza Feita
                     </button>
                     <button onClick={() => excluir(item.id)} className="w-full md:w-auto p-2 text-subtle hover:text-red-500 flex justify-center rounded-lg transition-colors" title="Excluir agendamento">
@@ -453,7 +453,7 @@ export default function ControlesCozinha() {
                   {PRESETS_MANUTENCAO.map((p) => (
                     <button type="button" key={p.nome}
                       onClick={() => setForm({ ...form, nome: p.nome, categoria: p.categoria, frequencia_dias: p.frequencia_dias })}
-                      className="px-3 py-1.5 rounded-full text-xs font-bold border border-line text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition-colors">
+                      className="px-3 py-1.5 rounded-full text-xs font-bold border border-line text-slate-600 hover:border-emerald-400 hover:text-accent transition-colors">
                       {p.nome}
                     </button>
                   ))}

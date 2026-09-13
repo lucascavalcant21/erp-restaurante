@@ -521,7 +521,7 @@ function VendasPDVContent() {
                />
             </div>
             {isMesa && (
-               <div className="px-6 py-4 bg-slate-50 text-emerald-700 font-black text-lg rounded-2xl flex items-center gap-2 shadow-sm">
+               <div className="px-6 py-4 bg-slate-50 text-accent font-black text-lg rounded-2xl flex items-center gap-2 shadow-sm">
                  MESA {mesaDaComanda?.numero}
                </div>
             )}
@@ -539,7 +539,7 @@ function VendasPDVContent() {
                  onClick={() => setCategoriaSelecionada(c)} 
                   className={`flex-shrink-0 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-widest transition-all duration-200 ${
                    categoriaSelecionada === c 
-                     ? 'bg-emerald-600 text-white shadow-lg shadow-blue-600/30 transform scale-105' 
+                     ? 'bg-accent text-accent-fg shadow-lg shadow-blue-600/30 transform scale-105' 
                      : 'bg-elevated text-muted hover:bg-slate-200'
                  }`}
                >
@@ -562,7 +562,7 @@ function VendasPDVContent() {
                      className="bg-card border border-line-soft rounded-[28px] overflow-hidden shadow-sm hover:shadow-xl hover:border-line transition-all duration-200 flex flex-col relative group text-left active:scale-95"
                    >
                       {qtdNoCarrinho > 0 && (
-                        <div className="absolute top-3 right-3 w-10 h-10 bg-emerald-600 text-white font-black text-lg flex items-center justify-center rounded-full shadow-lg z-10">
+                        <div className="absolute top-3 right-3 w-10 h-10 bg-accent text-accent-fg font-black text-lg flex items-center justify-center rounded-full shadow-lg z-10">
                           {qtdNoCarrinho}
                         </div>
                       )}
@@ -573,7 +573,7 @@ function VendasPDVContent() {
                       
                       <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between">
                          <h3 className="font-bold text-slate-800 text-base leading-tight mb-2 line-clamp-2">{p.nome}</h3>
-                         <span className="font-black text-emerald-600 text-xl">{fmtBRL(p.preco)}</span>
+                         <span className="font-black text-success text-xl">{fmtBRL(p.preco)}</span>
                       </div>
                    </button>
                  )
@@ -612,7 +612,7 @@ function VendasPDVContent() {
                          <p className="font-bold text-slate-800 text-[15px] leading-tight">{item.nome}</p>
                          {item.observacao && <p className="mt-1 rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold leading-snug text-amber-800">OBS: {item.observacao}</p>}
                        </div>
-                       <p className="whitespace-nowrap font-black text-emerald-600 text-[15px]">{fmtBRL(item.preco * item.quantidade)}</p>
+                       <p className="whitespace-nowrap font-black text-success text-[15px]">{fmtBRL(item.preco * item.quantidade)}</p>
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -623,7 +623,7 @@ function VendasPDVContent() {
                              {item.quantidade === 1 ? <Trash2 size={18} /> : <Minus size={18} />}
                           </button>
                           <span className="font-black text-lg w-10 text-center text-slate-800">{item.quantidade}</span>
-                          <button onClick={() => handleAddItem(item)} className="w-10 h-10 flex items-center justify-center bg-card shadow-sm text-slate-600 hover:text-emerald-600 rounded-lg active:scale-95 transition-all">
+                          <button onClick={() => handleAddItem(item)} className="w-10 h-10 flex items-center justify-center bg-card shadow-sm text-slate-600 hover:text-success rounded-lg active:scale-95 transition-all">
                              <Plus size={18} />
                           </button>
                        </div>
@@ -648,7 +648,7 @@ function VendasPDVContent() {
             
             <div className="flex justify-between items-center py-4 mt-2 border-t-2 border-dashed border-line mb-6">
                <span className="font-black text-2xl text-slate-800 uppercase tracking-tight">Total</span>
-               <span className="min-w-0 whitespace-nowrap text-right font-black leading-none text-emerald-600 text-[clamp(1.65rem,7vw,2.5rem)]">{fmtBRL(totalFinal)}</span>
+               <span className="min-w-0 whitespace-nowrap text-right font-black leading-none text-success text-[clamp(1.65rem,7vw,2.5rem)]">{fmtBRL(totalFinal)}</span>
             </div>
 
             <div className={`grid gap-3 ${isMesa ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -660,7 +660,7 @@ function VendasPDVContent() {
               <button
                 disabled={totalItens === 0}
                 onClick={() => { setAjustesAutorizados(false); setModalCheckout(true); }}
-                className="min-h-16 rounded-2xl bg-emerald-600 px-3 text-sm font-black uppercase tracking-wide text-white shadow-lg transition-all hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-muted active:scale-95"
+                className="min-h-16 rounded-2xl bg-accent px-3 text-sm font-black uppercase tracking-wide text-accent-fg shadow-lg transition-all hover:bg-accent disabled:bg-slate-200 disabled:text-muted active:scale-95"
               >Pagar {totalItens > 0 ? fmtBRL(totalFinal) : ""}</button>
             </div>
 
@@ -694,7 +694,7 @@ function VendasPDVContent() {
             <button 
               onClick={handleAbrirComanda} 
               disabled={!nomeNovoCliente.trim() || salvando} 
-              className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-600/20"
+              className="w-full py-5 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-600/20"
             >
               {salvando ? "Abrindo..." : "Abrir Comanda"}
             </button>
@@ -707,7 +707,7 @@ function VendasPDVContent() {
           <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-card shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between gap-3 border-b border-line-soft p-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">Adicionar produto</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-success">Adicionar produto</p>
                 <h2 className="mt-1 text-2xl font-black text-slate-800">{produtoSelecionado.nome}</h2>
               </div>
               <button type="button" onClick={() => setProdutoSelecionado(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-elevated text-muted"><X size={20} /></button>
@@ -726,7 +726,7 @@ function VendasPDVContent() {
               </label>
               <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button type="button" onClick={() => { handleAddItem(produtoSelecionado, ""); setProdutoSelecionado(null); }} className="min-h-12 rounded-xl bg-elevated px-4 text-sm font-black text-fg-soft hover:bg-slate-200">Adicionar sem observação</button>
-                <button type="button" onClick={confirmarProduto} className="min-h-12 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">Adicionar produto</button>
+                <button type="button" onClick={confirmarProduto} className="min-h-12 rounded-xl bg-accent px-4 text-sm font-black text-accent-fg hover:bg-accent">Adicionar produto</button>
               </div>
             </div>
           </div>
@@ -772,7 +772,7 @@ function VendasPDVContent() {
             </div>
 
             <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
-               <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-emerald-600 p-4 text-white shadow-lg shadow-emerald-600/20">
+               <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-accent p-4 text-accent-fg shadow-lg shadow-emerald-600/20">
                  <div>
                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-100">Total a Pagar</p>
                    <p className="max-w-full whitespace-nowrap font-black leading-none tracking-tight text-[clamp(1.8rem,8vw,3rem)]">{fmtBRL(totalFinal)}</p>
@@ -807,7 +807,7 @@ function VendasPDVContent() {
                      onClick={() => setFormaPgto(m.id)} 
                      className={`flex items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200 active:scale-95 ${
                        formaPgto === m.id 
-                         ? 'border-emerald-600 bg-card text-emerald-600 font-black shadow-md'
+                         ? 'border-emerald-600 bg-card text-success font-black shadow-md'
                          : 'border-transparent bg-card text-muted font-bold hover:border-line'
                      }`}
                    >
@@ -820,7 +820,7 @@ function VendasPDVContent() {
                <button 
                  onClick={handleConfirmarPagamento} 
                  disabled={salvando || !caixaAtual} 
-                 className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-500 py-4 text-base font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-600 active:scale-95 disabled:bg-slate-300 disabled:text-muted"
+                 className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-500 py-4 text-base font-black uppercase tracking-widest text-accent-fg shadow-lg shadow-emerald-500/20 transition-all hover:bg-accent active:scale-95 disabled:bg-slate-300 disabled:text-muted"
                >
                  {salvando ? "Processando..." : (caixaAtual ? `Confirmar ${fmtBRL(totalFinal)}` : "Caixa Fechado")}
                </button>
@@ -837,7 +837,7 @@ function VendasPDVContent() {
             <p className="mt-2 font-bold text-muted">Deseja imprimir o cupom da venda?</p>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button type="button" onClick={finalizarPosPagamento} className="min-h-12 rounded-xl bg-elevated px-3 text-sm font-black text-fg-soft hover:bg-slate-200">Não imprimir</button>
-              <button type="button" onClick={imprimirCupomConcluido} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700"><Printer size={17} /> Imprimir</button>
+              <button type="button" onClick={imprimirCupomConcluido} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-3 text-sm font-black text-accent-fg hover:bg-accent"><Printer size={17} /> Imprimir</button>
             </div>
             <p className="mt-4 text-2xs font-medium leading-relaxed text-muted">A impressão atual é um comprovante da venda. A emissão fiscal oficial exige integração NFC-e/SAT.</p>
           </div>

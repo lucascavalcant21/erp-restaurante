@@ -174,7 +174,7 @@ export default function CorrigirPontoPage() {
         </section>
 
         <section className="rounded-2xl border-2 border-emerald-200 bg-card p-4 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center gap-2"><Clock3 className="text-emerald-600" size={20} /><h2 className="text-lg font-black">A correção</h2></div>
+          <div className="mb-4 flex items-center gap-2"><Clock3 className="text-success" size={20} /><h2 className="text-lg font-black">A correção</h2></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label><span className={rotulo}>Qual batida *</span>
               <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={campo}>
@@ -198,20 +198,20 @@ export default function CorrigirPontoPage() {
         </section>
 
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-6">
-          <div className="mb-3 flex items-center gap-2"><ShieldCheck className="text-emerald-600" size={19} /><h2 className="font-black">Autorização</h2></div>
+          <div className="mb-3 flex items-center gap-2"><ShieldCheck className="text-success" size={19} /><h2 className="font-black">Autorização</h2></div>
           <label className="block sm:max-w-[220px]"><span className={rotulo}>PIN do gerente *</span>
             <input type="password" inputMode="numeric" value={pinDigitado} onChange={(e) => setPinDigitado(e.target.value)} className={campo} />
           </label>
         </section>
 
         {aviso && (
-          <p className={`rounded-xl px-4 py-3 text-sm font-bold ${aviso.erro ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+          <p className={`rounded-xl px-4 py-3 text-sm font-bold ${aviso.erro ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-accent-soft text-accent-strong"}`}>
             {aviso.msg}
           </p>
         )}
 
         <button onClick={salvar} disabled={salvando}
-          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-60">
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent px-6 text-base font-black text-accent-fg shadow-lg shadow-emerald-200 hover:bg-accent disabled:opacity-60">
           {salvando ? <Loader2 className="animate-spin" size={20} /> : <Check size={19} />} Registrar correção
         </button>
       </main>

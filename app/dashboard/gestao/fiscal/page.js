@@ -230,7 +230,7 @@ export default function ConfiguracoesFiscaisPage() {
           <button 
             type="submit" 
             disabled={saving}
-            className="w-full sm:w-auto flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-5 sm:px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50"
+            className="w-full sm:w-auto flex-1 md:flex-none bg-emerald-500 hover:bg-accent text-accent-fg px-5 sm:px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50"
           >
             {saving ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -241,7 +241,7 @@ export default function ConfiguracoesFiscaisPage() {
           </button>
           
           {sucesso && (
-            <span className="text-emerald-600 font-bold flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
+            <span className="text-success font-bold flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
               <CheckCircle size={20} />
               Dados fiscais atualizados!
             </span>

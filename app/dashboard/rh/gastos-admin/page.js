@@ -98,7 +98,7 @@ export default function ComprasDoMesPage() {
             <p className="text-xs font-bold text-muted">Vem das entradas de estoque — lançou lá, aparece aqui</p>
           </div>
           <button onClick={() => router.push("/dashboard/operacao/estoque")}
-            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             <PackagePlus size={17} /> Lançar entrada
           </button>
         </div>
@@ -107,7 +107,7 @@ export default function ComprasDoMesPage() {
           <div className="flex rounded-xl border border-line bg-card p-1">
             {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"], ["meses", "Vários meses"]].map(([v, r]) => (
               <button key={v} onClick={() => setModo(v)}
-                className={`h-9 rounded-lg px-3.5 text-sm font-black ${modo === v ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                className={`h-9 rounded-lg px-3.5 text-sm font-black ${modo === v ? "bg-accent text-accent-fg" : "text-slate-600 hover:bg-slate-50"}`}>
                 {r}
               </button>
             ))}
@@ -124,7 +124,7 @@ export default function ComprasDoMesPage() {
             <button onClick={() => setReferencia(andarPeriodo(referencia, modo, 1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
           </div>
           {!hojeNoPeriodo && (
-            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">Hoje</button>
+            <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">Hoje</button>
           )}
         </div>
       </div>
@@ -133,11 +133,11 @@ export default function ComprasDoMesPage() {
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
           <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
-          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
         ) : (
           <>
             <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm sm:p-6">
-              <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Total comprado no período</p>
+              <p className="text-2xs font-bold uppercase tracking-widest text-accent">Total comprado no período</p>
               <p className="mt-1 text-4xl font-black text-fg sm:text-5xl">{brl(totalGeral)}</p>
               <p className="mt-2 text-sm font-bold text-muted">{doPeriodo.length} entrada(s) de estoque</p>
             </section>
@@ -161,7 +161,7 @@ export default function ComprasDoMesPage() {
             </section>
 
             {categoria !== "Todas" && (
-              <button onClick={() => setCategoria("Todas")} className="text-sm font-black text-emerald-700 hover:underline">
+              <button onClick={() => setCategoria("Todas")} className="text-sm font-black text-accent hover:underline">
                 Mostrando só {categoria} — ver todas
               </button>
             )}
@@ -174,12 +174,12 @@ export default function ComprasDoMesPage() {
                     <p className="text-sm font-black capitalize text-slate-800">
                       {new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}
                     </p>
-                    <p className="text-sm font-black text-emerald-700">{brl(totalDia)}</p>
+                    <p className="text-sm font-black text-accent">{brl(totalDia)}</p>
                   </div>
                   <div className="divide-y divide-slate-100">
                     {doDia.map(m => (
                       <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ShoppingCart size={16} /></span>
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-strong"><ShoppingCart size={16} /></span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[15px] font-black text-fg">{m.insumo?.nome || "Produto removido"}</p>
                           <p className="truncate text-2xs font-bold text-muted">

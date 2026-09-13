@@ -97,8 +97,10 @@ export default function InstallPrompt() {
         {!ehIOS && (
           <button
             onClick={instalar}
-            className="px-4 py-2 rounded-xl font-bold text-sm shrink-0 text-white"
-            style={{ background: "var(--accent-strong, #059669)" }}
+            // A cor do texto vem do par do acento, nao de um branco fixo: no
+            // tema escuro o acento clareia, e branco em cima dele reprova.
+            className="px-4 py-2 rounded-xl font-bold text-sm shrink-0"
+            style={{ background: "var(--accent-strong, #059669)", color: "var(--accent-fg, #FFFFFF)" }}
           >
             Instalar
           </button>

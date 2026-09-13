@@ -104,7 +104,7 @@ export default function CRMPage() {
               <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Clientes na Base</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.totalCli}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center text-emerald-600"><Users size={20}/></div>
+            <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center text-success"><Users size={20}/></div>
           </div>
           <p className="text-xs font-bold text-emerald-500 flex items-center gap-1 mt-3">
             <TrendingUp size={12}/> +{(kpis.totalCli * 0.1).toFixed(0)} este mês
@@ -128,7 +128,7 @@ export default function CRMPage() {
               <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Taxa de Retorno</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.taxaRetorno}%</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center text-emerald-600"><Heart size={20}/></div>
+            <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center text-success"><Heart size={20}/></div>
           </div>
           <p className="text-xs font-bold text-muted mt-3">Clientes fidelizados</p>
         </Card>
@@ -151,7 +151,7 @@ export default function CRMPage() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Top Clientes (LTV)</h3>
               <p className="text-3xs font-medium text-muted mt-1">Os que mais gastaram historicamente</p>
             </div>
-            <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Ver todos</button>
+            <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-success hover:text-blue-800">Ver todos</button>
           </div>
           <div className="divide-y divide-slate-100">
             {clientes.slice(0,5).map((cliente, idx) => (
@@ -165,7 +165,7 @@ export default function CRMPage() {
                     <p className="text-2xs font-medium text-muted">{cliente.total_pedidos} visitas • LTV</p>
                   </div>
                 </div>
-                <span className="text-sm font-black text-emerald-600">{fmtBRL(cliente.total_gasto)}</span>
+                <span className="text-sm font-black text-success">{fmtBRL(cliente.total_gasto)}</span>
               </div>
             ))}
             {clientes.length === 0 && (
@@ -181,7 +181,7 @@ export default function CRMPage() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Atenção: Avaliações</h3>
               <p className="text-3xs font-medium text-muted mt-1">Reviews recentes com nota baixa</p>
             </div>
-            <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Abrir NPS</button>
+            <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-success hover:text-blue-800">Abrir NPS</button>
           </div>
           <div className="p-4 space-y-4">
             {avaliacoes.filter(a => Number(a.nota) <= 5).slice(0,4).map((av) => (
@@ -311,7 +311,7 @@ export default function CRMPage() {
             <h3 className="font-black text-xl text-slate-800">Campanhas e Cashback</h3>
             <p className="text-sm font-medium text-muted mt-1">Acorde clientes inativos com SMS ou WhatsApp</p>
           </div>
-          <button onClick={() => setModalCampanha(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+          <button onClick={() => setModalCampanha(true)} className="flex items-center gap-2 bg-accent text-accent-fg px-5 py-3 rounded-xl font-bold hover:bg-accent transition-colors">
             <Plus size={18}/> Criar Campanha
           </button>
        </div>
@@ -321,15 +321,15 @@ export default function CRMPage() {
              <Card key={c.id} className="p-6">
                 <div className="flex justify-between items-start mb-4">
                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-slate-50 text-emerald-600 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl bg-slate-50 text-success flex items-center justify-center">
                          <Megaphone size={24}/>
                       </div>
                       <div>
                          <h4 className="font-bold text-slate-800">{c.nome}</h4>
-                         <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">{c.tipo} • Cupom: {c.cupom}</p>
+                         <p className="text-xs font-bold uppercase tracking-widest text-success">{c.tipo} • Cupom: {c.cupom}</p>
                       </div>
                    </div>
-                   <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-3xs font-bold uppercase tracking-widest rounded-lg border border-emerald-100">
+                   <span className="px-3 py-1 bg-accent-soft text-accent-strong text-3xs font-bold uppercase tracking-widest rounded-lg border border-emerald-100">
                      {c.status}
                    </span>
                 </div>
@@ -348,7 +348,7 @@ export default function CRMPage() {
                    </div>
                    <div>
                       <p className="text-3xs font-bold text-muted uppercase">Receita (ROI)</p>
-                      <p className="font-black text-emerald-600 text-lg">{fmtBRL(c.receita_gerada)}</p>
+                      <p className="font-black text-success text-lg">{fmtBRL(c.receita_gerada)}</p>
                    </div>
                 </div>
              </Card>
@@ -373,7 +373,7 @@ export default function CRMPage() {
             <p className="text-sm font-semibold text-muted mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => { setActiveTab('campanhas'); setModalCampanha(true); }} className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shadow-emerald-600/20 shadow-xl">
+            <button onClick={() => { setActiveTab('campanhas'); setModalCampanha(true); }} className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-accent text-accent-fg font-bold text-sm hover:bg-accent hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shadow-emerald-600/20 shadow-xl">
               <Megaphone size={18} /> Nova Campanha
             </button>
           </div>
@@ -442,7 +442,7 @@ export default function CRMPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">Código do Cupom</label>
-                        <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500" placeholder="Ex: VOLTA10"/>
+                        <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-success outline-none focus:border-emerald-500" placeholder="Ex: VOLTA10"/>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">Desconto (R$ ou %)</label>
@@ -451,7 +451,7 @@ export default function CRMPage() {
                   </div>
                </div>
 
-               <button onClick={handleSalvarCampanha} disabled={salvando || !novaCampanha.nome} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+               <button onClick={handleSalvarCampanha} disabled={salvando || !novaCampanha.nome} className="w-full mt-8 py-5 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                   {salvando ? "Salvando..." : "Lançar Campanha"}
                </button>
             </div>

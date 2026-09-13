@@ -539,8 +539,8 @@ function CardapioRunner() {
                     CMV {cmv.toFixed(1)}%
                  </span>
               )}
-              <button onClick={() => abrirGuia(p)} title="Guia de montagem do prato (IA)" className="text-muted hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><ClipboardList size={18}/></button>
-              <button onClick={() => abrirEditar(p)} title="Editar" className="text-muted hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+              <button onClick={() => abrirGuia(p)} title="Guia de montagem do prato (IA)" className="text-muted hover:text-success opacity-0 group-hover:opacity-100 transition-opacity p-1"><ClipboardList size={18}/></button>
+              <button onClick={() => abrirEditar(p)} title="Editar" className="text-muted hover:text-success opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
               <button onClick={() => handleExcluir(p)} title="Excluir do cardápio" className="text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Trash2 size={18}/></button>
            </div>
         </div>
@@ -573,7 +573,7 @@ function CardapioRunner() {
            <div>
               <p className="text-3xs font-bold text-muted uppercase tracking-widest mb-1">Preço de Venda</p>
               {Number(p.preco_venda) > 0 ? (
-                 <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
+                 <p className="font-black text-2xl text-success">{fmtBRL(p.preco_venda)}</p>
               ) : (
                  <button onClick={() => abrirEditar(p)} className="font-bold text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 hover:bg-amber-100 transition-colors uppercase tracking-widest">
                     Definir preço
@@ -587,9 +587,9 @@ function CardapioRunner() {
                  if (!comps.length) return <p className="font-bold text-3xs uppercase text-red-500">Não vinculada</p>;
                  if (comps.length === 1) {
                     const f = fichas.find(x => x.id === comps[0].ficha_id);
-                    return <p className="font-bold text-3xs uppercase text-emerald-600">{(f?.nome_receita || p.fichas_tecnicas?.nome_receita || 'Ficha').substring(0, 15)}</p>;
+                    return <p className="font-bold text-3xs uppercase text-success">{(f?.nome_receita || p.fichas_tecnicas?.nome_receita || 'Ficha').substring(0, 15)}</p>;
                  }
-                 return <p className="font-bold text-3xs uppercase text-emerald-600" title={comps.map(c => fichas.find(x => x.id === c.ficha_id)?.nome_receita).filter(Boolean).join(' + ')}>{comps.length} componentes</p>;
+                 return <p className="font-bold text-3xs uppercase text-success" title={comps.map(c => fichas.find(x => x.id === c.ficha_id)?.nome_receita).filter(Boolean).join(' + ')}>{comps.length} componentes</p>;
               })()}
            </div>
         </div>
@@ -607,7 +607,7 @@ function CardapioRunner() {
               <button onClick={() => abrirMenu()} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line">
                  <ArrowLeft size={20}/>
               </button>
-               <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-elevated text-emerald-600 items-center justify-center shadow-inner">
+               <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-elevated text-success items-center justify-center shadow-inner">
                  <Tag size={28} />
               </div>
               <div>
@@ -625,7 +625,7 @@ function CardapioRunner() {
                <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
                   <Printer size={18} /> <span className="hidden sm:inline">Imprimir Tabela</span>
                </button>
-               <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+               <button onClick={abrirNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-accent transition-colors shadow-lg shadow-emerald-600/20">
                   <Plus size={18} /> Novo Produto
                </button>
             </div>
@@ -780,9 +780,9 @@ function CardapioRunner() {
                                  <div className="flex-1 min-w-0">
                                     <p className="font-bold text-fg-soft text-sm truncate">{f?.nome_receita || "Ficha removida"}</p>
                                      {f?.peso_porcao_g ? (
-                                        <p className="text-3xs font-bold text-emerald-600">{fmtBRL(custoUnit / (f.peso_porcao_g / 1000))} / kg</p>
+                                        <p className="text-3xs font-bold text-success">{fmtBRL(custoUnit / (f.peso_porcao_g / 1000))} / kg</p>
                                      ) : (
-                                        <p className="text-3xs font-bold text-emerald-600">{fmtBRL(custoUnit)} / porção</p>
+                                        <p className="text-3xs font-bold text-success">{fmtBRL(custoUnit)} / porção</p>
                                      )}
                                  </div>
                                  <div className="text-center flex gap-2">
@@ -826,8 +826,8 @@ function CardapioRunner() {
                               <p className="text-3xs font-medium text-subtle">automático da montagem</p>
                            </div>
                            <div className="p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-center">
-                              <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Preço de venda (R$)</p>
-                              <input type="number" step="0.01" placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-emerald-600 text-xl outline-none"/>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-accent">Preço de venda (R$)</p>
+                              <input type="number" step="0.01" placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-success text-xl outline-none"/>
                               <p className="text-3xs font-medium text-emerald-600/70">você define</p>
                            </div>
                            <div className={`p-4 rounded-2xl border text-center ${cmvLive !== null ? `${cores.bg} ${cores.border}` : "border-line bg-slate-50"}`}>
@@ -854,7 +854,7 @@ function CardapioRunner() {
                            </div>
                         )}
                         <div className="flex-1">
-                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-slate-50 border border-line hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
+                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-slate-50 border border-line hover:border-emerald-500 hover:bg-accent-soft text-slate-600 hover:text-accent-strong transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
                               {loading ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
                               <span>{loading ? "Enviando..." : "Selecionar arquivo do computador"}</span>
                               <input type="file" accept="image/*" disabled={loading} className="hidden" onChange={async (e) => {
@@ -913,7 +913,7 @@ function CardapioRunner() {
                                  <div key={emb.embalagem_id} className="flex items-center gap-2 bg-card border border-line-soft rounded-xl p-2.5">
                                     <div className="flex-1 min-w-0">
                                        <p className="font-bold text-fg-soft text-sm truncate">{eDB?.nome || "Embalagem excluída"}</p>
-                                       <p className="text-3xs font-bold text-emerald-600">{fmtBRL(custoUnit)} / unidade</p>
+                                       <p className="text-3xs font-bold text-success">{fmtBRL(custoUnit)} / unidade</p>
                                     </div>
                                     <div className="text-center flex gap-2">
                                        <div className="text-center">
@@ -935,7 +935,7 @@ function CardapioRunner() {
                </div>
 
                <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-slate-50 rounded-b-[32px] shrink-0">
-                  <button onClick={handleSalvar} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
+                  <button onClick={handleSalvar} className="w-full py-5 bg-accent hover:bg-accent text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                      <Save size={20}/> Salvar Produto
                   </button>
                </div>
@@ -949,7 +949,7 @@ function CardapioRunner() {
             <div className="bg-card rounded-[32px] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[92vh]">
                <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-6 border-b border-line-soft shrink-0">
                   <div className="flex items-center gap-3">
-                     <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><ClipboardList size={22}/></div>
+                     <div className="w-11 h-11 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center"><ClipboardList size={22}/></div>
                      <div>
                         <h2 className="font-black text-2xl text-slate-800">Guia de Montagem</h2>
                         <p className="text-xs font-bold text-muted mt-0.5">{guiaProduto.nome_produto} — padronize e cole na parede</p>
@@ -982,7 +982,7 @@ function CardapioRunner() {
                               <p className="text-xs text-muted font-medium">{ingredientesDoProduto(guiaProduto).map(i => `${i.nome} ${i.quantidade}${i.unidade}`).join(" · ")}</p>
                            </div>
                         )}
-                        <button onClick={gerarGuia} disabled={guiaLoading} className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <button onClick={gerarGuia} disabled={guiaLoading} className="w-full py-4 bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95">
                            {guiaLoading ? <><Loader2 size={18} className="animate-spin"/> Gerando guia...</> : <><Sparkles size={18}/> Gerar guia de montagem</>}
                         </button>
                      </>
@@ -996,7 +996,7 @@ function CardapioRunner() {
                               <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Porcionamento</p>
                               <div className="space-y-1">
                                  {guiaResultado.porcionamento.map((p, i) => (
-                                    <div key={i} className="flex justify-between text-sm bg-slate-50 rounded-lg px-3 py-2"><span className="font-bold text-fg-soft">{p.item}</span><span className="font-black text-emerald-600">{p.quantidade}</span></div>
+                                    <div key={i} className="flex justify-between text-sm bg-slate-50 rounded-lg px-3 py-2"><span className="font-bold text-fg-soft">{p.item}</span><span className="font-black text-success">{p.quantidade}</span></div>
                                  ))}
                               </div>
                            </div>
@@ -1015,7 +1015,7 @@ function CardapioRunner() {
                         )}
                         {(guiaResultado.dicas || []).length > 0 && (
                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                              <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700 mb-1">Dicas de padronização</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-accent mb-1">Dicas de padronização</p>
                               <ul className="list-disc ml-4 text-sm font-medium text-emerald-800 space-y-0.5">{guiaResultado.dicas.map((d, i) => <li key={i}>{d}</li>)}</ul>
                            </div>
                         )}

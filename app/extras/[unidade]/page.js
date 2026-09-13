@@ -92,7 +92,7 @@ export default function PortalExtras() {
             <>
               <p className="mt-5 text-sm font-bold text-fg-soft">Você marcou interesse em ser contratado.</p>
               <button onClick={() => router.push(`/vagas/${unidade}?extra=${enviado.id}`)}
-                className="mt-3 w-full rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700">
+                className="mt-3 w-full rounded-2xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent">
                 Ver as vagas abertas
               </button>
               <p className="mt-2 text-xs font-medium text-subtle">Seus dados já vão preenchidos — é só escolher a vaga.</p>
@@ -108,7 +108,7 @@ export default function PortalExtras() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
-      <header className="bg-emerald-700 px-5 py-8 text-white sm:py-10">
+      <header className="bg-accent px-5 py-8 text-accent-fg sm:py-10">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-2xl font-black leading-tight sm:text-3xl">{config.titulo}</h1>
           <p className="mt-2 whitespace-pre-line text-sm font-medium leading-relaxed text-emerald-50">
@@ -126,7 +126,7 @@ export default function PortalExtras() {
       <main className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-5">
         {/* Funções */}
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700"><Briefcase size={15} /> Selecione sua função</p>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent"><Briefcase size={15} /> Selecione sua função</p>
           <p className="mb-4 mt-1 text-sm font-semibold text-slate-600">Escolha sua função principal e, se quiser, uma segunda.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
@@ -148,7 +148,7 @@ export default function PortalExtras() {
 
         {/* Disponibilidade */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-700"><CalendarDays size={15} /> Sua disponibilidade</p>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent"><CalendarDays size={15} /> Sua disponibilidade</p>
           <p className="mb-3 mt-1 text-sm font-semibold text-slate-600">Marque os dias em que você pode trabalhar.</p>
           <div className="flex flex-wrap gap-2">
             {DIAS_SEMANA.map(d => {
@@ -156,7 +156,7 @@ export default function PortalExtras() {
               return (
                 <button key={d.valor} type="button" onClick={() => alternarDia(d.valor)}
                   className={`h-12 min-w-[62px] rounded-xl border-2 px-3 text-sm font-black transition-all ${
-                    marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
+                    marcado ? "border-emerald-600 bg-accent text-accent-fg" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
                   {d.rotulo}
                 </button>
               );
@@ -176,7 +176,7 @@ export default function PortalExtras() {
 
         {/* Dados pessoais */}
         <section id="dados" className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Seus dados</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">Seus dados</p>
           <div className="space-y-4">
             <label className="block">
               <span className={rotulo}>Nome completo *</span>
@@ -264,12 +264,12 @@ export default function PortalExtras() {
         {/* Perguntas */}
         {config.perguntas.length > 0 && (
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Algumas perguntas</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">Algumas perguntas</p>
           <p className="mb-4 mt-1 text-sm font-medium text-muted">Não existe resposta certa ou errada.</p>
           <div className="space-y-5">
             {config.perguntas.map((p, i) => (
               <div key={p.id}>
-                <p className="text-sm font-black text-slate-800">{i + 1}. {p.pergunta}<span className="text-emerald-600"> *</span></p>
+                <p className="text-sm font-black text-slate-800">{i + 1}. {p.pergunta}<span className="text-success"> *</span></p>
                 <div className="mt-2 space-y-2">
                   {p.opcoes.map((op, idx) => {
                     const marcada = respostas[p.id] === op;
@@ -293,7 +293,7 @@ export default function PortalExtras() {
 
         {/* Interesse */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">O que você procura</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">O que você procura</p>
           <div className="mt-3 space-y-2">
             {[
               { v: "extra", t: "Só quero prestar serviço avulso", d: "Trabalho por diária quando vocês chamarem." },
@@ -321,7 +321,7 @@ export default function PortalExtras() {
         {erro && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
 
         <button onClick={enviar} disabled={enviando}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700 disabled:opacity-60">
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-base font-black text-accent-fg shadow-lg shadow-emerald-600/25 hover:bg-accent disabled:opacity-60">
           {enviando ? <><Loader2 size={19} className="animate-spin" /> Enviando...</> : <><Send size={19} /> Enviar meu cadastro</>}
         </button>
         <p className="text-center text-xs font-medium text-subtle">

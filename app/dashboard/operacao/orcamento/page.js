@@ -918,7 +918,7 @@ export default function OrcamentoEventoPage() {
                  <button onClick={() => abrirMenu()} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line">
                     <ArrowLeft size={20}/>
                  </button>
-                 <div className="w-12 h-12 rounded-2xl bg-elevated text-emerald-600 flex items-center justify-center shadow-inner">
+                 <div className="w-12 h-12 rounded-2xl bg-elevated text-success flex items-center justify-center shadow-inner">
                     <PartyPopper size={24} />
                  </div>
                  <div>
@@ -927,12 +927,12 @@ export default function OrcamentoEventoPage() {
                  </div>
                </div>
                <div className="flex items-center gap-2">
-                  {orcamentoId && <span className="text-3xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">salvo</span>}
+                  {orcamentoId && <span className="text-3xs font-bold uppercase tracking-widest text-accent-strong bg-accent-soft border border-emerald-200 px-2 py-1 rounded-full">salvo</span>}
                   <button onClick={abrirHistorico} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-card border border-line px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
                      <History size={14}/> Histórico
                   </button>
                   <button onClick={novoEvento} className="text-xs font-bold text-slate-600 bg-card border border-line px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">Novo evento</button>
-                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-emerald-600/20">
+                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1.5 text-xs font-bold text-accent-fg bg-accent hover:bg-accent disabled:opacity-50 px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-emerald-600/20">
                      {salvando ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>} {orcamentoId ? "Atualizar" : "Salvar Evento"}
                   </button>
                </div>
@@ -943,7 +943,7 @@ export default function OrcamentoEventoPage() {
                <span className="text-3xs font-bold uppercase tracking-widest text-subtle">Gerar:</span>
                <div className="inline-flex p-1 rounded-xl bg-elevated">
                   <button onClick={() => setModoSaida("imprimir")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "imprimir" ? "bg-card text-fg shadow-sm" : "text-muted"}`}>Imprimir</button>
-                  <button onClick={() => setModoSaida("pdf")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "pdf" ? "bg-card text-emerald-600 shadow-sm" : "text-muted"}`}>Baixar PDF</button>
+                  <button onClick={() => setModoSaida("pdf")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "pdf" ? "bg-card text-success shadow-sm" : "text-muted"}`}>Baixar PDF</button>
                </div>
                <span className="w-px h-6 bg-slate-200 mx-1" />
                <button type="button" onClick={seguro(imprimirOrcamento)} className="flex items-center gap-1.5 bg-slate-900 text-white px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-800 transition-colors">
@@ -952,17 +952,17 @@ export default function OrcamentoEventoPage() {
                <button type="button" onClick={seguro(imprimirInterno)} className="flex items-center gap-1.5 bg-card text-fg-soft border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
                   <Printer size={14} /> Compras (Interno)
                </button>
-               <button type="button" onClick={seguro(imprimirProgramacao)} className="flex items-center gap-1.5 bg-card text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+               <button type="button" onClick={seguro(imprimirProgramacao)} className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors">
                   <ClipboardList size={14} /> Programação (Cozinha)
                </button>
-               <button type="button" onClick={seguro(imprimirFichaTecnica)} className="flex items-center gap-1.5 bg-card text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+               <button type="button" onClick={seguro(imprimirFichaTecnica)} className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors">
                   <ChefHat size={14} /> Ficha Técnica (Evento)
                </button>
                <button type="button" onClick={seguro(imprimirRelatorio)} className="flex items-center gap-1.5 bg-card text-fg-soft border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
                   <FileText size={14} /> Relatório Gerencial
                </button>
                {propostas.length > 1 && (
-                  <button type="button" onClick={seguro(imprimirComparacao)} className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-700 transition-colors">
+                  <button type="button" onClick={seguro(imprimirComparacao)} className="flex items-center gap-1.5 bg-accent text-accent-fg px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent transition-colors">
                      <FileText size={14} /> Comparar Propostas
                   </button>
                )}
@@ -984,11 +984,11 @@ export default function OrcamentoEventoPage() {
                   return (
                      <button key={p.id} onClick={() => setAtivaId(p.id)} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${ativoTab ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-50 text-muted hover:text-slate-800 border border-line'}`}>
                         {p.nome}
-                        {r.porConvidado !== null && <span className={`ml-1.5 ${ativoTab ? 'text-emerald-300' : 'text-emerald-600'}`}>{fmtBRL(r.porConvidado)}/pes</span>}
+                        {r.porConvidado !== null && <span className={`ml-1.5 ${ativoTab ? 'text-emerald-300' : 'text-success'}`}>{fmtBRL(r.porConvidado)}/pes</span>}
                      </button>
                   );
                })}
-               <button onClick={addProposta} className="px-3 py-2 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">+ Nova</button>
+               <button onClick={addProposta} className="px-3 py-2 rounded-xl font-bold text-sm bg-accent-soft text-accent-strong border border-emerald-200 hover:bg-emerald-100">+ Nova</button>
                <span className="flex-1" />
                <button onClick={renomearProposta} className="text-3xs font-bold text-muted hover:text-slate-800 px-1.5">Renomear</button>
                <button onClick={duplicarProposta} className="text-3xs font-bold text-muted hover:text-slate-800 px-1.5">Duplicar</button>
@@ -1021,16 +1021,16 @@ export default function OrcamentoEventoPage() {
                   </div>
                   <div>
                      <label className="text-3xs font-bold text-muted uppercase tracking-widest flex items-center gap-1"><Users size={12}/> Nº de Convidados</label>
-                     <input type="number" min="0" placeholder="Ex: 80" value={evento.convidados} onChange={e=>setEvento({...evento, convidados: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                     <input type="number" min="0" placeholder="Ex: 80" value={evento.convidados} onChange={e=>setEvento({...evento, convidados: e.target.value})} className="w-full p-3.5 mt-1 bg-accent-soft border border-emerald-200 rounded-xl font-black text-accent-strong outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
-                     <label className="text-3xs font-bold text-emerald-700 uppercase tracking-widest">Cobrar do Cliente (R$ por pessoa)</label>
-                     <input type="number" min="0" step="0.01" placeholder="Ex: 70,00" value={evento.preco_pessoa || ""} onChange={e=>setEvento({...evento, preco_pessoa: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                     <label className="text-3xs font-bold text-accent uppercase tracking-widest">Cobrar do Cliente (R$ por pessoa)</label>
+                     <input type="number" min="0" step="0.01" placeholder="Ex: 70,00" value={evento.preco_pessoa || ""} onChange={e=>setEvento({...evento, preco_pessoa: e.target.value})} className="w-full p-3.5 mt-1 bg-accent-soft border-2 border-emerald-300 rounded-xl font-black text-accent-strong outline-none focus:border-emerald-500"/>
                      {precoPessoaDesejado > 0 && convidados > 0 && (
                         <p className="text-3xs font-bold text-muted mt-1.5 leading-relaxed">
                            Cliente paga <span className="text-slate-800">{fmtBRL(vendaEvento)}</span> no total.
                            Seu custo: <span className="text-slate-800">{fmtBRL(custoPorConvidado || 0)}/pessoa</span> ·
-                           lucro: <span className={`font-black ${lucroEvento >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtBRL(lucroEvento / convidados)}/pessoa ({fmtBRL(lucroEvento)})</span>
+                           lucro: <span className={`font-black ${lucroEvento >= 0 ? 'text-success' : 'text-red-500'}`}>{fmtBRL(lucroEvento / convidados)}/pessoa ({fmtBRL(lucroEvento)})</span>
                         </p>
                      )}
                      {precoPessoaDesejado > 0 && !(convidados > 0) && (
@@ -1095,7 +1095,7 @@ export default function OrcamentoEventoPage() {
                         </div>
                         <span className="text-center text-xs font-bold text-slate-600">{l.pesoUn > 0 ? `${l.pesoUn}g` : '—'}</span>
                         <span className="text-center text-xs font-bold text-fg-soft">{l.vendaPorKg ? fmtBRL(l.vendaPorKg) : '—'}</span>
-                        <span className="text-center text-sm font-black text-emerald-600">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : '—'}</span>
+                        <span className="text-center text-sm font-black text-success">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : '—'}</span>
                         <span className="text-right text-xs font-bold text-fg-soft">{fmtBRL(l.vendaTotal)}</span>
                       </div>
                     ))}
@@ -1182,8 +1182,8 @@ export default function OrcamentoEventoPage() {
                                  </div>
                                  {/* Preço por KG — input principal */}
                                  <div>
-                                    <label className="text-3xs font-bold text-emerald-600 uppercase tracking-widest block mb-1">R$ / kg</label>
-                                    <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoKg; return raw === undefined ? (l.precoKgCardapio ? (+l.precoKgCardapio.toFixed(2)) : "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoKg: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoKgEditado ? 'bg-amber-50 border-2 border-amber-400 text-amber-700' : 'bg-emerald-50 border-2 border-emerald-300 text-emerald-700'}`}/>
+                                    <label className="text-3xs font-bold text-success uppercase tracking-widest block mb-1">R$ / kg</label>
+                                    <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoKg; return raw === undefined ? (l.precoKgCardapio ? (+l.precoKgCardapio.toFixed(2)) : "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoKg: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoKgEditado ? 'bg-amber-50 border-2 border-amber-400 text-amber-700' : 'bg-accent-soft border-2 border-emerald-300 text-accent-strong'}`}/>
                                     {l.precoKgEditado && (
                                        <button onClick={() => updateItem(l.produto_id, { precoKg: "" })} className="text-3xs font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
                                           voltar sugestão ({fmtBRL(l.precoKgCardapio)})
@@ -1197,9 +1197,9 @@ export default function OrcamentoEventoPage() {
                                     <span className="text-3xs font-bold text-subtle mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.custoTotal / convidados)} / pessoa` : ''}</span>
                                  </div>
                                  <div className="flex flex-col items-center justify-center bg-emerald-50 rounded-lg border-2 border-emerald-200 p-2">
-                                    <span className="text-3xs font-bold text-emerald-600 uppercase tracking-widest text-center">Preço de Venda</span>
-                                    <span className="font-black text-xl text-emerald-700">{fmtBRL(l.vendaTotal)}</span>
-                                    <span className="text-3xs font-bold text-emerald-600 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.precoPorPessoa)} / pessoa` : ''}</span>
+                                    <span className="text-3xs font-bold text-success uppercase tracking-widest text-center">Preço de Venda</span>
+                                    <span className="font-black text-xl text-accent">{fmtBRL(l.vendaTotal)}</span>
+                                    <span className="text-3xs font-bold text-success mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.precoPorPessoa)} / pessoa` : ''}</span>
                                  </div>
                               </div>
 
@@ -1218,7 +1218,7 @@ export default function OrcamentoEventoPage() {
                                        <>
                                           <p>{l.kgTotal ? `${(+l.kgTotal.toFixed(3)).toLocaleString('pt-BR')} kg` : '—'} = <b className="text-slate-800">{(+l.porcoes.toFixed(1)).toLocaleString('pt-BR')}</b> porções de {l.pesoUn}g <span className="text-subtle font-medium">(serve {Math.floor(l.porcoes)} com 1 porção cada)</span></p>
                                           {convidados > 0 && (
-                                             <p className="text-2xs text-emerald-700 mt-0.5">Dividido entre {convidados} convidados: <b>{(l.pesoUn * l.qtd).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} g por pessoa</b></p>
+                                             <p className="text-2xs text-accent mt-0.5">Dividido entre {convidados} convidados: <b>{(l.pesoUn * l.qtd).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} g por pessoa</b></p>
                                           )}
                                        </>
                                     ) : (
@@ -1248,7 +1248,7 @@ export default function OrcamentoEventoPage() {
                                  )}
                                  {l.pesoUn > 0 && (
                                     <span className="text-3xs font-bold text-subtle">
-                                       1kg = <span className="text-slate-600">{(+l.unPorKg.toFixed(1)).toLocaleString("pt-BR")} un</span> · <span className="text-emerald-600">{fmtBRL(l.vendaPorKg)}</span>
+                                       1kg = <span className="text-slate-600">{(+l.unPorKg.toFixed(1)).toLocaleString("pt-BR")} un</span> · <span className="text-success">{fmtBRL(l.vendaPorKg)}</span>
                                     </span>
                                  )}
                                  <span className="text-3xs font-bold text-subtle">
@@ -1305,12 +1305,12 @@ export default function OrcamentoEventoPage() {
                <div className="flex flex-wrap gap-2 mb-4">
                   {EXTRAS_SUGERIDOS.filter(s => !extras.find(x => x.nome === s)).map(s => (
                      <button key={s} type="button" onClick={() => setExtras(lista => [...lista, { id: novoId(), nome: s, custo: "", valor_cobrado: "" }])}
-                        className="px-3 py-1.5 rounded-full text-xs font-bold border border-line text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition-colors">
+                        className="px-3 py-1.5 rounded-full text-xs font-bold border border-line text-slate-600 hover:border-emerald-400 hover:text-accent transition-colors">
                         + {s}
                      </button>
                   ))}
                   <button type="button" onClick={() => setExtras(lista => [...lista, { id: novoId(), nome: "", custo: "", valor_cobrado: "" }])}
-                     className="px-3 py-1.5 rounded-full text-xs font-bold border border-dashed border-slate-300 text-muted hover:border-emerald-400 hover:text-emerald-700 transition-colors">
+                     className="px-3 py-1.5 rounded-full text-xs font-bold border border-dashed border-slate-300 text-muted hover:border-emerald-400 hover:text-accent transition-colors">
                      + Outro...
                   </button>
                </div>
@@ -1328,17 +1328,17 @@ export default function OrcamentoEventoPage() {
                                  className="w-24 p-2 text-center bg-card border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                            </div>
                            <div className="text-center">
-                              <label className="text-3xs font-bold text-emerald-600 uppercase tracking-widest block">Cobrar do cliente</label>
+                              <label className="text-3xs font-bold text-success uppercase tracking-widest block">Cobrar do cliente</label>
                               <input type="number" min="0" step="0.01" placeholder="0,00" value={x.valor_cobrado}
                                  onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, valor_cobrado: e.target.value } : i))}
-                                 className="w-28 p-2 text-center bg-emerald-50 border-2 border-emerald-200 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                                 className="w-28 p-2 text-center bg-accent-soft border-2 border-emerald-200 rounded-lg font-black text-accent-strong outline-none focus:border-emerald-500"/>
                            </div>
                            <button type="button" onClick={() => setExtras(lista => lista.filter(i => i.id !== x.id))} className="p-2 text-subtle hover:text-red-500 rounded-lg shrink-0"><Trash2 size={15}/></button>
                         </div>
                      ))}
                      <div className="flex justify-between pt-2 text-xs font-bold text-slate-600">
                         <span>Custo dos extras: {fmtBRL(custoExtras)}</span>
-                        <span className="text-emerald-700">Cobrado do cliente: {fmtBRL(vendaExtras)}</span>
+                        <span className="text-accent">Cobrado do cliente: {fmtBRL(vendaExtras)}</span>
                      </div>
                   </div>
                )}
@@ -1458,7 +1458,7 @@ export default function OrcamentoEventoPage() {
                      </div>
                      <div className="flex justify-between items-center mt-4 pt-3 border-t border-line">
                         <span className="text-3xs font-bold uppercase tracking-widest text-muted">Total de compras</span>
-                        <span className="font-black text-lg text-emerald-600">{fmtBRL(totalCompras)}</span>
+                        <span className="font-black text-lg text-success">{fmtBRL(totalCompras)}</span>
                      </div>
                   </>
                )}
@@ -1494,7 +1494,7 @@ export default function OrcamentoEventoPage() {
                            return (
                               <div key={item.id} className={`p-4 rounded-2xl border flex items-center gap-3 transition-colors ${item.id === orcamentoId ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-line-soft hover:border-slate-300'}`}>
                                  <button onClick={() => carregarDoHistorico(item)} className="flex-1 min-w-0 text-left">
-                                    <p className="font-black text-slate-800 truncate">{item.nome}{item.id === orcamentoId && <span className="text-3xs font-bold uppercase tracking-widest text-emerald-600 ml-2">aberto</span>}</p>
+                                    <p className="font-black text-slate-800 truncate">{item.nome}{item.id === orcamentoId && <span className="text-3xs font-bold uppercase tracking-widest text-success ml-2">aberto</span>}</p>
                                     <p className="text-2xs font-bold text-muted mt-0.5">
                                        {item.cliente ? `${item.cliente} · ` : ''}
                                        {item.data_evento ? `${item.data_evento.split('-').reverse().join('/')} · ` : ''}

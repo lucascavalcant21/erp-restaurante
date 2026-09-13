@@ -141,7 +141,7 @@ export default function CardapioFuncionarios() {
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
          <div className="flex items-center gap-4">
            <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:bg-slate-50 transition-colors shadow-sm"><ArrowLeft size={18}/></button>
-           <div className="w-16 h-16 rounded-3xl bg-elevated text-emerald-600 flex items-center justify-center shadow-inner">
+           <div className="w-16 h-16 rounded-3xl bg-elevated text-success flex items-center justify-center shadow-inner">
               <Utensils size={32} />
            </div>
            <div>
@@ -163,7 +163,7 @@ export default function CardapioFuncionarios() {
                <div key={dia} className="bg-card rounded-[24px] border border-line shadow-sm p-5 flex flex-col">
                  <div className="flex items-center justify-between mb-4">
                    <h2 className="font-black text-lg text-slate-800">{dia}</h2>
-                   <button onClick={() => setDiaSelecionado(dia)} className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"><Plus size={16}/></button>
+                   <button onClick={() => setDiaSelecionado(dia)} className="w-8 h-8 rounded-full bg-accent-soft text-accent-strong flex items-center justify-center hover:bg-emerald-100 transition-colors"><Plus size={16}/></button>
                  </div>
                  
                  <div className="flex-1 space-y-2">
@@ -202,7 +202,7 @@ export default function CardapioFuncionarios() {
                ) : fichasFiltradas.map(f => (
                  <button key={f.id} onClick={() => addReceita(f, diaSelecionado)} className="w-full text-left bg-card border border-line p-4 rounded-xl hover:border-emerald-500 hover:shadow-sm transition-all group flex items-center justify-between">
                    <div>
-                     <div className="font-bold text-slate-800 group-hover:text-emerald-700">{f.nome_receita}</div>
+                     <div className="font-bold text-slate-800 group-hover:text-accent">{f.nome_receita}</div>
                      <div className="text-2xs font-semibold text-muted mt-1">Rende {f.rendimento_porcoes} {f.rendimento_unidade}</div>
                    </div>
                    <Plus size={18} className="text-dim group-hover:text-emerald-500"/>

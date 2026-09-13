@@ -177,7 +177,7 @@ export default function RhConfiguracoesPage() {
                   
                   {regulamento.url_pdf ? (
                     <div className="flex items-center gap-3">
-                       <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-elevated text-emerald-600 px-4 py-2 rounded-lg font-bold hover:bg-slate-200">
+                       <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-elevated text-success px-4 py-2 rounded-lg font-bold hover:bg-slate-200">
                          <FileText size={16}/> Ver PDF Atual
                        </a>
                        <button onClick={() => fileInputRef.current.click()} className="text-muted text-sm font-bold hover:text-fg-soft underline">Trocar PDF</button>

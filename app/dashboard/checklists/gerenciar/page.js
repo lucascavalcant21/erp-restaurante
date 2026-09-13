@@ -539,7 +539,7 @@ function GerenciarChecklistsContent() {
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-3xl bg-elevated text-emerald-600 flex items-center justify-center shadow-inner shrink-0">
+          <div className="w-16 h-16 rounded-3xl bg-elevated text-success flex items-center justify-center shadow-inner shrink-0">
             <CheckSquare size={32} />
           </div>
           <div>
@@ -553,10 +553,10 @@ function GerenciarChecklistsContent() {
           <button onClick={imprimirRelatorioMes} disabled={gerandoRel} className="min-h-12 flex items-center justify-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50">
             {gerandoRel ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />} Relatório do mês
           </button>
-          <button onClick={() => setModalModelos(true)} className="min-h-12 flex items-center justify-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-emerald-50 transition-colors shadow-sm">
+          <button onClick={() => setModalModelos(true)} className="min-h-12 flex items-center justify-center gap-2 bg-card text-accent-strong border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-accent-soft transition-colors shadow-sm">
             <Sparkles size={18} /> Modelos prontos
           </button>
-          <button onClick={abrirNovo} className="col-span-2 md:col-auto min-h-12 flex w-full md:w-auto items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+          <button onClick={abrirNovo} className="col-span-2 md:col-auto min-h-12 flex w-full md:w-auto items-center justify-center gap-2 bg-accent text-accent-fg px-5 py-3 rounded-xl font-bold hover:bg-accent transition-colors shadow-lg shadow-emerald-600/20">
             <Plus size={18} /> Novo Checklist
           </button>
         </div>
@@ -566,12 +566,12 @@ function GerenciarChecklistsContent() {
       {!loading && templates.length === 0 && (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
+            <div className="w-12 h-12 rounded-2xl bg-accent text-accent-fg flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
             <div className="flex-1 text-center sm:text-left">
               <p className="font-black text-slate-800">Comece com checklists completos</p>
               <p className="text-sm font-medium text-slate-600">Modelos prontos de abertura, fechamento, mise en place e limpeza — com as tarefas certas do dia a dia. É só ajustar.</p>
             </div>
-            <button onClick={() => setModalModelos(true)} className="bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shrink-0">Ver modelos</button>
+            <button onClick={() => setModalModelos(true)} className="bg-accent text-accent-fg px-5 py-3 rounded-xl font-bold hover:bg-accent transition-colors shrink-0">Ver modelos</button>
           </div>
         </div>
       )}
@@ -604,7 +604,7 @@ function GerenciarChecklistsContent() {
                   <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-elevated text-slate-600">
                     {rotuloTipo(t.tipo)}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700">
+                  <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-accent-soft text-accent-strong">
                     {t.frequencia === "semanal" ? "Semanal" : t.frequencia === "mensal" ? "Mensal" : "Diário"}
                   </span>
                 </div>
@@ -612,10 +612,10 @@ function GerenciarChecklistsContent() {
               <h3 className="text-xl font-black text-slate-800 leading-tight">{t.titulo}</h3>
               <p className="text-sm font-medium text-muted mt-1.5 flex-1">
                 {t.itens?.length || 0} tarefas
-                {(t.itens || []).some(i => i.responsavel) && <span className="text-emerald-600"> · com responsáveis definidos</span>}
+                {(t.itens || []).some(i => i.responsavel) && <span className="text-success"> · com responsáveis definidos</span>}
               </p>
               <div className="flex gap-2 border-t border-line-soft pt-3 mt-4">
-                <button onClick={() => imprimirChecklist(t)} className="flex-1 min-h-11 py-2.5 rounded-xl flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors">
+                <button onClick={() => imprimirChecklist(t)} className="flex-1 min-h-11 py-2.5 rounded-xl flex items-center justify-center gap-2 bg-accent hover:bg-accent text-accent-fg font-bold text-xs transition-colors">
                   <Printer size={14} /> Imprimir
                 </button>
                 <button onClick={() => abrirEditar(t)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-elevated hover:bg-slate-200 text-slate-600 transition-colors" title="Editar"><Edit3 size={15} /></button>
@@ -632,7 +632,7 @@ function GerenciarChecklistsContent() {
           <div className="bg-card rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[88dvh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-5 sticky top-0 bg-card z-10 pb-4 border-b border-line-soft">
               <div>
-                <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2"><Sparkles size={22} className="text-emerald-600" /> Modelos Prontos</h2>
+                <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2"><Sparkles size={22} className="text-success" /> Modelos Prontos</h2>
                 <p className="text-sm font-bold text-muted mt-0.5">Checklists completos com as tarefas do dia a dia — clique para criar</p>
               </div>
               <button onClick={() => setModalModelos(false)} className="w-11 h-11 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20} /></button>
@@ -648,7 +648,7 @@ function GerenciarChecklistsContent() {
                       <p className="text-2xs font-bold uppercase tracking-widest text-muted">{NOMES_DEPT[dept] || dept}</p>
                       {faltam > 0 && (
                         <button onClick={() => criarTodosDoSetor(dept)} disabled={criandoTudo}
-                          className="min-h-11 flex items-center gap-1 text-2xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
+                          className="min-h-11 flex items-center gap-1 text-2xs font-bold text-accent-strong bg-accent-soft border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
                           {criandoTudo ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />} Criar todos ({faltam})
                         </button>
                       )}
@@ -666,7 +666,7 @@ function GerenciarChecklistsContent() {
                             className={`text-left p-3.5 rounded-xl border transition-all ${jaExiste ? "bg-slate-50 border-line-soft opacity-60 cursor-default" : "bg-card border-line hover:border-emerald-400 hover:shadow-sm"}`}>
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-bold text-slate-800 text-sm">{m.titulo}</p>
-                              {jaExiste && <span className="text-3xs font-bold uppercase text-emerald-600 shrink-0">criado</span>}
+                              {jaExiste && <span className="text-3xs font-bold uppercase text-success shrink-0">criado</span>}
                             </div>
                             <p className="text-2xs font-medium text-subtle mt-0.5">{m.itens.length} tarefas · {rotuloTipo(tipo)}</p>
                           </button>
@@ -711,7 +711,7 @@ function GerenciarChecklistsContent() {
               </div>
 
               {modeloDe(form.departamento, form.tipo) && (
-                <button type="button" onClick={aplicarModeloNoForm} className="w-full flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-sm py-3 rounded-xl hover:bg-emerald-100 transition-colors">
+                <button type="button" onClick={aplicarModeloNoForm} className="w-full flex items-center justify-center gap-2 bg-accent-soft border border-emerald-200 text-accent-strong font-bold text-sm py-3 rounded-xl hover:bg-emerald-100 transition-colors">
                   <Sparkles size={16} /> Preencher com o modelo pronto de {rotuloTipo(form.tipo)} ({modeloDe(form.departamento, form.tipo).itens.length} tarefas)
                 </button>
               )}
@@ -777,7 +777,7 @@ function GerenciarChecklistsContent() {
                 <div className="flex gap-2">
                   {[["diario", "Diário"], ["semanal", "Semanal"], ["mensal", "Mensal"]].map(([v, l]) => (
                     <button key={v} type="button" onClick={() => setForm({ ...form, frequencia: v })}
-                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${(form.frequencia || "diario") === v ? "bg-emerald-600 border-emerald-600 text-white" : "bg-card border-line text-muted hover:border-slate-300"}`}>
+                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${(form.frequencia || "diario") === v ? "bg-accent border-emerald-600 text-accent-fg" : "bg-card border-line text-muted hover:border-slate-300"}`}>
                       {l}
                     </button>
                   ))}
@@ -788,7 +788,7 @@ function GerenciarChecklistsContent() {
               <div className="rounded-2xl border border-line bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div>
-                    <p className="font-black text-sm text-slate-800 flex items-center gap-1.5"><Camera size={16} className="text-emerald-600"/> Foto Geral do Cômodo / Área (Gabarito da Área)</p>
+                    <p className="font-black text-sm text-slate-800 flex items-center gap-1.5"><Camera size={16} className="text-success"/> Foto Geral do Cômodo / Área (Gabarito da Área)</p>
                     <p className="text-2xs font-medium text-muted">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
                   </div>
                   {form.foto_ambiente && (
@@ -803,7 +803,7 @@ function GerenciarChecklistsContent() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-card text-xs font-bold text-fg-soft border border-line hover:bg-elevated transition-colors shadow-sm">
-                      <Upload size={15} className="text-emerald-600"/> Galeria / PC
+                      <Upload size={15} className="text-success"/> Galeria / PC
                       <input type="file" accept="image/*" className="hidden" onChange={async e => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -813,7 +813,7 @@ function GerenciarChecklistsContent() {
                         e.target.value = "";
                       }} />
                     </label>
-                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent text-xs font-bold text-accent-fg hover:bg-accent transition-colors shadow-sm">
                       <Camera size={15}/> Tirar Foto do Cômodo
                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={async e => {
                         const file = e.target.files?.[0];
@@ -838,11 +838,11 @@ function GerenciarChecklistsContent() {
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-elevated px-3 py-1 text-3xs font-bold uppercase tracking-wide text-slate-600">{form.itens.length} ações</span>
                     <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-3xs font-bold uppercase tracking-wide text-amber-700"><Clock3 size={12}/>{form.itens.reduce((total, tarefa) => total + (Number(tarefa.tempo_minutos) || 0), 0)} min</span>
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-3xs font-bold uppercase tracking-wide text-emerald-700"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
+                    <span className="flex items-center gap-1 rounded-full bg-accent-soft px-3 py-1 text-3xs font-bold uppercase tracking-wide text-accent-strong"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
                   </div>
                 </div>
                 <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
-                  <ImagePlus size={20} className="mt-0.5 shrink-0 text-emerald-600"/>
+                  <ImagePlus size={20} className="mt-0.5 shrink-0 text-success"/>
                   <div><p className="text-xs font-bold uppercase tracking-wide">Fotos Gabarito / Exemplo de Padrão</p><p className="mt-0.5 text-xs font-medium">Anexe fotos de exemplo para cada tarefa. Quem estiver executando pelo celular poderá visualizar o gabarito de como a bancada, salão ou equipamento deve ficar.</p></div>
                 </div>
                 <div className="space-y-2.5">
@@ -883,7 +883,7 @@ function GerenciarChecklistsContent() {
                                 disabled={i === 0}
                                 onClick={() => moverTarefa(i, i - 1)}
                                 title="Mover para cima"
-                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-emerald-600 hover:text-white disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-fg-soft transition-colors"
+                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-accent hover:text-accent-fg disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-fg-soft transition-colors"
                               >
                                 <ChevronUp size={12} />
                               </button>
@@ -892,7 +892,7 @@ function GerenciarChecklistsContent() {
                                 disabled={i === form.itens.length - 1}
                                 onClick={() => moverTarefa(i, i + 1)}
                                 title="Mover para baixo"
-                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-emerald-600 hover:text-white disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-fg-soft transition-colors"
+                                className="grid h-4 w-6 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-accent hover:text-accent-fg disabled:opacity-25 disabled:hover:bg-slate-200 disabled:hover:text-fg-soft transition-colors"
                               >
                                 <ChevronDown size={12} />
                               </button>
@@ -915,7 +915,7 @@ function GerenciarChecklistsContent() {
 
                         <div className="mt-3 grid gap-2 sm:grid-cols-5">
                           <label className="block sm:col-span-1">
-                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-emerald-700">Fase do Turno</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-accent">Fase do Turno</span>
                             <select
                               value={it.fase_turno || "abertura"}
                               onChange={e => mudaTarefa(it.id, { fase_turno: e.target.value })}
@@ -984,8 +984,8 @@ function GerenciarChecklistsContent() {
                                 <div>
                                   <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-slate-600">{label}</p>
                                   <div className="grid grid-cols-2 gap-2">
-                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-card px-2 text-3xs font-bold text-fg-soft ring-1 ring-slate-200"><Upload size={14} className="text-emerald-600"/>Galeria / PC<input type="file" accept="image/*" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
-                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-2 text-3xs font-bold text-white"><Camera size={14}/>Tirar foto<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
+                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-card px-2 text-3xs font-bold text-fg-soft ring-1 ring-slate-200"><Upload size={14} className="text-success"/>Galeria / PC<input type="file" accept="image/*" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
+                                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent px-2 text-3xs font-bold text-accent-fg"><Camera size={14}/>Tirar foto<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
                                   </div>
                                 </div>
                               )}
@@ -996,14 +996,14 @@ function GerenciarChecklistsContent() {
                     </div>
                   );})}
                 </div>
-                <button onClick={addTarefa} className="mt-4 text-emerald-600 font-bold text-sm flex items-center gap-1 hover:text-emerald-800">
+                <button onClick={addTarefa} className="mt-4 text-success font-bold text-sm flex items-center gap-1 hover:text-emerald-800">
                   <Plus size={16} /> Adicionar Tarefa
                 </button>
               </div>
             </div>
 
             <div className="mt-8 sticky bottom-0 bg-card pt-4 border-t border-line-soft">
-              <button onClick={handleSalvar} className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
+              <button onClick={handleSalvar} className="w-full py-4 bg-accent hover:bg-accent text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                 <Save size={20} /> {form.id ? "Salvar Alterações" : "Criar Checklist"}
               </button>
             </div>

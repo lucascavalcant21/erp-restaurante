@@ -336,7 +336,7 @@ function Campo({ label, children }) {
 
 function BotaoSalvar({ carregando, children = "Salvar" }) {
   return (
-    <button disabled={carregando} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 font-extrabold text-white hover:bg-emerald-800 disabled:opacity-50">
+    <button disabled={carregando} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-extrabold text-accent-fg hover:opacity-90 disabled:opacity-50">
       {carregando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{children}
     </button>
   );
@@ -1322,7 +1322,7 @@ function EstoqueRunner() {
 
       <main className="mx-auto max-w-[1500px] space-y-5 px-4 py-5 sm:px-7">
         {(erro || sucesso) && (
-          <div className={`fixed right-4 top-4 z-[150] max-w-sm rounded-2xl px-5 py-4 text-sm font-bold text-white shadow-xl ${erro ? "bg-red-600" : "bg-emerald-700"}`}>
+          <div className={`fixed right-4 top-4 z-[150] max-w-sm rounded-2xl px-5 py-4 text-sm font-bold text-accent-fg shadow-xl ${erro ? "bg-red-600" : "bg-accent"}`}>
             {erro || sucesso}
           </div>
         )}
@@ -1333,7 +1333,7 @@ function EstoqueRunner() {
               <p className="text-xs font-bold uppercase tracking-wider text-muted">Setores de Estoque</p>
               <p className="text-xs text-subtle">Selecione o estoque para visualizar os saldos</p>
             </div>
-            <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-emerald-700 hover:underline">
+            <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-accent hover:underline">
               Editar Área
             </button>
           </div>
@@ -1376,17 +1376,17 @@ function EstoqueRunner() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
+                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-extrabold text-accent-fg hover:bg-accent shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackagePlus size={16} /> Nova entrada
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white hover:bg-slate-800 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackageMinus size={16} /> Nova baixa
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
-                  <ClipboardCheck size={16} className="text-emerald-600" /> Contagem
+                  <ClipboardCheck size={16} className="text-success" /> Contagem
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => { setVozAberta(true); setVozItens([]); setVozTexto(""); setVozErro(""); setVozNaoAchados([]); }}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-3.5 text-xs font-extrabold text-accent-strong hover:bg-accent-soft disabled:opacity-40 transition-all cursor-pointer">
                   <Mic size={16} /> Contagem por voz
                 </button>
                 <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
@@ -1395,7 +1395,7 @@ function EstoqueRunner() {
                 <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
                 </button>
-                <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-accent-soft px-3.5 text-xs font-extrabold text-accent-strong hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
                   <FileText size={16} /> Relatórios / WhatsApp
                 </button>
               </div>
@@ -1432,11 +1432,11 @@ function EstoqueRunner() {
                   ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-muted hover:text-fg-soft"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-accent" : "border-transparent text-muted hover:text-fg-soft"}`}>{label}</button>
                 ))}
                 {/* Entradas e saídas em forma de calendário, fora das abas. */}
                 <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
-                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
+                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-accent hover:text-emerald-800 sm:py-3.5 sm:text-sm">
                   Calendário
                 </button>
                 {/* Recomeço de contagem. Fica discreto de propósito: é a única
@@ -1457,7 +1457,7 @@ function EstoqueRunner() {
                           <button
                             key={grupo}
                             onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-700 text-white shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-accent text-accent-fg shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
                           >
                             {grupo} ({contagemGrupos[grupo] || 0})
                           </button>
@@ -1524,7 +1524,7 @@ function EstoqueRunner() {
                     <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-card px-3 text-xs font-bold text-fg-soft">{locais.map(v => <option key={v}>{v}</option>)}</select>
                     {/* Separar a lista por onde a coisa fica (expositor, balcão, depósito...) */}
                     {(estoqueAtual?.locais_internos || []).length > 0 && (
-                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-bold text-emerald-800">
+                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-accent-soft px-3 text-xs font-bold text-accent-strong">
                         <option value="categoria">Separar por categoria</option>
                         <option value="local">Separar por lugar</option>
                       </select>
@@ -1562,7 +1562,7 @@ function EstoqueRunner() {
 
             <button onClick={iniciarContagemVoz} disabled={vozLendo || vozSalvando}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black transition-all disabled:opacity-60 ${
-                vozOuvindo ? "bg-emerald-600 text-white" : "border-2 border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
+                vozOuvindo ? "bg-accent text-accent-fg" : "border-2 border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
               {vozOuvindo ? <><span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-card opacity-70" /><span className="relative inline-flex h-3 w-3 rounded-full bg-card" /></span> Ouvindo... toque para parar</>
                 : vozLendo ? <><Loader2 size={19} className="animate-spin" /> Entendendo...</>
                 : <><Mic size={19} /> Falar a contagem</>}
@@ -1588,7 +1588,7 @@ function EstoqueRunner() {
                       </div>
                       <input type="number" step="0.001" min="0" value={linha.quantidade}
                         onChange={e => setVozItens(a => a.map((x, j) => j === i ? { ...x, quantidade: Number(e.target.value) } : x))}
-                        className="h-11 w-24 rounded-xl border-2 border-emerald-200 px-2 text-center font-black text-emerald-700 outline-none focus:border-emerald-500" />
+                        className="h-11 w-24 rounded-xl border-2 border-emerald-200 px-2 text-center font-black text-accent outline-none focus:border-emerald-500" />
                       <button onClick={() => setVozItens(a => a.filter((_, j) => j !== i))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line text-rose-600"><X size={16} /></button>
                     </div>
                   ))}
@@ -1604,7 +1604,7 @@ function EstoqueRunner() {
                 </label>
 
                 <button onClick={gravarContagemVoz} disabled={vozSalvando || !operacao.responsavel_id}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-50">
                   {vozSalvando ? <><Loader2 size={19} className="animate-spin" /> Gravando...</> : <>Gravar contagem de {vozItens.length} item(ns)</>}
                 </button>
               </>
@@ -1630,7 +1630,7 @@ function EstoqueRunner() {
             {/* Produto que ainda não existe: cadastra aqui e já entra no estoque */}
             {modal.tipo === "entrada" && !modal.item && (novoProduto ? (
               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
-                <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
+                <p className="text-2xs font-bold uppercase tracking-widest text-accent">Cadastrar produto novo</p>
                 <p className="mt-1 text-xs font-semibold text-muted">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_90px_100px_120px]">
                   <label className="flex flex-col gap-1">
@@ -1714,7 +1714,7 @@ function EstoqueRunner() {
                         placeholder="Criar nova categoria..."
                         className="h-11 flex-1 rounded-xl border border-line px-3 font-bold text-fg-soft outline-none focus:border-emerald-600" />
                       <button type="button" onClick={() => criarCategoria(estoqueAtual)} disabled={!novaCategoria.trim()}
-                        className="h-11 shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-700 disabled:opacity-40">
+                        className="h-11 shrink-0 rounded-xl border border-emerald-200 bg-accent-soft px-4 text-sm font-black text-accent-strong disabled:opacity-40">
                         Criar
                       </button>
                     </div>
@@ -1723,14 +1723,14 @@ function EstoqueRunner() {
                 <div className="mt-3 flex gap-2">
                   <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-line bg-card px-4 text-sm font-bold text-slate-600">Cancelar</button>
                   <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
-                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                     {novoProduto.salvando ? "Cadastrando..." : "Cadastrar e usar"}
                   </button>
                 </div>
               </div>
             ) : (
               <button type="button" onClick={() => setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", minimo: "", maximo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false })}
-                className="text-sm font-black text-emerald-700 hover:underline">
+                className="text-sm font-black text-accent hover:underline">
                 Não está na lista? Cadastrar produto novo
               </button>
             ))}
@@ -1800,7 +1800,7 @@ function EstoqueRunner() {
                           </div>
                           <div className="flex items-center justify-between text-xs font-bold text-fg-soft bg-card p-2.5 rounded-xl border border-sky-200">
                             <span>📦 Saldo Total do Bar (Frio + Quente):</span>
-                            <span className="text-sm font-black text-emerald-600">{fmtQtd(operacao.quantidade)} {mostrarUn(itemMod?.unidade_medida)}</span>
+                            <span className="text-sm font-black text-success">{fmtQtd(operacao.quantidade)} {mostrarUn(itemMod?.unidade_medida)}</span>
                           </div>
                         </div>
                       ) : (
@@ -1934,7 +1934,7 @@ function EstoqueRunner() {
                     <Campo label={`Quantidade recebida (${unLabel}s)`}>
                       <input required min="0" step="1" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" placeholder={`Ex.: 10 ${unLabel}s`} />
                     </Campo>
-                    <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
+                    <p className="rounded-xl bg-accent-soft p-3 text-sm font-bold text-accent-strong">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
                   </div>
                 );
               }
@@ -1958,7 +1958,7 @@ function EstoqueRunner() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       {[["conteudo", `Por conteúdo (${unConteudo})`], ["unidade", `Por ${unLabel} fechada`]].map(([v, l]) => (
-                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-line text-slate-600"}`}>{l}</button>
+                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-accent-soft text-accent-strong" : "border-line text-slate-600"}`}>{l}</button>
                       ))}
                     </div>
                     <Campo label={operacao.modo === "unidade" ? `Quantidade (${unLabel}s)` : `Quantidade (${unConteudo})`}>
@@ -2040,7 +2040,7 @@ function EstoqueRunner() {
                   <button type="button" onClick={() => { setPinDigitado(""); }}
                     className="flex h-12 w-full items-center justify-between rounded-xl border border-line px-3 text-left">
                     <span className="font-bold text-fg-soft">{String(formItem.unidade_medida || "un").toLowerCase()}</span>
-                    <span className="text-xs font-bold text-emerald-700">Alterar</span>
+                    <span className="text-xs font-bold text-accent">Alterar</span>
                   </button>
                 )}
               </Campo>
@@ -2229,7 +2229,7 @@ function EstoqueRunner() {
               }}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-line p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 group-hover:bg-accent group-hover:text-accent-fg transition-colors">
                 <Printer size={24} />
               </div>
               <div>
@@ -2263,7 +2263,7 @@ function EstoqueRunner() {
               }}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white transition-colors">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg transition-colors">
                 <Share2 size={24} />
               </div>
               <div>
@@ -2440,7 +2440,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+                          <span className="text-xs font-bold text-accent-strong bg-accent-soft px-3 py-1 rounded-lg border border-emerald-200">
                             Subtotal: {dinheiro(subtotal)}
                           </span>
                           <span className="text-2xs font-bold text-subtle">
@@ -2481,14 +2481,14 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap font-bold text-fg-soft">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-fg">{dinheiro(item.custo_unitario || 0)}</strong></td>
-                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-subtle mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-accent"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-subtle mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
                       <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-600">{fmtData(item.ultima_movimentacao_em, true)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
+                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-accent text-accent-fg hover:bg-accent font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
                         <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
                         <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-slate-50 text-fg-soft hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
                         <SimuladorRendimento item={item} variant="icon" />
@@ -2560,7 +2560,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2.5">
-                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
+                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-accent hover:bg-accent text-accent-fg font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
                       <Plus size={20} /> + ADICIONAR
                     </button>
                     <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
@@ -2758,7 +2758,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <strong className={`text-lg font-black ${ehEntrada ? "text-emerald-700" : ehSaida ? "text-red-600" : "text-fg"}`}>
+                  <strong className={`text-lg font-black ${ehEntrada ? "text-accent" : ehSaida ? "text-red-600" : "text-fg"}`}>
                     {ehEntrada ? "+" : ehSaida ? "−" : ""} {fmtQtd(qtd)} {unMedida}
                   </strong>
                   {mov.destino?.nome && <p className="text-xs font-bold text-muted">Destino: {mov.destino.nome}</p>}
@@ -2773,7 +2773,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
 }
 
 export default function EstoquePage() {
-  return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-emerald-700" /></div>}><EstoqueUnificado /></Suspense>;
+  return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-accent" /></div>}><EstoqueUnificado /></Suspense>;
 }
 
 function EstoqueUnificado() {

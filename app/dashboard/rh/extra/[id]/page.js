@@ -191,7 +191,7 @@ export default function CadastroExtraPage() {
   };
 
   if (carregando) {
-    return <div className="grid min-h-[60vh] place-items-center"><Loader2 size={28} className="animate-spin text-emerald-600" /></div>;
+    return <div className="grid min-h-[60vh] place-items-center"><Loader2 size={28} className="animate-spin text-success" /></div>;
   }
 
   const rotulo = "text-xs font-black uppercase tracking-widest text-muted";
@@ -223,7 +223,7 @@ export default function CadastroExtraPage() {
       <main className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
         {/* Identificação */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Identificação</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">Identificação</p>
           <div className="flex gap-4">
             <label className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:border-emerald-400">
               {form.foto ? (
@@ -267,7 +267,7 @@ export default function CadastroExtraPage() {
 
         {/* Dados pessoais */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Dados pessoais</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">Dados pessoais</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={rotulo}>Data de nascimento</span>
@@ -312,7 +312,7 @@ export default function CadastroExtraPage() {
 
         {/* Endereço */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Endereço</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">Endereço</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2">
               <span className={rotulo}>Rua / Avenida</span>
@@ -339,12 +339,12 @@ export default function CadastroExtraPage() {
 
         {/* Pagamento e jornada */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Pagamento e jornada</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">Pagamento e jornada</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={rotulo}>Valor da diária (R$)</span>
               <input type="number" step="0.01" value={form.salario} onChange={e => set("salario", e.target.value)}
-                className="w-full p-4 mt-1.5 bg-slate-50 border border-line rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
+                className="w-full p-4 mt-1.5 bg-slate-50 border border-line rounded-xl font-black text-accent outline-none focus:border-emerald-500" />
             </label>
             <label className="block">
               <span className={rotulo}>Chave PIX</span>
@@ -367,7 +367,7 @@ export default function CadastroExtraPage() {
 
         {/* Dados do recibo */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 shadow-sm sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">Dados do Recibo de Trabalho Extra</p>
           <p className="mb-4 mt-1 text-[13px] font-medium text-muted">
             Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.
           </p>
@@ -412,7 +412,7 @@ export default function CadastroExtraPage() {
         {!novo && (
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-700"><ReceiptText size={14} /> Recibos desta pessoa</p>
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent"><ReceiptText size={14} /> Recibos desta pessoa</p>
             <p className="text-sm font-black text-fg-soft">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
           </div>
           {emAberto > 0 && (
@@ -431,7 +431,7 @@ export default function CadastroExtraPage() {
                     {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
                   </span>
                 </span>
-                <span className={`shrink-0 text-base font-black ${r.pagamento_realizado ? "text-emerald-700" : "text-amber-700"}`}>{moeda(r.valor_total)}</span>
+                <span className={`shrink-0 text-base font-black ${r.pagamento_realizado ? "text-accent" : "text-amber-700"}`}>{moeda(r.valor_total)}</span>
               </div>
             ))}
           </div>
@@ -450,11 +450,11 @@ export default function CadastroExtraPage() {
             Cancelar
           </button>
           <button onClick={() => salvar(false)} disabled={salvando}
-            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-black text-emerald-700 hover:bg-emerald-100 disabled:opacity-60">
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-accent-soft px-3 text-sm font-black text-accent-strong hover:bg-emerald-100 disabled:opacity-60">
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar
           </button>
           <button onClick={() => salvar(true)} disabled={salvando}
-            className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+            className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-accent px-3 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-60">
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />} Salvar e gerar recibo
           </button>
         </div>

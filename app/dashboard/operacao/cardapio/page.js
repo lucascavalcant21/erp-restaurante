@@ -40,7 +40,7 @@ export default function CardapioGeradorPage() {
               <button onClick={() => abrirMenu()} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-elevated text-emerald-600 items-center justify-center shadow-inner">
+              <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-elevated text-success items-center justify-center shadow-inner">
                  <QrCode size={28} />
               </div>
               <div>
@@ -65,15 +65,15 @@ export default function CardapioGeradorPage() {
                   <label className="text-3xs font-bold uppercase tracking-widest text-muted mb-2 block">Link Oficial</label>
                   <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-line-soft">
                      <input type="text" readOnly value={urlPublica} className="flex-1 bg-transparent text-sm font-bold text-slate-600 outline-none truncate"/>
-                     <button onClick={copiarLink} className="p-2 bg-card rounded-lg border border-line text-muted hover:text-emerald-600 transition-colors" title="Copiar"><Copy size={16}/></button>
+                     <button onClick={copiarLink} className="p-2 bg-card rounded-lg border border-line text-muted hover:text-success transition-colors" title="Copiar"><Copy size={16}/></button>
                   </div>
 
-                  <a href={urlPublica} target="_blank" className="mt-4 w-full py-4 bg-slate-50 hover:bg-elevated text-emerald-600 font-black rounded-xl transition-all flex items-center justify-center gap-2">
+                  <a href={urlPublica} target="_blank" className="mt-4 w-full py-4 bg-slate-50 hover:bg-elevated text-success font-black rounded-xl transition-all flex items-center justify-center gap-2">
                      <ExternalLink size={18}/> Testar o Cardápio
                   </a>
                </div>
 
-               <div className="bg-emerald-600 text-white p-6 rounded-3xl shadow-lg shadow-emerald-600/20">
+               <div className="bg-accent text-accent-fg p-6 rounded-3xl shadow-lg shadow-emerald-600/20">
                   <div className="flex gap-4 items-center mb-2">
                      <Smartphone size={32} className="opacity-50"/>
                      <h3 className="text-xl font-black">Design Mobile-First</h3>
@@ -102,7 +102,7 @@ export default function CardapioGeradorPage() {
                   </div>
                </div>
 
-               <a href={qrCodeUrl} download="QR_Cardapio.png" target="_blank" className="mt-8 text-emerald-600 font-black hover:underline uppercase tracking-widest text-sm">
+               <a href={qrCodeUrl} download="QR_Cardapio.png" target="_blank" className="mt-8 text-success font-black hover:underline uppercase tracking-widest text-sm">
                   Baixar Imagem em Alta Resolução
                </a>
             </div>

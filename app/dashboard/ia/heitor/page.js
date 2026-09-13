@@ -402,7 +402,7 @@ export default function HeitorPage() {
                 : `${acaoPendente.movimento === "entrada" ? "Adicionar" : "Retirar"} ${acaoPendente.quantidade} ${acaoPendente.unidade} de ${acaoPendente.item?.nome}`}
             </p>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <button type="button" onClick={confirmarAcao} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white hover:bg-emerald-700">
+              <button type="button" onClick={confirmarAcao} className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-black text-accent-fg hover:bg-accent">
                 <CheckCircle2 size={17} /> Confirmar
               </button>
               <button type="button" onClick={() => { setAcaoPendente(null); adicionarBot("Operação cancelada.", false); }} className="flex items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">
@@ -422,7 +422,7 @@ export default function HeitorPage() {
           <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
             {SUGESTOES.map((s) => (
               <button key={s} onClick={() => processar(s)} 
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-line text-slate-600 hover:bg-slate-50 hover:text-emerald-700 hover:border-line transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-line text-slate-600 hover:bg-slate-50 hover:text-accent hover:border-line transition-colors"
               >
                 <Sparkles size={12}/> {s}
               </button>

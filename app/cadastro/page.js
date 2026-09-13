@@ -11,7 +11,7 @@ export default function CadastroPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8" style={{ background: "var(--surface)" }}>
       <div className="erp-card w-full max-w-sm p-6 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-strong">
           <ShieldCheck size={27} />
         </div>
         <h1 className="text-xl font-black" style={{ color: "var(--fg)" }}>Acesso controlado</h1>

@@ -75,11 +75,11 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
       <section className="min-w-0 p-4 sm:p-6">
         <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">{module.label}</p>
+            <p className="text-xs font-bold uppercase tracking-[.16em] text-success">{module.label}</p>
             <h3 className="mt-1 text-xl font-black text-slate-800">Páginas e ações</h3>
             <p className="mt-1 text-sm text-muted">{moduleCount} de {moduleKeys.length} permissões selecionadas</p>
           </div>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-accent-soft px-4 py-3 text-sm font-bold text-accent-strong">
             <input type="checkbox" checked={moduleCount === moduleKeys.length}
               ref={(node) => { if (node) node.indeterminate = moduleCount > 0 && moduleCount < moduleKeys.length; }}
               onChange={(event) => setModule(event.target.checked)} className="h-4 w-4 accent-emerald-600" />
@@ -131,7 +131,7 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
                 {page.actions.map((action) => {
                   const key = permissionKey(module.id, page.id, action);
                   return (
-                    <label key={key} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${selected.has(key) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-line-soft bg-slate-50 text-slate-600"}`}>
+                    <label key={key} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${selected.has(key) ? "border-emerald-200 bg-accent-soft text-accent-strong" : "border-line-soft bg-slate-50 text-slate-600"}`}>
                       <input type="checkbox" checked={selected.has(key)} onChange={(event) => setKey(key, event.target.checked)} className="accent-emerald-600" />
                       {ACTION_LABELS[action] || action}
                     </label>

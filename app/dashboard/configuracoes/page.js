@@ -42,16 +42,16 @@ function CardInstalar() {
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
       <div className="bg-emerald-50 border-b border-emerald-100 p-4 flex items-center gap-2">
-        <Smartphone size={18} className="text-emerald-600" />
+        <Smartphone size={18} className="text-success" />
         <h2 className="font-bold text-emerald-800">Instalar o Aplicativo (tablet, celular e computador)</h2>
       </div>
       <div className="p-6">
         {instalado ? (
-          <p className="text-sm font-bold text-emerald-700 flex items-center gap-2"><CheckCircle size={16}/> Você já está usando o app instalado.</p>
+          <p className="text-sm font-bold text-accent flex items-center gap-2"><CheckCircle size={16}/> Você já está usando o app instalado.</p>
         ) : (
           <>
             <p className="text-sm text-slate-600 mb-4">Instalado, o Hefisto abre em tela cheia como um app de verdade — sem barra de navegador, e o Modo Ponto/Estações funcionam como quiosque.</p>
-            <button type="button" onClick={instalar} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors">
+            <button type="button" onClick={instalar} className="bg-accent hover:bg-accent text-accent-fg font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors">
               <Download size={18} /> {temPrompt ? "Instalar agora" : "Como instalar neste aparelho"}
             </button>
             {(mostrarComo || !temPrompt) && (
@@ -142,7 +142,7 @@ function CardParametros({ unidadeAtiva }) {
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar parâmetros
           </button>
           <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-muted hover:text-fg-soft">Voltar aos padrões</button>
-          {ok && <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
+          {ok && <span className="text-success font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
       <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-        <Tag size={18} className="text-emerald-600" />
+        <Tag size={18} className="text-success" />
         <div>
           <h2 className="font-bold text-slate-800">Validades padrão das etiquetas</h2>
           <p className="text-2xs text-muted font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
@@ -226,7 +226,7 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
           </div>
         ))}
         <button type="button" onClick={adicionar}
-          className="text-sm font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 py-2">
+          className="text-sm font-bold text-accent hover:text-emerald-800 flex items-center gap-1.5 py-2">
           <Plus size={16} /> Adicionar categoria
         </button>
         <div className="flex items-center gap-3 pt-2">
@@ -234,7 +234,7 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
             className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 disabled:opacity-50">
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar validades
           </button>
-          {ok && <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já disponível nas etiquetas!</span>}
+          {ok && <span className="text-success font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já disponível nas etiquetas!</span>}
         </div>
       </div>
     </div>
@@ -297,7 +297,7 @@ function CardCargos({ unidadeAtiva }) {
           <label className="flex items-center gap-2 text-sm font-bold text-slate-600 px-2 whitespace-nowrap cursor-pointer">
             <input type="checkbox" checked={ehSup} onChange={e => setEhSup(e.target.checked)} style={{ accentColor: "#F59E0B" }} /> É supervisor
           </label>
-          <button onClick={criar} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
+          <button onClick={criar} disabled={salvando} className="bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
             {salvando ? "Criando..." : "Criar função"}
           </button>
         </div>
@@ -351,7 +351,7 @@ function CardUnidades() {
           {reais.map(u => (
             <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-line"}`}>
               <div className="min-w-0">
-                <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-3xs font-bold uppercase tracking-widest text-emerald-600">Ativa</span>}</p>
+                <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-3xs font-bold uppercase tracking-widest text-success">Ativa</span>}</p>
                 {u.cidade && <p className="text-2xs text-muted truncate">{u.cidade}</p>}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -368,7 +368,7 @@ function CardUnidades() {
         <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
           <input value={nova} onChange={e => setNova(e.target.value)} placeholder="Nome da nova unidade (ex: Filial Centro)"
             className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
-          <button onClick={criar} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
+          <button onClick={criar} disabled={salvando} className="bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
             <Plus size={16} /> {salvando ? "Criando..." : "Criar unidade"}
           </button>
         </div>
@@ -390,7 +390,7 @@ function CardControleAcessos() {
       </div>
       <div className="grid gap-3 p-5 sm:grid-cols-2">
         <a href="/dashboard/configuracoes/usuarios" className="group rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
-          <Users size={20} className="mb-3 text-emerald-600" />
+          <Users size={20} className="mb-3 text-success" />
           <p className="font-black text-slate-800">Usuários e acessos</p>
           <p className="mt-1 text-xs text-muted">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
         </a>
@@ -451,7 +451,7 @@ function CardSenhas({ unidadeAtiva }) {
           className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
           {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar senhas
         </button>
-        {ok && <p className="text-emerald-600 font-bold text-sm mt-2 flex items-center gap-1"><CheckCircle size={15}/> Senhas atualizadas!</p>}
+        {ok && <p className="text-success font-bold text-sm mt-2 flex items-center gap-1"><CheckCircle size={15}/> Senhas atualizadas!</p>}
       </div>
     </div>
   );
@@ -608,7 +608,7 @@ export default function ConfiguracoesPage() {
         {/* CARD 2: Dados Fiscais */}
         <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
           <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-            <Landmark size={18} className="text-emerald-600" />
+            <Landmark size={18} className="text-success" />
             <h2 className="font-bold text-fg-soft">Dados Fiscais</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -648,7 +648,7 @@ export default function ConfiguracoesPage() {
         {/* CARD 3: Endereço Físico */}
         <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
           <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-            <MapPin size={18} className="text-emerald-600" />
+            <MapPin size={18} className="text-success" />
             <h2 className="font-bold text-fg-soft">Endereço Físico</h2>
           </div>
           <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
@@ -683,7 +683,7 @@ export default function ConfiguracoesPage() {
         {/* BOTÕES */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-line">
           {sucesso ? (
-            <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-4 py-2 rounded-lg">
+            <div className="flex items-center gap-2 text-accent-strong font-bold text-sm bg-accent-soft px-4 py-2 rounded-lg">
               <CheckCircle size={16} /> Configurações salvas com sucesso!
             </div>
           ) : (
@@ -692,7 +692,7 @@ export default function ConfiguracoesPage() {
             </div>
           )}
           <button type="submit" disabled={saving}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-5 sm:px-8 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2">
+            className="w-full sm:w-auto bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-3 px-5 sm:px-8 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2">
             {saving ? "Salvando..." : <><Save size={18} /> Salvar Alterações</>}
           </button>
         </div>

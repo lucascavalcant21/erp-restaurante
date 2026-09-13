@@ -600,7 +600,7 @@ export default function FichaTecnicaPage() {
               ) : null}
               <span className="rounded-lg bg-elevated px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
               <span className={`rounded-lg px-2 py-0.5 text-2xs font-semibold ${
-                (form.status || "ativa") === "ativa" ? "bg-emerald-50 text-emerald-700"
+                (form.status || "ativa") === "ativa" ? "bg-accent-soft text-accent-strong"
                   : (form.status || "") === "rascunho" ? "bg-amber-50 text-amber-700"
                   : "bg-elevated text-muted"}`}>
                 {STATUS_FICHA.find(s => s.valor === (form.status || "ativa"))?.rotulo || "Ativa"}
@@ -1058,13 +1058,13 @@ export default function FichaTecnicaPage() {
             {precoAlvo > 0 ? (
               <div className="ml-auto text-right">
                 <div className="text-2xs uppercase tracking-wide text-muted">Preço sugerido</div>
-                <div className="text-lg font-bold tabular-nums text-emerald-600">{fmtBRL(precoAlvo)}</div>
+                <div className="text-lg font-bold tabular-nums text-success">{fmtBRL(precoAlvo)}</div>
               </div>
             ) : null}
           </div>
           {precoAlvo > 0 ? (
             <button onClick={() => mudar("preco_venda", precoAlvo.toFixed(2))}
-              className="mt-2 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+              className="mt-2 w-full rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent-strong hover:bg-emerald-100">
               Usar {fmtBRL(precoAlvo)} como preço de venda
             </button>
           ) : null}
@@ -1101,7 +1101,7 @@ export default function FichaTecnicaPage() {
                 <span className="font-bold text-slate-800">{fmtBRL(calc.custoTotal)}</span>
                 {variacaoCusto !== null ? (
                   <span className={`ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-bold ${
-                    variacaoCusto > 0 ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+                    variacaoCusto > 0 ? "bg-rose-50 text-rose-700" : "bg-accent-soft text-accent-strong"}`}>
                     {variacaoCusto > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                     {variacaoCusto > 0 ? "+" : ""}{fmtPct(variacaoCusto)} desde o último registro
                   </span>
@@ -1137,7 +1137,7 @@ export default function FichaTecnicaPage() {
                           {fmtBRL(h.custo_total)}
                         </td>
                         <td className={`px-1 py-2 text-right tabular-nums font-medium ${
-                          h.diferenca_pct > 0 ? "text-rose-600" : h.diferenca_pct < 0 ? "text-emerald-600" : "text-subtle"}`}>
+                          h.diferenca_pct > 0 ? "text-rose-600" : h.diferenca_pct < 0 ? "text-success" : "text-subtle"}`}>
                           {h.diferenca_pct == null ? "—"
                             : `${h.diferenca_pct > 0 ? "+" : ""}${fmtPct(h.diferenca_pct)}`}
                         </td>
@@ -1278,7 +1278,7 @@ function ComparacaoVersoes({ par, onVoltar }) {
                   <span className="text-3xs font-bold uppercase text-rose-400">antes</span>
                   <div className="break-words">{mostrarValor(d.antes)}</div>
                 </div>
-                <div className="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800">
+                <div className="rounded-lg bg-accent-soft px-2 py-1 text-accent-strong">
                   <span className="text-3xs font-bold uppercase text-emerald-500">depois</span>
                   <div className="break-words">{mostrarValor(d.depois)}</div>
                 </div>

@@ -95,7 +95,7 @@ export default function LojaDeliveryPage({ params }) {
               <span className="flex items-center gap-1">
                 <Clock size={14} /> 30-45 min
               </span>
-              <span className="flex items-center gap-1 text-emerald-600">
+              <span className="flex items-center gap-1 text-success">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Aberto
               </span>
             </div>

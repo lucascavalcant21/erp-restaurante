@@ -89,7 +89,7 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
       )}
 
       {podeCapturar && pedeFoto && (
-        <label className={`flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white ${ocupado ? "opacity-60" : "hover:bg-emerald-700"}`}>
+        <label className={`flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg ${ocupado ? "opacity-60" : "hover:bg-accent"}`}>
           {ocupado ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
           {ocupado ? "Enviando evidência..." : rotuloBotao}
           <input type="file" accept="image/*" capture="environment" className="hidden" disabled={ocupado}
@@ -101,7 +101,7 @@ function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDesca
           obrigar uma foto que não acrescentaria nada. */}
       {podeCapturar && !pedeFoto && item.exige_gps && (
         <button onClick={() => onCapturar(null)} disabled={ocupado}
-          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-60">
           {ocupado ? <Loader2 className="animate-spin" size={18} /> : <MapPin size={18} />}
           {ocupado ? "Lendo localização..." : "Registrar localização"}
         </button>
@@ -294,7 +294,7 @@ export default function ExecucaoGuiada() {
     setConcluida(true);
   };
 
-  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>;
+  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-success" size={30} /></div>;
   if (!execucao) return <div className="p-10 text-center font-bold text-muted">Execução não encontrada.</div>;
 
   if (concluida) {
@@ -311,7 +311,7 @@ export default function ExecucaoGuiada() {
             </p>
           )}
           <button onClick={() => router.push("/dashboard/operacao/inteligente")}
-            className="mt-5 w-full rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700">
+            className="mt-5 w-full rounded-2xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent">
             Voltar à Central
           </button>
         </div>
@@ -345,14 +345,14 @@ export default function ExecucaoGuiada() {
           </div>
         ) : (
           <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-            <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">{item.secao}</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-accent">{item.secao}</p>
             <h2 className="mt-1 text-xl font-black leading-snug text-fg">{item.titulo}</h2>
             {item.instrucao && <p className="mt-2 text-[15px] font-medium leading-relaxed text-slate-600">{item.instrucao}</p>}
 
             <div className="mt-3 flex flex-wrap gap-2">
               {item.obrigatorio && <span className="rounded-lg bg-elevated px-2 py-1 text-2xs font-bold text-slate-600">Obrigatório</span>}
               {item.critico && <span className="rounded-lg bg-red-50 px-2 py-1 text-2xs font-bold text-red-700">Item crítico</span>}
-              {item.exige_foto && <span className="rounded-lg bg-emerald-50 px-2 py-1 text-2xs font-bold text-emerald-700">Foto obrigatória</span>}
+              {item.exige_foto && <span className="rounded-lg bg-accent-soft px-2 py-1 text-2xs font-bold text-accent-strong">Foto obrigatória</span>}
               {(item.valor_min != null || item.valor_max != null) && (
                 <span className="rounded-lg bg-elevated px-2 py-1 text-2xs font-bold text-slate-600">
                   Padrão: {item.valor_min ?? "—"} a {item.valor_max ?? "—"}{item.unidade_medida || ""}
@@ -365,7 +365,7 @@ export default function ExecucaoGuiada() {
               {["FEITO_NAO_FEITO", "CONFORME_NAO_CONFORME", "SIM_NAO", "BOOLEAN"].includes(tipo) && (
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => salvarResposta(POSITIVO[tipo])} disabled={salvando}
-                    className="flex min-h-16 items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                    className="flex min-h-16 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                     <Check size={20} /> {tipo === "CONFORME_NAO_CONFORME" ? "Conforme" : tipo === "SIM_NAO" ? "Sim" : "Feito"}
                   </button>
                   <button onClick={() => salvarResposta(NEGATIVO[tipo])} disabled={salvando}
@@ -421,7 +421,7 @@ export default function ExecucaoGuiada() {
                     erro={erroEvidencia} onCapturar={capturarEvidencia} onDescartar={descartar} />
                   {fotosDoItem.length > 0 && !reprovadaPelaIA && (
                     <button onClick={() => salvarResposta("registrado")} disabled={salvando}
-                      className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                      className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                       <Check size={19} /> Confirmar e seguir
                     </button>
                   )}
@@ -467,7 +467,7 @@ export default function ExecucaoGuiada() {
               )}
               {!["FEITO_NAO_FEITO", "CONFORME_NAO_CONFORME", "SIM_NAO", "BOOLEAN", "SELECAO_UNICA", "MULTIPLA_ESCOLHA"].includes(tipo) && (
                 <button onClick={() => salvarResposta()} disabled={salvando}
-                  className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                  className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                   {salvando ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />} Salvar e continuar
                 </button>
               )}

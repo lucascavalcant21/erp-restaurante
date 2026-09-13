@@ -287,7 +287,7 @@ export default function ConstrutorProcesso() {
     router.push("/dashboard/operacao/inteligente/processos");
   };
 
-  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>;
+  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-success" size={30} /></div>;
 
   const totalItens = secoes.reduce((s, x) => s + x.itens.length, 0);
 
@@ -314,7 +314,7 @@ export default function ConstrutorProcesso() {
 
         {/* Identificação */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">O processo</p>
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">O processo</p>
           <label className="block">
             <span className={rotulo}>Nome *</span>
             <input value={processo.nome} onChange={e => setProcesso(p => ({ ...p, nome: e.target.value }))}
@@ -393,7 +393,7 @@ export default function ConstrutorProcesso() {
                           {item.critico && <span className="text-red-600">crítico</span>}
                           {!item.obrigatorio && <span>opcional</span>}
                           {item.exige_foto && <span className="flex items-center gap-0.5"><Camera size={11} /> foto</span>}
-                          {item.depende_chave && <span className="text-emerald-700">condicional</span>}
+                          {item.depende_chave && <span className="text-accent">condicional</span>}
                         </p>
                       </button>
                       <div className="flex shrink-0 gap-1">
@@ -461,7 +461,7 @@ export default function ConstrutorProcesso() {
                                 </div>
                               ))}
                               <button onClick={() => mudarItem(iS, iI, { opcoes: [...(item.opcoes || []), ""] })}
-                                className="text-[13px] font-black text-emerald-700">+ Adicionar opção</button>
+                                className="text-[13px] font-black text-accent">+ Adicionar opção</button>
                             </div>
                             <label className="mt-3 block">
                               <span className={rotulo}>Resposta que conta como certa</span>
@@ -542,13 +542,13 @@ export default function ConstrutorProcesso() {
               })}
             </div>
 
-            <button onClick={() => addItem(iS)} className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-emerald-300 font-black text-emerald-700 hover:bg-emerald-50">
+            <button onClick={() => addItem(iS)} className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-emerald-300 font-black text-accent-strong hover:bg-accent-soft">
               <Plus size={17} /> Adicionar item
             </button>
           </section>
         ))}
 
-        <button onClick={addSecao} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 font-black text-slate-600 hover:border-emerald-400 hover:text-emerald-700">
+        <button onClick={addSecao} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 font-black text-slate-600 hover:border-emerald-400 hover:text-accent">
           <Plus size={18} /> Nova seção
         </button>
 
@@ -556,10 +556,10 @@ export default function ConstrutorProcesso() {
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-700"><Clock size={14} /> Quando esta rotina acontece</p>
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent"><Clock size={14} /> Quando esta rotina acontece</p>
               <p className="mt-1 text-sm font-medium text-muted">A execução aparece sozinha na Central, no horário marcado.</p>
             </div>
-            <button onClick={addAgenda} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-card px-3.5 font-black text-emerald-700 hover:bg-emerald-50">
+            <button onClick={addAgenda} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-card px-3.5 font-black text-accent-strong hover:bg-accent-soft">
               <Plus size={17} /> Horário
             </button>
           </div>
@@ -598,7 +598,7 @@ export default function ConstrutorProcesso() {
                           const marcado = (a.dias_semana || []).includes(d.valor);
                           return (
                             <button key={d.valor} onClick={() => alternarDia(iA, d.valor)}
-                              className={`h-11 min-w-[58px] rounded-xl border-2 text-sm font-black ${marcado ? "border-emerald-600 bg-emerald-600 text-white" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
+                              className={`h-11 min-w-[58px] rounded-xl border-2 text-sm font-black ${marcado ? "border-emerald-600 bg-accent text-accent-fg" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
                               {d.rotulo}
                             </button>
                           );
@@ -619,9 +619,9 @@ export default function ConstrutorProcesso() {
                       <span className={rotulo}>Datas</span>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {(a.datas || []).map((d, iD) => (
-                          <span key={iD} className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">
+                          <span key={iD} className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-sm font-bold text-accent-strong">
                             {new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR")}
-                            <button onClick={() => mudarAgenda(iA, { datas: a.datas.filter((_, k) => k !== iD) })} className="text-emerald-700 hover:text-rose-600"><Trash2 size={13} /></button>
+                            <button onClick={() => mudarAgenda(iA, { datas: a.datas.filter((_, k) => k !== iD) })} className="text-accent hover:text-rose-600"><Trash2 size={13} /></button>
                           </span>
                         ))}
                       </div>
@@ -669,7 +669,7 @@ export default function ConstrutorProcesso() {
         <div className="mx-auto flex max-w-4xl gap-3">
           <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
           <button onClick={salvar} disabled={salvando}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
             {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : <><Save size={18} /> Salvar processo</>}
           </button>
         </div>

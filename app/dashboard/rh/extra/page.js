@@ -106,7 +106,7 @@ export default function CadastroExtrasPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700">
+            <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex h-9 items-center gap-1.5 rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-fg shadow-sm hover:bg-accent">
               <UserPlus size={15} /> Cadastrar extra
             </button>
             <button onClick={() => router.push("/dashboard/rh/extra/banco")} className="flex h-9 items-center gap-1.5 rounded-xl border border-line bg-card px-3.5 text-xs font-bold text-fg-soft hover:bg-slate-50">
@@ -121,7 +121,7 @@ export default function CadastroExtrasPage() {
               {menuPortalAberto && (
                 <div className="absolute right-0 top-11 z-20 w-48 rounded-xl border border-line bg-card p-1.5 shadow-xl text-xs font-bold">
                   <button onClick={() => { setMenuPortalAberto(false); router.push("/dashboard/rh/extra/portal"); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-fg-soft hover:bg-slate-50"><Pencil size={14}/> Editar portal</button>
-                  <button onClick={() => { setMenuPortalAberto(false); copiarLinkPortal(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-fg-soft hover:bg-slate-50">{linkCopiado ? <Check size={14} className="text-emerald-600"/> : <Copy size={14}/>} {linkCopiado ? "Link copiado!" : "Copiar link"}</button>
+                  <button onClick={() => { setMenuPortalAberto(false); copiarLinkPortal(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-fg-soft hover:bg-slate-50">{linkCopiado ? <Check size={14} className="text-success"/> : <Copy size={14}/>} {linkCopiado ? "Link copiado!" : "Copiar link"}</button>
                   <a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" onClick={() => setMenuPortalAberto(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-fg-soft hover:bg-slate-50"><ExternalLink size={14}/> Abrir portal</a>
                 </div>
               )}
@@ -136,7 +136,7 @@ export default function CadastroExtrasPage() {
           <div className="rounded-2xl border border-line bg-card p-2.5 sm:p-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-3xs font-bold uppercase tracking-wider text-muted">Cadastrados</span>
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><UsersRound size={15} /></span>
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent-soft text-accent-strong"><UsersRound size={15} /></span>
             </div>
             <p className="mt-1 text-xl font-black text-fg">{extras.length}</p>
           </div>
@@ -162,7 +162,7 @@ export default function CadastroExtrasPage() {
               <span className="text-3xs font-bold uppercase tracking-wider text-emerald-800 shrink-0">Pago no período</span>
               <div className="flex gap-0.5 bg-elevated p-0.5 rounded-lg shrink-0">
                 {[["dia", "Dia"], ["semana", "Sem."], ["mes", "Mês"]].map(([v, r]) => (
-                  <button key={v} onClick={() => setPeriodo(v)} className={`px-1.5 py-0.5 rounded text-3xs font-bold ${periodo === v ? "bg-emerald-600 text-white" : "text-slate-600"}`}>{r}</button>
+                  <button key={v} onClick={() => setPeriodo(v)} className={`px-1.5 py-0.5 rounded text-3xs font-bold ${periodo === v ? "bg-accent text-accent-fg" : "text-slate-600"}`}>{r}</button>
                 ))}
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function CadastroExtrasPage() {
             {!unidadeAtiva || unidadeAtiva === "todas" ? (
               <div className="rounded-2xl border border-line bg-card p-8 text-center font-bold text-muted">Selecione uma unidade específica para acessar os extras.</div>
             ) : carregando ? (
-              <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+              <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
             ) : filtrados.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-8 text-center">
                 <UsersRound className="mx-auto text-dim" size={36} />
@@ -218,7 +218,7 @@ export default function CadastroExtrasPage() {
                               <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-muted truncate"><Briefcase size={12} className="shrink-0 text-subtle" /> {extra.cargo || "Extra"}</p>
                             </div>
                           </div>
-                          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700 shrink-0">
+                          <span className="rounded-full bg-accent-soft border border-emerald-200 px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-accent-strong shrink-0">
                             Cadastrado
                           </span>
                         </div>
@@ -226,15 +226,15 @@ export default function CadastroExtrasPage() {
                         {/* DETALHES DE CONTATO E DIÁRIA */}
                         <div className="space-y-1.5 border-t border-line-soft pt-2.5 text-xs font-semibold text-slate-600">
                           <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-muted font-medium"><Phone size={13} className="text-emerald-600 shrink-0" /> {fmtTel(extra.telefone)}</span>
-                            <span className="font-black text-fg">Diária: <strong className="text-emerald-700 font-black">{fmtBRL(extra.salario)}</strong></span>
+                            <span className="flex items-center gap-1.5 text-muted font-medium"><Phone size={13} className="text-success shrink-0" /> {fmtTel(extra.telefone)}</span>
+                            <span className="font-black text-fg">Diária: <strong className="text-accent font-black">{fmtBRL(extra.salario)}</strong></span>
                           </div>
 
                           {/* RESUMO HISTÓRICO VISÍVEL NO CARD */}
                           <div className="mt-2.5 rounded-2xl bg-slate-50/80 p-2.5 text-xs border border-line-soft grid grid-cols-3 gap-2 text-center">
                             <div>
                               <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Total Gasto</span>
-                              <strong className="text-emerald-700 font-black text-sm">{fmtBRL(totalGastoPessoa)}</strong>
+                              <strong className="text-accent font-black text-sm">{fmtBRL(totalGastoPessoa)}</strong>
                             </div>
                             <div>
                               <span className="text-3xs font-bold text-subtle block uppercase tracking-wider">Trabalhos</span>
@@ -256,7 +256,7 @@ export default function CadastroExtrasPage() {
                         <button onClick={() => setHistoricoModal(extra)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 border border-amber-200/80 transition-colors">
                           <History size={13} /> Histórico
                         </button>
-                        <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}/recibo`)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm transition-colors">
+                        <button onClick={() => router.push(`/dashboard/rh/extra/${extra.id}/recibo`)} className="flex h-9 items-center justify-center gap-1 rounded-xl bg-accent text-xs font-bold text-accent-fg hover:bg-accent shadow-sm transition-colors">
                           <Plus size={13} /> Recibo
                         </button>
                       </div>
@@ -270,7 +270,7 @@ export default function CadastroExtrasPage() {
           {/* SIDEBAR DE RECIBOS RECENTES ENXUTA E COMPACTA */}
           <aside className="h-fit rounded-2xl border border-line bg-card p-3.5 shadow-sm lg:sticky lg:top-4">
             <div className="flex items-center gap-2 mb-3">
-              <FileClock className="text-emerald-600" size={18} />
+              <FileClock className="text-success" size={18} />
               <h2 className="text-sm font-black text-fg">Recibos recentes</h2>
             </div>
 
@@ -287,7 +287,7 @@ export default function CadastroExtrasPage() {
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-xs font-bold text-slate-800">{nomes[recibo.colaborador_id] || recibo.dados?.nome || "Extra"}</p>
                       {recibo.pagamento_realizado ? (
-                        <CheckCircle2 className="shrink-0 text-emerald-600" size={14} />
+                        <CheckCircle2 className="shrink-0 text-success" size={14} />
                       ) : (
                         <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
                       )}
@@ -322,7 +322,7 @@ export default function CadastroExtrasPage() {
                     {extra.nome ? extra.nome[0] : "E"}
                   </div>
                   <div>
-                    <span className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Histórico do Profissional</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-accent">Histórico do Profissional</span>
                     <h2 className="text-xl font-black text-fg">{extra.nome}</h2>
                     <p className="text-xs font-semibold text-muted">{extra.cargo || "Extra"} · Diária: {fmtBRL(extra.salario)}</p>
                   </div>
@@ -335,7 +335,7 @@ export default function CadastroExtrasPage() {
                 <div className="grid grid-cols-3 gap-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 text-center">
                   <div>
                     <span className="text-3xs font-bold uppercase text-emerald-800">Total Gasto</span>
-                    <p className="text-xl font-black text-emerald-700">{fmtBRL(totalGastoPessoa)}</p>
+                    <p className="text-xl font-black text-accent">{fmtBRL(totalGastoPessoa)}</p>
                   </div>
                   <div>
                     <span className="text-3xs font-bold uppercase text-emerald-800">Dias Trabalhados</span>
@@ -388,7 +388,7 @@ export default function CadastroExtrasPage() {
 
               <div className="border-t border-line-soft p-4 bg-slate-50 flex justify-end gap-2">
                 <button onClick={() => setHistoricoModal(null)} className="px-5 py-2.5 rounded-xl bg-slate-200 text-xs font-bold text-fg-soft hover:bg-slate-300">Fechar</button>
-                <button onClick={() => { setHistoricoModal(null); router.push(`/dashboard/rh/extra/${extra.id}/recibo`); }} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700">Gerar novo recibo</button>
+                <button onClick={() => { setHistoricoModal(null); router.push(`/dashboard/rh/extra/${extra.id}/recibo`); }} className="px-5 py-2.5 rounded-xl bg-accent text-xs font-bold text-accent-fg hover:bg-accent">Gerar novo recibo</button>
               </div>
             </div>
           </div>
@@ -406,7 +406,7 @@ export default function CadastroExtrasPage() {
             <div className="bg-card rounded-3xl w-full max-w-md shadow-2xl p-6 overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
               <div className="flex items-start justify-between gap-3 mb-4 border-b border-line-soft pb-3">
                 <div>
-                  <span className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Recibo Selecionado</span>
+                  <span className="text-3xs font-bold uppercase tracking-widest text-accent">Recibo Selecionado</span>
                   <h2 className="text-lg font-black text-fg">{nomeExtra}</h2>
                   <p className="text-xs font-semibold text-muted">Trabalho em {dataBR(recibo.data_trabalho)} · {fmtBRL(recibo.valor_total)}</p>
                 </div>
@@ -421,7 +421,7 @@ export default function CadastroExtrasPage() {
                     setReciboAcaoModal(null);
                     imprimirReciboExtra({ extra: extraDoRecibo, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos: {} });
                   }}
-                  className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                  className="w-full py-3.5 px-4 bg-accent hover:bg-accent text-accent-fg font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
                 >
                   <Printer size={18} /> Visualizar / Reimprimir Recibo
                 </button>

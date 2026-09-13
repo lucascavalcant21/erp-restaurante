@@ -101,7 +101,7 @@ export default function DreGerencialPage() {
              <div className="lg:col-span-1 space-y-6">
                 
                 {/* O Grande Termômetro de Lucratividade */}
-                <div className={`p-5 sm:p-8 rounded-2xl sm:rounded-[32px] shadow-lg border relative overflow-hidden text-white ${isLucro ? 'bg-emerald-600 border-emerald-500' : 'bg-emerald-600 border-emerald-500'}`}>
+                <div className={`p-5 sm:p-8 rounded-2xl sm:rounded-[32px] shadow-lg border relative overflow-hidden text-accent-fg ${isLucro ? 'bg-accent border-emerald-500' : 'bg-accent border-emerald-500'}`}>
                    <div className="absolute top-0 right-0 p-6 opacity-10">
                       {isLucro ? <TrendingUp size={120} /> : <TrendingDown size={120} />}
                    </div>
@@ -204,10 +204,10 @@ export default function DreGerencialPage() {
                          <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-xs font-bold">3</span>
                          <div>
                             <span className={`text-lg font-black uppercase tracking-widest ${isLucro ? 'text-emerald-900' : 'text-red-900'}`}>(=) Resultado Líquido</span>
-                            <p className={`text-3xs font-bold uppercase tracking-widest mt-1 ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>Lucro ou Prejuízo do Exercício</p>
+                            <p className={`text-3xs font-bold uppercase tracking-widest mt-1 ${isLucro ? 'text-success' : 'text-success'}`}>Lucro ou Prejuízo do Exercício</p>
                          </div>
                       </div>
-                      <span className={`text-2xl font-black font-mono ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>
+                      <span className={`text-2xl font-black font-mono ${isLucro ? 'text-success' : 'text-success'}`}>
                          {fmtBRL(dre.ebitda)}
                       </span>
                    </div>

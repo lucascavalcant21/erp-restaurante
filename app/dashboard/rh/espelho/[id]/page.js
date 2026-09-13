@@ -236,7 +236,7 @@ export default function EspelhoDePonto() {
                </button>
             )}
             <button onClick={() => window.print()} title="Enviar a folha para a impressora"
-               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2.5 font-bold text-white shadow-lg shadow-emerald-600/20 transition-colors hover:bg-emerald-700 sm:flex-none sm:px-5 sm:py-2">
+               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3 py-2.5 font-bold text-accent-fg shadow-lg shadow-emerald-600/20 transition-colors hover:bg-accent sm:flex-none sm:px-5 sm:py-2">
                <Printer size={18}/> Imprimir
             </button>
             <button onClick={salvarPdf} title="Abre a mesma janela, com o nome do arquivo pronto: escolha 'Salvar como PDF' no destino"

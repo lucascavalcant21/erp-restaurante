@@ -104,7 +104,7 @@ export default function NaoConformidades() {
 
       <main className="mx-auto max-w-4xl space-y-3 p-4 sm:p-6">
         {carregando ? (
-          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>
+          <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
         ) : lista.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <ShieldAlert className="mx-auto text-dim" size={40} />
@@ -133,13 +133,13 @@ export default function NaoConformidades() {
                 <div className="flex flex-wrap gap-2">
                   {["EM_ANALISE", "EM_CORRECAO", "RESOLVIDA", "CANCELADA"].map(s => (
                     <button key={s} onClick={() => mudarStatus(nc, s)}
-                      className={`min-h-10 rounded-xl px-3 text-xs font-bold ${nc.status === s ? "bg-emerald-600 text-white" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
+                      className={`min-h-10 rounded-xl px-3 text-xs font-bold ${nc.status === s ? "bg-accent text-accent-fg" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
                       {ROTULO[s]}
                     </button>
                   ))}
                 </div>
 
-                <p className="mt-4 text-2xs font-bold uppercase tracking-widest text-emerald-700">Ações corretivas</p>
+                <p className="mt-4 text-2xs font-bold uppercase tracking-widest text-accent">Ações corretivas</p>
                 {acoes.length === 0 ? (
                   <p className="mt-1.5 text-[13px] font-medium text-muted">Nenhuma ação definida ainda.</p>
                 ) : (
@@ -153,9 +153,9 @@ export default function NaoConformidades() {
                           </span>
                         </span>
                         {a.status === "CONCLUIDA" ? (
-                          <span className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-2xs font-bold text-emerald-700"><Check size={13} /> Feita</span>
+                          <span className="flex items-center gap-1 rounded-lg bg-accent-soft px-2.5 py-1 text-2xs font-bold text-accent-strong"><Check size={13} /> Feita</span>
                         ) : (
-                          <button onClick={() => concluirAcao(a)} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Concluir</button>
+                          <button onClick={() => concluirAcao(a)} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-bold text-accent-strong hover:bg-accent-soft">Concluir</button>
                         )}
                       </div>
                     ))}
@@ -170,7 +170,7 @@ export default function NaoConformidades() {
                   <input type="date" value={novaAcao.prazo} onChange={e => setNovaAcao(v => ({ ...v, prazo: e.target.value }))}
                     className="h-11 rounded-xl border border-line px-3 font-bold text-fg-soft outline-none focus:border-emerald-500" />
                   <button onClick={criarAcao} disabled={salvando || !novaAcao.descricao.trim()}
-                    className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                    className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 font-black text-accent-fg hover:bg-accent disabled:opacity-50">
                     {salvando ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Ação
                   </button>
                 </div>

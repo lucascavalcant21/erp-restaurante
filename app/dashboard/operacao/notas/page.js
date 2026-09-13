@@ -161,7 +161,7 @@ function FormScanner({ onSalvar, onCancelar }) {
               <Field label="Data"><TextInput className="py-1.5 text-sm" type="date" value={dadosIA.data_emissao} onChange={e => setDadosIA({...dadosIA, data_emissao: e.target.value})} /></Field>
               <Field label="Hora"><TextInput className="py-1.5 text-sm" type="time" value={dadosIA.hora_emissao} onChange={e => setDadosIA({...dadosIA, hora_emissao: e.target.value})} /></Field>
             </div>
-            <Field label="Valor Total (R$)"><NumberInput className="py-1.5 text-sm font-bold text-emerald-600" value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
+            <Field label="Valor Total (R$)"><NumberInput className="py-1.5 text-sm font-bold text-success" value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
 
             <div className="p-3 rounded-xl space-y-2" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
               <p className="text-3xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Pagamento</p>
@@ -169,7 +169,7 @@ function FormScanner({ onSalvar, onCancelar }) {
                 <TextInput className="py-1.5 text-sm" type="date" value={vencimento} onChange={e => setVencimento(e.target.value)} />
               </Field>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-emerald-500"
                   checked={jaPaga} onChange={(e) => setJaPaga(e.target.checked)} />
                 <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Esta nota já está paga</span>
               </label>
@@ -189,13 +189,13 @@ function FormScanner({ onSalvar, onCancelar }) {
             <p className="text-3xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Automações Inteligentes</p>
             
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" 
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-emerald-500" 
                 checked={lancarFinanceiro} onChange={(e) => setLancarFinanceiro(e.target.checked)} />
               <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Lançar pendência no Financeiro (Contas a Pagar)</span>
             </label>
             
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" 
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-success focus:ring-emerald-500" 
                 checked={alimentarEstoque} onChange={(e) => setAlimentarEstoque(e.target.checked)} />
               <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Dar entrada automática dos itens no Estoque</span>
             </label>

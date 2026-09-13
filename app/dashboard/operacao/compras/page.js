@@ -98,7 +98,7 @@ export default function ComprasPage() {
                  <p className="text-subtle font-bold uppercase tracking-widest text-xs mt-1">Integração: Recorrência de Produção & Financeiro</p>
               </div>
             </div>
-            <button onClick={() => setModalOpen(true)} className="w-full md:w-auto px-5 sm:px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer">
+            <button onClick={() => setModalOpen(true)} className="w-full md:w-auto px-5 sm:px-6 py-4 bg-emerald-500 hover:bg-accent text-accent-fg font-black rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer">
                <PackagePlus size={20}/> Lançar Nota de Compra
             </button>
          </div>
@@ -145,7 +145,7 @@ export default function ComprasPage() {
 
                    <button
                      onClick={() => abrirCompraSugerida(alerta)}
-                     className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                     className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-accent text-accent-fg font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                    >
                      <ShoppingCart size={15} /> Sugestão: +{alerta.qtd_sugerida_compra} {alerta.unidade_medida}
                    </button>
@@ -159,7 +159,7 @@ export default function ComprasPage() {
             <AlertCircle className="text-slate-600 flex-shrink-0" size={28}/>
             <div>
                <h3 className="font-black text-amber-800 text-lg mb-1">Como funciona a Hiper-Automação?</h3>
-               <p className="text-emerald-700 font-medium text-sm leading-relaxed">
+               <p className="text-accent font-medium text-sm leading-relaxed">
                   Ao registrar uma compra de insumo (como Tomate ou Vodka) aqui, o sistema automaticamente: <br/>
                   1. Adiciona a quantidade comprada no <strong>Estoque Físico</strong> da Cozinha/Bar. <br/>
                   2. Gera uma conta pendente em <strong>Contas a Pagar</strong> no módulo Financeiro (como CMV).
@@ -178,7 +178,7 @@ export default function ComprasPage() {
                         <p className="font-bold text-fg-soft leading-tight mb-2">{ins.nome}</p>
                         <div className="flex justify-between items-end mt-auto">
                            <span className="text-3xs uppercase font-bold text-muted">{ins.departamento}</span>
-                           <span className="text-lg font-black text-emerald-600">{ins.quantidade_atual} {ins.unidade_medida}</span>
+                           <span className="text-lg font-black text-success">{ins.quantidade_atual} {ins.unidade_medida}</span>
                         </div>
                      </div>
                   ))}
@@ -213,10 +213,10 @@ export default function ComprasPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Valor Total Pago (R$)</label>
-                        <input required type="text" placeholder="50,00" value={form.valorPago} onChange={e=>setForm({...form, valorPago: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                        <input required type="text" placeholder="50,00" value={form.valorPago} onChange={e=>setForm({...form, valorPago: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-black text-success outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
-                  <button type="submit" className="w-full mt-8 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                  <button type="submit" className="w-full mt-8 py-5 bg-emerald-500 hover:bg-accent text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
                      <TrendingUp size={20}/> Confirmar Compra
                   </button>
                </form>

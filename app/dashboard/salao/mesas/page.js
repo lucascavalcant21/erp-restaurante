@@ -828,7 +828,7 @@ export default function SaloesMesasPage() {
                 <div className="mb-4">
                    <label className="block text-xs font-bold text-muted uppercase mb-2">Fundo Inicial (Em Gaveta)</label>
                    <input type="number" step="0.01" required min="0" value={fundoCaixa} onChange={e => setFundoCaixa(e.target.value)}
-                     className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-black text-2xl text-emerald-600 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0.00" autoFocus />
+                     className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0.00" autoFocus />
                 </div>
                 <div className="flex gap-3 mt-6">
                    <button type="button" onClick={() => setModalAbrir(false)} className="flex-1 py-3 text-muted font-bold hover:bg-elevated rounded-xl">Voltar</button>
@@ -980,7 +980,7 @@ export default function SaloesMesasPage() {
                         <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
                         <button onClick={() => setModalTransferir(true)} className="py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
                         <button onClick={imprimirPreConta} className="py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
-                        <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
+                        <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-accent text-accent-fg font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
                      </div>
                   </div>
                </div>
@@ -1013,9 +1013,9 @@ export default function SaloesMesasPage() {
                            <button key={prod.id} onClick={() => adicionarItemMesa(prod)} className="bg-card rounded-xl p-0 border border-line shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-center flex flex-col group h-full overflow-hidden">
                               <div className="p-3 flex-1 flex flex-col items-center justify-center">
                                  <h3 className="font-bold text-slate-800 text-2xs leading-tight mb-2 uppercase">{prod.nome_produto}</h3>
-                                 <p className="font-bold text-emerald-600 text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
+                                 <p className="font-bold text-success text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
                               </div>
-                              <div className="bg-emerald-500 group-hover:bg-emerald-600 text-white py-2 flex items-center justify-center transition-colors">
+                              <div className="bg-emerald-500 group-hover:bg-accent text-accent-fg py-2 flex items-center justify-center transition-colors">
                                  <ShoppingCart size={16}/>
                               </div>
                            </button>
@@ -1113,7 +1113,7 @@ export default function SaloesMesasPage() {
                                     <h3 className="font-bold text-fg-soft text-xs leading-tight mb-2 flex-1">{prod.nome_produto}</h3>
                                     <div className="flex justify-between items-end w-full">
                                        <p className="text-3xs text-subtle">Estoque: {prod.codigo_barras ? 'Sim' : 'N/A'}</p>
-                                       <p className="font-black text-emerald-600 text-sm">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
+                                       <p className="font-black text-success text-sm">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
                                     </div>
                                  </button>
                               ))}
@@ -1153,7 +1153,7 @@ export default function SaloesMesasPage() {
                                        </div>
                                     )}
                                  </div>
-                                 <span className="font-black text-emerald-600 text-sm">{fmtBRL(itemTotal)}</span>
+                                 <span className="font-black text-success text-sm">{fmtBRL(itemTotal)}</span>
                               </div>
                               <div className="flex justify-between items-center mt-1">
                                  <div className="flex items-center gap-2 bg-elevated rounded-lg p-1">
@@ -1170,7 +1170,7 @@ export default function SaloesMesasPage() {
                            <span className="text-xs font-bold text-muted uppercase tracking-widest">Total a Receber</span>
                            <span className="text-3xl font-black text-emerald-500 tracking-tight">{fmtBRL(totalCarrinho)}</span>
                         </div>
-                        <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-subtle disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-accent disabled:bg-slate-200 disabled:text-subtle disabled:shadow-none text-accent-fg font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                            <CheckCircle size={18} /> RECEBER AGORA
                         </button>
                      </div>
@@ -1207,7 +1207,7 @@ export default function SaloesMesasPage() {
                               </div>
                               <span className={`font-bold ${selecionado ? 'text-emerald-900' : 'text-fg-soft'}`}>{mod.nome}</span>
                            </div>
-                           <span className={`font-black ${selecionado ? 'text-emerald-700' : 'text-muted'}`}>
+                           <span className={`font-black ${selecionado ? 'text-accent' : 'text-muted'}`}>
                               {mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}
                            </span>
                         </button>
@@ -1215,7 +1215,7 @@ export default function SaloesMesasPage() {
                   })}
                </div>
 
-               <button onClick={confirmarMods} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 text-lg rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
+               <button onClick={confirmarMods} className="w-full bg-accent hover:bg-accent text-accent-fg font-black py-5 text-lg rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
                   Confirmar e Adicionar
                </button>
             </div>
@@ -1252,7 +1252,7 @@ export default function SaloesMesasPage() {
                               return (
                                  <button key={i} onClick={() => toggleModLancarMesa(mod)} className={`w-full flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selecionado ? 'border-emerald-500 bg-emerald-50' : 'border-line bg-slate-50'}`}>
                                     <span className={`font-bold text-sm ${selecionado ? 'text-emerald-900' : 'text-fg-soft'}`}>{mod.nome}</span>
-                                    <span className={`font-black text-sm ${selecionado ? 'text-emerald-700' : 'text-muted'}`}>{mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}</span>
+                                    <span className={`font-black text-sm ${selecionado ? 'text-accent' : 'text-muted'}`}>{mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}</span>
                                  </button>
                               );
                            })}
@@ -1520,7 +1520,7 @@ export default function SaloesMesasPage() {
                   </button>
                   <button
                      onClick={() => abrirCupomTermico(dadosRecibo)}
-                     className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                     className="flex-1 bg-emerald-500 hover:bg-accent text-accent-fg font-bold py-3 rounded-xl flex items-center justify-center gap-2"
                   >
                      <Printer size={18}/> Re-Imprimir Cupom
                   </button>
@@ -1566,7 +1566,7 @@ export default function SaloesMesasPage() {
                      <div className="flex justify-between text-sm"><span>Fundo</span><span>{fmtBRL(resumoZ.fundo_inicial)}</span></div>
                      <div className="flex justify-between text-sm text-blue-600"><span>Suprimento</span><span>{fmtBRL(resumoZ.suprimentos)}</span></div>
                      <div className="flex justify-between text-sm text-orange-600"><span>Sangria</span><span>- {fmtBRL(resumoZ.sangrias)}</span></div>
-                     <div className="flex justify-between text-sm text-emerald-600"><span>Vendas em Dinheiro</span><span>{fmtBRL(resumoZ.vendas_dinheiro)}</span></div>
+                     <div className="flex justify-between text-sm text-success"><span>Vendas em Dinheiro</span><span>{fmtBRL(resumoZ.vendas_dinheiro)}</span></div>
                      <div className="flex justify-between font-black mt-2 pt-2 border-t"><span>Total Esperado:</span><span>{fmtBRL(resumoZ.esperado_gaveta)}</span></div>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
@@ -1716,7 +1716,7 @@ export default function SaloesMesasPage() {
                      <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <Plus size={24} className="font-black" />
                      </div>
-                     <span className="font-black text-emerald-600 uppercase">NOVA COMANDA</span>
+                     <span className="font-black text-success uppercase">NOVA COMANDA</span>
                      <span className="text-xs text-subtle font-bold mt-1">Adicionar à Mesa {mesaAtiva?.numero_mesa}</span>
                   </button>
 

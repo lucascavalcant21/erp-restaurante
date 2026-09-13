@@ -125,10 +125,10 @@ export default function BancoDeExtras() {
             <h1 className="text-lg font-black text-fg sm:text-xl">Banco de extras</h1>
             <p className="text-xs font-bold text-muted">Quem se cadastrou pelo link público</p>
           </div>
-          <button onClick={copiarLink} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-emerald-700 hover:bg-emerald-50">
+          <button onClick={copiarLink} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             {linkCopiado ? <><Check size={18} /> Link copiado</> : <><Copy size={18} /> Copiar link</>}
           </button>
-          <a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700"><ExternalLink size={18} /> Abrir portal</a>
+          <a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 font-black text-accent-fg hover:bg-accent"><ExternalLink size={18} /> Abrir portal</a>
         </div>
       </div>
 
@@ -152,12 +152,12 @@ export default function BancoDeExtras() {
           </select>
         </div>
 
-        {aviso && <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{aviso}</p>}
+        {aviso && <p className="rounded-xl border border-emerald-200 bg-accent-soft px-4 py-3 text-sm font-bold text-accent-strong">{aviso}</p>}
 
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
           <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
         ) : carregando ? (
-          <div className="grid min-h-52 place-items-center"><Loader2 className="animate-spin text-emerald-600" size={30} /></div>
+          <div className="grid min-h-52 place-items-center"><Loader2 className="animate-spin text-success" size={30} /></div>
         ) : filtrados.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <UsersRound className="mx-auto text-dim" size={42} />
@@ -171,12 +171,12 @@ export default function BancoDeExtras() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-[16px] font-black text-fg truncate">{e.nome}</p>
-                    <p className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-700">
+                    <p className="flex items-center gap-1.5 text-[13px] font-bold text-accent">
                       <Briefcase size={14} /> {e.funcao_principal}{e.funcao_secundaria ? ` · ${e.funcao_secundaria}` : ""}
                     </p>
                   </div>
                   {e.interesse !== "extra" && (
-                    <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-1 text-3xs font-bold uppercase text-white">Quer CLT</span>
+                    <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-3xs font-bold uppercase text-accent-fg">Quer CLT</span>
                   )}
                 </div>
 
@@ -202,7 +202,7 @@ export default function BancoDeExtras() {
                   {e.status === "novo" && (
                     <>
                       <button onClick={() => aprovar(e)} disabled={aprovando === e.id}
-                        className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                        className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent px-3 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                         {aprovando === e.id ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />} Cadastrar
                       </button>
                       <button onClick={() => arquivar(e)} title="Arquivar"
@@ -212,7 +212,7 @@ export default function BancoDeExtras() {
                     </>
                   )}
                   {e.status === "aprovado" && (
-                    <span className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-3 text-sm font-black text-emerald-700">
+                    <span className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent-soft px-3 text-sm font-black text-accent-strong">
                       <Check size={15} /> Já é extra
                     </span>
                   )}
@@ -251,7 +251,7 @@ export default function BancoDeExtras() {
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-widest text-muted">Diária combinada (R$)</span>
                   <input type="number" step="0.01" value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
-                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-emerald-700 outline-none focus:border-emerald-600" />
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-accent outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-widest text-muted">Função principal</span>
@@ -300,7 +300,7 @@ export default function BancoDeExtras() {
                 setEditando(null);
                 await carregar();
               }} disabled={salvandoEdicao}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
               {salvandoEdicao ? <><Loader2 size={19} className="animate-spin" /> Salvando...</> : <><Save size={19} /> Salvar correção</>}
             </button>
           </div>

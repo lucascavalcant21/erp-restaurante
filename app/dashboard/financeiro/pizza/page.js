@@ -320,7 +320,7 @@ export default function PizzaDoLucroPage() {
           </button>
           <div className="min-w-0">
             <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-fg">
-              <PieChart className="text-emerald-600" size={24} /> Pizza do Lucro
+              <PieChart className="text-success" size={24} /> Pizza do Lucro
             </h1>
             <p className="text-xs font-bold text-muted">Para onde vai cada real que você vende.</p>
           </div>
@@ -329,7 +329,7 @@ export default function PizzaDoLucroPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           {[["pratos", "Pizza dos pratos"], ["dia", "Custo por dia"], ["simulacao", "Simulação"], ["conferir", "O que falta"]].map(([id, rotulo]) => (
             <button key={id} onClick={() => setVisao(id)}
-              className={`rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${visao === id ? "bg-emerald-600 text-white" : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
+              className={`rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${visao === id ? "bg-accent text-accent-fg" : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
               {rotulo}
             </button>
           ))}
@@ -355,7 +355,7 @@ export default function PizzaDoLucroPage() {
             </button>
             {abrirPainel && (
               <button onClick={salvar} disabled={salvando}
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-bold text-accent-fg hover:bg-accent disabled:opacity-50">
                 {salvando ? <Loader2 size={14} className="animate-spin" /> : salvo ? <Check size={14} /> : <Save size={14} />}
                 {salvando ? "Salvando..." : salvo ? "Salvo" : "Salvar"}
               </button>
@@ -382,7 +382,7 @@ export default function PizzaDoLucroPage() {
                   e adotar um numero que nao chega ao banco nao adianta nada. */}
               <button type="button"
                 onClick={() => { editar("pratos_por_dia", medidoDia); setPainelAberto(true); }}
-                className="font-black text-emerald-700 underline underline-offset-2">
+                className="font-black text-accent underline underline-offset-2">
                 usar {medidoDia}
               </button>
             </div>
@@ -391,7 +391,7 @@ export default function PizzaDoLucroPage() {
 
           {/* CMO não tem campo: vem pronto do RH. */}
           <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2.5">
-            <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">CMO — mão de obra</p>
+            <p className="text-3xs font-bold uppercase tracking-widest text-accent">CMO — mão de obra</p>
             <p className="text-lg font-black text-emerald-800">{cmo ? fmt(cmo.total) : "—"}</p>
             <p className="text-3xs font-bold text-emerald-700/80">
               {cmo ? `${fmt(cmo.folha)} de folha + ${fmt(cmo.extras)} de extras (${cmo.recibos} recibo(s) pago(s))` : ""}
@@ -427,7 +427,7 @@ export default function PizzaDoLucroPage() {
                   <p className="col-span-2 text-2xs font-bold text-muted">
                     Você tinha {Number(params.embalagem_pct)}% de embalagem aqui. No prato médio de {fmt(precoMedio)} isso dava{" "}
                     <button type="button" onClick={() => editar("embalagem_valor", (precoMedio * Number(params.embalagem_pct)) / 100)}
-                      className="font-black text-emerald-700 underline underline-offset-2">
+                      className="font-black text-accent underline underline-offset-2">
                       {fmt((precoMedio * Number(params.embalagem_pct)) / 100)} por prato
                     </button>
                     {" "}— toque para usar esse valor.
@@ -482,7 +482,7 @@ export default function PizzaDoLucroPage() {
         </div>
 
         {loading ? (
-          <div className="grid min-h-[40vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={32} /></div>
+          <div className="grid min-h-[40vh] place-items-center"><Loader2 className="animate-spin text-success" size={32} /></div>
         ) : visao === "dia" ? (
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {/* Quanto sai do bolso antes de vender o primeiro prato. */}
@@ -509,7 +509,7 @@ export default function PizzaDoLucroPage() {
                   esta absorveu: responde em REAIS por dia, sem depender de
                   qual prato saiu. */}
               <div className="mt-4 rounded-xl bg-emerald-50 px-3 py-2.5">
-                <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Quanto faturar por dia para empatar</p>
+                <p className="text-3xs font-bold uppercase tracking-widest text-accent">Quanto faturar por dia para empatar</p>
                 {equilibrio.faturamentoDia === null ? (
                   <p className="mt-0.5 text-2xs font-bold text-slate-600">
                     {!equilibrio.rateavel
@@ -686,10 +686,10 @@ export default function PizzaDoLucroPage() {
                     <p className="text-3xs font-bold text-subtle">entra uma vez, não por item</p>
                   </div>
                   <div className={`rounded-xl px-3 py-2.5 ${cardapio.sobra >= 0 ? "bg-emerald-50" : "bg-slate-200"}`}>
-                    <p className={`text-3xs font-bold uppercase tracking-wider ${cardapio.sobra >= 0 ? "text-emerald-700" : "text-slate-600"}`}>
+                    <p className={`text-3xs font-bold uppercase tracking-wider ${cardapio.sobra >= 0 ? "text-accent" : "text-slate-600"}`}>
                       {cardapio.sobra >= 0 ? "Sobra para você" : "Falta"}
                     </p>
-                    <p className={`text-lg font-black ${cardapio.sobra >= 0 ? "text-emerald-700" : "text-slate-800"}`}>{fmt(Math.abs(cardapio.sobra))}</p>
+                    <p className={`text-lg font-black ${cardapio.sobra >= 0 ? "text-accent" : "text-slate-800"}`}>{fmt(Math.abs(cardapio.sobra))}</p>
                     <p className={`text-3xs font-bold ${cardapio.sobra >= 0 ? "text-emerald-700/70" : "text-muted"}`}>
                       margem média {cardapio.margemMediaPct.toFixed(1)}%
                     </p>
@@ -700,7 +700,7 @@ export default function PizzaDoLucroPage() {
                   {cardapio.faltaParaEmpatar > 0 ? (
                     <>Faltam <b className="text-fg">{fmt(cardapio.faltaParaEmpatar)}</b> de margem para o mês empatar. Vender mais, subir preço ou baixar custo — a coluna “Sobra dele” diz quais itens puxam para cima.</>
                   ) : (
-                    <>Este cardápio paga tudo e ainda deixa <b className="text-emerald-700">{fmt(cardapio.sobra)}</b> no mês.</>
+                    <>Este cardápio paga tudo e ainda deixa <b className="text-accent">{fmt(cardapio.sobra)}</b> no mês.</>
                   )}
                 </p>
                 <p className="mt-1 text-2xs font-bold text-subtle">
@@ -796,7 +796,7 @@ export default function PizzaDoLucroPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {ABAS.map((a) => (
                   <button key={a.id} onClick={() => { setAba(a.id); setEscolhida(null); }}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${aba === a.id ? "bg-emerald-600 text-white" : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${aba === a.id ? "bg-accent text-accent-fg" : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
                     {a.rotulo}
                     <span className={`rounded-full px-1.5 text-3xs ${aba === a.id ? "bg-white/25" : "bg-elevated text-muted"}`}>{contarAba(a.id)}</span>
                   </button>
@@ -849,7 +849,7 @@ export default function PizzaDoLucroPage() {
                           <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(x.conta.preco)}</td>
                           {/* Verde só quando o sugerido é MAIOR que o preço de
                               hoje: é o caso em que há dinheiro na mesa. */}
-                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${x.sugerido === null ? "text-dim" : x.sugerido > x.conta.preco ? "text-emerald-700" : "text-subtle"}`}
+                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${x.sugerido === null ? "text-dim" : x.sugerido > x.conta.preco ? "text-accent" : "text-subtle"}`}
                             title={x.sugerido === null ? "Sem custo de ingrediente na ficha não dá para sugerir preço." : ""}>
                             {x.sugerido === null ? "—" : fmt(x.sugerido)}
                           </td>

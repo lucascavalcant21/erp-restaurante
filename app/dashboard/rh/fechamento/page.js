@@ -183,7 +183,7 @@ export default function FechamentoFolhaPage() {
                                     value={p.acrescimos || ''}
                                     onChange={(e) => handleMudarValor(p.colaborador_id, 'acrescimos', e.target.value)}
                                     placeholder="0,00"
-                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-indigo-500 text-emerald-600 font-bold"
+                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-indigo-500 text-success font-bold"
                                  />
                               </td>
 

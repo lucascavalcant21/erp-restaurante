@@ -178,7 +178,7 @@ function VariacaoPreco({ insumo }) {
   const caiu = variacao < 0;
   return (
     <div className="min-w-[98px] text-xs">
-      <p className={`flex items-center gap-1 font-black ${subiu ? "text-red-600" : caiu ? "text-emerald-600" : "text-muted"}`}>
+      <p className={`flex items-center gap-1 font-black ${subiu ? "text-red-600" : caiu ? "text-success" : "text-muted"}`}>
         {subiu ? <ArrowUp size={12} /> : caiu ? <ArrowDown size={12} /> : null}
         {variacao > 0 ? "+" : ""}{variacao.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
       </p>
@@ -691,7 +691,7 @@ function IngredientesRunner() {
             </label>
             <button
               onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); setOrigemMigracaoVoz(false); setRespostaVozIngredientes(""); }}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-accent-soft px-4 text-sm font-black text-accent-strong shadow-sm transition hover:bg-emerald-100"
             >
               <Camera size={18} /> Migrar por Print / Lista
             </button>
@@ -703,7 +703,7 @@ function IngredientesRunner() {
             </button>
             <button
               onClick={abrirNovo}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 transition hover:bg-accent"
             >
               <Plus size={18} /> Novo {rotuloItem}
             </button>
@@ -738,7 +738,7 @@ function IngredientesRunner() {
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-muted">{card.label}</p>
                   <p className="text-xl font-black leading-tight text-fg">{card.value}</p>
-                  <p className="hidden text-2xs font-semibold text-emerald-600 sm:block">{card.note}</p>
+                  <p className="hidden text-2xs font-semibold text-success sm:block">{card.note}</p>
                 </div>
               </button>
             );
@@ -809,7 +809,7 @@ function IngredientesRunner() {
                     </td>
                     <td className="px-2.5 py-2">
                       <p className="truncate text-xs font-bold text-fg-soft">{nomeFornecedorAtual(insumo)}</p>
-                      {outros > 0 && <p className="mt-1 text-2xs font-bold text-emerald-600">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
+                      {outros > 0 && <p className="mt-1 text-2xs font-bold text-success">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
                     </td>
                     <td className="px-2.5 py-2">
                       <p className="text-sm font-black text-fg">{fmtBRL(insumo.custo_compra ?? 0)}</p>
@@ -823,7 +823,7 @@ function IngredientesRunner() {
                           const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
                           const pesoF = pG || (1000 / pK);
                           return (
-                            <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-3xs font-bold text-emerald-800 border border-emerald-200">
+                            <span className="mt-1 inline-block rounded bg-accent-soft px-1.5 py-0.5 text-3xs font-bold text-accent-strong border border-emerald-200">
                               ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
                             </span>
                           );
@@ -842,7 +842,7 @@ function IngredientesRunner() {
                     <td className="px-2.5 py-2">
                       <button
                         onClick={() => abrirHistorico(insumo)}
-                        className="rounded-lg border border-line px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                        className="rounded-lg border border-line px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-accent-soft hover:text-accent-strong"
                       >
                         Ver histórico
                       </button>
@@ -891,7 +891,7 @@ function IngredientesRunner() {
                   <div>
                     <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Fornecedor</p>
                     <p className="mt-1 truncate font-bold">{nomeFornecedorAtual(insumo)}</p>
-                    {vinculados.length > 1 && <p className="text-3xs font-bold text-emerald-600">+{vinculados.length - 1} outro(s)</p>}
+                    {vinculados.length > 1 && <p className="text-3xs font-bold text-success">+{vinculados.length - 1} outro(s)</p>}
                   </div>
                   <div>
                     <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Valor atual</p>
@@ -904,7 +904,7 @@ function IngredientesRunner() {
                         const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
                         const pesoF = pG || (1000 / pK);
                         return (
-                          <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-3xs font-bold text-emerald-800 border border-emerald-200">
+                          <span className="mt-1 inline-block rounded bg-accent-soft px-1.5 py-0.5 text-3xs font-bold text-accent-strong border border-emerald-200">
                             ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
                           </span>
                         );
@@ -1012,7 +1012,7 @@ function IngredientesRunner() {
                             setForm({ ...form, categoria: cat });
                           }
                         }}
-                        className="text-3xs font-bold text-emerald-600 hover:underline"
+                        className="text-3xs font-bold text-success hover:underline"
                       >
                         + Criar categoria
                       </button>
@@ -1065,14 +1065,14 @@ function IngredientesRunner() {
                     <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>
                     <div className="mt-1.5 flex h-11 items-center rounded-xl border border-line bg-slate-50 px-3.5 focus-within:border-emerald-500">
                       <span className="mr-2 text-sm font-bold text-subtle">R$</span>
-                      <input inputMode="decimal" value={form.valor_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, valor_embalagem: event.target.value })} placeholder="0,00" className="min-w-0 flex-1 bg-transparent font-black text-emerald-700 outline-none" />
+                      <input inputMode="decimal" value={form.valor_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, valor_embalagem: event.target.value })} placeholder="0,00" className="min-w-0 flex-1 bg-transparent font-black text-accent outline-none" />
                     </div>
                   </label>
                 </div>
                 {Number.isFinite(parseNumeroBR(form.tamanho_embalagem)) && Number.isFinite(parseNumeroBR(form.valor_embalagem)) && (
                   <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
                     <span className="text-xs font-bold text-emerald-800">Preço normalizado calculado</span>
-                    <span className="text-sm font-black text-emerald-700">
+                    <span className="text-sm font-black text-accent">
                       {fmtBRL(calcularPrecoNormalizado(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida, parseNumeroBR(form.valor_embalagem)))}/{unidadeNormalizada(form.unidade_medida)}
                     </span>
                   </div>
@@ -1081,7 +1081,7 @@ function IngredientesRunner() {
                 {/* Porcionamento & Custo por Peça (Ex: R$ 90/kg, 150g/peça -> R$ 13,50/un) */}
                 <div className="mt-4 border-t border-line-soft pt-3 space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
-                    <Calculator size={14} className="text-emerald-600" />
+                    <Calculator size={14} className="text-success" />
                     Porcionamento por Peça / Unidade (Opcional)
                   </h4>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1129,7 +1129,7 @@ function IngredientesRunner() {
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-950 space-y-1">
                           <div className="flex justify-between items-center font-black text-emerald-900">
                             <span>🥩 Custo estimado por peça/unidade:</span>
-                            <span className="text-sm font-black text-emerald-700">{fmtBRL(custoPeca)} / unidade</span>
+                            <span className="text-sm font-black text-accent">{fmtBRL(custoPeca)} / unidade</span>
                           </div>
                           <p className="font-semibold text-emerald-800">
                             ~<strong>{pesoCalc.toFixed(0)}g</strong> por peça · Rende cerca de <strong>{pecasCalc.toFixed(1)} peças por kg</strong>.
@@ -1156,7 +1156,7 @@ function IngredientesRunner() {
                     </label>
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-600">Perda calculada</span>
-                      <div className="mt-1.5 flex h-11 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 font-black text-emerald-700">
+                      <div className="mt-1.5 flex h-11 items-center rounded-xl border border-emerald-100 bg-accent-soft px-3.5 font-black text-accent-strong">
                         {(() => { const b = parseNumeroBR(form.peso_bruto_g), p = parseNumeroBR(form.perda_g); return (Number.isFinite(b) && b > 0 && Number.isFinite(p)) ? ((p / b) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"; })()}
                       </div>
                     </div>
@@ -1202,12 +1202,12 @@ function IngredientesRunner() {
                         const atual = form.fornecedor_atual_id === fid;
                         return (
                           <div key={fid} className={`flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${atual ? "border-emerald-300 bg-emerald-50" : "border-line bg-card"}`}>
-                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-fg-soft">{forn.nome}{atual && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-white">Em uso</span>}</span>
+                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-fg-soft">{forn.nome}{atual && <span className="rounded-full bg-accent px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-accent-fg">Em uso</span>}</span>
                             <div className="flex h-9 items-center rounded-lg border border-line bg-slate-50 px-2">
                               <span className="mr-1 text-xs font-bold text-subtle">R$</span>
-                              <input inputMode="decimal" value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-emerald-700 outline-none" />
+                              <input inputMode="decimal" value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-accent outline-none" />
                             </div>
-                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-card px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Usar</button>}
+                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-card px-3 text-xs font-bold text-accent-strong hover:bg-accent-soft">Usar</button>}
                             <button type="button" onClick={() => abrirHistorico({ id: form.id, nome: form.nome, fornecedor_id: fid })} className="h-9 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">Histórico</button>
                           </div>
                         );
@@ -1240,7 +1240,7 @@ function IngredientesRunner() {
 
             <div className="flex gap-3 border-t border-line-soft bg-slate-50 px-5 py-4 sm:px-7">
               <button onClick={() => setModalCadastro(false)} className="flex-1 rounded-xl border border-line bg-card py-3 text-sm font-bold text-slate-600 hover:bg-elevated">Cancelar</button>
-              <button disabled={salvando} onClick={handleSalvar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+              <button disabled={salvando} onClick={handleSalvar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-50">
                 {salvando ? "Salvando..." : `Salvar ${rotuloItem}`}
               </button>
             </div>
@@ -1253,7 +1253,7 @@ function IngredientesRunner() {
           <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={event => event.stopPropagation()}>
             <div className="flex items-start justify-between border-b border-line-soft px-5 py-5 sm:px-7">
               <div>
-                <h2 className="flex items-center gap-2 text-xl font-black text-fg"><History size={20} className="text-emerald-600" /> Histórico de preços</h2>
+                <h2 className="flex items-center gap-2 text-xl font-black text-fg"><History size={20} className="text-success" /> Histórico de preços</h2>
                 <p className="mt-1 text-sm font-bold text-muted">{modalHistorico.nome}</p>
               </div>
               <button onClick={() => setModalHistorico(null)} className="rounded-full bg-elevated p-2 text-muted"><X size={18} /></button>
@@ -1280,7 +1280,7 @@ function IngredientesRunner() {
                         <p className="mt-1 text-xs text-muted">{fmtDataHoraBR(registro.created_at)} · {registro.usuario_nome || "Usuário do sistema"}</p>
                       </div>
                       {percentual !== null && (
-                        <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${subiu ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
+                        <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${subiu ? "bg-red-50 text-red-600" : "bg-accent-soft text-accent-strong"}`}>
                           {Number(percentual) > 0 ? "+" : ""}{Number(percentual).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
                         </span>
                       )}
@@ -1300,7 +1300,7 @@ function IngredientesRunner() {
                         <p className="mt-1 text-xs font-bold text-fg-soft">
                           {fmtQuantidade(registro.embalagem_quantidade_nova || modalHistorico.tamanho_embalagem)} {unidadeLabel(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)} por {fmtBRL(registro.valor_novo ?? modalHistorico.custo_compra)}
                         </p>
-                        <p className="mt-1 text-xs font-bold text-emerald-700">{fmtBRL(normalizadoNovo)}/{unidadeNormalizada(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)}</p>
+                        <p className="mt-1 text-xs font-bold text-accent">{fmtBRL(normalizadoNovo)}/{unidadeNormalizada(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)}</p>
                       </div>
                     </div>
                     {registro.diferenca_valor !== null && registro.diferenca_valor !== undefined && (
@@ -1323,7 +1323,7 @@ function IngredientesRunner() {
             <div className="flex items-center justify-between border-b border-line-soft px-6 py-5">
               <div>
                 <h2 className="flex items-center gap-2.5 text-xl font-black text-fg">
-                  <Sparkles className="text-emerald-600" size={22} /> Migração Inteligente por Print / Lista
+                  <Sparkles className="text-success" size={22} /> Migração Inteligente por Print / Lista
                 </h2>
                 <p className="mt-1 text-xs font-semibold text-muted">
                   Envie o print da lista de ingredientes ou cole o texto. O sistema separa Bar e Cozinha e consolida duplicados mantendo o <strong>maior valor</strong>.
@@ -1338,7 +1338,7 @@ function IngredientesRunner() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col justify-between rounded-2xl border-2 border-dashed border-line bg-slate-50/50 p-5 text-center">
                   <div>
-                    <Camera size={32} className="mx-auto text-emerald-600 mb-2" />
+                    <Camera size={32} className="mx-auto text-success mb-2" />
                     <p className="text-sm font-bold text-fg-soft">Print / Foto da Lista</p>
                     <p className="text-xs text-subtle mt-1">Selecione uma imagem (PNG, JPG, WEBP) do celular ou computador.</p>
                   </div>
@@ -1367,7 +1367,7 @@ function IngredientesRunner() {
                             <button
                               type="button"
                               onClick={() => setMigrarArquivos(prev => prev.filter((_, i) => i !== idx))}
-                              className="ml-1 text-emerald-600 hover:text-emerald-950"
+                              className="ml-1 text-success hover:text-emerald-950"
                             >
                               <X size={12} />
                             </button>
@@ -1398,7 +1398,7 @@ function IngredientesRunner() {
                 <button
                   disabled={migrarProcessando || (!migrarArquivos.length && !migrarTexto.trim())}
                   onClick={processarMigracaoIA}
-                  className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent disabled:opacity-50"
                 >
                   {migrarProcessando ? (
                     <>Lendo {migrarArquivos.length} foto(s) e consolidando...</>
@@ -1495,7 +1495,7 @@ function IngredientesRunner() {
                                 step="any"
                                 value={item.valor_total}
                                 onChange={e => atualizarItemMigracao(idx, "valor_total", e.target.value)}
-                                className="w-24 rounded-lg border border-line px-2 py-1 text-right font-black text-emerald-700"
+                                className="w-24 rounded-lg border border-line px-2 py-1 text-right font-black text-accent"
                               />
                             </td>
                             <td className="p-2">
@@ -1534,7 +1534,7 @@ function IngredientesRunner() {
               <button
                 disabled={itensMigracao.length === 0 || migrarSalvando}
                 onClick={() => confirmarSalvarMigracao()}
-                className="flex-1 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="flex-1 rounded-xl bg-accent py-3 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-50"
               >
                 {migrarSalvando ? "Salvando ingredientes..." : `Salvar e Migrar ${itensMigracao.length} Ingrediente(s)`}
               </button>
@@ -1544,7 +1544,7 @@ function IngredientesRunner() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-5 right-5 z-[70] flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-2xl ${toast.tipo === "erro" ? "bg-red-600" : "bg-emerald-600"}`}>
+        <div className={`fixed bottom-5 right-5 z-[70] flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-accent-fg shadow-2xl ${toast.tipo === "erro" ? "bg-red-600" : "bg-accent"}`}>
           {toast.tipo === "erro" ? <AlertTriangle size={17} /> : <CheckCircle2 size={17} />}
           {toast.mensagem}
         </div>

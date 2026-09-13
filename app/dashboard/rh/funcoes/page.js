@@ -514,7 +514,7 @@ export default function GuiaDeFuncoes() {
             </button>
             <button
               onClick={() => setAbaAtiva("checklist")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-emerald-600 text-white shadow-sm" : "text-muted hover:text-fg"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-accent text-accent-fg shadow-sm" : "text-muted hover:text-fg"}`}
             >
               <CheckSquare size={15} /> <span>Modo Checklist</span>
             </button>
@@ -531,7 +531,7 @@ export default function GuiaDeFuncoes() {
               {editando ? (
                 <>
                   <button onClick={salvarAlteracoes} disabled={salvando}
-                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-bold text-accent-fg hover:bg-accent disabled:cursor-wait disabled:opacity-60">
                     {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                     {salvando ? "Salvando..." : "Salvar alterações"}
                   </button>
@@ -547,7 +547,7 @@ export default function GuiaDeFuncoes() {
                 </button>
               )}
               <button onClick={adicionarFuncao} title="Cria uma função nova e abre a edição"
-                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 text-xs font-bold text-accent-strong hover:bg-accent-soft">
                 <Plus size={15} /> Nova função
               </button>
               {editando && (
@@ -570,7 +570,7 @@ export default function GuiaDeFuncoes() {
 
       {salvo && (
         <div className="mx-auto mt-3 max-w-5xl px-4 sm:px-6">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 flex items-center justify-between animate-in fade-in">
+          <div className="rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong flex items-center justify-between animate-in fade-in">
             <span>{salvo}</span>
             <CheckCircle2 size={16} />
           </div>
@@ -580,7 +580,7 @@ export default function GuiaDeFuncoes() {
       <div className="mx-auto mt-6 max-w-5xl px-4 sm:px-6">
         {carregando ? (
           <div className="flex flex-col items-center justify-center py-20 text-subtle">
-            <Loader2 size={32} className="animate-spin mb-3 text-emerald-600" />
+            <Loader2 size={32} className="animate-spin mb-3 text-success" />
             <p className="text-sm font-bold">Carregando o guia de funções...</p>
           </div>
         ) : semTabela ? (
@@ -685,7 +685,7 @@ export default function GuiaDeFuncoes() {
 
                             <div className="flex items-center justify-between mb-3 border-b border-slate-200/60 pb-2">
                               <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${status === "ativo" ? "bg-emerald-600 text-white" : "bg-slate-200 text-fg-soft"}`}>
+                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${status === "ativo" ? "bg-accent text-accent-fg" : "bg-slate-200 text-fg-soft"}`}>
                                   {periodoDoHorario(horario)}
                                 </span>
                                 {status === "ativo" && (
@@ -721,7 +721,7 @@ export default function GuiaDeFuncoes() {
                                       }`}
                                     >
                                       <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors border ${
-                                        estaConcluido ? "bg-emerald-600 border-emerald-600 text-white" : "border-slate-300 bg-card"
+                                        estaConcluido ? "bg-accent border-emerald-600 text-accent-fg" : "border-slate-300 bg-card"
                                       }`}>
                                         {estaConcluido && <Check size={14} strokeWidth={3} />}
                                       </div>
@@ -914,7 +914,7 @@ export default function GuiaDeFuncoes() {
                                               disabled={idxT === 0}
                                               onClick={() => moverTarefaNoHorario(funcao.id, indice, idxHorario, idxT, idxT - 1)}
                                               title="Mover para cima"
-                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
+                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-accent hover:text-accent-fg disabled:opacity-25 transition-colors"
                                             >
                                               <ChevronUp size={10} />
                                             </button>
@@ -923,7 +923,7 @@ export default function GuiaDeFuncoes() {
                                               disabled={idxT === tarefasDoHorario(horario).length - 1}
                                               onClick={() => moverTarefaNoHorario(funcao.id, indice, idxHorario, idxT, idxT + 1)}
                                               title="Mover para baixo"
-                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
+                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-fg-soft hover:bg-accent hover:text-accent-fg disabled:opacity-25 transition-colors"
                                             >
                                               <ChevronDown size={10} />
                                             </button>
@@ -937,7 +937,7 @@ export default function GuiaDeFuncoes() {
                                         </button>
                                       </div>
                                     ))}
-                                    <button onClick={() => adicionarTarefa(funcao.id, indice, idxHorario)} className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1 pt-1">
+                                    <button onClick={() => adicionarTarefa(funcao.id, indice, idxHorario)} className="text-xs font-bold text-accent hover:underline flex items-center gap-1 pt-1">
                                       <Plus size={14} /> + Adicionar mais uma tarefa neste horário
                                     </button>
                                   </div>
@@ -994,7 +994,7 @@ export default function GuiaDeFuncoes() {
                   ))}
 
                   {editando && (
-                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-card border-2 border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
+                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-card border-2 border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-accent font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
                       <Plus size={15} /> Adicionar Período Maior (Ex: Abertura, Serviço, Fechamento)
                     </button>
                   )}

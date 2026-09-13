@@ -69,7 +69,7 @@ export default function SinoCadastros() {
         className="relative flex h-11 w-11 items-center justify-center rounded-xl text-subtle transition-colors hover:bg-elevated hover:text-fg-soft">
         <Bell size={20} />
         {total > 0 && (
-          <span className="absolute right-1.5 top-1.5 grid min-w-[18px] place-items-center rounded-full bg-emerald-600 px-1 text-3xs font-bold text-white">
+          <span className="absolute right-1.5 top-1.5 grid min-w-[18px] place-items-center rounded-full bg-accent px-1 text-3xs font-bold text-accent-fg">
             {total > 99 ? "99+" : total}
           </span>
         )}
@@ -86,7 +86,7 @@ export default function SinoCadastros() {
             {extras.map(e => (
               <button key={`e-${e.id}`} onClick={() => { setAberto(false); router.push("/dashboard/rh/extra"); }}
                 className="flex w-full items-start gap-3 border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50">
-                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UserPlus size={17} /></span>
+                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-strong"><UserPlus size={17} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-slate-800">{e.nome}</span>
                   <span className="block truncate text-xs font-bold text-muted">
@@ -99,7 +99,7 @@ export default function SinoCadastros() {
             {candidatos.map(c => (
               <button key={`c-${c.id}`} onClick={() => { setAberto(false); router.push("/dashboard/rh/recrutamento"); }}
                 className="flex w-full items-start gap-3 border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50">
-                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><Briefcase size={17} /></span>
+                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-strong"><Briefcase size={17} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-slate-800">{c.nome}</span>
                   <span className="block truncate text-xs font-bold text-muted">Candidatura · {c.cargo_pretendido || "vaga"}</span>

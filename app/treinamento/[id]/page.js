@@ -58,25 +58,25 @@ export default function TreinamentoPublico() {
         <div className="p-5 sm:p-9">
           {item.conteudo_texto && (
             <section className="mb-7">
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><BookOpen size={20} className="text-emerald-600"/>Conteúdo</h2>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><BookOpen size={20} className="text-success"/>Conteúdo</h2>
               <div className="whitespace-pre-line rounded-2xl bg-slate-50 p-5 text-base leading-8 text-fg-soft ring-1 ring-slate-200">{item.conteudo_texto}</div>
             </section>
           )}
 
           {embed ? (
             <section>
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><PlaySquare size={20} className="text-emerald-600"/>Vídeo</h2>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><PlaySquare size={20} className="text-success"/>Vídeo</h2>
               <div className="aspect-video overflow-hidden rounded-2xl bg-black"><iframe src={embed} title={item.titulo} className="h-full w-full" allowFullScreen /></div>
             </section>
           ) : item.link_video ? (
             <section>
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><PlaySquare size={20} className="text-emerald-600"/>Vídeo</h2>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><PlaySquare size={20} className="text-success"/>Vídeo</h2>
               <video src={item.link_video} controls playsInline preload="metadata" className="max-h-[70dvh] w-full rounded-2xl bg-black">Seu navegador não conseguiu abrir este vídeo.</video>
               <a href={item.link_video} target="_blank" rel="noreferrer" className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-elevated px-5 text-sm font-black text-fg-soft">Abrir vídeo em outra tela<ExternalLink size={16}/></a>
             </section>
           ) : null}
 
-          <button onClick={() => { const novo = !concluido; setConcluido(novo); try { localStorage.setItem(`hefisto_treinamento_${id}`, novo ? "concluido" : ""); } catch {} }} className={`mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 font-black transition ${concluido ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300" : "bg-emerald-600 text-white"}`}>
+          <button onClick={() => { const novo = !concluido; setConcluido(novo); try { localStorage.setItem(`hefisto_treinamento_${id}`, novo ? "concluido" : ""); } catch {} }} className={`mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 font-black transition ${concluido ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300" : "bg-accent text-accent-fg"}`}>
             <CheckCircle2 size={21}/>{concluido ? "Treinamento concluído" : "Marcar como concluído"}
           </button>
         </div>

@@ -96,12 +96,12 @@ export default function FechamentoMes({ unidadeAtiva, unidadeInfo }) {
   return (
     <div className="max-w-5xl mx-auto px-6 mt-6">
       <div className="bg-card rounded-3xl border border-line shadow-sm p-6">
-        <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1"><Calculator size={20} className="text-emerald-600" /> Fechamento do Mês — DRE detalhado</h2>
+        <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-1"><Calculator size={20} className="text-success" /> Fechamento do Mês — DRE detalhado</h2>
         <p className="text-xs font-medium text-muted mb-4">Digite o faturamento e a taxa de serviço — o resto o sistema preenche: CMV médio da carta, CMO (folha), Simples, cartão e as contas do mês por categoria.</p>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
           <div><label className="text-3xs font-bold uppercase tracking-widest text-muted">Faturamento (R$)</label>
-            <input type="text" inputMode="decimal" value={faturamento} onChange={e => setFaturamento(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00" className="w-full p-3 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" /></div>
+            <input type="text" inputMode="decimal" value={faturamento} onChange={e => setFaturamento(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00" className="w-full p-3 mt-1 bg-accent-soft border-2 border-emerald-300 rounded-xl font-black text-accent-strong outline-none focus:border-emerald-500" /></div>
           <div><label className="text-3xs font-bold uppercase tracking-widest text-muted">Taxa de serviço (R$)</label>
             <input type="text" inputMode="decimal" value={taxaServico} onChange={e => setTaxaServico(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00" className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500" /></div>
           <div><label className="text-3xs font-bold uppercase tracking-widest text-muted">Simples (%)</label>
@@ -124,7 +124,7 @@ export default function FechamentoMes({ unidadeAtiva, unidadeInfo }) {
             ))}
             <div className="flex justify-between items-baseline pt-3 mt-2 border-t-2 border-slate-800">
               <span className="font-black text-slate-800 uppercase tracking-widest text-sm">Lucro do mês</span>
-              <span className="text-right"><span className="text-xs font-bold text-subtle mr-2">{pct(lucro)}</span><span className={`text-2xl font-black ${lucro >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtBRL(lucro)}</span></span>
+              <span className="text-right"><span className="text-xs font-bold text-subtle mr-2">{pct(lucro)}</span><span className={`text-2xl font-black ${lucro >= 0 ? "text-success" : "text-red-600"}`}>{fmtBRL(lucro)}</span></span>
             </div>
             <p className="text-3xs font-medium text-subtle mt-3">CMV = média teórica das fichas precificadas aplicada ao faturamento. Contas do mês vêm do Contas a Pagar por categoria (a folha lançada como "cmo" fica de fora para não contar duas vezes). Ajuste os percentuais conforme sua faixa do Simples e o contrato da maquininha.</p>
           </>

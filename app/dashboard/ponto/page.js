@@ -159,7 +159,7 @@ function ModalHistorico({ onClose, colaborador }) {
                  {/* Detalhes de GPS / Geolocalização */}
                  {reg.latitude != null && reg.longitude != null && (
                    <div className="mt-2 pt-2 border-t border-line flex items-center justify-between text-2xs">
-                     <span className="font-bold text-emerald-700 flex items-center gap-1">
+                     <span className="font-bold text-accent flex items-center gap-1">
                        <MapPin size={12}/> {reg.distancia_metros != null ? `${reg.distancia_metros}m da loja` : "GPS Registrado"}
                      </span>
                      <a
@@ -381,7 +381,7 @@ export default function PontoPage() {
       <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col min-h-0">
         <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 bg-card p-4 rounded-[24px] shadow-sm border border-line shrink-0">
            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+              <div className="w-14 h-14 rounded-2xl bg-accent text-accent-fg flex items-center justify-center shadow-lg shadow-emerald-600/20">
                  <Fingerprint size={28} />
               </div>
               <div>
@@ -418,7 +418,7 @@ export default function PontoPage() {
               <div className="p-4 border-b border-line shrink-0 space-y-3">
                  {/* Caminho rápido: a pessoa se identifica pelo rosto */}
                  <button onClick={() => setFacialAberto(true)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20">
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent shadow-lg shadow-emerald-600/20">
                     <ScanFace size={20} /> Bater ponto pelo rosto
                  </button>
                  {areaAtiva && (
@@ -457,7 +457,7 @@ export default function PontoPage() {
                     const isSelected = colabAtivo?.id === f.id;
 
                     return (
-                       <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-5 rounded-2xl text-left border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20 scale-[1.02]' : 'bg-card border-line hover:border-emerald-300'}`}>
+                       <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-5 rounded-2xl text-left border transition-all ${isSelected ? 'bg-accent border-emerald-600 text-accent-fg shadow-lg shadow-emerald-600/20 scale-[1.02]' : 'bg-card border-line hover:border-emerald-300'}`}>
                           <div className="flex justify-between items-center gap-3">
                              <div className="min-w-0">
                                 <p className={`font-black text-2xl leading-tight ${isSelected ? 'text-white' : 'text-fg'}`}>{f.nome}</p>
@@ -487,7 +487,7 @@ export default function PontoPage() {
                  return (
                     <div className="w-full max-w-md flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
                        <div className="flex items-center gap-4 mb-6 w-full justify-center">
-                          <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
+                          <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-success shadow-inner shrink-0">
                              <Clock size={32} />
                           </div>
                           <div className="text-left">
@@ -497,19 +497,19 @@ export default function PontoPage() {
                        </div>
                        
                        {st === 4 && (
-                          <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl w-full flex flex-col items-center gap-1 border border-emerald-100 mb-4 animate-in slide-in-from-top-4">
+                          <div className="bg-accent-soft text-accent-strong p-4 rounded-2xl w-full flex flex-col items-center gap-1 border border-emerald-100 mb-4 animate-in slide-in-from-top-4">
                              <div className="flex items-center gap-2">
                                 <CheckCircle2 size={24}/>
                                 <p className="font-black text-lg tracking-tight">Jornada Concluída</p>
                              </div>
-                             <p className="font-bold text-emerald-700 text-xs">Todos os pontos de hoje foram registrados.</p>
+                             <p className="font-bold text-accent text-xs">Todos os pontos de hoje foram registrados.</p>
                           </div>
                        )}
                        
                        <div className="w-full text-left">
                            <div className="flex items-center justify-between ml-2 mb-3">
                              <p className="text-xs font-bold text-subtle uppercase tracking-widest">Registro do Dia:</p>
-                             <span className="text-3xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                             <span className="text-3xs font-bold text-accent-strong bg-accent-soft px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                                <MapPin size={10}/> GPS Geofencing Ativo
                              </span>
                            </div>
@@ -523,7 +523,7 @@ export default function PontoPage() {
                            
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
                              {/* Botão 1 */}
-                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105 cursor-pointer' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
+                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-accent text-accent-fg shadow-xl shadow-emerald-600/20 hover:bg-accent scale-105 cursor-pointer' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">1. Entrada</span>
                                    {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}

@@ -189,7 +189,7 @@ export default function GerarPagamentoExtraPage() {
     carregarHistorico();
   };
 
-  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={32} /></div>;
+  if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-success" size={32} /></div>;
   if (!extra) return <div className="mx-auto max-w-xl p-8 text-center"><p className="font-bold text-red-700">{erro || "Extra não encontrado."}</p><button onClick={() => router.push("/dashboard/rh/extra")} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white">Voltar</button></div>;
 
   return (
@@ -216,7 +216,7 @@ export default function GerarPagamentoExtraPage() {
             <label className="sm:col-span-2">
               <span className="text-2xs font-bold uppercase tracking-wider text-muted">Valor Total a Pagar *</span>
               <div className="mt-1 flex h-12 items-center rounded-xl border-2 border-emerald-400 bg-emerald-50/70 px-3">
-                <span className="mr-2 text-lg font-black text-emerald-700 shrink-0 whitespace-nowrap leading-none">R$</span>
+                <span className="mr-2 text-lg font-black text-accent shrink-0 whitespace-nowrap leading-none">R$</span>
                 <input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-fg outline-none" placeholder="0,00" />
               </div>
             </label>
@@ -269,10 +269,10 @@ export default function GerarPagamentoExtraPage() {
           <div className="pt-2 border-t border-line-soft">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-fg-soft flex items-center gap-1.5">
-                <Sparkles size={15} className="text-emerald-600"/> Desmembramento Automático (Taxa 10% / INSS 11% / FGTS 8%)
+                <Sparkles size={15} className="text-success"/> Desmembramento Automático (Taxa 10% / INSS 11% / FGTS 8%)
               </span>
               <div className="flex gap-1 bg-elevated p-0.5 rounded-lg border border-line">
-                <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.desmembrar ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Ativado</button>
+                <button type="button" onClick={() => set("desmembrar", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.desmembrar ? "bg-accent text-accent-fg" : "text-slate-600"}`}>Ativado</button>
                 <button type="button" onClick={() => set("desmembrar", false)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${!form.desmembrar ? "bg-slate-800 text-white" : "text-slate-600"}`}>Desativado</button>
               </div>
             </div>
@@ -298,17 +298,17 @@ export default function GerarPagamentoExtraPage() {
           {/* LINHA 3: TOGGLES COMPACTOS (ALIMENTAÇÃO E MATERIAIS) */}
           <div className="grid gap-3 sm:grid-cols-2 pt-1 border-t border-line-soft">
             <div className="flex items-center justify-between rounded-xl border border-line bg-slate-50/60 px-3.5 py-2.5">
-              <span className="text-xs font-bold text-fg-soft flex items-center gap-1.5"><Utensils size={15} className="text-emerald-600" /> Ofereceu Alimentação?</span>
+              <span className="text-xs font-bold text-fg-soft flex items-center gap-1.5"><Utensils size={15} className="text-success" /> Ofereceu Alimentação?</span>
               <div className="flex gap-1 bg-card p-0.5 rounded-lg border border-line">
-                <button type="button" onClick={() => set("alimentacao", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.alimentacao ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("alimentacao", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.alimentacao ? "bg-accent text-accent-fg" : "text-slate-600"}`}>Sim</button>
                 <button type="button" onClick={() => set("alimentacao", false)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${!form.alimentacao ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
               </div>
             </div>
 
             <div className="flex items-center justify-between rounded-xl border border-line bg-slate-50/60 px-3.5 py-2.5">
-              <span className="text-xs font-bold text-fg-soft flex items-center gap-1.5"><Shirt size={15} className="text-emerald-600" /> Entregou Material/Uniforme?</span>
+              <span className="text-xs font-bold text-fg-soft flex items-center gap-1.5"><Shirt size={15} className="text-success" /> Entregou Material/Uniforme?</span>
               <div className="flex gap-1 bg-card p-0.5 rounded-lg border border-line">
-                <button type="button" onClick={() => set("materiais", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.materiais ? "bg-emerald-600 text-white" : "text-slate-600"}`}>Sim</button>
+                <button type="button" onClick={() => set("materiais", true)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${form.materiais ? "bg-accent text-accent-fg" : "text-slate-600"}`}>Sim</button>
                 <button type="button" onClick={() => set("materiais", false)} className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${!form.materiais ? "bg-slate-800 text-white" : "text-slate-600"}`}>Não</button>
               </div>
             </div>
@@ -325,10 +325,10 @@ export default function GerarPagamentoExtraPage() {
 
           {/* BOTÕES DE AÇÃO */}
           <div className="grid gap-2.5 sm:grid-cols-2 pt-2 border-t border-line-soft">
-            <button onClick={() => salvar(false)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-card text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+            <button onClick={() => salvar(false)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-card text-sm font-black text-accent-strong hover:bg-accent-soft disabled:opacity-50">
               {salvando ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Salvar sem imprimir
             </button>
-            <button onClick={() => salvar(true)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-black text-white shadow-md hover:bg-emerald-700 disabled:opacity-50">
+            <button onClick={() => salvar(true)} disabled={salvando} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-accent text-sm font-black text-accent-fg shadow-md hover:bg-accent disabled:opacity-50">
               {salvando ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /><Printer size={18} /></>} Salvar e imprimir recibo
             </button>
           </div>
@@ -351,7 +351,7 @@ export default function GerarPagamentoExtraPage() {
                     <button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex h-9 items-center gap-1 rounded-xl bg-card border border-line px-3 text-xs font-bold text-fg-soft hover:bg-slate-50">
                       <Printer size={14} /> Imprimir
                     </button>
-                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-emerald-50 px-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100" title="Alternar status de pagamento">
+                    <button onClick={() => alterarPagamento(recibo)} className="flex h-9 items-center gap-1 rounded-xl bg-accent-soft px-2.5 text-xs font-bold text-accent-strong hover:bg-emerald-100" title="Alternar status de pagamento">
                       {recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />}
                     </button>
                     <button onClick={() => excluirRecibo(recibo)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100" title="Excluir comprovante/recibo">

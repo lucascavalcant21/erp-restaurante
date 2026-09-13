@@ -216,7 +216,7 @@ export default function LojasPage() {
                   <button onClick={()=>setAbaAtual("basico")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "basico" ? "border-slate-900 text-fg" : "border-transparent text-subtle hover:text-slate-600"}`}>Identificação</button>
                   <button onClick={()=>setAbaAtual("fiscal")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "fiscal" ? "border-slate-900 text-fg" : "border-transparent text-subtle hover:text-slate-600"}`}>Dados Fiscais / CNPJ</button>
                   <button onClick={()=>setAbaAtual("endereco")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "endereco" ? "border-slate-900 text-fg" : "border-transparent text-subtle hover:text-slate-600"}`}>Endereço & Contato</button>
-                  <button onClick={()=>setAbaAtual("gps")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "gps" ? "border-emerald-600 text-emerald-600" : "border-transparent text-subtle hover:text-slate-600"}`}>📍 Geofencing GPS (Ponto)</button>
+                  <button onClick={()=>setAbaAtual("gps")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "gps" ? "border-emerald-600 text-success" : "border-transparent text-subtle hover:text-slate-600"}`}>📍 Geofencing GPS (Ponto)</button>
                </div>
 
                <div className="space-y-4 flex-1 overflow-y-auto pr-2 pb-4 custom-scrollbar">
@@ -342,7 +342,7 @@ export default function LojasPage() {
                                 alert(err.message || "Erro ao obter GPS.");
                               }
                             }}
-                            className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
+                            className="px-4 py-3 bg-accent hover:bg-accent text-accent-fg font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
                           >
                              <Crosshair size={16}/> Capturar GPS Atual do Meu Dispositivo
                           </button>

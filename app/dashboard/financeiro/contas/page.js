@@ -81,7 +81,7 @@ export default function ContasAPagarPage() {
                <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Contas a Pagar</h1>
                <p className="text-fg-soft font-bold uppercase tracking-widest text-xs mt-1">Gestão de Custos e Despesas</p>
             </div>
-            <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
+            <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-accent text-accent-fg font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
                <Plus size={20}/> Nova Despesa
             </button>
          </div>
@@ -164,7 +164,7 @@ export default function ContasAPagarPage() {
                           <span className="font-black text-fg">{fmtBRL(c.valor)}</span>
                           <div className="text-center">
                             {c.status === 'pago' ? (
-                              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg font-bold">
+                              <span className="inline-flex items-center gap-1 text-xs text-accent-strong bg-accent-soft px-2 py-1 rounded-lg font-bold">
                                 <CheckCircle2 size={14} /> Pago
                               </span>
                             ) : (
@@ -226,7 +226,7 @@ export default function ContasAPagarPage() {
                      </span>
                   </label>
                   <div className="pt-4 mt-2 border-t border-line-soft">
-                     <button type="submit" className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-xl shadow-xl shadow-emerald-500/30 active:scale-95 transition-transform">
+                     <button type="submit" className="w-full py-4 bg-emerald-500 hover:bg-accent text-accent-fg font-black text-lg rounded-xl shadow-xl shadow-emerald-500/30 active:scale-95 transition-transform">
                         Salvar Despesa
                      </button>
                   </div>

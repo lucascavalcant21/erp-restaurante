@@ -1955,7 +1955,7 @@ export default function RHPage() {
       <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/80 shadow-sm shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center border border-emerald-100/80 shadow-sm shrink-0">
                  <Users size={24} />
               </div>
               <div>
@@ -1964,16 +1964,16 @@ export default function RHPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-               <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
+               <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
                </button>
-               <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
                   <UserPlus size={16} /> Cadastro de extras
                </button>
-               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
                   <ClipboardList size={16} /> Fechar folha
                </button>
-               <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-card text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
                   <Printer size={16} /> Recibos de extras
                </button>
             </div>
@@ -1981,7 +1981,7 @@ export default function RHPage() {
 
          {/* Ferramentas secundárias: linha própria, compactas, com quebra */}
          <div className="flex items-center gap-2 flex-wrap mt-4">
-            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-card text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors">
                <CreditCard size={14} /> Lançar Folha (mês)
             </button>
             <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-card text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
@@ -2006,7 +2006,7 @@ export default function RHPage() {
                <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
                <button onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
                   title="Tire a foto de um recibo preenchido: a IA lê os dados, cadastra o extra e anexa a foto como documento"
-                  className="flex items-center gap-1.5 bg-card text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors disabled:opacity-60">
+                  className="flex items-center gap-1.5 bg-card text-accent-strong border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-accent-soft transition-colors disabled:opacity-60">
                   {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler Recibo Preenchido (IA)
                </button>
                </>
@@ -2060,7 +2060,7 @@ export default function RHPage() {
                   {cards.map(c => (
                      <div key={c.rot} className="bg-card rounded-2xl border border-line shadow-sm px-3 py-2.5">
                         <p className="text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
-                        <p className="text-lg font-black text-emerald-700 mt-0.5">{c.val}</p>
+                        <p className="text-lg font-black text-accent mt-0.5">{c.val}</p>
                         <p className="text-3xs font-bold text-subtle truncate">{c.sub}</p>
                      </div>
                   ))}
@@ -2167,7 +2167,7 @@ export default function RHPage() {
                      { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
                   ].map(a => (
                      <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-line bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
-                        <a.icon size={18} className="text-emerald-600" />
+                        <a.icon size={18} className="text-success" />
                         <span className="text-3xs font-bold text-slate-600 leading-tight">{a.rot}</span>
                      </button>
                   ))}
@@ -2182,7 +2182,7 @@ export default function RHPage() {
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
             {[["Fixo", "Equipe Fixa"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
                <button key={id} onClick={() => setAbaAtiva(id)}
-                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
+                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20" : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
                   {rot}
                </button>
             ))}
@@ -2276,7 +2276,7 @@ export default function RHPage() {
                            </div>
                            {(f.telefone || f.chave_pix) && (
                               <div className="text-2xs font-semibold text-muted flex flex-wrap gap-x-3 gap-y-0.5">
-                                 {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-emerald-700 hover:underline"><Phone size={10} /> {f.telefone}</a>}
+                                 {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-accent hover:underline"><Phone size={10} /> {f.telefone}</a>}
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
                            )}
@@ -2290,7 +2290,7 @@ export default function RHPage() {
                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-muted">
                                     {f.tipo_contrato && <span className="rounded-md bg-elevated px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
                                     {adm && <span>Admissão {adm}</span>}
-                                    {casa && <span className="text-emerald-700">{casa.textoDias} de {nomeDaCasa}</span>}
+                                    {casa && <span className="text-accent">{casa.textoDias} de {nomeDaCasa}</span>}
                                     {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>Aniversário {aniv.diaMes}{aniv.ehHoje ? " · é hoje" : ""}</span>}
                                  </div>
                               );
@@ -2298,7 +2298,7 @@ export default function RHPage() {
                            <div>{pontoBadge}</div>
                            <div>
                               {ehFreela ? (
-                                 <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-3xs font-bold text-subtle">/ diária</span></div>
+                                 <div className="font-black text-accent">{fmtBRL(f.salario)} <span className="text-3xs font-bold text-subtle">/ diária</span></div>
                               ) : (
                                  (() => {
                                  // Dia a dia do mês: alimenta os cliques (extra/noturno/feriado) e os contadores
@@ -2324,12 +2324,12 @@ export default function RHPage() {
                                     {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-muted font-semibold">Salário base</span><span className="font-bold text-fg-soft">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
                                     {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nValor mensal definido no cadastro (rateio da taxa de 10%). Entra no total e no holerite no fim do mês.\n\nTrabalhou até agora: ${diasTrab.length} dia(s) — por dia dá ${fmtBRL(p.taxa / Math.max(1, diasTrab.length))}.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
-                                    {p.ad.valorExtra > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`HORA EXTRA (+50%): ${fmtBRL(p.ad.valorExtra)}`, "minExtra", "Regra: após 00:00, hora + 50% (base = salário ÷ 220).")}><span className="text-emerald-600 font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-emerald-700">{fmtBRL(p.ad.valorExtra)}</span></div>}
+                                    {p.ad.valorExtra > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`HORA EXTRA (+50%): ${fmtBRL(p.ad.valorExtra)}`, "minExtra", "Regra: após 00:00, hora + 50% (base = salário ÷ 220).")}><span className="text-success font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-accent">{fmtBRL(p.ad.valorExtra)}</span></div>}
                                     {p.ad.valorNoturno > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`ADICIONAL NOTURNO (+20%): ${fmtBRL(p.ad.valorNoturno)}`, "minNoturno", "Regra: minutos entre 23:30 e 00:00 pagam +20%.")}><span className="text-sky-600 font-semibold">+ Ad. noturno (+20%)</span><span className="font-bold text-sky-700">{fmtBRL(p.ad.valorNoturno)}</span></div>}
                                     {p.ad.valorFeriado > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`FERIADO TRABALHADO (+100% — pago em dobro): ${fmtBRL(p.ad.valorFeriado)}`, "minFeriado", "Regra: todas as horas do feriado pagam em dobro (Lei 605/49).")}><span className="text-amber-600 font-semibold">+ Feriado (+100%)</span><span className="font-bold text-amber-700">{fmtBRL(p.ad.valorFeriado)}</span></div>}
                                     {p.descontos > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VALES / DESCONTOS: ${fmtBRL(p.descontos)}\n\nSoma dos vales e consumos pendentes (adiantamentos e consumo no cardápio da equipe). Desconto na folha. Detalhe em Ações → Consumo / Vales.`)}><span className="text-rose-600 font-semibold">− Vales / descontos</span><span className="font-bold text-rose-700">{fmtBRL(p.descontos)}</span></div>}
                                     </>)}
-                                    <div className="flex justify-between pt-1.5 mt-1.5 border-t border-line"><span className="font-black text-fg-soft">Total previsto</span><span className="font-black text-emerald-700">{fmtBRL(p.previsto)}</span></div>
+                                    <div className="flex justify-between pt-1.5 mt-1.5 border-t border-line"><span className="font-black text-fg-soft">Total previsto</span><span className="font-black text-accent">{fmtBRL(p.previsto)}</span></div>
                                     {(() => {
                                        const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
                                        if (!nDias || !p.fixo) return null;
@@ -2338,7 +2338,7 @@ export default function RHPage() {
                                     {detAberto[f.id] && (<>{/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
                                     <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-line text-3xs font-bold">
                                        <span className="text-muted">Dias no mês (escala)</span><span className="text-right text-fg-soft font-black">{diasPrevistos}</span>
-                                       <span className="text-muted">Trabalhou até agora</span><span className="text-right text-emerald-700 font-black">{diasTrab.length}</span>
+                                       <span className="text-muted">Trabalhou até agora</span><span className="text-right text-accent font-black">{diasTrab.length}</span>
                                        <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-muted"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
                                        <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-muted"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
                                     </div>
@@ -2463,7 +2463,7 @@ export default function RHPage() {
                      </div>
                      {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-line pt-4"><p className="text-3xs font-bold uppercase tracking-widest text-subtle">Arquivos anexados</p>{(f.docs || []).map(d => (
                         <div key={d.id} className="flex items-center gap-2 rounded-xl border border-line bg-card px-3.5 py-2">
-                           <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-emerald-700 hover:underline min-w-0">
+                           <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-accent hover:underline min-w-0">
                               <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
                            </a>
                            <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-subtle hover:text-red-500 shrink-0"><X size={14}/></button>
@@ -2500,7 +2500,7 @@ export default function RHPage() {
                `}</style>
                <div className="flex justify-between items-center gap-4 shrink-0 border-b border-line-soft p-4 sm:px-6 sm:py-5">
                   <div className="min-w-0">
-                     <p className="text-3xs font-bold uppercase tracking-[.18em] text-emerald-700">Equipe fixa · cadastro completo</p>
+                     <p className="text-3xs font-bold uppercase tracking-[.18em] text-accent">Equipe fixa · cadastro completo</p>
                      <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar funcionário" : "Novo funcionário fixo"}</h2>
                      <p className="mt-1 text-xs font-bold text-muted">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
                   </div>
@@ -2511,16 +2511,16 @@ export default function RHPage() {
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
                     ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"],
-                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
+                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-accent">{label}</button>)}
                </nav>
 
                <div className="space-y-5 flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/60">
                   <section id="func-identificacao" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-muted">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-muted">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Tipo de Contrato</label>
-                        <div className="flex min-h-12 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 font-black text-emerald-800">Equipe fixa (CLT / mensalista)</div>
+                        <div className="flex min-h-12 items-center rounded-xl border border-emerald-200 bg-accent-soft px-4 font-black text-accent-strong">Equipe fixa (CLT / mensalista)</div>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">Nome Completo</label>
@@ -2601,7 +2601,7 @@ export default function RHPage() {
 
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
                   <div id="func-pessoais" className="bg-card border border-line rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                     <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-muted">Informações completas para documentos e gestão do RH.</p></div>
+                     <div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-muted">Informações completas para documentos e gestão do RH.</p></div>
                      
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
@@ -2637,7 +2637,7 @@ export default function RHPage() {
                               const hoje = new Date();
                               let idade = hoje.getFullYear() - n.getFullYear();
                               if (hoje.getMonth() < n.getMonth() || (hoje.getMonth() === n.getMonth() && hoje.getDate() < n.getDate())) idade--;
-                              return <p className="text-3xs font-bold text-emerald-600 mt-1">{idade} anos</p>;
+                              return <p className="text-3xs font-bold text-success mt-1">{idade} anos</p>;
                            })()}
                         </div>
                         <div>
@@ -2656,7 +2656,7 @@ export default function RHPage() {
                         <div className="sm:col-span-2">
                            <div className="flex items-center justify-between gap-2">
                               <label className="text-3xs font-bold text-muted uppercase tracking-widest">Filhos</label>
-                              <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-bold text-emerald-700 hover:underline">+ Adicionar filho</button>
+                              <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-bold text-accent hover:underline">+ Adicionar filho</button>
                            </div>
                            <div className="mt-2 space-y-2">
                               {(novoFunc.filhos || []).length === 0 && <p className="text-xs font-semibold text-subtle">Nenhum filho cadastrado.</p>}
@@ -2738,7 +2738,7 @@ export default function RHPage() {
                   </div>
 
                   <div id="func-contrato" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm">
-                  <div><p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-muted">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
+                  <div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-muted">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">Chave PIX</label>
@@ -2746,14 +2746,14 @@ export default function RHPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
-                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-success outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
                   {/* EXTRA: o que o recibo precisa fica aqui no cadastro e migra sozinho */}
                   {novoFunc.tipo_contrato === "Freelancer" && (
                      <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
-                        <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-accent">Dados do Recibo de Trabalho Extra</p>
                         <p className="mt-1 mb-4 text-xs font-medium text-muted">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
 
                         <label className="block">
@@ -2799,7 +2799,7 @@ export default function RHPage() {
 
                   {novoFunc.tipo_contrato !== "Freelancer" && (
                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
-                        <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700 mb-3">Composição da remuneração (além do fixo)</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-accent mb-3">Composição da remuneração (além do fixo)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
                               <label className="text-xs font-bold text-muted uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
@@ -2914,7 +2914,7 @@ export default function RHPage() {
                            const horas = totalMin/60;
                            const acima = horas > 44;
                            return (
-                              <div className={`mt-2 rounded-lg px-3 py-2 text-xs font-bold ${acima ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-emerald-50 border border-emerald-100 text-emerald-700"}`}>
+                              <div className={`mt-2 rounded-lg px-3 py-2 text-xs font-bold ${acima ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-accent-soft border border-emerald-100 text-accent-strong"}`}>
                                  Carga semanal: {Math.floor(horas)}h{String(Math.round((horas%1)*60)).padStart(2,'0')} em {diasTrab} dia(s) (intervalo já descontado).
                                  {acima ? " Acima do limite CLT de 44h/semana — ajuste os horários." : " Dentro do limite CLT (44h/semana)."}
                               </div>
@@ -2936,7 +2936,7 @@ export default function RHPage() {
                                     if(ativo) novos = novos.filter(d => d !== dia.v);
                                     else novos.push(dia.v);
                                     setNovoFunc({...novoFunc, dias_trabalho: novos.sort().join(',')});
-                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-emerald-600 text-white shadow-md' : 'bg-elevated text-subtle hover:bg-slate-200'}`}>
+                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-accent text-accent-fg shadow-md' : 'bg-elevated text-subtle hover:bg-slate-200'}`}>
                                     {dia.l}
                                  </button>
                               );
@@ -2949,7 +2949,7 @@ export default function RHPage() {
                            if (!nDias || !sal || novoFunc.tipo_contrato === "Freelancer") return null;
                            const diasMes = nDias * 4.345;
                            return (
-                              <p className="text-2xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2 inline-block">
+                              <p className="text-2xs font-bold text-accent-strong bg-accent-soft border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2 inline-block">
                                  {fmtBRL(sal / diasMes)} por dia trabalhado
                                  <span className="text-emerald-600/70 font-bold"> · fixo + VA + taxa · {nDias} dia(s)/semana ≈ {Math.round(diasMes)} dias/mês</span>
                               </p>
@@ -2991,7 +2991,7 @@ export default function RHPage() {
                </div>
 
                <div className="border-t border-line bg-card p-3 sm:p-4 shrink-0">
-                  <button onClick={handleSalvar} disabled={!novoFunc.nome || !novoFunc.cargo} className="w-full min-h-14 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+                  <button onClick={handleSalvar} disabled={!novoFunc.nome || !novoFunc.cargo} className="w-full min-h-14 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                      {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
                   </button>
                </div>
@@ -3010,7 +3010,7 @@ export default function RHPage() {
              <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between gap-3 border-b border-line p-5">
                  <div>
-                   <p className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Recibo de Trabalho Extra</p>
+                   <p className="text-3xs font-bold uppercase tracking-widest text-accent">Recibo de Trabalho Extra</p>
                    <h2 className="mt-1 text-xl font-black text-fg">Escolha um extra cadastrado</h2>
                    <p className="mt-1 text-xs font-bold text-muted">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
                  </div>
@@ -3029,13 +3029,13 @@ export default function RHPage() {
                          <p className="truncate text-sm font-black text-slate-800">{extra.nome}</p>
                          <p className="truncate text-xs font-bold text-subtle">{extra.cargo || "Extra"} · {extra.cpf || "CPF não informado"} · {fmtBRL(extra.salario || 0)}/diária</p>
                        </div>
-                       <Printer size={17} className="text-emerald-700"/>
+                       <Printer size={17} className="text-accent"/>
                      </button>
                    )) : (
                      <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
                        <p className="text-sm font-black text-fg-soft">Nenhum extra cadastrado encontrado</p>
                        <p className="mt-1 text-xs font-bold text-subtle">Cadastre o profissional como “Freelancer / Extra” antes de gerar o recibo.</p>
-                       <button onClick={() => { setModalEscolherExtra(false); abrirModalNovo(); }} className="mt-4 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white">Cadastrar extra</button>
+                       <button onClick={() => { setModalEscolherExtra(false); abrirModalNovo(); }} className="mt-4 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-accent-fg">Cadastrar extra</button>
                      </div>
                    )}
                  </div>
@@ -3183,7 +3183,7 @@ export default function RHPage() {
                      <label className="col-span-2 text-xs font-bold text-slate-600">Intervalo acordado
                        <input type="text" value={fichaDados.intervalo} onChange={e => setFichaDados(d => ({...d, intervalo: e.target.value}))} placeholder="Ex.: 60 min" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="col-span-2 flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-black text-emerald-800">
+                     <label className="col-span-2 flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-accent-soft p-3 text-sm font-black text-accent-strong">
                        <input type="checkbox" checked={!!fichaDados.janta_ofertada} onChange={e => setFichaDados(d => ({...d, janta_ofertada: e.target.checked}))} className="h-5 w-5 accent-emerald-700"/>
                        Janta ofertada pelo restaurante
                      </label>
@@ -3192,20 +3192,20 @@ export default function RHPage() {
 
                {/* Valor pago -> desmembramento automático */}
                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-5">
-                  <label className="text-3xs font-bold uppercase tracking-widest text-emerald-700 block mb-1">Valor pago da diária (R$)</label>
+                  <label className="text-3xs font-bold uppercase tracking-widest text-accent block mb-1">Valor pago da diária (R$)</label>
                   <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
-                     className="w-full p-3.5 bg-card border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
+                     className="w-full p-3.5 bg-card border-2 border-emerald-300 rounded-xl font-black text-2xl text-accent outline-none focus:border-emerald-500"/>
 
                   {/* Nº de dias combinados: soma o total (ex.: terça a domingo = 6 dias) */}
                   <div className="flex items-center gap-3 mt-3">
-                     <label className="text-3xs font-bold uppercase tracking-widest text-emerald-700">Dias combinados</label>
+                     <label className="text-3xs font-bold uppercase tracking-widest text-accent">Dias combinados</label>
                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={()=>setFichaDias(String(Math.max(1, nDias-1)))} className="w-8 h-8 rounded-lg bg-card border border-emerald-300 font-black text-emerald-700">−</button>
-                        <input type="number" min="1" step="1" value={fichaDias} onChange={e=>setFichaDias(e.target.value)} className="w-16 p-2 text-center bg-card border-2 border-emerald-300 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
-                        <button type="button" onClick={()=>setFichaDias(String(nDias+1))} className="w-8 h-8 rounded-lg bg-card border border-emerald-300 font-black text-emerald-700">+</button>
+                        <button type="button" onClick={()=>setFichaDias(String(Math.max(1, nDias-1)))} className="w-8 h-8 rounded-lg bg-card border border-emerald-300 font-black text-accent">−</button>
+                        <input type="number" min="1" step="1" value={fichaDias} onChange={e=>setFichaDias(e.target.value)} className="w-16 p-2 text-center bg-card border-2 border-emerald-300 rounded-lg font-black text-accent outline-none focus:border-emerald-500"/>
+                        <button type="button" onClick={()=>setFichaDias(String(nDias+1))} className="w-8 h-8 rounded-lg bg-card border border-emerald-300 font-black text-accent">+</button>
                      </div>
                      <div className="flex flex-wrap gap-1">
-                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-3xs font-bold px-2 py-1 rounded-md ${nDias===n?"bg-emerald-600 text-white":"bg-card border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
+                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-3xs font-bold px-2 py-1 rounded-md ${nDias===n?"bg-accent text-accent-fg":"bg-card border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
                      </div>
                   </div>
 
@@ -3217,8 +3217,8 @@ export default function RHPage() {
                         <span>Taxa de Serviço (10%): <b className="text-slate-800">{fmt(taxa)}</b></span>
                         <span className="col-span-2 pt-2 mt-1 border-t border-emerald-200 text-sm">
                            {nDias > 1
-                              ? <>Total: <b className="text-emerald-700">{fmt(totalGeral)}</b> <span className="font-medium text-muted">({nDias} dias × {fmt(total)})</span></>
-                              : <>Total do dia: <b className="text-emerald-700">{fmt(total)}</b></>}
+                              ? <>Total: <b className="text-accent">{fmt(totalGeral)}</b> <span className="font-medium text-muted">({nDias} dias × {fmt(total)})</span></>
+                              : <>Total do dia: <b className="text-accent">{fmt(total)}</b></>}
                         </span>
                      </div>
                   ) : (
@@ -3243,7 +3243,7 @@ export default function RHPage() {
                     </label>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-black text-emerald-800">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-accent-soft p-3 text-sm font-black text-accent-strong">
                       <input type="checkbox" checked={!!fichaDados.pagamento_realizado} onChange={e => setFichaDados(d => ({ ...d, pagamento_realizado: e.target.checked }))} className="h-5 w-5 accent-emerald-700" />
                       Pagamento já realizado
                     </label>
@@ -3314,7 +3314,7 @@ export default function RHPage() {
                   </div>
                </div>
 
-               <button disabled={salvandoRecibo} onClick={imprimirFichaPreparada} className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-700/20 flex items-center justify-center gap-2">
+               <button disabled={salvandoRecibo} onClick={imprimirFichaPreparada} className="w-full py-4 bg-accent hover:opacity-90 disabled:opacity-60 text-accent-fg font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-700/20 flex items-center justify-center gap-2">
                   {salvandoRecibo ? <Loader2 size={20} className="animate-spin" /> : <Printer size={20}/>} {salvandoRecibo ? "Salvando no histórico..." : "Gerar e imprimir recibo"}
                </button>
             </div>
@@ -3355,7 +3355,7 @@ export default function RHPage() {
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalDiarias(null)}>
             <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-emerald-600" /> Histórico completo do extra</h2>
+                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico completo do extra</h2>
                   <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={17} /></button>
                </div>
                <p className="text-xs font-bold text-muted mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
@@ -3392,9 +3392,9 @@ export default function RHPage() {
                                {dias.map(item => (
                                  <tr key={item.data}>
                                    <td className="p-3 font-black">{dataBR(item.data)}</td>
-                                   <td className="p-3"><span className={`rounded-full px-2 py-1 font-black ${item.ponto?.hora_entrada ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{item.ponto?.hora_entrada ? "Trabalhou" : "Contratado"}</span></td>
+                                   <td className="p-3"><span className={`rounded-full px-2 py-1 font-black ${item.ponto?.hora_entrada ? "bg-accent-soft text-accent-strong" : "bg-amber-50 text-amber-700"}`}>{item.ponto?.hora_entrada ? "Trabalhou" : "Contratado"}</span></td>
                                    <td className="p-3 font-bold text-slate-600">{hora(item.ponto?.hora_entrada || item.recibo?.hora_entrada)} às {hora(item.ponto?.hora_saida || item.recibo?.hora_saida)}</td>
-                                   <td className="p-3 font-black text-emerald-700">{fmtBRL(item.valor || 0)}</td>
+                                   <td className="p-3 font-black text-accent">{fmtBRL(item.valor || 0)}</td>
                                    <td className="p-3 font-bold">{item.recibo ? (item.recibo.pagamento_realizado ? "Pago" : "Pendente") : "Sem recibo"}</td>
                                    <td className="p-3">{item.liberacao && !item.recibo && <button onClick={async () => { if (confirm("Remover esta liberação?")) { await removerLiberacao(item.liberacao.id); abrirHistoricoDiarias(modalDiarias.func); } }} className="rounded-lg bg-rose-50 p-2 text-rose-600"><Trash2 size={14} /></button>}</td>
                                  </tr>
@@ -3421,7 +3421,7 @@ export default function RHPage() {
                                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line-soft pb-2">
                                   <div>
                                     <p className="font-black text-fg text-sm">{recibo.numero}</p>
-                                    <p className="text-xs font-bold text-muted">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-emerald-700">{fmtBRL(recibo.valor_total)}</b></p>
+                                    <p className="text-xs font-bold text-muted">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
                                   </div>
                                   <span className={`rounded-full px-2.5 py-1 text-3xs font-bold ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
                                 </div>
@@ -3439,13 +3439,13 @@ export default function RHPage() {
 
                                 {temFoto && (
                                   <div className="flex items-center gap-2 pt-1">
-                                    <span className="inline-flex items-center gap-1 text-3xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                    <span className="inline-flex items-center gap-1 text-3xs font-bold text-accent-strong bg-accent-soft border border-emerald-200 px-2 py-0.5 rounded-md">
                                       ✓ Recibo Assinado Anexado
                                     </span>
                                     <button
                                       type="button"
                                       onClick={() => setFotoAmpliada(recibo.dados.foto_recibo_assinado)}
-                                      className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                                      className="text-xs font-bold text-accent hover:underline flex items-center gap-1"
                                     >
                                       <Camera size={13} /> Ver Foto do Recibo
                                     </button>
@@ -3454,8 +3454,8 @@ export default function RHPage() {
 
                                 <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-line-soft">
                                   <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-slate-50 px-3 py-2 text-xs font-bold text-fg-soft hover:bg-elevated"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
-                                  <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
-                                  <label className="cursor-pointer rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 inline-flex items-center gap-1.5 shadow-sm">
+                                  <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
+                                  <label className="cursor-pointer rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:bg-accent inline-flex items-center gap-1.5 shadow-sm">
                                     {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
                                     {temFoto ? "Trocar Foto" : "Anexar Foto do Recibo Assinado"}
                                     <input
@@ -3494,7 +3494,7 @@ export default function RHPage() {
                         <section>
                           <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
                           <div className="space-y-2">
-                            {advertencias.length === 0 ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
+                            {advertencias.length === 0 ? <p className="rounded-xl bg-accent-soft p-4 text-sm font-bold text-accent-strong">Nenhum problema registrado.</p> : advertencias.map(adv => (
                               <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-bold text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-fg-soft">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
                             ))}
                           </div>
@@ -3863,7 +3863,7 @@ export default function RHPage() {
                                        <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
-                                 <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-accent hover:bg-accent text-accent-fg font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Treinamento
                                  </button>
                               </form>
@@ -3972,9 +3972,9 @@ export default function RHPage() {
                {/* Compensar tudo com uma folga (registra a folga e zera os créditos) */}
                {total > 0 && (
                   <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 shrink-0">
-                     <span className="text-3xs font-bold uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
+                     <span className="text-3xs font-bold uppercase tracking-widest text-accent flex-1">Compensar com folga:</span>
                      <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-card border border-emerald-200 rounded-lg font-bold text-sm text-fg-soft outline-none focus:border-emerald-500"/>
-                     <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors">
+                     <button onClick={compensarBanco} className="px-4 py-2 bg-accent hover:bg-accent text-accent-fg font-bold text-xs rounded-xl transition-colors">
                         Dar folga e zerar {fmtMin(total)}
                      </button>
                   </div>
@@ -4082,7 +4082,7 @@ export default function RHPage() {
                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
                         <div className="flex gap-2">
                            <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-fg-soft"/>
-                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
+                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-accent text-accent-fg px-4 font-bold rounded-xl hover:bg-accent transition-colors">Adicionar</button>
                         </div>
                      </div>
                   </div>
@@ -4249,7 +4249,7 @@ export default function RHPage() {
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-line-soft">
                                     <div className="flex items-center gap-2">
                                        {isPago ? (
-                                          <span className="flex items-center gap-1 text-3xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                                          <span className="flex items-center gap-1 text-3xs font-bold text-accent-strong bg-accent-soft px-2 py-1 rounded-md border border-emerald-100">
                                              <CheckCircle size={10}/> PAGO
                                           </span>
                                        ) : (
@@ -4316,7 +4316,7 @@ export default function RHPage() {
 
                <div className="space-y-4">
                   <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                     <label className="text-3xs font-bold text-emerald-600 uppercase tracking-widest block mb-1">Valor Total Pago (R$)</label>
+                     <label className="text-3xs font-bold text-success uppercase tracking-widest block mb-1">Valor Total Pago (R$)</label>
                      <input type="text" value={formLancamento.total} onChange={e => handleTotalLancamentoChange(e.target.value)} className="w-full bg-transparent text-2xl font-black text-emerald-800 outline-none" />
                   </div>
                   

@@ -128,7 +128,7 @@ export default function DeliveryKanbanPage() {
         
         <div className="bg-card border-b border-line p-4 sm:p-6 flex flex-wrap justify-between items-center gap-3 z-10 shadow-sm">
            <div>
-              <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-emerald-600"/> Ajustes do Delivery</h1>
+              <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-success"/> Ajustes do Delivery</h1>
               <p className="text-sm font-bold text-muted mt-1">Taxas, Zonas de Entrega e Motoboys</p>
            </div>
            <button onClick={() => setAbaConfig(false)} className="px-6 py-3 bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-slate-900 transition-colors">
@@ -152,7 +152,7 @@ export default function DeliveryKanbanPage() {
                       <NumberInput value={configs.taxa_por_km} onChange={(e) => handleConfigChange("taxa_por_km", Number(e.target.value))} />
                     </Field>
                  </div>
-                 <button onClick={handleSalvarConfigs} disabled={salvando} className="w-full md:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl">
+                 <button onClick={handleSalvarConfigs} disabled={salvando} className="w-full md:w-auto px-8 py-4 bg-emerald-500 hover:bg-accent text-accent-fg font-black rounded-xl">
                     {salvando ? "Salvando..." : "Salvar Regras"}
                  </button>
               </div>
@@ -202,7 +202,7 @@ export default function DeliveryKanbanPage() {
       <div className="px-6 py-4 bg-card border-b border-line flex items-center justify-between shadow-sm z-10 flex-shrink-0">
          <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-600/10 flex items-center justify-center border border-emerald-600/20 shadow-sm">
-               <Truck size={24} className="text-emerald-600" />
+               <Truck size={24} className="text-success" />
             </div>
             <div>
                <h1 className="text-2xl font-black text-slate-800 tracking-tight">Expedição Delivery</h1>
@@ -240,7 +240,7 @@ export default function DeliveryKanbanPage() {
                        <span className="text-xs font-bold text-muted">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
-                    <div className="bg-slate-50 text-emerald-600 font-bold text-3xs uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
+                    <div className="bg-slate-50 text-success font-bold text-3xs uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
                        Aguardando KDS
                     </div>
                  </div>
@@ -267,7 +267,7 @@ export default function DeliveryKanbanPage() {
                     <p className="font-bold text-slate-800 text-sm mb-1">👤 {p.cliente || "Cliente Delivery"}</p>
                     <p className="font-medium text-muted text-xs mb-4 line-clamp-2">📍 {p.observacao || "Endereço não informado"}</p>
                     
-                    <button onClick={() => setModalDespacho(p)} className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl text-sm shadow-md transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => setModalDespacho(p)} className="w-full py-3 bg-emerald-500 hover:bg-accent text-accent-fg font-black uppercase tracking-widest rounded-xl text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                        <Bike size={16} /> Despachar
                     </button>
                  </div>
@@ -292,7 +292,7 @@ export default function DeliveryKanbanPage() {
                        <span className="text-xs font-bold text-muted">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
-                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg text-emerald-700 text-xs font-bold uppercase tracking-widest mb-3">
+                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg text-accent text-xs font-bold uppercase tracking-widest mb-3">
                        <Bike size={14}/> {p.motoboy || "Motoboy"}
                     </div>
                     
@@ -345,7 +345,7 @@ export default function DeliveryKanbanPage() {
                 <div className="space-y-3 mb-8 max-h-60 overflow-y-auto hide-scrollbar pr-2">
                    {motoboys.filter(m => m.status === 'online').length === 0 ? (
                       <div className="p-6 bg-slate-50 border border-line rounded-2xl text-center">
-                         <p className="font-bold text-emerald-600 mb-1">Nenhum motoboy Online!</p>
+                         <p className="font-bold text-success mb-1">Nenhum motoboy Online!</p>
                          <p className="text-xs text-slate-600">Vá em Configurações para ativar os motoboys.</p>
                       </div>
                    ) : (
@@ -356,7 +356,7 @@ export default function DeliveryKanbanPage() {
                             className="w-full flex items-center justify-between p-4 bg-card border-2 border-line-soft hover:border-emerald-500 rounded-2xl transition-all group"
                          >
                             <div className="flex items-center gap-4">
-                               <div className="w-12 h-12 bg-elevated rounded-full flex items-center justify-center font-black text-muted group-hover:bg-elevated group-hover:text-emerald-600 transition-colors">
+                               <div className="w-12 h-12 bg-elevated rounded-full flex items-center justify-center font-black text-muted group-hover:bg-elevated group-hover:text-success transition-colors">
                                   <Bike size={20} />
                                </div>
                                <div className="text-left">

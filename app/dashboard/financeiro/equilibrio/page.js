@@ -24,7 +24,7 @@ export default function EquilibrioRedirecionaPage() {
   return (
     <div className="grid min-h-[60vh] place-items-center px-6 text-center">
       <div>
-        <Loader2 className="mx-auto animate-spin text-emerald-600" size={28} />
+        <Loader2 className="mx-auto animate-spin text-success" size={28} />
         <p className="mt-3 text-sm font-black text-slate-800">O Ponto de Equilíbrio agora fica na Pizza do Lucro.</p>
         <p className="mt-1 text-xs font-bold text-muted">Levando você para lá — o equilíbrio está na aba “Custo por dia”.</p>
       </div>

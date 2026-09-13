@@ -80,7 +80,12 @@
   --faint:      #334155;
 
   --accent:        #10B981; /* emerald mais vivo no escuro */
-  --accent-strong: #059669;
+  /* No claro, "forte" e mais escuro que o acento — o fundo e branco. Aqui e o
+     contrario: o fundo e preto, entao forte tem que ser mais CLARO. Estava
+     #059669, mais escuro que o proprio --accent, o que invertia o sentido do
+     token e derrubava o contraste do texto em cima do --accent-soft para 3,44.
+     Com #34D399 da 6,74. (O --success-strong deste mesmo bloco ja fazia certo.) */
+  --accent-strong: #34D399;
   /* No claro isto e branco, porque o verde da marca e escuro. Aqui o verde
      clareia para aparecer no fundo preto, e branco em cima dele da contraste
      2,54 — reprova (o minimo para texto e 4,5). O slate escuro da 7,04.

@@ -779,7 +779,7 @@ function RotinaRunner() {
             <div className="erp-card p-4 overflow-hidden relative border-2 border-emerald-300 bg-emerald-50/60">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-accent text-accent-fg flex items-center justify-center shrink-0">
                     <Camera size={16} />
                   </div>
                   <div>
@@ -903,7 +903,7 @@ function RotinaRunner() {
               )}
 
               <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-                <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/20"><Check size={19}/> Feito</button>
+                <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20"><Check size={19}/> Feito</button>
                 <button type="button" onClick={() => mudaStatusItem(proximaPendente.id, "nao_conforme")} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-rose-100 px-4 text-sm font-black text-rose-700"><X size={19}/> Problema</button>
                 <button type="button" onClick={() => { setExp(proximaPendente.id); document.getElementById(`tarefa-${proximaPendente.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }} className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-elevated px-4 text-sm font-black text-fg-soft sm:col-span-1"><Camera size={17}/> Foto / observação</button>
               </div>
@@ -1036,7 +1036,7 @@ function RotinaRunner() {
                           disabled={registrado || salvando}
                           className={`min-h-10 flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 sm:flex-none ${
                             statusItem === "conforme"
-                              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-105"
+                              ? "bg-accent text-accent-fg shadow-md shadow-emerald-600/20 scale-105"
                               : "bg-elevated text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"
                           }`}
                         >

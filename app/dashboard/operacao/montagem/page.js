@@ -312,7 +312,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
           <ControleFaixa label="Margem da folha" valor={cfg.margemMm} sufixo=" mm" min={3} max={14} onChange={(margemMm) => onChange({ margemMm })} />
       </SecaoDesigner>
 
-      <button type="button" onClick={onSave} disabled={salvando} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+      <button type="button" onClick={onSave} disabled={salvando} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-black text-accent-fg transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-60">
         {salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
         {salvando ? "Salvando..." : "Salvar como padrão da unidade"}
       </button>
@@ -695,7 +695,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
                         </div>
                         <button
                           onClick={() => startTimer(30, idx)}
-                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 hover:text-white px-3 py-2 text-xs font-bold text-dim transition"
+                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-accent hover:text-accent-fg px-3 py-2 text-xs font-bold text-dim transition"
                           title="Iniciar cronômetro de 30s"
                         >
                           <Clock size={14} /> 30s
@@ -720,7 +720,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
             <button
               disabled={currentIndex >= lista.length - 1}
               onClick={() => setCurrentIndex(i => Math.min(lista.length - 1, i + 1))}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 font-black text-white hover:bg-emerald-500 disabled:opacity-30 transition shadow-lg shadow-emerald-600/30"
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-6 font-black text-accent-fg hover:bg-emerald-500 disabled:opacity-30 transition shadow-lg shadow-emerald-600/30"
             >
               Próximo Item ►
             </button>
@@ -988,7 +988,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
             <p className="mt-1 text-2xs font-medium text-muted">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
           </div>
           <details className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3">
-            <summary className="cursor-pointer text-xs font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
+            <summary className="cursor-pointer text-xs font-bold text-accent uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
             <div className="mt-3">
             <textarea
               value={receitaIA}
@@ -997,7 +997,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
               rows={3}
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "#fff", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
             />
-            <button onClick={montarDrinkComIA} disabled={gerandoIA || !receitaIA.trim()} className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-bold uppercase text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
+            <button onClick={montarDrinkComIA} disabled={gerandoIA || !receitaIA.trim()} className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-bold uppercase text-accent-fg bg-accent hover:bg-accent px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
               {gerandoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {gerandoIA ? "Montando o drink..." : "Montar drink automaticamente"}
             </button>
@@ -1008,7 +1008,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
-              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
+              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-success bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
                 {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                 {gerandoIA ? "Gerando..." : "Preparo com IA"}
               </button>
@@ -1043,7 +1043,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
             <input ref={inputFotoCopoRef} type="file" accept="image/*" capture="environment" onChange={escolherFotoCopo} className="hidden" />
             <div className="flex items-center gap-3 mt-2">
               <button type="button" onClick={() => inputFotoCopoRef.current?.click()} disabled={uploadando}
-                className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors disabled:opacity-50">
+                className="flex items-center gap-1.5 text-2xs font-bold uppercase text-accent-strong bg-accent-soft hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors disabled:opacity-50">
                 <Camera size={12} /> {uploadando ? "Enviando..." : (fotoCopoAtual ? "Trocar foto deste copo" : "Adicionar foto do copo")}
               </button>
               {fotoCopoAtual && (
@@ -1069,7 +1069,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
              <label className="text-xs font-bold text-muted uppercase tracking-widest">Ingredientes e Passo a passo</label>
-             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-emerald-600 bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
+             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-success bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
                {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
              </button>
@@ -2339,7 +2339,7 @@ function MontagemPageInner() {
                 <button key={m.id} type="button" onClick={() => setPreviewCard(m)} title="Ver modelo pronto"
                   className="text-left rounded-2xl bg-card border border-line hover:shadow-lg hover:border-slate-300 transition-all relative overflow-hidden group">
                   {m.estrutura_ia && (
-                    <div className="absolute top-2 right-2 bg-white/90 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center shadow z-10" title="Criado com Inteligência Artificial">
+                    <div className="absolute top-2 right-2 bg-white/90 text-accent w-6 h-6 rounded-full flex items-center justify-center shadow z-10" title="Criado com Inteligência Artificial">
                        <Sparkles size={12} />
                     </div>
                   )}
@@ -2450,15 +2450,15 @@ function MontagemPageInner() {
               </div>
               <div className="grid gap-3">
                 <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfGuiaDrinks : imprimirGuiaDrinks)(drinksGuia, 3); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
-                  <ClipboardList size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <ClipboardList size={22} className="text-success shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Cartões (pôster)</p><p className="text-xs font-medium text-subtle mt-0.5">Grade compacta para colar na parede/bancada. Margem mínima, cabe o máximo por folha.</p></div>
                 </button>
                 <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfLivroDrinks : imprimirLivroDrinks)(drinksGuia, "a4"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
-                  <Printer size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <Printer size={22} className="text-success shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Livro A4 (folha inteira)</p><p className="text-xs font-medium text-subtle mt-0.5">Capa, índice com páginas, categorias em ordem alfabética, páginas numeradas e margem esquerda de 18mm para encadernar.</p></div>
                 </button>
                 <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfLivroDrinks : imprimirLivroDrinks)(drinksGuia, "a5"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
-                  <Printer size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <Printer size={18} className="text-success shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Livro A5 (metade da A4 — livro menor)</p><p className="text-xs font-medium text-subtle mt-0.5">Mesmo livro em página 148×210mm, com margem de 14mm para encadernar. Na impressora, escolha o papel A5 (ou 2 por folha em A4).</p></div>
                 </button>
               </div>
@@ -2528,7 +2528,7 @@ function MontagemPageInner() {
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button type="button" onClick={() => imprimirFichasSetor(alvoImpressao)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">
+                <button type="button" onClick={() => imprimirFichasSetor(alvoImpressao)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-black text-accent-fg hover:bg-accent">
                   <Printer size={16} /> Imprimir ({alvoImpressao.length})
                 </button>
                 <button type="button" onClick={() => pdfFichasSetor(alvoImpressao)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800">

@@ -369,8 +369,8 @@ export default function AtasReuniaoPage() {
               </div>
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <label className="erp-btn flex-1 flex items-center justify-center gap-2 cursor-pointer py-3 border border-dashed border-emerald-400 bg-emerald-50 text-emerald-800 font-bold text-xs rounded-xl hover:bg-emerald-100 transition-all">
-                    <Sparkles size={16} className="text-emerald-600" />
+                  <label className="erp-btn flex-1 flex items-center justify-center gap-2 cursor-pointer py-3 border border-dashed border-emerald-400 bg-accent-soft text-accent-strong font-bold text-xs rounded-xl hover:bg-emerald-100 transition-all">
+                    <Sparkles size={16} className="text-success" />
                     <span>📸 Enviar Foto da Ata / Anotação (IA)</span>
                     <input type="file" accept="image/*" capture="environment" className="hidden" disabled={gerando} onChange={handleSelecionarFotoAta} />
                   </label>
@@ -383,7 +383,7 @@ export default function AtasReuniaoPage() {
                     <img src={"data:image/jpeg;base64," + form.foto} alt="Foto da Ata" className="w-16 h-16 object-cover rounded-lg border border-emerald-300 shadow-sm" />
                     <div className="flex-1 min-w-0 text-xs">
                       <p className="font-bold text-emerald-900">Foto da Ata / Anotação anexada</p>
-                      <p className="text-emerald-700 text-2xs">Transcrevida pela IA mantendo sua estrutura original.</p>
+                      <p className="text-accent text-2xs">Transcrevida pela IA mantendo sua estrutura original.</p>
                     </div>
                     <button type="button" onClick={() => setForm(f => ({ ...f, foto: null }))} className="px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-100 rounded-lg">Remover</button>
                   </div>

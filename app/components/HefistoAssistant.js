@@ -307,7 +307,7 @@ export default function HefistoAssistant() {
         <div className="print:hidden fixed inset-y-0 right-0 z-[295] flex w-full max-w-md flex-col border-l border-line bg-card shadow-2xl"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <div className="flex items-center gap-3 border-b border-line-soft px-4 py-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><Bot size={20} /></div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-fg"><Bot size={20} /></div>
             <div className="min-w-0 flex-1">
               <p className="font-black text-fg leading-tight">Assistente Hefisto</p>
               <p className="truncate text-2xs font-bold text-subtle">{contextoModulo} · {unidadeInfo?.nome || "unidade"}</p>
@@ -316,7 +316,7 @@ export default function HefistoAssistant() {
               <button onClick={() => { const n = !comAudio; setComAudio(n); if (!n) calarVoz(); }}
                 title={comAudio ? "Desligar resposta falada" : "Ouvir as respostas"} aria-label="Resposta em áudio"
                 className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors ${
-                  comAudio ? "bg-emerald-600 text-white" : "bg-elevated text-muted hover:bg-slate-200"}`}>
+                  comAudio ? "bg-accent text-accent-fg" : "bg-elevated text-muted hover:bg-slate-200"}`}>
                 {comAudio ? <Volume2 size={19} /> : <VolumeX size={19} />}
               </button>
             )}
@@ -328,10 +328,10 @@ export default function HefistoAssistant() {
             {msgs.length === 0 && (
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
                 <p className="text-sm font-bold text-emerald-800">Diga o que você precisa</p>
-                <p className="mt-1 text-xs font-medium text-emerald-700">Posso consultar saldo, abrir telas e lançar entrada/retirada no estoque.</p>
+                <p className="mt-1 text-xs font-medium text-accent">Posso consultar saldo, abrir telas e lançar entrada/retirada no estoque.</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {SUGESTOES.map(s => (
-                    <button key={s} onClick={() => enviar(s)} className="rounded-full border border-emerald-200 bg-card px-3 py-1.5 text-2xs font-bold text-emerald-700 hover:bg-emerald-50">{s}</button>
+                    <button key={s} onClick={() => enviar(s)} className="rounded-full border border-emerald-200 bg-card px-3 py-1.5 text-2xs font-bold text-accent-strong hover:bg-accent-soft">{s}</button>
                   ))}
                 </div>
               </div>
@@ -339,7 +339,7 @@ export default function HefistoAssistant() {
 
             {msgs.map(m => (
               <div key={m.id} className={m.autor === "user" ? "flex justify-end" : "flex justify-start"}>
-                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm font-medium ${m.autor === "user" ? "bg-emerald-600 text-white" : "bg-elevated text-fg-soft"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm font-medium ${m.autor === "user" ? "bg-accent text-accent-fg" : "bg-elevated text-fg-soft"}`}>
                   {m.texto}
                   {m.opcoes && (
                     <div className="mt-2 space-y-1.5">
@@ -358,7 +358,7 @@ export default function HefistoAssistant() {
             {/* Resumo aguardando confirmação */}
             {pendente && (
               <div className="rounded-2xl border-2 border-emerald-300 bg-card p-4 shadow-sm">
-                <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-emerald-700">
+                <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-accent">
                   <AlertTriangle size={13} /> Confirme a {pendente.tipo === "entrada" ? "entrada" : "retirada"}
                 </p>
                 <div className="mt-2 space-y-1 text-sm">
@@ -384,7 +384,7 @@ export default function HefistoAssistant() {
                   </select>
                 </label>
                 <div className="mt-3 flex gap-2">
-                  <button onClick={confirmar} disabled={ocupado || !responsavelId} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                  <button onClick={confirmar} disabled={ocupado || !responsavelId} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent py-2.5 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-50">
                     {ocupado ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Confirmar
                   </button>
                   <button onClick={() => { setPendente(null); diz("bot", "Cancelado."); }} className="rounded-xl border border-line px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
@@ -415,7 +415,7 @@ export default function HefistoAssistant() {
                 <p className="min-w-0 flex-1 truncate text-sm font-bold text-emerald-800">
                   {parcial || "Ouvindo... pode falar"}
                 </p>
-                <button onClick={pararEscuta} className="shrink-0 text-2xs font-bold uppercase tracking-wider text-emerald-700">Parar</button>
+                <button onClick={pararEscuta} className="shrink-0 text-2xs font-bold uppercase tracking-wider text-accent">Parar</button>
               </div>
             )}
             {erroVoz && (
@@ -425,7 +425,7 @@ export default function HefistoAssistant() {
               {temVoz && (
                 <button onClick={iniciarEscuta} disabled={ocupado} title={ouvindo ? "Parar de ouvir" : "Falar um comando"}
                   className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border-2 transition-all disabled:opacity-40 ${
-                    ouvindo ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
+                    ouvindo ? "border-emerald-600 bg-accent text-accent-fg" : "border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
                   {ouvindo ? <MicOff size={18} /> : <Mic size={18} />}
                 </button>
               )}
@@ -436,7 +436,7 @@ export default function HefistoAssistant() {
                 placeholder={ouvindo ? "Falando..." : "Peça algo ao Hefisto..."}
                 className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-slate-50 px-3.5 text-sm font-medium outline-none focus:border-emerald-500"
               />
-              <button onClick={() => enviar()} disabled={ocupado || !texto.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40">
+              <button onClick={() => enviar()} disabled={ocupado || !texto.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg hover:bg-accent disabled:opacity-40">
                 <Send size={17} />
               </button>
             </div>

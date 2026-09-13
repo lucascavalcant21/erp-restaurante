@@ -53,7 +53,7 @@ function EngenhariaRunner() {
          <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-card border border-line text-muted flex items-center justify-center hover:bg-elevated transition-colors">
             <ArrowLeft size={20} />
          </button>
-         <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-elevated text-emerald-600 items-center justify-center shadow-inner">
+         <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-elevated text-success items-center justify-center shadow-inner">
             <BarChart size={32} />
          </div>
          <div>
@@ -73,14 +73,14 @@ function EngenhariaRunner() {
               {/* KPIs de Referência */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <Card className="flex items-center gap-4 border-l-4 border-l-indigo-500">
-                    <div className="p-3 bg-slate-50 rounded-xl text-emerald-600"><TrendingUp size={24}/></div>
+                    <div className="p-3 bg-slate-50 rounded-xl text-success"><TrendingUp size={24}/></div>
                     <div>
                        <p className="text-xs font-bold text-muted uppercase">Média de Volume Vendido</p>
                        <p className="text-xl sm:text-2xl font-black text-slate-800">{medias.avgVolume.toFixed(1)} un / prato</p>
                     </div>
                  </Card>
                  <Card className="flex items-center gap-4 border-l-4 border-l-emerald-500">
-                    <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600"><TrendingUp size={24}/></div>
+                    <div className="p-3 bg-accent-soft rounded-xl text-accent-strong"><TrendingUp size={24}/></div>
                     <div>
                        <p className="text-xs font-bold text-muted uppercase">Média de Margem Bruta</p>
                        <p className="text-xl sm:text-2xl font-black text-slate-800">{fmtBRL(medias.avgMargem)} / prato</p>

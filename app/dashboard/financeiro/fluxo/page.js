@@ -74,7 +74,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
         </div>
       </div>
 
-      {erro && <div className="mt-4 p-3 bg-slate-50 text-emerald-600 text-sm font-bold rounded-xl text-center">{erro}</div>}
+      {erro && <div className="mt-4 p-3 bg-slate-50 text-success text-sm font-bold rounded-xl text-center">{erro}</div>}
       
       <div className="flex gap-3 mt-8">
         <button className="flex-1 py-4 font-bold text-muted hover:bg-elevated rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
@@ -175,11 +175,11 @@ export default function FluxoCaixaFintechPage() {
          <div className="bg-card p-2 rounded-2xl border border-line flex flex-wrap justify-between items-center gap-2 mb-8 sm:mb-10 shadow-sm">
             <div className="flex-1 text-center py-3 border-r border-line-soft">
                <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Entradas</p>
-               <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.entradas)}</p>
+               <p className="text-lg font-black text-success">{fmtBRL(resumo.entradas)}</p>
             </div>
             <div className="flex-1 text-center py-3">
                <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Saídas</p>
-               <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.saidas)}</p>
+               <p className="text-lg font-black text-success">{fmtBRL(resumo.saidas)}</p>
             </div>
          </div>
 
@@ -227,7 +227,7 @@ export default function FluxoCaixaFintechPage() {
 
                          {/* Valor e Ação */}
                          <div className="flex items-center gap-4">
-                            <span className={`font-black font-mono text-lg ${isEntrada ? 'text-emerald-600' : 'text-slate-800'}`}>
+                            <span className={`font-black font-mono text-lg ${isEntrada ? 'text-success' : 'text-slate-800'}`}>
                                {isEntrada ? "+" : "−"}{fmtBRL(l.valor).replace('R$', '').trim()}
                             </span>
                             

@@ -210,7 +210,7 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
         <div className="space-y-2 mb-4">
           {MOTIVOS_RAPIDOS.map((m) => (
             <button key={m} disabled={confirmando} onClick={() => onConfirm(m)}
-              className="w-full text-left px-4 py-3 rounded-2xl bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 font-bold transition-colors disabled:opacity-50">
+              className="w-full text-left px-4 py-3 rounded-2xl bg-slate-800 hover:bg-accent hover:text-accent-fg text-slate-200 font-bold transition-colors disabled:opacity-50">
               {m}
             </button>
           ))}
@@ -220,7 +220,7 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
         <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={2}
           placeholder="Motivo..." className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-white font-medium outline-none focus:border-emerald-500 resize-none mb-3" />
         <button disabled={confirmando || !texto.trim()} onClick={() => onConfirm(texto.trim())}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+          className="w-full py-3 bg-accent hover:bg-emerald-500 disabled:opacity-50 text-accent-fg rounded-2xl font-black flex items-center justify-center gap-2">
           {confirmando ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} Confirmar
         </button>
       </div>
@@ -701,7 +701,7 @@ export default function PontoPage() {
     return (
       <div className={`fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-in fade-in duration-300`}>
         <div className="w-20 h-20 sm:w-28 sm:h-28 bg-card rounded-2xl sm:rounded-[32px] flex items-center justify-center mb-5 sm:mb-8 shadow-2xl">
-          {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-emerald-600" />}
+          {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-success" />}
         </div>
         <h1 className="text-white font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
         {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-100"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
@@ -795,7 +795,7 @@ export default function PontoPage() {
               <p className="text-lg font-black text-white">{escolhaAntecipada.min} min antes do horário</p>
               <p className="text-subtle font-medium text-xs mb-5">Como tratar esse tempo adiantado (reunião/serviço)?</p>
               <div className="space-y-2">
-                <button disabled={batendo} onClick={() => confirmarAntecipada("extra")} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm disabled:opacity-50">
+                <button disabled={batendo} onClick={() => confirmarAntecipada("extra")} className="w-full py-3.5 rounded-2xl bg-accent hover:bg-emerald-500 text-accent-fg font-black text-sm disabled:opacity-50">
                   Contar como hora extra
                   <span className="block text-3xs font-bold opacity-80">vai para o banco de horas</span>
                 </button>
@@ -938,7 +938,7 @@ export default function PontoPage() {
             </div>
           ) : (
             <button onClick={bater} disabled={batendo}
-              className="w-full py-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-3xl font-black text-2xl md:text-3xl transition-all active:scale-[0.98] shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-4 mb-4">
+              className="w-full py-8 bg-accent hover:bg-emerald-500 disabled:opacity-60 text-accent-fg rounded-3xl font-black text-2xl md:text-3xl transition-all active:scale-[0.98] shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-4 mb-4">
               {batendo ? <Loader2 size={30} className="animate-spin" /> : etapaInfo && <etapaInfo.icon size={30} />}
               Bater: {etapaInfo?.label}
             </button>
@@ -1087,7 +1087,7 @@ export default function PontoPage() {
             </button>
           )}
           {!kiosk && (
-            <button onClick={ativarKiosk} className="flex items-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-sm transition-colors shadow-lg shadow-emerald-600/25" title="Trava em tela cheia para tablet/celular — só sai com o PIN do gerente">
+            <button onClick={ativarKiosk} className="flex items-center gap-2 px-4 py-3 bg-accent hover:bg-emerald-500 text-accent-fg rounded-2xl font-black text-sm transition-colors shadow-lg shadow-emerald-600/25" title="Trava em tela cheia para tablet/celular — só sai com o PIN do gerente">
               <Tablet size={17} /> Modo Tablet
             </button>
           )}

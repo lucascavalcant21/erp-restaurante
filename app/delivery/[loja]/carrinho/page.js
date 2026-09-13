@@ -197,7 +197,7 @@ export default function CarrinhoPage({ params }) {
               )}
 
               {taxa && (
-                <div className="flex justify-between bg-emerald-50 text-emerald-800 p-3 rounded-xl text-sm font-bold border border-emerald-200">
+                <div className="flex justify-between bg-accent-soft text-accent-strong p-3 rounded-xl text-sm font-bold border border-emerald-200">
                   <span>Taxa de Entrega ({taxa.distanciaKm} km)</span>
                   <span>R$ {taxa.taxaReais.toFixed(2).replace('.',',')}</span>
                 </div>

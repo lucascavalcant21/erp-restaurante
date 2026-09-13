@@ -228,6 +228,41 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
 // cedo. Quem chega às 15:39 para um turno de 15:40 está adiantado e espera um
 // minuto; quem bate às 9h de um turno de 15:40 não está "adiantado", está
 // começando outro expediente, e travar essa pessoa apagaria hora extra real.
+// Os minutos apurados acima, virados em dinheiro.
+//
+// Adicional noturno de 20% sobre a hora normal (CLT art. 73), hora extra com
+// +50% (CF art. 7º XVI) e feriado trabalhado com +100% (Lei 605/49 art. 9º).
+// Hora normal = salário ÷ 220 (divisor CLT).
+//
+// Atenção ao que cada valor significa, porque a folha soma isto ao salário:
+// `valorNoturno` é SÓ o adicional de 20% (a hora em si já está no salário),
+// enquanto `valorExtra` é a hora cheia mais 50% — a extra não está no salário.
+// Trocar um pelo outro paga a mais ou a menos e ninguém percebe no total.
+//
+// Estava dentro de rh.js, que importa o Supabase e por isso o node não
+// consegue carregar para testar. Aqui roda sozinho: é a mesma razão pela qual
+// `calcularAdicionaisPorDia` já mora neste arquivo.
+export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = [], opcoes = {}) {
+  const valorHora = (Number(salarioBase) || 0) / 220;
+  const totais = calcularAdicionaisPorDia(pontosMes, feriados, opcoes)
+    .reduce((a, d) => ({
+      minNoturno: a.minNoturno + d.minNoturno,
+      minExtra: a.minExtra + d.minExtra,
+      minFeriado: a.minFeriado + d.minFeriado,
+    }), { minNoturno: 0, minExtra: 0, minFeriado: 0 });
+  const { minNoturno, minExtra, minFeriado } = totais;
+
+  const valorNoturno = (minNoturno / 60) * valorHora * 0.20;      // só o adicional de 20%
+  const valorExtra = (minExtra / 60) * valorHora * 1.50;          // hora cheia + 50%
+  const valorFeriado = (minFeriado / 60) * valorHora * 1.00;      // adicional de 100% (dobro)
+  return {
+    minNoturno, minExtra, minFeriado,
+    valorNoturno: Math.round(valorNoturno * 100) / 100,
+    valorExtra: Math.round(valorExtra * 100) / 100,
+    valorFeriado: Math.round(valorFeriado * 100) / 100,
+  };
+}
+
 export const ANTECIPACAO_MAXIMA_BLOQUEADA_MIN = 6 * 60;
 
 // Hora contratada de entrada no dia. A regra tem tres niveis e ja existia

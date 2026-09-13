@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
@@ -647,41 +647,12 @@ export async function removerBancoHoras(id) {
 }
 
 // ─── REMUNERAÇÃO ────────────────────────────────────────────────────────────
-// Adicional noturno de 20% sobre a hora normal (CLT art. 73), hora extra com
-// +50% (CF art. 7º XVI) e feriado trabalhado com +100% (Lei 605/49 art. 9º).
-// Hora normal = salário ÷ 220 (divisor CLT).
-//
-// A contagem dos minutos vem de jornada-calculo.mjs, a mesma que alimenta o
-// espelho: antes esta função tinha a própria conta, com a faixa noturna errada
-// (23:30 em vez de 22h) e sem a hora ficta. Duas contas paralelas para o mesmo
-// número é como o erro sobreviveu tanto tempo.
-export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = [], opcoes = {}) {
-  const valorHora = (Number(salarioBase) || 0) / 220;
-  const totais = calcularAdicionaisPorDia(pontosMes, feriados, opcoes)
-    .reduce((a, d) => ({
-      minNoturno: a.minNoturno + d.minNoturno,
-      minExtra: a.minExtra + d.minExtra,
-      minFeriado: a.minFeriado + d.minFeriado,
-    }), { minNoturno: 0, minExtra: 0, minFeriado: 0 });
-  const { minNoturno, minExtra, minFeriado } = totais;
-
-  const valorNoturno = (minNoturno / 60) * valorHora * 0.20;      // só o adicional de 20%
-  const valorExtra = (minExtra / 60) * valorHora * 1.50;          // hora cheia + 50%
-  const valorFeriado = (minFeriado / 60) * valorHora * 1.00;      // adicional de 100% (dobro)
-  return {
-    minNoturno, minExtra, minFeriado,
-    valorNoturno: Math.round(valorNoturno * 100) / 100,
-    valorExtra: Math.round(valorExtra * 100) / 100,
-    valorFeriado: Math.round(valorFeriado * 100) / 100,
-  };
-}
-
 // Cálculo dia a dia dos adicionais — alimenta o relatório do espelho.
 //
 // Mora em jornada-calculo.mjs: é o código que decide quanto a casa paga, e lá
 // ele roda sem Supabase, com testes que cobrem a faixa noturna, a hora ficta e
 // a tolerância. Rode com: node app/lib/jornada-calculo.test.mjs
-export { calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados };
+export { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados };
 
 // ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
 export async function fetchFeriados(unidadeId, mesAno = null) {

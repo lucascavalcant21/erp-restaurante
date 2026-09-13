@@ -5,7 +5,7 @@
 
 import {
   minutosNoturnosRelogio, comHoraFicta, minutosTrabalhados, aplicarTolerancia,
-  jornadaContratadaMin, calcularAdicionaisPorDia,
+  jornadaContratadaMin, calcularAdicionaisPorDia, calcularAdicionaisMes,
 } from "./jornada-calculo.mjs";
 
 let falhas = 0;
@@ -182,6 +182,69 @@ conferir("entradaDoDia zera a extra de quem so chegou cedo",
     contratadaDoDia: () => 440,
     entradaDoDia: () => "15:40",
   })[0].minExtra, 0);
+
+// ── Os minutos virados em dinheiro ───────────────────────────────────────
+// Esta era a conta que decide quanto se paga, e estava sem teste porque morava
+// em rh.js, que importa o Supabase e o node nao consegue carregar.
+//
+// Salario de R$ 2.200 foi escolhido para a hora dar redondo: 2200/220 = R$ 10.
+const SALARIO = 2200;
+
+// Jornada noturna: 22h as 2h. Sem jornada contratada informada, nao ha extra.
+const noiteInteira = [{
+  data_referencia: "2026-08-10",
+  hora_entrada: em("2026-08-10T22:00"),
+  hora_saida: em("2026-08-11T02:00"),
+}];
+const adNoite = calcularAdicionaisMes(noiteInteira, SALARIO, []);
+// 4h cheias dentro da faixa noturna. Com hora ficta (52,5 min valem 60), os
+// 240 minutos de relogio contam mais — por isso o valor sai acima de 4h.
+conferir("noturno: o adicional e 20% da hora, nao a hora inteira",
+  adNoite.valorNoturno, Math.round((adNoite.minNoturno / 60) * 10 * 0.20 * 100) / 100);
+conferir("noturno: hora de R$ 10 com 20% da menos que a hora cheia",
+  adNoite.valorNoturno < (adNoite.minNoturno / 60) * 10, "true");
+
+// Sem salario nao ha valor, mas os minutos continuam sendo contados: eles vao
+// para o espelho de ponto mesmo quando o salario nao esta cadastrado.
+const semSalario = calcularAdicionaisMes(noiteInteira, 0, []);
+conferir("sem salario o valor e zero", semSalario.valorNoturno, 0);
+conferir("sem salario os minutos continuam", semSalario.minNoturno, adNoite.minNoturno);
+conferir("salario invalido nao vira NaN", calcularAdicionaisMes(noiteInteira, "abc", []).valorNoturno, 0);
+
+// Feriado trabalhado: adicional de 100%, ou seja, a hora de novo por cima.
+const feriado = [{
+  data_referencia: "2026-09-07",
+  hora_entrada: em("2026-09-07T10:00"),
+  hora_saida: em("2026-09-07T14:00"),
+}];
+const adFeriado = calcularAdicionaisMes(feriado, SALARIO, ["2026-09-07"]);
+conferir("feriado: 4h a R$ 10 dao R$ 40 de adicional", adFeriado.valorFeriado, 40);
+conferir("feriado fora da lista nao paga adicional",
+  calcularAdicionaisMes(feriado, SALARIO, []).valorFeriado, 0);
+
+// Hora extra: hora CHEIA mais 50%, porque a extra nao esta no salario.
+// Jornada contratada de 4h, trabalhou 6h -> 2h extras a R$ 15 = R$ 30.
+const extra = [{
+  data_referencia: "2026-08-12",
+  hora_entrada: em("2026-08-12T10:00"),
+  hora_saida: em("2026-08-12T16:00"),
+}];
+const adExtra = calcularAdicionaisMes(extra, SALARIO, [], { contratadaDoDia: () => 240 });
+conferir("extra: 120 minutos alem da jornada", adExtra.minExtra, 120);
+conferir("extra: 2h a R$ 15 (hora + 50%) dao R$ 30", adExtra.valorExtra, 30);
+conferir("dentro da jornada nao ha extra",
+  calcularAdicionaisMes(extra, SALARIO, [], { contratadaDoDia: () => 480 }).minExtra, 0);
+
+// Os valores saem arredondados ao centavo — a folha nao paga fracao de centavo.
+const quebrado = calcularAdicionaisMes(extra, 2137.77, [], { contratadaDoDia: () => 240 });
+conferir("valor arredondado ao centavo",
+  Math.round(quebrado.valorExtra * 100) === quebrado.valorExtra * 100, "true");
+
+// Mes sem batida nenhuma: zero em tudo, sem quebrar.
+const vazio = calcularAdicionaisMes([], SALARIO, []);
+conferir("mes vazio: minutos zerados", vazio.minNoturno + vazio.minExtra + vazio.minFeriado, 0);
+conferir("mes vazio: valores zerados", vazio.valorNoturno + vazio.valorExtra + vazio.valorFeriado, 0);
+conferir("sem argumento nao quebra", calcularAdicionaisMes().valorExtra, 0);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

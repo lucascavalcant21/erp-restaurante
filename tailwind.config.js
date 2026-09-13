@@ -19,33 +19,44 @@ module.exports = {
           900: "#0a6c4b",
         },
 
-        // ── Design tokens semânticos (tema claro — estilo Ascend) ─────
-        // Trocar o tema inteiro = mexer só nestes valores (+ globals.css :root).
-        // Uso: bg-surface, bg-panel, bg-card, border-line, text-fg, etc.
-        surface:  "#F7F8FA", // fundo do app
-        panel:    "#F1F5F9", // painéis / seções
-        card:     "#FFFFFF", // cartões
-        elevated: "#F1F5F9", // elementos elevados / hover
-        line:     "#E5E7EB", // bordas
-        "line-soft": "#F1F5F9",
+        // ── Tokens semânticos ─────────────────────────────────────────
+        // NÃO tem valor aqui de propósito. A cor mora em UM lugar só:
+        // `:root` no app/globals.css, que é também quem define o tema escuro
+        // em `.dark`. Antes estes nomes carregavam hex próprio e discordavam
+        // do globals.css — `accent` era #10B981 aqui e #047857 lá, dois verdes
+        // de marca diferentes, e o tema escuro não alcançava nenhum deles.
+        //
+        // Uso: bg-surface, bg-card, border-line, text-fg, text-muted...
+        // Modificador de opacidade (bg-card/50) NÃO funciona em cima de var();
+        // quando precisar de transparência, use os tokens *-soft.
+        surface:  "var(--surface)",
+        panel:    "var(--panel)",
+        card:     "var(--card)",
+        elevated: "var(--elevated)",
+        line:     "var(--line)",
+        "line-soft": "var(--line-soft)",
 
-        // Texto (hierarquia)
-        fg:        "#0F172A", // texto principal
-        "fg-soft": "#334155", // texto principal suave
-        muted:     "#64748B", // texto secundário
-        subtle:    "#94A3B8", // texto auxiliar / labels
-        dim:       "#94A3B8", // texto terciário / ícones
-        faint:     "#CBD5E1", // divisores
+        fg:        "var(--fg)",
+        "fg-soft": "var(--fg-soft)",
+        muted:     "var(--muted)",
+        subtle:    "var(--subtle)",
+        dim:       "var(--dim)",
+        faint:     "var(--faint)",
 
-        // Acento (verde da marca) + estados (legíveis em fundo claro)
-        accent:        "#10B981",
-        "accent-strong": "#059669",
-        "accent-fg":   "#059669",
-        danger:        "#EF4444",
-        "danger-soft": "rgba(239,68,68,0.10)",
-        warning:       "#F59E0B",
-        "warning-soft":"rgba(245,158,11,0.13)",
-        info:          "#3B82F6",
+        accent:          "var(--accent)",
+        "accent-strong": "var(--accent-strong)",
+        "accent-fg":     "var(--accent-fg)",
+        "accent-soft":   "var(--accent-soft)",
+        success:         "var(--success)",
+        "success-strong":"var(--success-strong)",
+        "success-soft":  "var(--success-soft)",
+        danger:          "var(--danger)",
+        "danger-strong": "var(--danger-strong)",
+        "danger-soft":   "var(--danger-soft)",
+        warning:         "var(--warning)",
+        "warning-strong":"var(--warning-strong)",
+        "warning-soft":  "var(--warning-soft)",
+        info:            "var(--info)",
       },
       borderRadius: {
         xl2: "14px",

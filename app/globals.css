@@ -81,6 +81,11 @@
 
   --accent:        #10B981; /* emerald mais vivo no escuro */
   --accent-strong: #059669;
+  /* No claro isto e branco, porque o verde da marca e escuro. Aqui o verde
+     clareia para aparecer no fundo preto, e branco em cima dele da contraste
+     2,54 — reprova (o minimo para texto e 4,5). O slate escuro da 7,04.
+     Sem esta linha, o valor branco do :root vazava para o tema escuro. */
+  --accent-fg:     #0F172A;
   --accent-soft:   rgba(16,185,129,0.16);
   --success:        #10B981;
   --success-strong: #34D399;

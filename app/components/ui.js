@@ -87,9 +87,9 @@ export function Kpi({ icon: Icon, label, value, onClick, active = false, note })
       onKeyDown={isClickable ? (e) => (e.key === "Enter" || e.key === " ") && onClick(e) : undefined}
       className={`erp-card erp-kpi-card p-4 sm:p-5 md:p-6 xl:p-8 relative overflow-hidden flex flex-col justify-between group min-w-0 transition-all ${
         isClickable
-          ? "cursor-pointer hover:shadow-md hover:border-emerald-500/50 active:scale-[0.98]"
+          ? "cursor-pointer hover:shadow-md hover:border-accent active:scale-[0.98]"
           : ""
-      } ${active ? "ring-2 ring-emerald-500 bg-emerald-50/20" : ""}`}
+      } ${active ? "ring-2 ring-accent bg-accent-soft" : ""}`}
     >
       <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
         <p className="text-xs font-bold tracking-wider uppercase min-w-0 break-words" style={{ color: "var(--muted)" }}>{label}</p>
@@ -99,7 +99,7 @@ export function Kpi({ icon: Icon, label, value, onClick, active = false, note })
       </div>
       <div>
         <p className="text-2xl sm:text-3xl font-black tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
-        {note && <p className="text-xs font-medium text-slate-500 mt-1">{note}</p>}
+        {note && <p className="text-xs font-medium text-muted mt-1">{note}</p>}
       </div>
     </div>
   );
@@ -109,20 +109,20 @@ export function Kpi({ icon: Icon, label, value, onClick, active = false, note })
 export function SearchBar({ value, onChange, placeholder = "Buscar no sistema...", autoFocus = false, className = "" }) {
   return (
     <div className={`relative min-w-0 w-full ${className}`}>
-      <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 font-black z-10" />
+      <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg z-10" />
       <input
         autoFocus={autoFocus}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="erp-input w-full rounded-2xl border-2 border-slate-400 bg-white font-black text-slate-900 shadow-md transition-all focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/25 placeholder:text-slate-500 placeholder:font-bold"
+        className="erp-input w-full rounded-2xl border-2 border-line bg-card font-black text-fg shadow-md transition-all focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft placeholder:text-muted placeholder:font-bold"
         style={{ paddingLeft: 46, paddingRight: 40, height: 46 }}
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange("")}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-elevated hover:text-fg transition"
           title="Limpar busca"
         >
           <X size={16} />

@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
-import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog";
+import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog.mjs";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
 import BuscaAutoScroll from "../components/BuscaAutoScroll";

@@ -41,7 +41,7 @@ import {
   validarFicha, tipoDaFicha, custoPorUnidadeDeRendimento, fichasQueUsam,
 } from "../../../../lib/ficha-calculos.mjs";
 import { fmtBRL, fmtPct, fmtData, Card, Field, TextInput, NumberInput, Select, Btn } from "../../../../components/ui";
-import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog";
+import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog.mjs";
 
 const CMV_ATALHOS = [25, 30, 35, 40];
 

@@ -11,7 +11,7 @@ reutilizando os serviços e validações já existentes.
 - **Contexto global:** `app/context/ERPContext.js` → `useERP()` expõe `unidadeAtiva`, `unidadeInfo`, `sessao`, `unidades`.
 - **Layout global:** `app/dashboard/layout.js` (sidebar + header). Ponto único para montar o assistente global.
 - **IA:** rotas `app/api/ia-*` chamando **Anthropic** `https://api.anthropic.com/v1/messages`, modelo `claude-opus-4-8`, header `x-api-key: ANTHROPIC_API_KEY`, `anthropic-version: 2023-06-01`. Resposta em JSON (parse tolerante a ```json```).
-- **Permissões:** `app/lib/permissions-catalog.js` → `hasPermission(session, chave)`, `canAccessRoute`, `permittedRoutes`. `sessao.gerenciado` = usuário restrito.
+- **Permissões:** `app/lib/permissions-catalog.mjs` → `hasPermission(session, chave)`, `canAccessRoute`, `permittedRoutes`. `sessao.gerenciado` = usuário restrito.
 
 ## 2. Módulos e serviços reutilizáveis
 

@@ -5,7 +5,7 @@ import { Check, ChevronRight, Copy, Eye, ShieldCheck, X } from "lucide-react";
 import {
   ACTION_LABELS, PERMISSION_MODULES, allPermissionKeys,
   permissionKey, permissionMatches,
-} from "../../lib/permissions-catalog";
+} from "../../lib/permissions-catalog.mjs";
 
 const OPERATIONAL = new Set(["view","create","edit","confirm","cancel","print","adjust_stock","inventory","transfer","record_loss"]);
 const MANAGERIAL = new Set(["view","create","edit","delete","confirm","cancel","approve","reject","print","export","import","view_values","view_costs","view_margin","adjust_stock","inventory","close_inventory","transfer","record_loss","view_history"]);

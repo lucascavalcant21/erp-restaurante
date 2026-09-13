@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { supabase, isSupabaseReady } from "./supabase";
-import { canAccessRoute, permittedRoutes } from "./permissions-catalog";
+import { canAccessRoute, permittedRoutes } from "./permissions-catalog.mjs";
 
 // Papéis: cada um tem uma "home" (pra onde vai ao logar) e os módulos que enxerga.
 // nav: "*" = tudo; ou lista de ids de módulos (iguais aos do menu/getNavId).

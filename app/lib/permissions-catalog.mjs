@@ -254,10 +254,30 @@ export function pageForRoute(pathname, search = "") {
   return pagesForRoute(pathname, search)[0] || null;
 }
 
+/* As entradas MAIS ESPECÍFICAS que casaram com a rota.
+ *
+ * `pagesForRoute` casa por prefixo, então uma rota como
+ * /dashboard/rh/fechamento casa com três entradas: a própria, o painel de RH
+ * (/dashboard/rh) e a tela inicial (/dashboard). Como /dashboard é prefixo de
+ * TODO o sistema, perguntar "o usuário tem permissão em alguma delas?" fazia
+ * `dashboard.overview.view` — a permissão básica que todo funcionário recebe
+ * para ver a tela inicial — abrir folha de pagamento, DRE e a própria tela de
+ * usuários e acessos.
+ *
+ * Quem manda é a entrada mais específica, como em qualquer roteador. Empates
+ * (duas entradas para a mesma rota, ou as variantes ?dept=) continuam valendo
+ * como alternativas: ter a permissão de qualquer uma delas basta.
+ */
+function maisEspecificas(candidatas) {
+  if (!candidatas.length) return candidatas;
+  const alvo = candidatas[0].parsed.path.length;
+  return candidatas.filter((c) => c.parsed.path.length === alvo);
+}
+
 export function canAccessRoute(session, pathname, search = "") {
   if (!session) return false;
   if (session.papel === "admin" || session.super_admin || session.permissions === "*") return true;
-  const found = pagesForRoute(pathname, search);
+  const found = maisEspecificas(pagesForRoute(pathname, search));
   if (!found.length) return false;
   return found.some(({ module, page }) => hasPermission(session, permissionKey(module.id, page.id, "view")));
 }

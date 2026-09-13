@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import PermissionBuilder from "../../../components/access-control/PermissionBuilder";
 import { accessCommand, avatarInitials, fetchAccessBootstrap, formatLastAccess } from "../../../lib/access-control";
-import { allPermissionKeys, permissionMatches } from "../../../lib/permissions-catalog";
+import { allPermissionKeys, permissionMatches } from "../../../lib/permissions-catalog.mjs";
 
 const EMPTY = {
   nome: "", funcionario_id: "", avatar_url: "", email: "", telefone: "", login: "",

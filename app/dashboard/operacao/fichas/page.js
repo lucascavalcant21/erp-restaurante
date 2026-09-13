@@ -49,7 +49,7 @@ import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/fich
 import { fetchCategoriasFichas, salvarCategoriasFichas, fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import PizzaDoPrato from "./PizzaDoPrato";
 import { METODOS_BAR, metodoBar, fetchComplementosDeFichas } from "../../../lib/ficha-tecnica";
-import { hasPermission, permissionKey } from "../../../lib/permissions-catalog";
+import { hasPermission, permissionKey } from "../../../lib/permissions-catalog.mjs";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,

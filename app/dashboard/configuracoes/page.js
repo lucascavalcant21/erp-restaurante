@@ -14,7 +14,8 @@ import {
   fetchParams, salvarParams, PARAMS_PADRAO,
   fetchValidadesEtiqueta, salvarValidadesEtiqueta,
 } from "../../lib/parametros";
-import { Lock, SlidersHorizontal, Download, Smartphone, Users, Briefcase, ShieldCheck } from "lucide-react";
+import { Lock, SlidersHorizontal, Download, Smartphone, Users, Briefcase, ShieldCheck, Printer } from "lucide-react";
+
 import { fetchCargos, inserirCargo, atualizarCargo, removerCargo } from "../../lib/rh";
 
 // Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
@@ -404,6 +405,28 @@ function CardControleAcessos() {
   );
 }
 
+function CardImpressoras() {
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+      <div className="flex items-center gap-2 border-b border-line-soft bg-slate-50 p-4">
+        <Printer size={18} className="text-emerald-600" />
+        <div>
+          <h2 className="font-bold text-slate-800">Impressoras e Hardware</h2>
+          <p className="text-2xs font-medium text-muted">Diagnóstico WebUSB, conexão de impressoras térmicas e testes de impressão.</p>
+        </div>
+      </div>
+      <div className="p-5">
+        <a href="/dashboard/configuracoes/impressoras" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
+          <Printer size={20} className="mb-3 text-success" />
+          <p className="font-black text-slate-800">Diagnóstico WebUSB (Android / Tablet)</p>
+          <p className="mt-1 text-xs text-muted">Detectar impressoras USB conectadas, inspecionar Vendor/Product ID e testar comandos ESC/POS.</p>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+
 function CardSenhas({ unidadeAtiva }) {
   const [pins, setPins] = useState(null);
   const [salvando, setSalvando] = useState(false);
@@ -710,6 +733,10 @@ export default function ConfiguracoesPage() {
 
       {/* Controle unificado, integrado ao Supabase Auth */}
       <CardControleAcessos />
+
+      {/* Diagnóstico de impressoras USB e WebUSB (Android / Tablet) */}
+      <CardImpressoras />
+
 
       {/* Senhas e PINs do sistema */}
       <CardSenhas unidadeAtiva={unidadeAtiva} />

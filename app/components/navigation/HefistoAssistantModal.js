@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Sparkles, Search, Mic, MicOff, X, ArrowRight, CornerDownLeft,
   AlertCircle, CheckCircle2, ShieldAlert, ChefHat, Package, Users, DollarSign,
@@ -16,6 +16,7 @@ import { HubActionButton } from "./HubPrimitives";
 
 export default function HefistoAssistantModal() {
   const router = useRouter();
+  const pathname = usePathname() || "";
   const { sessao, unidadeAtiva } = useERP();
 
   const [isOpen, setIsOpen] = useState(false);

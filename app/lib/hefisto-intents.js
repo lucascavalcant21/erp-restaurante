@@ -3,6 +3,7 @@ import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
 import { parseActionIntent, executeRealAction } from "./hefisto-actions.js";
 import { executeAnalyticsQuery } from "./hefisto-analytics.js";
 import { getProactiveInsights } from "./hefisto-insights.js";
+import { routeToSpecialist } from "./hefisto-specialists.js";
 
 /**
  * Normaliza strings para correspondência determinística em Português (pt-BR)
@@ -120,6 +121,12 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
     } else if (contextState.lastIntent === "finance.overdue") {
       processedText = "tem conta vencida";
     }
+  }
+
+  // 1.0. Roteamento por Especialista (SpecialistRouter F7)
+  const specRoute = await routeToSpecialist({ text: processedText, session, unitId, contextState });
+  if (specRoute?.permissionDenied || specRoute?.type === "ANALYTICS_RESULT") {
+    return specRoute;
   }
 
   // 1.1. Tenta Match em Insights Proativos F5 ("O que precisa de mim?", "Quais os alertas?")

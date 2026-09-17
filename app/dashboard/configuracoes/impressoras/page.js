@@ -280,7 +280,8 @@ export default function DiagnosticoImpressorasUsbPage() {
           sucesso: true,
           bytesEnviados: resultado.bytesWritten,
           hexDump: bufferToHex(bufferFinal.slice(0, 32)) + (bufferFinal.length > 32 ? " ..." : ""),
-          status: resultado.status
+          status: resultado.status,
+          protocolo: "ESC/POS"
         });
         adicionarLog("sucesso", `Teste enviado com sucesso! ${resultado.bytesWritten} bytes gravados no endpoint OUT.`);
       } else {
@@ -290,9 +291,71 @@ export default function DiagnosticoImpressorasUsbPage() {
       console.error("Erro ao transmitir impressao:", err);
       setUltimoResultadoImpressao({
         sucesso: false,
-        erro: err.message
+        erro: err.message,
+        protocolo: "ESC/POS"
       });
       adicionarLog("erro", "Falha no envio do teste de impressão:", err.message);
+    } finally {
+      setImprimindoTeste(false);
+    }
+  };
+
+  // 6. Teste de impressão TSPL (MDK-022 / Etiquetas)
+  const executarTesteImpressaoTspl = async () => {
+    if (!dispositivoAtivo || !dispositivoAtivo.opened || !endpointOut) {
+      alert("Nenhuma impressora conectada ou pronta para escrita.");
+      return;
+    }
+
+    setImprimindoTeste(true);
+    setUltimoResultadoImpressao(null);
+
+    try {
+      adicionarLog("info", "Montando pacote de teste TSPL...");
+
+      const tsplPayload =
+        "SIZE 60 mm,40 mm\r\n" +
+        "GAP 2 mm,0 mm\r\n" +
+        "DIRECTION 1\r\n" +
+        "CLS\r\n" +
+        'TEXT 40,40,"3",0,1,1,"HEFISTO"\r\n' +
+        'TEXT 40,100,"3",0,1,1,"TESTE USB TSPL"\r\n' +
+        'TEXT 40,160,"2",0,1,1,"MDK-022"\r\n' +
+        "PRINT 1,1\r\n";
+
+      const encoder = new TextEncoder();
+      const bufferFinal = encoder.encode(tsplPayload);
+
+      adicionarLog(
+        "info",
+        `[TSPL] Enviando ${bufferFinal.length} bytes para o Endpoint #${endpointOut.endpointNumber} (Vendor: 0x${dispositivoAtivo.vendorId.toString(16).padStart(4, "0").toUpperCase()}, Product: 0x${dispositivoAtivo.productId.toString(16).padStart(4, "0").toUpperCase()})...`
+      );
+
+      const resultado = await dispositivoAtivo.transferOut(endpointOut.endpointNumber, bufferFinal);
+
+      if (resultado.status === "ok") {
+        setUltimoResultadoImpressao({
+          sucesso: true,
+          bytesEnviados: resultado.bytesWritten,
+          hexDump: bufferToHex(bufferFinal.slice(0, 32)) + (bufferFinal.length > 32 ? " ..." : ""),
+          status: resultado.status,
+          protocolo: "TSPL"
+        });
+        adicionarLog(
+          "sucesso",
+          `[TSPL] Teste TSPL enviado com sucesso! ${resultado.bytesWritten} bytes gravados no endpoint #${endpointOut.endpointNumber} (Status: ${resultado.status}).`
+        );
+      } else {
+        throw new Error(`A transferência TSPL retornou o status: ${resultado.status}`);
+      }
+    } catch (err) {
+      console.error("Erro ao transmitir impressao TSPL:", err);
+      setUltimoResultadoImpressao({
+        sucesso: false,
+        erro: err.message,
+        protocolo: "TSPL"
+      });
+      adicionarLog("erro", "[TSPL] Falha no envio do teste de impressão TSPL:", err.message);
     } finally {
       setImprimindoTeste(false);
     }
@@ -512,21 +575,33 @@ export default function DiagnosticoImpressorasUsbPage() {
           {/* DETALHES DE DIAGNÓSTICO DO DISPOSITIVO ATIVO */}
           {dispositivoAtivo && (
             <div className="border-t border-line-soft pt-6 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-subtle flex items-center gap-2">
                   <Cpu size={16} className="text-accent" />
                   Inspeção Técnica de Interfaces & Endpoints
                 </h3>
 
-                <button
-                  type="button"
-                  onClick={executarTesteImpressaoEscPos}
-                  disabled={imprimindoTeste || !endpointOut}
-                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-2.5 px-6 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 text-sm transition-all"
-                >
-                  {imprimindoTeste ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  Imprimir teste (ESC/POS)
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={executarTesteImpressaoEscPos}
+                    disabled={imprimindoTeste || !endpointOut}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-2.5 px-5 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 text-sm transition-all"
+                  >
+                    {imprimindoTeste ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                    Imprimir teste (ESC/POS)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={executarTesteImpressaoTspl}
+                    disabled={imprimindoTeste || !endpointOut}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black py-2.5 px-5 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm transition-all"
+                  >
+                    {imprimindoTeste ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                    Imprimir teste TSPL
+                  </button>
+                </div>
               </div>
 
               {/* GRID DE INFORMAÇÕES TÉCNICAS */}
@@ -594,6 +669,7 @@ export default function DiagnosticoImpressorasUsbPage() {
                   </p>
                   {ultimoResultadoImpressao.sucesso ? (
                     <div className="text-xs space-y-1 font-mono">
+                      <p>Protocolo: <b>{ultimoResultadoImpressao.protocolo || "ESC/POS"}</b></p>
                       <p>Bytes gravados no Endpoint OUT: <b>{ultimoResultadoImpressao.bytesEnviados} bytes</b></p>
                       <p className="text-2xs text-muted">Hex Dump (Primeiros 32 bytes): <code className="bg-emerald-100 px-1 py-0.5 rounded">{ultimoResultadoImpressao.hexDump}</code></p>
                     </div>

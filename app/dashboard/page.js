@@ -16,6 +16,7 @@ import { situacaoDoPonto } from "../lib/ponto-status.mjs";
 import { fetchContas, fetchLancamentos } from "../lib/financeiro";
 import { canAccessRoute, hasPermission } from "../lib/permissions-catalog.mjs";
 import { getRecentItems } from "../lib/user-preferences";
+import { getHefistoInbox } from "../lib/hefisto-inbox.js";
 import { fmtBRL, fmtPct } from "../components/ui";
 import {
   HubHeader,
@@ -47,6 +48,7 @@ export default function CentralDeComandoHome() {
   const [dadosLancamentos, setDadosLancamentos] = useState([]);
   const [dadosBanco, setDadosBanco] = useState([]);
   const [recentItems, setRecentItems] = useState([]);
+  const [inboxItems, setInboxItems] = useState([]);
 
   // Estados de Falha Parcial
   const [errosModulos, setErrosModulos] = useState({});
@@ -145,6 +147,12 @@ export default function CentralDeComandoHome() {
       }
 
       setErrosModulos(erros);
+
+      // Carrega F10 Inbox ("Precisa de você")
+      const inboxData = await getHefistoInbox({ session: sessao, unitId: unidadeAtiva });
+      if (inboxData && inboxData.items) {
+        setInboxItems(inboxData.items);
+      }
 
       // Carrega Recentes da Fase C
       if (sessao) {
@@ -283,9 +291,22 @@ export default function CentralDeComandoHome() {
   const minhaSituacaoPonto = situacaoDoPonto(meuRegistroHoje);
 
   // ---------------------------------------------------------------------------
-  // CONSTRUÇÃO DA FILA UNIFICADA DE ACTION ITEMS ("PRECISA DE VOCÊ")
+  // CONSTRUÇÃO DA FILA UNIFICADA DE ACTION ITEMS ("PRECISA DE VOCÊ" - F10 INBOX)
   // ---------------------------------------------------------------------------
   const actionItems = useMemo(() => {
+    if (inboxItems && inboxItems.length > 0) {
+      return inboxItems.map(item => ({
+        id: item.id,
+        source: item.domain,
+        severity: item.severity === "CRITICAL" ? "critical" : item.severity === "ATTENTION" ? "warning" : "info",
+        title: item.title,
+        description: item.summary,
+        actionLabel: item.primaryAction?.label || "Ver",
+        actionRoute: item.primaryAction?.route || "/dashboard",
+        permission: item.permission
+      }));
+    }
+
     const items = [];
 
     // 🔴 1. FINANCEIRO — Contas Vencidas (Crítico)
@@ -374,12 +395,11 @@ export default function CentralDeComandoHome() {
       });
     }
 
-    // Ordenação determinística: Critical (1) > Warning (2) > Info (3)
     const severityOrder = { critical: 1, warning: 2, info: 3 };
     items.sort((a, b) => (severityOrder[a.severity] || 9) - (severityOrder[b.severity] || 9));
 
     return items;
-  }, [podeVerContas, contasVencidas, valorTotalVencidas, contasVencemHoje, valorTotalVencemHoje, podeVerEstoque, semEstoque, abaixoMinimo, podeVerPonto, pontosIncompletos, podeVerEquipe, atrasadosEquipe]);
+  }, [inboxItems, podeVerContas, contasVencidas, valorTotalVencidas, contasVencemHoje, valorTotalVencemHoje, podeVerEstoque, semEstoque, abaixoMinimo, podeVerPonto, pontosIncompletos, podeVerEquipe, atrasadosEquipe]);
 
   const visibleActionItems = expandirPendencias ? actionItems : actionItems.slice(0, 5);
 

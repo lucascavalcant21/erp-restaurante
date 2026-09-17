@@ -12,6 +12,7 @@ import { processHefistoIntent, INTENT_CATALOG } from "../../lib/hefisto-intents"
 import { executeRealAction } from "../../lib/hefisto-actions";
 import { vozDisponivel, criarEscuta, falarTexto } from "../../lib/hefisto-voz";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
+import { getHefistoInbox } from "../../lib/hefisto-inbox.js";
 import { HubActionButton } from "./HubPrimitives";
 
 export default function HefistoAssistantModal() {
@@ -209,6 +210,36 @@ export default function HefistoAssistantModal() {
     setLoading(true);
 
     try {
+      const normQuery = queryText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const isInboxQuery = ["o que precisa de mim", "o que precisa da minha atencao", "quais as pendencias", "inbox", "caixa de entrada", "precisa de voce"].some(kw => normQuery.includes(kw));
+
+      if (isInboxQuery) {
+        const inboxRes = await getHefistoInbox({ session: sessao, unitId: unidadeAtiva });
+        const spoken = `Você possui ${inboxRes.actionableCount} pendência(s) importante(s) que exige(m) decisão ou atenção.`;
+        
+        let formattedText = `### 📥 PRECISA DE VOCÊ (${inboxRes.actionableCount} PENDÊNCIAS)\n*Atualizado às ${inboxRes.updatedAt}*\n\n`;
+        if (inboxRes.items.length === 0) {
+          formattedText = "✓ Nenhuma pendência importante no momento. Sua operação está sem alertas críticos.";
+        } else {
+          inboxRes.items.forEach(it => {
+            formattedText += `• **${it.title}**: ${it.summary}\n`;
+          });
+        }
+
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: formattedText.trim(),
+          inboxItems: inboxRes.items,
+          spokenSummary: spoken
+        }]);
+
+        if (vozDisponivel()) {
+          falarTexto(spoken);
+        }
+        setLoading(false);
+        return;
+      }
+
       const res = await processHefistoIntent({
         text: queryText,
         session: sessao,

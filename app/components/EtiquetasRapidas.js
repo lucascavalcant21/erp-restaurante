@@ -20,8 +20,8 @@ import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb } from "../lib/impressaoMdk
 
 const UNIDADES = ["UN", "UNIDADE", "GARRAFA", "LATA", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const TAMANHOS = {
+  "60x40": { w: 60, h: 40, pad: 1.5, titulo: 3.8, texto: 2.2, pequeno: 1.7, qr: 32 },
   "80x40": { w: 80, h: 40, pad: 2, titulo: 4.1, texto: 2.75, pequeno: 2.15, qr: 41 },
-  "60x40": { w: 60, h: 40, pad: 1.7, titulo: 3.5, texto: 2.35, pequeno: 1.85, qr: 35 },
   "60x60": { w: 60, h: 60, pad: 2.5, titulo: 4.3, texto: 2.8, pequeno: 2.25, qr: 55 },
 };
 
@@ -79,7 +79,7 @@ function Aviso({ aviso, fechar }) {
 
 // Prévia da etiqueta de nome no tamanho real, reduzida só para caber na tela.
 function PreviaNome({ item, tamanho }) {
-  const dim = TAMANHOS[tamanho] || TAMANHOS["80x40"];
+  const dim = TAMANHOS[tamanho] || TAMANHOS["60x40"];
   const larguraPx = dim.w * 3.7795;                 // mm -> px
   const escalaTela = Math.min(1, 268 / larguraPx);
   return (
@@ -91,16 +91,12 @@ function PreviaNome({ item, tamanho }) {
   );
 }
 
-function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho, tipoEtiqueta }) {
-  const dim = TAMANHOS[tamanho] || TAMANHOS["80x40"];
+function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x40", tipoEtiqueta }) {
+  const dim = TAMANHOS[tamanho] || TAMANHOS["60x40"];
   if (item.modeloEtiqueta === "nome") {
-    // Até dois nomes na mesma etiqueta, um embaixo do outro. Com dois, a letra
-    // diminui para os dois caberem sem cortar.
     const nomes = [item.nome, item.nome2].map(n => String(n || "").trim()).filter(Boolean);
     const maior = nomes.reduce((m, n) => Math.max(m, n.length), 0);
     const base = maior > 32 ? dim.titulo * 1.45 : maior > 20 ? dim.titulo * 1.7 : dim.titulo * 2.15;
-    // O tamanho automático serve na maioria dos casos; a escala é o ajuste fino
-    // de quem está olhando a etiqueta na tela.
     const escala = Math.min(2, Math.max(0.5, Number(item.escalaNome) || 1));
     const tamanhoNome = (nomes.length > 1 ? base * 0.62 : base) * escala;
     return <div className="etiqueta-rapida-papel etiqueta-somente-nome" style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, padding: `${dim.pad + 1}mm`, background: "#fff", color: "#000", fontFamily: "Arial,Helvetica,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -111,39 +107,107 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho, tipoE
       </div>
     </div>;
   }
+
   const validade = validadeDe(momento, item.dias);
   const origem = typeof window !== "undefined" ? window.location.origin : "";
-  const local = [unidadeInfo?.cidade, unidadeInfo?.uf].filter(Boolean).join("/");
-  return <div className="etiqueta-rapida-papel" style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, padding: `${dim.pad}mm`, background: "#fff", color: "#000", fontFamily: "'Courier New',monospace", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-    <div style={{ fontSize: `${dim.titulo}mm`, lineHeight: 1, fontWeight: 900, textTransform: "uppercase", borderBottom: ".45mm solid #000", paddingBottom: ".5mm" }}>{item.nome}</div>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "2mm", fontSize: `${dim.texto}mm`, lineHeight: 1.15, fontWeight: 900, padding: ".6mm 0", borderBottom: ".35mm solid #000" }}>
-      <span>{item.conservacao.toUpperCase()}</span>{numero(item.quantidade) > 0 && <span>{item.quantidade} {item.unidade}</span>}
-    </div>
-    <div style={{ fontSize: `${dim.texto}mm`, lineHeight: 1.2, fontWeight: 850, padding: ".55mm 0" }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}><span>{tipoEtiqueta === "aberto" ? "MANIPULADO:" : "ETIQUETADO:"}</span><span>{tipoEtiqueta === "aberto" ? dataHora(momento) : dataCurta(momento)}</span></div>
-    </div>
-    {/* Validade em faixa invertida: é o único dado que alguém procura de longe,
-        com a porta da geladeira aberta. Preto sobre branco no meio de outras
-        seis linhas pretas não se destaca de nada.
-        A faixa é fina de propósito — impressora térmica queima papel e borra
-        quando tem de encher uma área grande de preto. */}
-    <div style={{
-      background: "#000", color: "#fff",
-      display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1.5mm",
-      fontSize: `${dim.texto * 1.22}mm`, lineHeight: 1.15, fontWeight: 950,
-      padding: ".7mm 1mm", marginBottom: ".45mm",
-      WebkitPrintColorAdjust: "exact", printColorAdjust: "exact",
+  const empresa = (unidadeInfo?.nome_fantasia || unidadeInfo?.nome || "SELDEESTRELA COMIDAS NORTISTAS").toUpperCase();
+  const labelTipo = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
+  const labelManip = tipoEtiqueta === "aberto" ? "MANIPULAÇÃO:" : "ETIQUETADO:";
+
+  return (
+    <div className="etiqueta-rapida-papel" style={{
+      width: `${dim.w}mm`,
+      height: `${dim.h}mm`,
+      padding: `${dim.pad}mm`,
+      background: "#fff",
+      color: "#000",
+      fontFamily: "Arial, Helvetica, sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      overflow: "hidden",
+      boxSizing: "border-box",
+      position: "relative"
     }}>
-      <span>VALIDADE</span>
-      <span>{tipoEtiqueta === "aberto" ? dataHora(validade) : dataCurta(validade)}</span>
+      {/* 1. PRODUTO NO TOPO (Destaque Máximo) */}
+      <div>
+        <div style={{
+          fontSize: `${dim.titulo * (item.nome?.length > 22 ? 0.85 : 1.1)}mm`,
+          lineHeight: 1.05,
+          fontWeight: 950,
+          textTransform: "uppercase",
+          letterSpacing: "-0.2px",
+          color: "#000",
+          wordBreak: "break-word"
+        }}>
+          {item.nome}
+        </div>
+
+        {/* 2. CONSERVAÇÃO / TIPO (Esquerda) + PESO / QTD (Direita) */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: `${dim.texto * 0.85}mm`,
+          fontWeight: 850,
+          marginTop: "0.8mm",
+          marginBottom: "0.6mm",
+          color: "#111"
+        }}>
+          <span>{item.conservacao?.toUpperCase()} / {labelTipo}</span>
+          {numero(item.quantidade) > 0 && (
+            <span style={{ fontWeight: 950 }}>{item.quantidade} {item.unidade}</span>
+          )}
+        </div>
+
+        {/* 3. DIVISÓRIA 1 */}
+        <div style={{ height: "0.35mm", background: "#000", margin: "0.4mm 0 0.8mm 0" }} />
+
+        {/* 4. BLOCO DE DATAS & LOTE */}
+        <div style={{ fontSize: `${dim.texto * 0.88}mm`, lineHeight: 1.25, fontWeight: 800 }}>
+          <div style={{ display: "flex", gap: "1.5mm" }}>
+            <span style={{ width: "20mm", fontWeight: 900 }}>{labelManip}</span>
+            <span>{dataHora(momento)}</span>
+          </div>
+          <div style={{ display: "flex", gap: "1.5mm", fontSize: `${dim.texto * 0.98}mm`, fontWeight: 950, margin: "0.2mm 0" }}>
+            <span style={{ width: "20mm" }}>VALIDADE:</span>
+            <span>{tipoEtiqueta === "aberto" ? dataHora(validade) : dataCurta(validade)}</span>
+          </div>
+          <div style={{ display: "flex", gap: "1.5mm" }}>
+            <span style={{ width: "20mm", fontWeight: 900 }}>LOTE:</span>
+            <span>{item.lote || "COZINHA"}</span>
+          </div>
+        </div>
+
+        {/* 5. DIVISÓRIA 2 */}
+        <div style={{ height: "0.3mm", background: "#000", margin: "0.8mm 0 0.6mm 0" }} />
+
+        {/* 6. RESPONSÁVEL */}
+        <div style={{ fontSize: `${dim.texto * 0.8}mm`, fontWeight: 850, lineHeight: 1.1, textTransform: "uppercase" }}>
+          RESP.: {String(responsavel?.nome || responsavel || "JOSEPH ANDREY GOMES DA SILVA").toUpperCase()}
+        </div>
+      </div>
+
+      {/* 7. RODAPÉ (Empresa na esquerda + QR Code e Código no canto inferior direito) */}
+      <div style={{
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        borderTop: "0.3mm solid #000",
+        paddingTop: "0.5mm",
+        marginTop: "0.6mm"
+      }}>
+        <div style={{ fontSize: `${dim.pequeno * 0.9}mm`, fontWeight: 850, textTransform: "uppercase", maxWidth: "34mm" }}>
+          <div>{empresa}</div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.2mm" }}>
+          <QRCodeSVG data-qr-codigo={item.codigo} value={`${origem}/rastreio/${item.codigo}`} size={dim.qr * 0.65} level="M" />
+          <div style={{ fontSize: `${dim.pequeno * 0.8}mm`, fontWeight: 900, fontFamily: "monospace" }}>#{item.codigo}</div>
+        </div>
+      </div>
     </div>
-    <div style={{ fontSize: `${dim.texto}mm`, fontWeight: 850, marginTop: ".45mm" }}>RESP.: {String(responsavel?.nome || "SEM RESPONSÁVEL").toUpperCase()}</div>
-    <div style={{ flex: 1 }} />
-    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "1mm", borderTop: ".4mm solid #000", paddingTop: ".4mm", fontSize: `${dim.pequeno}mm`, lineHeight: 1.12, fontWeight: 800 }}>
-      <div><div>{(unidadeInfo?.nome_fantasia || unidadeInfo?.nome || "UNIDADE").toUpperCase()}</div>{local && <div>{local.toUpperCase()}</div>}<div>#{item.codigo}</div></div>
-      <QRCodeSVG data-qr-codigo={item.codigo} value={`${origem}/rastreio/${item.codigo}`} size={dim.qr} level="M" />
-    </div>
-  </div>;
+  );
 }
 
 export default function EtiquetasRapidas() {

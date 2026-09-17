@@ -111,92 +111,62 @@ export async function obterDispositivoMdk022() {
  * Métricas e limites de layout por dimensão de etiqueta (203 DPI = 8 dots/mm)
  */
 export const METRICAS_TAMANHO = {
-  "80x40": {
-    WIDTH_MM: 80,
-    HEIGHT_MM: 40,
-    WIDTH_DOTS: 640,
-    HEIGHT_DOTS: 320,
-    SAFE_LEFT: 20,
-    SAFE_TOP: 16,
-    MAX_TEXT_WIDTH: 430, // 640 - 20(left) - 170(QR) - 20(gap)
-    QR_X: 460,
-    QR_Y: 20,
-    QR_CELL_SIZE: 4,
-    CODE_X: 460,
-    CODE_Y: 205,
-  },
   "60x40": {
     WIDTH_MM: 60,
     HEIGHT_MM: 40,
     WIDTH_DOTS: 480,
     HEIGHT_DOTS: 320,
     SAFE_LEFT: 16,
-    SAFE_TOP: 16,
-    MAX_TEXT_WIDTH: 310,
-    QR_X: 340,
-    QR_Y: 20,
+    SAFE_TOP: 10,
+    MAX_TEXT_WIDTH: 448,
+    QR_X: 335,
+    QR_Y: 195,
     QR_CELL_SIZE: 3,
-    CODE_X: 340,
-    CODE_Y: 190,
+    CODE_X: 335,
+    CODE_Y: 298,
+  },
+  "80x40": {
+    WIDTH_MM: 80,
+    HEIGHT_MM: 40,
+    WIDTH_DOTS: 640,
+    HEIGHT_DOTS: 320,
+    SAFE_LEFT: 20,
+    SAFE_TOP: 12,
+    MAX_TEXT_WIDTH: 600,
+    QR_X: 490,
+    QR_Y: 195,
+    QR_CELL_SIZE: 4,
+    CODE_X: 490,
+    CODE_Y: 298,
   },
   "60x60": {
     WIDTH_MM: 60,
     HEIGHT_MM: 60,
     WIDTH_DOTS: 480,
     HEIGHT_DOTS: 480,
-    SAFE_LEFT: 20,
-    SAFE_TOP: 20,
-    MAX_TEXT_WIDTH: 300,
-    QR_X: 330,
-    QR_Y: 30,
-    QR_CELL_SIZE: 4,
-    CODE_X: 330,
-    CODE_Y: 220,
+    SAFE_LEFT: 16,
+    SAFE_TOP: 12,
+    MAX_TEXT_WIDTH: 448,
+    QR_X: 335,
+    QR_Y: 340,
+    QR_CELL_SIZE: 3,
+    CODE_X: 335,
+    CODE_Y: 445,
   },
 };
 
 /**
- * Converte string JS (UTF-16) em Uint8Array codificado em Windows-1252 (CP1252).
- * Isso corrige os caracteres acentuados corrompidos em impressoras TSPL nativas.
+ * Verifica se um texto contém acentos ou caracteres Unicode não-ASCII que exijam renderização via BITMAP.
  */
-export function encodeCp1252(str) {
-  const bytes = [];
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if (code < 128) {
-      bytes.push(code);
-    } else {
-      const map = {
-        0x00C1: 0xC1, 0x00C0: 0xC0, 0x00C2: 0xC2, 0x00C3: 0xC3, 0x00C4: 0xC4, // Á À Â Ã Ä
-        0x00E1: 0xE1, 0x00E0: 0xE0, 0x00E2: 0xE2, 0x00E3: 0xE3, 0x00E4: 0xE4, // á à â ã ä
-        0x00C9: 0xC9, 0x00C8: 0xC8, 0x00CA: 0xCA, 0x00CB: 0xCB, // É È Ê Ë
-        0x00E9: 0xE9, 0x00E8: 0xE8, 0x00EA: 0xEA, 0x00EB: 0xEB, // é è ê ë
-        0x00CD: 0xCD, 0x00CC: 0xCC, 0x00CE: 0xCE, 0x00CF: 0xCF, // Í Ì Î Ï
-        0x00ED: 0xED, 0x00EC: 0xEC, 0x00EE: 0xEE, 0x00EF: 0xEF, // í ì î ï
-        0x00D3: 0xD3, 0x00D2: 0xD2, 0x00D4: 0xD4, 0x00D5: 0xD5, 0x00D6: 0xD6, // Ó Ò Ô Õ Ö
-        0x00F3: 0xF3, 0x00F2: 0xF2, 0x00F4: 0xF4, 0x00F5: 0xF5, 0x00F6: 0xF6, // ó ò ô õ ö
-        0x00DA: 0xDA, 0x00D9: 0xD9, 0x00DB: 0xDB, 0x00DC: 0xDC, // Ú Ù Û Ü
-        0x00FA: 0xFA, 0x00F9: 0xF9, 0x00FB: 0xFB, 0x00FC: 0xFC, // ú ù û ü
-        0x00C7: 0xC7, 0x00E7: 0xE7, // Ç ç
-        0x00BA: 0xBA, 0x00AA: 0xAA, 0x00B0: 0xB0, // º ª °
-      };
-      if (map[code]) {
-        bytes.push(map[code]);
-      } else if (code <= 0xFF) {
-        bytes.push(code);
-      } else {
-        const norm = str[i].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        bytes.push(norm.charCodeAt(0) < 128 ? norm.charCodeAt(0) : 63);
-      }
-    }
-  }
-  return new Uint8Array(bytes);
+export function precisaRenderizacaoBitmap(texto) {
+  if (!texto) return false;
+  return /[^\x00-\x7F]/.test(String(texto));
 }
 
 /**
  * Ajusta e divide o texto para caber perfeitamente na largura disponível sem cortar.
  */
-export function formatarTextoFitted(texto, maxLarguraDots = 430, preferenciaFonte = "3") {
+export function formatarTextoFitted(texto, maxLarguraDots = 448, preferenciaFonte = "3") {
   const t = String(texto || "").trim();
   if (!t) return { linhas: [], fonte: preferenciaFonte };
 
@@ -266,16 +236,138 @@ export function formatarTextoFitted(texto, maxLarguraDots = 430, preferenciaFont
 }
 
 /**
- * Converte os dados da etiqueta gerados pelo ERP em comandos TSPL.
+ * Renderiza linhas de texto em Canvas 2D e converte para estrutura TSPL BITMAP 1-bit monocromática.
+ * No TSPL BITMAP:
+ * - 1 byte = 8 pixels horizontais (da esquerda para direita, MSB primeiro)
+ * - Bit 0 = Preto (queima ponto térmico)
+ * - Bit 1 = Branco (não queima)
+ */
+export function criarBitmapTextoCanvas({
+  linhas = [],
+  maxLarguraDots = 448,
+  alturaLinhaDots = 32,
+  tamanhoFontePx = 28,
+  ehNegrito = true,
+}) {
+  const numLinhas = Math.max(1, linhas.length);
+  const width = Math.min(640, Math.max(80, maxLarguraDots));
+  const height = numLinhas * alturaLinhaDots;
+  const widthBytes = Math.ceil(width / 8);
+  const totalBytes = widthBytes * height;
+
+  const bitmapData = new Uint8Array(totalBytes);
+  bitmapData.fill(0xFF); // 0xFF = Tudo branco no TSPL (0 = Preto, 1 = Branco)
+
+  if (typeof document !== "undefined" || typeof OffscreenCanvas !== "undefined") {
+    try {
+      let canvas, ctx;
+      if (typeof OffscreenCanvas !== "undefined") {
+        canvas = new OffscreenCanvas(width, height);
+        ctx = canvas.getContext("2d");
+      } else {
+        canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        ctx = canvas.getContext("2d");
+      }
+
+      if (ctx) {
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#000000";
+        ctx.font = `${ehNegrito ? "bold " : ""}${tamanhoFontePx}px Arial, 'Helvetica Neue', sans-serif`;
+        ctx.textBaseline = "top";
+
+        linhas.forEach((linha, i) => {
+          ctx.fillText(linha, 0, i * alturaLinhaDots + 2);
+        });
+
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const pixels = imgData.data;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = pixels[idx];
+            const g = pixels[idx + 1];
+            const b = pixels[idx + 2];
+            const a = pixels[idx + 3];
+
+            const ehPreto = a > 128 && (r * 0.299 + g * 0.587 + b * 0.114) < 160;
+            if (ehPreto) {
+              const byteIdx = y * widthBytes + Math.floor(x / 8);
+              const bitPos = 7 - (x % 8);
+              bitmapData[byteIdx] &= ~(1 << bitPos); // Bit 0 = Preto
+            }
+          }
+        }
+      }
+    } catch (eCanvas) {
+      console.warn("[MDK022] Fallback de bitmap canvas:", eCanvas.message);
+    }
+  } else {
+    // Modo Node.js para testes unitários sem DOM: simula pixels pretos para validação
+    linhas.forEach((linha, i) => {
+      const startY = i * alturaLinhaDots + 4;
+      const endY = startY + (alturaLinhaDots - 8);
+      const textWidthDots = Math.min(width - 10, (linha || "").length * 14);
+      for (let y = startY; y < endY && y < height; y++) {
+        for (let x = 4; x < textWidthDots; x++) {
+          const byteIdx = y * widthBytes + Math.floor(x / 8);
+          const bitPos = 7 - (x % 8);
+          bitmapData[byteIdx] &= ~(1 << bitPos);
+        }
+      }
+    });
+  }
+
+  return {
+    widthBytes,
+    heightDots: height,
+    data: bitmapData,
+  };
+}
+
+/**
+ * Concatena partes de texto ASCII e buffers binários BITMAP em um único Uint8Array contínuo para o TSPL job.
+ */
+export function concatenarChunksTspl(chunks = []) {
+  const encoder = new TextEncoder();
+  let totalLength = 0;
+
+  const processed = chunks.map(chunk => {
+    if (typeof chunk === "string") {
+      const bytes = encoder.encode(chunk);
+      totalLength += bytes.length;
+      return bytes;
+    } else if (chunk instanceof Uint8Array) {
+      totalLength += chunk.length;
+      return chunk;
+    }
+    return new Uint8Array(0);
+  });
+
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const b of processed) {
+    result.set(b, offset);
+    offset += b.length;
+  }
+  return result;
+}
+
+/**
+ * Converte os dados da etiqueta gerados pelo ERP em comandos TSPL (retornando Uint8Array com suporte a BITMAP para Unicode).
  *
  * @param {Object} params
  * @param {Object} params.dados Dados completos da etiqueta (produto, conservacao, validade, etc.)
- * @param {string} params.tamanho Dimensão exata ("80x40", "60x40", "60x60", etc.)
+ * @param {string} params.tamanho Dimensão exata ("60x40", "80x40", "60x60", etc.)
  * @param {number} params.copias Quantidade de etiquetas a imprimir
- * @returns {string} String contendo todos os comandos TSPL finalizados com \r\n
+ * @returns {Uint8Array} Buffer contendo todos os comandos TSPL e bitmaps binários
  */
-export function gerarComandosTsplMdk022({ dados, tamanho = "80x40", copias = 1 }) {
-  const m = METRICAS_TAMANHO[tamanho] || METRICAS_TAMANHO["80x40"];
+export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }) {
+  const m = METRICAS_TAMANHO[tamanho] || METRICAS_TAMANHO["60x40"];
 
   const p = (n) => String(n).padStart(2, "0");
   const fmtDH = (d) => {
@@ -295,90 +387,166 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "80x40", copias = 1 }
   const codigo = dados.codigo || "";
   const modeloEtiqueta = dados.modeloEtiqueta || "validade";
   const tipoEtiqueta = dados.tipoEtiqueta || "aberto";
-  const unidadeNome = (dados.unidadeNome || "").toUpperCase().trim();
 
   const dataManipulacao = fmtDH(dados.momento ? new Date(dados.momento) : new Date());
   const dataValidade = dados.validade ? (tipoEtiqueta === "aberto" ? fmtDH(new Date(dados.validade)) : fmtD(new Date(dados.validade))) : "—";
 
-  // URL para rastreabilidade via QR Code nativo
   const urlRastreio = typeof window !== "undefined"
     ? `${window.location.origin}/rastreio/${codigo}`
     : `https://app.hefisto.com.br/rastreio/${codigo}`;
 
-  let cmd = "";
-  const add = (linha) => { cmd += linha + "\r\n"; };
+  const chunks = [];
+  let headerCmd = "";
+  const addHeader = (linha) => { headerCmd += linha + "\r\n"; };
 
-  // 1. Configurações gerais da página TSPL
-  add(`SIZE ${m.WIDTH_MM} mm,${m.HEIGHT_MM} mm`);
-  add("GAP 2 mm,0 mm");
-  add("DIRECTION 1");
-  add("CODEPAGE 1252");
-  add("CLS");
+  addHeader(`SIZE ${m.WIDTH_MM} mm,${m.HEIGHT_MM} mm`);
+  addHeader("GAP 2 mm,0 mm");
+  addHeader("DIRECTION 1");
+  addHeader("CLS");
+  chunks.push(headerCmd);
 
   // MODELO "SOMENTE NOME"
   if (modeloEtiqueta === "nome") {
-    const fitNome = formatarTextoFitted(produto, m.WIDTH_DOTS - (m.SAFE_LEFT * 2), "4");
-    if (unidadeNome) {
-      add(`TEXT ${m.SAFE_LEFT},${m.SAFE_TOP},"2",0,1,1,"${unidadeNome.slice(0, 35)}"`);
-    }
-    let yCurrent = m.SAFE_TOP + 40;
-    for (const linha of fitNome.linhas) {
-      add(`TEXT ${m.SAFE_LEFT},${yCurrent},"${fitNome.fonte}",0,1,1,"${linha}"`);
-      yCurrent += fitNome.fonte === "4" ? 36 : 28;
-    }
+    let asciiNome = "";
+    const fitNome = formatarTextoFitted(produto, m.MAX_TEXT_WIDTH, "4");
+    const bmpNome = criarBitmapTextoCanvas({
+      linhas: fitNome.linhas,
+      maxLarguraDots: m.MAX_TEXT_WIDTH,
+      alturaLinhaDots: 36,
+      tamanhoFontePx: 30,
+      ehNegrito: true,
+    });
+
+    asciiNome += `BITMAP ${m.SAFE_LEFT},${m.SAFE_TOP + 10},${bmpNome.widthBytes},${bmpNome.heightDots},0,`;
+    chunks.push(asciiNome);
+    chunks.push(bmpNome.data);
+    chunks.push("\r\n");
+
+    let tailNome = "";
     if (quantidade) {
-      add(`TEXT ${m.SAFE_LEFT},${yCurrent + 10},"3",0,1,1,"QTD: ${quantidade}"`);
+      tailNome += `TEXT ${m.SAFE_LEFT},${m.SAFE_TOP + 10 + bmpNome.heightDots + 10},"3",0,1,1,"QTD: ${quantidade}"\r\n`;
     }
-    add(`PRINT ${Math.max(1, copias)},1`);
-    return cmd;
+    tailNome += `PRINT ${Math.max(1, copias)},1\r\n`;
+    chunks.push(tailNome);
+
+    return concatenarChunksTspl(chunks);
   }
 
-  // MODELO COMPLETO (VALIDADE) - ESTRUTURA PROFISSIONAL 80x40
-  // 1. Nome da Empresa / Unidade
-  add(`TEXT ${m.SAFE_LEFT},${m.SAFE_TOP},"2",0,1,1,"${unidadeNome.slice(0, 35)}"`);
-
-  // 2. Nome do Produto (Destaque Principal de Texto)
-  let y = m.SAFE_TOP + 26;
+  // MODELO COMPLETO (VALIDADE) - DESIGN 60x40 (480 x 320 dots)
+  // 1. PRODUTO NO TOPO (Destaque máximo com Bitmap 1-bit para acentos impecáveis)
+  let y = m.SAFE_TOP;
   const fitProd = formatarTextoFitted(produto, m.MAX_TEXT_WIDTH, "4");
-  for (const linha of fitProd.linhas) {
-    add(`TEXT ${m.SAFE_LEFT},${y},"${fitProd.fonte}",0,1,1,"${linha}"`);
-    y += fitProd.fonte === "4" ? 34 : 26;
-  }
+  const bmpProd = criarBitmapTextoCanvas({
+    linhas: fitProd.linhas,
+    maxLarguraDots: m.MAX_TEXT_WIDTH,
+    alturaLinhaDots: fitProd.linhas.length > 1 ? 26 : 32,
+    tamanhoFontePx: fitProd.fonte === "4" ? 28 : fitProd.fonte === "3" ? 22 : 18,
+    ehNegrito: true,
+  });
 
-  // 3. Conservação + Peso/Qtd + Lote
-  let linhaDetalhes = `${conservacao}`;
-  if (quantidade) linhaDetalhes += ` | ${quantidade}`;
-  if (lote) linhaDetalhes += ` | ${lote}`;
-  add(`TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${linhaDetalhes}"`);
+  let bodyAscii = `BITMAP ${m.SAFE_LEFT},${y},${bmpProd.widthBytes},${bmpProd.heightDots},0,`;
+  chunks.push(bodyAscii);
+  chunks.push(bmpProd.data);
+  chunks.push("\r\n");
+
+  y += bmpProd.heightDots + 4;
+
+  // 2. CONSERVAÇÃO / TIPO (Esquerda) + PESO / QUANTIDADE (Direita)
+  let restAscii = "";
+  const labelTipo = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
+  const textoConser = `${conservacao} / ${labelTipo}`;
+  restAscii += `TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${textoConser}"\r\n`;
+
+  if (quantidade) {
+    const xQtd = Math.max(280, m.WIDTH_DOTS - m.SAFE_LEFT - (quantidade.length * 12));
+    restAscii += `TEXT ${xQtd},${y},"2",0,1,1,"${quantidade}"\r\n`;
+  }
+  y += 20;
+
+  // 3. DIVISÓRIA 1
+  restAscii += `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
+  y += 6;
+
+  // 4. DATAS & LOTE
+  const labelManip = tipoEtiqueta === "aberto" ? "MANIPULACAO:" : "ETIQUETADO: ";
+  restAscii += `TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${labelManip} ${dataManipulacao}"\r\n`;
+  y += 20;
+
+  restAscii += `TEXT ${m.SAFE_LEFT},${y},"3",0,1,1,"VALIDADE:    ${dataValidade}"\r\n`;
   y += 24;
 
-  // 4. Data de Manipulação / Etiquetagem
-  const labelManip = tipoEtiqueta === "aberto" ? "MANIP:" : "ETIQ:";
-  add(`TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${labelManip} ${dataManipulacao}"`);
-  y += 26;
+  const textoLote = dados.lote ? `LOTE:        ${dados.lote}` : "LOTE:        COZINHA";
+  restAscii += `TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${textoLote}"\r\n`;
+  y += 20;
 
-  // 5. Data de Validade (Destaque Fácil de Localizar na Cozinha)
-  add(`TEXT ${m.SAFE_LEFT},${y},"3",0,1,1,"VAL:   ${dataValidade}"`);
-  y += 32;
+  // 5. DIVISÓRIA 2
+  restAscii += `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
+  y += 6;
 
-  // 6. Responsável (Ajuste automático para nomes longos como "CEDEINE DEL VALLE TABLANTE FLORES")
+  chunks.push(restAscii);
+
+  // 6. RESPONSÁVEL
   if (responsavel) {
-    const textoResp = `RESP: ${responsavel}`;
+    const textoResp = `RESP.: ${responsavel}`;
     const fitResp = formatarTextoFitted(textoResp, m.MAX_TEXT_WIDTH, "2");
-    for (const linha of fitResp.linhas) {
-      add(`TEXT ${m.SAFE_LEFT},${y},"${fitResp.fonte}",0,1,1,"${linha}"`);
-      y += 22;
+
+    if (precisaRenderizacaoBitmap(responsavel)) {
+      const bmpResp = criarBitmapTextoCanvas({
+        linhas: fitResp.linhas,
+        maxLarguraDots: m.MAX_TEXT_WIDTH,
+        alturaLinhaDots: 20,
+        tamanhoFontePx: 16,
+        ehNegrito: true,
+      });
+      const cmdRespBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpResp.widthBytes},${bmpResp.heightDots},0,`;
+      chunks.push(cmdRespBmp);
+      chunks.push(bmpResp.data);
+      chunks.push("\r\n");
+      y += bmpResp.heightDots + 4;
+    } else {
+      let respTextCmd = "";
+      for (const linha of fitResp.linhas) {
+        respTextCmd += `TEXT ${m.SAFE_LEFT},${y},"${fitResp.fonte}",0,1,1,"${linha}"\r\n`;
+        y += 20;
+      }
+      chunks.push(respTextCmd);
     }
   }
 
-  // 7. QR Code Nativo TSPL para Rastreio (Canto Direito)
+  // 7. RODAPÉ (EMPRESA + QR CODE + CÓDIGO)
+  let footerAscii = "";
+  footerAscii += `TEXT ${m.SAFE_LEFT},265,"2",0,1,1,"SELDEESTRELA"\r\n`;
+  footerAscii += `TEXT ${m.SAFE_LEFT},285,"1",0,1,1,"COMIDAS NORTISTAS"\r\n`;
+
   if (codigo) {
-    add(`QRCODE ${m.QR_X},${m.QR_Y},L,${m.QR_CELL_SIZE},A,0,"${urlRastreio}"`);
-    add(`TEXT ${m.CODE_X},${m.CODE_Y},"2",0,1,1,"#${codigo}"`);
+    footerAscii += `QRCODE ${m.QR_X},${m.QR_Y},L,${m.QR_CELL_SIZE},A,0,"${urlRastreio}"\r\n`;
+    footerAscii += `TEXT ${m.CODE_X},${m.CODE_Y},"1",0,1,1,"#${codigo}"\r\n`;
   }
 
-  add(`PRINT ${Math.max(1, copias)},1`);
-  return cmd;
+  footerAscii += `PRINT ${Math.max(1, copias)},1\r\n`;
+  chunks.push(footerAscii);
+
+  return concatenarChunksTspl(chunks);
+}
+
+/**
+ * Função/Etiqueta de Diagnóstico para testar fisicamente todos os acentos em Português na MDK-022.
+ */
+export function gerarEtiquetaDiagnosticoTsplMdk022() {
+  const dadosDiagnostico = {
+    produto: "AÇAFRÃO / CÚRCUMA",
+    conservacao: "RESFRIADO",
+    lote: "COZINHA",
+    momento: new Date(),
+    validade: new Date(Date.now() + 3 * 86400000),
+    responsavel: "JOSEPH ANDREY GOMES DA SILVA",
+    codigo: "DIAG12345",
+    modeloEtiqueta: "validade",
+    tipoEtiqueta: "aberto",
+    unidadeNome: "SELDEESTRELA COMIDAS NORTISTAS",
+  };
+
+  return gerarComandosTsplMdk022({ dados: dadosDiagnostico, tamanho: "60x40", copias: 1 });
 }
 
 /**
@@ -386,18 +554,17 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "80x40", copias = 1 }
  *
  * @param {Object} params
  * @param {Object} params.dados Dados da etiqueta
- * @param {string} params.tamanho Tamanho exato ("80x40", etc.)
+ * @param {string} params.tamanho Tamanho exato ("60x40", etc.)
  * @param {number} params.copias Quantidade de cópias
  * @returns {Promise<{ ok: boolean, bytes: number, status?: string }>}
  */
-export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "80x40", copias = 1, onStatusChange }) {
+export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copias = 1, onStatusChange }) {
   try {
     if (onStatusChange) onStatusChange("Conectando à MDK-022...");
     const device = await obterDispositivoMdk022();
     const endpointOut = device._endpointOutNumber || 2;
 
-    const comandosTspl = gerarComandosTsplMdk022({ dados, tamanho, copias });
-    const buffer = encodeCp1252(comandosTspl);
+    const buffer = gerarComandosTsplMdk022({ dados, tamanho, copias });
 
     console.log(`[ETIQUETA][MDK022] TSPL gerado: ${buffer.length} bytes`);
     

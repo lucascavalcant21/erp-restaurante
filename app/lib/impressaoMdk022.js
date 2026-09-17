@@ -108,6 +108,164 @@ export async function obterDispositivoMdk022() {
 }
 
 /**
+ * Métricas e limites de layout por dimensão de etiqueta (203 DPI = 8 dots/mm)
+ */
+export const METRICAS_TAMANHO = {
+  "80x40": {
+    WIDTH_MM: 80,
+    HEIGHT_MM: 40,
+    WIDTH_DOTS: 640,
+    HEIGHT_DOTS: 320,
+    SAFE_LEFT: 20,
+    SAFE_TOP: 16,
+    MAX_TEXT_WIDTH: 430, // 640 - 20(left) - 170(QR) - 20(gap)
+    QR_X: 460,
+    QR_Y: 20,
+    QR_CELL_SIZE: 4,
+    CODE_X: 460,
+    CODE_Y: 205,
+  },
+  "60x40": {
+    WIDTH_MM: 60,
+    HEIGHT_MM: 40,
+    WIDTH_DOTS: 480,
+    HEIGHT_DOTS: 320,
+    SAFE_LEFT: 16,
+    SAFE_TOP: 16,
+    MAX_TEXT_WIDTH: 310,
+    QR_X: 340,
+    QR_Y: 20,
+    QR_CELL_SIZE: 3,
+    CODE_X: 340,
+    CODE_Y: 190,
+  },
+  "60x60": {
+    WIDTH_MM: 60,
+    HEIGHT_MM: 60,
+    WIDTH_DOTS: 480,
+    HEIGHT_DOTS: 480,
+    SAFE_LEFT: 20,
+    SAFE_TOP: 20,
+    MAX_TEXT_WIDTH: 300,
+    QR_X: 330,
+    QR_Y: 30,
+    QR_CELL_SIZE: 4,
+    CODE_X: 330,
+    CODE_Y: 220,
+  },
+};
+
+/**
+ * Converte string JS (UTF-16) em Uint8Array codificado em Windows-1252 (CP1252).
+ * Isso corrige os caracteres acentuados corrompidos em impressoras TSPL nativas.
+ */
+export function encodeCp1252(str) {
+  const bytes = [];
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code < 128) {
+      bytes.push(code);
+    } else {
+      const map = {
+        0x00C1: 0xC1, 0x00C0: 0xC0, 0x00C2: 0xC2, 0x00C3: 0xC3, 0x00C4: 0xC4, // Á À Â Ã Ä
+        0x00E1: 0xE1, 0x00E0: 0xE0, 0x00E2: 0xE2, 0x00E3: 0xE3, 0x00E4: 0xE4, // á à â ã ä
+        0x00C9: 0xC9, 0x00C8: 0xC8, 0x00CA: 0xCA, 0x00CB: 0xCB, // É È Ê Ë
+        0x00E9: 0xE9, 0x00E8: 0xE8, 0x00EA: 0xEA, 0x00EB: 0xEB, // é è ê ë
+        0x00CD: 0xCD, 0x00CC: 0xCC, 0x00CE: 0xCE, 0x00CF: 0xCF, // Í Ì Î Ï
+        0x00ED: 0xED, 0x00EC: 0xEC, 0x00EE: 0xEE, 0x00EF: 0xEF, // í ì î ï
+        0x00D3: 0xD3, 0x00D2: 0xD2, 0x00D4: 0xD4, 0x00D5: 0xD5, 0x00D6: 0xD6, // Ó Ò Ô Õ Ö
+        0x00F3: 0xF3, 0x00F2: 0xF2, 0x00F4: 0xF4, 0x00F5: 0xF5, 0x00F6: 0xF6, // ó ò ô õ ö
+        0x00DA: 0xDA, 0x00D9: 0xD9, 0x00DB: 0xDB, 0x00DC: 0xDC, // Ú Ù Û Ü
+        0x00FA: 0xFA, 0x00F9: 0xF9, 0x00FB: 0xFB, 0x00FC: 0xFC, // ú ù û ü
+        0x00C7: 0xC7, 0x00E7: 0xE7, // Ç ç
+        0x00BA: 0xBA, 0x00AA: 0xAA, 0x00B0: 0xB0, // º ª °
+      };
+      if (map[code]) {
+        bytes.push(map[code]);
+      } else if (code <= 0xFF) {
+        bytes.push(code);
+      } else {
+        const norm = str[i].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        bytes.push(norm.charCodeAt(0) < 128 ? norm.charCodeAt(0) : 63);
+      }
+    }
+  }
+  return new Uint8Array(bytes);
+}
+
+/**
+ * Ajusta e divide o texto para caber perfeitamente na largura disponível sem cortar.
+ */
+export function formatarTextoFitted(texto, maxLarguraDots = 430, preferenciaFonte = "3") {
+  const t = String(texto || "").trim();
+  if (!t) return { linhas: [], fonte: preferenciaFonte };
+
+  const LARGURA_CHAR = {
+    "4": 24,
+    "3": 16,
+    "2": 12,
+    "1": 8,
+  };
+
+  const cap = (f) => Math.floor(maxLarguraDots / (LARGURA_CHAR[f] || 16));
+
+  // 1. Tenta fonte preferencial em 1 linha
+  if (t.length <= cap(preferenciaFonte)) {
+    return { linhas: [t], fonte: preferenciaFonte };
+  }
+
+  // 2. Tenta 2 linhas na fonte preferencial (quebrando em espaço)
+  const palavras = t.split(/\s+/);
+  let l1 = "", l2 = "";
+  const maxCharsPref = cap(preferenciaFonte);
+
+  for (const p of palavras) {
+    if ((l1 + " " + p).trim().length <= maxCharsPref) {
+      l1 = (l1 + " " + p).trim();
+    } else {
+      l2 = (l2 + " " + p).trim();
+    }
+  }
+
+  if (l1 && l2 && l2.length <= maxCharsPref) {
+    return { linhas: [l1, l2], fonte: preferenciaFonte };
+  }
+
+  // 3. Tenta reduzir para a próxima fonte menor
+  const fonteMenor = preferenciaFonte === "4" ? "3" : preferenciaFonte === "3" ? "2" : "1";
+  const maxCharsMenor = cap(fonteMenor);
+
+  if (t.length <= maxCharsMenor) {
+    return { linhas: [t], fonte: fonteMenor };
+  }
+
+  // 4. Tenta 2 linhas na fonte menor
+  l1 = ""; l2 = "";
+  for (const p of palavras) {
+    if ((l1 + " " + p).trim().length <= maxCharsMenor) {
+      l1 = (l1 + " " + p).trim();
+    } else {
+      l2 = (l2 + " " + p).trim();
+    }
+  }
+
+  if (l1 && l2 && l2.length <= maxCharsMenor) {
+    return { linhas: [l1, l2], fonte: fonteMenor };
+  }
+
+  // 5. Se ainda não coube em 2 linhas, aplica reticências seguras em l2
+  if (l1 && l2) {
+    l2 = l2.slice(0, Math.max(1, maxCharsMenor - 3)) + "...";
+    return { linhas: [l1, l2], fonte: fonteMenor };
+  }
+
+  return {
+    linhas: [t.slice(0, maxCharsMenor), t.slice(maxCharsMenor, maxCharsMenor * 2)],
+    fonte: fonteMenor,
+  };
+}
+
+/**
  * Converte os dados da etiqueta gerados pelo ERP em comandos TSPL.
  *
  * @param {Object} params
@@ -117,14 +275,12 @@ export async function obterDispositivoMdk022() {
  * @returns {string} String contendo todos os comandos TSPL finalizados com \r\n
  */
 export function gerarComandosTsplMdk022({ dados, tamanho = "80x40", copias = 1 }) {
-  const [larguraStr = "80", alturaStr = "40"] = tamanho.split("x");
-  const largura = parseInt(larguraStr, 10) || 80;
-  const altura = parseInt(alturaStr, 10) || 40;
+  const m = METRICAS_TAMANHO[tamanho] || METRICAS_TAMANHO["80x40"];
 
   const p = (n) => String(n).padStart(2, "0");
   const fmtDH = (d) => {
     if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "—";
-    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} - ${p(d.getHours())}H${p(d.getMinutes())}`;
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} ${p(d.getHours())}:${p(d.getMinutes())}`;
   };
   const fmtD = (d) => {
     if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "—";
@@ -153,67 +309,72 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "80x40", copias = 1 }
   const add = (linha) => { cmd += linha + "\r\n"; };
 
   // 1. Configurações gerais da página TSPL
-  add(`SIZE ${largura} mm,${altura} mm`);
+  add(`SIZE ${m.WIDTH_MM} mm,${m.HEIGHT_MM} mm`);
   add("GAP 2 mm,0 mm");
   add("DIRECTION 1");
+  add("CODEPAGE 1252");
   add("CLS");
 
-  // MODELO "SÓ O NOME"
+  // MODELO "SOMENTE NOME"
   if (modeloEtiqueta === "nome") {
-    add(`TEXT 30,30,"4",0,1,1,"${unidadeNome.slice(0, 30)}"`);
-    add(`TEXT 30,90,"4",0,1,1,"${produto.slice(0, 24)}"`);
-    if (produto.length > 24) {
-      add(`TEXT 30,140,"3",0,1,1,"${produto.slice(24, 50)}"`);
+    const fitNome = formatarTextoFitted(produto, m.WIDTH_DOTS - (m.SAFE_LEFT * 2), "4");
+    if (unidadeNome) {
+      add(`TEXT ${m.SAFE_LEFT},${m.SAFE_TOP},"2",0,1,1,"${unidadeNome.slice(0, 35)}"`);
+    }
+    let yCurrent = m.SAFE_TOP + 40;
+    for (const linha of fitNome.linhas) {
+      add(`TEXT ${m.SAFE_LEFT},${yCurrent},"${fitNome.fonte}",0,1,1,"${linha}"`);
+      yCurrent += fitNome.fonte === "4" ? 36 : 28;
     }
     if (quantidade) {
-      add(`TEXT 30,200,"3",0,1,1,"QTD: ${quantidade}"`);
-    }
-    if (codigo) {
-      add(`QRCODE 460,40,L,4,A,0,"${urlRastreio}"`);
-      add(`TEXT 460,240,"2",0,1,1,"#${codigo}"`);
+      add(`TEXT ${m.SAFE_LEFT},${yCurrent + 10},"3",0,1,1,"QTD: ${quantidade}"`);
     }
     add(`PRINT ${Math.max(1, copias)},1`);
     return cmd;
   }
 
-  // MODELO COMPLETO (VALIDADE)
-  // Layout ajustado em Dots (203 DPI: 1 mm = 8 dots)
-  // 80x40mm -> 640 x 320 dots | 60x40mm -> 480 x 320 dots
-  const qrX = largura >= 80 ? 450 : 330;
+  // MODELO COMPLETO (VALIDADE) - ESTRUTURA PROFISSIONAL 80x40
+  // 1. Nome da Empresa / Unidade
+  add(`TEXT ${m.SAFE_LEFT},${m.SAFE_TOP},"2",0,1,1,"${unidadeNome.slice(0, 35)}"`);
 
-  // Nome da Empresa/Unidade
-  add(`TEXT 20,20,"2",0,1,1,"${unidadeNome.slice(0, 35)}"`);
-
-  // Nome do Produto (Destaque)
-  const prodLinha1 = produto.slice(0, 22);
-  const prodLinha2 = produto.slice(22, 44);
-  add(`TEXT 20,50,"3",0,1,1,"${prodLinha1}"`);
-  if (prodLinha2) {
-    add(`TEXT 20,90,"3",0,1,1,"${prodLinha2}"`);
+  // 2. Nome do Produto (Destaque Principal de Texto)
+  let y = m.SAFE_TOP + 26;
+  const fitProd = formatarTextoFitted(produto, m.MAX_TEXT_WIDTH, "4");
+  for (const linha of fitProd.linhas) {
+    add(`TEXT ${m.SAFE_LEFT},${y},"${fitProd.fonte}",0,1,1,"${linha}"`);
+    y += fitProd.fonte === "4" ? 34 : 26;
   }
 
-  // Conservação + Peso/Qtd + Lote
+  // 3. Conservação + Peso/Qtd + Lote
   let linhaDetalhes = `${conservacao}`;
   if (quantidade) linhaDetalhes += ` | ${quantidade}`;
   if (lote) linhaDetalhes += ` | ${lote}`;
-  add(`TEXT 20,${prodLinha2 ? 130 : 100},"2",0,1,1,"${linhaDetalhes}"`);
+  add(`TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${linhaDetalhes}"`);
+  y += 24;
 
-  // Data de Manipulação / Etiquetagem
+  // 4. Data de Manipulação / Etiquetagem
   const labelManip = tipoEtiqueta === "aberto" ? "MANIP:" : "ETIQ:";
-  add(`TEXT 20,${prodLinha2 ? 165 : 135},"2",0,1,1,"${labelManip} ${dataManipulacao}"`);
+  add(`TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${labelManip} ${dataManipulacao}"`);
+  y += 26;
 
-  // Data de Validade (Destaque)
-  add(`TEXT 20,${prodLinha2 ? 200 : 170},"3",0,1,1,"VAL: ${dataValidade}"`);
+  // 5. Data de Validade (Destaque Fácil de Localizar na Cozinha)
+  add(`TEXT ${m.SAFE_LEFT},${y},"3",0,1,1,"VAL:   ${dataValidade}"`);
+  y += 32;
 
-  // Responsável
+  // 6. Responsável (Ajuste automático para nomes longos como "CEDEINE DEL VALLE TABLANTE FLORES")
   if (responsavel) {
-    add(`TEXT 20,${prodLinha2 ? 245 : 215},"2",0,1,1,"RESP: ${responsavel.slice(0, 25)}"`);
+    const textoResp = `RESP: ${responsavel}`;
+    const fitResp = formatarTextoFitted(textoResp, m.MAX_TEXT_WIDTH, "2");
+    for (const linha of fitResp.linhas) {
+      add(`TEXT ${m.SAFE_LEFT},${y},"${fitResp.fonte}",0,1,1,"${linha}"`);
+      y += 22;
+    }
   }
 
-  // QR Code Nativo TSPL para Rastreio
+  // 7. QR Code Nativo TSPL para Rastreio (Canto Direito)
   if (codigo) {
-    add(`QRCODE ${qrX},35,L,3,A,0,"${urlRastreio}"`);
-    add(`TEXT ${qrX},200,"2",0,1,1,"#${codigo}"`);
+    add(`QRCODE ${m.QR_X},${m.QR_Y},L,${m.QR_CELL_SIZE},A,0,"${urlRastreio}"`);
+    add(`TEXT ${m.CODE_X},${m.CODE_Y},"2",0,1,1,"#${codigo}"`);
   }
 
   add(`PRINT ${Math.max(1, copias)},1`);
@@ -236,8 +397,7 @@ export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "80x40", copi
     const endpointOut = device._endpointOutNumber || 2;
 
     const comandosTspl = gerarComandosTsplMdk022({ dados, tamanho, copias });
-    const encoder = new TextEncoder();
-    const buffer = encoder.encode(comandosTspl);
+    const buffer = encodeCp1252(comandosTspl);
 
     console.log(`[ETIQUETA][MDK022] TSPL gerado: ${buffer.length} bytes`);
     

@@ -15,7 +15,13 @@ let impressoraConectadaCache = null;
  * Verifica se a API WebUSB está disponível no ambiente atual.
  */
 export function WebUsbDisponivel() {
-  return typeof navigator !== "undefined" && !!(navigator.usb && typeof navigator.usb.getDevices === "function");
+  const disponivel = typeof navigator !== "undefined" && !!(navigator.usb && typeof navigator.usb.getDevices === "function");
+  if (disponivel) {
+    console.log("[MDK022] WebUSB disponível");
+  } else {
+    console.warn("[MDK022] WebUSB indisponível neste navegador/dispositivo");
+  }
+  return disponivel;
 }
 
 /**
@@ -28,6 +34,7 @@ export async function obterDispositivoMdk022() {
 
   // 1. Se já temos a impressora em cache e aberta, reutiliza
   if (impressoraConectadaCache && impressoraConectadaCache.opened) {
+    console.log("[MDK022] dispositivo encontrado no cache e aberto");
     return impressoraConectadaCache;
   }
 
@@ -35,24 +42,28 @@ export async function obterDispositivoMdk022() {
   const autorizados = await navigator.usb.getDevices();
   let device = autorizados.find(d => d.vendorId === 0x36FC && d.productId === 0x0513);
 
-  // 3. Se não encontrou entre os autorizados, solicita permissão via diálogo nativo
-  if (!device) {
+  if (device) {
+    console.log("[MDK022] dispositivo encontrado nos autorizados (Vendor: 0x36FC, Product: 0x0513)");
+  } else {
+    console.log("[MDK022] dispositivo não encontrado nos autorizados. Solicitando permissão via requestDevice...");
+    // Solicitando permissão com filtro exato para MDK-022
     device = await navigator.usb.requestDevice({
       filters: [
-        { vendorId: 0x36FC, productId: 0x0513 },
-        {} // Filtro genérico fallback
+        { vendorId: 0x36FC, productId: 0x0513 }
       ]
     });
+    console.log("[MDK022] dispositivo selecionado pelo usuário:", device.productName || "MDK-022");
   }
 
   if (!device) {
-    throw new Error("Nenhuma impressora USB selecionada.");
+    throw new Error("Nenhuma impressora MDK-022 USB foi selecionada.");
   }
 
-  // 4. Abre a comunicação USB
+  // 3. Abre a comunicação USB
   if (!device.opened) {
     await device.open();
   }
+  console.log("[MDK022] dispositivo aberto");
 
   if (device.configuration === null) {
     await device.selectConfiguration(1);
@@ -76,13 +87,16 @@ export async function obterDispositivoMdk022() {
 
   try {
     await device.claimInterface(interfaceTarget);
+    console.log(`[MDK022] interface #${interfaceTarget} reivindicada`);
   } catch (err) {
-    // Se a interface já estiver reivindicada, podemos prosseguir
     if (!err.message?.includes("already claimed")) {
-      console.warn("Aviso ao reivindicar interface USB:", err.message);
+      console.warn(`[MDK022] Aviso ao reivindicar interface #${interfaceTarget}:`, err.message);
+    } else {
+      console.log(`[MDK022] interface #${interfaceTarget} já estava reivindicada`);
     }
   }
 
+  console.log(`[MDK022] endpoint OUT #${endpointOutNumber}`);
   device._endpointOutNumber = endpointOutNumber;
   impressoraConectadaCache = device;
   return device;
@@ -219,19 +233,25 @@ export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "80x40", copi
     const encoder = new TextEncoder();
     const buffer = encoder.encode(comandosTspl);
 
+    console.log(`[MDK022] TSPL gerado: ${buffer.length} bytes`);
+    console.log("[MDK022] transferOut iniciado");
+
     const resultado = await device.transferOut(endpointOut, buffer);
 
+    console.log(`[MDK022] transferOut status: ${resultado.status}`);
+
     if (resultado.status === "ok") {
+      console.log("[MDK022] impressão concluída com sucesso!");
       return {
         ok: true,
         bytes: resultado.bytesWritten || buffer.length,
         status: resultado.status
       };
     } else {
-      throw new Error(`A impressora respondeu com status: ${resultado.status}`);
+      throw new Error(`A impressora MDK-022 respondeu com o status: ${resultado.status}`);
     }
   } catch (err) {
-    console.error("Erro na impressão WebUSB MDK-022:", err);
+    console.error("[MDK022] Erro na transmissão WebUSB MDK-022:", err.message || err);
     throw err;
   }
 }

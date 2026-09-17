@@ -609,28 +609,36 @@ function EtiquetasRunner() {
       }
 
       if (modoImpressao === "mdk022_usb") {
-        await imprimirEtiquetaMdk022Usb({
-          tamanho,
-          copias: quantidadeCopias,
-          dados: {
-            codigo,
-            produto: nomeProduto,
-            modeloEtiqueta: modelo,
-            conservacao: form.conservacao,
-            quantidade: form.quantidade,
-            unidade: form.unidade,
-            tipoEtiqueta,
-            momento: momentoImpressao,
-            validade: validadeImpressao,
-            responsavel: form.responsavel.trim(),
-            lote: form.lote,
-            unidadeNome: unidadeInfo.nome_fantasia || unidadeInfo.nome,
-            cnpj: fmtCNPJ(cnpjUnidade),
-            endereco: enderecoUnidade,
-            localizacao: localizacaoUnidade,
-          },
-        });
-        setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} via USB para MDK-022`);
+        try {
+          await imprimirEtiquetaMdk022Usb({
+            tamanho,
+            copias: quantidadeCopias,
+            dados: {
+              codigo,
+              produto: nomeProduto,
+              modeloEtiqueta: modelo,
+              conservacao: form.conservacao,
+              quantidade: form.quantidade,
+              unidade: form.unidade,
+              tipoEtiqueta,
+              momento: momentoImpressao,
+              validade: validadeImpressao,
+              responsavel: form.responsavel.trim(),
+              lote: form.lote,
+              unidadeNome: unidadeInfo.nome_fantasia || unidadeInfo.nome,
+              cnpj: fmtCNPJ(cnpjUnidade),
+              endereco: enderecoUnidade,
+              localizacao: localizacaoUnidade,
+            },
+          });
+          setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} impressa${quantidadeCopias !== 1 ? "s" : ""} com sucesso na MDK-022 (USB)`);
+        } catch (errMdk) {
+          console.error("[MDK022] Falha na transmissão USB:", errMdk);
+          setSalvou(`Erro na impressão MDK-022 (USB): ${errMdk?.message || "falha na comunicação USB"}`);
+        } finally {
+          setSalvando(false);
+        }
+        return; // RETORNO OBRIGATÓRIO: impede fallthrough para window.print() ou diálogo nativo do Android
       } else if (modoImpressao === "tp20") {
         await imprimirEtiquetasTp20({
           impressora: impressoraNome,
@@ -1197,8 +1205,8 @@ function EtiquetasRunner() {
             {/* Ações principais */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
               <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={15} /> {salvando ? "..." : "Salvar"}</Btn>
-              {/* Um único botão Imprimir: usa a TP20 se estiver conectada; senão, impressão comum */}
-              <Btn variant="primary" disabled={salvando} onClick={() => salvar(impressoraStatus === "conectada" ? "tp20" : "navegador")}>
+              {/* Um único botão Imprimir: prioriza MDK-022 USB no Android; TP20 se conectada no QZ Tray; senão navegador */}
+              <Btn variant="primary" disabled={salvando} onClick={() => salvar(temWebUsb ? "mdk022_usb" : (impressoraStatus === "conectada" ? "tp20" : "navegador"))}>
                 <Printer size={15} /> {salvando ? "..." : "Imprimir"}
               </Btn>
               <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta">

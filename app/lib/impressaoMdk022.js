@@ -117,13 +117,15 @@ export const METRICAS_TAMANHO = {
     WIDTH_DOTS: 480,
     HEIGHT_DOTS: 320,
     SAFE_LEFT: 16,
-    SAFE_TOP: 10,
+    SAFE_TOP: 6,
+    SAFE_BOTTOM: 6,
+    PRINT_OFFSET_Y: 0,
     MAX_TEXT_WIDTH: 448,
-    QR_X: 335,
-    QR_Y: 195,
+    QR_X: 350,
+    QR_Y: 175,
     QR_CELL_SIZE: 3,
-    CODE_X: 335,
-    CODE_Y: 298,
+    CODE_X: 350,
+    CODE_Y: 268,
   },
   "80x40": {
     WIDTH_MM: 80,
@@ -131,13 +133,15 @@ export const METRICAS_TAMANHO = {
     WIDTH_DOTS: 640,
     HEIGHT_DOTS: 320,
     SAFE_LEFT: 20,
-    SAFE_TOP: 12,
+    SAFE_TOP: 8,
+    SAFE_BOTTOM: 8,
+    PRINT_OFFSET_Y: 0,
     MAX_TEXT_WIDTH: 600,
     QR_X: 490,
-    QR_Y: 195,
+    QR_Y: 175,
     QR_CELL_SIZE: 4,
     CODE_X: 490,
-    CODE_Y: 298,
+    CODE_Y: 268,
   },
   "60x60": {
     WIDTH_MM: 60,
@@ -145,13 +149,15 @@ export const METRICAS_TAMANHO = {
     WIDTH_DOTS: 480,
     HEIGHT_DOTS: 480,
     SAFE_LEFT: 16,
-    SAFE_TOP: 12,
+    SAFE_TOP: 8,
+    SAFE_BOTTOM: 8,
+    PRINT_OFFSET_Y: 0,
     MAX_TEXT_WIDTH: 448,
-    QR_X: 335,
-    QR_Y: 340,
+    QR_X: 350,
+    QR_Y: 320,
     QR_CELL_SIZE: 3,
-    CODE_X: 335,
-    CODE_Y: 445,
+    CODE_X: 350,
+    CODE_Y: 415,
   },
 };
 
@@ -236,27 +242,14 @@ export function formatarTextoFitted(texto, maxLarguraDots = 448, preferenciaFont
 }
 
 /**
- * Renderiza linhas de texto em Canvas 2D e converte para estrutura TSPL BITMAP 1-bit monocromática.
- * No TSPL BITMAP:
- * - 1 byte = 8 pixels horizontais (da esquerda para direita, MSB primeiro)
- * - Bit 0 = Preto (queima ponto térmico)
- * - Bit 1 = Branco (não queima)
+ * Função utilitária genérica que executa renderização visual Canvas 2D e converte o resultado em buffer 1-bit monocromático TSPL BITMAP.
  */
-export function criarBitmapTextoCanvas({
-  linhas = [],
-  maxLarguraDots = 448,
-  alturaLinhaDots = 32,
-  tamanhoFontePx = 28,
-  ehNegrito = true,
-}) {
-  const numLinhas = Math.max(1, linhas.length);
-  const width = Math.min(640, Math.max(80, maxLarguraDots));
-  const height = numLinhas * alturaLinhaDots;
+export function renderizarCanvasParaBitmap(drawFn, width = 448, height = 32) {
   const widthBytes = Math.ceil(width / 8);
   const totalBytes = widthBytes * height;
 
   const bitmapData = new Uint8Array(totalBytes);
-  bitmapData.fill(0xFF); // 0xFF = Tudo branco no TSPL (0 = Preto, 1 = Branco)
+  bitmapData.fill(0xFF); // 0xFF = Branco no TSPL (0 = Preto)
 
   if (typeof document !== "undefined" || typeof OffscreenCanvas !== "undefined") {
     try {
@@ -276,12 +269,9 @@ export function criarBitmapTextoCanvas({
         ctx.fillRect(0, 0, width, height);
 
         ctx.fillStyle = "#000000";
-        ctx.font = `${ehNegrito ? "bold " : ""}${tamanhoFontePx}px Arial, 'Helvetica Neue', sans-serif`;
         ctx.textBaseline = "top";
 
-        linhas.forEach((linha, i) => {
-          ctx.fillText(linha, 0, i * alturaLinhaDots + 2);
-        });
+        drawFn(ctx, width, height);
 
         const imgData = ctx.getImageData(0, 0, width, height);
         const pixels = imgData.data;
@@ -294,7 +284,8 @@ export function criarBitmapTextoCanvas({
             const b = pixels[idx + 2];
             const a = pixels[idx + 3];
 
-            const ehPreto = a > 128 && (r * 0.299 + g * 0.587 + b * 0.114) < 160;
+            // Threshold de luminância para térmica 203 DPI (180 = preto nítido sem fechar loops de 'A', 'R', 'O', '0', 'B')
+            const ehPreto = a > 128 && (r * 0.299 + g * 0.587 + b * 0.114) < 180;
             if (ehPreto) {
               const byteIdx = y * widthBytes + Math.floor(x / 8);
               const bitPos = 7 - (x % 8);
@@ -307,19 +298,16 @@ export function criarBitmapTextoCanvas({
       console.warn("[MDK022] Fallback de bitmap canvas:", eCanvas.message);
     }
   } else {
-    // Modo Node.js para testes unitários sem DOM: simula pixels pretos para validação
-    linhas.forEach((linha, i) => {
-      const startY = i * alturaLinhaDots + 4;
-      const endY = startY + (alturaLinhaDots - 8);
-      const textWidthDots = Math.min(width - 10, (linha || "").length * 14);
-      for (let y = startY; y < endY && y < height; y++) {
-        for (let x = 4; x < textWidthDots; x++) {
-          const byteIdx = y * widthBytes + Math.floor(x / 8);
-          const bitPos = 7 - (x % 8);
-          bitmapData[byteIdx] &= ~(1 << bitPos);
-        }
+    // Modo Node.js para testes unitários em CLI sem DOM
+    const startY = 2;
+    const endY = height - 2;
+    for (let y = startY; y < endY && y < height; y++) {
+      for (let x = 4; x < width - 10; x++) {
+        const byteIdx = y * widthBytes + Math.floor(x / 8);
+        const bitPos = 7 - (x % 8);
+        bitmapData[byteIdx] &= ~(1 << bitPos);
       }
-    });
+    }
   }
 
   return {
@@ -327,6 +315,148 @@ export function criarBitmapTextoCanvas({
     heightDots: height,
     data: bitmapData,
   };
+}
+
+/**
+ * Renderiza linhas de texto em Canvas 2D e converte para estrutura TSPL BITMAP 1-bit monocromática.
+ */
+export function criarBitmapTextoCanvas({
+  linhas = [],
+  maxLarguraDots = 448,
+  alturaLinhaDots = 32,
+  tamanhoFontePx = 28,
+  ehNegrito = true,
+}) {
+  const numLinhas = Math.max(1, linhas.length);
+  const height = numLinhas * alturaLinhaDots;
+
+  return renderizarCanvasParaBitmap((ctx) => {
+    ctx.fillStyle = "#000000";
+    ctx.font = `${ehNegrito ? "bold " : ""}${tamanhoFontePx}px Arial, 'Helvetica Neue', sans-serif`;
+    ctx.textBaseline = "top";
+
+    linhas.forEach((linha, i) => {
+      ctx.fillText(linha, 0, i * alturaLinhaDots + 2);
+    });
+  }, maxLarguraDots, height);
+}
+
+/**
+ * Renderiza a Segunda Linha (Conservação + Peso/Qtd) em Canvas 2D com Negrito Real.
+ */
+export function criarBitmapTextoComQuantidade({
+  textoEsquerda = "RESFRIADO / MANIPULADO",
+  textoDireita = "500 g",
+  maxLarguraDots = 448,
+}) {
+  return renderizarCanvasParaBitmap((ctx, width) => {
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "top";
+
+    // Conservação / Tipo em Negrito
+    ctx.font = "bold 18px Arial, 'Helvetica Neue', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(textoEsquerda, 0, 2);
+
+    // Peso / Quantidade em Negrito
+    if (textoDireita) {
+      ctx.textAlign = "right";
+      ctx.fillText(textoDireita, width, 2);
+    }
+  }, maxLarguraDots, 22);
+}
+
+/**
+ * Renderiza o Bloco de Datas e Lote em Canvas 2D com Rótulos em Negrito e Destaque para Validade.
+ */
+export function criarBitmapBlocoDatas({
+  labelManip = "MANIPULAÇÃO:",
+  dataManipulacao = "17/09/26 - 00:00",
+  dataValidade = "20/09/26 - 00:00",
+  lote = "COZINHA",
+  maxLarguraDots = 448,
+}) {
+  return renderizarCanvasParaBitmap((ctx) => {
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    // Linha 1: MANIPULAÇÃO: 17/09/26 00:00
+    ctx.font = "bold 16px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText(labelManip, 0, 2);
+    ctx.font = "16px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText(dataManipulacao, 150, 2);
+
+    // Linha 2: VALIDADE: 20/09/26 00:00 (DESTAQUE BOLD MAIOR E MAIS FORTE)
+    ctx.font = "bold 18px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText("VALIDADE:", 0, 22);
+    ctx.fillText(dataValidade, 150, 22);
+
+    // Linha 3: LOTE: COZINHA
+    ctx.font = "bold 16px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText("LOTE:", 0, 43);
+    ctx.font = "16px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText(lote || "COZINHA", 150, 43);
+  }, maxLarguraDots, 63);
+}
+
+/**
+ * Renderiza o campo Responsável em Canvas 2D com "RESP.:" em Negrito e nome completo.
+ */
+export function criarBitmapResponsavel({
+  responsavel = "JOSEPH ANDREY GOMES DA SILVA",
+  maxLarguraDots = 448,
+}) {
+  const r = (responsavel || "").trim();
+  const fit = formatarTextoFitted(`RESP.: ${r}`, maxLarguraDots, "2");
+  const ehMultiLinha = fit.linhas.length > 1;
+  const altura = ehMultiLinha ? 38 : 20;
+
+  return renderizarCanvasParaBitmap((ctx) => {
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    if (!ehMultiLinha) {
+      ctx.font = "bold 16px Arial, 'Helvetica Neue', sans-serif";
+      ctx.fillText("RESP.:", 0, 2);
+      ctx.font = "16px Arial, 'Helvetica Neue', sans-serif";
+      ctx.fillText(r, 65, 2);
+    } else {
+      ctx.font = "bold 16px Arial, 'Helvetica Neue', sans-serif";
+      ctx.fillText("RESP.:", 0, 2);
+      ctx.font = "16px Arial, 'Helvetica Neue', sans-serif";
+      ctx.fillText(fit.linhas[0].replace(/^RESP\.:\s*/, ""), 65, 2);
+      ctx.fillText(fit.linhas[1] || "", 65, 20);
+    }
+  }, maxLarguraDots, altura);
+}
+
+/**
+ * Renderiza o Rodapé da Empresa em Canvas 2D com SELDEESTRELA em Negrito.
+ */
+export function criarBitmapEmpresa({
+  empresaBold = "SELDEESTRELA",
+  subtitulo = "COMIDAS NORTISTAS",
+  codigo = "",
+  maxLarguraDots = 320,
+}) {
+  return renderizarCanvasParaBitmap((ctx) => {
+    ctx.fillStyle = "#000000";
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    ctx.font = "bold 22px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText(empresaBold, 0, 2);
+
+    ctx.font = "13px Arial, 'Helvetica Neue', sans-serif";
+    ctx.fillText(subtitulo, 0, 26);
+
+    if (codigo) {
+      ctx.font = "bold 12px monospace, monospace";
+      ctx.fillText(`#${codigo}`, 0, 42);
+    }
+  }, maxLarguraDots, 56);
 }
 
 /**
@@ -372,17 +502,17 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
   const p = (n) => String(n).padStart(2, "0");
   const fmtDH = (d) => {
     if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "—";
-    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} - ${p(d.getHours())}:${p(d.getMinutes())}`;
   };
   const fmtD = (d) => {
     if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "—";
-    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
   };
 
   const produto = (dados.produto || "").toUpperCase().trim();
   const conservacao = (dados.conservacao || "Resfriado").toUpperCase();
   const quantidade = dados.quantidade ? `${dados.quantidade} ${dados.unidade || "UN"}` : "";
-  const lote = dados.lote ? `LOTE: ${dados.lote}` : "";
+  const lote = dados.lote ? `${dados.lote}` : "COZINHA";
   const responsavel = (dados.responsavel || "").toUpperCase().trim();
   const codigo = dados.codigo || "";
   const modeloEtiqueta = dados.modeloEtiqueta || "validade";
@@ -413,18 +543,18 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
       linhas: fitNome.linhas,
       maxLarguraDots: m.MAX_TEXT_WIDTH,
       alturaLinhaDots: 36,
-      tamanhoFontePx: 30,
+      tamanhoFontePx: 32,
       ehNegrito: true,
     });
 
-    asciiNome += `BITMAP ${m.SAFE_LEFT},${m.SAFE_TOP + 10},${bmpNome.widthBytes},${bmpNome.heightDots},0,`;
+    asciiNome += `BITMAP ${m.SAFE_LEFT},${m.SAFE_TOP},${bmpNome.widthBytes},${bmpNome.heightDots},0,`;
     chunks.push(asciiNome);
     chunks.push(bmpNome.data);
     chunks.push("\r\n");
 
     let tailNome = "";
     if (quantidade) {
-      tailNome += `TEXT ${m.SAFE_LEFT},${m.SAFE_TOP + 10 + bmpNome.heightDots + 10},"3",0,1,1,"QTD: ${quantidade}"\r\n`;
+      tailNome += `TEXT ${m.SAFE_LEFT},${m.SAFE_TOP + bmpNome.heightDots + 10},"3",0,1,1,"QTD: ${quantidade}"\r\n`;
     }
     tailNome += `PRINT ${Math.max(1, copias)},1\r\n`;
     chunks.push(tailNome);
@@ -432,92 +562,97 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
     return concatenarChunksTspl(chunks);
   }
 
-  // MODELO COMPLETO (VALIDADE) - DESIGN 60x40 (480 x 320 dots)
-  // 1. PRODUTO NO TOPO (Destaque máximo com Bitmap 1-bit para acentos impecáveis)
-  let y = m.SAFE_TOP;
+  // MODELO COMPLETO (VALIDADE) — ESTRUTURA VISUAL 60x40 SUBIDA AO TOPO
+  let y = m.SAFE_TOP; // Começa no SAFE_TOP = 6 dots para eliminar vazio superior
+
+  // 1. PRODUTO NO TOPO (NÍVEL 1 — MAIOR E BOLD FORTE)
   const fitProd = formatarTextoFitted(produto, m.MAX_TEXT_WIDTH, "4");
   const bmpProd = criarBitmapTextoCanvas({
     linhas: fitProd.linhas,
     maxLarguraDots: m.MAX_TEXT_WIDTH,
     alturaLinhaDots: fitProd.linhas.length > 1 ? 26 : 32,
-    tamanhoFontePx: fitProd.fonte === "4" ? 28 : fitProd.fonte === "3" ? 22 : 18,
+    tamanhoFontePx: fitProd.fonte === "4" ? 30 : fitProd.fonte === "3" ? 22 : 18,
     ehNegrito: true,
   });
 
-  let bodyAscii = `BITMAP ${m.SAFE_LEFT},${y},${bmpProd.widthBytes},${bmpProd.heightDots},0,`;
-  chunks.push(bodyAscii);
+  let cmdProdBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpProd.widthBytes},${bmpProd.heightDots},0,`;
+  chunks.push(cmdProdBmp);
   chunks.push(bmpProd.data);
   chunks.push("\r\n");
 
-  y += bmpProd.heightDots + 4;
+  y += bmpProd.heightDots + 2;
 
-  // 2. CONSERVAÇÃO / TIPO (Esquerda) + PESO / QUANTIDADE (Direita)
-  let restAscii = "";
+  // 2. CONSERVAÇÃO / TIPO + PESO (NÍVEL 2 — BOLD)
   const labelTipo = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
   const textoConser = `${conservacao} / ${labelTipo}`;
-  restAscii += `TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${textoConser}"\r\n`;
+  const bmpSegundaLinha = criarBitmapTextoComQuantidade({
+    textoEsquerda: textoConser,
+    textoDireita: quantidade,
+    maxLarguraDots: m.MAX_TEXT_WIDTH,
+  });
 
-  if (quantidade) {
-    const xQtd = Math.max(280, m.WIDTH_DOTS - m.SAFE_LEFT - (quantidade.length * 12));
-    restAscii += `TEXT ${xQtd},${y},"2",0,1,1,"${quantidade}"\r\n`;
-  }
-  y += 20;
+  let cmdSegundaBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpSegundaLinha.widthBytes},${bmpSegundaLinha.heightDots},0,`;
+  chunks.push(cmdSegundaBmp);
+  chunks.push(bmpSegundaLinha.data);
+  chunks.push("\r\n");
 
-  // 3. DIVISÓRIA 1
-  restAscii += `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
-  y += 6;
+  y += bmpSegundaLinha.heightDots + 2;
 
-  // 4. DATAS & LOTE
-  const labelManip = tipoEtiqueta === "aberto" ? "MANIPULACAO:" : "ETIQUETADO: ";
-  restAscii += `TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${labelManip} ${dataManipulacao}"\r\n`;
-  y += 20;
-
-  restAscii += `TEXT ${m.SAFE_LEFT},${y},"3",0,1,1,"VALIDADE:    ${dataValidade}"\r\n`;
-  y += 24;
-
-  const textoLote = dados.lote ? `LOTE:        ${dados.lote}` : "LOTE:        COZINHA";
-  restAscii += `TEXT ${m.SAFE_LEFT},${y},"2",0,1,1,"${textoLote}"\r\n`;
-  y += 20;
-
-  // 5. DIVISÓRIA 2
-  restAscii += `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
-  y += 6;
-
+  // 3. DIVISÓRIA 1 (Linha fina horizontal)
+  let restAscii = `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
+  y += 4;
   chunks.push(restAscii);
 
-  // 6. RESPONSÁVEL
-  if (responsavel) {
-    const textoResp = `RESP.: ${responsavel}`;
-    const fitResp = formatarTextoFitted(textoResp, m.MAX_TEXT_WIDTH, "2");
+  // 4. DATAS & LOTE (NÍVEL 3 — RÓTULOS EM NEGRITO, VALIDADE DESTACADA)
+  const labelManip = tipoEtiqueta === "aberto" ? "MANIPULAÇÃO:" : "ETIQUETADO: ";
+  const bmpDatas = criarBitmapBlocoDatas({
+    labelManip,
+    dataManipulacao,
+    dataValidade,
+    lote,
+    maxLarguraDots: m.MAX_TEXT_WIDTH,
+  });
 
-    if (precisaRenderizacaoBitmap(responsavel)) {
-      const bmpResp = criarBitmapTextoCanvas({
-        linhas: fitResp.linhas,
-        maxLarguraDots: m.MAX_TEXT_WIDTH,
-        alturaLinhaDots: 20,
-        tamanhoFontePx: 16,
-        ehNegrito: true,
-      });
-      const cmdRespBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpResp.widthBytes},${bmpResp.heightDots},0,`;
-      chunks.push(cmdRespBmp);
-      chunks.push(bmpResp.data);
-      chunks.push("\r\n");
-      y += bmpResp.heightDots + 4;
-    } else {
-      let respTextCmd = "";
-      for (const linha of fitResp.linhas) {
-        respTextCmd += `TEXT ${m.SAFE_LEFT},${y},"${fitResp.fonte}",0,1,1,"${linha}"\r\n`;
-        y += 20;
-      }
-      chunks.push(respTextCmd);
-    }
-  }
+  let cmdDatasBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpDatas.widthBytes},${bmpDatas.heightDots},0,`;
+  chunks.push(cmdDatasBmp);
+  chunks.push(bmpDatas.data);
+  chunks.push("\r\n");
 
-  // 7. RODAPÉ (EMPRESA + QR CODE + CÓDIGO)
+  y += bmpDatas.heightDots + 2;
+
+  // 5. SEGUNDA DIVISÓRIA
+  let div2Ascii = `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
+  y += 4;
+  chunks.push(div2Ascii);
+
+  // 6. RESPONSÁVEL (RESP. em Negrito, Nome completo)
+  const bmpResp = criarBitmapResponsavel({
+    responsavel,
+    maxLarguraDots: m.MAX_TEXT_WIDTH,
+  });
+
+  let cmdRespBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpResp.widthBytes},${bmpResp.heightDots},0,`;
+  chunks.push(cmdRespBmp);
+  chunks.push(bmpResp.data);
+  chunks.push("\r\n");
+
+  y += bmpResp.heightDots + 4;
+
+  // 7. RODAPÉ & QR CODE (SELDEESTRELA em Negrito, QR mais alto no canto inferior direito)
+  const bmpEmpresa = criarBitmapEmpresa({
+    empresaBold: "SELDEESTRELA",
+    subtitulo: "COMIDAS NORTISTAS",
+    codigo,
+    maxLarguraDots: 320,
+  });
+
+  const yEmpresa = Math.max(190, y);
+  let cmdEmpresaBmp = `BITMAP ${m.SAFE_LEFT},${yEmpresa},${bmpEmpresa.widthBytes},${bmpEmpresa.heightDots},0,`;
+  chunks.push(cmdEmpresaBmp);
+  chunks.push(bmpEmpresa.data);
+  chunks.push("\r\n");
+
   let footerAscii = "";
-  footerAscii += `TEXT ${m.SAFE_LEFT},265,"2",0,1,1,"SELDEESTRELA"\r\n`;
-  footerAscii += `TEXT ${m.SAFE_LEFT},285,"1",0,1,1,"COMIDAS NORTISTAS"\r\n`;
-
   if (codigo) {
     footerAscii += `QRCODE ${m.QR_X},${m.QR_Y},L,${m.QR_CELL_SIZE},A,0,"${urlRastreio}"\r\n`;
     footerAscii += `TEXT ${m.CODE_X},${m.CODE_Y},"1",0,1,1,"#${codigo}"\r\n`;

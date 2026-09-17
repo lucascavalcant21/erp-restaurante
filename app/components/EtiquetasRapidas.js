@@ -110,7 +110,6 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
 
   const validade = validadeDe(momento, item.dias);
   const origem = typeof window !== "undefined" ? window.location.origin : "";
-  const empresa = (unidadeInfo?.nome_fantasia || unidadeInfo?.nome || "SELDEESTRELA COMIDAS NORTISTAS").toUpperCase();
   const labelTipo = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
   const labelManip = tipoEtiqueta === "aberto" ? "MANIPULAÇÃO:" : "ETIQUETADO:";
 
@@ -118,7 +117,7 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
     <div className="etiqueta-rapida-papel" style={{
       width: `${dim.w}mm`,
       height: `${dim.h}mm`,
-      padding: `${dim.pad}mm`,
+      padding: "0.8mm 1.5mm 0.8mm 1.5mm",
       background: "#fff",
       color: "#000",
       fontFamily: "Arial, Helvetica, sans-serif",
@@ -129,10 +128,10 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
       boxSizing: "border-box",
       position: "relative"
     }}>
-      {/* 1. PRODUTO NO TOPO (Destaque Máximo) */}
+      {/* 1. PRODUTO NO TOPO (Nível 1 — Maior e Bold Forte, Sem Vazio Superior) */}
       <div>
         <div style={{
-          fontSize: `${dim.titulo * (item.nome?.length > 22 ? 0.85 : 1.1)}mm`,
+          fontSize: `${item.nome?.length > 22 ? "3.2mm" : "4.2mm"}`,
           lineHeight: 1.05,
           fontWeight: 950,
           textTransform: "uppercase",
@@ -143,16 +142,16 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
           {item.nome}
         </div>
 
-        {/* 2. CONSERVAÇÃO / TIPO (Esquerda) + PESO / QTD (Direita) */}
+        {/* 2. CONSERVAÇÃO / TIPO (Esquerda) + PESO / QTD (Direita) (Nível 2 — Bold) */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           fontSize: `${dim.texto * 0.85}mm`,
-          fontWeight: 850,
-          marginTop: "0.8mm",
-          marginBottom: "0.6mm",
-          color: "#111"
+          fontWeight: 900,
+          marginTop: "0.6mm",
+          marginBottom: "0.4mm",
+          color: "#000"
         }}>
           <span>{item.conservacao?.toUpperCase()} / {labelTipo}</span>
           {numero(item.quantidade) > 0 && (
@@ -161,15 +160,15 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
         </div>
 
         {/* 3. DIVISÓRIA 1 */}
-        <div style={{ height: "0.35mm", background: "#000", margin: "0.4mm 0 0.8mm 0" }} />
+        <div style={{ height: "0.3mm", background: "#000", margin: "0.3mm 0 0.5mm 0" }} />
 
-        {/* 4. BLOCO DE DATAS & LOTE */}
-        <div style={{ fontSize: `${dim.texto * 0.88}mm`, lineHeight: 1.25, fontWeight: 800 }}>
+        {/* 4. BLOCO DE DATAS & LOTE (Compactado Verticialmente, Validade em Destaque) */}
+        <div style={{ fontSize: `${dim.texto * 0.85}mm`, lineHeight: 1.2, fontWeight: 700 }}>
           <div style={{ display: "flex", gap: "1.5mm" }}>
             <span style={{ width: "20mm", fontWeight: 900 }}>{labelManip}</span>
             <span>{dataHora(momento)}</span>
           </div>
-          <div style={{ display: "flex", gap: "1.5mm", fontSize: `${dim.texto * 0.98}mm`, fontWeight: 950, margin: "0.2mm 0" }}>
+          <div style={{ display: "flex", gap: "1.5mm", fontSize: `${dim.texto * 0.98}mm`, fontWeight: 950, margin: "0.1mm 0" }}>
             <span style={{ width: "20mm" }}>VALIDADE:</span>
             <span>{tipoEtiqueta === "aberto" ? dataHora(validade) : dataCurta(validade)}</span>
           </div>
@@ -179,31 +178,33 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x
           </div>
         </div>
 
-        {/* 5. DIVISÓRIA 2 */}
-        <div style={{ height: "0.3mm", background: "#000", margin: "0.8mm 0 0.6mm 0" }} />
+        {/* 5. SEGUNDA DIVISÓRIA */}
+        <div style={{ height: "0.3mm", background: "#000", margin: "0.5mm 0 0.4mm 0" }} />
 
-        {/* 6. RESPONSÁVEL */}
-        <div style={{ fontSize: `${dim.texto * 0.8}mm`, fontWeight: 850, lineHeight: 1.1, textTransform: "uppercase" }}>
-          RESP.: {String(responsavel?.nome || responsavel || "JOSEPH ANDREY GOMES DA SILVA").toUpperCase()}
+        {/* 6. RESPONSÁVEL (RESP. em Negrito, Nome Completo) */}
+        <div style={{ fontSize: `${dim.texto * 0.78}mm`, fontWeight: 700, lineHeight: 1.1, textTransform: "uppercase" }}>
+          <span style={{ fontWeight: 900 }}>RESP.:</span> {String(responsavel?.nome || responsavel || "JOSEPH ANDREY GOMES DA SILVA").toUpperCase()}
         </div>
       </div>
 
-      {/* 7. RODAPÉ (Empresa na esquerda + QR Code e Código no canto inferior direito) */}
+      {/* 7. RODAPÉ (Empresa na esquerda + QR Code e Código no canto inferior direito, QR Mais Alto) */}
       <div style={{
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "space-between",
         borderTop: "0.3mm solid #000",
-        paddingTop: "0.5mm",
-        marginTop: "0.6mm"
+        paddingTop: "0.4mm",
+        marginTop: "0.4mm"
       }}>
-        <div style={{ fontSize: `${dim.pequeno * 0.9}mm`, fontWeight: 850, textTransform: "uppercase", maxWidth: "34mm" }}>
-          <div>{empresa}</div>
+        <div style={{ textTransform: "uppercase", maxWidth: "34mm" }}>
+          <div style={{ fontSize: `${dim.pequeno * 1.05}mm`, fontWeight: 950 }}>SELDEESTRELA</div>
+          <div style={{ fontSize: `${dim.pequeno * 0.75}mm`, fontWeight: 700, opacity: 0.9 }}>COMIDAS NORTISTAS</div>
+          <div style={{ fontSize: `${dim.pequeno * 0.75}mm`, fontWeight: 900, fontFamily: "monospace" }}>#{item.codigo}</div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.2mm" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.1mm", marginBottom: "0.5mm" }}>
           <QRCodeSVG data-qr-codigo={item.codigo} value={`${origem}/rastreio/${item.codigo}`} size={dim.qr * 0.65} level="M" />
-          <div style={{ fontSize: `${dim.pequeno * 0.8}mm`, fontWeight: 900, fontFamily: "monospace" }}>#{item.codigo}</div>
+          <div style={{ fontSize: `${dim.pequeno * 0.75}mm`, fontWeight: 900, fontFamily: "monospace" }}>#{item.codigo}</div>
         </div>
       </div>
     </div>

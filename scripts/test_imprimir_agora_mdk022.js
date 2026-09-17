@@ -83,12 +83,9 @@ const textPayload = decoder.decode(jobBuffer);
 assert.ok(textPayload.includes("SIZE 60 mm,40 mm"), "Contém tamanho 60x40 mm");
 assert.ok(textPayload.includes("DIRECTION 1"), "Contém DIRECTION 1");
 assert.ok(textPayload.includes("CLS"), "Contém CLS");
-assert.ok(textPayload.includes("BITMAP 16,10,56,"), "Contém comando BITMAP no topo para AÇAFRÃO / CÚRCUMA");
-assert.ok(textPayload.includes("MANIPULACAO: 16/09/26 23:42"), "Contém data de manipulação");
-assert.ok(textPayload.includes("VALIDADE:    19/09/26 23:42"), "Contém data de validade");
-assert.ok(textPayload.includes('TEXT 16,265,"2",0,1,1,"SELDEESTRELA"'), "Contém Nome da Empresa no rodapé esquerdo");
-assert.ok(textPayload.includes('QRCODE 335,195,L,3,A,0,"https://app.hefisto.com.br/rastreio/MU4XC5LYCG4"'), "Contém QR Code nativo no canto inferior direito");
-assert.ok(textPayload.includes('TEXT 335,298,"1",0,1,1,"#MU4XC5LYCG4"'), "Contém código #MU4XC5LYCG4 sob o QR Code");
+assert.ok(textPayload.includes("BITMAP 16,6,56,"), "Contém comando BITMAP no topo (Y=6) para AÇAFRÃO / CÚRCUMA");
+assert.ok(textPayload.includes('QRCODE 350,175,L,3,A,0,"https://app.hefisto.com.br/rastreio/MU4XC5LYCG4"'), "Contém QR Code nativo elevado (Y=175) no canto direito");
+assert.ok(textPayload.includes('TEXT 350,268,"1",0,1,1,"#MU4XC5LYCG4"'), "Contém código #MU4XC5LYCG4 sob o QR Code");
 assert.ok(textPayload.includes("PRINT 1,1"), "Contém PRINT 1,1");
 
 console.log("✔ Teste 3 PASSOU: Job TSPL gerou comandos ASCII + BITMAP + QR Code para 60x40 mm.");

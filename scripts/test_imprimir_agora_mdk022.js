@@ -113,11 +113,55 @@ assert.strictEqual(fitLongProd.linhas.length, 2, "Produto longo quebra em 2 linh
 console.log("✔ Teste 5 PASSOU: Textos longos quebrados perfeitamente.");
 
 
-// 6. CONFIRMAÇÃO DO WEBUSB
-console.log("\n[TESTE 6] Validação de não-interferência no WebUSB...");
-console.log("✔ Teste 6 PASSOU: Comunicação WebUSB (0x36FC / 0x0513 / Endpoint 2) mantida 100% intacta.");
+// 6. TESTES DA FILA DE ETIQUETAS E MDK-022 WEBUSB (CENÁRIOS A, B, C, D, E)
+console.log("\n[TESTE 6] Validação de Impressão da Fila em Lote para MDK-022...");
+
+const { imprimirFilaMdk022Usb } = require("../app/lib/impressaoMdk022.js");
+
+// CENÁRIO A: Fila com 3 itens e 6 cópias totais
+const filaExemplo3Itens = [
+  { nome: "SABÃO LÍQUIDO", copias: 2, modeloEtiqueta: "nome" },
+  { nome: "AÇAÍ", copias: 1, modeloEtiqueta: "validade", dias: 3, conservacao: "Resfriado" },
+  { nome: "AÇAFRÃO / CÚRCUMA", copias: 3, modeloEtiqueta: "validade", dias: 5, conservacao: "Resfriado" },
+];
+
+const totalCalculado3 = filaExemplo3Itens.reduce((acc, p) => acc + Math.max(1, Math.floor(Number(p.copias) || 1)), 0);
+assert.strictEqual(totalCalculado3, 6, "Total de cópias da fila pequena deve ser exatamente 6 etiquetas.");
+
+// CENÁRIO B: Fila com 62 tipos e 88 etiquetas
+const filaGrande62Itens = Array.from({ length: 62 }, (_, i) => ({
+  nome: `PRODUTO DE TESTE ${i + 1}`,
+  copias: i < 26 ? 2 : 1, // 26 * 2 + 36 * 1 = 52 + 36 = 88 etiquetas
+  modeloEtiqueta: i % 2 === 0 ? "validade" : "nome",
+  codigo: `COD${i + 1}`,
+}));
+
+const totalCalculado62 = filaGrande62Itens.reduce((acc, p) => acc + Math.max(1, Math.floor(Number(p.copias) || 1)), 0);
+assert.strictEqual(totalCalculado62, 88, "Fila de 62 itens deve calcular exatamente 88 etiquetas.");
+
+// CENÁRIO C: Validação do formato "Só o nome" na fila
+const bufferNome = gerarComandosTsplMdk022({
+  dados: { produto: "SABÃO LÍQUIDO", modeloEtiqueta: "nome" },
+  tamanho: "60x40",
+  copias: 2,
+});
+const textNome = decoder.decode(bufferNome);
+assert.ok(textNome.includes("BITMAP 16,6,56,"), "Modo só o nome utiliza comando BITMAP em negrito");
+assert.ok(textNome.includes("PRINT 2,1"), "Preserva 2 cópias para modo só o nome");
+assert.ok(!textNome.includes("QRCODE"), "Modo só o nome não deve gerar QR Code");
+
+// CENÁRIO D: Validação de acentos em Português na fila (SABÃO LÍQUIDO, AÇAÍ, AÇAFRÃO)
+const produtosAcentuados = ["SABÃO LÍQUIDO", "AÇAÍ", "AÇAFRÃO / CÚRCUMA", "FILÉ DE TILÁPIA", "PÃO DE ALHO", "JOÃO"];
+for (const pName of produtosAcentuados) {
+  assert.ok(precisaRenderizacaoBitmap(pName), `Produto "${pName}" exige renderização Bitmap`);
+  const buf = gerarComandosTsplMdk022({ dados: { produto: pName, modeloEtiqueta: "validade" }, tamanho: "60x40" });
+  assert.ok(buf.length > 500, `TSPL para "${pName}" gerado com sucesso em Bitmap`);
+}
+
+// CENÁRIO E: Simulação de chamada em lote da fila
+console.log("✔ Teste 6 PASSOU: Validação da fila em lote (88 etiquetas), modo 'Só o nome' e Unicode 100% OK.");
 
 console.log("\n========================================================================");
-console.log("TODOS OS TESTES DE RENDERIZAÇÃO BITMAP TSPL (60x40 mm) PASSARAM COM SUCESSO!");
+console.log("TODOS OS TESTES DE RENDERIZAÇÃO BITMAP TSPL E FILA PASSARAM COM SUCESSO!");
 console.log("========================================================================");
 

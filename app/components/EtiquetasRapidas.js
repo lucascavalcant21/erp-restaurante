@@ -16,7 +16,7 @@ import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
-import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb } from "../lib/impressaoMdk022";
+import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
 
 const UNIDADES = ["UN", "UNIDADE", "GARRAFA", "LATA", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const TAMANHOS = {
@@ -794,7 +794,87 @@ export default function EtiquetasRapidas() {
     const total = lista.reduce((soma, p) => soma + Math.max(1, Math.floor(numero(p.copias))), 0);
     if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
     if (!lista.length) return setAviso({ tipo: "erro", texto: "Adicione pelo menos uma etiqueta à fila." });
-    if (total > 100) return setAviso({ tipo: "erro", texto: "A fila pode ter no máximo 100 etiquetas." });
+    if (total > 1000) return setAviso({ tipo: "erro", texto: "A fila pode ter no máximo 1000 etiquetas." });
+
+    console.log("[ETIQUETA][MDK022] acionado botão de impressão da fila. Total etiquetas:", total);
+
+    // FLUXO OBRIGATÓRIO PARA MDK-022 VIA WEBUSB (TABLET / CHROME / HEFISTO TWA)
+    if (WebUsbDisponivel()) {
+      console.log("[ETIQUETA][MDK022] WebUSB disponível — iniciando impressão da fila direta");
+      setSalvando(true);
+      setStatusMdk("Conectando à MDK-022...");
+      setDetalhesMdk(null);
+
+      try {
+        // 1. Registra as etiquetas no banco Supabase em segundo plano
+        const etiquetasValidade = lista.filter(produto => produto.modeloEtiqueta !== "nome");
+        if (etiquetasValidade.length > 0) {
+          try {
+            await Promise.all(etiquetasValidade.map(produto => criarEtiqueta({
+              codigo: produto.codigo, produto: produto.nome, conservacao: produto.conservacao,
+              quantidade: produto.informarQuantidade ? numero(produto.quantidade) : 0, unidade: produto.unidade,
+              validade_dias: numero(produto.dias), manipulacao_em: momento.toISOString(),
+              validade_em: validadeDe(momento, produto.dias).toISOString(), lote: setor === "bar" ? "BAR" : "COZINHA",
+              responsavel: responsavel.nome, custo_unit: produto.custo || 0, status: "ativa",
+              copias: Math.max(1, Math.floor(numero(produto.copias))), tipo_etiqueta: produto.tipoEtiqueta || "aberto",
+            }, unidadeAtiva, { departamento: setor, usuario: responsavel })));
+          } catch (eSupabase) {
+            console.warn("[ETIQUETA][MDK022] Aviso ao salvar fila no Supabase:", eSupabase.message);
+          }
+        }
+
+        // 2. Transmite todo o lote em uma única conexão contínua WebUSB
+        const resLote = await imprimirFilaMdk022Usb({
+          fila: lista,
+          tamanho,
+          responsavel,
+          unidadeInfo,
+          setor,
+          momento,
+          onStatusChange: (s) => setStatusMdk(s),
+        });
+
+        if (resLote.ok) {
+          setStatusMdk(`✓ ${total} etiquetas enviadas para MDK-022.`);
+          setAviso({ tipo: "ok", texto: `✓ ${total} etiqueta(s) impressas na MDK-022!` });
+
+          registrarAuditoria({
+            unidadeId: unidadeAtiva,
+            usuarioId: sessao?.user?.id || sessao?.id || responsavel?.id || null,
+            usuarioNome: responsavel?.nome || sessao?.nome || sessao?.user?.email || "",
+            comando: comandoVoz || "Impressão de fila via WebUSB MDK-022",
+            intencao: { itens: lista.map(produto => ({ produto: produto.nome, copias: produto.copias, validade_dias: produto.dias, modelo: produto.modeloEtiqueta })) },
+            acao: "labels.print_batch_webusb",
+            modulo: "labels",
+            valorAnterior: total,
+            valorNovo: total,
+            resultado: "sucesso",
+            exigiuConfirmacao: true,
+          }).catch(() => {});
+
+          if (!direta) {
+            setFila([]);
+            setBusca("");
+            setConfirmandoLimpar(false);
+          }
+        } else {
+          setStatusMdk("Impressão da fila interrompida.");
+          setAviso({ tipo: "erro", texto: resLote.erro });
+        }
+      } catch (errMdkFila) {
+        console.error("[ETIQUETA][MDK022] Erro na fila WebUSB:", errMdkFila.message);
+        setStatusMdk("Erro ao transmitir para a MDK-022.");
+        setAviso({ tipo: "erro", texto: `Erro ao transmitir fila para MDK-022: ${errMdkFila.message}` });
+      } finally {
+        setSalvando(false);
+        setTimeout(() => setStatusMdk(""), 3500);
+      }
+
+      // REGRA DE CRITICALIDADE ABSOLUTA: Retorno para NUNCA abrir window.print ou "Salvar como PDF A4"
+      return;
+    }
+
+    // FLUXO SECUNDÁRIO / DESKTOP (BLUETOOTH OU FALLBACK HTML)
     setSalvando(true);
     if (direta) { setFilaImpressao(lista); await new Promise(r => setTimeout(r, 80)); }
     // O registro das etiquetas ficava FORA do try. Quando ele falhava (rede,
@@ -819,7 +899,7 @@ export default function EtiquetasRapidas() {
     }
 
     const fonte = document.getElementById("etiquetas-rapidas-print");
-    const dim = TAMANHOS[tamanho] || TAMANHOS["80x40"];
+    const dim = TAMANHOS[tamanho] || TAMANHOS["60x40"];
     try {
       if (bluetoothNome) {
         for (const produto of lista) {

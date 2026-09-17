@@ -730,3 +730,97 @@ export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copi
     throw err;
   }
 }
+
+/**
+ * Envia uma fila completa de etiquetas em lote para a MDK-022 via WebUSB em uma única conexão contínua.
+ *
+ * @param {Object} params
+ * @param {Array} params.fila Fila de itens a imprimir
+ * @param {string} params.tamanho Tamanho ("60x40", etc.)
+ * @param {Object} params.responsavel Responsável que está etiquetando
+ * @param {Object} params.unidadeInfo Informações da unidade ERP
+ * @param {string} params.setor Setor ("cozinha" ou "bar")
+ * @param {Date} params.momento Data/hora da manipulação
+ * @param {Function} params.onStatusChange Callback para atualização de progresso na interface
+ * @returns {Promise<{ ok: boolean, processadas: number, total: number, erro?: string }>}
+ */
+export async function imprimirFilaMdk022Usb({
+  fila = [],
+  tamanho = "60x40",
+  responsavel,
+  unidadeInfo,
+  setor = "cozinha",
+  momento = new Date(),
+  onStatusChange,
+}) {
+  if (!Array.isArray(fila) || fila.length === 0) {
+    throw new Error("A fila de etiquetas está vazia.");
+  }
+
+  const totalEtiquetas = fila.reduce((acc, p) => acc + Math.max(1, Math.floor(Number(p.copias) || 1)), 0);
+
+  if (onStatusChange) onStatusChange("Conectando à MDK-022...");
+
+  // Conecta uma ÚNICA vez via WebUSB
+  const device = await obterDispositivoMdk022();
+  const endpointOut = device._endpointOutNumber || 2;
+
+  let processadas = 0;
+  const nomeResponsavel = (responsavel?.nome || responsavel || "").toUpperCase().trim();
+  const nomeUnidade = (unidadeInfo?.nome_fantasia || unidadeInfo?.nome || "SELDEESTRELA COMIDAS NORTISTAS").toUpperCase().trim();
+  const lotePadrao = setor === "bar" ? "BAR" : "COZINHA";
+
+  const validadeDe = (mom, dias) => new Date(mom.getTime() + Math.max(0, Number(dias) || 0) * 86400000);
+
+  for (let i = 0; i < fila.length; i++) {
+    const item = fila[i];
+    const copiasItem = Math.max(1, Math.floor(Number(item.copias) || 1));
+
+    if (onStatusChange) {
+      onStatusChange(`Imprimindo etiqueta ${processadas + 1} de ${totalEtiquetas}...`);
+    }
+
+    const dadosEtiqueta = {
+      ...item,
+      produto: item.nome || item.produto,
+      unidadeNome: nomeUnidade,
+      momento: momento || new Date(),
+      validade: item.validade ? new Date(item.validade) : validadeDe(momento, item.dias || 3),
+      responsavel: nomeResponsavel,
+      lote: item.lote || lotePadrao,
+    };
+
+    const buffer = gerarComandosTsplMdk022({
+      dados: dadosEtiqueta,
+      tamanho,
+      copias: copiasItem,
+    });
+
+    try {
+      const resultado = await device.transferOut(endpointOut, buffer);
+      if (resultado.status !== "ok") {
+        throw new Error(`Impressora respondeu com status: ${resultado.status}`);
+      }
+      processadas += copiasItem;
+    } catch (errTransfer) {
+      const msgErro = errTransfer?.message || String(errTransfer);
+      console.error(`[ETIQUETA][MDK022] Erro na transmissão no lote (item ${i + 1}):`, msgErro);
+      return {
+        ok: false,
+        processadas,
+        total: totalEtiquetas,
+        erro: `Impressão interrompida na etiqueta ${processadas + 1} de ${totalEtiquetas}. ${processadas} etiquetas foram enviadas. Erro: ${msgErro}`,
+      };
+    }
+  }
+
+  if (onStatusChange) {
+    onStatusChange(`✓ ${totalEtiquetas} etiquetas enviadas para MDK-022`);
+  }
+
+  return {
+    ok: true,
+    processadas: totalEtiquetas,
+    total: totalEtiquetas,
+  };
+}

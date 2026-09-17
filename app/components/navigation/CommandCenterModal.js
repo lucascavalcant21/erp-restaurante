@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Search, X, ArrowRight, Sparkles, ChefHat, Tag, Package, Users,
   Wallet, Calendar, BarChart2, Settings, Home, ClipboardList, GlassWater,
-  Grid, Clock, ChevronRight
+  Grid, Clock, ChevronRight, Star, History
 } from "lucide-react";
 import { searchNavigationRegistry, getAccessibleNavigation } from "../../lib/navigation-registry.mjs";
+import { getRecentItems, getFavoriteItems } from "../../lib/user-preferences.js";
+import FavoriteStarButton from "./FavoriteStarButton.js";
 
-// Mapeamento dinâmico de ícones Lucide
 const ICON_MAP = {
   Home, ChefHat, Tag, Package, Users, Wallet, Calendar, BarChart: BarChart2,
   Settings, ClipboardList, GlassWater, Clock, Grid
@@ -24,6 +25,8 @@ export default function CommandCenterModal({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentItems, setRecentItems] = useState([]);
+  const [favoriteItems, setFavoriteItems] = useState([]);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
@@ -36,16 +39,35 @@ export default function CommandCenterModal({
     .filter(item => item.mobilePriority && item.mobilePriority <= 2)
     .slice(0, 8);
 
-  // Foco automático e reseta estado ao abrir
+  // Carrega Recentes e Favoritos revalidados por permissão
+  const refreshUserPrefs = () => {
+    if (sessao) {
+      setRecentItems(getRecentItems(sessao).slice(0, 5));
+      setFavoriteItems(getFavoriteItems(sessao).slice(0, 5));
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       setQuery("");
       setSelectedIndex(0);
+      refreshUserPrefs();
       setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen]);
+  }, [isOpen, sessao]);
+
+  useEffect(() => {
+    const handleFavChange = () => refreshUserPrefs();
+    const handleRecentsChange = () => refreshUserPrefs();
+    window.addEventListener("hefisto:favorites-changed", handleFavChange);
+    window.addEventListener("hefisto:recents-changed", handleRecentsChange);
+    return () => {
+      window.removeEventListener("hefisto:favorites-changed", handleFavChange);
+      window.removeEventListener("hefisto:recents-changed", handleRecentsChange);
+    };
+  }, [sessao]);
 
   // Teclado (Navegação com setas Up/Down, Enter e Esc)
   useEffect(() => {
@@ -136,37 +158,126 @@ export default function CommandCenterModal({
 
         {/* Conteúdo rolável */}
         <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar p-3.5 sm:p-5 space-y-6">
-          {/* Se query estiver vazia: Mostrar Acesso Rápido */}
+          {/* Se query estiver vazia: Mostrar Acesso Rápido, Favoritos e Recentes */}
           {!query.trim() && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Acesso Rápido
-                </span>
-                <span className="text-3xs text-slate-400">Baseado em seu perfil</span>
+            <>
+              {/* 1. ACESSO RÁPIDO */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Acesso Rápido
+                  </span>
+                  <span className="text-3xs text-slate-400">Baseado em seu perfil</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {quickAccessItems.map((item) => {
+                    const IconComponent = ICON_MAP[item.icon] || Package;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleNavigate(item.route)}
+                        className="flex flex-col items-start p-3 sm:p-3.5 rounded-xl bg-slate-900/60 hover:bg-emerald-950/30 border border-slate-800 hover:border-emerald-500/40 text-slate-200 hover:text-white transition-all group text-left min-h-[56px] justify-between"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-800 group-hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2 transition-colors">
+                          <IconComponent size={18} />
+                        </div>
+                        <span className="text-xs font-bold leading-tight line-clamp-1">{item.shortTitle}</span>
+                        <span className="text-3xs text-slate-400 line-clamp-1">{item.domain}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Grid Acesso Rápido (Targets >= 44px) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {quickAccessItems.map((item) => {
-                  const IconComponent = ICON_MAP[item.icon] || Package;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleNavigate(item.route)}
-                      className="flex flex-col items-start p-3 sm:p-3.5 rounded-xl bg-slate-900/60 hover:bg-emerald-950/30 border border-slate-800 hover:border-emerald-500/40 text-slate-200 hover:text-white transition-all group text-left min-h-[56px] justify-between"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-slate-800 group-hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2 transition-colors">
-                        <IconComponent size={18} />
-                      </div>
-                      <span className="text-xs font-bold leading-tight line-clamp-1">{item.shortTitle}</span>
-                      <span className="text-3xs text-slate-400 line-clamp-1">{item.domain}</span>
-                    </button>
-                  );
-                })}
+              {/* 2. FAVORITOS */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <Star size={14} className="fill-amber-400 text-amber-400" />
+                    Favoritos
+                  </span>
+                  {favoriteItems.length > 0 && (
+                    <span className="text-3xs text-slate-400">{favoriteItems.length} salvos</span>
+                  )}
+                </div>
+
+                {favoriteItems.length === 0 ? (
+                  <div className="p-3 rounded-xl bg-slate-900/30 border border-slate-800/60 text-3xs sm:text-xs text-slate-400 flex items-center gap-2">
+                    <Star size={14} className="text-slate-500 shrink-0" />
+                    <span>Favorite as ferramentas que mais usa no dia a dia clicando na estrela.</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {favoriteItems.map((item) => {
+                      const IconComponent = ICON_MAP[item.icon] || Package;
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/50 hover:bg-amber-950/20 border border-slate-800 hover:border-amber-500/30 text-slate-200 transition-all min-h-[52px]"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleNavigate(item.route)}
+                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+                              <IconComponent size={16} />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-bold truncate">{item.title}</span>
+                              <span className="text-3xs text-slate-400 truncate">{item.domain}</span>
+                            </div>
+                          </button>
+                          <FavoriteStarButton itemId={item.id} sessao={sessao} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
+
+              {/* 3. RECENTES */}
+              {recentItems.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <History size={14} className="text-slate-400" />
+                      Recentes
+                    </span>
+                    <span className="text-3xs text-slate-400">Últimos acessados</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {recentItems.map((item) => {
+                      const IconComponent = ICON_MAP[item.icon] || Package;
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/80 text-slate-300 transition-all min-h-[48px]"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleNavigate(item.route)}
+                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center shrink-0">
+                              <IconComponent size={15} />
+                            </div>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs font-bold truncate">{item.title}</span>
+                              <span className="text-3xs text-slate-400 hidden sm:inline">• {item.domain}</span>
+                            </div>
+                          </button>
+                          <FavoriteStarButton itemId={item.id} sessao={sessao} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Lista de Resultados da Busca */}
@@ -190,18 +301,20 @@ export default function CommandCenterModal({
                     const IconComponent = ICON_MAP[item.icon] || Package;
                     const isSelected = idx === selectedIndex;
                     return (
-                      <button
+                      <div
                         key={item.id}
-                        type="button"
-                        onClick={() => handleNavigate(item.route)}
                         onMouseEnter={() => setSelectedIndex(idx)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left min-h-[52px] ${
+                        className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all text-left min-h-[52px] ${
                           isSelected
                             ? "bg-emerald-500/15 border-emerald-500/50 text-white shadow-sm"
                             : "bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:text-white"
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => handleNavigate(item.route)}
+                          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                        >
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                             isSelected ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-800 text-emerald-400"
                           }`}>
@@ -216,15 +329,22 @@ export default function CommandCenterModal({
                             </div>
                             <span className="text-3xs sm:text-xs text-slate-400 truncate">{item.description}</span>
                           </div>
-                        </div>
+                        </button>
 
-                        <div className={`flex items-center gap-1 text-xs font-bold shrink-0 ml-2 ${
-                          isSelected ? "text-emerald-400" : "text-slate-500 opacity-0 group-hover:opacity-100"
-                        }`}>
-                          <span className="hidden sm:inline">Abrir</span>
-                          <ArrowRight size={14} />
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <FavoriteStarButton itemId={item.id} sessao={sessao} />
+                          <button
+                            type="button"
+                            onClick={() => handleNavigate(item.route)}
+                            className={`hidden sm:flex items-center gap-1 text-xs font-bold ${
+                              isSelected ? "text-emerald-400" : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            <span>Abrir</span>
+                            <ArrowRight size={14} />
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

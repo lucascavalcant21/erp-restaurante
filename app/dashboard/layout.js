@@ -4,6 +4,8 @@ import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog.mjs";
+import { getBottomNavPreset } from "../lib/navigation-registry.mjs";
+import { addRecentRoute } from "../lib/user-preferences.js";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
 import BuscaAutoScroll from "../components/BuscaAutoScroll";
@@ -523,6 +525,65 @@ function ModuleBar() {
 function MobileBottomNav({ sessao, onMenu }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // Se NAVIGATION_V2 estiver ativo, utiliza o preset previsível de 5 posições
+  if (isFeatureEnabled("NAVIGATION_V2")) {
+    const items = getBottomNavPreset(sessao);
+    const ICON_MAP = {
+      Home, ChefHat, Tag, Package, Users, Wallet, Calendar, BarChart,
+      Settings, ClipboardList, GlassWater, Clock, Grid, Menu, Check, UserCheck, ShieldCheck, Box
+    };
+
+    return (
+      <nav aria-label="Navegação principal"
+        className="erp-mobile-nav print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl md:hidden">
+        <div className="grid min-h-[64px] items-stretch grid-cols-5">
+          {items.map((item) => {
+            const IconComponent = ICON_MAP[item.icon] || Package;
+            const base = item.route ? baseDaRota(item.route) : "";
+
+            let ativo = false;
+            if (item.isHome) {
+              ativo = pathname === "/dashboard";
+            } else if (item.isMenu) {
+              ativo = false;
+            } else if (base) {
+              ativo = pathname === base || (base !== "/dashboard" && pathname.startsWith(`${base}/`));
+            }
+
+            const handleClick = () => {
+              if (item.isMenu) {
+                onMenu();
+              } else {
+                router.push(ajustarHrefParaAreaTravada(item.route));
+              }
+            };
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={handleClick}
+                aria-current={ativo ? "page" : undefined}
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-3xs font-bold transition-all min-h-[44px] ${
+                  ativo ? "text-emerald-600 font-extrabold" : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <span className={`flex h-8 w-10 items-center justify-center rounded-xl transition-all ${
+                  ativo ? "bg-emerald-100 text-emerald-700 shadow-sm" : "bg-transparent"
+                }`}>
+                  <IconComponent size={19} />
+                </span>
+                <span className="w-full truncate text-center px-0.5">{item.shortTitle}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // Fallback para menu legado caso NAVIGATION_V2 esteja inativo
   const candidatos = ATALHOS_POR_PAPEL[sessao?.papel] || ATALHOS_POR_PAPEL.admin;
   const atalhos = sessao?.gerenciado
     ? candidatos.filter((item) => {
@@ -682,6 +743,8 @@ export default function DashboardLayout({ children }) {
           router.replace("/nova-senha?obrigatoria=1");
           return;
         }
+        // Registra automaticamente a rota atual nos Recentes do Usuário
+        addRecentRoute(s, pathname);
         return;
       }
       if (!sessaoRef.current) router.replace("/login");

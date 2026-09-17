@@ -847,3 +847,84 @@ export function searchNavigationRegistry(query = "", session = null, options = {
   }
   return filtered;
 }
+
+/**
+ * Retorna o item do Registry por ID.
+ */
+export function getRegistryItemById(id) {
+  return NAVIGATION_REGISTRY.find(item => item.id === id) || null;
+}
+
+/**
+ * Resolve qualquer URL física ou sub-rota para o item do Registry correspondente.
+ */
+export function getRegistryItemByRoute(pathname = "", search = "") {
+  if (!pathname) return null;
+  const fullPath = search ? `${pathname}?${search}` : pathname;
+
+  // 1. Tenta correspondência exata de rota + query
+  const exact = NAVIGATION_REGISTRY.find(item => item.route === fullPath);
+  if (exact) return exact;
+
+  // 2. Tenta correspondência por pathname base
+  const matchPath = NAVIGATION_REGISTRY.filter(item => {
+    const base = item.route.split("?")[0];
+    return pathname === base || (base !== "/dashboard" && pathname.startsWith(`${base}/`));
+  }).sort((a, b) => b.route.length - a.route.length);
+
+  return matchPath[0] || null;
+}
+
+/**
+ * Retorna os 5 atalhos estáveis e previsíveis da Bottom Navigation adaptativa baseada em perfil + permissões.
+ * Posição 1: Sempre Início (/dashboard)
+ * Posição 5: Sempre Menu (Command Center)
+ * Posições 2, 3 e 4: Definidas por presets previsíveis de perfil com fallback garantido.
+ */
+export function getBottomNavPreset(session) {
+  const accessible = getAccessibleNavigation(session);
+  const accessibleMap = new Map(accessible.map(item => [item.id, item]));
+
+  const papel = session?.papel || "admin";
+
+  // Presets previsíveis por papel (IDs do Registry)
+  const ROLE_PRESETS = {
+    cozinha: ["op-producao", "op-etiquetas", "est-modo-operacao"],
+    bar: ["op-producao-bar", "op-fichas-bar", "op-etiquetas"],
+    rh: ["rh-ponto", "rh-gestao", "rh-banco-horas"],
+    estoque: ["est-visao-geral", "op-etiquetas", "est-compras"],
+    salao: ["op-mesas", "op-checklists", "rh-ponto-kiosk"],
+    caixa: ["op-mesas", "op-checklists", "fin-fluxo-caixa"],
+    gerente: ["dash-inteligente", "op-producao", "rh-ponto"],
+    admin: ["dash-inteligente", "fin-fluxo-caixa", "rh-painel"]
+  };
+
+  const candidateIds = ROLE_PRESETS[papel] || ROLE_PRESETS.admin;
+
+  // Filtra candidatos permitidos
+  const selectedContextual = candidateIds
+    .map(id => accessibleMap.get(id))
+    .filter(Boolean);
+
+  // Fallback: se o perfil tiver menos de 3 itens permitidos no preset, completa com outros itens permitidos
+  if (selectedContextual.length < 3) {
+    const usedIds = new Set(["dash-home", ...selectedContextual.map(i => i.id)]);
+    for (const item of accessible) {
+      if (!usedIds.has(item.id)) {
+        selectedContextual.push(item);
+        usedIds.add(item.id);
+        if (selectedContextual.length === 3) break;
+      }
+    }
+  }
+
+  // Posição 1: Início
+  const homeItem = accessibleMap.get("dash-home") || NAVIGATION_REGISTRY[0];
+
+  // Estrutura fixa de 5 itens: Início + 3 Contextuais + Menu
+  return [
+    { ...homeItem, isHome: true },
+    ...selectedContextual.slice(0, 3),
+    { id: "action-menu", title: "Menu", shortTitle: "Menu", route: "#menu", icon: "Menu", isMenu: true }
+  ];
+}

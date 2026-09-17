@@ -10,6 +10,7 @@ import {
   ClipboardCheck, Wrench, FileSpreadsheet, Heart, ShieldAlert, Lock, Edit3
 } from "lucide-react";
 import { searchNavigationRegistry, getAccessibleNavigation } from "../../lib/navigation-registry.mjs";
+import FavoriteStarButton from "./FavoriteStarButton.js";
 
 const ICON_MAP = {
   Home: Grid, ChefHat, Tag, Package, Users, Wallet, Calendar, BarChart: BarChart2,
@@ -141,25 +142,29 @@ export default function AllModulesCatalog({ isOpen, onClose, sessao }) {
                       {items.map((item) => {
                         const IconComponent = ICON_MAP[item.icon] || Package;
                         return (
-                          <button
+                          <div
                             key={item.id}
-                            type="button"
-                            onClick={() => handleNavigate(item.route)}
-                            className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-slate-900/50 hover:bg-emerald-950/30 border border-slate-800 hover:border-emerald-500/40 text-slate-200 hover:text-white transition-all text-left group min-h-[64px]"
+                            className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-slate-900/50 hover:bg-emerald-950/30 border border-slate-800 hover:border-emerald-500/40 text-slate-200 transition-all text-left group min-h-[64px] justify-between"
                           >
-                            <div className="w-9 h-9 rounded-xl bg-slate-800 group-hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 transition-colors mt-0.5">
-                              <IconComponent size={18} />
-                            </div>
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-xs sm:text-sm font-bold truncate group-hover:text-emerald-300 transition-colors">
-                                  {item.title}
-                                </span>
-                                <ArrowRight size={14} className="text-slate-500 group-hover:text-emerald-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <button
+                              type="button"
+                              onClick={() => handleNavigate(item.route)}
+                              className="flex items-start gap-3 min-w-0 flex-1 text-left"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-slate-800 group-hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 transition-colors mt-0.5">
+                                <IconComponent size={18} />
                               </div>
-                              <span className="text-3xs text-slate-400 line-clamp-2 mt-0.5">{item.description}</span>
-                            </div>
-                          </button>
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-xs sm:text-sm font-bold truncate group-hover:text-emerald-300 transition-colors">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <span className="text-3xs text-slate-400 line-clamp-2 mt-0.5">{item.description}</span>
+                              </div>
+                            </button>
+                            <FavoriteStarButton itemId={item.id} sessao={sessao} />
+                          </div>
                         );
                       })}
                     </div>

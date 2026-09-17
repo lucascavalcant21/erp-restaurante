@@ -4,6 +4,7 @@ import { parseActionIntent, executeRealAction } from "./hefisto-actions.js";
 import { executeAnalyticsQuery } from "./hefisto-analytics.js";
 import { getProactiveInsights } from "./hefisto-insights.js";
 import { routeToSpecialist } from "./hefisto-specialists.js";
+import { executeRoutineIfMatched } from "./hefisto-routines.js";
 
 /**
  * Normaliza strings para correspondência determinística em Português (pt-BR)
@@ -121,6 +122,12 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
     } else if (contextState.lastIntent === "finance.overdue") {
       processedText = "tem conta vencida";
     }
+  }
+
+  // 0.9. Rotinas Inteligentes & Briefings Operacionais (WorkflowEngine F8)
+  const routineResult = await executeRoutineIfMatched({ text: processedText, session, unitId, contextState });
+  if (routineResult) {
+    return routineResult;
   }
 
   // 1.0. Roteamento por Especialista (SpecialistRouter F7)

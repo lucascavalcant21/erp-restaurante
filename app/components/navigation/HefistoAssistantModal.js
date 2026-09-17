@@ -290,6 +290,21 @@ export default function HefistoAssistantModal() {
           sender: "hefisto",
           text: res.responseText
         }]);
+      } else if (res.type === "ROUTINE_BRIEFING") {
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: res.responseText,
+          suggestedActions: res.suggestedActions,
+          updatedAt: res.updatedAt
+        }]);
+
+        if (res.routineId) {
+          setLastContext({ lastIntent: res.routineId });
+        }
+
+        if (res.spokenSummary && vozDisponivel()) {
+          falarTexto(res.spokenSummary);
+        }
       } else if (res.type === "NAVIGATION") {
         setMensagens(prev => [...prev, {
           sender: "hefisto",
@@ -324,12 +339,12 @@ export default function HefistoAssistantModal() {
 
   // Sugestões de fichas por permissão
   const sugestoes = [
+    { text: "Como estamos para abrir?", perm: podeVerCozinha || podeVerEstoque || podeVerEquipe },
+    { text: "Briefing da cozinha", perm: podeVerCozinha },
+    { text: "Me dê o resumo gerencial de hoje", perm: true },
+    { text: "Faça o fechamento do dia", perm: true },
     { text: "Por que meu CMV aumentou?", perm: podeVerFinanceiro },
-    { text: "Por que meu resultado caiu?", perm: podeVerFinanceiro },
-    { text: "Quais produtos aumentaram de preço?", perm: podeVerEstoque },
-    { text: "Quanto perdi este mês?", perm: podeVerEstoque },
-    { text: "Como está o restaurante?", perm: true },
-    { text: "Imprimir 3 etiquetas de Molho Branco", perm: podeVerEstoque }
+    { text: "Quais produtos aumentaram de preço?", perm: podeVerEstoque }
   ].filter(s => s.perm);
 
   return (
@@ -348,7 +363,7 @@ export default function HefistoAssistantModal() {
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-white tracking-tight">Héfisto</h2>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-extrabold border border-emerald-800/60 uppercase">
-                  Inteligência Analítica (F1-F4)
+                  Assistente Héfisto (F1-F8)
                 </span>
               </div>
               <p className="text-xs text-slate-400">Consultas, Diagnósticos, Explicações & Ações</p>

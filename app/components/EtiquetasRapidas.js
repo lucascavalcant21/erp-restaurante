@@ -16,6 +16,7 @@ import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
+import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb } from "../lib/impressaoMdk022";
 
 const UNIDADES = ["UN", "UNIDADE", "GARRAFA", "LATA", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const TAMANHOS = {
@@ -183,6 +184,9 @@ export default function EtiquetasRapidas() {
   const [conectandoBluetooth, setConectandoBluetooth] = useState(false);
   const [tamanho] = useState(() => { try { return localStorage.getItem("hefisto_etq_tamanho") || "80x40"; } catch { return "80x40"; } });
   const [momento, setMomento] = useState(() => new Date());
+  const [statusMdk, setStatusMdk] = useState("");
+  const [detalhesMdk, setDetalhesMdk] = useState(null);
+  const [mostrarDetalhesMdk, setMostrarDetalhesMdk] = useState(false);
 
   const responsavel = funcionarios.find(pessoa => String(pessoa.id) === String(responsavelId));
   const totalEtiquetas = fila.reduce((total, produto) => total + Math.max(1, Math.floor(numero(produto.copias))), 0);
@@ -266,6 +270,9 @@ export default function EtiquetasRapidas() {
     setCategoriaId("");
     setModeloEtiqueta("validade");
     setMomento(new Date());
+    setStatusMdk("");
+    setDetalhesMdk(null);
+    setMostrarDetalhesMdk(false);
   }
 
   function alterar(campo, valor) { setItem(atual => ({ ...atual, [campo]: valor })); }
@@ -287,7 +294,110 @@ export default function EtiquetasRapidas() {
     if (numero(item.copias) < 1 || (modeloEtiqueta === "validade" && numero(item.dias) < 0)) {
       return setAviso({ tipo: "erro", texto: "Revise a quantidade de cópias e a validade." });
     }
+    if (!responsavel) {
+      return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
+    }
+
+    console.log("[ETIQUETA][MDK022] botão Imprimir agora acionado");
+
     const pronto = { ...item, modeloEtiqueta, tipoEtiqueta, codigo: item.codigo || gerarCodigo() };
+
+    // Se a API WebUSB estiver disponível (ex: Tablet Android / Chrome / Hefisto TWA)
+    if (WebUsbDisponivel()) {
+      console.log("[ETIQUETA][MDK022] WebUSB disponível");
+      setSalvando(true);
+      setStatusMdk("Conectando à MDK-022...");
+      setDetalhesMdk(null);
+
+      let resultadoBytes = 0;
+      let statusTransfer = "pendente";
+      let erroMensagem = "";
+
+      try {
+        // Preserva o registro da etiqueta no Supabase se for com validade
+        if (modeloEtiqueta === "validade") {
+          try {
+            await criarEtiqueta({
+              codigo: pronto.codigo,
+              produto: pronto.nome,
+              conservacao: pronto.conservacao,
+              quantidade: pronto.informarQuantidade ? numero(pronto.quantidade) : 0,
+              unidade: pronto.unidade,
+              validade_dias: numero(pronto.dias),
+              manipulacao_em: momento.toISOString(),
+              validade_em: validadeDe(momento, pronto.dias).toISOString(),
+              lote: setor === "bar" ? "BAR" : "COZINHA",
+              responsavel: responsavel.nome,
+              custo_unit: pronto.custo || 0,
+              status: "ativa",
+              copias: Math.max(1, Math.floor(numero(pronto.copias))),
+              tipo_etiqueta: pronto.tipoEtiqueta || "aberto",
+            }, unidadeAtiva, { departamento: setor, usuario: responsavel });
+          } catch (eSupabase) {
+            console.warn("[ETIQUETA][MDK022] Aviso ao salvar no banco Supabase:", eSupabase.message);
+          }
+        }
+
+        // Envia job TSPL diretamente via WebUSB para a MDK-022
+        const res = await imprimirEtiquetaMdk022Usb({
+          dados: {
+            ...pronto,
+            produto: pronto.nome,
+            unidadeNome: unidadeInfo?.nome_fantasia || unidadeInfo?.nome,
+            momento,
+            validade: validadeDe(momento, pronto.dias),
+            responsavel: responsavel.nome,
+            lote: setor === "bar" ? "BAR" : "COZINHA",
+          },
+          tamanho,
+          copias: Math.max(1, Math.floor(numero(pronto.copias))),
+          onStatusChange: (s) => setStatusMdk(s),
+        });
+
+        resultadoBytes = res.bytes || 0;
+        statusTransfer = res.status || "ok";
+        setStatusMdk("Etiqueta enviada para MDK-022.");
+        setAviso({ tipo: "ok", texto: "Etiqueta impressa na MDK-022!" });
+
+        setDetalhesMdk({
+          vendorId: "0x36FC (14076)",
+          productId: "0x0513 (1299)",
+          interfaceNumber: res.interfaceNumber ?? 0,
+          endpointNumber: res.endpointNumber ?? 2,
+          bytes: resultadoBytes,
+          status: statusTransfer,
+          error: null,
+        });
+
+        setTimeout(() => {
+          setItem(null);
+          setStatusMdk("");
+          setDetalhesMdk(null);
+        }, 1200);
+
+      } catch (errMdk) {
+        erroMensagem = errMdk?.message || String(errMdk);
+        setStatusMdk("Não foi possível imprimir na MDK-022.");
+        setAviso({ tipo: "erro", texto: `Não foi possível imprimir na MDK-022: ${erroMensagem}` });
+
+        setDetalhesMdk({
+          vendorId: "0x36FC (14076)",
+          productId: "0x0513 (1299)",
+          interfaceNumber: 0,
+          endpointNumber: 2,
+          bytes: 0,
+          status: "erro",
+          error: erroMensagem,
+        });
+      } finally {
+        setSalvando(false);
+      }
+
+      // REGRA CRÍTICA: Retorno absoluto para NUNCA abrir o diálogo nativo/window.print do Android
+      return;
+    }
+
+    // Se WebUSB não estiver disponível no navegador (ex: Desktop sem WebUSB)
     await imprimirFila("", [pronto]);
   }
 
@@ -842,6 +952,58 @@ export default function EtiquetasRapidas() {
       {modeloEtiqueta === "validade" && <><h3>4. Validade</h3><div className="etq-validade"><select value={categoriaId} onChange={e => { setCategoriaId(e.target.value); const cat = categorias.find(c => c.id === e.target.value); if (cat) alterar("dias", cat.dias); }}><option value="">Prazo manual</option>{categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nome} · {cat.dias} dia(s)</option>)}</select><label><input type="number" inputMode="numeric" min="0" value={item.dias} onChange={e => { setCategoriaId(""); alterar("dias", e.target.value); }} /><span>dias</span></label></div>
       <h3>5. Conservação, tipo e peso</h3>
       <div className="etq-detalhes"><div className="etq-opcoes">{CONSERVACAO.map(opcao => <button key={opcao.id} className={item.conservacao === opcao.id ? "ativo" : ""} onClick={() => alterar("conservacao", opcao.id)}>{opcao.id}</button>)}</div><div className="etq-opcoes"><button className={tipoEtiqueta === "aberto" ? "ativo" : ""} onClick={() => setTipoEtiqueta("aberto")}>Manipulado/aberto</button><button className={tipoEtiqueta === "fechado" ? "ativo" : ""} onClick={() => setTipoEtiqueta("fechado")}>Produto fechado</button></div><h3>Informar peso ou quantidade?</h3><div className="etq-opcoes"><button className={!item.informarQuantidade ? "ativo" : ""} onClick={() => setItem(atual => ({ ...atual, informarQuantidade: false, quantidade: "" }))}>Não</button><button className={item.informarQuantidade ? "ativo" : ""} onClick={() => alterar("informarQuantidade", true)}>Sim</button></div>{item.informarQuantidade && <div className="etq-quantidade"><input type="number" min="0" step="0.01" inputMode="decimal" value={item.quantidade} placeholder="Quantidade" onChange={e => alterar("quantidade", e.target.value)} /><select value={item.unidade} onChange={e => alterar("unidade", e.target.value)}>{(UNIDADES.includes(item.unidade) ? UNIDADES : [item.unidade, ...UNIDADES]).map(unidade => <option key={unidade}>{unidade}</option>)}</select></div>}</div></>}
+      {statusMdk && (
+        <div style={{
+          margin: "14px 0",
+          padding: "12px 16px",
+          borderRadius: "14px",
+          background: statusMdk.includes("enviada") ? "#dcfce7" : statusMdk.includes("Não foi possível") ? "#fee2e2" : "#e0f2fe",
+          color: statusMdk.includes("enviada") ? "#166534" : statusMdk.includes("Não foi possível") ? "#991b1b" : "#075985",
+          border: `1px solid ${statusMdk.includes("enviada") ? "#86efac" : statusMdk.includes("Não foi possível") ? "#fca5a5" : "#7dd3fc"}`,
+          fontSize: "14px",
+          fontWeight: 700
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>{statusMdk}</span>
+            {detalhesMdk && (
+              <button
+                type="button"
+                onClick={() => setMostrarDetalhesMdk(!mostrarDetalhesMdk)}
+                style={{
+                  background: "none",
+                  border: "0",
+                  color: "inherit",
+                  textDecoration: "underline",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                {mostrarDetalhesMdk ? "Ocultar detalhes" : "Ver detalhes técnicos"}
+              </button>
+            )}
+          </div>
+
+          {mostrarDetalhesMdk && detalhesMdk && (
+            <div style={{
+              marginTop: "10px",
+              paddingTop: "10px",
+              borderTop: "1px dashed rgba(0,0,0,0.15)",
+              fontSize: "12px",
+              fontFamily: "monospace",
+              lineHeight: "1.5"
+            }}>
+              <div><strong>Vendor ID:</strong> {detalhesMdk.vendorId}</div>
+              <div><strong>Product ID:</strong> {detalhesMdk.productId}</div>
+              <div><strong>Interface:</strong> #{detalhesMdk.interfaceNumber}</div>
+              <div><strong>Endpoint OUT:</strong> #{detalhesMdk.endpointNumber}</div>
+              <div><strong>Bytes enviados:</strong> {detalhesMdk.bytes} bytes</div>
+              <div><strong>Status transferOut:</strong> {detalhesMdk.status}</div>
+              {detalhesMdk.error && <div style={{ color: "#991b1b", marginTop: "4px" }}><strong>Erro:</strong> {detalhesMdk.error}</div>}
+            </div>
+          )}
+        </div>
+      )}
       <div className="etq-acoes-item">
         <button className="etq-imprimir" onClick={adicionarFila}><Plus size={20} /> Adicionar {Math.max(1, Math.floor(numero(item.copias)))} à fila</button>
         <button className="etq-imprimir-direto" onClick={imprimirAgora} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={19} /> : <Printer size={19} />} Imprimir agora</button>

@@ -17,9 +17,9 @@ let impressoraConectadaCache = null;
 export function WebUsbDisponivel() {
   const disponivel = typeof navigator !== "undefined" && !!(navigator.usb && typeof navigator.usb.getDevices === "function");
   if (disponivel) {
-    console.log("[MDK022] WebUSB disponível");
+    console.log("[ETIQUETA][MDK022] WebUSB disponível");
   } else {
-    console.warn("[MDK022] WebUSB indisponível neste navegador/dispositivo");
+    console.warn("[ETIQUETA][MDK022] WebUSB indisponível neste navegador/dispositivo");
   }
   return disponivel;
 }
@@ -34,7 +34,11 @@ export async function obterDispositivoMdk022() {
 
   // 1. Se já temos a impressora em cache e aberta, reutiliza
   if (impressoraConectadaCache && impressoraConectadaCache.opened) {
-    console.log("[MDK022] dispositivo encontrado no cache e aberto");
+    console.log("[ETIQUETA][MDK022] dispositivo localizado");
+    console.log("[ETIQUETA][MDK022] device.open OK");
+    console.log("[ETIQUETA][MDK022] configuration OK");
+    console.log(`[ETIQUETA][MDK022] interface ${impressoraConectadaCache._interfaceTarget ?? 0} claimed`);
+    console.log(`[ETIQUETA][MDK022] endpoint OUT ${impressoraConectadaCache._endpointOutNumber ?? 2}`);
     return impressoraConectadaCache;
   }
 
@@ -43,16 +47,15 @@ export async function obterDispositivoMdk022() {
   let device = autorizados.find(d => d.vendorId === 0x36FC && d.productId === 0x0513);
 
   if (device) {
-    console.log("[MDK022] dispositivo encontrado nos autorizados (Vendor: 0x36FC, Product: 0x0513)");
+    console.log("[ETIQUETA][MDK022] dispositivo localizado");
   } else {
-    console.log("[MDK022] dispositivo não encontrado nos autorizados. Solicitando permissão via requestDevice...");
-    // Solicitando permissão com filtro exato para MDK-022
+    console.log("[ETIQUETA][MDK022] solicitando permissão do dispositivo...");
     device = await navigator.usb.requestDevice({
       filters: [
         { vendorId: 0x36FC, productId: 0x0513 }
       ]
     });
-    console.log("[MDK022] dispositivo selecionado pelo usuário:", device.productName || "MDK-022");
+    console.log("[ETIQUETA][MDK022] dispositivo localizado");
   }
 
   if (!device) {
@@ -63,11 +66,12 @@ export async function obterDispositivoMdk022() {
   if (!device.opened) {
     await device.open();
   }
-  console.log("[MDK022] dispositivo aberto");
+  console.log("[ETIQUETA][MDK022] device.open OK");
 
   if (device.configuration === null) {
     await device.selectConfiguration(1);
   }
+  console.log("[ETIQUETA][MDK022] configuration OK");
 
   // Encontra interface e endpoint OUT (Prioridade Interface #0 / Endpoint #2)
   let interfaceTarget = 0;
@@ -87,17 +91,18 @@ export async function obterDispositivoMdk022() {
 
   try {
     await device.claimInterface(interfaceTarget);
-    console.log(`[MDK022] interface #${interfaceTarget} reivindicada`);
+    console.log(`[ETIQUETA][MDK022] interface ${interfaceTarget} claimed`);
   } catch (err) {
     if (!err.message?.includes("already claimed")) {
-      console.warn(`[MDK022] Aviso ao reivindicar interface #${interfaceTarget}:`, err.message);
+      console.warn(`[ETIQUETA][MDK022] Aviso ao reivindicar interface ${interfaceTarget}:`, err.message);
     } else {
-      console.log(`[MDK022] interface #${interfaceTarget} já estava reivindicada`);
+      console.log(`[ETIQUETA][MDK022] interface ${interfaceTarget} claimed`);
     }
   }
 
-  console.log(`[MDK022] endpoint OUT #${endpointOutNumber}`);
+  console.log(`[ETIQUETA][MDK022] endpoint OUT ${endpointOutNumber}`);
   device._endpointOutNumber = endpointOutNumber;
+  device._interfaceTarget = interfaceTarget;
   impressoraConectadaCache = device;
   return device;
 }
@@ -224,8 +229,9 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "80x40", copias = 1 }
  * @param {number} params.copias Quantidade de cópias
  * @returns {Promise<{ ok: boolean, bytes: number, status?: string }>}
  */
-export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "80x40", copias = 1 }) {
+export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "80x40", copias = 1, onStatusChange }) {
   try {
+    if (onStatusChange) onStatusChange("Conectando à MDK-022...");
     const device = await obterDispositivoMdk022();
     const endpointOut = device._endpointOutNumber || 2;
 
@@ -233,25 +239,32 @@ export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "80x40", copi
     const encoder = new TextEncoder();
     const buffer = encoder.encode(comandosTspl);
 
-    console.log(`[MDK022] TSPL gerado: ${buffer.length} bytes`);
-    console.log("[MDK022] transferOut iniciado");
+    console.log(`[ETIQUETA][MDK022] TSPL gerado: ${buffer.length} bytes`);
+    
+    if (onStatusChange) onStatusChange("Enviando etiqueta...");
+    console.log("[ETIQUETA][MDK022] transferOut iniciado");
 
     const resultado = await device.transferOut(endpointOut, buffer);
 
-    console.log(`[MDK022] transferOut status: ${resultado.status}`);
+    console.log(`[ETIQUETA][MDK022] transferOut status: ${resultado.status}`);
 
     if (resultado.status === "ok") {
-      console.log("[MDK022] impressão concluída com sucesso!");
+      console.log("[ETIQUETA][MDK022] impressão finalizada");
+      if (onStatusChange) onStatusChange("Etiqueta enviada para MDK-022.");
       return {
         ok: true,
         bytes: resultado.bytesWritten || buffer.length,
-        status: resultado.status
+        status: resultado.status,
+        vendorId: device.vendorId,
+        productId: device.productId,
+        interfaceNumber: device._interfaceTarget ?? 0,
+        endpointNumber: endpointOut
       };
     } else {
       throw new Error(`A impressora MDK-022 respondeu com o status: ${resultado.status}`);
     }
   } catch (err) {
-    console.error("[MDK022] Erro na transmissão WebUSB MDK-022:", err.message || err);
+    console.error("[ETIQUETA][MDK022] Erro na transmissão WebUSB MDK-022:", err.message || err);
     throw err;
   }
 }

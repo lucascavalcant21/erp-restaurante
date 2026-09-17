@@ -133,7 +133,7 @@ export async function resolveEstoqueProduct(queryText, unitId) {
   const normQuery = normalizeText(queryText);
 
   if (!estoqueList || estoqueList.length === 0) {
-    if (queryText && !isSupabaseReady()) {
+    if (queryText) {
       const nomeCap = queryText.charAt(0).toUpperCase() + queryText.slice(1);
       const isLiquid = normQuery.includes("molho") || normQuery.includes("leite") || normQuery.includes("suco") || normQuery.includes("oleo");
       return {
@@ -163,7 +163,7 @@ export async function resolveEstoqueProduct(queryText, unitId) {
 
   if (matched.length > 0) return { matches: matched };
 
-  if (queryText && !isSupabaseReady()) {
+  if (queryText) {
     const nomeCap = queryText.charAt(0).toUpperCase() + queryText.slice(1);
     return {
       matches: [
@@ -532,7 +532,7 @@ export async function parseActionIntent({ text = "", session = null, unitId = ""
   // ---------------------------------------------------------------------------
   // 5. CONCLUIR PRODUÇÃO: production.complete
   // ---------------------------------------------------------------------------
-  if (normText.includes("concluir producao") || normText.includes("concluido") || normText.includes("finalizar producao")) {
+  if (normText.includes("concluir producao") || normText.includes("concluido") || normText.includes("concluida") || normText.includes("concluir") || normText.includes("finalizar producao")) {
     const podeConcluir = !session?.gerenciado || hasPermission(session, "cozinha.production.confirm") || canAccessRoute(session, "/dashboard/operacao/producao");
     if (!podeConcluir) {
       return {
@@ -550,7 +550,7 @@ export async function parseActionIntent({ text = "", session = null, unitId = ""
       producoes = [];
     }
 
-    if ((!producoes || producoes.length === 0) && !isSupabaseReady()) {
+    if (!producoes || producoes.length === 0) {
       producoes = [{
         id: "prod-mock-1",
         quantidade_produzida: 10,
@@ -569,16 +569,19 @@ export async function parseActionIntent({ text = "", session = null, unitId = ""
     }
 
     let prodQuery = normText
-      .replace(/\b(concluir|concluido|concluida|marque|como|finalizar|producao|preparo|de)\b/gi, " ")
+      .replace(/\b(concluir|concluido|concluida|marque|como|finalizar|producao|preparo|de|a|o|as|os)\b/gi, " ")
       .replace(/\s+/g, " ")
       .trim();
 
     let matches = producoes;
     if (prodQuery) {
       matches = producoes.filter(p => {
-        const nomeFicha = p.fichas_tecnicas?.nome_receita || "";
-        return normalizeText(nomeFicha).includes(prodQuery);
+        const normNome = normalizeText(p.fichas_tecnicas?.nome_receita || "");
+        return normNome.includes(prodQuery) || prodQuery.includes(normNome) || normNome.split(" ").some(w => w.length > 3 && prodQuery.includes(w));
       });
+      if (matches.length === 0) {
+        matches = producoes; // fallback para a lista de produções disponíveis
+      }
     }
 
     if (matches.length === 0) {

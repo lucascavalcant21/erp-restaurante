@@ -591,3 +591,50 @@ export async function executeReadOnlyQuery(intentId, session, unitId) {
     responseText: "Consulta não reconhecida."
   };
 }
+
+/**
+ * Utilitário de parsing determinístico de intenção (usado pela suíte de avaliação F11 e interface)
+ */
+export function parseHefistoIntent(input = "", context = {}) {
+  const norm = normalizeText(input);
+  if (!norm) return { type: "UNKNOWN" };
+
+  // 1. Ponto Tradicional Inviolável (0% facial, 0% batida por IA)
+  if (norm.includes("ponto") || norm.includes("bater ponto")) {
+    return {
+      type: "NAVIGATE",
+      path: "/dashboard/ponto",
+      useFacial: false,
+      autoClock: false
+    };
+  }
+
+  // 2. Busca por Navegação
+  const isNav = /^(abrir|ir|mostrar|acessar|ver|navegar|ir para)\b/i.test(norm) || norm.includes("sintetica");
+  if (isNav) {
+    const cleanNavSearch = norm.replace(/^(abrir|ir para|ir|mostrar|acessar|ver|abrir tela|imprimir|bater|registrar|marcar|quero|desejo|preciso|navegar|pagina)\s+/, "");
+    const searchResults = searchNavigationRegistry(cleanNavSearch, context.session || { papel: context.role || "admin" });
+    return {
+      type: "NAVIGATE",
+      path: (searchResults && searchResults.length >= 1) ? searchResults[0].route : "/dashboard",
+      title: (searchResults && searchResults.length >= 1) ? searchResults[0].title : "Navegação"
+    };
+  }
+
+  // 3. Match no Catálogo de Intenções
+  for (const intentDef of INTENT_CATALOG) {
+    const isMatch = intentDef.keywords.some(kw => {
+      const normKw = normalizeText(kw);
+      return norm === normKw || norm.includes(normKw);
+    });
+    if (isMatch) {
+      return {
+        type: "QUERY",
+        intentId: intentDef.id,
+        readOnly: true
+      };
+    }
+  }
+
+  return { type: "UNKNOWN" };
+}

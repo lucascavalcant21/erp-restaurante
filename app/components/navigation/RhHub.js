@@ -15,7 +15,17 @@ import {
 import { fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData } from "../../lib/ponto-status.mjs";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
-import { fmtBRL } from "../../components/ui";
+import {
+  HubHeader,
+  HubAttentionCard,
+  HubSectionHeader,
+  HubCardContainer,
+  HubActionButton,
+  HubSkeleton,
+  HubErrorState,
+  HubListContainer,
+  HubListItem
+} from "./HubPrimitives";
 
 export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const router = useRouter();
@@ -96,7 +106,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
     const entradaEsperada = horario?.entrada || "";
     const estaPrevistoHoje = Boolean(entradaEsperada || (c.dias_trabalho && c.dias_trabalho.includes(String(diaDaSemana))));
 
-    let statusOperacional = "fora_turno"; // trabalhando | intervalo | atrasado | pendente | encerrado | atestado | folga
+    let statusOperacional = "fora_turno";
     let prioridadeOrdenacao = 99;
 
     if (sit.atestado) {
@@ -142,7 +152,6 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const trabalhando = equipeProcessada.filter(e => e.statusOperacional === "trabalhando");
   const emIntervalo = equipeProcessada.filter(e => e.statusOperacional === "intervalo");
   const atrasados = equipeProcessada.filter(e => e.statusOperacional === "atrasado");
-  const semRegistroEsperado = equipeProcessada.filter(e => e.statusOperacional === "pendente");
 
   // Pendências para "PRECISA DA SUA ATENÇÃO"
   const pontosIncompletos = equipeProcessada.filter(e => e.situacao.semIntervalo && e.statusOperacional === "encerrado");
@@ -175,273 +184,273 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
     <div className="min-h-screen bg-[#070F1E] text-slate-100 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* CABEÇALHO DO HUB RH & EQUIPE */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-slate-800 backdrop-blur-md">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
-              <Users size={15} />
-              <span>RH & Equipe · Central de Pessoas</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              {podeVerGestaoRH ? "Situação Operacional da Equipe" : `Meu Dia · ${sessao?.nome || "Colaborador"}`}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              {dataCapitalizada} · {unidadeInfo?.nome || "Unidade"}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={carregarDadosRH}
-              disabled={loading}
-              className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              title="Atualizar dados de ponto e equipe"
-            >
-              <RefreshCw size={18} className={loading ? "animate-spin text-emerald-400" : ""} />
-            </button>
-
-            {podeVerGestaoRH && onVerGestaoCompleta && (
-              <button
-                type="button"
+        {/* CABEÇALHO PADRONIZADO */}
+        <HubHeader
+          icon={Users}
+          domainTag="Central de Pessoas"
+          unitName={unidadeInfo?.nome || "Unidade"}
+          title={podeVerGestaoRH ? "Situação Operacional da Equipe" : `Meu Dia · ${sessao?.nome || "Colaborador"}`}
+          subtitle={dataCapitalizada}
+          onRefresh={carregarDadosRH}
+          isRefreshing={loading}
+          primaryActionButton={
+            podeVerGestaoRH && onVerGestaoCompleta ? (
+              <HubActionButton
                 onClick={onVerGestaoCompleta}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm transition-all shadow-lg shadow-emerald-950/40 flex items-center gap-2 min-h-[44px]"
+                variant="primary"
+                icon={Users}
               >
-                <Users size={16} />
-                <span>Gestão Completa de RH</span>
-              </button>
-            )}
-          </div>
-        </div>
+                Gestão Completa de RH
+              </HubActionButton>
+            ) : null
+          }
+        />
 
         {error && (
-          <div className="p-4 rounded-xl bg-red-950/50 border border-red-800 text-red-300 text-sm font-bold">
-            ⚠️ {error}
-          </div>
+          <HubErrorState
+            message={error}
+            onRetry={carregarDadosRH}
+          />
         )}
 
         {/* ─── VISÃO GERENCIAL DE RH (GESTOR / ADMIN) ─── */}
         {podeVerGestaoRH ? (
           <>
             {/* SEÇÃO 1: "AGORA" — SITUAÇÃO OPERACIONAL DA EQUIPE HOJE */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-2xs font-extrabold uppercase tracking-wider">Previstos Hoje</span>
-                  <CalendarDays size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl font-black text-white">{previstosHoje.length}</span>
-                  <span className="text-3xs text-slate-400 block mt-0.5">de {colabsAtivos.length} colaboradores</span>
-                </div>
-              </div>
+            <div className="space-y-3">
+              <HubSectionHeader
+                icon={UserCheck}
+                title="Visão Geral da Equipe Hoje"
+                badgeText={`${presentes.length}/${previstosHoje.length || colabsAtivos.length} presentes`}
+                badgeVariant={presentes.length >= previstosHoje.length ? "green" : "amber"}
+              />
 
-              <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-emerald-400 mb-2">
-                  <span className="text-2xs font-extrabold uppercase tracking-wider">Presentes</span>
-                  <UserCheck size={18} className="text-emerald-400" />
-                </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl font-black text-emerald-400">{presentes.length}</span>
-                  <span className="text-3xs text-emerald-300/80 block mt-0.5">{trabalhando.length} no turno · {emIntervalo.length} em pausa</span>
-                </div>
-              </div>
+              {loading ? (
+                <HubSkeleton height="h-20" lines={1} />
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                  <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-slate-400 mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider">Previstos Hoje</span>
+                      <CalendarDays size={18} className="text-slate-400" />
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-white">{previstosHoje.length}</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">de {colabsAtivos.length} colaboradores</span>
+                    </div>
+                  </div>
 
-              <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-amber-400 mb-2">
-                  <span className="text-2xs font-extrabold uppercase tracking-wider">Atrasados</span>
-                  <Clock size={18} className="text-amber-400" />
-                </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl font-black text-amber-400">{atrasados.length}</span>
-                  <span className="text-3xs text-amber-300/80 block mt-0.5">sem entrada no horário</span>
-                </div>
-              </div>
+                  <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-emerald-400 mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider">Presentes</span>
+                      <UserCheck size={18} className="text-emerald-400" />
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-400">{presentes.length}</span>
+                      <span className="text-[10px] text-emerald-300/80 block mt-0.5">{trabalhando.length} no turno · {emIntervalo.length} em pausa</span>
+                    </div>
+                  </div>
 
-              <div className="p-4 rounded-2xl bg-sky-950/30 border border-sky-800/40 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-sky-400 mb-2">
-                  <span className="text-2xs font-extrabold uppercase tracking-wider">Em Intervalo</span>
-                  <Coffee size={18} className="text-sky-400" />
+                  <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-amber-400 mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider">Atrasados</span>
+                      <Clock size={18} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-400">{atrasados.length}</span>
+                      <span className="text-[10px] text-amber-300/80 block mt-0.5">sem entrada no horário</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-sky-950/30 border border-sky-800/40 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-sky-400 mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider">Em Intervalo</span>
+                      <Coffee size={18} className="text-sky-400" />
+                    </div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-black text-sky-400">{emIntervalo.length}</span>
+                      <span className="text-[10px] text-sky-300/80 block mt-0.5">pausa de refeição</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl font-black text-sky-400">{emIntervalo.length}</span>
-                  <span className="text-3xs text-sky-300/80 block mt-0.5">pausa de refeição</span>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* SEÇÃO 2: "PRECISA DA SUA ATENÇÃO" (ALERTAS E EXCEÇÕES DE RH) */}
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={18} className="text-amber-400" />
-                  <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">Precisa da sua Atenção</h2>
-                </div>
-                <span className="text-xs text-slate-400 font-semibold">
-                  {pontosIncompletos.length + equipeBancoAtencao.length} pendências ativas
-                </span>
-              </div>
+            {/* SEÇÃO 2: "PRECISA DA SUA ATENÇÃO" */}
+            <div className="space-y-3 pt-2">
+              <HubSectionHeader
+                icon={AlertTriangle}
+                title="Precisa da sua Atenção"
+                badgeText={`${pontosIncompletos.length + equipeBancoAtencao.length} pendências`}
+                badgeVariant={(pontosIncompletos.length + equipeBancoAtencao.length) > 0 ? "red" : "green"}
+              />
 
               {pontosIncompletos.length === 0 && equipeBancoAtencao.length === 0 ? (
-                <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/40 flex items-center gap-3 text-emerald-300 text-xs font-bold">
-                  <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-                  <span>Nenhuma pendência crítica ou inconsistência de ponto no momento.</span>
-                </div>
+                <HubAttentionCard
+                  variant="green"
+                  icon={CheckCircle2}
+                  title="Nenhuma pendência crítica ou inconsistência de ponto no momento."
+                  subtitle="Todos os registros de ponto e horas estão em conformity."
+                />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {pontosIncompletos.length > 0 && (
-                    <div className="p-3.5 rounded-xl bg-red-950/20 border border-red-900/40 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-                        <div>
-                          <p className="text-xs font-extrabold text-white">Ponto Incompleto / Sem Intervalo</p>
-                          <p className="text-3xs text-slate-400">{pontosIncompletos.length} funcionário(s) finalizaram sem intervalo</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push("/dashboard/rh/ponto")}
-                        className="px-3 py-1.5 rounded-lg bg-red-900/50 hover:bg-red-800/70 border border-red-700 text-red-200 text-3xs font-extrabold transition-all min-h-[36px]"
-                      >
-                        Resolver
-                      </button>
-                    </div>
+                    <HubAttentionCard
+                      variant="red"
+                      icon={AlertTriangle}
+                      title="Ponto Incompleto / Sem Intervalo"
+                      subtitle={`${pontosIncompletos.length} funcionário(s) finalizaram sem intervalo`}
+                      actionButton={
+                        <HubActionButton
+                          onClick={() => router.push("/dashboard/rh/ponto")}
+                          variant="danger"
+                        >
+                          Resolver
+                        </HubActionButton>
+                      }
+                    />
                   )}
 
                   {equipeBancoAtencao.length > 0 && (
-                    <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-900/40 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-amber-500" />
-                        <div>
-                          <p className="text-xs font-extrabold text-white">Banco de Horas em Alerta</p>
-                          <p className="text-3xs text-slate-400">{equipeBancoAtencao.length} colaborador(es) com $\ge 6\text{h}$ acumuladas</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push("/dashboard/rh")}
-                        className="px-3 py-1.5 rounded-lg bg-amber-900/50 hover:bg-amber-800/70 border border-amber-700 text-amber-200 text-3xs font-extrabold transition-all min-h-[36px]"
-                      >
-                        Analisar
-                      </button>
-                    </div>
+                    <HubAttentionCard
+                      variant="amber"
+                      icon={Clock}
+                      title="Banco de Horas em Alerta"
+                      subtitle={`${equipeBancoAtencao.length} colaborador(es) com acúmulo em limite`}
+                      actionButton={
+                        <HubActionButton
+                          onClick={() => router.push("/dashboard/rh")}
+                          variant="secondary"
+                        >
+                          Analisar
+                        </HubActionButton>
+                      }
+                    />
                   )}
                 </div>
               )}
             </div>
 
             {/* SEÇÃO 3: LANDSCAPE 2 COLUNAS — EQUIPE AGORA & BANCO DE HORAS */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
 
               {/* LISTA DE EQUIPE AGORA (2 COLUNAS LG) */}
-              <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2">
-                    <UserCheck size={18} className="text-emerald-400" />
-                    <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">Equipe Agora</h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setExpandirEquipe(!expandirEquipe)}
-                    className="text-2xs font-extrabold text-emerald-400 hover:underline min-h-[36px] flex items-center gap-1"
-                  >
-                    <span>{expandirEquipe ? "Ver Menos" : `Ver Todos (${equipeProcessada.length})`}</span>
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
+              <div className="lg:col-span-2 space-y-3">
+                <HubSectionHeader
+                  icon={UserCheck}
+                  title="Equipe Agora"
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => setExpandirEquipe(!expandirEquipe)}
+                      className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1 min-h-[44px] cursor-pointer"
+                    >
+                      <span>{expandirEquipe ? "Ver Menos" : `Ver Todos (${equipeProcessada.length})`}</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  }
+                />
 
-                <div className="divide-y divide-slate-800/60">
-                  {equipeExibida.map(({ colaborador, horario, situacao, statusOperacional }) => (
-                    <div key={colaborador.id} className="py-3 flex items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                          statusOperacional === "trabalhando" ? "bg-emerald-500" :
-                          statusOperacional === "intervalo" ? "bg-purple-500" :
-                          statusOperacional === "atrasado" ? "bg-amber-500 animate-pulse" :
-                          statusOperacional === "pendente" ? "bg-red-500" :
-                          statusOperacional === "encerrado" ? "bg-blue-500" : "bg-slate-600"
-                        }`} />
+                {loading ? (
+                  <HubSkeleton height="h-16" lines={3} />
+                ) : (
+                  <HubListContainer>
+                    {equipeExibida.map(({ colaborador, horario, situacao, statusOperacional }) => (
+                      <HubListItem key={colaborador.id}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`h-3 w-3 rounded-full shrink-0 ${
+                            statusOperacional === "trabalhando" ? "bg-emerald-500" :
+                            statusOperacional === "intervalo" ? "bg-purple-500" :
+                            statusOperacional === "atrasado" ? "bg-amber-500 animate-pulse" :
+                            statusOperacional === "pendente" ? "bg-rose-500" :
+                            statusOperacional === "encerrado" ? "bg-sky-500" : "bg-slate-600"
+                          }`} />
 
-                        <div className="min-w-0">
-                          <p className="font-extrabold text-white truncate">{colaborador.nome}</p>
-                          <p className="text-3xs text-slate-400 truncate">{colaborador.cargo || "Sem cargo"} · {colaborador.departamento || "Geral"}</p>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-white text-xs sm:text-sm truncate">{colaborador.nome}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{colaborador.cargo || "Sem cargo"} · {colaborador.departamento || "Geral"}</p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="text-right shrink-0">
-                        <span className={`px-2.5 py-1 rounded-md text-3xs font-extrabold block ${
-                          statusOperacional === "trabalhando" ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/50" :
-                          statusOperacional === "intervalo" ? "bg-purple-950/60 text-purple-300 border border-purple-800/50" :
-                          statusOperacional === "atrasado" ? "bg-amber-950/60 text-amber-400 border border-amber-800/50" :
-                          statusOperacional === "pendente" ? "bg-red-950/60 text-red-400 border border-red-800/50" :
-                          statusOperacional === "encerrado" ? "bg-blue-950/60 text-blue-400 border border-blue-800/50" : "bg-slate-800 text-slate-400"
-                        }`}>
-                          {statusOperacional === "trabalhando" ? "Trabalhando" :
-                           statusOperacional === "intervalo" ? "☕ Intervalo" :
-                           statusOperacional === "atrasado" ? "🟠 Atrasado" :
-                           statusOperacional === "pendente" ? "🔴 Registro Pendente" :
-                           statusOperacional === "encerrado" ? "Encerrado" : "Fora do Turno"}
-                        </span>
-                        {horario?.entrada && (
-                          <span className="text-3xs text-slate-400 block mt-0.5">Turno: {horario.entrada} - {horario.saida || "Fim"}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        <div className="text-right shrink-0">
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold block ${
+                            statusOperacional === "trabalhando" ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/50" :
+                            statusOperacional === "intervalo" ? "bg-purple-950/60 text-purple-300 border border-purple-800/50" :
+                            statusOperacional === "atrasado" ? "bg-amber-950/60 text-amber-400 border border-amber-800/50" :
+                            statusOperacional === "pendente" ? "bg-rose-950/60 text-rose-400 border border-rose-800/50" :
+                            statusOperacional === "encerrado" ? "bg-sky-950/60 text-sky-400 border border-sky-800/50" : "bg-slate-800 text-slate-400"
+                          }`}>
+                            {statusOperacional === "trabalhando" ? "Trabalhando" :
+                             statusOperacional === "intervalo" ? "☕ Intervalo" :
+                             statusOperacional === "atrasado" ? "🟠 Atrasado" :
+                             statusOperacional === "pendente" ? "🔴 Registro Pendente" :
+                             statusOperacional === "encerrado" ? "Encerrado" : "Fora do Turno"}
+                          </span>
+                          {horario?.entrada && (
+                            <span className="text-[10px] text-slate-400 block mt-0.5">Turno: {horario.entrada} - {horario.saida || "Fim"}</span>
+                          )}
+                        </div>
+                      </HubListItem>
+                    ))}
+                  </HubListContainer>
+                )}
               </div>
 
               {/* SEÇÃO BANCO DE HORAS RESUMO (1 COLUNA LG) */}
-              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Clock size={18} className="text-amber-400" />
-                      <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">Banco de Horas</h2>
-                    </div>
-                    <span className="text-3xs font-extrabold text-slate-400">{equipeBancoAtencao.length} em alerta</span>
+              <div className="space-y-3">
+                <HubSectionHeader
+                  icon={Clock}
+                  title="Banco de Horas"
+                  badgeText={`${equipeBancoAtencao.length} em alerta`}
+                  badgeVariant={equipeBancoAtencao.length > 0 ? "amber" : "slate"}
+                />
+
+                <HubCardContainer className="space-y-3 flex flex-col justify-between">
+                  <div>
+                    {equipeBancoAtencao.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-4">Nenhum colaborador com acúmulo excessivo de banco de horas este mês.</p>
+                    ) : (
+                      <HubListContainer>
+                        {equipeBancoAtencao.slice(0, 5).map(b => (
+                          <HubListItem key={b.colaborador.id}>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-white text-xs truncate">{b.colaborador.nome}</p>
+                              <p className="text-[10px] text-slate-400">{b.colaborador.cargo || "Fixo"}</p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${b.minutos >= 480 ? "bg-rose-950 text-rose-400 border border-rose-800" : "bg-amber-950 text-amber-400 border border-amber-800"}`}>
+                              {b.horas > 0 ? `+${b.horas}h` : `${b.horas}h`}
+                            </span>
+                          </HubListItem>
+                        ))}
+                      </HubListContainer>
+                    )}
                   </div>
 
-                  {equipeBancoAtencao.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic py-4">Nenhum colaborador com acúmulo excessivo de banco de horas este mês.</p>
-                  ) : (
-                    <div className="space-y-2.5">
-                      {equipeBancoAtencao.slice(0, 5).map(b => (
-                        <div key={b.colaborador.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-extrabold text-white truncate">{b.colaborador.nome}</p>
-                            <p className="text-3xs text-slate-400">{b.colaborador.cargo || "Fixo"}</p>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded text-xs font-black ${b.minutos >= 480 ? "bg-red-950 text-red-400 border border-red-800" : "bg-amber-950 text-amber-400 border border-amber-800"}`}>
-                            {b.horas > 0 ? `+${b.horas}h` : `${b.horas}h`}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/rh")}
-                  className="w-full mt-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-extrabold transition-all border border-slate-700 flex items-center justify-center gap-2 min-h-[44px]"
-                >
-                  <span>Analisar Banco Completo</span>
-                  <ArrowRight size={14} />
-                </button>
+                  <HubActionButton
+                    onClick={() => router.push("/dashboard/rh")}
+                    variant="secondary"
+                    icon={ArrowRight}
+                    fullWidth
+                    className="mt-4"
+                  >
+                    Analisar Banco Completo
+                  </HubActionButton>
+                </HubCardContainer>
               </div>
 
             </div>
 
-            {/* SEÇÃO 4: AÇÕES RÁPIDAS OPERACIONAIS (TARGETS >= 44PX) */}
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">Ações Rápidas de RH</h2>
+            {/* SEÇÃO 4: AÇÕES RÁPIDAS OPERACIONAIS */}
+            <div className="space-y-3 pt-2">
+              <HubSectionHeader
+                title="Ações Rápidas de RH"
+              />
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/gestao")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 active:scale-95"
+                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Users size={18} className="text-emerald-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Funcionários</span>
@@ -450,7 +459,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/ponto")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 active:scale-95"
+                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-sky-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Espelho Ponto</span>
@@ -459,7 +468,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/ponto")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 active:scale-95"
+                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <CalendarDays size={18} className="text-indigo-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Escalas</span>
@@ -468,7 +477,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 active:scale-95"
+                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-amber-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Banco Horas</span>
@@ -477,7 +486,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/extra")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 active:scale-95"
+                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Plus size={18} className="text-purple-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">+ Trabalho Extra</span>
@@ -487,7 +496,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/rh/recrutamento")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 active:scale-95"
+                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                   >
                     <UserPlus size={18} className="text-teal-400 shrink-0" />
                     <span className="text-xs font-extrabold text-white">Recrutamento</span>
@@ -497,46 +506,48 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
             </div>
 
             {/* SEÇÃO 5: MAIS FERRAMENTAS DE RH */}
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">Mais Ferramentas do Setor</h2>
+            <div className="space-y-3 pt-2">
+              <HubSectionHeader
+                title="Mais Ferramentas do Setor"
+              />
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {podeVerValores && (
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/rh/fechamento")}
-                    className="p-3 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px]"
+                    className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
                   >
                     <p className="text-xs font-bold text-white truncate">Folha de Pagamento</p>
-                    <p className="text-3xs text-slate-400">Fechamento e holerites</p>
+                    <p className="text-[10px] text-slate-400">Fechamento e holerites</p>
                   </button>
                 )}
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/facial")}
-                  className="p-3 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px]"
+                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
                 >
                   <p className="text-xs font-bold text-white truncate">Ponto Facial</p>
-                  <p className="text-3xs text-slate-400">Reconhecimento por foto</p>
+                  <p className="text-[10px] text-slate-400">Reconhecimento por foto</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/organograma")}
-                  className="p-3 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px]"
+                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
                 >
                   <p className="text-xs font-bold text-white truncate">Organograma</p>
-                  <p className="text-3xs text-slate-400">Hierarquia e liderança</p>
+                  <p className="text-[10px] text-slate-400">Hierarquia e liderança</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/cardapio-funcionarios")}
-                  className="p-3 rounded-xl bg-slate-900/40 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px]"
+                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
                 >
                   <p className="text-xs font-bold text-white truncate">Cardápio Refeitório</p>
-                  <p className="text-3xs text-slate-400">Refeição da equipe</p>
+                  <p className="text-[10px] text-slate-400">Refeição da equipe</p>
                 </button>
               </div>
             </div>
@@ -544,7 +555,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
         ) : (
           /* ─── VISÃO PESSOAL ("MEU DIA") PARA COLABORADOR SEM PERMISSÃO GERENCIAL ─── */
           <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
+            <HubCardContainer className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h2 className="text-base font-black text-white">Status do Meu Ponto Hoje</h2>
                 <span className="text-xs text-emerald-400 font-bold">{minhaSituacaoPonto.texto}</span>
@@ -558,28 +569,27 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   </p>
                 </div>
 
-                <button
-                  type="button"
+                <HubActionButton
                   onClick={() => router.push("/dashboard/ponto")}
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-lg min-h-[48px] flex items-center justify-center gap-2"
+                  variant="primary"
+                  icon={Clock}
                 >
-                  <Clock size={18} />
-                  <span>Bater Meu Ponto</span>
-                </button>
+                  Bater Meu Ponto
+                </HubActionButton>
               </div>
-            </div>
+            </HubCardContainer>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+              <HubCardContainer>
                 <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">Meu Banco de Horas</h3>
                 <p className="text-2xl font-black text-white">{(meuBancoHoras / 60).toFixed(1)}h</p>
-                <p className="text-3xs text-slate-400 mt-1">Saldo acumulado este mês</p>
-              </div>
+                <p className="text-[10px] text-slate-400 mt-1">Saldo acumulado este mês</p>
+              </HubCardContainer>
 
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/rh/colaborador")}
-                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px]"
+                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
               >
                 <div>
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">Meu Espelho</h3>
@@ -591,7 +601,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/rh/cardapio-funcionarios")}
-                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px]"
+                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
               >
                 <div>
                   <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">Cardápio Equipe</h3>

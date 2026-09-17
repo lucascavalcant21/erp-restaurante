@@ -9,6 +9,8 @@ import { addRecentRoute } from "../lib/user-preferences.js";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
 import HefistoAssistantModal from "../components/navigation/HefistoAssistantModal";
+import HefistoCopilotPanel from "../components/navigation/HefistoCopilotPanel";
+import { HefistoPageContextProvider } from "../context/HefistoPageContext";
 import BuscaAutoScroll from "../components/BuscaAutoScroll";
 import SinoCadastros from "../components/SinoCadastros";
 import HefistoButton from "../components/navigation/HefistoButton";
@@ -685,6 +687,8 @@ function SyncFeedback() {
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const erp = useERP();
+  const unidadeAtiva = erp?.unidadeAtiva || "matriz";
   const [sessao, setSessao] = useState(null);
   const sessaoRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -814,66 +818,69 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-card print:block print:h-auto print:min-h-0`}>
-      {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
-      <div className="print:hidden h-full flex shrink-0">
-         <Suspense fallback={null}>
-           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} onSair={sair} />
-         </Suspense>
-      </div>
-
-      {/* Área Principal de Conteúdo */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:block print:overflow-visible relative">
-        <div className="print:hidden shrink-0">
-           <TopHeader
-             onSair={sair}
-             onToggleSidebar={toggleSidebar}
-             onOpenCommandCenter={() => setCommandCenterOpen(true)}
-             acessoRestrito={acessoRestrito}
-             sessao={sessao}
-             compacto={compacto}
-             onToggleDensidade={toggleDensidade}
-           />
+    <HefistoPageContextProvider activeUnitId={unidadeAtiva} userSession={sessao}>
+      <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-card print:block print:h-auto print:min-h-0`}>
+        {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
+        <div className="print:hidden h-full flex shrink-0">
+           <Suspense fallback={null}>
+             <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} onSair={sair} />
+           </Suspense>
         </div>
-        <Suspense fallback={null}>
-          <ModuleBar rotasPermitidas={rotasPermitidas} />
-        </Suspense>
-        
-        {/* Main Content Area com Scrollbar customizada */}
-        <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">
-          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-muted">Carregando...</div>}>
-            <ProtecaoPermissao sessao={sessao}>
-              <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
-            </ProtecaoPermissao>
+
+        {/* Área Principal de Conteúdo */}
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:block print:overflow-visible relative">
+          <div className="print:hidden shrink-0">
+             <TopHeader
+               onSair={sair}
+               onToggleSidebar={toggleSidebar}
+               onOpenCommandCenter={() => setCommandCenterOpen(true)}
+               acessoRestrito={acessoRestrito}
+               sessao={sessao}
+               compacto={compacto}
+               onToggleDensidade={toggleDensidade}
+             />
+          </div>
+          <Suspense fallback={null}>
+            <ModuleBar rotasPermitidas={rotasPermitidas} />
           </Suspense>
-        </main>
+          
+          {/* Main Content Area com Scrollbar customizada */}
+          <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">
+            <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-muted">Carregando...</div>}>
+              <ProtecaoPermissao sessao={sessao}>
+                <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
+              </ProtecaoPermissao>
+            </Suspense>
+          </main>
+        </div>
+
+        {/* Overlays / Modais da Nova Navegação v2 (Fase B) */}
+        <CommandCenterModal
+          isOpen={commandCenterOpen}
+          onClose={() => setCommandCenterOpen(false)}
+          sessao={sessao}
+          onOpenAllModules={() => {
+            setCommandCenterOpen(false);
+            setAllModulesOpen(true);
+          }}
+        />
+        <AllModulesCatalog
+          isOpen={allModulesOpen}
+          onClose={() => setAllModulesOpen(false)}
+          sessao={sessao}
+        />
+
+        <SyncFeedback />
+        <MobileBottomNav sessao={sessao} onMenu={() => isFeatureEnabled("NAVIGATION_V2") ? setCommandCenterOpen(true) : setMobileOpen(true)} />
+        {/* Busca de qualquer tela sobe ao topo ao digitar (resultados à vista) */}
+        <BuscaAutoScroll />
+        {/* Assistente e Copiloto Contextual Hefisto */}
+        <Suspense fallback={null}>
+          <HefistoAssistant />
+          <HefistoAssistantModal />
+          <HefistoCopilotPanel />
+        </Suspense>
       </div>
-
-      {/* Overlays / Modais da Nova Navegação v2 (Fase B) */}
-      <CommandCenterModal
-        isOpen={commandCenterOpen}
-        onClose={() => setCommandCenterOpen(false)}
-        sessao={sessao}
-        onOpenAllModules={() => {
-          setCommandCenterOpen(false);
-          setAllModulesOpen(true);
-        }}
-      />
-      <AllModulesCatalog
-        isOpen={allModulesOpen}
-        onClose={() => setAllModulesOpen(false)}
-        sessao={sessao}
-      />
-
-      <SyncFeedback />
-      <MobileBottomNav sessao={sessao} onMenu={() => isFeatureEnabled("NAVIGATION_V2") ? setCommandCenterOpen(true) : setMobileOpen(true)} />
-      {/* Busca de qualquer tela sobe ao topo ao digitar (resultados à vista) */}
-      <BuscaAutoScroll />
-      {/* Assistente Hefisto — botão flutuante + painel lateral, em todas as telas */}
-      <Suspense fallback={null}>
-        <HefistoAssistant />
-        <HefistoAssistantModal />
-      </Suspense>
-    </div>
+    </HefistoPageContextProvider>
   );
 }

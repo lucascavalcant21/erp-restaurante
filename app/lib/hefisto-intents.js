@@ -2,6 +2,7 @@ import { NAVIGATION_REGISTRY, getAccessibleNavigation, searchNavigationRegistry 
 import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
 import { parseActionIntent, executeRealAction } from "./hefisto-actions.js";
 import { executeAnalyticsQuery } from "./hefisto-analytics.js";
+import { getProactiveInsights } from "./hefisto-insights.js";
 
 /**
  * Normaliza strings para correspondência determinística em Português (pt-BR)
@@ -15,6 +16,22 @@ export function normalizeText(text = "") {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/**
+ * Keywords que ativam a busca de Insights Proativos F5
+ */
+const F5_INSIGHT_KEYWORDS = [
+  "o que precisa de mim",
+  "o que precisa de mim hoje",
+  "o que precisa da minha atencao",
+  "o que merece minha atencao",
+  "quais os alertas",
+  "alertas do hefisto",
+  "insights do hefisto",
+  "situacoes importantes",
+  "insights",
+  "alertas"
+];
 
 /**
  * Catálogo Central de Intenções F1 (Apenas NAVEGAÇÃO e CONSULTAS READ-ONLY)
@@ -102,6 +119,15 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
       processedText = "quem esta trabalhando";
     } else if (contextState.lastIntent === "finance.overdue") {
       processedText = "tem conta vencida";
+    }
+  }
+
+  // 1.1. Tenta Match em Insights Proativos F5 ("O que precisa de mim?", "Quais os alertas?")
+  const isF5Query = F5_INSIGHT_KEYWORDS.some(kw => processedText === kw || processedText.includes(kw));
+  if (isF5Query) {
+    const insightsResult = await getProactiveInsights({ session, unitId });
+    if (insightsResult && insightsResult.success) {
+      return insightsResult;
     }
   }
 

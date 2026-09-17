@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Sparkles, Search, Mic, MicOff, X, ArrowRight, CornerDownLeft,
   AlertCircle, CheckCircle2, ShieldAlert, ChefHat, Package, Users, DollarSign,
-  Layers, Lock, Loader2, BarChart2
+  Layers, Lock, Loader2, BarChart2, Zap
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { processHefistoIntent, INTENT_CATALOG } from "../../lib/hefisto-intents";
@@ -248,6 +248,19 @@ export default function HefistoAssistantModal() {
         if (res.spokenSummary && vozDisponivel()) {
           falarTexto(res.spokenSummary);
         }
+      } else if (res.type === "INSIGHTS_LIST") {
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: res.insights && res.insights.length > 0
+            ? `Héfisto encontrou ${res.insights.length} situação(ões) importante(s) que exige(m) atenção:`
+            : "Não foram encontradas situações críticas ou alertas pendentes no momento.",
+          insightsList: res.insights,
+          summary: res.summary
+        }]);
+
+        if (res.spokenSummary && vozDisponivel()) {
+          falarTexto(res.spokenSummary);
+        }
       } else if (res.type === "ACTION_PREVIEW") {
         setMensagens(prev => [...prev, {
           sender: "hefisto",
@@ -458,6 +471,94 @@ export default function HefistoAssistantModal() {
                             ))}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* CARD DE INSIGHTS PROATIVOS (F5) */}
+                    {msg.insightsList && msg.insightsList.length > 0 && (
+                      <div className="space-y-3 mt-2 text-left">
+                        {msg.insightsList.map((ins, i) => (
+                          <div
+                            key={ins.id || i}
+                            className={`p-3.5 rounded-2xl bg-slate-950/90 border ${
+                              ins.severity === "CRITICAL"
+                                ? "border-rose-500/50"
+                                : ins.severity === "ATTENTION"
+                                ? "border-amber-500/40"
+                                : "border-slate-800"
+                            } space-y-2.5 shadow-md`}
+                          >
+                            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider ${
+                                    ins.severity === "CRITICAL"
+                                      ? "bg-rose-950 text-rose-300 border border-rose-800/60"
+                                      : ins.severity === "ATTENTION"
+                                      ? "bg-amber-950 text-amber-300 border border-amber-800/60"
+                                      : "bg-slate-800 text-slate-300"
+                                  }`}
+                                >
+                                  {ins.domain} · {ins.severity}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-semibold">{ins.period}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 font-medium">Héfisto Vigilante</span>
+                            </div>
+
+                            <div>
+                              <div className="text-xs font-black text-white">{ins.title}</div>
+                              <div className="text-xs text-slate-300 mt-0.5">{ins.summary}</div>
+                            </div>
+
+                            {ins.evidence && ins.evidence.length > 0 && (
+                              <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">Evidências:</div>
+                                {ins.evidence.map((ev, evIdx) => (
+                                  <div key={evIdx} className="text-[11px] text-slate-300 leading-snug">{ev}</div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800/60">
+                              {/* Botão de Explicação Analítica (F4) */}
+                              {ins.analyticsQuery && (
+                                <button
+                                  type="button"
+                                  onClick={() => enviarPergunta(ins.analyticsQuery)}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 font-bold text-[11px] border border-slate-800 transition-colors min-h-[36px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  <BarChart2 size={13} />
+                                  <span>Entender por quê</span>
+                                </button>
+                              )}
+
+                              {/* Botão de Ação / Navegação */}
+                              {ins.suggestedActionIntent ? (
+                                <button
+                                  type="button"
+                                  onClick={() => enviarPergunta(ins.suggestedActionIntent.text)}
+                                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] transition-colors min-h-[36px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Zap size={13} />
+                                  <span>{ins.actionText || "Executar ação"}</span>
+                                </button>
+                              ) : ins.actionRoute ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsOpen(false);
+                                    router.push(ins.actionRoute);
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-[11px] transition-colors min-h-[36px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  <ArrowRight size={13} />
+                                  <span>{ins.actionText || "Ver detalhes"}</span>
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 

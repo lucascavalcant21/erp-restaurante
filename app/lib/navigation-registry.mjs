@@ -216,6 +216,22 @@ export const NAVIGATION_REGISTRY = [
     searchable: true,
   },
   {
+    id: "hefisto-auditoria",
+    title: "Auditoria & Governança do Héfisto",
+    shortTitle: "Auditoria Héfisto",
+    description: "Trilha de auditoria, eventos de segurança e controle de Modo Seguro",
+    route: "/dashboard/gestao/auditoria-hefisto",
+    domain: "Gestão",
+    section: "Segurança & Governança",
+    icon: "ShieldCheck",
+    keywords: ["auditoria hefisto", "governanca", "modo seguro", "kill switch", "logs hefisto", "trilha de auditoria"],
+    synonyms: ["auditoria de IA", "logs do assistente"],
+    permission: "hefisto.audit.view",
+    mobilePriority: 3,
+    adminOnly: true,
+    searchable: true,
+  },
+  {
     id: "op-validade",
     title: "Controle de Validade Geral",
     shortTitle: "Validades",
@@ -786,8 +802,8 @@ export function normalizeString(str = "") {
  */
 export function getAccessibleNavigation(session) {
   if (!session) return [];
-  // Se for admin ou tiver total acesso, retorna todas as rotas pesquisáveis
-  if (session.papel === "admin" || session.super_admin || session.permissions === "*") {
+  // Se for admin, super_admin, sem restrições ou conta não gerenciada (proprietário/gestor), retorna todas as rotas pesquisáveis
+  if (session.papel === "admin" || session.super_admin || session.permissions === "*" || session.gerenciado === false) {
     return NAVIGATION_REGISTRY.filter(item => item.searchable !== false);
   }
   return NAVIGATION_REGISTRY.filter(item => {

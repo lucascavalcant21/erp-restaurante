@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.com.hefisto.app",
+      "sha256_cert_fingerprints": [
+        "DC:31:68:5D:9E:3A:1A:A0:47:79:17:7D:48:65:A2:5A:2B:27:71:29:11:4D:69:A7:70:A7:D6:42:2C:E2:BE:A4"
+      ]
+    }
+  }
+]

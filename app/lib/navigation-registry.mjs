@@ -72,6 +72,22 @@ export const NAVIGATION_REGISTRY = [
     searchable: true,
   },
   {
+    id: "hub-cozinha",
+    title: "Ambiente Operacional da Cozinha",
+    shortTitle: "Cozinha",
+    description: "Painel de ação rápida da cozinha: produção, estoque crítico, checklists e etiquetas",
+    route: "/dashboard/cozinha",
+    domain: "Operação",
+    section: "Cozinha & Validades",
+    icon: "ChefHat",
+    keywords: ["cozinha", "hub", "operacao", "preparo", "cozinheiro", "comida", "chef"],
+    synonyms: ["ambiente da cozinha", "modulo da cozinha", "painel da cozinha"],
+    permission: "cozinha.sector.view",
+    mobilePriority: 1,
+    adminOnly: false,
+    searchable: true,
+  },
+  {
     id: "op-producao",
     title: "Produção do Dia",
     shortTitle: "Produção",
@@ -889,14 +905,14 @@ export function getBottomNavPreset(session) {
 
   // Presets previsíveis por papel (IDs do Registry)
   const ROLE_PRESETS = {
-    cozinha: ["op-producao", "op-etiquetas", "est-modo-operacao"],
+    cozinha: ["hub-cozinha", "op-producao", "op-etiquetas"],
     bar: ["op-producao-bar", "op-fichas-bar", "op-etiquetas"],
     rh: ["rh-ponto", "rh-gestao", "rh-banco-horas"],
     estoque: ["est-visao-geral", "op-etiquetas", "est-compras"],
     salao: ["op-mesas", "op-checklists", "rh-ponto-kiosk"],
     caixa: ["op-mesas", "op-checklists", "fin-fluxo-caixa"],
-    gerente: ["dash-inteligente", "op-producao", "rh-ponto"],
-    admin: ["dash-inteligente", "fin-fluxo-caixa", "rh-painel"]
+    gerente: ["hub-cozinha", "op-producao", "rh-ponto"],
+    admin: ["dash-inteligente", "hub-cozinha", "fin-fluxo-caixa"]
   };
 
   const candidateIds = ROLE_PRESETS[papel] || ROLE_PRESETS.admin;

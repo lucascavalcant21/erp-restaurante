@@ -98,6 +98,8 @@ export function falar(texto, { velocidade = 1, volume = 1 } = {}) {
   } catch { /* áudio é acessório, nunca quebra o fluxo */ }
 }
 
+export const falarTexto = falar;
+
 export function calarVoz() {
   if (audioDisponivel()) { try { window.speechSynthesis.cancel(); } catch {} }
 }

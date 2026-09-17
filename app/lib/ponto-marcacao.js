@@ -1,4 +1,4 @@
-import { supabase, isSupabaseReady } from "./supabase";
+import { supabase, isSupabaseReady } from "./supabase.js";
 
 // Livro de marcações do ponto — o registro que vale para a fiscalização.
 //

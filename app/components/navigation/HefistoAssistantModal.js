@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Sparkles, Search, Mic, MicOff, X, ArrowRight, CornerDownLeft,
   AlertCircle, CheckCircle2, ShieldAlert, ChefHat, Package, Users, DollarSign,
-  Layers, Lock
+  Layers, Lock, Loader2, BarChart2
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { processHefistoIntent, INTENT_CATALOG } from "../../lib/hefisto-intents";
-import { vozDisponivel, criarEscuta } from "../../lib/hefisto-voz";
+import { executeRealAction } from "../../lib/hefisto-actions";
+import { vozDisponivel, criarEscuta, falarTexto } from "../../lib/hefisto-voz";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { HubActionButton } from "./HubPrimitives";
 
@@ -59,7 +60,7 @@ export default function HefistoAssistantModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Limpa histórico ao trocar de usuário ou tenant
+  // Limpa histórico e ações pendentes ao trocar de usuário ou tenant
   useEffect(() => {
     setMensagens([]);
     setLastContext({});
@@ -93,11 +94,115 @@ export default function HefistoAssistantModal() {
     }
   };
 
+  const cancelarAcaoPending = (msgIndex) => {
+    setMensagens(prev => prev.map((m, idx) => idx === msgIndex ? {
+      ...m,
+      actionPreview: { ...m.actionPreview, status: "cancelled" }
+    } : m));
+  };
+
+  const executarAcaoConfirmada = async (msgIndex, actionPreview) => {
+    if (!actionPreview || actionPreview.status === "executing" || actionPreview.status === "completed") return;
+
+    // Trava botão para evitar duplo clique (idempotência)
+    setMensagens(prev => prev.map((m, idx) => idx === msgIndex ? {
+      ...m,
+      actionPreview: { ...m.actionPreview, status: "executing" }
+    } : m));
+
+    try {
+      const res = await executeRealAction({
+        actionId: actionPreview.actionId,
+        payload: actionPreview.payload,
+        session: sessao,
+        unitId: unidadeAtiva
+      });
+
+      if (res.success) {
+        setMensagens(prev => [
+          ...prev.map((m, idx) => idx === msgIndex ? {
+            ...m,
+            actionPreview: { ...m.actionPreview, status: "completed" }
+          } : m),
+          {
+            sender: "hefisto",
+            text: res.responseText,
+            actionSuccess: true
+          }
+        ]);
+
+        if (res.redirectRequired && res.targetRoute) {
+          setTimeout(() => {
+            setIsOpen(false);
+            router.push(res.targetRoute);
+          }, 1200);
+        }
+      } else {
+        setMensagens(prev => [
+          ...prev.map((m, idx) => idx === msgIndex ? {
+            ...m,
+            actionPreview: { ...m.actionPreview, status: "failed" }
+          } : m),
+          {
+            sender: "hefisto",
+            text: res.responseText || "Não foi possível executar a ação.",
+            permissionDenied: res.permissionDenied
+          }
+        ]);
+      }
+    } catch (e) {
+      setMensagens(prev => [
+        ...prev.map((m, idx) => idx === msgIndex ? {
+          ...m,
+          actionPreview: { ...m.actionPreview, status: "failed" }
+        } : m),
+        {
+          sender: "hefisto",
+          text: `Erro ao executar ação: ${e.message}`
+        }
+      ]);
+    }
+  };
+
   const enviarPergunta = useCallback(async (textoParaEnviar) => {
     const queryText = typeof textoParaEnviar === "string" ? textoParaEnviar : inputText;
     if (!queryText || !queryText.trim() || loading) return;
 
     const userMsg = { sender: "user", text: queryText };
+    const norm = queryText.trim().toLowerCase();
+
+    // Verificação de Ação Pendente para Confirmação por Texto ("sim", "confirmar", "nao")
+    const pendingMsgIndex = mensagens.findLastIndex(m => m.actionPreview?.status === "pending");
+
+    if (pendingMsgIndex !== -1 && (norm === "sim" || norm === "confirmar" || norm === "pode fazer" || norm === "ok" || norm === "sim, pode")) {
+      const pendingMsg = mensagens[pendingMsgIndex];
+      const isExpired = Date.now() - pendingMsg.actionPreview.timestamp > 5 * 60 * 1000;
+
+      if (isExpired) {
+        setMensagens(prev => [...prev, userMsg, {
+          sender: "hefisto",
+          text: "Esta ação expirou (limite de 5 minutos). Por favor, solicite a ação novamente."
+        }]);
+        setInputText("");
+        return;
+      }
+
+      setMensagens(prev => [...prev, userMsg]);
+      setInputText("");
+      await executarAcaoConfirmada(pendingMsgIndex, pendingMsg.actionPreview);
+      return;
+    }
+
+    if (pendingMsgIndex !== -1 && (norm === "nao" || norm === "não" || norm === "cancelar" || norm === "cancela")) {
+      cancelarAcaoPending(pendingMsgIndex);
+      setMensagens(prev => [...prev, userMsg, {
+        sender: "hefisto",
+        text: "Ação cancelada pelo usuário."
+      }]);
+      setInputText("");
+      return;
+    }
+
     setMensagens(prev => [...prev, userMsg]);
     setInputText("");
     setLoading(true);
@@ -113,8 +218,63 @@ export default function HefistoAssistantModal() {
       if (res.permissionDenied) {
         setMensagens(prev => [...prev, {
           sender: "hefisto",
-          text: "Você não tem acesso a essa informação.",
+          text: res.responseText || "Você não tem acesso a essa ação ou informação.",
           permissionDenied: true
+        }]);
+      } else if (res.type === "ANALYTICS_RESULT") {
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: res.summaryText,
+          analyticsResult: {
+            title: res.title,
+            periodoStr: res.periodoStr,
+            evidenceLevel: res.evidenceLevel,
+            metricHighlight: res.metricHighlight,
+            evidenceList: res.evidenceList,
+            sources: res.sources,
+            drilldownActions: res.drilldownActions
+          }
+        }]);
+
+        if (res.lastAnalyticsDomain) {
+          setLastContext(prev => ({
+            ...prev,
+            lastAnalyticsDomain: res.lastAnalyticsDomain,
+            lastPeriodKey: res.lastPeriodKey
+          }));
+        }
+
+        // Síntese em voz curta (F3 TTS) se acionado por voz
+        if (res.spokenSummary && vozDisponivel()) {
+          falarTexto(res.spokenSummary);
+        }
+      } else if (res.type === "ACTION_PREVIEW") {
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: "Confirma a execução da ação abaixo?",
+          actionPreview: {
+            actionId: res.actionId,
+            actionTitle: res.actionTitle,
+            productName: res.productName,
+            productId: res.productId,
+            quantity: res.quantity,
+            unit: res.unit,
+            detailsText: res.detailsText,
+            payload: res.payload,
+            timestamp: Date.now(),
+            status: "pending"
+          }
+        }]);
+      } else if (res.type === "AMBIGUOUS_PRODUCT" || res.type === "AMBIGUOUS") {
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: res.responseText,
+          options: res.options
+        }]);
+      } else if (res.type === "MISSING_PARAM") {
+        setMensagens(prev => [...prev, {
+          sender: "hefisto",
+          text: res.responseText
         }]);
       } else if (res.type === "NAVIGATION") {
         setMensagens(prev => [...prev, {
@@ -126,12 +286,6 @@ export default function HefistoAssistantModal() {
           setIsOpen(false);
           router.push(res.targetRoute);
         }, 600);
-      } else if (res.type === "AMBIGUOUS") {
-        setMensagens(prev => [...prev, {
-          sender: "hefisto",
-          text: res.responseText,
-          options: res.options
-        }]);
       } else {
         setMensagens(prev => [...prev, {
           sender: "hefisto",
@@ -150,18 +304,18 @@ export default function HefistoAssistantModal() {
     } finally {
       setLoading(false);
     }
-  }, [inputText, loading, sessao, unidadeAtiva, lastContext, router]);
+  }, [inputText, loading, sessao, unidadeAtiva, lastContext, router, mensagens]);
 
   if (!isOpen) return null;
 
   // Sugestões de fichas por permissão
   const sugestoes = [
+    { text: "Por que meu CMV aumentou?", perm: podeVerFinanceiro },
+    { text: "Por que meu resultado caiu?", perm: podeVerFinanceiro },
+    { text: "Quais produtos aumentaram de preço?", perm: podeVerEstoque },
+    { text: "Quanto perdi este mês?", perm: podeVerEstoque },
     { text: "Como está o restaurante?", perm: true },
-    { text: "O que está acabando?", perm: podeVerEstoque },
-    { text: "Tem produção atrasada?", perm: podeVerCozinha },
-    { text: "Quem está trabalhando hoje?", perm: podeVerEquipe },
-    { text: "Como está o CMV?", perm: podeVerFinanceiro },
-    { text: "Abrir etiquetas", perm: true }
+    { text: "Imprimir 3 etiquetas de Molho Branco", perm: podeVerEstoque }
   ].filter(s => s.perm);
 
   return (
@@ -180,10 +334,10 @@ export default function HefistoAssistantModal() {
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-white tracking-tight">Héfisto</h2>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-extrabold border border-emerald-800/60 uppercase">
-                  Assistente F1
+                  Inteligência Analítica (F1-F4)
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Linguagem natural & consultas da operação</p>
+              <p className="text-xs text-slate-400">Consultas, Diagnósticos, Explicações & Ações</p>
             </div>
           </div>
 
@@ -204,9 +358,9 @@ export default function HefistoAssistantModal() {
                 <Sparkles size={28} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">O que você precisa consultar ou abrir?</h3>
+                <h3 className="text-sm font-bold text-white">O que você deseja diagnosticar ou consultar?</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                  Escreva ou fale em português natural. Consulte a cozinha, estoque, RH, financeiro ou navegue para qualquer módulo.
+                  Pergunte em português natural: "Por que meu CMV aumentou?", "Por que meu resultado caiu?", "Quais produtos subiram de preço?".
                 </p>
               </div>
 
@@ -242,6 +396,142 @@ export default function HefistoAssistantModal() {
                   >
                     <div className="whitespace-pre-line leading-relaxed">{msg.text}</div>
 
+                    {/* CARD DE DIAGNÓSTICO ANALÍTICO (F4) */}
+                    {msg.analyticsResult && (
+                      <div className="p-4 rounded-2xl bg-slate-950/90 border border-emerald-500/40 space-y-3 mt-1 shadow-lg text-left">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-xs tracking-wide uppercase">
+                            <BarChart2 size={15} />
+                            <span>{msg.analyticsResult.title}</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 font-bold border border-emerald-500/20">
+                            {msg.analyticsResult.periodoStr}
+                          </span>
+                        </div>
+
+                        {msg.analyticsResult.metricHighlight && (
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                            <div>
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">{msg.analyticsResult.metricHighlight.label}</div>
+                              <div className="text-base font-black text-white">{msg.analyticsResult.metricHighlight.currentStr}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">Vs Período Anterior</div>
+                              <div className={`text-xs font-black ${msg.analyticsResult.metricHighlight.isPositiveImpact ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {msg.analyticsResult.metricHighlight.variationStr}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {msg.analyticsResult.evidenceList && msg.analyticsResult.evidenceList.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Evidências Principais:</div>
+                            <div className="space-y-1 text-xs text-slate-300">
+                              {msg.analyticsResult.evidenceList.map((ev, i) => (
+                                <div key={i} className="leading-relaxed">{ev}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {msg.analyticsResult.sources && (
+                          <div className="text-[10px] text-slate-500 pt-1 font-semibold">
+                            Base: {msg.analyticsResult.sources.join(" · ")}
+                          </div>
+                        )}
+
+                        {msg.analyticsResult.drilldownActions && msg.analyticsResult.drilldownActions.length > 0 && (
+                          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80">
+                            {msg.analyticsResult.drilldownActions.map((act, i) => (
+                              <HubActionButton
+                                key={i}
+                                onClick={() => {
+                                  setIsOpen(false);
+                                  router.push(act.route);
+                                }}
+                                variant="primary"
+                                icon={ArrowRight}
+                              >
+                                {act.label}
+                              </HubActionButton>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* PREVIEW DE AÇÃO CONTROLADA (F2) */}
+                    {msg.actionPreview && (
+                      <div className="p-4 rounded-2xl bg-slate-950/90 border border-amber-500/40 space-y-3 mt-1 shadow-lg text-left">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2 text-amber-400 font-extrabold text-xs tracking-wide uppercase">
+                            <AlertCircle size={15} />
+                            <span>{msg.actionPreview.actionTitle}</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-bold border border-amber-500/20">
+                            Ação Controlada
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="text-sm font-black text-white">{msg.actionPreview.productName}</div>
+                          <div className="text-xs font-semibold text-slate-300">{msg.actionPreview.detailsText}</div>
+                        </div>
+
+                        {msg.actionPreview.status === "pending" && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                cancelarAcaoPending(idx);
+                                setMensagens(p => [...p, { sender: "hefisto", text: "Ação cancelada pelo usuário." }]);
+                              }}
+                              className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs border border-slate-800 transition-colors min-h-[44px] cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isExpired = Date.now() - msg.actionPreview.timestamp > 5 * 60 * 1000;
+                                if (isExpired) {
+                                  setMensagens(p => [...p, { sender: "hefisto", text: "Esta ação expirou (limite de 5 minutos). Solicite novamente." }]);
+                                  return;
+                                }
+                                executarAcaoConfirmada(idx, msg.actionPreview);
+                              }}
+                              className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-colors min-h-[44px] cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <span>Confirmar Execução</span>
+                              <CheckCircle2 size={15} />
+                            </button>
+                          </div>
+                        )}
+
+                        {msg.actionPreview.status === "executing" && (
+                          <div className="flex items-center justify-center gap-2 py-2 text-xs font-bold text-emerald-400 animate-pulse">
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Executando ação no ERP...</span>
+                          </div>
+                        )}
+
+                        {msg.actionPreview.status === "completed" && (
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 pt-1">
+                            <CheckCircle2 size={16} />
+                            <span>Ação executada e auditada com sucesso</span>
+                          </div>
+                        )}
+
+                        {msg.actionPreview.status === "cancelled" && (
+                          <div className="text-xs font-bold text-slate-400 pt-1">
+                            Ação cancelada pelo usuário
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* OPÇÕES / AMBIGUIDADES */}
                     {msg.options && (
                       <div className="flex flex-wrap gap-2 pt-1">
                         {msg.options.map(opt => (
@@ -249,10 +539,14 @@ export default function HefistoAssistantModal() {
                             key={opt.id}
                             type="button"
                             onClick={() => {
-                              setIsOpen(false);
-                              router.push(opt.route);
+                              if (opt.query) {
+                                enviarPergunta(opt.query);
+                              } else if (opt.route) {
+                                setIsOpen(false);
+                                router.push(opt.route);
+                              }
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-emerald-400 text-xs font-bold transition-all min-h-[44px] flex items-center gap-1.5 cursor-pointer"
                           >
                             <span>{opt.title}</span>
                             <ArrowRight size={14} />
@@ -283,7 +577,7 @@ export default function HefistoAssistantModal() {
                 <div className="flex justify-start">
                   <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs text-emerald-400 flex items-center gap-2 animate-pulse">
                     <Sparkles size={16} className="animate-spin" />
-                    <span>Consultando Héfisto...</span>
+                    <span>Analisando com Héfisto Analytics...</span>
                   </div>
                 </div>
               )}
@@ -306,7 +600,7 @@ export default function HefistoAssistantModal() {
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder={oubindo ? "Ouvindo sua fala..." : "Pergunte ou peça para abrir um módulo..."}
+                placeholder={oubindo ? "Ouvindo sua fala..." : "Pergunte (ex: Por que meu CMV aumentou?)..."}
                 className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-all min-h-[48px]"
               />
               {vozDisponivel() && (

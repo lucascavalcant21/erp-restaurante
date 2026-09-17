@@ -1,4 +1,4 @@
-import { supabase, isSupabaseReady } from "./supabase";
+import { supabase, isSupabaseReady } from "./supabase.js";
 
 export const CATEGORIAS_CUSTO = [
   { id: 'cmv', label: 'CMV (Custo de Mercadoria Vendida)', cor: 'bg-orange-500' },
@@ -175,16 +175,17 @@ export async function fetchPainelCaixa(unidadeId, inicioIso, fimIso) {
 // para formar o CMV realizado do período sem pedir um segundo lançamento.
 export async function fetchEntradasEstoqueFinanceiro(unidadeId, inicioIso, fimIso) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
-  const base = () => supabase.from("estoque_movimentacoes_multi")
+  const buildQuery = (selectFields) => supabase.from("estoque_movimentacoes_multi")
+    .select(selectFields)
     .eq("unidade_id", unidadeId)
     .eq("tipo", "entrada")
     .gte("data_movimento", inicioIso)
     .lt("data_movimento", fimIso)
     .order("data_movimento", { ascending: false });
 
-  let resposta = await base().select("id,estoque_id,insumo_id,tipo,quantidade,valor_total,valor_unitario,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
+  let resposta = await buildQuery("id,estoque_id,insumo_id,tipo,quantidade,valor_total,valor_unitario,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
   if (resposta.error && /valor_total|valor_unitario/i.test(resposta.error.message || "")) {
-    resposta = await base().select("id,estoque_id,insumo_id,tipo,quantidade,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
+    resposta = await buildQuery("id,estoque_id,insumo_id,tipo,quantidade,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
   }
   return { data: resposta.data || [], error: resposta.error?.message || null };
 }

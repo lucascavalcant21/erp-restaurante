@@ -1,5 +1,7 @@
 import { NAVIGATION_REGISTRY, getAccessibleNavigation, searchNavigationRegistry } from "./navigation-registry.mjs";
 import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
+import { parseActionIntent, executeRealAction } from "./hefisto-actions.js";
+import { executeAnalyticsQuery } from "./hefisto-analytics.js";
 
 /**
  * Normaliza strings para correspondência determinística em Português (pt-BR)
@@ -9,7 +11,7 @@ export function normalizeText(text = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^\w\s]/gi, " ")
+    .replace(/[^\w\s\.,]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -101,6 +103,18 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
     } else if (contextState.lastIntent === "finance.overdue") {
       processedText = "tem conta vencida";
     }
+  }
+
+  // 1.2. Tenta Match em Inteligência Analítica & Diagnósticos F4
+  const analyticsResult = await executeAnalyticsQuery({ text: processedText, session, unitId, contextState });
+  if (analyticsResult) {
+    return analyticsResult;
+  }
+
+  // 1.5. Tenta Match em Ações Operacionais Controladas F2
+  const actionResult = await parseActionIntent({ text: processedText, session, unitId, contextState });
+  if (actionResult) {
+    return actionResult;
   }
 
   // 2. Tenta Match Determinístico em Consultas Read-Only do Catálogo

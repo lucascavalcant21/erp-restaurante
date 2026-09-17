@@ -8,6 +8,7 @@ import { getBottomNavPreset } from "../lib/navigation-registry.mjs";
 import { addRecentRoute } from "../lib/user-preferences.js";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
+import HefistoAssistantModal from "../components/navigation/HefistoAssistantModal";
 import BuscaAutoScroll from "../components/BuscaAutoScroll";
 import SinoCadastros from "../components/SinoCadastros";
 import HefistoButton from "../components/navigation/HefistoButton";
@@ -870,6 +871,7 @@ export default function DashboardLayout({ children }) {
       {/* Assistente Hefisto — botão flutuante + painel lateral, em todas as telas */}
       <Suspense fallback={null}>
         <HefistoAssistant />
+        <HefistoAssistantModal />
       </Suspense>
     </div>
   );

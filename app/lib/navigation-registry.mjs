@@ -144,8 +144,8 @@ export const NAVIGATION_REGISTRY = [
     domain: "Operação",
     section: "Bar & Bebidas",
     icon: "GlassWater",
-    keywords: ["drink", "drinks", "coquetel", "coquetéis", "bebidas", "bar", "receita bar", "dosagem"],
-    synonyms: ["receita de drink", "ficha de drink", "cocktails"],
+    keywords: ["ficha", "fichas", "drink", "drinks", "coquetel", "coquetéis", "bebidas", "bar", "receita bar", "dosagem"],
+    synonyms: ["receita de drink", "ficha de drink", "fichas de drinks", "cocktails"],
     permission: "bar.recipes.view",
     mobilePriority: 3,
     adminOnly: false,
@@ -559,17 +559,33 @@ export const NAVIGATION_REGISTRY = [
   // --- FINANCEIRO & FISCAL ---
   {
     id: "fin-fluxo-caixa",
-    title: "Fluxo de Caixa & Contas",
+    title: "Fluxo de Caixa",
     shortTitle: "Fluxo de Caixa",
     description: "Contas a pagar, receber, conciliação bancária e saldo diário",
     route: "/dashboard/financeiro",
     domain: "Financeiro & Fiscal",
     section: "Gestão Financeira",
     icon: "Wallet",
-    keywords: ["fluxo de caixa", "contas", "pagar", "receber", "boleto", "banco", "saldo", "caixa", "vencimento"],
-    synonyms: ["contas a pagar", "contas a receber", "boletos", "entradas e saidas"],
+    keywords: ["fluxo de caixa", "banco", "saldo", "caixa", "entradas", "saidas"],
+    synonyms: ["movimentacao de caixa", "entradas e saidas"],
     permission: "financeiro.cashflow.view",
     mobilePriority: 1,
+    adminOnly: true,
+    searchable: true,
+  },
+  {
+    id: "fin-contas",
+    title: "Contas a Pagar & Receber",
+    shortTitle: "Contas",
+    description: "Gestão de vencimentos, boletos, contas a pagar, receber e contas vencidas",
+    route: "/dashboard/financeiro/contas",
+    domain: "Financeiro & Fiscal",
+    section: "Gestão Financeira",
+    icon: "ReceiptText",
+    keywords: ["contas", "contas a pagar", "contas a receber", "contas vencidas", "vencidas", "boletos", "vencimento", "pendentes", "pagar"],
+    synonyms: ["contas vencidas", "boletos a pagar", "vencimentos do dia", "contas pendentes"],
+    permission: "financeiro.cashflow.view",
+    mobilePriority: 2,
     adminOnly: true,
     searchable: true,
   },
@@ -824,6 +840,8 @@ export function searchNavigationRegistry(query = "", session = null, options = {
           score += 400;
         } else if (normKw.includes(normQuery)) {
           score += 300;
+        } else if (normKw.length >= 3 && normQuery.includes(normKw)) {
+          score += 280;
         }
       }
     }
@@ -838,6 +856,8 @@ export function searchNavigationRegistry(query = "", session = null, options = {
           score += 350;
         } else if (normSyn.includes(normQuery)) {
           score += 250;
+        } else if (normSyn.length >= 3 && normQuery.includes(normSyn)) {
+          score += 230;
         }
       }
     }

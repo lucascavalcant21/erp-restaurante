@@ -9,6 +9,7 @@ import {
   Settings2, Share2, Tablet, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
+import EstoqueHub from "../../../components/navigation/EstoqueHub";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { fetchPins } from "../../../lib/seguranca";
@@ -357,6 +358,7 @@ function EstoqueRunner() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [aba, setAba] = useState("atual");
+  const [modoView, setModoView] = useState(() => searchParams.get("view") === "tabela" ? "tabela" : "hub");
 
   // Modo quiosque: o tablet fica no salão, à vista de todos. Custo e valor de
   // estoque são informação de gestão — quem faz contagem não precisa deles, e
@@ -1277,6 +1279,22 @@ function EstoqueRunner() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 mr-1">
+              <button
+                type="button"
+                onClick={() => setModoView("hub")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Hub Decisões
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoView("tabela")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "tabela" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Tabela Completa
+              </button>
+            </div>
             {/* Sair do quiosque pede o PIN do gerente: o modo existe justamente
                 para quem está no salão não ver custo, e um botão livre de
                 desligar não esconderia nada. */}
@@ -1327,7 +1345,15 @@ function EstoqueRunner() {
           </div>
         )}
 
-        <section className="bg-card rounded-2xl border border-line p-3 shadow-xs">
+        {modoView === "hub" ? (
+          <EstoqueHub
+            onVerTabelaCompleta={() => setModoView("tabela")}
+            onAbrirEntrada={() => { setModoView("tabela"); abrirOperacao("entrada"); }}
+            onAbrirSaida={() => { setModoView("tabela"); abrirOperacao("saida"); }}
+          />
+        ) : (
+          <>
+            <section className="bg-card rounded-2xl border border-line p-3 shadow-xs">
           <div className="flex items-center justify-between gap-3 mb-2 px-1">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-muted">Setores de Estoque</p>
@@ -1545,6 +1571,8 @@ function EstoqueRunner() {
               )}
             </section>
           </>
+        )}
+        </>
         )}
       </main>
 

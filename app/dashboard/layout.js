@@ -8,6 +8,10 @@ import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
 import BuscaAutoScroll from "../components/BuscaAutoScroll";
 import SinoCadastros from "../components/SinoCadastros";
+import HefistoButton from "../components/navigation/HefistoButton";
+import CommandCenterModal from "../components/navigation/CommandCenterModal";
+import AllModulesCatalog from "../components/navigation/AllModulesCatalog";
+import { isFeatureEnabled } from "../lib/feature-flags";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
   UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,
@@ -488,18 +492,25 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
   );
 }
 
-function TopHeader({ onToggleSidebar }) {
+function TopHeader({ onToggleSidebar, onOpenCommandCenter }) {
   const { unidadeInfo } = useERP();
 
   return (
     <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
-      <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
-         <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-muted hover:text-slate-800 hover:bg-elevated rounded-xl transition-colors shrink-0">
-            <Menu size={22} />
-         </button>
-         <h1 className="text-base lg:text-lg font-black text-slate-800 hidden md:block tracking-tight truncate min-w-0">
-            {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
-         </h1>
+      <div className="flex flex-1 items-center justify-between gap-2 md:gap-4 min-w-0">
+         <div className="flex items-center gap-2 md:gap-4 shrink-0">
+           <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-muted hover:text-slate-800 hover:bg-elevated rounded-xl transition-colors shrink-0">
+              <Menu size={22} />
+           </button>
+           <h1 className="text-base lg:text-lg font-black text-slate-800 hidden md:block tracking-tight truncate min-w-0">
+              {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
+           </h1>
+         </div>
+
+         {/* Botão de Busca Universal ✦ Héfisto */}
+         <div className="flex-1 flex justify-end sm:justify-center max-w-lg mx-2">
+            <HefistoButton onClick={onOpenCommandCenter} />
+         </div>
       </div>
     </header>
   );
@@ -614,11 +625,27 @@ export default function DashboardLayout({ children }) {
   const [sessao, setSessao] = useState(null);
   const sessaoRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Estados da Nova Navegação (Fase B)
+  const [commandCenterOpen, setCommandCenterOpen] = useState(false);
+  const [allModulesOpen, setAllModulesOpen] = useState(false);
+
   // Recolher a sidebar no desktop (lembra a preferência entre sessões)
   const [collapsed, setCollapsed] = useState(false);
   const [compacto, setCompacto] = useState(false);
   const interfaceTelaCheia = pathname === "/dashboard/operacao/estoque/tablet"
     || pathname === "/dashboard/operacao/etiquetas/tablet";
+
+  // Atalho global CTRL + K para abrir/fechar o Command Center
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandCenterOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     try {
@@ -664,8 +691,12 @@ export default function DashboardLayout({ children }) {
     return () => { vivo = false; };
   }, [pathname, router]);
 
-  // Hambúrguer: em desktop largo recolhe/expande; celular e tablet usam overlay.
+  // Hambúrguer: com NAVIGATION_V2 ativo abre o Command Center no tablet/mobile diretamente!
   function toggleSidebar() {
+    if (isFeatureEnabled("NAVIGATION_V2")) {
+      setCommandCenterOpen(true);
+      return;
+    }
     if (typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) {
       setCollapsed((c) => {
         const novo = !c;
@@ -729,8 +760,15 @@ export default function DashboardLayout({ children }) {
       {/* Área Principal de Conteúdo */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:block print:overflow-visible relative">
         <div className="print:hidden shrink-0">
-           <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} acessoRestrito={acessoRestrito}
-             sessao={sessao} compacto={compacto} onToggleDensidade={toggleDensidade} />
+           <TopHeader
+             onSair={sair}
+             onToggleSidebar={toggleSidebar}
+             onOpenCommandCenter={() => setCommandCenterOpen(true)}
+             acessoRestrito={acessoRestrito}
+             sessao={sessao}
+             compacto={compacto}
+             onToggleDensidade={toggleDensidade}
+           />
         </div>
         <Suspense fallback={null}>
           <ModuleBar rotasPermitidas={rotasPermitidas} />
@@ -745,8 +783,25 @@ export default function DashboardLayout({ children }) {
           </Suspense>
         </main>
       </div>
+
+      {/* Overlays / Modais da Nova Navegação v2 (Fase B) */}
+      <CommandCenterModal
+        isOpen={commandCenterOpen}
+        onClose={() => setCommandCenterOpen(false)}
+        sessao={sessao}
+        onOpenAllModules={() => {
+          setCommandCenterOpen(false);
+          setAllModulesOpen(true);
+        }}
+      />
+      <AllModulesCatalog
+        isOpen={allModulesOpen}
+        onClose={() => setAllModulesOpen(false)}
+        sessao={sessao}
+      />
+
       <SyncFeedback />
-      <MobileBottomNav sessao={sessao} onMenu={() => setMobileOpen(true)} />
+      <MobileBottomNav sessao={sessao} onMenu={() => isFeatureEnabled("NAVIGATION_V2") ? setCommandCenterOpen(true) : setMobileOpen(true)} />
       {/* Busca de qualquer tela sobe ao topo ao digitar (resultados à vista) */}
       <BuscaAutoScroll />
       {/* Assistente Hefisto — botão flutuante + painel lateral, em todas as telas */}

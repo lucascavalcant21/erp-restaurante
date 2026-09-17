@@ -26,6 +26,7 @@ import {
 } from "../../../lib/impressaoBluetooth";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { imprimirHtml } from "../../../lib/imprimir";
+import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb } from "../../../lib/impressaoMdk022";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import EtiquetasRapidas from "../../../components/EtiquetasRapidas";
 
@@ -225,6 +226,7 @@ function EtiquetasRunner() {
   const [btErro, setBtErro] = useState("");
   const [btConectando, setBtConectando] = useState(false);
   const temBluetooth = typeof window !== "undefined" && bluetoothDisponivel();
+  const temWebUsb = typeof window !== "undefined" && WebUsbDisponivel();
   const conectarBluetooth = async () => {
     setBtErro("");
     setBtConectando(true);
@@ -606,7 +608,30 @@ function EtiquetasRunner() {
         }, unidadeAtiva, { departamento: deptUrl });
       }
 
-      if (modoImpressao === "tp20") {
+      if (modoImpressao === "mdk022_usb") {
+        await imprimirEtiquetaMdk022Usb({
+          tamanho,
+          copias: quantidadeCopias,
+          dados: {
+            codigo,
+            produto: nomeProduto,
+            modeloEtiqueta: modelo,
+            conservacao: form.conservacao,
+            quantidade: form.quantidade,
+            unidade: form.unidade,
+            tipoEtiqueta,
+            momento: momentoImpressao,
+            validade: validadeImpressao,
+            responsavel: form.responsavel.trim(),
+            lote: form.lote,
+            unidadeNome: unidadeInfo.nome_fantasia || unidadeInfo.nome,
+            cnpj: fmtCNPJ(cnpjUnidade),
+            endereco: enderecoUnidade,
+            localizacao: localizacaoUnidade,
+          },
+        });
+        setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} via USB para MDK-022`);
+      } else if (modoImpressao === "tp20") {
         await imprimirEtiquetasTp20({
           impressora: impressoraNome,
           tamanho,
@@ -966,6 +991,27 @@ function EtiquetasRunner() {
               )}
             </Card>
 
+            {/* Impressora USB Direct (MDK-022 / WebUSB) */}
+            {temWebUsb && (
+              <Card>
+                <SectionLabel>Impressora USB MDK-022 (WebUSB)</SectionLabel>
+                <div className="flex items-center justify-between gap-3 mt-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span className="text-xs font-bold text-emerald-800 truncate">
+                      MDK-022 USB Suportada (Vendor: 0x36FC, Product: 0x0513)
+                    </span>
+                  </div>
+                </div>
+                <Btn variant="primary" className="w-full mt-3 !bg-indigo-600 hover:!bg-indigo-700 text-white" disabled={salvando} onClick={() => salvar("mdk022_usb")}>
+                  <Printer size={15} /> Imprimir na MDK-022 (USB)
+                </Btn>
+                <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>
+                  Comunicação direta via WebUSB no Android / Tablet. Envia comandos TSPL com QR Code nativo.
+                </p>
+              </Card>
+            )}
+
           </div>
 
           {/* ── Preview / Etiqueta (coluna fixa) ── */}
@@ -1162,6 +1208,17 @@ function EtiquetasRunner() {
                 <RefreshCw size={15} /> Nova etiqueta
               </Btn>
             </div>
+            {temWebUsb && (
+              <button
+                type="button"
+                disabled={salvando}
+                onClick={() => salvar("mdk022_usb")}
+                className="w-full mt-2 py-3 px-4 rounded-xl font-black text-xs text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2"
+                title="Imprime diretamente na impressora MDK-022 conectada por USB no Android"
+              >
+                <Printer size={16} /> Imprimir na MDK-022 (USB)
+              </button>
+            )}
             <button type="button" onClick={imprimirTeste}
               className="mt-2 w-full rounded-xl border border-dashed py-2.5 text-xs font-bold"
               style={{ borderColor: "var(--line)", color: "var(--muted)" }}

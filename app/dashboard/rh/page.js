@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { comprimirFotoParaIA } from "../../lib/imagem";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
+import RhHub from "../../components/navigation/RhHub";
 import {
   fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
@@ -68,7 +69,9 @@ function percentualCadastroFuncionario(f) {
 
 export default function RHPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { unidadeAtiva, unidadeInfo } = useERP();
+  const [modoView, setModoView] = useState(() => searchParams.get("view") === "gestao" || searchParams.get("view") === "tabela" ? "gestao" : "hub");
   // "71 dias de Seldeestrela" diz mais que "71 dias de casa": a equipe chama a
   // unidade pelo nome, e quem opera mais de uma precisa saber de qual se trata.
   const nomeDaCasa = unidadeInfo?.nome || "casa";
@@ -1951,20 +1954,43 @@ export default function RHPage() {
     <div className="min-h-screen font-sans pb-24 text-slate-800">
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
-      <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
-         <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center border border-emerald-100/80 shadow-sm shrink-0">
-                 <Users size={24} />
-              </div>
-              <div>
-                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-fg">RH & Equipe</h1>
-                 <p className="text-xs font-semibold text-muted mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-               <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent transition-colors shadow-md shadow-emerald-600/20">
+      {modoView === "hub" ? (
+        <RhHub
+          onVerGestaoCompleta={() => setModoView("gestao")}
+          onAbrirPonto={() => router.push("/dashboard/rh/ponto")}
+        />
+      ) : (
+        <>
+          {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
+          <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
+             <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center border border-emerald-100/80 shadow-sm shrink-0">
+                     <Users size={24} />
+                  </div>
+                  <div>
+                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-fg">RH & Equipe</h1>
+                     <p className="text-xs font-semibold text-muted mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                   <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 mr-1">
+                      <button
+                         type="button"
+                         onClick={() => setModoView("hub")}
+                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                      >
+                         Hub Operacional
+                      </button>
+                      <button
+                         type="button"
+                         onClick={() => setModoView("gestao")}
+                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "gestao" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                      >
+                         Gestão Completa
+                      </button>
+                   </div>
+                   <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
                </button>
                <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-card text-accent-strong border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent-soft transition-colors">
@@ -4345,8 +4371,10 @@ export default function RHPage() {
                </div>
             </div>
          </div>
-      )}
+       )}
 
+        </>
+      )}
     </div>
   );
 }

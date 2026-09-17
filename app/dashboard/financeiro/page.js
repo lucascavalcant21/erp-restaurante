@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import FinanceiroHub from "../../components/navigation/FinanceiroHub";
 import {
   Wallet, TrendingUp, ReceiptText, CreditCard, ShoppingBag, Plus, Trash2,
   CheckCircle2, Loader2, X, CalendarDays, Banknote, AlertCircle,
@@ -54,7 +56,10 @@ function intervaloPeriodo(periodo, agora = new Date()) {
 const dataConta = conta => new Date(conta.data_pagamento || conta.data_vencimento || conta.created_at);
 
 export default function FinanceiroPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { unidadeAtiva, unidadeInfo } = useERP();
+  const [modoView, setModoView] = useState(() => searchParams.get("view") === "tabela" || searchParams.get("view") === "gestao" ? "tabela" : "hub");
   const [periodo, setPeriodo] = useState("dia");
   const [dados, setDados] = useState({ vendas: [], despesas: [], colaboradores: [], recibos: [], entradasEstoque: [] });
   const [fichas, setFichas] = useState([]);
@@ -302,17 +307,41 @@ export default function FinanceiroPage() {
 
   return (
     <div className="min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-[1500px]">
-        <header className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Financeiro · {unidadeInfo?.nome}</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-fg sm:text-4xl">Fluxo de caixa do balcão</h1>
-            <p className="mt-1 font-medium text-muted">Vendas, recebimentos, despesas e ponto de equilíbrio diário.</p>
-          </div>
-          <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl bg-slate-200/80 p-1.5">
-            {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-black ${periodo === p.id ? "bg-card text-accent shadow-sm" : "text-slate-600"}`}>{p.label}</button>)}
-          </div>
-        </header>
+      {modoView === "hub" ? (
+        <FinanceiroHub
+          onVerTabelaCompleta={() => setModoView("tabela")}
+          onAbrirDRE={() => router.push("/dashboard/financeiro/dre")}
+        />
+      ) : (
+        <div className="mx-auto max-w-[1500px]">
+          <header className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Financeiro · {unidadeInfo?.nome}</p>
+              <h1 className="mt-1 text-3xl font-black tracking-tight text-fg sm:text-4xl">Fluxo de caixa do balcão</h1>
+              <p className="mt-1 font-medium text-muted">Vendas, recebimentos, despesas e ponto de equilíbrio diário.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center rounded-xl bg-slate-200/80 p-1 border border-slate-300 mr-1">
+                <button
+                  type="button"
+                  onClick={() => setModoView("hub")}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  Hub Decisões
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoView("tabela")}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "tabela" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  Fluxo Completo
+                </button>
+              </div>
+              <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl bg-slate-200/80 p-1.5">
+                {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-black ${periodo === p.id ? "bg-card text-accent shadow-sm" : "text-slate-600"}`}>{p.label}</button>)}
+              </div>
+            </div>
+          </header>
 
         {erro && <div className="mb-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800"><AlertCircle size={19} className="shrink-0" />Alguns históricos não puderam ser carregados: {erro}</div>}
 
@@ -791,6 +820,8 @@ export default function FinanceiroPage() {
             </div>
           </form>
         </div>
+      )}
+      </>
       )}
     </div>
   );

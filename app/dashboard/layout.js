@@ -36,6 +36,7 @@ const SIDEBAR_MENU = [
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes & Produtos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
+      { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" },
       { label: "Mesas & Pagamentos", href: "/dashboard/salao/mesas" },
       { label: "KDS da Cozinha", href: "/dashboard/cozinha/kds" },
       { label: "Checklists & Rotinas", href: "/dashboard/checklists" },

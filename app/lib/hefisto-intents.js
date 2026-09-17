@@ -116,7 +116,7 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
   }
 
   // 3. Tenta Match Determinístico em Navegação pelo Navigation Registry
-  const cleanNavSearch = processedText.replace(/^(abrir|ir para|ir|mostrar|acessar|ver|abrir tela|imprimir)\s+/, "");
+  const cleanNavSearch = processedText.replace(/^(abrir|ir para|ir|mostrar|acessar|ver|abrir tela|imprimir|bater|registrar|marcar|quero|desejo|preciso)\s+/, "");
 
   const searchResults = searchNavigationRegistry(cleanNavSearch, session);
 

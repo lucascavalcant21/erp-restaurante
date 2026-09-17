@@ -1,5 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
+export { horarioDoDia } from "./jornada-semana.mjs";
 
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };

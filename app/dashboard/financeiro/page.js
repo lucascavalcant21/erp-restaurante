@@ -313,7 +313,8 @@ export default function FinanceiroPage() {
           onAbrirDRE={() => router.push("/dashboard/financeiro/dre")}
         />
       ) : (
-        <div className="mx-auto max-w-[1500px]">
+        <>
+          <div className="mx-auto max-w-[1500px]">
           <header className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Financeiro · {unidadeInfo?.nome}</p>
@@ -602,7 +603,7 @@ export default function FinanceiroPage() {
                   <button title="Excluir despesa" onClick={() => excluirDespesa(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700"><Trash2 size={18} /></button>
                 </div>)}
               </div>
-            </div>;
+            </div>
           })}
         </section>
       </div>

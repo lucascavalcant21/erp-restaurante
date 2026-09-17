@@ -415,19 +415,14 @@ export default function PontoPage() {
            
            {/* Lado Esquerdo: Lista de Funcionários */}
            <div className="w-full md:w-1/2 border-r border-line-soft flex flex-col bg-slate-50">
-              <div className="p-4 border-b border-line shrink-0 space-y-3">
-                 {/* Caminho rápido: a pessoa se identifica pelo rosto */}
-                 <button onClick={() => setFacialAberto(true)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent shadow-lg shadow-emerald-600/20">
-                    <ScanFace size={20} /> Bater ponto pelo rosto
-                 </button>
-                 {areaAtiva && (
+              {areaAtiva && (
+                 <div className="p-4 border-b border-line shrink-0">
                     <button onClick={() => { setAreaAtiva(""); setColabAtivo(null); }}
                        className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-50">
                        <ArrowLeft size={16} /> Trocar de área · {AREAS_PONTO.find(a => a.id === areaAtiva)?.nome}
                     </button>
-                 )}
-              </div>
+                 </div>
+              )}
               {!areaAtiva ? (
                  // Três portas de entrada. Cada pessoa vê só a equipe do setor
                  // dela, então a lista cabe na tela sem rolagem.

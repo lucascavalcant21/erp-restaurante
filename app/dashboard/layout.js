@@ -19,7 +19,8 @@ import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
   UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,
   Home, ClipboardList, UserRound, ShoppingCart, Bell, SlidersHorizontal, Briefcase,
-  Loader2, CheckCircle2, AlertTriangle, Tag, WifiOff
+  Loader2, CheckCircle2, AlertTriangle, Tag, WifiOff, Calendar, Clock, Grid,
+  ShieldCheck, Box, UserCheck
 } from "lucide-react";
 
 // ESTRUTURA UNIFICADA DA SIDEBAR (6 MÓDULOS PRINCIPAIS)

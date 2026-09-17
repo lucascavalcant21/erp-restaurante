@@ -525,11 +525,11 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/rh/facial")}
+                  onClick={() => router.push("/dashboard/rh/ponto/corrigir")}
                   className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
                 >
-                  <p className="text-xs font-bold text-white truncate">Ponto Facial</p>
-                  <p className="text-[10px] text-slate-400">Reconhecimento por foto</p>
+                  <p className="text-xs font-bold text-white truncate">Corrigir Ponto</p>
+                  <p className="text-[10px] text-slate-400">Ajustes e justificativas</p>
                 </button>
 
                 <button

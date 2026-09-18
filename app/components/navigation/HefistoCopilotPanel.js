@@ -20,6 +20,7 @@ import { vozDisponivel, criarEscuta, falarTexto } from "../../lib/hefisto-voz";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { getHefistoInbox } from "../../lib/hefisto-inbox.js";
 import { recordUserFeedback } from "../../lib/hefisto-telemetry.js";
+import { recordPilotIssue } from "../../lib/hefisto-pilot.js";
 
 export default function HefistoCopilotPanel() {
   const router = useRouter();
@@ -35,8 +36,16 @@ export default function HefistoCopilotPanel() {
   const [inboxCount, setInboxCount] = useState(0);
   const [pendingPreview, setPendingPreview] = useState(null);
 
+  // Estados F14 Piloto (Onboarding, Reportar Problema, Check de Impressão)
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingSlide, setOnboardingSlide] = useState(1);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportComment, setReportComment] = useState("");
+  const [showPrintCheckModal, setShowPrintCheckModal] = useState(false);
+
   const inputRef = useRef(null);
   const escutaRef = useRef(null);
+
 
   // Permissões
   const podeVerFinanceiro = !sessao?.gerenciado || hasPermission(sessao, "dashboard.overview.view_values") || hasPermission(sessao, "financeiro.cashflow.view");
@@ -494,7 +503,7 @@ export default function HefistoCopilotPanel() {
         </div>
 
         {/* Rodapé / Input Bar */}
-        <div className="p-4 bg-slate-950/90 border-t border-slate-800">
+        <div className="p-4 bg-slate-950/90 border-t border-slate-800 space-y-2">
           <div className="relative flex items-center bg-slate-900 border border-slate-700 focus-within:border-amber-500 rounded-xl px-3 py-2">
             <input
               ref={inputRef}
@@ -518,14 +527,66 @@ export default function HefistoCopilotPanel() {
               <button
                 onClick={() => handleEnviar()}
                 disabled={!inputText.trim() || loading}
-                className="p-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 rounded-lg transition-colors"
+                className="p-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 rounded-lg transition-colors cursor-pointer"
               >
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
+
+          <div className="flex items-center justify-between text-[10px] text-slate-400">
+            <span>Piloto Héfisto F14 · Previa obrigatória em alterações</span>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="text-amber-400 hover:underline font-semibold cursor-pointer"
+            >
+              Reportar problema
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* MODAL 1: REPORTAR PROBLEMA NO PILOTO */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0B1528] border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm">Reportar Problema no Piloto</h3>
+              <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-white cursor-pointer"><X size={16} /></button>
+            </div>
+            <p className="text-xs text-slate-300">
+              Sua rota ativa (<code className="text-cyan-300">{pathname}</code>) e metadados sanitizados serão anexados automaticamente ao log do piloto.
+            </p>
+            <textarea
+              value={reportComment}
+              onChange={e => setReportComment(e.target.value)}
+              placeholder="Descreva o que aconteceu (opcional)..."
+              className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 min-h-[80px]"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowReportModal(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer">Cancelar</button>
+              <button
+                onClick={() => {
+                  recordPilotIssue({
+                    tenantId: unidadeAtiva?.id,
+                    issueType: "UX_FRICTION",
+                    route: pathname,
+                    capability: pageContext?.module || "general",
+                    comment: reportComment
+                  });
+                  alert("Problema reportado com sucesso e enviado para revisão do Piloto!");
+                  setShowReportModal(false);
+                  setReportComment("");
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs cursor-pointer"
+              >
+                Enviar Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

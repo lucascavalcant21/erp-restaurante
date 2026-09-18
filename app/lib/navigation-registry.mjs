@@ -54,6 +54,23 @@ export const NAVIGATION_REGISTRY = [
     searchable: true,
   },
   {
+    id: "piloto-hefisto",
+    title: "Piloto Operacional do Héfisto",
+    shortTitle: "Piloto Héfisto",
+    description: "Adoção controlada, matriz de capacidades liberadas e sinais de valor do piloto",
+    route: "/dashboard/gestao/piloto-hefisto",
+    domain: "Gestão",
+    section: "Governança & IA",
+    icon: "Compass",
+    keywords: ["piloto", "hefisto", "capacidades", "rollout", "adocao", "eficiencia", "qualidade", "baseline", "atrito", "problemas"],
+    synonyms: ["piloto do hefisto", "modo piloto", "controle do piloto"],
+    permission: "gestao.operational_center.view",
+    mobilePriority: 3,
+    adminOnly: true,
+    searchable: true,
+  },
+
+  {
     id: "auditoria-hefisto",
     title: "Auditoria & Governança do Héfisto",
     shortTitle: "Auditoria Héfisto",

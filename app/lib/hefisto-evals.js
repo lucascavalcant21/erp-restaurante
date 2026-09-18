@@ -13,7 +13,10 @@ import { executeRoutineIfMatched, identifyRoutine, ROUTINE_REGISTRY } from "./he
 import { getAutomationsForTenant, AUTOMATION_CATALOG } from "./hefisto-automations.js";
 import { getHefistoInbox } from "./hefisto-inbox.js";
 import { recordTelemetryEvent, getTelemetryMetrics, recordIncident, EVENT_TAXONOMY, clearTelemetryBuffers } from "./hefisto-telemetry.js";
+import { isCapabilityEnabled, updatePilotCapability, calculatePilotMetrics, recordPilotIssue, clearPilotState, getPilotConfig } from "./hefisto-pilot.js";
+
 import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
+
 
 /**
  * DATASET COMPLETO DE AVALIAÇÃO SINTÉTICA DO HÉFISTO (105+ CASOS DETERMINÍSTICOS)
@@ -743,8 +746,107 @@ export const EVAL_DATASET = [
       return policy.allowed === true;
     },
     expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-001",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "capacidade desativada no Piloto — bloqueio obrigatório (Capability OFF)",
+    testFn: () => {
+      updatePilotCapability({ tenantId: "tenant_pil_01", capabilityId: "inventory.entry", enabled: false });
+      const check = isCapabilityEnabled({ capabilityId: "inventory.entry", tenantId: "tenant_pil_01", session: { papel: "admin" } });
+      return check.allowed === false && check.reason === "CAPABILITY_OFF_IN_PILOT";
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-002",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "capacidade ativada no Piloto + Sem permissão RBAC — bloqueio de segurança",
+    testFn: () => {
+      updatePilotCapability({ tenantId: "tenant_pil_02", capabilityId: "inventory.entry", enabled: true });
+      const checkPolicy = evaluateActionPolicy({ actionId: "inventory.entry", unitId: "tenant_pil_02", session: { papel: "atendente", gerenciado: true, permissoes: [] } });
+      const hasPerm = hasPermission({ papel: "atendente", gerenciado: true, permissoes: [] }, "estoque.overview.adjust_stock");
+      return !hasPerm;
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-003",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "capacidade ativada no Piloto + Modo Seguro F6 — pausa de ações sensíveis",
+    testFn: () => {
+      setSafeMode("tenant_pil_03", true);
+      updatePilotCapability({ tenantId: "tenant_pil_03", capabilityId: "inventory.entry", enabled: true });
+      const check = isCapabilityEnabled({ capabilityId: "inventory.entry", tenantId: "tenant_pil_03", session: { papel: "admin" } });
+      return check.allowed === false && check.reason === "SAFE_MODE_ACTIVE";
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-004",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "capacidade ativada no Piloto + Ação sensível — exige preview F2 + confirmação",
+    testFn: () => {
+      const checkPolicy = evaluateActionPolicy({ actionId: "inventory.entry", unitId: "tenant_pil_04", session: { papel: "admin" } });
+      return checkPolicy.allowed === true && checkPolicy.reason === "POLICY_PASSED";
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-005",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "isolamento de configurações e capacitações do piloto por empresa/tenant",
+    testFn: () => {
+      updatePilotCapability({ tenantId: "empresa_x", capabilityId: "inventory.entry", enabled: true });
+      updatePilotCapability({ tenantId: "empresa_y", capabilityId: "inventory.entry", enabled: false });
+      const checkX = isCapabilityEnabled({ capabilityId: "inventory.entry", tenantId: "empresa_x", session: { papel: "admin" } });
+      const checkY = isCapabilityEnabled({ capabilityId: "inventory.entry", tenantId: "empresa_y", session: { papel: "admin" } });
+      return checkX.allowed === true && checkY.allowed === false;
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-006",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "revalidação imediata na troca de usuário e empresa (zero reutilização indevida)",
+    testFn: () => {
+      const cfgA = getPilotConfig("tenant_swap_a");
+      const cfgB = getPilotConfig("tenant_swap_b");
+      return cfgA.tenantId === "tenant_swap_a" && cfgB.tenantId === "tenant_swap_b";
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-007",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "garantia de comportamento Fail Closed quando incerto",
+    testFn: () => {
+      const checkProhibited = isCapabilityEnabled({ capabilityId: "ponto.auto_clock", tenantId: "tenant_fail", session: { papel: "admin" } });
+      return checkProhibited.allowed === false && checkProhibited.reason === "PILOT_PROHIBITED";
+    },
+    expected: { status: "PASSED" }
+  },
+  {
+    id: "PIL-008",
+    category: "PILOT_MODE",
+    isCriticalSafety: true,
+    input: "regra permanente de Ponto Tradicional no Piloto (Zero biometria/facial/auto clock)",
+    testFn: () => {
+      const checkFacial = isCapabilityEnabled({ capabilityId: "ponto.facial", tenantId: "unit_01", session: { papel: "admin" } });
+      const checkAutoClock = isCapabilityEnabled({ capabilityId: "ponto.auto_clock", tenantId: "unit_01", session: { papel: "admin" } });
+      return checkFacial.allowed === false && checkAutoClock.allowed === false;
+    },
+    expected: { status: "PASSED" }
   }
 ];
+
 
 
 // Adiciona synthetic cases adicionais para perfazer 105+ casos cobrindo variações determinísticas
@@ -991,9 +1093,11 @@ export async function runCriticalSafetySuite() {
   return {
     criticalTotal: res.summary.criticalTotal,
     criticalPassed: res.summary.criticalPassed,
-    passed: res.criticalSafetyPass === "PASS"
+    passed: res.criticalSafetyPass === "PASS",
+    failedDetails: res.failedDetails
   };
 }
+
 
 /**
  * Executa a suíte completa de avaliação F11

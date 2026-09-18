@@ -7,6 +7,7 @@ import { routeToSpecialist } from "./hefisto-specialists.js";
 import { executeRoutineIfMatched } from "./hefisto-routines.js";
 import { recordTelemetryEvent, EVENT_TAXONOMY, ERROR_CLASSES } from "./hefisto-telemetry.js";
 import { generateCorrelationId } from "./hefisto-audit.js";
+import { isCapabilityEnabled, recordPilotUsage } from "./hefisto-pilot.js";
 
 /**
  * Normaliza strings para correspondência determinística em Português (pt-BR)
@@ -147,8 +148,19 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
       durationMs,
       metadata: { responseType: res?.type || "TEXT" }
     });
+
+    recordPilotUsage({
+      tenantId,
+      capabilityId: res?.actionId || res?.intent || "navigation",
+      userId,
+      correlationId,
+      success: res?.success !== false,
+      durationMs
+    });
+
     return { ...res, correlationId };
   };
+
 
   // 1. Resolução do Contexto da Conversa ("quais?", "e o financeiro?")
   let processedText = normInput;

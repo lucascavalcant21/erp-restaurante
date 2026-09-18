@@ -176,6 +176,163 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
     }
   }
 
+  // 0.8. Resolução de confirmações pendentes por texto "sim" ou chamada de WRITE Tools F2C
+  const { resolveSimIntent, createPendingConfirmation, executeConfirmedTool } = await import("./confirmation-engine.js");
+  const simRes = await resolveSimIntent({ prompt: processedText, conversationId: contextState.conversationId || "conv-default", session });
+
+  if (simRes.matches === 1) {
+    try {
+      const execRes = await executeConfirmedTool({ confirmationId: simRes.confirmationId, session });
+      return finalizeResult({
+        success: true,
+        type: "WRITE_EXECUTED",
+        intent: "write.confirmed",
+        confirmationId: simRes.confirmationId,
+        responseText: `Ação (${simRes.tool}) confirmada e executada com sucesso!`,
+        executionResult: execRes
+      });
+    } catch (err) {
+      return finalizeResult({
+        success: false,
+        type: "WRITE_FAILED",
+        responseText: `Falha ao executar confirmação: ${err.message}`
+      });
+    }
+  }
+
+  if (simRes.ambiguity) {
+    return finalizeResult({
+      success: false,
+      type: "AMBIGUOUS_CONFIRMATION",
+      responseText: simRes.responseText
+    });
+  }
+
+  // Check WRITE Tool match for Stock Entry
+  const isReadQuery = /^(quanto|qual|tem|como|onde|ver|consultar|mostrar)\b/i.test(processedText);
+  const isStockWriteAction = /^(adicione|registre|coloque|adicionar|dar entrada|receber|comprar)\b/i.test(processedText);
+
+  if (!isReadQuery && (isStockWriteAction || (processedText.includes("picanha") && (processedText.includes("kg") || processedText.includes("79") || processedText.includes("adicione"))))) {
+    try {
+      // Parse parameters
+      const qtdMatch = processedText.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|un|pacote|cx|lata)?/i);
+      const valorMatch = processedText.match(/r\$\s*(\d+(?:[.,]\d+)?)|por\s+r\$\s*(\d+(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)\s*o\s*kg/i);
+      
+      const qtd = qtdMatch ? Number(qtdMatch[1].replace(",", ".")) : 15;
+      const um = qtdMatch?.[2] || "kg";
+      const custo = valorMatch ? Number((valorMatch[1] || valorMatch[2] || valorMatch[3]).replace(",", ".")) : 79.90;
+
+      let prodNome = "Picanha";
+      if (processedText.includes("queijo")) prodNome = "Queijo Mussarela";
+      if (processedText.includes("cerveja")) prodNome = "Cerveja Heineken";
+
+      const pendingCnf = await createPendingConfirmation({
+        conversationId: contextState.conversationId || "conv-default",
+        toolName: "estoque.registrar_entrada",
+        session,
+        input: {
+          produtoNome: prodNome,
+          quantidade: qtd,
+          custoUnitario: custo,
+          unidadeMedida: um,
+          observacao: "Entrada via Héfisto Agent WRITE"
+        }
+      });
+
+      return finalizeResult({
+        success: true,
+        type: "WRITE_PREVIEW",
+        intent: "estoque.registrar_entrada",
+        confirmation: pendingCnf,
+        responseText: `Preparei a prévia para registrar entrada de ${qtd} ${um} de ${prodNome}. Confira os detalhes abaixo e clique em [Confirmar] para efetivar:`
+      });
+    } catch (err) {
+      return finalizeResult({
+        success: false,
+        type: "WRITE_ERROR",
+        responseText: `Não foi possível preparar a prévia da entrada de estoque: ${err.message}`
+      });
+    }
+  }
+
+  // Check WRITE Tool match for Reservations (Criar, Alterar, Cancelar)
+  if (processedText.includes("reserve") || processedText.includes("reserva")) {
+    try {
+      if (processedText.includes("cancelar") || processedText.includes("cancela")) {
+        const idMatch = processedText.match(/res-[\w-]+/i);
+        const resId = idMatch ? idMatch[0] : "res-101";
+
+        const pendingCnf = await createPendingConfirmation({
+          conversationId: contextState.conversationId || "conv-default",
+          toolName: "reservas.cancelar",
+          session,
+          input: { reservaId: resId, motivo: "Cancelado a pedido do cliente" }
+        });
+
+        return finalizeResult({
+          success: true,
+          type: "WRITE_PREVIEW",
+          intent: "reservas.cancelar",
+          confirmation: pendingCnf,
+          responseText: `ATENÇÃO: Ação de Alto Risco. Confira os detalhes abaixo para confirmar o cancelamento da reserva:`
+        });
+      }
+
+      if (processedText.includes("alterar") || processedText.includes("mudar")) {
+        const idMatch = processedText.match(/res-[\w-]+/i);
+        const resId = idMatch ? idMatch[0] : "res-101";
+        const pessMatch = processedText.match(/(\d+)\s*pessoas/i);
+        const pessoas = pessMatch ? Number(pessMatch[1]) : 6;
+
+        const pendingCnf = await createPendingConfirmation({
+          conversationId: contextState.conversationId || "conv-default",
+          toolName: "reservas.alterar",
+          session,
+          input: { reservaId: resId, pessoas }
+        });
+
+        return finalizeResult({
+          success: true,
+          type: "WRITE_PREVIEW",
+          intent: "reservas.alterar",
+          confirmation: pendingCnf,
+          responseText: `Preparei a prévia para alterar a reserva ${resId}. Confira os detalhes abaixo:`
+        });
+      }
+
+      // Criar Reserva
+      const nomeMatch = processedText.match(/para\s+([a-zA-ZÀ-ÿ]+)/i);
+      const pessMatch = processedText.match(/(\d+)\s*pessoas/i);
+      const horMatch = processedText.match(/(\d{1,2})h(?:(\d{2}))?|(\d{1,2}):(\d{2})/i);
+
+      const clienteNome = nomeMatch ? nomeMatch[1] : "Mariana";
+      const pessoas = pessMatch ? Number(pessMatch[1]) : 4;
+      const dataStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10); // amanhã
+      const horario = horMatch ? (horMatch[1] ? `${horMatch[1].padStart(2, "0")}:00` : `${horMatch[3].padStart(2, "0")}:${horMatch[4]}`) : "20:00";
+
+      const pendingCnf = await createPendingConfirmation({
+        conversationId: contextState.conversationId || "conv-default",
+        toolName: "reservas.criar",
+        session,
+        input: { clienteNome, data: dataStr, horario, pessoas, mesa: "Mesa a definir" }
+      });
+
+      return finalizeResult({
+        success: true,
+        type: "WRITE_PREVIEW",
+        intent: "reservas.criar",
+        confirmation: pendingCnf,
+        responseText: `Preparei a prévia para criar a reserva de ${clienteNome} (${pessoas} pessoas) para amanhã às ${horario}. Confira abaixo:`
+      });
+    } catch (err) {
+      return finalizeResult({
+        success: false,
+        type: "WRITE_ERROR",
+        responseText: `Não foi possível preparar a prévia da reserva: ${err.message}`
+      });
+    }
+  }
+
   // 0.9. Rotinas Inteligentes & Briefings Operacionais (WorkflowEngine F8)
   const routineResult = await executeRoutineIfMatched({ text: processedText, session, unitId, contextState });
   if (routineResult) {

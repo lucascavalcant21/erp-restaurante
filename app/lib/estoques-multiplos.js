@@ -1,4 +1,4 @@
-import { supabase, isSupabaseReady } from "./supabase";
+import { supabase, isSupabaseReady } from "./supabase.js";
 import { ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
 
 const erroMensagem = error => error?.message || null;

@@ -1,5 +1,5 @@
-import { supabase, isSupabaseReady } from "./supabase";
-import { registrarProducaoNoEstoquePreparo } from "./estoques-multiplos";
+import { supabase, isSupabaseReady } from "./supabase.js";
+import { registrarProducaoNoEstoquePreparo } from "./estoques-multiplos.js";
 
 // ─── ESTOQUE FÍSICO ──────────────────────────────────────────────────────────
 

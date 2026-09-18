@@ -5,6 +5,8 @@ import { executeAnalyticsQuery } from "./hefisto-analytics.js";
 import { getProactiveInsights } from "./hefisto-insights.js";
 import { routeToSpecialist } from "./hefisto-specialists.js";
 import { executeRoutineIfMatched } from "./hefisto-routines.js";
+import { recordTelemetryEvent, EVENT_TAXONOMY, ERROR_CLASSES } from "./hefisto-telemetry.js";
+import { generateCorrelationId } from "./hefisto-audit.js";
 
 /**
  * Normaliza strings para correspondência determinística em Português (pt-BR)
@@ -110,6 +112,44 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
     };
   }
 
+  const startTime = Date.now();
+  const correlationId = contextState?.correlationId || generateCorrelationId();
+  const tenantId = String(unitId || session?.unidadeId || "matriz").trim();
+  const userRole = String(session?.cargo || session?.funcao || "OPERATOR");
+  const userId = String(session?.usuarioId || session?.id || "anonymous");
+
+  recordTelemetryEvent({
+    correlationId,
+    eventType: EVENT_TAXONOMY.REQUEST_STARTED,
+    tenantId,
+    userRole,
+    userId,
+    channel: contextState?.channel || "text",
+    route: contextState?.route || "/",
+    domain: contextState?.domain || "GENERAL",
+    metadata: { textInput: normInput }
+  });
+
+  const finalizeResult = (res) => {
+    const durationMs = Date.now() - startTime;
+    recordTelemetryEvent({
+      correlationId,
+      eventType: res?.success !== false ? EVENT_TAXONOMY.REQUEST_COMPLETED : EVENT_TAXONOMY.REQUEST_FAILED,
+      tenantId,
+      userRole,
+      userId,
+      channel: contextState?.channel || "text",
+      route: contextState?.route || "/",
+      domain: contextState?.domain || "GENERAL",
+      intent: res?.intent || res?.intentId || null,
+      status: res?.permissionDenied ? "BLOCKED" : (res?.type === "AMBIGUOUS" ? "AMBIGUOUS" : (res?.success !== false ? "SUCCESS" : "FAILED")),
+      errorCode: res?.permissionDenied ? ERROR_CLASSES.PERMISSION_DENIED : (res?.type === "AMBIGUOUS" ? ERROR_CLASSES.AMBIGUOUS_INPUT : null),
+      durationMs,
+      metadata: { responseType: res?.type || "TEXT" }
+    });
+    return { ...res, correlationId };
+  };
+
   // 1. Resolução do Contexto da Conversa ("quais?", "e o financeiro?")
   let processedText = normInput;
   if ((normInput === "quais" || normInput === "quais sao" || normInput === "quais sao eles" || normInput === "mostrar quais") && contextState.lastIntent) {
@@ -127,13 +167,13 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
   // 0.9. Rotinas Inteligentes & Briefings Operacionais (WorkflowEngine F8)
   const routineResult = await executeRoutineIfMatched({ text: processedText, session, unitId, contextState });
   if (routineResult) {
-    return routineResult;
+    return finalizeResult(routineResult);
   }
 
   // 1.0. Roteamento por Especialista (SpecialistRouter F7)
   const specRoute = await routeToSpecialist({ text: processedText, session, unitId, contextState });
   if (specRoute?.permissionDenied || specRoute?.type === "ANALYTICS_RESULT") {
-    return specRoute;
+    return finalizeResult(specRoute);
   }
 
   // 1.1. Tenta Match em Insights Proativos F5 ("O que precisa de mim?", "Quais os alertas?")
@@ -141,20 +181,20 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
   if (isF5Query) {
     const insightsResult = await getProactiveInsights({ session, unitId });
     if (insightsResult && insightsResult.success) {
-      return insightsResult;
+      return finalizeResult(insightsResult);
     }
   }
 
   // 1.2. Tenta Match em Inteligência Analítica & Diagnósticos F4
   const analyticsResult = await executeAnalyticsQuery({ text: processedText, session, unitId, contextState });
   if (analyticsResult) {
-    return analyticsResult;
+    return finalizeResult(analyticsResult);
   }
 
   // 1.5. Tenta Match em Ações Operacionais Controladas F2
   const actionResult = await parseActionIntent({ text: processedText, session, unitId, contextState });
   if (actionResult) {
-    return actionResult;
+    return finalizeResult(actionResult);
   }
 
   // 2. Tenta Match Determinístico em Consultas Read-Only do Catálogo
@@ -165,7 +205,8 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
     });
 
     if (isMatch) {
-      return await executeReadOnlyQuery(intentDef.id, session, unitId);
+      const res = await executeReadOnlyQuery(intentDef.id, session, unitId);
+      return finalizeResult(res);
     }
   }
 
@@ -176,7 +217,7 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
 
   if (searchResults.length === 1) {
     const navItem = searchResults[0];
-    return {
+    return finalizeResult({
       success: true,
       type: "NAVIGATION",
       intent: "navigation.open",
@@ -187,7 +228,7 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
         label: `Abrir ${navItem.shortTitle}`,
         route: navItem.route
       }
-    };
+    });
   }
 
   if (searchResults.length > 1) {
@@ -199,7 +240,7 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
 
     if (isDominantMatch) {
       const match = exactMatch || topItem;
-      return {
+      return finalizeResult({
         success: true,
         type: "NAVIGATION",
         intent: "navigation.open",
@@ -210,10 +251,10 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
           label: `Abrir ${match.shortTitle}`,
           route: match.route
         }
-      };
+      });
     }
 
-    return {
+    return finalizeResult({
       success: true,
       type: "AMBIGUOUS",
       intent: "navigation.ambiguous",
@@ -224,14 +265,14 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
         route: r.route,
         domain: r.domain
       }))
-    };
+    });
   }
 
   // 4. Se não for comando explícito de navegação, tenta busca ampla no Registry
   const genericSearch = searchNavigationRegistry(processedText, session);
   if (genericSearch.length > 0) {
     const topMatch = genericSearch[0];
-    return {
+    return finalizeResult({
       success: true,
       type: "NAVIGATION",
       intent: "navigation.open",
@@ -242,14 +283,15 @@ export async function processHefistoIntent({ text = "", session = null, unitId =
         label: `Abrir ${topMatch.shortTitle}`,
         route: topMatch.route
       }
-    };
+    });
   }
 
   // 5. Fallback Amigável
-  return {
+  return finalizeResult({
     success: false,
     responseText: "Não encontrei um módulo ou consulta exata para este pedido. Escolha uma das sugestões abaixo ou use a busca universal."
-  };
+  });
+
 }
 
 /**

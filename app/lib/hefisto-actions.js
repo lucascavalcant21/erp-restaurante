@@ -4,6 +4,7 @@ import { canAccessRoute, hasPermission } from "./permissions-catalog.mjs";
 import { normalizeText } from "./hefisto-intents.js";
 import { evaluateActionPolicy, evaluateRiskLevel, validatePayloadMatch, RISK_LEVELS } from "./hefisto-policy.js";
 import { logAuditEvent, generateCorrelationId } from "./hefisto-audit.js";
+import { recordTelemetryEvent, EVENT_TAXONOMY } from "./hefisto-telemetry.js";
 
 // Conjunto de rastreio em memória para idempotência de duplo clique
 const executedCorrelationSet = new Map();
@@ -670,6 +671,20 @@ export async function executeRealAction({ actionId, payload, session, unitId, co
       durationMs: Date.now() - startTime
     });
 
+    recordTelemetryEvent({
+      correlationId: corrId,
+      eventType: EVENT_TAXONOMY.ACTION_FAILED,
+      tenantId: cleanUnit,
+      userRole: String(session?.cargo || "OPERATOR"),
+      userId: String(session?.id || "anonymous"),
+      domain: "ESTOQUE_COMPRAS",
+      intent: actionId,
+      status: "BLOCKED",
+      errorCode: policy.reason,
+      durationMs: Date.now() - startTime,
+      metadata: { actionId, payload, isMutation: actionId !== "label.print" }
+    });
+
     return {
       success: false,
       blockedByPolicy: true,
@@ -677,6 +692,19 @@ export async function executeRealAction({ actionId, payload, session, unitId, co
       responseText: policy.message
     };
   }
+
+  recordTelemetryEvent({
+    correlationId: corrId,
+    eventType: EVENT_TAXONOMY.ACTION_CONFIRMED,
+    tenantId: cleanUnit,
+    userRole: String(session?.cargo || "OPERATOR"),
+    userId: String(session?.id || "anonymous"),
+    domain: "ESTOQUE_COMPRAS",
+    intent: actionId,
+    status: "SUCCESS",
+    durationMs: Date.now() - startTime,
+    metadata: { actionId, payload, isMutation: actionId !== "label.print" }
+  });
 
   // 2. PROTEÇÃO DE IDEMPOTÊNCIA E DUPLO CLIQUE (F6)
   const idempKey = `${cleanUnit}:${corrId}:${actionId}`;

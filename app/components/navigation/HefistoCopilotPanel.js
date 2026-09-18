@@ -5,7 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Sparkles, Search, Mic, MicOff, X, ArrowRight, CornerDownLeft,
   AlertCircle, CheckCircle2, ShieldAlert, ChefHat, Package, Users, DollarSign,
-  Layers, Lock, Loader2, BarChart2, Zap, Tag, ChevronRight, RefreshCw, AlertTriangle, Inbox
+  Layers, Lock, Loader2, BarChart2, Zap, Tag, ChevronRight, RefreshCw, AlertTriangle, Inbox,
+  ThumbsUp, ThumbsDown, Activity
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { useHefistoPageContext } from "../../context/HefistoPageContext";
@@ -18,6 +19,7 @@ import { identifyRoutine } from "../../lib/hefisto-routines";
 import { vozDisponivel, criarEscuta, falarTexto } from "../../lib/hefisto-voz";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { getHefistoInbox } from "../../lib/hefisto-inbox.js";
+import { recordUserFeedback } from "../../lib/hefisto-telemetry.js";
 
 export default function HefistoCopilotPanel() {
   const router = useRouter();
@@ -351,16 +353,29 @@ export default function HefistoCopilotPanel() {
                   setIsOpen(false);
                   router.push("/dashboard");
                 }}
-                className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-2.5 py-1 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
               >
                 <Inbox className="w-3.5 h-3.5" />
                 <span className="font-semibold text-[11px]">Precisa de você ({inboxCount})</span>
               </button>
             )}
 
+            {(!sessao?.gerenciado || hasPermission(sessao, "gestao.operational_center.view")) && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push("/dashboard/gestao/saude-hefisto");
+                }}
+                title="Saúde do Sistema & Observabilidade"
+                className="p-1.5 text-cyan-400 hover:bg-cyan-500/10 border border-cyan-500/20 rounded-lg transition-colors cursor-pointer"
+              >
+                <Activity className="w-4 h-4" />
+              </button>
+            )}
+
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -445,7 +460,27 @@ export default function HefistoCopilotPanel() {
                   <p className="font-bold text-[11px] opacity-80 mb-1 tracking-wide">{msg.title}</p>
                 )}
                 <p className="whitespace-pre-wrap">{msg.responseText}</p>
-                <span className="block text-[9px] opacity-50 mt-1 text-right">{msg.timestamp}</span>
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-800/40 text-[9px] opacity-60">
+                  <span className="text-[9px] opacity-75">{msg.timestamp}</span>
+                  {msg.sender === "hefisto" && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => recordUserFeedback({ correlationId: msg.correlationId, rating: "POSITIVE", tenantId: unidadeAtiva?.id })}
+                        className="hover:text-emerald-400 p-0.5 cursor-pointer"
+                        title="Resposta útil"
+                      >
+                        <ThumbsUp size={11} />
+                      </button>
+                      <button
+                        onClick={() => recordUserFeedback({ correlationId: msg.correlationId, rating: "NEGATIVE", reason: "Resposta incorreta", tenantId: unidadeAtiva?.id })}
+                        className="hover:text-rose-400 p-0.5 cursor-pointer"
+                        title="Reportar problema nesta resposta"
+                      >
+                        <ThumbsDown size={11} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

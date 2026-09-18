@@ -6,7 +6,7 @@ import {
   ChefHat, Package, Users, DollarSign, AlertTriangle, CheckCircle2,
   Clock, Sparkles, ArrowRight, Plus, Tag, RefreshCw, FileText,
   TrendingUp, ShoppingCart, ShieldCheck, ChevronRight, Layers, Lock,
-  Calendar, Coffee, CreditCard, PieChart
+  Calendar, Coffee, CreditCard, PieChart, Search
 } from "lucide-react";
 import { useERP } from "../context/ERPContext";
 import { fetchProducaoDeHoje, fetchEstoque } from "../lib/estoque";

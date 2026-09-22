@@ -13,7 +13,7 @@ import {
   triggerScheduledAutomations,
   getAutomationHistory
 } from "../../../lib/hefisto-automations";
-import { HubHeader, HubCard, HubStatusBadge, HubActionButton } from "../../../components/navigation/HubPrimitives";
+import { HubHeader, HubCardContainer, HubActionButton } from "../../../components/navigation/HubPrimitives";
 
 const DIAS_SEMANA = [
   { id: 1, label: "Seg" },
@@ -112,7 +112,7 @@ export default function AutomacoesPage() {
       {/* LISTA DE AUTOMAÇÕES PROGRAMADAS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {automacoes.map((auto) => (
-          <HubCard key={auto.id} className="space-y-4">
+          <HubCardContainer key={auto.id} className="space-y-4">
             <div className="flex items-start justify-between border-b border-slate-800/80 pb-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -198,12 +198,12 @@ export default function AutomacoesPage() {
                 <span>Testar agora</span>
               </button>
             </div>
-          </HubCard>
+          </HubCardContainer>
         ))}
       </div>
 
       {/* HISTÓRICO RECENTE DE EXECUÇÃO */}
-      <HubCard className="space-y-4">
+      <HubCardContainer className="space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 className="text-sm font-black text-white flex items-center gap-2">
             <Clock size={16} className="text-emerald-400" />
@@ -240,7 +240,7 @@ export default function AutomacoesPage() {
             ))}
           </div>
         )}
-      </HubCard>
+      </HubCardContainer>
 
       {/* MODAL DE PREVIEW E CONFIRMAÇÃO DE CONF DA AUTOMAÇÃO */}
       {previewModal && (

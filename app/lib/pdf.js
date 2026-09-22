@@ -6,7 +6,12 @@
 // estoura o limite de altura da imagem (32k px) e geraria um PDF em branco. Nesses casos,
 // usamos o gerador de PDF vetorial nativo do navegador (window.print), garantindo 100% dos
 // 120+ arquivos sem páginas em branco e com texto nítido.
-export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null, windowRef = null } = {}) {
+//
+// `margemMm` (opcional) dá margem às páginas nos dois caminhos — html2pdf e
+// impressão. Sem ele fica como sempre foi: 0 no html2pdf e 6 mm na impressão.
+// As fichas técnicas usam, porque o conteúdo delas corre em fluxo e não pode
+// encostar na borda do papel quando passa de uma folha para a outra.
+export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null, windowRef = null, margemMm = null } = {}) {
   let win = windowRef;
   if (!win) {
     try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
@@ -14,12 +19,13 @@ export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null, windowRef
   if (!win) { alert("Habilite os popups para baixar o PDF."); return; }
   const nome = String(nomeArquivo || "documento").replace(/[^\wÀ-ÿ \-]/g, "").trim().replace(/\s+/g, "-") || "documento";
   const fmt = Array.isArray(formatoMm) ? JSON.stringify(formatoMm) : "'a4'";
+  const margem = Number(margemMm) > 0 ? Number(margemMm) : null;
 
   const estiloPdf = `<style>
     body{padding:0!important;background:#fff!important;max-width:none!important}
     .folha,.capa,.indice,.pagina,.pagina-livro,.ficha{box-shadow:none!important}
     @media print{
-      @page{margin:6mm}
+      @page{margin:${margem ?? 6}mm}
       body{padding:0!important;max-width:none!important}
       .quebra,.capa,.indice,.pagina-livro{page-break-after:always!important;break-after:page!important}
     }
@@ -40,7 +46,7 @@ export function baixarPdfDeHtml(html, nomeArquivo, { formatoMm = null, windowRef
 
         done = true;
         html2pdf().set({
-          margin: 0,
+          margin: ${margem ?? 0},
           filename: '${nome}.pdf',
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { scale: 2, useCORS: true, logging: false },

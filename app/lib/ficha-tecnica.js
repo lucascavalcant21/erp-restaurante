@@ -25,43 +25,12 @@ function estruturaAusente(e) {
 
 // ─── Listas de referência ───────────────────────────────────────────────────
 
-// Alergênicos de declaração obrigatória (RDC 727/2022) + "outros".
-export const ALERGENICOS = [
-  "Glúten", "Leite", "Ovos", "Soja", "Amendoim", "Castanhas",
-  "Peixe", "Crustáceos", "Moluscos", "Gergelim", "Outros",
-];
-
-export const EQUIPAMENTOS_SUGERIDOS = [
-  "Chapa", "Fritadeira", "Forno", "Fogão", "Panela", "Frigideira",
-  "Liquidificador", "Processador", "Balança", "Faca", "Tábua de corte",
-  "Espátula", "GN", "Batedeira", "Coifa", "Micro-ondas",
-];
-
-// Método do drink. Batido e mexido não são estilo: mudam o resultado no copo —
-// o shaker aera, gela e dilui mais; o mixing glass mantém límpido e com corpo.
-//
-// Mora aqui, e não na tela, porque a listagem e a ficha técnica gravam o mesmo
-// `fichas_tecnicas.metodo_bar`: duas listas separadas acabariam divergindo nos
-// ids, e o id é o que vai para o banco.
-export const METODOS_BAR = [
-  { id: "batido", nome: "Batido (shaker)", ajuda: "Suco, xarope, creme ou clara de ovo" },
-  { id: "mexido", nome: "Mexido (mixing glass)", ajuda: "Só destilados — límpido e sedoso" },
-  { id: "montado", nome: "Montado no copo", ajuda: "Direto no copo do cliente, sem transferir" },
-  { id: "liquidificador", nome: "Liquidificador", ajuda: "Frozen e batidas com gelo triturado" },
-  { id: "dose", nome: "Dose pura", ajuda: "Servido puro, sem preparo" },
-];
-export const metodoBar = (id) => METODOS_BAR.find(m => m.id === id) || null;
-
-// Tipos de gelo — muda diluição e apresentação, não é detalhe.
-export const TIPOS_GELO = [
-  "Sem gelo", "Cubo", "Cubo grande", "Triturado (crushed)", "Esfera", "Gelo seco",
-];
-
-export const STATUS_FICHA = [
-  { valor: "ativa", rotulo: "Ativa" },
-  { valor: "inativa", rotulo: "Inativa" },
-  { valor: "rascunho", rotulo: "Rascunho" },
-];
+// Alergênicos, equipamentos, métodos do bar, gelo e status moram no modelo da
+// ficha (lib/ficha-modelo.mjs), junto com o que cada tipo mostra. Continuam
+// exportados daqui para quem já importava deste arquivo.
+export {
+  ALERGENICOS, EQUIPAMENTOS_SUGERIDOS, METODOS_BAR, metodoBar, TIPOS_GELO, STATUS_FICHA,
+} from "./ficha-modelo.mjs";
 
 // ─── Leitura ────────────────────────────────────────────────────────────────
 

@@ -47,6 +47,15 @@
   --warning-soft:  rgba(245,158,11,0.13);
   --info:          #3B82F6;
 
+  /* Fichas técnicas: cada tipo tem a sua cor, para prato e pré-preparo não se
+     confundirem. Prato usa o verde da marca; pré-preparo, azul-petróleo. */
+  --ficha-prato:        #047857;
+  --ficha-prato-soft:   rgba(4,120,87,0.10);
+  --ficha-prato-fg:     #FFFFFF;
+  --ficha-preparo:      #164E63;
+  --ficha-preparo-soft: rgba(22,78,99,0.10);
+  --ficha-preparo-fg:   #FFFFFF;
+
   /* Escala única de raios de borda */
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -102,6 +111,15 @@
   --warning-strong:#FCD34D;
   --warning-soft:  rgba(251,191,36,0.16);
   --info:          #60A5FA;
+
+  /* No escuro as duas cores clareiam para aparecer no fundo preto, e o texto
+     por cima delas passa a ser escuro (branco reprovaria o contraste). */
+  --ficha-prato:        #10B981;
+  --ficha-prato-soft:   rgba(16,185,129,0.16);
+  --ficha-prato-fg:     #0F172A;
+  --ficha-preparo:      #5CC2DB;
+  --ficha-preparo-soft: rgba(92,194,219,0.16);
+  --ficha-preparo-fg:   #0F172A;
 
   --shadow-sm:    0 1px 2px rgba(0,0,0,0.30);
   --shadow-card:  0 8px 26px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35);

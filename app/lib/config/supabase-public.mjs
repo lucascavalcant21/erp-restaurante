@@ -30,14 +30,15 @@ export function extractProjectRef(url) {
  * Retorna e valida o ambiente lógico HEFISTO_ENV (suporta NEXT_PUBLIC_HEFISTO_ENV no client-side)
  */
 export function getHefistoEnv() {
-  const envRaw = process.env.NEXT_PUBLIC_HEFISTO_ENV || (typeof window === 'undefined' ? process.env.HEFISTO_ENV : '');
+  // Agora HEFISTO_ENV está no next.config.js, então é injetado nativamente no client bundle!
+  const envRaw = process.env.NEXT_PUBLIC_HEFISTO_ENV || process.env.HEFISTO_ENV || 'production';
   const env = (envRaw || '').trim().toLowerCase();
   
   if (!env) {
     if (process.env.NODE_ENV === 'test') {
       return 'test';
     }
-    throw new Error('MISSING_HEFISTO_ENV: A variável de ambiente HEFISTO_ENV (ou NEXT_PUBLIC_HEFISTO_ENV) é obrigatória (valores permitidos: development, staging, production, test).');
+    throw new Error('MISSING_HEFISTO_ENV: A variável de ambiente HEFISTO_ENV é obrigatória.');
   }
 
   if (!ALLOWED_HEFISTO_ENVS.includes(env)) {

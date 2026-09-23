@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { getSupabasePublicConfig } from "./config/supabase-public.mjs";
 
 let client = null;
+export let supabaseInitError = null;
+
 try {
   const config = getSupabasePublicConfig();
   client = createClient(config.url, config.anonKey, {
@@ -12,6 +14,7 @@ try {
     },
   });
 } catch (err) {
+  supabaseInitError = err.message;
   if (process.env.NODE_ENV !== 'test') {
     console.error("Erro ao inicializar cliente Supabase público:", err.message);
   }

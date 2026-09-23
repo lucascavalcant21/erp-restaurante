@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { fazerLogin, homeDoUsuario, formatarParaEmailFantasma, lerSessao } from "../lib/auth";
 import { Loader2 } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase, supabaseInitError, isSupabaseReady } from "../lib/supabase";
 
 // Guarda somente o nome de usuário. A senha e os tokens ficam a cargo do
 // armazenamento seguro do Supabase Auth; nunca mais são copiados para o app.
@@ -110,6 +110,7 @@ export default function LoginPage() {
 
   async function handleLogin(e) {
     e.preventDefault();
+    if (!isSupabaseReady()) { setErro("Supabase não configurado: " + (supabaseInitError || "Erro desconhecido")); return; }
     if (!email || !senha) { setErro("Preencha o usuário e a senha."); return; }
     await entrar(email, senha, lembrar);
   }

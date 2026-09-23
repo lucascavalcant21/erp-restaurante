@@ -8,6 +8,9 @@ const cabecalhosDeSeguranca = [
 ];
 
 const nextConfig = {
+  env: {
+    HEFISTO_ENV: process.env.NEXT_PUBLIC_HEFISTO_ENV || process.env.HEFISTO_ENV || "production",
+  },
   async headers() {
     return [{ source: "/:path*", headers: cabecalhosDeSeguranca }];
   },

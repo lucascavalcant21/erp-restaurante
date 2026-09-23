@@ -79,6 +79,7 @@ import {
   unidadePadraoDepartamento,
   rendimentoPadronizado,
   rendimentoPelosIngredientes,
+  calculateFichaFinanceiro,
 } from "../../../lib/ficha-calculos.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de

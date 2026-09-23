@@ -283,6 +283,45 @@ test("o rendimento do prato não mexe no CMV", () => {
   assert.equal(a.custo_embalagens_total, 0.8);
 });
 
+// Regressão financeira explícita: preencher o rendimento VISÍVEL do prato
+// (peso servido, em gramas) não pode mexer em nenhum número do dinheiro. Os
+// indicadores são tirados exatamente como a listagem e a aba de custos tiram.
+export function indicadoresFinanceiros(ficha, todasFichas, produtos, embalagens) {
+  const [comEmbalagem] = comCustoDeEmbalagens([ficha], produtos, embalagens);
+  const { custoTotal, custoPorcao } = custoPorPorcaoDaFicha(comEmbalagem, todasFichas);
+  const custoEmbalagem = comEmbalagem.custo_embalagens_total;
+  const preco = Number(ficha.preco_venda) || 0;
+  return {
+    custoIngredientes: +(custoTotal - custoEmbalagem).toFixed(6),
+    custoEmbalagem: +custoEmbalagem.toFixed(6),
+    custoTotal: +custoTotal.toFixed(6),
+    custoPorcao: +custoPorcao.toFixed(6),
+    cmv: preco > 0 ? +((custoPorcao / preco) * 100).toFixed(4) : null,
+    rendimentoFinanceiro: ficha.rendimento_porcoes,
+  };
+}
+
+test("regressão financeira: o rendimento visível do prato não muda nenhum número", () => {
+  const produtos = [{ ficha_id: "f-prato", embalagens: [{ embalagem_id: "e1", qtd: 2 }] }];
+  const embalagens = [{ id: "e1", preco_unitario: 0.5 }];
+
+  // ANTES: prato sem rendimento visível; rendimento_porcoes é o valor financeiro atual.
+  const antesFicha = { ...prato, peso_final_g: null };
+  const antes = indicadoresFinanceiros(antesFicha, todas, produtos, embalagens);
+
+  // DEPOIS: só o peso servido é preenchido; rendimento_porcoes fica idêntico.
+  const depoisFicha = { ...antesFicha, peso_final_g: 420 };
+  assert.equal(depoisFicha.rendimento_porcoes, antesFicha.rendimento_porcoes);
+  const depois = indicadoresFinanceiros(depoisFicha, todas, produtos, embalagens);
+
+  assert.deepEqual(depois, antes);
+  // E o que muda é só o rendimento visível.
+  assert.equal(textoRendimentoPrato(antesFicha), "");
+  assert.equal(textoRendimentoPrato(depoisFicha), "420 g");
+  // Nenhum 420 escapou para o campo financeiro.
+  assert.equal(camposParaGravar("prato", { nome_receita: "P", departamento: "cozinha", rendimento_porcoes: "0.7", rendimento_unidade: "kg", peso_final_g: "420" }).rendimento_porcoes, 0.7);
+});
+
 test("gravar PRÉ-PREPARO leva tempo, peso final, responsável e validade", () => {
   const campos = camposParaGravar("pre_preparo", {
     nome_receita: "Tucupi", departamento: "cozinha", rendimento_porcoes: "2", tempo_preparo: "40",

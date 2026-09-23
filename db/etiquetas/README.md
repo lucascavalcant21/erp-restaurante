@@ -112,6 +112,40 @@ ou nenhuma. Quem transforma a pendência em `contas_pagar` é
 `app/lib/etiqueta-financeiro.js`, e o índice único por evento impede lançamento
 duplicado.
 
+## Quem esvazia a fila financeira
+
+Não é a tela. Se fosse, uma perda ficaria esperando alguém abrir a página de
+etiquetas — que é o mesmo esquecimento silencioso que a fila existe para
+impedir.
+
+O acionamento é o cron que o ERP já usa (`vercel.json` → `crons`), apontando
+para `/api/etiquetas/financeiro/drenar` de hora em hora, no mesmo padrão de
+segredo de `/api/hefisto/automation/cron`. A tela pode chamar o mesmo endpoint
+para o operador ver o efeito na hora, mas não é ela a responsável.
+
+Estados da fila:
+
+| status | significa |
+|---|---|
+| `pendente` | esperando o drenador |
+| `processando` | um drenador pegou (com `reservado_em` e `reservado_por`) |
+| `lancado` | virou conta a pagar (`conta_pagar_id` preenchido) |
+| `erro` | falhou 5 vezes; parou para alguém olhar |
+| `dispensado` | perda sem custo cadastrado: não há o que lançar |
+
+A reserva usa `FOR UPDATE SKIP LOCKED`: dois drenadores simultâneos pegam lotes
+diferentes em vez de brigar pela mesma linha. Reserva abandonada por mais de 10
+minutos volta para a fila sozinha, então um processo que morre no meio não
+trava a linha para sempre.
+
+`vw_etiqueta_financeiro_fila` responde, numa consulta, quantas estão em cada
+estado, o valor em aberto e a data da mais antiga — é por ali que se percebe
+que o cron parou de rodar.
+
+**Configuração obrigatória**: `CRON_SECRET` na Vercel. Sem ele o endpoint **não
+abre** — um drenador aberto na internet é um jeito de encher o financeiro de
+lançamentos.
+
 ## Testes
 
 ```bash
@@ -128,7 +162,28 @@ saída; confie na última linha, `RESULTADO: OK` ou `RESULTADO: FALHOU`.
 
 ## Aplicar em staging
 
-Nada disto foi aplicado em banco real ainda. O procedimento:
+**Não existe projeto Supabase de staging identificado neste repositório.** O
+que foi auditado em 23/09/2026:
+
+- `.env.local` aponta para `sezccspqxgklicfndwxx`, que é o ref de **produção**
+  (o mesmo `PRODUCTION_SUPABASE_PROJECT_REF` de `app/lib/config/supabase-public.mjs`);
+- na Vercel não existe `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  nem `HEFISTO_ENV` em nenhum ambiente;
+- o único `SUPABASE_SERVICE_ROLE_KEY` está marcado **Preview + Production** —
+  ou seja, é a chave de produção. Não serve para staging e não foi usada.
+
+Para criar staging: ver `db/staging/README.md` na branch
+`feat/hefisto-ai-runtime`, que já traz o bootstrap de estrutura. Depois:
+
+1. criar o projeto `hefisto-staging` no Supabase;
+2. rodar `db/staging/0001..0003` nele;
+3. na Vercel, em **Preview**: `HEFISTO_ENV=staging`,
+   `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` do staging, e um
+   `SUPABASE_SERVICE_ROLE_KEY` **do staging** (hoje a variável de Preview é a de
+   produção — isso precisa ser separado antes de qualquer teste);
+4. `CRON_SECRET`, para o drenador da fila.
+
+Quando o staging existir, o procedimento é:
 
 1. snapshot do projeto de staging (Supabase → Database → Backups);
 2. `0001_saldo_e_linhagem.sql` no SQL Editor, **de uma vez** (o arquivo é uma

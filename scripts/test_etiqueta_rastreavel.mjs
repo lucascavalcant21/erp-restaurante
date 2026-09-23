@@ -499,6 +499,81 @@ const anonDireto = await (async () => {
 conferir("W2. depois do 0002 o rastreio continua funcionando", depois0002?.codigo, etqA.codigo);
 conferir("W3. e a leitura anônima direta da tabela está fechada", anonDireto, "bloqueado");
 
+/* ── X. A fila financeira tem dono ───────────────────────────────────────── */
+const etqX = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 3, condicao: "aberto" });
+await db.query("update public.etiquetas set custo_unit = 20 where id=$1", [etqX.id]);
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda')", [etqX.id]);
+await db.query("select public.etiqueta_perda($1, 0.25, 'Vencido', null, 'Eduarda')", [etqX.id]);
+
+const reservado = await db.query(
+  "select id, status, reservado_por from public.etiqueta_financeiro_reservar_lote(null, 10, 'cron-teste')");
+conferir("X. reservar o lote tira da fila e marca quem pegou",
+  [reservado.rows.length > 0, reservado.rows[0]?.status, reservado.rows[0]?.reservado_por],
+  [true, "processando", "cron-teste"]);
+
+/* Um segundo drenador não pode pegar o que já está reservado. */
+const segundo = await db.query("select id from public.etiqueta_financeiro_reservar_lote(null, 10, 'cron-2')");
+conferir("X2. um segundo drenador não pega o mesmo lote",
+  segundo.rows.filter((r) => reservado.rows.some((a) => a.id === r.id)).length, 0);
+
+/* Erro devolve para a fila até o teto de tentativas; depois para em 'erro'. */
+const idX = reservado.rows[0].id;
+for (let i = 0; i < 4; i++) {
+  await db.query("select public.etiqueta_financeiro_marcar_erro($1, 'financeiro fora do ar')", [idX]);
+  /* Reserva de novo só entre as tentativas: depois da quarta queremos ver o
+     estado em que a falha deixou a linha, não o da reserva seguinte. */
+  if (i < 3) await db.query("select * from public.etiqueta_financeiro_reservar_lote(null, 10, 'cron-teste')");
+}
+const aposQuatro = await uma("select status, tentativas from public.etiqueta_financeiro_pendente where id=$1", [idX]);
+await db.query("select public.etiqueta_financeiro_marcar_erro($1, 'financeiro fora do ar')", [idX]);
+const aposCinco = await uma("select status, tentativas from public.etiqueta_financeiro_pendente where id=$1", [idX]);
+conferir("X3. erro volta para a fila; no quinto, para em 'erro' para alguém olhar",
+  [aposQuatro.status, Number(aposQuatro.tentativas), aposCinco.status, Number(aposCinco.tentativas)],
+  ["pendente", 4, "erro", 5]);
+conferir("X4. quem parou em 'erro' não é mais reservado sozinho",
+  (await db.query("select id from public.etiqueta_financeiro_reservar_lote(null, 10, 'cron-teste')")).rows
+    .filter((r) => r.id === idX).length, 0);
+
+/* Reserva abandonada volta para a fila sozinha. */
+await db.query(`update public.etiqueta_financeiro_pendente
+                   set status='processando', tentativas=0, reservado_em = now() - interval '1 hour',
+                       reservado_por='cron-que-morreu'
+                 where id=$1`, [idX]);
+const recuperado = await db.query("select id from public.etiqueta_financeiro_reservar_lote(null, 10, 'cron-novo')");
+conferir("X5. lote preso num drenador que morreu volta para a fila",
+  recuperado.rows.some((r) => r.id === idX), true);
+
+/* Fechar é idempotente e limpa a reserva. */
+await db.query("select public.etiqueta_financeiro_marcar_lancado($1, $2)", [idX, "dddddddd-0000-4000-8000-000000000ff1"]);
+conferir("X6. lançado limpa a reserva e não volta para a fila",
+  (await uma("select status, reservado_em, reservado_por from public.etiqueta_financeiro_pendente where id=$1", [idX])),
+  { status: "lancado", reservado_em: null, reservado_por: null });
+
+/* A visão de saúde da fila responde numa consulta só. */
+const fila = await uma("select * from public.vw_etiqueta_financeiro_fila where unidade_id='u1'");
+conferir("X7. a fila se reporta: nada fica esquecido em silêncio",
+  [Number(fila.lancados) >= 1, fila.mais_antiga !== undefined], [true, true]);
+
+/* ── Y. Não etiquetar mais do que o estoque tem ──────────────────────────── */
+/* Depois do bloco S: total 9, rastreado 6, não rastreado 3. Uma etiqueta nova
+   de 2 kg é legítima; 5 kg não, porque não existe fisicamente. */
+const etqY = await novaEtiqueta({ produto: "Requeijão", insumo: ID2.requeijao, qtd: 2, unidade: "kg", condicao: "manipulado" });
+const movsAntesY = await contarMovimentos();
+await db.query("select public.etiqueta_vincular_producao($1, $2)", [etqY.id, ID2.producao2]);
+const rastrY = await uma(
+  "select saldo_total, saldo_rastreado, saldo_nao_rastreado from public.vw_estoque_rastreabilidade where estoque_id=$1 and insumo_id=$2",
+  [estPre, ID2.requeijao]);
+conferir("Y. etiquetar 2 kg do saldo antigo: total 9, rastreado 8, não rastreado 1",
+  [num(rastrY.saldo_total), num(rastrY.saldo_rastreado), num(rastrY.saldo_nao_rastreado)], [9, 8, 1]);
+conferir("Y2. e nenhuma entrada nova foi criada", await contarMovimentos(), movsAntesY);
+
+const etqY5 = await novaEtiqueta({ produto: "Requeijão", insumo: ID2.requeijao, qtd: 2, unidade: "kg", condicao: "manipulado" });
+const excedeY = await (async () => {
+  try { await db.query("select public.etiqueta_vincular_producao($1, $2)", [etqY5.id, ID2.producao2]); return "aceitou"; }
+  catch (e) { return String(e?.message || e).includes("não etiquetado") ? "recusou" : `erro diferente: ${String(e?.message || e).slice(0, 60)}`; }
+})();
+conferir("Y3. com só 1 kg não rastreado, etiquetar mais 2 kg é recusado", excedeY, "recusou");
+
 console.log(`\n${total - falhas}/${total} verificações passaram.`);
 console.log(falhas ? "RESULTADO: FALHOU" : "RESULTADO: OK");
 process.exit(falhas ? 1 : 0);

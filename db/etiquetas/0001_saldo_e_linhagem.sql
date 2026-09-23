@@ -1373,17 +1373,8 @@ begin
   return v;
 end $$;
 
-create or replace function public.etiqueta_financeiro_marcar_erro(
-  p_id uuid, p_erro text
-) returns void
-language sql
-security invoker
-set search_path = public
-as $$
-  update public.etiqueta_financeiro_pendente
-     set tentativas = tentativas + 1, ultimo_erro = p_erro
-   where id = p_id and status = 'pendente'
-$$;
+/* etiqueta_financeiro_marcar_erro é definida no bloco 8.5: lá ela também
+   devolve a linha e decide entre voltar para a fila ou parar em 'erro'. */
 
 alter table public.etiqueta_financeiro_pendente enable row level security;
 revoke all on public.etiqueta_financeiro_pendente from anon;
@@ -1455,7 +1446,6 @@ grant execute on function public.etiqueta_saldo_rastreado(uuid, uuid) to authent
 grant execute on function public.etiqueta_saldo_nao_rastreado(uuid, uuid) to authenticated;
 grant execute on function public.etiqueta_marcar_impressa(uuid, uuid, text, text, text) to authenticated;
 grant execute on function public.etiqueta_financeiro_marcar_lancado(uuid, uuid) to authenticated;
-grant execute on function public.etiqueta_financeiro_marcar_erro(uuid, text) to authenticated;
 grant select on public.vw_estoque_rastreabilidade to authenticated;
 grant select on public.vw_etiquetas_pendentes_impressao to authenticated;
 grant select, insert, update on public.etiqueta_operacoes to authenticated;
@@ -1485,6 +1475,192 @@ begin
       using (etiqueta_id is null or exists (select 1 from public.etiquetas e where e.id = etiqueta_operacoes.etiqueta_id))
       with check (etiqueta_id is null or exists (select 1 from public.etiquetas e where e.id = etiqueta_operacoes.etiqueta_id));
   end if;
+end $$;
+
+notify pgrst, 'reload schema';
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLOCO 8.5 — A FILA FINANCEIRA PRECISA DE DONO  (fase B.2)
+
+   Na B.1 a fila garantia que a perda e o estoque caíssem juntos. Faltava o
+   outro lado: quem esvazia a fila. Deixar isso para "quando alguém abrir a
+   tela de etiquetas" é o mesmo problema de antes com outro nome — a perda
+   fica esquecida em silêncio até alguém passar por ali.
+
+   Aqui entram os estados e a reserva atômica. O acionamento fica no cron que
+   o ERP já tem (vercel.json + /api/etiquetas/financeiro/drenar).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+alter table public.etiqueta_financeiro_pendente
+  add column if not exists reservado_em timestamptz;
+alter table public.etiqueta_financeiro_pendente
+  add column if not exists reservado_por text;
+
+/* 'processando' é o estado que faltava: sem ele, dois drenadores simultâneos
+   pegariam a mesma linha. */
+do $$
+declare v_check text;
+begin
+  select conname into v_check from pg_constraint
+   where conrelid = 'public.etiqueta_financeiro_pendente'::regclass
+     and contype = 'c' and pg_get_constraintdef(oid) ilike '%status%';
+  if v_check is not null then
+    execute format('alter table public.etiqueta_financeiro_pendente drop constraint %I', v_check);
+  end if;
+  alter table public.etiqueta_financeiro_pendente
+    add constraint etiqueta_financeiro_status_check
+    check (status in ('pendente','processando','lancado','erro','dispensado'));
+end $$;
+
+create index if not exists etiqueta_financeiro_reservadas_idx
+  on public.etiqueta_financeiro_pendente (status, reservado_em)
+  where status = 'processando';
+
+/* Quantas vezes vale a pena insistir antes de parar e pedir atenção humana.
+   Sem teto, um erro permanente (conta bloqueada, categoria removida) faria o
+   cron tentar para sempre e ninguém olharia. */
+create or replace function public.etiqueta_financeiro_max_tentativas()
+returns integer language sql immutable as $$ select 5 $$;
+
+/* Reserva um lote para processar. FOR UPDATE SKIP LOCKED: dois drenadores
+   rodando ao mesmo tempo pegam lotes diferentes em vez de brigar pela mesma
+   linha — e nenhum fica esperando o outro.
+
+   Também recolhe o que ficou preso em 'processando': se o processo morreu no
+   meio, a linha volta para a fila depois do tempo de expiração em vez de
+   ficar parada para sempre. */
+create or replace function public.etiqueta_financeiro_reservar_lote(
+  p_unidade_id text default null,
+  p_limite integer default 50,
+  p_executor text default 'cron',
+  p_expira_em interval default interval '10 minutes'
+) returns setof public.etiqueta_financeiro_pendente
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  /* 1. devolve para a fila o que um drenador anterior abandonou */
+  update public.etiqueta_financeiro_pendente
+     set status = 'pendente', reservado_em = null, reservado_por = null
+   where status = 'processando'
+     and reservado_em is not null
+     and reservado_em < now() - p_expira_em;
+
+  /* 2. reserva o próximo lote */
+  return query
+  with alvo as (
+    select id from public.etiqueta_financeiro_pendente
+     where status = 'pendente'
+       and (p_unidade_id is null or unidade_id = p_unidade_id)
+       and tentativas < public.etiqueta_financeiro_max_tentativas()
+     order by created_at
+     limit greatest(1, coalesce(p_limite, 50))
+     for update skip locked
+  )
+  update public.etiqueta_financeiro_pendente f
+     set status = 'processando', reservado_em = now(), reservado_por = p_executor
+    from alvo
+   where f.id = alvo.id
+  returning f.*;
+end $$;
+
+/* A versão da B.1 devolvia void; esta devolve a linha. Postgres não troca o
+   tipo de retorno num CREATE OR REPLACE, então a antiga sai primeiro. */
+drop function if exists public.etiqueta_financeiro_marcar_erro(uuid, text);
+
+/* Erro: volta para a fila para a próxima passada tentar, a não ser que já
+   tenha insistido demais — aí para em 'erro', que é o estado que faz alguém
+   olhar. */
+create or replace function public.etiqueta_financeiro_marcar_erro(
+  p_id uuid, p_erro text
+) returns public.etiqueta_financeiro_pendente
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare v public.etiqueta_financeiro_pendente;
+begin
+  update public.etiqueta_financeiro_pendente
+     set tentativas = tentativas + 1,
+         ultimo_erro = p_erro,
+         reservado_em = null,
+         reservado_por = null,
+         status = case
+           when tentativas + 1 >= public.etiqueta_financeiro_max_tentativas() then 'erro'
+           else 'pendente' end
+   where id = p_id and status in ('pendente','processando')
+  returning * into v;
+  return v;
+end $$;
+
+create or replace function public.etiqueta_financeiro_dispensar(
+  p_id uuid, p_motivo text default null
+) returns public.etiqueta_financeiro_pendente
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare v public.etiqueta_financeiro_pendente;
+begin
+  update public.etiqueta_financeiro_pendente
+     set status = 'dispensado', processado_em = now(),
+         reservado_em = null, reservado_por = null,
+         ultimo_erro = coalesce(p_motivo, ultimo_erro)
+   where id = p_id and status in ('pendente','processando')
+  returning * into v;
+  return v;
+end $$;
+
+/* Marcar lançado também precisa limpar a reserva. */
+create or replace function public.etiqueta_financeiro_marcar_lancado(
+  p_id uuid, p_conta_pagar_id uuid
+) returns public.etiqueta_financeiro_pendente
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare v public.etiqueta_financeiro_pendente;
+begin
+  update public.etiqueta_financeiro_pendente
+     set status = 'lancado',
+         conta_pagar_id = coalesce(conta_pagar_id, p_conta_pagar_id),
+         processado_em = coalesce(processado_em, now()),
+         reservado_em = null,
+         reservado_por = null,
+         ultimo_erro = null
+   where id = p_id
+  returning * into v;
+  if v.id is null then raise exception 'Pendência financeira não encontrada'; end if;
+  return v;
+end $$;
+
+/* O painel de "a fila está saudável?" numa consulta só. É isto que impede uma
+   perda de ficar esquecida: se a coluna 'erro' ou a mais antiga pendente
+   começarem a crescer, alguém vê. */
+create or replace view public.vw_etiqueta_financeiro_fila as
+  select unidade_id,
+         count(*) filter (where status = 'pendente')    as pendentes,
+         count(*) filter (where status = 'processando') as processando,
+         count(*) filter (where status = 'lancado')     as lancados,
+         count(*) filter (where status = 'erro')        as com_erro,
+         count(*) filter (where status = 'dispensado')  as dispensados,
+         coalesce(sum(valor) filter (where status in ('pendente','processando','erro')), 0) as valor_em_aberto,
+         min(created_at) filter (where status in ('pendente','processando','erro')) as mais_antiga
+    from public.etiqueta_financeiro_pendente
+   group by unidade_id;
+
+grant execute on function public.etiqueta_financeiro_reservar_lote(text, integer, text, interval) to authenticated;
+grant execute on function public.etiqueta_financeiro_dispensar(uuid, text) to authenticated;
+grant execute on function public.etiqueta_financeiro_marcar_erro(uuid, text) to authenticated;
+grant execute on function public.etiqueta_financeiro_max_tentativas() to authenticated;
+grant select on public.vw_etiqueta_financeiro_fila to authenticated;
+do $$
+begin
+  execute 'alter view public.vw_etiqueta_financeiro_fila set (security_invoker = on)';
+exception when others then
+  execute 'revoke all on public.vw_etiqueta_financeiro_fila from authenticated';
 end $$;
 
 notify pgrst, 'reload schema';

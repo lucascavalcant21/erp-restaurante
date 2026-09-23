@@ -51,6 +51,12 @@ export const TIPOS_FICHA = {
     },
     // Seções com faixa colorida na ficha impressa; as demais têm só o título.
     destaques: ["ingredientes", "instrucoes"],
+    // Rendimento do prato: o peso final servido, sempre em gramas. Não é a soma
+    // crua dos ingredientes — cocção, redução, drenagem, absorção e perdas
+    // mudam o número —, por isso é digitado. Mora em `peso_final_g`, que é
+    // exatamente "o que sai pronto"; o rendimento interno em kg (soma dos
+    // ingredientes) continua existindo para o CMV e não aparece na ficha.
+    rendimento: { campo: "peso_final_g", unidadeFixa: "g", rotulo: "Rendimento", ajuda: "Peso final servido. Não precisa bater com a soma dos ingredientes." },
     mostra: {
       codigo: true,
       versaoEData: false,
@@ -58,7 +64,7 @@ export const TIPOS_FICHA = {
       categoria: true,
       setor: true,
       foto: true,
-      rendimento: false,
+      rendimento: true,
       tempoPreparo: false,
       tempoCoccao: false,
       pesoFinal: false,
@@ -91,6 +97,9 @@ export const TIPOS_FICHA = {
       vazio: "Nenhum passo de preparo cadastrado.",
     },
     destaques: ["ingredientes", "instrucoes", "armazenamento"],
+    // Pré-preparo rende em peso ou volume (kg/L do setor, ou a unidade antiga
+    // da ficha) — continua flexível, não vira grama fixa.
+    rendimento: { campo: "rendimento_porcoes", unidadeFixa: null, rotulo: "Rendimento", ajuda: "" },
     mostra: {
       codigo: true,
       versaoEData: true,
@@ -319,6 +328,17 @@ export function textoRendimento(ficha) {
   const contagem = quantidadeComUnidade(rend, ficha.rendimento_unidade);
   const pesoG = pesoTotalDaFicha(rend, ficha.rendimento_unidade, ficha.peso_porcao_g);
   return pesoG > 0 ? `${contagem} (${emPeso})` : contagem;
+}
+
+// Rendimento do prato: peso final servido, sempre em gramas ("420 g").
+export function textoRendimentoPrato(ficha) {
+  const g = parseNumero(ficha?.peso_final_g);
+  return g > 0 ? `${numeroBR(g, 0)} g` : "";
+}
+
+// O rendimento no modelo do tipo: gramas no prato, peso/volume no pré-preparo.
+export function textoRendimentoDoTipo(ficha, tipo = tipoFichaDe(ficha)) {
+  return tipo === "pre_preparo" ? textoRendimento(ficha) : textoRendimentoPrato(ficha);
 }
 
 export function textoTempo(minutos) {
@@ -563,7 +583,7 @@ export function dadosDaFicha(ficha, { todasFichas = [], complementos = null, mos
 
   const identificacao = soPreenchidos([
     m.categoria ? par("Categoria", ficha?.categoria) : null,
-    m.rendimento ? par("Rendimento", textoRendimento(ficha)) : null,
+    m.rendimento ? par(config.rendimento.rotulo, textoRendimentoDoTipo(ficha, tipo)) : null,
     m.tempoPreparo ? par("Tempo de preparo", textoTempo(ficha?.tempo_preparo)) : null,
     m.pesoFinal ? par(setor.id === "bar" ? "Volume final" : "Peso final", textoPesoFinal(ficha?.peso_final_g, ficha?.departamento)) : null,
     m.setor ? par("Setor", setor.rotulo) : null,
@@ -638,6 +658,9 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
     modo_preparo: String(form.modo_preparo ?? "").trim(),
     atualizado_em: agora,
   };
+
+  // Rendimento do prato: o peso final servido, digitado em gramas.
+  if (tipo === "prato") campos.peso_final_g = numeroOuNulo(form.peso_final_g);
 
   if (tipo === "pre_preparo") {
     campos.tempo_preparo = numeroOuNulo(form.tempo_preparo);

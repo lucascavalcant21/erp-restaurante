@@ -27,7 +27,7 @@ export default function EditorFicha({
   const Formulario = FORMULARIO_DO_TIPO[cfg.id];
   const Icone = ICONE_DO_TIPO[cfg.id];
 
-  const [inicial] = useState(() => estadoInicialDoEditor({ departamento, ficha, rascunho, todasFichas: fichas }));
+  const [inicial] = useState(() => estadoInicialDoEditor({ departamento, tipo: cfg.id, ficha, rascunho, todasFichas: fichas }));
   const [form, setForm] = useState(inicial.form);
   const [itens, setItens] = useState(inicial.itens);
   const [autoRendimento, setAuto] = useState(inicial.autoRendimento);
@@ -154,7 +154,7 @@ export default function EditorFicha({
     setSujo(false);
     onSalvo?.({ id: resultado.id, avisos: resultado.avisos || [], continuar });
     if (continuar) {
-      const vazio = estadoInicialDoEditor({ departamento: form.departamento });
+      const vazio = estadoInicialDoEditor({ departamento: form.departamento, tipo: cfg.id });
       setForm(vazio.form);
       setItens(vazio.itens);
       setAuto(true);

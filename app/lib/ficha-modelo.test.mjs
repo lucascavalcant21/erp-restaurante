@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   TIPOS_FICHA, tipoFichaDe, configDaFicha, setorDaFicha, marcadoresDoTipo,
-  quantidadeComUnidade, textoPesoFinal, textoRendimento, textoTempo,
+  quantidadeComUnidade, textoPesoFinal, textoRendimento, textoRendimentoPrato, textoRendimentoDoTipo, textoTempo,
+  custoPorPorcaoDaFicha, comCustoDeEmbalagens,
   ingredientesDaFicha, passosDeTexto, textoDeInstrucoes,
   linhasDeArmazenamento, validadePrincipal, armazenamentoParaGravar, armazenamentoParaEditar,
   custosDoPrePreparo, dadosDaFicha, camposParaGravar, validarEditor, quantidadeParaGravar,
@@ -58,11 +59,17 @@ test("setor é independente do tipo", () => {
 
 test("configuração central: prato é ficha de montagem, pré-preparo é de produção", () => {
   const p = TIPOS_FICHA.prato.mostra;
-  for (const campo of ["rendimento", "tempoPreparo", "tempoCoccao", "pesoFinal", "armazenamento",
+  for (const campo of ["tempoPreparo", "tempoCoccao", "pesoFinal", "armazenamento",
     "equipamentos", "alergenicos", "custos", "custoEmbalagem", "observacoes", "informacoesAdicionais"]) {
     assert.equal(p[campo], false, `prato não deveria ter ${campo}`);
   }
   assert.equal(p.instrucoes, true);
+  // O prato tem rendimento: o peso final servido, sempre em gramas.
+  assert.equal(p.rendimento, true);
+  assert.deepEqual(TIPOS_FICHA.prato.rendimento.campo, "peso_final_g");
+  assert.deepEqual(TIPOS_FICHA.prato.rendimento.unidadeFixa, "g");
+  // O do pré-preparo não tem unidade fixa.
+  assert.equal(TIPOS_FICHA.pre_preparo.rendimento.unidadeFixa, null);
   assert.equal(TIPOS_FICHA.prato.instrucoes.titulo, "Montagem do prato");
 
   const pp = TIPOS_FICHA.pre_preparo.mostra;
@@ -225,7 +232,9 @@ test("gravar PRATO não escreve campos do pré-preparo nem apaga os antigos", ()
   assert.equal(campos.tipo_base, null);
   assert.equal(campos.modo_preparo, "1. Montar");
   assert.equal(campos.rendimento_porcoes, 0.7);
-  for (const coluna of ["tempo_preparo", "responsavel", "peso_final_g", "tempo_coccao", "tempo_coccao_min",
+  // Rendimento do prato: peso final servido, em gramas.
+  assert.equal(campos.peso_final_g, 900);
+  for (const coluna of ["tempo_preparo", "responsavel", "tempo_coccao", "tempo_coccao_min",
     "observacoes", "preco_venda", "cmv_meta", "padrao_montagem", "metodo_bar", "unidade_id", "versao"]) {
     assert.equal(coluna in campos, false, `edição de prato não deveria gravar ${coluna}`);
   }
@@ -235,6 +244,43 @@ test("gravar PRATO não escreve campos do pré-preparo nem apaga os antigos", ()
   assert.equal(novo.cmv_meta, 30);
   assert.equal(novo.departamento, "bar");
   assert.equal(novo.rendimento_unidade, "l");
+  // Prato sem rendimento digitado grava null, não zero.
+  assert.equal(novo.peso_final_g, null);
+});
+
+test("rendimento do PRATO: peso servido em gramas, na ficha e no documento", () => {
+  const comRendimento = { ...prato, peso_final_g: 420 };
+  assert.equal(textoRendimentoPrato(comRendimento), "420 g");
+  assert.equal(textoRendimentoDoTipo(comRendimento), "420 g");
+  // 350 g continua 350 g; nada de virar 0,35 kg.
+  assert.equal(textoRendimentoPrato({ ...prato, peso_final_g: 350 }), "350 g");
+  assert.equal(textoRendimentoPrato(prato), "");
+
+  const d = dadosDaFicha(comRendimento, { todasFichas: todas });
+  const linha = d.identificacao.find(i => i.rotulo === "Rendimento");
+  assert.equal(linha.valor, "420 g");
+  // O rendimento interno (soma dos ingredientes, em kg) não vai para a ficha.
+  assert.equal(d.identificacao.some(i => i.valor.includes("0,7")), false);
+  // Prato sem rendimento não imprime a linha vazia.
+  assert.equal(dadosDaFicha(prato, { todasFichas: todas }).identificacao.some(i => i.rotulo === "Rendimento"), false);
+  // No bar o prato também rende em gramas.
+  assert.equal(dadosDaFicha({ ...drink, peso_final_g: 300 }).identificacao.find(i => i.rotulo === "Rendimento").valor, "300 g");
+  // Pré-preparo continua flexível: kg, L, un — não vira grama fixa.
+  assert.equal(dadosDaFicha(arrozBranco).identificacao.find(i => i.rotulo === "Rendimento").valor, "2 kg");
+  assert.equal(textoRendimentoDoTipo({ ...arrozBranco, rendimento_porcoes: 1.5, rendimento_unidade: "l", departamento: "bar" }), "1,5 L");
+});
+
+test("o rendimento do prato não mexe no CMV", () => {
+  // O custo do prato é o mesmo com e sem peso final digitado: o rendimento
+  // operacional (gramas servidas) não entra na conta do custo.
+  const semPeso = custoPorPorcaoDaFicha(prato, todas);
+  const comPeso = custoPorPorcaoDaFicha({ ...prato, peso_final_g: 420 }, todas);
+  assert.equal(comPeso.custoTotal, semPeso.custoTotal);
+  assert.equal(comPeso.custoPorcao, semPeso.custoPorcao);
+  // E a embalagem continua contada pelo rendimento interno, não pelas gramas.
+  const produtos = [{ ficha_id: "f-prato", embalagens: [{ embalagem_id: "e1", qtd: 1 }] }];
+  const [a] = comCustoDeEmbalagens([{ ...prato, peso_final_g: 420 }], produtos, [{ id: "e1", preco_unitario: 0.8 }]);
+  assert.equal(a.custo_embalagens_total, 0.8);
 });
 
 test("gravar PRÉ-PREPARO leva tempo, peso final, responsável e validade", () => {

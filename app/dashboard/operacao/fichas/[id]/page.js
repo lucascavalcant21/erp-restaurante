@@ -30,6 +30,7 @@ import { logoSeldeestrelaSVG } from "../../../../lib/marca";
 import {
   TIPOS_FICHA, tipoFichaDe, estiloDoTipo, dadosDaFicha, podeVerCustosFicha, categoriasDoTipo,
   comCustoDeEmbalagens, custoPorPorcaoDaFicha, textoDeInstrucoes, ingredientesDaFicha, linhasDeArmazenamento, textoRendimento,
+  textoRendimentoPrato,
   validadePrincipal, STATUS_FICHA,
 } from "../../../../lib/ficha-modelo.mjs";
 import { montarDocumentoFichas, nomeDoArquivo } from "../../../../lib/ficha-documento.mjs";
@@ -195,6 +196,7 @@ export default function FichaTecnicaPage() {
     nome_receita: ficha.nome_receita || null,
     categoria: ficha.categoria || null,
     departamento: ficha.departamento || null,
+    ...(tipo === "prato" ? { rendimento: textoRendimentoPrato(ficha) || null } : {}),
     ...(tipo === "pre_preparo" ? {
       responsavel: ficha.responsavel || null,
       rendimento: textoRendimento(ficha) || null,

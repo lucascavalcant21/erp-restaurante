@@ -124,6 +124,8 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
       nome_receita: resultado.nome_receita,
       modo_preparo: resultado.modo_preparo || "",
       tempo_preparo: resultado.tempo_preparo || "",
+      // Prato: rendimento (peso servido) estimado pela IA, para conferir no editor.
+      peso_final_g: resultado.peso_final_g || null,
       equipamentos: resultado.equipamentos || [],
       alergenicos: resultado.alergenicos || [],
       armazenamento: resultado.armazenamento || undefined,
@@ -238,7 +240,12 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
                   <p className="rounded-xl bg-elevated p-3"><b className="text-fg">Alergênicos:</b> {resultado.alergenicos?.length ? resultado.alergenicos.join(", ") : "nenhum identificado"}</p>
                   <p className="rounded-xl bg-elevated p-3"><b className="text-fg">Validade:</b> {resultado.armazenamento?.validade_dias ? `${resultado.armazenamento.validade_dias} dias (informada na receita)` : "preencha no editor"}</p>
                 </div>
-              ) : null}
+              ) : (
+                <p className="rounded-xl bg-elevated p-3 text-sm">
+                  <b className="text-fg">Rendimento:</b>{" "}
+                  {resultado.peso_final_g ? `${resultado.peso_final_g} g servidos (estimativa da IA)` : "confira no editor"}
+                </p>
+              )}
 
               <button type="button" onClick={() => setResultado(null)} className="text-xs font-bold text-muted hover:text-fg">Voltar e enviar outra receita</button>
             </>

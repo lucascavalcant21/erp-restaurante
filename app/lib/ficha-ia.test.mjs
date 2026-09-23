@@ -27,6 +27,7 @@ test("resposta de PRATO vira ingredientes + montagem", () => {
     nome_receita: " Picanha na brasa ",
     ingredientes: [{ nome: "Arroz branco", quantidade: 300, unidade: "g" }, { nome: "", quantidade: 1 }, { nome: "Farofa", quantidade: 50, unidade: "gramas" }],
     montagem: ["Arroz à esquerda", "Picanha ao centro"],
+    rendimento_g: 420.4,
     armazenamento: { validade_dias: 99 },
   }, { tipo: "prato" });
   assert.equal(ficha.tipo, "prato");
@@ -36,6 +37,10 @@ test("resposta de PRATO vira ingredientes + montagem", () => {
     { nome: "Farofa", quantidade_lida: 50, unidade_lida: "un" },
   ]);
   assert.equal(ficha.modo_preparo, "1. Arroz à esquerda\n2. Picanha ao centro");
+  // Rendimento do prato: gramas servidas, arredondadas.
+  assert.equal(ficha.peso_final_g, 420);
+  // Sem estimativa não inventa número: fica null e o editor sugere a soma.
+  assert.equal(normalizarFichaIA({ nome_receita: "X", ingredientes: [] }, { tipo: "prato" }).peso_final_g, null);
   // Prato não recebe campos de produção, mesmo que a IA mande.
   assert.equal("armazenamento" in ficha, false);
   assert.equal("tempo_preparo" in ficha, false);

@@ -117,6 +117,22 @@ test("ficha nova e rascunho da IA", () => {
   assert.deepEqual(ia.equipamentos, ["Panela"]);
 });
 
+test("rendimento do prato: gramas servidas, sugeridas e mantidas", () => {
+  // Prato novo: a sugestão é a soma dos ingredientes em gramas, para ajustar.
+  const novo = estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato", rascunho: { itens: [{ unidade: "kg", quantidade: 0.3 }, { unidade: "g", quantidade: 120 }] } });
+  assert.equal(novo.form.peso_final_g, "420");
+  // Estimativa da IA manda sobre a soma.
+  const daIA = estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato", rascunho: { peso_final_g: 350, itens: [{ unidade: "kg", quantidade: 0.5 }] } });
+  assert.equal(daIA.form.peso_final_g, "350");
+  // Sem ingredientes ainda, fica vazio (nada de número inventado).
+  assert.equal(estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato" }).form.peso_final_g, "");
+  // Pré-preparo novo não ganha peso final nenhum.
+  assert.equal(estadoInicialDoEditor({ departamento: "cozinha", tipo: "pre_preparo", rascunho: { itens: [{ unidade: "kg", quantidade: 2 }] } }).form.peso_final_g, "");
+  // Prato existente reabre com o que está gravado, sem recalcular.
+  const existente = estadoInicialDoEditor({ departamento: "cozinha", ficha: { ...prato, peso_final_g: 420 }, todasFichas: todas, complementos: {} });
+  assert.equal(existente.form.peso_final_g, "420");
+});
+
 test("preço por grama suspeito", () => {
   assert.equal(precoSuspeito({ unidade: "g", custo_unitario: 2 }), true);
   assert.equal(precoSuspeito({ unidade: "kg", custo_unitario: 2 }), false);

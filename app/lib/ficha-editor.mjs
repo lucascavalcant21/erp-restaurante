@@ -115,7 +115,7 @@ export function rendimentoSomado(itens, departamento) {
 }
 
 // Estado inicial do editor. `ficha` nula = ficha nova; `rascunho` vem da IA.
-export function estadoInicialDoEditor({ departamento, ficha = null, rascunho = null, todasFichas = [], complementos = null }) {
+export function estadoInicialDoEditor({ departamento, tipo = null, ficha = null, rascunho = null, todasFichas = [], complementos = null }) {
   const dept = setorId(ficha?.departamento || rascunho?.departamento || departamento);
   if (ficha) {
     // Sem os complementos (ainda carregando), vale só o texto da própria ficha:
@@ -159,6 +159,14 @@ export function estadoInicialDoEditor({ departamento, ficha = null, rascunho = n
   // hora, como sairia se tivessem sido digitados um a um.
   const itensDoRascunho = rascunho?.itens || [];
   const somaInicial = itensDoRascunho.length ? rendimentoPelosIngredientes(itensDoRascunho, dept) : null;
+  // Prato novo: o rendimento é o peso final servido, em gramas. Começa na soma
+  // dos ingredientes (ou no que a IA estimou) e é para ser ajustado à mão —
+  // cozinhar, reduzir e escorrer mudam o peso que vai ao cliente.
+  const pesoInicialDoPrato = tipo === "prato"
+    ? (parseNumero(rascunho?.peso_final_g) > 0
+      ? String(Math.round(parseNumero(rascunho.peso_final_g)))
+      : (somaInicial ? String(Math.round(somaInicial.valor * 1000)) : ""))
+    : "";
   return {
     form: {
       id: null,
@@ -172,7 +180,7 @@ export function estadoInicialDoEditor({ departamento, ficha = null, rascunho = n
       rendimento_porcoes: rascunho?.rendimento_porcoes ? String(rascunho.rendimento_porcoes) : (somaInicial ? String(somaInicial.valor) : "1"),
       rendimento_unidade: somaInicial ? somaInicial.unidade : unidadePadraoDepartamento(dept),
       tempo_preparo: rascunho?.tempo_preparo ? String(rascunho.tempo_preparo) : "",
-      peso_final_g: "",
+      peso_final_g: pesoInicialDoPrato,
       responsavel: "",
       alergenicos_pode_conter: "",
     },

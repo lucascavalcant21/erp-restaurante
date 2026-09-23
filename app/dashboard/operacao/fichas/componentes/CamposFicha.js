@@ -332,6 +332,34 @@ export function CampoInstrucoes({ id, valor, onChange, placeholder, tipo, nomeRe
   );
 }
 
+// ─── Rendimento ─────────────────────────────────────────────────────────────
+
+// Rendimento do prato: o peso final servido, sempre em gramas. A soma dos
+// ingredientes é só um ponto de partida — cocção, redução, drenagem e perdas
+// mudam o que vai ao cliente —, então o número é digitado.
+export function CampoRendimentoPrato({ form, onChange, itens, ajuda = "" }) {
+  const soma = rendimentoSomado(itens, form.departamento);
+  const somaG = soma ? Math.round(soma.valor * 1000) : 0;
+  const valor = form.peso_final_g === "" || form.peso_final_g == null ? "" : String(parseNumero(form.peso_final_g));
+  return (
+    <div>
+      <Rotulo htmlFor="ficha-rendimento-prato">Rendimento</Rotulo>
+      <div className="flex items-center gap-2">
+        <input id="ficha-rendimento-prato" type="number" inputMode="numeric" min="0" step="1" value={valor} placeholder="Ex.: 420"
+          onChange={e => onChange({ peso_final_g: e.target.value })} className="erp-input" />
+        <span className="w-10 text-center text-sm font-black text-muted">g</span>
+      </div>
+      {ajuda ? <p className="mt-1 text-xs font-medium text-muted">{ajuda}</p> : null}
+      {somaG > 0 && somaG !== parseNumero(valor) ? (
+        <button type="button" onClick={() => onChange({ peso_final_g: String(somaG) })}
+          className="mt-1 text-xs font-bold text-[color:var(--tipo)] hover:underline">
+          usar a soma dos ingredientes ({numero(somaG, 0)} g)
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 // ─── Produção (pré-preparo) ─────────────────────────────────────────────────
 
 // Rendimento do pré-preparo: soma dos ingredientes (automático) ou digitado.

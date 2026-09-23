@@ -29,12 +29,14 @@ Extraia:
    - "quantidade": só o número.
    - "unidade": exatamente um destes: "kg", "g", "l", "ml", "un".
 3. "montagem": passos curtos da MONTAGEM do prato (onde vai cada item, ordem, finalização e apresentação), no imperativo. Não descreva o preparo dos componentes.
+4. "rendimento_g": peso final servido de UM prato, em gramas (número inteiro). É o peso que vai à mesa, depois de cozinhar e escorrer — pode ser menor que a soma crua dos ingredientes. Se não der para estimar, use null.
 
 Responda ESTRITAMENTE com um JSON válido, sem texto antes ou depois:
 {
   "nome_receita": "...",
   "ingredientes": [ { "nome": "...", "quantidade": 0, "unidade": "g" } ],
-  "montagem": [ "...", "..." ]
+  "montagem": [ "...", "..." ],
+  "rendimento_g": 0
 }`;
   }
   return `Você é um chef que transforma uma receita solta (texto e/ou foto) numa FICHA DE PRÉ-PREPARO do setor "${setor}" de um restaurante.
@@ -108,7 +110,10 @@ export function normalizarFichaIA(obj = {}, { tipo } = {}) {
   };
   if (t === "prato") {
     const passos = Array.isArray(obj?.montagem) ? obj.montagem : (Array.isArray(obj?.modo_preparo) ? obj.modo_preparo : []);
-    return { ...base, modo_preparo: etapasEmTexto(passos) };
+    // Rendimento do prato: peso final servido, em gramas. Sem estimativa da IA
+    // fica vazio e o editor sugere a soma dos ingredientes.
+    const rendimento = Math.round(numero(obj?.rendimento_g ?? obj?.peso_final_g));
+    return { ...base, modo_preparo: etapasEmTexto(passos), peso_final_g: rendimento > 0 ? rendimento : null };
   }
   const oficiais = new Map(ALERGENICOS_DECLARAVEIS.map(a => [a.toLowerCase(), a]));
   const arm = obj?.armazenamento || {};

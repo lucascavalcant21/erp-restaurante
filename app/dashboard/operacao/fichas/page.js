@@ -33,7 +33,7 @@ import { estimarPaginasDocumento, ordenarFichasDocumento } from "../../../lib/fi
 import {
   TIPOS_FICHA, tipoFichaDe, estiloDoTipo, categoriasDoTipo, configCategoriasDoTipo, CHAVE_CONFIG_CATEGORIA,
   podeVerCustosFicha, dadosDaFicha, entraNoReceituario, quantidadeComUnidade, custosDoPrePreparo, brlUnitario,
-  comCustoDeEmbalagens,
+  comCustoDeEmbalagens, textoRendimentoPrato,
 } from "../../../lib/ficha-modelo.mjs";
 import { montarDocumentoFichas, nomeDoArquivo } from "../../../lib/ficha-documento.mjs";
 import { unidadeNormalizada } from "../../../lib/ingredientes-utils.mjs";
@@ -1362,8 +1362,8 @@ function FichasRunner() {
                                  </div>
                                )}
                                <div className="flex items-center justify-between py-2">
-                                 <span className="font-bold text-slate-600">Quantidade</span>
-                                 <span className="text-sm font-black text-fg">{rendimentoTexto}</span>
+                                 <span className="font-bold text-slate-600">Rendimento</span>
+                                 <span className="text-sm font-black text-fg">{textoRendimentoPrato(f) || "—"}</span>
                                </div>
 
                                {/* Daqui para baixo é tudo dinheiro: só para quem tem view_costs. */}

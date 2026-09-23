@@ -4,18 +4,19 @@
 // não é do tipo não existe aqui (não é campo escondido nem desabilitado).
 // Os dois servem para cozinha e bar: o setor é só mais um campo.
 //
-//   FormularioPrato       nome, categoria, setor, foto, ingredientes, montagem
+//   FormularioPrato       nome, categoria, setor, foto, rendimento (g),
+//                           ingredientes, montagem
 //   FormularioPrePreparo  + responsável, rendimento, tempo, peso final,
 //                           modo de preparo, armazenamento, equipamentos,
 //                           alergênicos e custos
 
 import {
   SecaoEditor, CampoFoto, SeletorSetor, CampoCategoria, ListaIngredientes, CampoInstrucoes,
-  CampoRendimento, CampoPesoFinal, CampoTempoPreparo, CampoArmazenamento, CampoEquipamentos,
+  CampoRendimento, CampoRendimentoPrato, CampoPesoFinal, CampoTempoPreparo, CampoArmazenamento, CampoEquipamentos,
   CampoAlergenicos, PainelCustos,
 } from "./CamposFicha";
 
-function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, comResponsavel = false }) {
+function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, comResponsavel = false, campoRendimento = null }) {
   return (
     <SecaoEditor id="ficha-identificacao" titulo="Identificação">
       <div className="flex gap-4">
@@ -32,6 +33,7 @@ function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, co
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <CampoCategoria valor={form.categoria} opcoes={categorias} onChange={categoria => mudar({ categoria })} onGerenciar={onGerenciarCategorias} />
         <SeletorSetor valor={form.departamento} onChange={departamento => mudar({ departamento })} />
+        {campoRendimento}
         {comResponsavel ? (
           <div className="sm:col-span-2">
             <label htmlFor="ficha-responsavel" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Responsável</label>
@@ -68,7 +70,8 @@ export function FormularioPrato(props) {
   const { cfg, form, mudar, itens, ingredientes } = props;
   return (
     <div className="space-y-4">
-      <Identificacao {...props} />
+      <Identificacao {...props}
+        campoRendimento={<CampoRendimentoPrato form={form} onChange={mudar} itens={itens} ajuda={cfg.rendimento.ajuda} />} />
       <Ingredientes cfg={cfg} ingredientes={ingredientes} />
       <Instrucoes cfg={cfg} form={form} mudar={mudar} itens={itens} />
     </div>

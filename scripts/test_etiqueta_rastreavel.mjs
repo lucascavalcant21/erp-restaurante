@@ -71,10 +71,20 @@ await db.exec(`
 
   create table public.fichas_tecnicas (id uuid primary key default gen_random_uuid(), unidade_id text, nome_receita text);
   create table public.colaboradores (id uuid primary key default gen_random_uuid(), unidade_id text, nome text);
+  /* Schema REAL (db/migracao_producao_salao.sql): a coluna é
+     quantidade_produzida. O stub anterior dizia "quantidade", e por isso o
+     erro na RPC de produção passou batido aqui. */
   create table public.producao_diaria (
     id uuid primary key default gen_random_uuid(),
-    unidade_id text, ficha_id uuid, colaborador_id uuid,
-    quantidade numeric, created_at timestamptz default now()
+    unidade_id text not null, ficha_id uuid, colaborador_id uuid,
+    quantidade_produzida numeric(14,3) not null default 0,
+    departamento text, local_armazenamento text,
+    created_at timestamptz not null default now()
+  );
+  create table public.contas_pagar (
+    id uuid primary key default gen_random_uuid(),
+    unidade_id text, descricao text, valor numeric, data_vencimento date,
+    data_pagamento date, categoria text, status text
   );
 `);
 
@@ -101,7 +111,7 @@ await db.exec(`
     ('${ID.insumoBar}', 'u1', 'Xarope', 'bar', 'l', 20),
     ('${ID.molho}', 'u1', 'Molho branco', 'cozinha', 'kg', 8);
   insert into public.fichas_tecnicas (id, unidade_id, nome_receita) values ('${ID.ficha}', 'u1', 'Molho branco');
-  insert into public.producao_diaria (id, unidade_id, ficha_id, quantidade) values ('${ID.producao}', 'u1', '${ID.ficha}', 6);
+  insert into public.producao_diaria (id, unidade_id, ficha_id, quantidade_produzida) values ('${ID.producao}', 'u1', '${ID.ficha}', 6);
   insert into public.estoques (unidade_id, nome, slug, tipo, controla_validade) values
     ('u1','Cozinha','cozinha','alimentos',true), ('u1','Bar','bar','bebidas',true),
     ('u1','Pré-preparos cozinha','pre-preparos-cozinha','alimentos',true),
@@ -275,6 +285,219 @@ const conciliacao = await uma(`
   [ID.insumo]);
 conferir("M. o que as etiquetas dizem bate com o saldo do estoque de manipulados",
   num(conciliacao.etiquetas), num(conciliacao.estoque));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FASE B.1 — o que a fase B tinha deixado frouxo
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── N. O evento aponta para o movimento CERTO, por RETURNING ────────────── */
+const etqN = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 2 });
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda')", [etqN.id]);
+const eventoN = await uma(
+  "select movimento_id from public.etiqueta_eventos where etiqueta_id=$1 and tipo='recebida'", [etqN.id]);
+const movN = await uma(
+  "select id, quantidade, etiqueta_id from public.estoque_movimentacoes_multi where id=$1", [eventoN.movimento_id]);
+conferir("N. o evento guarda o id do movimento que a própria função inseriu",
+  [movN?.id === eventoN.movimento_id, num(movN?.quantidade), movN?.etiqueta_id === etqN.id],
+  [true, 2, true]);
+
+/* Prova que não é mais "o mais recente do par": um movimento posterior do MESMO
+   par, feito por fora, não pode roubar o vínculo do evento anterior. */
+await db.query(
+  "select public.registrar_movimento_estoque_multi('u1', (select id from public.estoques where slug='cozinha' and unidade_id='u1'), $1, 'entrada', 5, null, 'Outro caminho', 'Compra avulsa')",
+  [ID.insumo]);
+const eventoNDepois = await uma(
+  "select movimento_id from public.etiqueta_eventos where etiqueta_id=$1 and tipo='recebida'", [etqN.id]);
+conferir("N2. movimento posterior do mesmo par não rouba o vínculo",
+  eventoNDepois.movimento_id, eventoN.movimento_id);
+
+/* ── O. Idempotência protege o MOVIMENTO, não só o evento ────────────────── */
+const etqO = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 3 });
+const chaveO = "entrada-retry-001";
+const movsAntesO = await contarMovimentos();
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda', $2)", [etqO.id, chaveO]);
+const movsMeioO = await contarMovimentos();
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda', $2)", [etqO.id, chaveO]);
+const movsFimO = await contarMovimentos();
+const eventosO = Number((await uma(
+  "select count(*)::int as n from public.etiqueta_eventos where etiqueta_id=$1 and tipo='recebida'", [etqO.id])).n);
+conferir("O. retry por timeout: 1 movimento e 1 evento, não 2 e 1",
+  [movsMeioO - movsAntesO, movsFimO - movsMeioO, eventosO], [1, 0, 1]);
+conferir("O2. a chave foi reservada antes do efeito e guarda o resultado",
+  (await uma("select operacao, resultado_etiqueta_id is not null as fechada from public.etiqueta_operacoes where chave=$1", [chaveO])),
+  { operacao: "registrar_entrada", fechada: true });
+
+/* A mesma chave em outra operação é erro, não silêncio. */
+const chaveTrocada = await (async () => {
+  try { await db.query("select public.etiqueta_usar($1, 0.1, null, null, null, $2)", [etqO.id, chaveO]); return "aceitou"; }
+  catch (e) { return String(e?.message || e).includes("já foi usada") ? "recusou" : "erro diferente"; }
+})();
+conferir("O3. chave reaproveitada em outra operação é recusada", chaveTrocada, "recusou");
+
+/* ── P. Perda: estoque e financeiro na MESMA transação ───────────────────── */
+const etqP = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 2, condicao: "aberto" });
+await db.query("update public.etiquetas set custo_unit = 10 where id=$1", [etqP.id]);
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda')", [etqP.id]);
+const chaveP = "perda-retry-001";
+await db.query("select public.etiqueta_perda($1, 0.5, 'Caiu no chão', null, 'Eduarda', $2)", [etqP.id, chaveP]);
+await db.query("select public.etiqueta_perda($1, 0.5, 'Caiu no chão', null, 'Eduarda', $2)", [etqP.id, chaveP]);
+const pend = await db.query(
+  "select valor, status, descricao from public.etiqueta_financeiro_pendente where etiqueta_id=$1", [etqP.id]);
+conferir("P. a perda deixa UMA pendência financeira, na transação do estoque",
+  [pend.rows.length, num(pend.rows[0]?.valor), pend.rows[0]?.status], [1, 5, "pendente"]);
+conferir("P2. o saldo caiu uma vez só, apesar do retry",
+  num((await uma("select saldo from public.etiquetas where id=$1", [etqP.id])).saldo), 1.5);
+
+/* Se o movimento falhar, a pendência financeira não pode existir. */
+const etqPFalha = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 1, condicao: "aberto" });
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda')", [etqPFalha.id]);
+try { await db.query("select public.etiqueta_perda($1, 99, 'Impossível')", [etqPFalha.id]); } catch { /* esperado */ }
+conferir("P3. perda recusada não deixa pendência financeira órfã",
+  Number((await uma("select count(*)::int as n from public.etiqueta_financeiro_pendente where etiqueta_id=$1", [etqPFalha.id])).n), 0);
+
+/* Fechar a pendência é idempotente. */
+const idPend = (await uma("select id from public.etiqueta_financeiro_pendente where etiqueta_id=$1", [etqP.id])).id;
+const contaFake = "dddddddd-0000-4000-8000-000000000001";
+await db.query("select public.etiqueta_financeiro_marcar_lancado($1, $2)", [idPend, contaFake]);
+await db.query("select public.etiqueta_financeiro_marcar_lancado($1, $2)", [idPend, "dddddddd-0000-4000-8000-000000000002"]);
+conferir("P4. marcar lançado duas vezes não troca a conta nem duplica",
+  (await uma("select status, conta_pagar_id from public.etiqueta_financeiro_pendente where id=$1", [idPend])),
+  { status: "lancado", conta_pagar_id: contaFake });
+
+/* ── Q. Unidades: converte o que dá, recusa o que não dá ─────────────────── */
+conferir("Q. 500 g num insumo cadastrado em kg viram 0,5 kg",
+  num((await uma("select public.etiqueta__converter(500, 'g', 'kg') as v")).v), 0.5);
+conferir("Q2. 1 kg vira 1000 g e 1 L vira 1000 ml",
+  [num((await uma("select public.etiqueta__converter(1,'kg','g') as v")).v),
+   num((await uma("select public.etiqueta__converter(1,'l','ml') as v")).v)], [1000, 1000]);
+for (const [de, para] of [["kg", "l"], ["g", "ml"], ["un", "kg"], ["garrafa", "lata"]]) {
+  const r = await (async () => {
+    try { await db.query("select public.etiqueta__converter(1, $1, $2)", [de, para]); return "converteu"; }
+    catch (e) { return String(e?.message || e).includes("fator cadastrado") ? "recusou" : "erro diferente"; }
+  })();
+  conferir(`Q3. ${de} -> ${para} sem fator cadastrado é recusado`, r, "recusou");
+}
+/* O caso real: etiqueta impressa em g, insumo cadastrado em kg. */
+const etqQ = await novaEtiqueta({ produto: "Molho branco", insumo: ID.molho, qtd: 500, unidade: "g" });
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda')", [etqQ.id]);
+conferir("Q4. etiqueta de 500 g entra como 0,5 kg no estoque, não 500",
+  [num((await uma("select saldo from public.etiquetas where id=$1", [etqQ.id])).saldo),
+   (await uma("select saldo_unidade from public.etiquetas where id=$1", [etqQ.id])).saldo_unidade,
+   await saldoEstoque("cozinha", ID.molho)],
+  [0.5, "kg", 0.5]);
+
+/* ── R. Produção já consumida antes da etiquetagem ───────────────────────── */
+const ID2 = { producao2: "cccccccc-0000-4000-8000-000000000002", requeijao: "aaaaaaaa-0000-4000-8000-000000000004" };
+/* Insumo exclusivo de R e S: os blocos anteriores já movimentaram os outros. */
+await db.query("insert into public.insumos (id, unidade_id, nome, departamento, unidade_medida, custo_unitario) values ($1, 'u1', 'Requeijão', 'cozinha', 'kg', 15)", [ID2.requeijao]);
+await db.query(
+  "insert into public.producao_diaria (id, unidade_id, ficha_id, quantidade_produzida) values ($1,'u1',$2,10)",
+  [ID2.producao2, ID.ficha]);
+const estPre = (await uma("select id from public.estoques where slug='pre-preparos-cozinha' and unidade_id='u1'")).id;
+/* A produção lança 10 kg no estoque, como producao_diaria faz hoje. */
+await db.query("select public.registrar_movimento_estoque_multi('u1', $1, $2, 'entrada', 10, null, 'Produção', 'Produção do dia')", [estPre, ID2.requeijao]);
+/* Alguém consome 4 kg antes de qualquer etiqueta existir. */
+await db.query("select public.registrar_movimento_estoque_multi('u1', $1, $2, 'saida', 4, null, 'Cozinha', 'Consumo antes de etiquetar')", [estPre, ID2.requeijao]);
+const etqR = await novaEtiqueta({ produto: "Molho branco", insumo: ID2.requeijao, qtd: 10, unidade: "kg", condicao: "manipulado" });
+const excedeFisico = await (async () => {
+  try { await db.query("select public.etiqueta_vincular_producao($1, $2)", [etqR.id, ID2.producao2]); return "aceitou"; }
+  catch (e) { return String(e?.message || e).includes("não etiquetado") ? "recusou" : `erro diferente: ${String(e?.message || e).slice(0, 60)}`; }
+})();
+conferir("R. produzir 10 e consumir 4 antes: etiquetar 10 é recusado", excedeFisico, "recusou");
+const etqR6 = await novaEtiqueta({ produto: "Molho branco", insumo: ID2.requeijao, qtd: 6, unidade: "kg", condicao: "manipulado" });
+await db.query("select public.etiqueta_vincular_producao($1, $2)", [etqR6.id, ID2.producao2]);
+conferir("R2. etiquetar os 6 que sobraram é aceito, sem movimentar estoque",
+  [num((await uma("select saldo from public.etiquetas where id=$1", [etqR6.id])).saldo),
+   await saldoEstoque("pre-preparos-cozinha", ID2.requeijao)], [6, 6]);
+
+/* ── S. Quanto do estoque tem etiqueta ───────────────────────────────────── */
+await db.query("select public.registrar_movimento_estoque_multi('u1', $1, $2, 'entrada', 3, null, 'Legado', 'Estoque antigo sem etiqueta')", [estPre, ID2.requeijao]);
+const rastr = await uma(
+  "select saldo_total, saldo_rastreado, saldo_nao_rastreado from public.vw_estoque_rastreabilidade where estoque_id=$1 and insumo_id=$2",
+  [estPre, ID2.requeijao]);
+conferir("S. total 9, rastreado 6, não rastreado 3",
+  [num(rastr.saldo_total), num(rastr.saldo_rastreado), num(rastr.saldo_nao_rastreado)], [9, 6, 3]);
+conferir("S2. nenhuma etiqueta foi inventada para o saldo antigo",
+  Number((await uma("select count(*)::int as n from public.etiquetas where insumo_id=$1 and estoque_id=$2", [ID2.requeijao, estPre])).n), 1);
+
+/* ── T. Integridade referencial de verdade ───────────────────────────────── */
+const fks = await db.query(
+  "select conname from pg_constraint where conname in ('etiquetas_insumo_fk','etiquetas_estoque_fk','etiquetas_producao_fk','movimentacoes_multi_etiqueta_fk') order by conname");
+conferir("T. as quatro FKs foram criadas",
+  fks.rows.map((r) => r.conname),
+  ["etiquetas_estoque_fk", "etiquetas_insumo_fk", "etiquetas_producao_fk", "movimentacoes_multi_etiqueta_fk"]);
+const fkBarra = await (async () => {
+  try {
+    await db.query("insert into public.etiquetas (unidade_id, codigo, produto, insumo_id) values ('u1','ZZZ','Fantasma','eeeeeeee-0000-4000-8000-000000000009')");
+    return "aceitou";
+  } catch (e) { return String(e?.message || e).includes("etiquetas_insumo_fk") ? "recusou" : "erro diferente"; }
+})();
+conferir("T2. insumo_id apontando para nada é recusado pelo banco", fkBarra, "recusou");
+
+/* ── U. Criar, imprimir e reimprimir são três coisas ─────────────────────── */
+const etqU = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 1 });
+await db.query("select public.etiqueta_registrar_entrada($1, null, 'Eduarda')", [etqU.id]);
+const estoqueAntesU = await saldoEstoque("cozinha", ID.insumo);
+conferir("U. etiqueta nasce com evento 'criada' e sem 'impressa'",
+  (await db.query("select tipo from public.etiqueta_eventos where etiqueta_id=$1 order by created_at, tipo", [etqU.id])).rows.map((r) => r.tipo),
+  ["criada", "recebida"]);
+conferir("U2. e aparece como pendente de impressão",
+  Number((await uma("select count(*)::int as n from public.vw_etiquetas_pendentes_impressao where id=$1", [etqU.id])).n), 1);
+/* A impressora falhou: nada mudou no estoque e a etiqueta continua pendente. */
+conferir("U3. impressora falhando não mexe no estoque", await saldoEstoque("cozinha", ID.insumo), estoqueAntesU);
+/* Agora imprimiu de verdade. */
+await db.query("select public.etiqueta_marcar_impressa($1, null, 'Eduarda')", [etqU.id]);
+conferir("U4. depois de impressa sai da lista de pendentes e o estoque não muda",
+  [Number((await uma("select count(*)::int as n from public.vw_etiquetas_pendentes_impressao where id=$1", [etqU.id])).n),
+   await saldoEstoque("cozinha", ID.insumo)], [0, estoqueAntesU]);
+await db.query("select public.etiqueta_marcar_impressa($1, null, 'Eduarda')", [etqU.id]);
+conferir("U5. a segunda impressão é 'reimpressa', não 'impressa' de novo",
+  (await db.query("select tipo, count(*)::int as n from public.etiqueta_eventos where etiqueta_id=$1 and tipo in ('impressa','reimpressa') group by tipo order by tipo", [etqU.id])).rows
+    .map((r) => `${r.tipo}:${r.n}`),
+  ["impressa:1", "reimpressa:1"]);
+
+/* ── V. Tenant: TODAS as operações negadas para a empresa vizinha ────────── */
+const etqV = await novaEtiqueta({ produto: "Creme de leite", insumo: ID.insumo, qtd: 2, unidadeId: "u2" });
+const tentativas = [
+  ["usar", "select public.etiqueta_usar($1, 0.1)"],
+  ["abrir", "select public.etiqueta_abrir($1, 0)"],
+  ["perda", "select public.etiqueta_perda($1, 0.1, 'x')"],
+  ["fracionar", "select * from public.etiqueta_fracionar($1, array[0.5]::numeric[])"],
+  ["reimprimir", "select public.etiqueta_reimprimir($1)"],
+  ["novo ciclo", "select public.etiqueta_novo_ciclo($1, now() + interval '2 days', 'x')"],
+  ["marcar impressa", "select public.etiqueta_marcar_impressa($1)"],
+  ["registrar entrada", "select public.etiqueta_registrar_entrada($1)"],
+];
+await db.exec("set role authenticated; select set_config('teste.unidade','u1',false);");
+const bloqueios = [];
+for (const [nome, sql] of tentativas) {
+  try { await db.query(sql, [etqV.id]); bloqueios.push(`${nome}: PASSOU`); }
+  catch (e) {
+    bloqueios.push(String(e?.message || e).includes("não encontrada") ? `${nome}: bloqueado` : `${nome}: ${String(e?.message || e).slice(0, 40)}`);
+  }
+}
+await db.exec("reset role;");
+conferir("V. a empresa vizinha não executa NENHUMA das operações",
+  bloqueios, tentativas.map(([n]) => `${n}: bloqueado`));
+
+/* ── W. QR antes e depois de fechar a leitura anônima ────────────────────── */
+const antes0002 = await uma("select codigo, produto from public.get_etiqueta_publica($1)", [etqA.codigo]);
+conferir("W. antes do 0002 o rastreio novo já funciona", antes0002?.codigo, etqA.codigo);
+await db.exec(`
+  drop policy if exists etiquetas_anon_publico on public.etiquetas;
+  create policy etiquetas_anon_publico on public.etiquetas for select to anon using (true);
+  grant select on public.etiquetas to anon;
+`);
+await db.exec(ler("db/etiquetas/0002_fechar_leitura_anonima.sql"));
+const depois0002 = await uma("select codigo from public.get_etiqueta_publica($1)", [etqA.codigo]);
+const anonDireto = await (async () => {
+  await db.exec("set role anon;");
+  try { await db.query("select saldo from public.etiquetas limit 1"); return "leu"; }
+  catch { return "bloqueado"; }
+  finally { await db.exec("reset role;"); }
+})();
+conferir("W2. depois do 0002 o rastreio continua funcionando", depois0002?.codigo, etqA.codigo);
+conferir("W3. e a leitura anônima direta da tabela está fechada", anonDireto, "bloqueado");
 
 console.log(`\n${total - falhas}/${total} verificações passaram.`);
 console.log(falhas ? "RESULTADO: FALHOU" : "RESULTADO: OK");

@@ -32,6 +32,34 @@ Supabase, deploy por `git push origin main` na Vercel
 
 ## O que está pendente, em ordem
 
+### 0. SEGURANÇA — `migracao_rls_autorizacao_servidor.sql` NA FILA (22/09)
+
+**Rode esta antes de qualquer outra.** As funções `auth_papel()`,
+`auth_unidade_id()` e `pode_ver_todas()` liam `auth.jwt() -> 'user_metadata'`,
+que é gravável pelo próprio usuário logado: dava para se declarar `papel:
+"admin"` e enxergar todas as unidades. E `pode_ver_todas()` tratava string
+vazia como "vê tudo", então quem não tinha unidade no metadata já via tudo sem
+fazer nada. A migração passa as três a ler `usuarios_erp`/`usuario_escopos`
+pelo `auth.uid()`, fechado por padrão.
+
+**Antes de aplicar, rode a PRÉVIA que está no bloco 1 do arquivo**: ela mostra
+quem fica vendo a rede inteira, quem fica preso a uma unidade e quem fica sem
+unidade nenhuma. Quem precisa de visão consolidada tem que estar com
+`super_admin` ou com escopo `todos`/`empresa` **antes** — senão perde a visão
+no instante em que a migração rodar. Se travar alguém e não der para arrumar o
+cadastro na hora, `db/rollback_rls_autorizacao_servidor.sql` volta atrás (e
+reabre o furo — use pelo menor tempo possível).
+
+Prova local, sem tocar em banco nenhum:
+`node scripts/test_rls_autorizacao_servidor.mjs <caminho do @electric-sql/pglite>`.
+
+**O que esta migração NÃO fecha** (precisa de etapa própria, com reescrita de
+policy): as policies de `docs/rls-por-unidade.sql` liberam linha com
+`unidade_id NULL` para todo mundo, inclusive no `WITH CHECK`; e as tabelas que
+o ERP usa hoje (`insumos`, `produtos`, `colaboradores`, `registro_ponto`,
+`pedidos`, `contas_pagar`...) em geral têm policy `to authenticated using
+(true)`, sem escopo de unidade nenhum.
+
 ### 1. Migrações — FILA VAZIA (27/08)
 
 Nada de banco pendente. As 17 antigas mais estas quatro foram rodadas em 27/08:

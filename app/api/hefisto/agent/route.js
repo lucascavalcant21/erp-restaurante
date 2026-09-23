@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { responderComHefisto, MENSAGEM_INDISPONIVEL } from "../../../lib/hefisto-ai/agente.mjs";
 import { criarProvedorOpenAI } from "../../../lib/hefisto-ai/provedor-openai";
+import { configuracaoDoAmbiente, diagnosticoDeSessao } from "../../../lib/hefisto-ai/sessao.mjs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -17,17 +18,29 @@ export const maxDuration = 60;
  * navegando. Service role não entra aqui.
  */
 
-function clienteDoUsuario(token) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon || !token) return null;
-  return createClient(url, anon, {
+const texto = (v) => String(v ?? "").trim();
+
+function clienteDoUsuario(config, token) {
+  return createClient(config.url, config.anon, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
 }
 
-const texto = (v) => String(v ?? "").trim();
+/* Diagnóstico sem segredo: só diz em que projeto o servidor está e se a IA
+   está configurada. Serve para conferir se o Preview está com as mesmas
+   variáveis do cliente. */
+export async function GET() {
+  const config = configuracaoDoAmbiente();
+  return NextResponse.json({
+    rota: "/api/hefisto/agent",
+    supabase_configurado: config.faltando.length === 0,
+    faltando: config.faltando,
+    project_ref: config.projectRef || null,
+    ia_configurada: !!texto(process.env.OPENAI_API_KEY),
+    modelo: texto(process.env.OPENAI_MODEL) || null,
+  });
+}
 
 export async function POST(request) {
   let corpo;
@@ -36,12 +49,27 @@ export async function POST(request) {
   const mensagem = texto(corpo?.mensagem);
   if (!mensagem) return NextResponse.json({ error: "Diga o que você precisa." }, { status: 400 });
 
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const cliente = clienteDoUsuario(token);
-  if (!cliente) return NextResponse.json({ error: "Sessão ausente." }, { status: 401 });
+  /* Ordem do diagnóstico: primeiro o que é culpa do ambiente (503), depois o
+     que é culpa da sessão (401). Antes, servidor sem variável devolvia
+     "Sessão ausente" e parecia problema de login. */
+  const config = configuracaoDoAmbiente();
+  const token = texto(request.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+  const triagem = diagnosticoDeSessao({ config, token });
+  if (!triagem.ok) {
+    /* Log sem token: só o diagnóstico e, quando for o caso, os dois refs. */
+    console.error("[hefisto-agent]", triagem.corpo.diagnostico, triagem.corpo.faltando?.join(", ") || triagem.corpo.projeto_do_token || "");
+    return NextResponse.json(triagem.corpo, { status: triagem.status });
+  }
 
+  const cliente = clienteDoUsuario(config, token);
   const { data: auth, error: erroAuth } = await cliente.auth.getUser(token);
-  if (erroAuth || !auth?.user) return NextResponse.json({ error: "Sessão inválida ou expirada." }, { status: 401 });
+  if (erroAuth || !auth?.user) {
+    return NextResponse.json({
+      error: "Sessão inválida ou expirada.",
+      diagnostico: "token_invalido",
+      motivo: texto(erroAuth?.message).slice(0, 120) || null,
+    }, { status: 401 });
+  }
 
   /* Papel, permissões e unidade saem do cadastro do servidor. Se o contexto
      não vier, a sessão fica sem permissão nenhuma e só sobra navegação. */

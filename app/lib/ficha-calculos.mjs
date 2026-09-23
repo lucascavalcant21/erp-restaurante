@@ -526,3 +526,58 @@ export function rendimentoPelosIngredientes(ingLista, departamento = "cozinha") 
     solidosG, liquidosMl,
   };
 }
+
+// ─── Função Única de Cálculo Financeiro (Card e Modal) ──────────────────────
+// Recebe os parâmetros financeiros e calcula todos os indicadores derivados
+// com precisão de moeda de 2 casas decimais e arredondamento financeiro consistente.
+export function calculateFichaFinanceiro({
+  custoTotalIngredientes = 0,
+  rendimentoPorcoes = 1,
+  custoEmbalagemPorPorcao = 0,
+  precoVenda = 0,
+  taxaMaquininhaPct = 2.5,
+  impostoPct = 4.0,
+}) {
+  const rend = Math.max(1, parseNumero(rendimentoPorcoes) || 1);
+  const totalIng = Math.max(0, parseNumero(custoTotalIngredientes));
+  const custoIngredPorPorcao = totalIng / rend;
+  const embPorPorcao = Math.max(0, parseNumero(custoEmbalagemPorPorcao));
+  const preco = Math.max(0, parseNumero(precoVenda));
+  const taxaMaq = Math.max(0, parseNumero(taxaMaquininhaPct));
+  const imp = Math.max(0, parseNumero(impostoPct));
+
+  // Arredondamento dos componentes para manter coerência matemática na exibição (R$)
+  const valorMaquininha = preco > 0 ? Math.round(preco * (taxaMaq / 100) * 100) / 100 : 0;
+  const valorImposto = preco > 0 ? Math.round(preco * (imp / 100) * 100) / 100 : 0;
+
+  // Custo por porção do produto (ingredientes rateados pelo rendimento + embalagem)
+  const custoProdutoPorPorcao = custoIngredPorPorcao + embPorPorcao;
+
+  // Custo total por porção incluindo taxas percentuais da venda
+  const custoTotal = custoProdutoPorPorcao + valorMaquininha + valorImposto;
+
+  const lucroPorPorcao = preco > 0 ? Math.round((preco - custoTotal) * 100) / 100 : null;
+
+  // CMV: (custoProdutoPorPorcao / precoVenda) * 100
+  const cmv = preco > 0 ? (custoProdutoPorPorcao / preco) * 100 : null;
+
+  // Margem líquida: (lucroPorPorcao / precoVenda) * 100
+  const margem = preco > 0 && lucroPorPorcao !== null ? (lucroPorPorcao / preco) * 100 : null;
+
+  return {
+    custoTotalIngredientes: totalIng,
+    rendimentoPorcoes: rend,
+    custoIngredientesPorPorcao: Math.round(custoIngredPorPorcao * 100) / 100,
+    custoEmbalagemPorPorcao: Math.round(embPorPorcao * 100) / 100,
+    custoProdutoPorPorcao: Math.round(custoProdutoPorPorcao * 100) / 100,
+    taxaMaquininhaPct: taxaMaq,
+    valorMaquininha,
+    impostoPct: imp,
+    valorImposto,
+    custoTotal: Math.round(custoTotal * 100) / 100,
+    precoVenda: preco,
+    lucroPorPorcao,
+    cmv,
+    margem,
+  };
+}

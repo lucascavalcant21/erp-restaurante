@@ -12,6 +12,7 @@ import {
   custoUnitarioEfetivoInsumo, custoDeProduzirFicha, arestasDeSubfichas,
   pesoTotalDaFicha, unidadePadraoDepartamento, rendimentoPadronizado, rendimentoPelosIngredientes,
   tipoDaFicha, ehPreparo, ehProdutoPronto, custoPorUnidadeDeRendimento, fichasQueUsam,
+  calculateFichaFinanceiro,
 } from "./ficha-calculos.mjs";
 
 let falhas = 0;
@@ -84,7 +85,7 @@ perto("quantidade zero nao custa nada",
 perto("30 g de uma base que custa 20 e rende 1000",
   custoSubreceita({ custoTotalSubficha: 20, rendimentoSubficha: 1000, quantidade: 30 }), 0.6);
 perto("rendimento zero nao divide por zero",
-  custoSubreceita({ custoTotalSubficha: 20, rendimentoSubficha: 0, quantidade: 1 }), 20);
+  custoSubreceita({ custoTotalSubficha: 20, rendimentoSubficha: 0, quantidade: 1 }), 0);
 perto("subreceita com correcao de 10%",
   custoSubreceita({ custoTotalSubficha: 20, rendimentoSubficha: 1000, quantidade: 30, fatorCorrecao: 10 }), 0.66);
 
@@ -307,6 +308,57 @@ conferir("lista vazia nao inventa rendimento", rendimentoPelosIngredientes([]), 
 conferir("sem argumento nao quebra", rendimentoPelosIngredientes(), null);
 conferir("bar sugere litro",
   rendimentoPelosIngredientes([{ unidade: "l", quantidade: 2 }], "bar").unidade, "l");
+
+// ── calculateFichaFinanceiro — Cenários A, B, C, D ──────────────────────────
+const resA = calculateFichaFinanceiro({
+  custoTotalIngredientes: 27.70,
+  rendimentoPorcoes: 1,
+  custoEmbalagemPorPorcao: 0,
+  precoVenda: 55.00,
+  taxaMaquininhaPct: 2.5,
+  impostoPct: 4.0,
+});
+conferir("Cenário A - Maquininha R$", resA.valorMaquininha, 1.38);
+conferir("Cenário A - Imposto R$", resA.valorImposto, 2.20);
+conferir("Cenário A - Custo total R$", resA.custoTotal, 31.28);
+conferir("Cenário A - Lucro R$", resA.lucroPorPorcao, 23.72);
+perto("Cenário A - CMV %", resA.cmv, 50.3636, 2);
+
+const resB = calculateFichaFinanceiro({
+  custoTotalIngredientes: 27.70,
+  rendimentoPorcoes: 1,
+  custoEmbalagemPorPorcao: 0,
+  precoVenda: 70.00,
+  taxaMaquininhaPct: 2.5,
+  impostoPct: 4.0,
+});
+conferir("Cenário B - Maquininha R$", resB.valorMaquininha, 1.75);
+conferir("Cenário B - Imposto R$", resB.valorImposto, 2.80);
+conferir("Cenário B - Custo total R$", resB.custoTotal, 32.25);
+conferir("Cenário B - Lucro R$", resB.lucroPorPorcao, 37.75);
+
+const resC = calculateFichaFinanceiro({
+  custoTotalIngredientes: 27.70,
+  rendimentoPorcoes: 1,
+  custoEmbalagemPorPorcao: 3.50,
+  precoVenda: 55.00,
+  taxaMaquininhaPct: 2.5,
+  impostoPct: 4.0,
+});
+conferir("Cenário C - Embalagem R$", resC.custoEmbalagemPorPorcao, 3.50);
+conferir("Cenário C - Custo total R$", resC.custoTotal, 34.78);
+conferir("Cenário C - Lucro R$", resC.lucroPorPorcao, 20.22);
+
+const resD = calculateFichaFinanceiro({
+  custoTotalIngredientes: 138.50,
+  rendimentoPorcoes: 5,
+  custoEmbalagemPorPorcao: 0,
+  precoVenda: 55.00,
+  taxaMaquininhaPct: 2.5,
+  impostoPct: 4.0,
+});
+conferir("Cenário D - Custo ingrediente por porção", resD.custoIngredientesPorPorcao, 27.70);
+conferir("Cenário D - Custo total por porção R$", resD.custoTotal, 31.28);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

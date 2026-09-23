@@ -27,6 +27,8 @@
 do $$
 declare
   v_vendas integer := 0;
+  v_tipo text;
+  v_faltantes text;
 begin
   /* Um staging pode ter dados sintéticos, mas não milhares de vendas reais.
      Se houver, alguém apontou este script para o lugar errado. */
@@ -54,6 +56,34 @@ begin
      ) then
     raise exception 'PREFLIGHT: public.produtos.id precisa ser UUID (a camada de integrações depende disso).';
   end if;
+
+  /* Se produtos.unidade_id já existe, ele tem de ser text — é assim que casa
+     com unidades.id. Tipo divergente não se conserta em silêncio: para. */
+  select data_type into v_tipo from information_schema.columns
+   where table_schema='public' and table_name='produtos' and column_name='unidade_id';
+  if v_tipo is not null and v_tipo <> 'text' then
+    raise exception 'PREFLIGHT: public.produtos.unidade_id é % e precisa ser text. Corrija antes (migração explícita), não deixe este script adivinhar.', v_tipo;
+  end if;
+
+  select data_type into v_tipo from information_schema.columns
+   where table_schema='public' and table_name='unidades' and column_name='empresa_id';
+  if v_tipo is not null and v_tipo <> 'uuid' then
+    raise exception 'PREFLIGHT: public.unidades.empresa_id é % e precisa ser uuid.', v_tipo;
+  end if;
+
+  /* Coluna obrigatória que já existe nessas tabelas e que este script não
+     preenche faria o seed falhar no meio. Melhor descobrir agora. */
+  select string_agg(table_name || '.' || column_name, ', ') into v_faltantes
+  from information_schema.columns
+  where table_schema = 'public'
+    and table_name in ('unidades','produtos')
+    and is_nullable = 'NO'
+    and column_default is null
+    and column_name not in ('id','nome','cor','ativo','created_at','empresa_id',
+                            'unidade_id','nome_produto','ficha_id','preco_venda','departamento','categoria');
+  if v_faltantes is not null then
+    raise exception 'PREFLIGHT: estas colunas são obrigatórias e este script não sabe preencher: %. Me diga quais são e eu ajusto o seed.', v_faltantes;
+  end if;
 end $$;
 
 /* gen_random_uuid() é nativo do Postgres desde a versão 13 (o Supabase roda
@@ -71,14 +101,37 @@ create table if not exists public.empresas (
   created_at timestamptz not null default now()
 );
 
+/* unidades já existe no staging mínimo, provavelmente só com `id`.
+   CREATE TABLE IF NOT EXISTS não completa tabela existente — por isso cada
+   coluna vem no ALTER logo abaixo. Nenhuma delas entra como NOT NULL: numa
+   tabela com linhas isso quebraria; preenchemos o que dá e seguimos. */
 create table if not exists public.unidades (
-  id text primary key,
-  nome text not null,
-  cor text default '#10B981',
-  ativo boolean default true,
-  created_at timestamptz default now()
+  id text primary key
 );
-alter table public.unidades add column if not exists empresa_id uuid references public.empresas(id);
+alter table public.unidades add column if not exists nome text;
+alter table public.unidades add column if not exists cor text default '#10B981';
+alter table public.unidades add column if not exists ativo boolean default true;
+alter table public.unidades add column if not exists created_at timestamptz default now();
+alter table public.unidades add column if not exists empresa_id uuid;
+
+/* Unidade que já existia e ficou sem nome recebe o próprio id: melhor um nome
+   feio na tela do que uma tela vazia. */
+update public.unidades set nome = id where nome is null;
+update public.unidades set ativo = true where ativo is null;
+
+/* A FK para empresas só entra se ainda não existir (e só depois de empresas). */
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints tc
+    join information_schema.key_column_usage k on k.constraint_name = tc.constraint_name
+    where tc.table_schema='public' and tc.table_name='unidades'
+      and tc.constraint_type='FOREIGN KEY' and k.column_name='empresa_id'
+  ) then
+    alter table public.unidades add constraint unidades_empresa_fk
+      foreign key (empresa_id) references public.empresas(id);
+  end if;
+end $$;
 
 create table if not exists public.setores (
   id uuid primary key default gen_random_uuid(),
@@ -221,19 +274,43 @@ create table if not exists public.fichas_ingredientes (
 );
 create index if not exists fichas_ingredientes_ficha_idx on public.fichas_ingredientes (ficha_id);
 
-/* produtos já existe no staging mínimo: aqui só garantimos as colunas que o
-   ERP e o agente usam. */
+/* produtos também já existe no staging (a camada de integrações exige
+   produtos.id uuid). Mesmo tratamento: a tabela nasce só com o id e cada
+   coluna que o ERP usa entra por ALTER, sem NOT NULL e sem apagar nada. */
 create table if not exists public.produtos (
-  id uuid primary key default gen_random_uuid(),
-  unidade_id text references public.unidades(id) on delete cascade,
-  nome_produto text not null,
-  created_at timestamptz not null default now()
+  id uuid primary key default gen_random_uuid()
 );
-alter table public.produtos add column if not exists ficha_id uuid references public.fichas_tecnicas(id) on delete set null;
+alter table public.produtos add column if not exists unidade_id text;
+alter table public.produtos add column if not exists nome_produto text;
+alter table public.produtos add column if not exists ficha_id uuid;
 alter table public.produtos add column if not exists preco_venda numeric;
 alter table public.produtos add column if not exists departamento text;
 alter table public.produtos add column if not exists categoria text;
 alter table public.produtos add column if not exists ativo boolean default true;
+alter table public.produtos add column if not exists created_at timestamptz default now();
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints tc
+    join information_schema.key_column_usage k on k.constraint_name = tc.constraint_name
+    where tc.table_schema='public' and tc.table_name='produtos'
+      and tc.constraint_type='FOREIGN KEY' and k.column_name='ficha_id'
+  ) then
+    alter table public.produtos add constraint produtos_ficha_fk
+      foreign key (ficha_id) references public.fichas_tecnicas(id) on delete set null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.table_constraints tc
+    join information_schema.key_column_usage k on k.constraint_name = tc.constraint_name
+    where tc.table_schema='public' and tc.table_name='produtos'
+      and tc.constraint_type='FOREIGN KEY' and k.column_name='unidade_id'
+  ) then
+    alter table public.produtos add constraint produtos_unidade_fk
+      foreign key (unidade_id) references public.unidades(id) on delete cascade;
+  end if;
+end $$;
 
 create table if not exists public.colaboradores (
   id uuid primary key default gen_random_uuid(),

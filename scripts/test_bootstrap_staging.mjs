@@ -45,11 +45,59 @@ await db.exec(`
   grant execute on function auth.uid() to authenticated, service_role, anon;
 `);
 
+/* ── 0. O STAGING COMO ELE ESTÁ HOJE ─────────────────────────────────────────
+   Não é banco vazio: já existem unidades, produtos, vendas, pedidos e
+   usuario_unidades, criados pelo bootstrap mínimo das integrações — e com
+   MENOS colunas do que o ERP usa. É sobre isto que o 0001 tem de passar. */
+await db.exec(`
+  create table public.unidades (id text primary key);
+  insert into public.unidades (id) values ('unidade-legada');
+
+  create table public.produtos (
+    id uuid primary key default gen_random_uuid(),
+    unidade_id text
+  );
+  insert into public.produtos (id, unidade_id) values ('f0f0f0f0-f0f0-4f0f-8f0f-000000000001', 'unidade-legada');
+
+  create table public.usuario_unidades (usuario_id uuid, unidade_id text);
+  create table public.vendas (
+    id uuid primary key default gen_random_uuid(),
+    unidade_id text, total numeric, source_system text default 'NATIVA'
+  );
+  create table public.pedidos (
+    id uuid primary key default gen_random_uuid(),
+    unidade_id text, source_system text default 'NATIVA'
+  );
+`);
+
 /* ── 1. O bootstrap roda inteiro, e roda duas vezes ──────────────────────── */
 const bootstrap = fs.readFileSync(path.join(RAIZ, "db", "staging", "0001_bootstrap_estrutura_staging.sql"), "utf8");
 const seed = fs.readFileSync(path.join(RAIZ, "db", "staging", "0002_seed_sintetico_staging.sql"), "utf8");
 await db.exec(bootstrap);
-conferir("1. bootstrap aplica num banco vazio", true, true);
+conferir("1. bootstrap aplica sobre o staging mínimo que já existe", true, true);
+
+/* As colunas que faltavam nas tabelas pré-existentes entraram? */
+const colunasUnidades = (await varias(`
+  select column_name from information_schema.columns
+  where table_schema='public' and table_name='unidades' order by 1`)).map(r => r.column_name);
+conferir("1b. unidades ganhou as colunas que faltavam",
+  colunasUnidades, ["ativo", "cor", "created_at", "empresa_id", "id", "nome"]);
+
+const colunasProdutos = (await varias(`
+  select column_name from information_schema.columns
+  where table_schema='public' and table_name='produtos' order by 1`)).map(r => r.column_name);
+conferir("1c. produtos ganhou as colunas que faltavam",
+  colunasProdutos, ["ativo", "categoria", "created_at", "departamento", "ficha_id", "id", "nome_produto", "preco_venda", "unidade_id"]);
+
+/* Nada do que já estava lá pode ter sumido. */
+const legada = await uma(`select id, nome, ativo from unidades where id='unidade-legada'`);
+conferir("1d. a unidade que já existia continua lá e ganhou nome",
+  legada, { id: "unidade-legada", nome: "unidade-legada", ativo: true });
+conferir("1e. o produto que já existia continua lá",
+  Number((await uma(`select count(*)::int as n from produtos where id='f0f0f0f0-f0f0-4f0f-8f0f-000000000001'`)).n), 1);
+conferir("1f. vendas, pedidos e usuario_unidades ficaram intactos",
+  (await varias(`select table_name from information_schema.tables where table_schema='public' and table_name in ('vendas','pedidos','usuario_unidades') order by 1`)).map(r => r.table_name),
+  ["pedidos", "usuario_unidades", "vendas"]);
 await db.exec(seed);
 await db.exec(bootstrap);
 await db.exec(seed);
@@ -181,6 +229,39 @@ const tentouEscrever = await (async () => {
   return (await uma("select bool_or(super_admin) as v from usuarios_erp")).v;
 })();
 conferir("20. usuário comum não se promove no staging", tentouEscrever, false);
+
+/* ── 8. Tipo incompatível tem de PARAR o script, não ser consertado calado ─ */
+const outro = await PGlite.create();
+await outro.exec(`
+  create schema auth;
+  create table auth.users (id uuid primary key, email text);
+  create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
+  create role authenticated; create role service_role; create role anon;
+  create table public.unidades (id text primary key);
+  /* aqui está o erro de propósito: unidade_id como uuid, não text */
+  create table public.produtos (id uuid primary key, unidade_id uuid);
+`);
+const recusou = await (async () => {
+  try { await outro.exec(bootstrap); return "passou"; }
+  catch (e) { return String(e?.message || e).includes("PREFLIGHT") ? "recusou com PREFLIGHT" : `erro diferente: ${String(e?.message || e).slice(0, 60)}`; }
+})();
+conferir("21. produtos.unidade_id com tipo errado faz o script parar", recusou, "recusou com PREFLIGHT");
+
+/* Coluna obrigatória desconhecida também para o script antes do seed. */
+const terceiro = await PGlite.create();
+await terceiro.exec(`
+  create schema auth;
+  create table auth.users (id uuid primary key, email text);
+  create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
+  create role authenticated; create role service_role; create role anon;
+  create table public.unidades (id text primary key, cnpj text not null);
+  create table public.produtos (id uuid primary key);
+`);
+const recusou2 = await (async () => {
+  try { await terceiro.exec(bootstrap); return "passou"; }
+  catch (e) { return String(e?.message || e).includes("obrigatórias") ? "recusou apontando a coluna" : `erro diferente: ${String(e?.message || e).slice(0, 60)}`; }
+})();
+conferir("22. coluna obrigatória que o seed não preenche é apontada antes", recusou2, "recusou apontando a coluna");
 
 console.log(`\n${total - falhas}/${total} verificações passaram.`);
 console.log(falhas ? "RESULTADO: FALHOU" : "RESULTADO: OK");

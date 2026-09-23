@@ -488,16 +488,56 @@ export function concatenarChunksTspl(chunks = []) {
 }
 
 /**
- * Converte os dados da etiqueta gerados pelo ERP em comandos TSPL (retornando Uint8Array com suporte a BITMAP para Unicode).
- *
- * @param {Object} params
- * @param {Object} params.dados Dados completos da etiqueta (produto, conservacao, validade, etc.)
- * @param {string} params.tamanho Dimensão exata ("60x40", "80x40", "60x60", etc.)
- * @param {number} params.copias Quantidade de etiquetas a imprimir
- * @returns {Uint8Array} Buffer contendo todos os comandos TSPL e bitmaps binários
- */
-export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }) {
-  const m = METRICAS_TAMANHO[tamanho] || METRICAS_TAMANHO["60x40"];
+export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1, perfilFisico = null }) {
+  let m = METRICAS_TAMANHO[tamanho] || METRICAS_TAMANHO["60x40"];
+
+  let wMm = m.WIDTH_MM;
+  let hMm = m.HEIGHT_MM;
+  let gapMm = 2;
+  let safeLeft = m.SAFE_LEFT;
+  let safeTop = m.SAFE_TOP;
+  let maxTextWidth = m.MAX_TEXT_WIDTH;
+  let qrX = m.QR_X;
+  let qrY = m.QR_Y;
+  let qrCell = m.QR_CELL_SIZE;
+  let codeX = m.CODE_X;
+  let codeY = m.CODE_Y;
+  let direction = 1;
+
+  if (perfilFisico) {
+    wMm = perfilFisico.widthMm || 60;
+    hMm = perfilFisico.heightMm || 40;
+    gapMm = perfilFisico.gapMm ?? 2;
+    const dpi = perfilFisico.dpi || 203;
+    const mmToDots = (mm) => Math.round(mm * (dpi / 25.4));
+    
+    // Calcula margens físicas
+    const mL = mmToDots(perfilFisico.marginLeftMm ?? 2);
+    const mR = mmToDots(perfilFisico.marginRightMm ?? 2);
+    const mT = mmToDots(perfilFisico.marginTopMm ?? 1);
+    
+    // Offsets de hardware
+    const offX = mmToDots(perfilFisico.offsetXmm || 0);
+    const offY = mmToDots(perfilFisico.offsetYmm || 0);
+
+    safeLeft = mL + offX;
+    safeTop = mT + offY;
+    const widthDots = mmToDots(wMm);
+    const heightDots = mmToDots(hMm);
+    maxTextWidth = widthDots - (mL + mR);
+
+    // Ajusta o QR para o canto inferior direito com margens
+    qrCell = wMm > 70 ? 4 : 3;
+    const qrSize = qrCell * 33; // ~33 módulos no QR
+    qrX = widthDots - mR - qrSize + offX;
+    qrY = heightDots - mmToDots(perfilFisico.marginBottomMm ?? 2) - qrSize + offY;
+    
+    codeX = qrX;
+    codeY = qrY + qrSize + 5;
+    
+    // Ajuste de rotação para TSPL (0 ou 1 no DIRECTION, TSPL não roda 90 perfeitamente sem o comando ROTATE ou DIRECTION 0/1 dependendo do driver)
+    direction = (perfilFisico.rotation === 180 || perfilFisico.rotation === 270) ? 0 : 1;
+  }
 
   const p = (n) => String(n).padStart(2, "0");
   const fmtDH = (d) => {
@@ -529,32 +569,36 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
   let headerCmd = "";
   const addHeader = (linha) => { headerCmd += linha + "\r\n"; };
 
-  addHeader(`SIZE ${m.WIDTH_MM} mm,${m.HEIGHT_MM} mm`);
-  addHeader("GAP 2 mm,0 mm");
-  addHeader("DIRECTION 1");
+  addHeader(`SIZE ${wMm} mm,${hMm} mm`);
+  addHeader(`GAP ${gapMm} mm,0 mm`);
+  addHeader(`DIRECTION ${direction}`);
+  if (perfilFisico && (perfilFisico.offsetXmm !== 0 || perfilFisico.offsetYmm !== 0)) {
+    // Comandos de referência opcionais no TSPL, mas offset já está na renderização via coords.
+    // addHeader(`REFERENCE ${mmToDots(perfilFisico.offsetXmm)},${mmToDots(perfilFisico.offsetYmm)}`);
+  }
   addHeader("CLS");
   chunks.push(headerCmd);
 
   // MODELO "SOMENTE NOME"
   if (modeloEtiqueta === "nome") {
     let asciiNome = "";
-    const fitNome = formatarTextoFitted(produto, m.MAX_TEXT_WIDTH, "4");
+    const fitNome = formatarTextoFitted(produto, maxTextWidth, "4");
     const bmpNome = criarBitmapTextoCanvas({
       linhas: fitNome.linhas,
-      maxLarguraDots: m.MAX_TEXT_WIDTH,
+      maxLarguraDots: maxTextWidth,
       alturaLinhaDots: 36,
       tamanhoFontePx: 32,
       ehNegrito: true,
     });
 
-    asciiNome += `BITMAP ${m.SAFE_LEFT},${m.SAFE_TOP},${bmpNome.widthBytes},${bmpNome.heightDots},0,`;
+    asciiNome += `BITMAP ${safeLeft},${safeTop},${bmpNome.widthBytes},${bmpNome.heightDots},0,`;
     chunks.push(asciiNome);
     chunks.push(bmpNome.data);
     chunks.push("\r\n");
 
     let tailNome = "";
     if (quantidade) {
-      tailNome += `TEXT ${m.SAFE_LEFT},${m.SAFE_TOP + bmpNome.heightDots + 10},"3",0,1,1,"QTD: ${quantidade}"\r\n`;
+      tailNome += `TEXT ${safeLeft},${safeTop + bmpNome.heightDots + 10},"3",0,1,1,"QTD: ${quantidade}"\r\n`;
     }
     tailNome += `PRINT ${Math.max(1, copias)},1\r\n`;
     chunks.push(tailNome);
@@ -562,20 +606,35 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
     return concatenarChunksTspl(chunks);
   }
 
-  // MODELO COMPLETO (VALIDADE) — ESTRUTURA VISUAL 60x40 SUBIDA AO TOPO
-  let y = m.SAFE_TOP; // Começa no SAFE_TOP = 6 dots para eliminar vazio superior
+  // TESTE DE CALIBRAÇÃO SE SOLICITADO
+  if (dados.testeCalibracao) {
+    const dW = mmToDots(wMm) || 480;
+    const dH = mmToDots(hMm) || 320;
+    let txt = `TEXT ${Math.floor(dW/2)},${Math.floor(dH/2)},"3",0,1,1,2,"TESTE HEFISTO"\r\n`;
+    txt += `TEXT ${Math.floor(dW/2)},${Math.floor(dH/2) + 30},"2",0,1,1,2,"${wMm} x ${hMm} mm"\r\n`;
+    txt += `TEXT ${safeLeft},${safeTop},"2",0,1,1,"+"\r\n`; // top left
+    txt += `TEXT ${dW - safeLeft - 20},${safeTop},"2",0,1,1,"+"\r\n`; // top right
+    txt += `TEXT ${safeLeft},${dH - 30},"2",0,1,1,"+"\r\n`; // bot left
+    txt += `TEXT ${dW - safeLeft - 20},${dH - 30},"2",0,1,1,"+"\r\n`; // bot right
+    txt += `PRINT ${Math.max(1, copias)},1\r\n`;
+    chunks.push(txt);
+    return concatenarChunksTspl(chunks);
+  }
+
+  // MODELO COMPLETO (VALIDADE) — ESTRUTURA VISUAL
+  let y = safeTop; 
 
   // 1. PRODUTO NO TOPO (NÍVEL 1 — MAIOR E BOLD FORTE)
-  const fitProd = formatarTextoFitted(produto, m.MAX_TEXT_WIDTH, "4");
+  const fitProd = formatarTextoFitted(produto, maxTextWidth, "4");
   const bmpProd = criarBitmapTextoCanvas({
     linhas: fitProd.linhas,
-    maxLarguraDots: m.MAX_TEXT_WIDTH,
+    maxLarguraDots: maxTextWidth,
     alturaLinhaDots: fitProd.linhas.length > 1 ? 26 : 32,
     tamanhoFontePx: fitProd.fonte === "4" ? 30 : fitProd.fonte === "3" ? 22 : 18,
     ehNegrito: true,
   });
 
-  let cmdProdBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpProd.widthBytes},${bmpProd.heightDots},0,`;
+  let cmdProdBmp = `BITMAP ${safeLeft},${y},${bmpProd.widthBytes},${bmpProd.heightDots},0,`;
   chunks.push(cmdProdBmp);
   chunks.push(bmpProd.data);
   chunks.push("\r\n");
@@ -588,10 +647,10 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
   const bmpSegundaLinha = criarBitmapTextoComQuantidade({
     textoEsquerda: textoConser,
     textoDireita: quantidade,
-    maxLarguraDots: m.MAX_TEXT_WIDTH,
+    maxLarguraDots: maxTextWidth,
   });
 
-  let cmdSegundaBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpSegundaLinha.widthBytes},${bmpSegundaLinha.heightDots},0,`;
+  let cmdSegundaBmp = `BITMAP ${safeLeft},${y},${bmpSegundaLinha.widthBytes},${bmpSegundaLinha.heightDots},0,`;
   chunks.push(cmdSegundaBmp);
   chunks.push(bmpSegundaLinha.data);
   chunks.push("\r\n");
@@ -599,7 +658,7 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
   y += bmpSegundaLinha.heightDots + 2;
 
   // 3. DIVISÓRIA 1 (Linha fina horizontal)
-  let restAscii = `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
+  let restAscii = `BAR ${safeLeft},${y},${maxTextWidth},2\r\n`;
   y += 4;
   chunks.push(restAscii);
 
@@ -610,10 +669,10 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
     dataManipulacao,
     dataValidade,
     lote,
-    maxLarguraDots: m.MAX_TEXT_WIDTH,
+    maxLarguraDots: maxTextWidth,
   });
 
-  let cmdDatasBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpDatas.widthBytes},${bmpDatas.heightDots},0,`;
+  let cmdDatasBmp = `BITMAP ${safeLeft},${y},${bmpDatas.widthBytes},${bmpDatas.heightDots},0,`;
   chunks.push(cmdDatasBmp);
   chunks.push(bmpDatas.data);
   chunks.push("\r\n");
@@ -621,17 +680,17 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
   y += bmpDatas.heightDots + 2;
 
   // 5. SEGUNDA DIVISÓRIA
-  let div2Ascii = `BAR ${m.SAFE_LEFT},${y},${m.MAX_TEXT_WIDTH},2\r\n`;
+  let div2Ascii = `BAR ${safeLeft},${y},${maxTextWidth},2\r\n`;
   y += 4;
   chunks.push(div2Ascii);
 
   // 6. RESPONSÁVEL (RESP. em Negrito, Nome completo)
   const bmpResp = criarBitmapResponsavel({
     responsavel,
-    maxLarguraDots: m.MAX_TEXT_WIDTH,
+    maxLarguraDots: maxTextWidth,
   });
 
-  let cmdRespBmp = `BITMAP ${m.SAFE_LEFT},${y},${bmpResp.widthBytes},${bmpResp.heightDots},0,`;
+  let cmdRespBmp = `BITMAP ${safeLeft},${y},${bmpResp.widthBytes},${bmpResp.heightDots},0,`;
   chunks.push(cmdRespBmp);
   chunks.push(bmpResp.data);
   chunks.push("\r\n");
@@ -639,23 +698,24 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
   y += bmpResp.heightDots + 4;
 
   // 7. RODAPÉ & QR CODE (SELDEESTRELA em Negrito, QR mais alto no canto inferior direito)
+  const maxLarguraEmpresa = maxTextWidth - (qrCell * 33) - 10;
   const bmpEmpresa = criarBitmapEmpresa({
     empresaBold: "SELDEESTRELA",
     subtitulo: "COMIDAS NORTISTAS",
     codigo,
-    maxLarguraDots: 320,
+    maxLarguraDots: Math.max(100, maxLarguraEmpresa),
   });
 
-  const yEmpresa = Math.max(190, y);
-  let cmdEmpresaBmp = `BITMAP ${m.SAFE_LEFT},${yEmpresa},${bmpEmpresa.widthBytes},${bmpEmpresa.heightDots},0,`;
+  const yEmpresa = Math.max(y, qrY);
+  let cmdEmpresaBmp = `BITMAP ${safeLeft},${yEmpresa},${bmpEmpresa.widthBytes},${bmpEmpresa.heightDots},0,`;
   chunks.push(cmdEmpresaBmp);
   chunks.push(bmpEmpresa.data);
   chunks.push("\r\n");
 
   let footerAscii = "";
   if (codigo) {
-    footerAscii += `QRCODE ${m.QR_X},${m.QR_Y},L,${m.QR_CELL_SIZE},A,0,"${urlRastreio}"\r\n`;
-    footerAscii += `TEXT ${m.CODE_X},${m.CODE_Y},"1",0,1,1,"#${codigo}"\r\n`;
+    footerAscii += `QRCODE ${Math.max(0, qrX)},${Math.max(0, qrY)},L,${qrCell},A,0,"${urlRastreio}"\r\n`;
+    footerAscii += `TEXT ${Math.max(0, codeX)},${Math.max(0, codeY)},"1",0,1,1,"#${codigo}"\r\n`;
   }
 
   footerAscii += `PRINT ${Math.max(1, copias)},1\r\n`;
@@ -663,6 +723,7 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1 }
 
   return concatenarChunksTspl(chunks);
 }
+
 
 /**
  * Função/Etiqueta de Diagnóstico para testar fisicamente todos os acentos em Português na MDK-022.
@@ -691,15 +752,16 @@ export function gerarEtiquetaDiagnosticoTsplMdk022() {
  * @param {Object} params.dados Dados da etiqueta
  * @param {string} params.tamanho Tamanho exato ("60x40", etc.)
  * @param {number} params.copias Quantidade de cópias
+ * @param {Object} params.perfilFisico Perfil físico customizado
  * @returns {Promise<{ ok: boolean, bytes: number, status?: string }>}
  */
-export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copias = 1, onStatusChange }) {
+export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copias = 1, perfilFisico = null, onStatusChange }) {
   try {
     if (onStatusChange) onStatusChange("Conectando à MDK-022...");
     const device = await obterDispositivoMdk022();
     const endpointOut = device._endpointOutNumber || 2;
 
-    const buffer = gerarComandosTsplMdk022({ dados, tamanho, copias });
+    const buffer = gerarComandosTsplMdk022({ dados, tamanho, copias, perfilFisico });
 
     console.log(`[ETIQUETA][MDK022] TSPL gerado: ${buffer.length} bytes`);
     
@@ -731,6 +793,7 @@ export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copi
   }
 }
 
+
 /**
  * Envia uma fila completa de etiquetas em lote para a MDK-022 via WebUSB em uma única conexão contínua.
  *
@@ -742,6 +805,7 @@ export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copi
  * @param {string} params.setor Setor ("cozinha" ou "bar")
  * @param {Date} params.momento Data/hora da manipulação
  * @param {Function} params.onStatusChange Callback para atualização de progresso na interface
+ * @param {Object} params.perfilFisico Perfil físico customizado
  * @returns {Promise<{ ok: boolean, processadas: number, total: number, erro?: string }>}
  */
 export async function imprimirFilaMdk022Usb({
@@ -752,6 +816,7 @@ export async function imprimirFilaMdk022Usb({
   setor = "cozinha",
   momento = new Date(),
   onStatusChange,
+  perfilFisico = null
 }) {
   if (!Array.isArray(fila) || fila.length === 0) {
     throw new Error("A fila de etiquetas está vazia.");
@@ -794,10 +859,12 @@ export async function imprimirFilaMdk022Usb({
       dados: dadosEtiqueta,
       tamanho,
       copias: copiasItem,
+      perfilFisico
     });
 
     try {
       const resultado = await device.transferOut(endpointOut, buffer);
+
       if (resultado.status !== "ok") {
         throw new Error(`Impressora respondeu com status: ${resultado.status}`);
       }

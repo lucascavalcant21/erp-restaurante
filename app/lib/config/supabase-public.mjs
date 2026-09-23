@@ -27,20 +27,21 @@ export function extractProjectRef(url) {
 }
 
 /**
- * Retorna e valida o ambiente lógico HEFISTO_ENV
+ * Retorna e valida o ambiente lógico HEFISTO_ENV (suporta NEXT_PUBLIC_HEFISTO_ENV no client-side)
  */
 export function getHefistoEnv() {
-  const env = (process.env.HEFISTO_ENV || '').trim().toLowerCase();
+  const envRaw = process.env.NEXT_PUBLIC_HEFISTO_ENV || (typeof window === 'undefined' ? process.env.HEFISTO_ENV : '');
+  const env = (envRaw || '').trim().toLowerCase();
   
   if (!env) {
     if (process.env.NODE_ENV === 'test') {
       return 'test';
     }
-    throw new Error('MISSING_HEFISTO_ENV: A variável de ambiente HEFISTO_ENV é obrigatória (valores permitidos: development, staging, production, test).');
+    throw new Error('MISSING_HEFISTO_ENV: A variável de ambiente HEFISTO_ENV (ou NEXT_PUBLIC_HEFISTO_ENV) é obrigatória (valores permitidos: development, staging, production, test).');
   }
 
   if (!ALLOWED_HEFISTO_ENVS.includes(env)) {
-    throw new Error(`INVALID_HEFISTO_ENV: HEFISTO_ENV="${env}" é inválido. Valores permitidos: ${ALLOWED_HEFISTO_ENVS.join(', ')}.`);
+    throw new Error(`INVALID_HEFISTO_ENV: Ambiente "${env}" é inválido. Valores permitidos: ${ALLOWED_HEFISTO_ENVS.join(', ')}.`);
   }
 
   return env;

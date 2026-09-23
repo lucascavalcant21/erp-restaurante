@@ -949,7 +949,6 @@ function FichasRunner() {
   const abrirEditar = (ficha) => {
     setAutoSoma(false);
     const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
-    const rendimentoSetor = rendimentoPadronizado(ficha);
     setForm({
        id: ficha.id,
        codigo: ficha.codigo || "",
@@ -960,22 +959,25 @@ function FichasRunner() {
        departamento: ficha.departamento,
        nome_receita: ficha.nome_receita,
        categoria: ficha.departamento === "bar" && ficha.eh_base ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
-       rendimento_porcoes: rendimentoSetor.valor,
+       rendimento_porcoes: ficha.rendimento_porcoes != null ? String(ficha.rendimento_porcoes) : "1",
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
        tipo_base: ficha.tipo_base || "pre",
        produto_pronto: ficha.tipo_base === "produto_pronto",
-       rendimento_unidade: rendimentoSetor.unidade,
+       rendimento_unidade: ficha.rendimento_unidade || (ficha.departamento === "bar" ? "l" : "kg"),
        peso_porcao_g: ficha.peso_porcao_g || "",
        imagem: ficha.imagem || "",
        tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
        validade_dias: ficha.validade_dias != null ? String(ficha.validade_dias) : "",
-       observacoes: ficha.observacoes || "", metodo_bar: ficha.metodo_bar || "",
+       observacoes: ficha.observacoes || "", 
+       metodo_bar: ficha.metodo_bar || "",
        cmv_meta: ficha.cmv_meta != null ? Number(ficha.cmv_meta) : 30,
        preco_venda: (() => {
-          const prod = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
-          return (prod && Number(prod.preco_venda) > 0) ? String(prod.preco_venda) : (ficha.preco_venda && Number(ficha.preco_venda) > 0 ? String(ficha.preco_venda) : "");
-       })()
+          return (produtoFicha && Number(produtoFicha.preco_venda) > 0) ? String(produtoFicha.preco_venda) : (ficha.preco_venda && Number(ficha.preco_venda) > 0 ? String(ficha.preco_venda) : "");
+       })(),
+       custo_embalagem: ficha.custo_embalagem != null ? String(ficha.custo_embalagem) : "",
+       taxa_maquininha: ficha.taxa_maquininha != null ? String(ficha.taxa_maquininha) : (produtoFicha?.taxa_cartao != null ? String(produtoFicha.taxa_cartao) : ""),
+       imposto_pct: ficha.imposto_pct != null ? String(ficha.imposto_pct) : (produtoFicha?.aliquota_imposto != null ? String(produtoFicha.aliquota_imposto) : "")
     });
     setCalcQtd("");
     // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
@@ -1302,7 +1304,10 @@ function FichasRunner() {
             validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
             observacoes: form.observacoes || null,
             // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
-            metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
+            metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null,
+            custo_embalagem: form.custo_embalagem != null && form.custo_embalagem !== "" ? Number(String(form.custo_embalagem).replace(",", ".")) : null,
+            taxa_maquininha: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
+            imposto_pct: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null
          },
          ingValidos.map(i => ({
             insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
@@ -1352,6 +1357,10 @@ function FichasRunner() {
             rendimento_unidade: unidadeRendimento,
             peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
             imagem: form.imagem || null,
+            metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null,
+            custo_embalagem: form.custo_embalagem != null && form.custo_embalagem !== "" ? Number(String(form.custo_embalagem).replace(",", ".")) : null,
+            taxa_maquininha: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
+            imposto_pct: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null,
             fichas_ingredientes: ingValidos.map(i => ({
                ficha_id: fichaIdSalva,
                insumo_id: i.insumo_id || null,
@@ -1410,7 +1419,14 @@ function FichasRunner() {
             p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
           );
           if (prodExistente) {
-            await salvarProduto({ id: prodExistente.id, ficha_id: fichaIdSalva, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
+            await salvarProduto({
+               id: prodExistente.id, 
+               ficha_id: fichaIdSalva, 
+               preco_venda: precoVendaNum, 
+               embalagens: fichaEmbalagens,
+               taxa_cartao: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
+               aliquota_imposto: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null
+            });
           } else {
             const ehBarDept = form.departamento === "bar";
             await salvarProduto({
@@ -1418,6 +1434,9 @@ function FichasRunner() {
               ficha_id: fichaIdSalva,
               nome_produto: nome,
               preco_venda: precoVendaNum,
+              embalagens: fichaEmbalagens,
+              taxa_cartao: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
+              aliquota_imposto: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null,
               categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
               departamento: form.departamento,
               observacoes: "Criado automaticamente pela Ficha Técnica.",

@@ -205,3 +205,24 @@ export async function salvarValidadesEtiqueta(unidadeId, categorias) {
   const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
   return { error: error?.message, data: validade_categorias };
 }
+
+export async function fetchPerfisEtiquetas(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  const perfis = registro?.params?.perfis_etiquetas;
+  return { data: Array.isArray(perfis) ? perfis : [] };
+}
+
+export async function salvarPerfisEtiquetas(unidadeId, perfis) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const perfis_etiquetas = Array.isArray(perfis) ? perfis : [];
+  const mergeAtomico = await tentarMergeAtomico(unidadeId, { perfis_etiquetas });
+  if (mergeAtomico) return { error: undefined, data: perfis_etiquetas };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const params = { ...(registro?.params || {}), perfis_etiquetas };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
+    return { error: error?.message, data: perfis_etiquetas };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { error: error?.message, data: perfis_etiquetas };
+}

@@ -415,11 +415,16 @@ function CardImpressoras() {
           <p className="text-2xs font-medium text-muted">Diagnóstico WebUSB, conexão de impressoras térmicas e testes de impressão.</p>
         </div>
       </div>
-      <div className="p-5">
+      <div className="p-5 space-y-3">
         <a href="/dashboard/configuracoes/impressoras" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Printer size={20} className="mb-3 text-success" />
           <p className="font-black text-slate-800">Diagnóstico WebUSB (Android / Tablet)</p>
           <p className="mt-1 text-xs text-muted">Detectar impressoras USB conectadas, inspecionar Vendor/Product ID e testar comandos ESC/POS.</p>
+        </a>
+        <a href="/dashboard/configuracoes/etiquetas" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
+          <Tag size={20} className="mb-3 text-emerald-600" />
+          <p className="font-black text-slate-800">Tamanhos e Perfis de Etiquetas</p>
+          <p className="mt-1 text-xs text-muted">Configure a largura, altura, margens e impressora de cada setor (Cozinha, Bar, etc).</p>
         </a>
       </div>
     </div>

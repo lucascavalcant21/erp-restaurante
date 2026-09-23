@@ -358,8 +358,28 @@ function bytesParaBase64(bytes) {
 
 // Gera os bytes ESC/POS da etiqueta. Usado tanto pela impressão via QZ Tray
 // (cabo/USB no PC) quanto pela impressão Bluetooth direta do tablet.
-export async function gerarComandosEtiqueta({ tamanho, copias = 1, dados, larguraImpressora }) {
-  const perfilBase = PERFIS_TP20[tamanho];
+export async function gerarComandosEtiqueta({ tamanho, copias = 1, dados, larguraImpressora, perfilFisico = null }) {
+  let perfilBase = PERFIS_TP20[tamanho];
+  if (perfilFisico) {
+    const dpi = perfilFisico.dpi || 203;
+    const mmToDots = (mm) => Math.round(mm * (dpi / 25.4));
+    const widthDots = mmToDots(perfilFisico.widthMm || 80);
+    const heightDots = mmToDots(perfilFisico.heightMm || 40);
+    const gapDots = mmToDots(perfilFisico.gapMm ?? 0);
+    const ml = mmToDots(perfilFisico.marginLeftMm ?? 0);
+    const mr = mmToDots(perfilFisico.marginRightMm ?? 0);
+    const offX = mmToDots(perfilFisico.offsetXmm || 0);
+
+    perfilBase = {
+      id: perfilFisico.id || "dinamico",
+      larguraPontos: widthDots,
+      alturaPontos: heightDots,
+      xConteudo: Math.max(0, ml + offX),
+      larguraConteudo: Math.max(10, widthDots - (ml + mr)),
+      gapPontos: gapDots,
+      descricao: "Perfil Dinamico",
+    };
+  }
   if (!perfilBase) throw new Error("Perfil de etiqueta não configurado");
   const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || perfilBase.larguraPontos;
   const perfil = perfilNaLargura(perfilBase, pontos);
@@ -370,8 +390,28 @@ export async function gerarComandosEtiqueta({ tamanho, copias = 1, dados, largur
   return criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);
 }
 
-export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados, larguraImpressora }) {
-  const perfilBase = PERFIS_TP20[tamanho];
+export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados, larguraImpressora, perfilFisico = null }) {
+  let perfilBase = PERFIS_TP20[tamanho];
+  if (perfilFisico) {
+    const dpi = perfilFisico.dpi || 203;
+    const mmToDots = (mm) => Math.round(mm * (dpi / 25.4));
+    const widthDots = mmToDots(perfilFisico.widthMm || 80);
+    const heightDots = mmToDots(perfilFisico.heightMm || 40);
+    const gapDots = mmToDots(perfilFisico.gapMm ?? 0);
+    const ml = mmToDots(perfilFisico.marginLeftMm ?? 0);
+    const mr = mmToDots(perfilFisico.marginRightMm ?? 0);
+    const offX = mmToDots(perfilFisico.offsetXmm || 0);
+
+    perfilBase = {
+      id: perfilFisico.id || "dinamico",
+      larguraPontos: widthDots,
+      alturaPontos: heightDots,
+      xConteudo: Math.max(0, ml + offX),
+      larguraConteudo: Math.max(10, widthDots - (ml + mr)),
+      gapPontos: gapDots,
+      descricao: "Perfil Dinamico",
+    };
+  }
   if (!perfilBase) throw new Error("Perfil de etiqueta não configurado");
   const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || perfilBase.larguraPontos;
   const perfil = perfilNaLargura(perfilBase, pontos);
@@ -470,8 +510,28 @@ async function escreverBluetooth(bytes) {
   }
 }
 
-export async function imprimirEtiquetasBluetooth({ tamanho, copias, dados, larguraImpressora = "58mm" }) {
-  const perfilBase = PERFIS_TP20[tamanho] || PERFIS_TP20["60x40"];
+export async function imprimirEtiquetasBluetooth({ tamanho, copias, dados, larguraImpressora = "58mm", perfilFisico = null }) {
+  let perfilBase = PERFIS_TP20[tamanho] || PERFIS_TP20["60x40"];
+  if (perfilFisico) {
+    const dpi = perfilFisico.dpi || 203;
+    const mmToDots = (mm) => Math.round(mm * (dpi / 25.4));
+    const widthDots = mmToDots(perfilFisico.widthMm || 80);
+    const heightDots = mmToDots(perfilFisico.heightMm || 40);
+    const gapDots = mmToDots(perfilFisico.gapMm ?? 0);
+    const ml = mmToDots(perfilFisico.marginLeftMm ?? 0);
+    const mr = mmToDots(perfilFisico.marginRightMm ?? 0);
+    const offX = mmToDots(perfilFisico.offsetXmm || 0);
+
+    perfilBase = {
+      id: perfilFisico.id || "dinamico",
+      larguraPontos: widthDots,
+      alturaPontos: heightDots,
+      xConteudo: Math.max(0, ml + offX),
+      larguraConteudo: Math.max(10, widthDots - (ml + mr)),
+      gapPontos: gapDots,
+      descricao: "Perfil Dinamico",
+    };
+  }
   const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || 384;
   const perfil = perfilNaLargura(perfilBase, pontos);
   const quantidade = Math.max(1, Math.min(1000, Number(copias) || 1));

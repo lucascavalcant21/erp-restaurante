@@ -10,7 +10,7 @@ import { fetchProdutos } from "../lib/vendas";
 import { fetchFichas } from "../lib/operacao";
 import { fetchColaboradores } from "../lib/rh";
 import { CONSERVACAO, criarEtiqueta, excluirListaEtiquetas, fetchListasEtiquetas, gerarCodigo, salvarListaEtiquetas } from "../lib/etiquetas";
-import { fetchValidadesEtiqueta } from "../lib/parametros";
+import { fetchValidadesEtiqueta, fetchPerfisEtiquetas } from "../lib/parametros";
 import { imprimirHtml } from "../lib/imprimir";
 import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
@@ -252,16 +252,23 @@ export default function EtiquetasRapidas() {
   const [statusMdk, setStatusMdk] = useState("");
   const [detalhesMdk, setDetalhesMdk] = useState(null);
   const [mostrarDetalhesMdk, setMostrarDetalhesMdk] = useState(false);
+  const [perfilFisico, setPerfilFisico] = useState(null);
 
   const responsavel = funcionarios.find(pessoa => String(pessoa.id) === String(responsavelId));
   const totalEtiquetas = fila.reduce((total, produto) => total + Math.max(1, Math.floor(numero(produto.copias))), 0);
 
   const carregarBase = useCallback(async () => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
-    const [colaboradores, validades] = await Promise.all([fetchColaboradores(unidadeAtiva), fetchValidadesEtiqueta(unidadeAtiva)]);
+    const [colaboradores, validades, perfisRes] = await Promise.all([fetchColaboradores(unidadeAtiva), fetchValidadesEtiqueta(unidadeAtiva), fetchPerfisEtiquetas(unidadeAtiva)]);
     setFuncionarios(equipeDaArea(colaboradores.data || [], setor));
     setCategorias(validades.data || []);
-  }, [unidadeAtiva]);
+    
+    // Configuração de perfil
+    const listaPerfis = perfisRes?.data || [];
+    const pSetor = listaPerfis.find(p => p.setor === setor) || null;
+    setPerfilFisico(pSetor);
+
+  }, [unidadeAtiva, setor]);
 
   useEffect(() => { carregarBase(); }, [carregarBase]);
 
@@ -416,6 +423,7 @@ export default function EtiquetasRapidas() {
           },
           tamanho,
           copias: Math.max(1, Math.floor(numero(pronto.copias))),
+          perfilFisico,
           onStatusChange: (s) => setStatusMdk(s),
         });
 
@@ -831,6 +839,7 @@ export default function EtiquetasRapidas() {
           unidadeInfo,
           setor,
           momento,
+          perfilFisico,
           onStatusChange: (s) => setStatusMdk(s),
         });
 
@@ -907,6 +916,7 @@ export default function EtiquetasRapidas() {
             tamanho,
             copias: Math.max(1, Math.floor(numero(produto.copias))),
             larguraImpressora: "58mm",
+            perfilFisico,
             dados: {
               codigo: produto.codigo,
               produto: produto.nome,

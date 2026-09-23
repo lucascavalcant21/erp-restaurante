@@ -13,7 +13,7 @@ import { fetchEstoque } from "../../../lib/estoque";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores } from "../../../lib/rh";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta, fetchEtiquetas, gerarEtiquetaSalva, excluirEtiqueta } from "../../../lib/etiquetas";
-import { fetchValidadesEtiqueta } from "../../../lib/parametros";
+import { fetchValidadesEtiqueta, fetchPerfisEtiquetas } from "../../../lib/parametros";
 import { ControleValidade } from "../validade/page";
 import { useRascunho } from "../../../lib/rascunho";
 import {
@@ -249,6 +249,7 @@ function EtiquetasRunner() {
   const [impressoraErro, setImpressoraErro] = useState("");
   const [impressoras, setImpressoras] = useState([]);
   const [impressoraNome, setImpressoraNome] = useState("");
+  const [perfilFisico, setPerfilFisico] = useState(null);
   const [conectando, setConectando] = useState(false);
   const assinaturaConteudo = useMemo(() => JSON.stringify({
     unidadeAtiva, form, tipoEtiqueta, validadeModo, dataValidade, copias,
@@ -295,11 +296,12 @@ function EtiquetasRunner() {
       setCategoriaValidade("");
       // Produtos do cardápio + insumos do estoque, filtrados pelo departamento
       // da URL (?dept=cozinha ou ?dept=bar) — cada área vê só o que é dela.
-      const [e, pr, colab, validades] = await Promise.all([
+      const [e, pr, colab, validades, perfisRes] = await Promise.all([
         fetchEstoque(unidadeAtiva, deptUrl || undefined),
         fetchProdutos(unidadeAtiva, deptUrl || undefined),
         fetchColaboradores(unidadeAtiva),
         fetchValidadesEtiqueta(unidadeAtiva),
+        fetchPerfisEtiquetas(unidadeAtiva),
       ]);
       const nomes = [...new Set([
         ...(e.data || []).map((x) => x.nome),
@@ -312,6 +314,10 @@ function EtiquetasRunner() {
       // Só a equipe contratada do setor (liderança entra em todos), sem extras.
       setColaboradores(equipeDaArea(colab.data || [], deptUrl));
       setCategoriasValidade(validades.data || []);
+      
+      const listaPerfis = perfisRes?.data || [];
+      const pSetor = listaPerfis.find(p => p.setor === (deptUrl || "cozinha")) || null;
+      setPerfilFisico(pSetor);
     })();
   }, [unidadeAtiva, deptUrl]);
 
@@ -613,6 +619,7 @@ function EtiquetasRunner() {
           await imprimirEtiquetaMdk022Usb({
             tamanho,
             copias: quantidadeCopias,
+            perfilFisico,
             dados: {
               codigo,
               produto: nomeProduto,
@@ -644,6 +651,7 @@ function EtiquetasRunner() {
           impressora: impressoraNome,
           tamanho,
           copias: quantidadeCopias,
+          perfilFisico,
           dados: {
             codigo,
             produto: nomeProduto,
@@ -670,6 +678,7 @@ function EtiquetasRunner() {
         // Tablet/celular Android falando direto com a impressora — sem PC.
         const bytes = await gerarComandosEtiqueta({
           tamanho, copias: quantidadeCopias,
+          perfilFisico,
           dados: {
             codigo, produto: nomeProduto, modeloEtiqueta: modelo, conservacao: form.conservacao,
             quantidade: form.quantidade, unidade: form.unidade, tipoEtiqueta,

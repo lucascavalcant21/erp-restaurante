@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  "https://sezccspqxgklicfndwxx.supabase.co",
-  "sb_publishable_hstqbkrp5CM1FBZoyrjcXg_MrOOKCsX"
-);
+/* Script avulso de manutenção. A URL e a chave do projeto de PRODUÇÃO estavam
+   escritas aqui dentro: rodar o arquivo por engano mexia no banco real.
+   Agora ele exige as variáveis do ambiente em que você quer mexer. */
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+if (!url || !chave) {
+  console.error("Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY do ambiente alvo antes de rodar este script.");
+  process.exit(1);
+}
+const supabase = createClient(url, chave);
 
 async function run() {
   const { data: mesas, error } = await supabase.from('mesas').select('*').order('created_at', { ascending: true });

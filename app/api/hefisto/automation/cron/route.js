@@ -11,8 +11,12 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const secretParam = searchParams.get("secret");
 
-    const expectedSecret = process.env.CRON_SECRET || "hefisto_cron_secret_dev";
-    const isValidSecret = authHeader === `Bearer ${expectedSecret}` || secretParam === expectedSecret;
+    // Sem CRON_SECRET não existe segredo esperado: nada casa e a rota recusa.
+    // O valor de reserva que estava aqui ("hefisto_cron_secret_dev") era
+    // público no repositório — quem o conhecesse disparava o scheduler.
+    const expectedSecret = String(process.env.CRON_SECRET || "").trim();
+    const isValidSecret = !!expectedSecret
+      && (authHeader === `Bearer ${expectedSecret}` || secretParam === expectedSecret);
 
     // Em desenvolvimento local, permite execução para testes
     const isDev = process.env.NODE_ENV !== "production";

@@ -30,7 +30,68 @@ Supabase, deploy por `git push origin main` na Vercel
   (Vale para `.from()`, `.rpc()`; `supabase.storage` é Promise de verdade.)
 - Escreva comentários e textos de tela em português, explicando o **porquê**, não o quê.
 
+## Regra nova: configuração falha fechada
+
+Nenhuma variável obrigatória tem valor de reserva. `process.env.X || "valor"`
+para URL, chave ou segredo está proibido — era assim que qualquer build sem
+variável (preview, staging, máquina nova) abria o **banco de produção** sem
+ninguém perceber. Quem precisa de configuração usa
+`app/lib/config-supabase.mjs` (público) ou `app/lib/config-supabase-server.js`
+(service role, só servidor); faltando qualquer peça, o app para e diz o que
+falta. `HEFISTO_ENV` declara o ambiente (`development`/`staging`/`production`;
+preview do Vercel conta como staging) e **staging apontando para o projeto de
+produção é recusado**. Confira o ambiente com
+`node scripts/verificar-ambiente-supabase.mjs`.
+
 ## O que está pendente, em ordem
+
+### 0. SEGURANÇA — `migracao_rls_autorizacao_servidor.sql` NA FILA (22/09)
+
+**Rode esta antes de qualquer outra.** As funções `auth_papel()`,
+`auth_unidade_id()` e `pode_ver_todas()` liam `auth.jwt() -> 'user_metadata'`,
+que é gravável pelo próprio usuário logado: dava para se declarar `papel:
+"admin"` e enxergar todas as unidades. E `pode_ver_todas()` tratava string
+vazia como "vê tudo", então quem não tinha unidade no metadata já via tudo sem
+fazer nada. A migração passa as três a ler `usuarios_erp`/`usuario_escopos`
+pelo `auth.uid()`, fechado por padrão.
+
+**Antes de aplicar, rode a PRÉVIA que está no bloco 1 do arquivo**: ela mostra
+quem fica vendo a rede inteira, quem fica preso a uma unidade e quem fica sem
+unidade nenhuma. Quem precisa de visão consolidada tem que estar com
+`super_admin` ou com escopo `todos`/`empresa` **antes** — senão perde a visão
+no instante em que a migração rodar. Se travar alguém e não der para arrumar o
+cadastro na hora, `db/rollback_rls_autorizacao_servidor.sql` volta atrás (e
+reabre o furo — use pelo menor tempo possível).
+
+Prova local, sem tocar em banco nenhum:
+`node scripts/test_rls_autorizacao_servidor.mjs <caminho do @electric-sql/pglite>`.
+
+**O que esta migração NÃO fecha** (precisa de etapa própria, com reescrita de
+policy): as policies de `docs/rls-por-unidade.sql` liberam linha com
+`unidade_id NULL` para todo mundo, inclusive no `WITH CHECK`; e as tabelas que
+o ERP usa hoje (`insumos`, `produtos`, `colaboradores`, `registro_ponto`,
+`pedidos`, `contas_pagar`...) em geral têm policy `to authenticated using
+(true)`, sem escopo de unidade nenhum.
+
+A mesma migração traz, no bloco 4, as funções do modelo definitivo —
+`hefisto_user_in_unit_strict(uuid, text)` e `hefisto_user_in_company(uuid,
+text)` —, fechadas para nulo e prontas para multiunidade. Elas **ainda não
+são usadas por policy nenhuma**: entram na etapa de reescrita das policies.
+`auth_unidade_id()` fica marcada como compatibilidade de unidade única: ela
+devolve UMA unidade e não sabe representar quem atende duas lojas.
+
+### 0b. SEGURANÇA — proposta não aplicada: `db/security/0002_proteger_tabelas_autorizacao.sql`
+
+Fecha as tabelas que decidem autorização. Hoje, quem tem qualquer login
+**lê o cadastro inteiro** (`usuarios_erp`, `usuario_escopos`, `perfis_acesso`
+e `permissoes_auditoria` têm policy de SELECT `using (true)` vinda de
+`db/migracao_controle_acesso.sql`): login, cargo, IPs liberados, janelas de
+horário, bloqueios, perfis e permissões de todo mundo. A proposta troca isso
+por leitura da própria linha e tira `INSERT/UPDATE/DELETE` de `authenticated`
+no nível de privilégio. A administração continua pela rota de servidor com
+service role, como já é. **Rode a prévia do bloco 1 antes** — se aparecer
+policy de escrita para `authenticated` que este repositório não conhece, pare
+e investigue.
 
 ### 1. Migrações — FILA VAZIA (27/08)
 

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { tentarSupabaseServerConfig } from "../../../lib/config-supabase-server";
 
 export const dynamic = "force-dynamic";
 
 function service() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://sezccspqxgklicfndwxx.supabase.co";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+  // Sem URL de reserva: faltando configuração, devolve null e quem chama
+  // segue sem as políticas avançadas (comportamento já existente).
+  const { config } = tentarSupabaseServerConfig();
+  return config ? createClient(config.url, config.serviceRoleKey, { auth: { persistSession: false } }) : null;
 }
 
 const genericDenied = () => NextResponse.json({ ok: false, error: "Usuário ou senha incorretos." }, { status: 403 });

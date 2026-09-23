@@ -4,66 +4,14 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { canAccessRoute, permittedRoutes } from "./permissions-catalog.mjs";
+import { PAPEIS, PAPEL_SEM_ACESSO, getPapel, papelDaSessao, permissoesDaSessao } from "./papeis.mjs";
 
 // Papéis: cada um tem uma "home" (pra onde vai ao logar) e os módulos que enxerga.
 // nav: "*" = tudo; ou lista de ids de módulos (iguais aos do menu/getNavId).
-export const PAPEIS = [
-  {
-    id: "admin", label: "Administrador", cor: "#0f172a",
-    descricao: "Acesso total, incluindo a Visão de Rede.",
-    home: "/dashboard", nav: "*",
-  },
-  {
-    id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
-    descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
-    home: "/dashboard/tarefas",
-    nav: ["dashboard","tarefas","bar","cozinha","cervejas","vendas","mesas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","organograma","configuracoes","gestao_rh","recrutamento","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
-  },
-  {
-    id: "financeiro", label: "Financeiro", cor: "#3b82f6",
-    descricao: "Resultados financeiros da rede e das lojas.",
-    home: "/dashboard/financeiro/dre",
-    nav: ["dashboard","rede","notificacoes","financeiro","dre","fluxo","cmv","margem","documentos"],
-  },
-  {
-    id: "rh", label: "Recursos Humanos", cor: "#ec4899",
-    descricao: "Equipe, ponto e portal do colaborador.",
-    home: "/dashboard/rh/gestao",
-    nav: ["notificacoes","rh","organograma","configuracoes","gestao_rh","recrutamento","ponto","colaborador"],
-  },
-  {
-    id: "estoque", label: "Estoquista", cor: "#8b5cf6",
-    descricao: "Insumos, estoque, fichas, cardápio e fornecedores.",
-    home: "/dashboard/tarefas",
-    nav: ["tarefas","notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade","gestao","ponto","colaborador"],
-  },
-  {
-    id: "cozinha", label: "Cozinha / Chef", cor: "#f97316",
-    descricao: "Fichas técnicas, cardápio e insumos.",
-    home: "/dashboard/tarefas",
-    nav: ["tarefas","notificacoes","bar","cozinha","ingredientes","fichas","cardapio","montagem","estoque","etiquetas","validade","gestao","ponto","colaborador"],
-  },
-  {
-    id: "marketing", label: "Marketing", cor: "#f59e0b",
-    descricao: "Clientes, campanhas e avaliações.",
-    home: "/dashboard/clientes/crm",
-    nav: ["dashboard","notificacoes","clientes","crm","campanhas","nps","ponto","colaborador"],
-  },
-  {
-    id: "caixa", label: "Operador de Caixa", cor: "#64748b",
-    descricao: "Ponto de venda, painel e notificações do dia.",
-    home: "/dashboard/tarefas", nav: ["dashboard","tarefas","vendas","mesas","notificacoes","ponto","colaborador"],
-  },
-  {
-    id: "garcom", label: "Garçom / Atendimento", cor: "#0284c7",
-    descricao: "Acesso restrito ao PDV Celular (Mesas).",
-    home: "/dashboard/mesas", nav: ["mesas"],
-  },
-];
+// A lista mora em papeis.mjs (testável sem subir o app); aqui só reexportamos
+// para não quebrar quem já importava de lib/auth.
+export { PAPEIS, PAPEL_SEM_ACESSO, getPapel };
 
-export function getPapel(papelId) {
-  return PAPEIS.find((p) => p.id === papelId) || PAPEIS[0];
-}
 
 /** Verifica se o papel logado é o Cérebro (Administrador Master) */
 export function isCerebro(papelId) {
@@ -87,13 +35,20 @@ export function podeAcessar(papelId, navId) {
 }
 
 // ── Mapeia o usuário do Supabase para o formato do app ─────────
+//
+// O que vem em user_metadata é gravável pelo próprio usuário logado
+// (supabase.auth.updateUser({ data })): serve para mostrar um nome na tela e
+// nada mais. Papel, unidade e permissões saem de hefisto_session_context(),
+// que lê usuarios_erp no servidor. Sem esse contexto a sessão fica SEM ACESSO.
 function mapUser(u) {
   if (!u) return null;
   const m = u.user_metadata || {};
   return {
     id: u.id, email: u.email,
     nome: m.nome || (u.email ? u.email.split("@")[0] : "Usuário"),
-    papel: m.papel || "admin", unidade: m.unidade || null,
+    papel: PAPEL_SEM_ACESSO,
+    unidade: null,
+    permissions: [],
   };
 }
 
@@ -109,12 +64,15 @@ async function enrichUser(u) {
       id: u.id,
       email: data.email || base.email,
       nome: data.nome || base.nome,
-      unidade: data.unidade || base.unidade,
+      unidade: data.unidade || null,
+      papel: papelDaSessao(data),
+      permissions: permissoesDaSessao(data),
       gerenciado: true,
     };
   } catch {
-    // A migração pode ainda não ter sido aplicada. Mantém os papéis antigos
-    // funcionando até o administrador concluir a instalação no banco.
+    // Sem o contexto do servidor não dá para afirmar nada sobre autorização.
+    // Antes isto caía nos papéis do metadata (e "sem papel" virava admin);
+    // agora a sessão fica sem acesso até o cadastro do ERP responder.
     return base;
   }
 }

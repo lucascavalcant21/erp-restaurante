@@ -30,6 +30,23 @@ Supabase, deploy por `git push origin main` na Vercel
   (Vale para `.from()`, `.rpc()`; `supabase.storage` é Promise de verdade.)
 - Escreva comentários e textos de tela em português, explicando o **porquê**, não o quê.
 
+## Héfisto com IA (fase 1: só leitura)
+
+O assistente passou a conversar por LLM em `/api/hefisto/agent`. Para ele
+funcionar, o servidor precisa de duas variáveis — **só no servidor**, nunca
+`NEXT_PUBLIC_`:
+
+- `OPENAI_API_KEY` — sem ela a rota responde 503 e o painel cai no motor
+  determinístico de sempre, com o aviso "Héfisto está temporariamente
+  indisponível". O ERP não para.
+- `OPENAI_MODEL` — modelo da Responses API. Sem ela vale o padrão
+  `gpt-4.1-mini`; declare o modelo que você quer usar de verdade.
+- `OPENAI_TIMEOUT_MS` (opcional, padrão 30000).
+
+Nesta fase a IA **não escreve nada**: não existe ferramenta de escrita, e
+pedido de ação vira resposta dizendo que a ação é feita na tela, com
+confirmação. O Action Engine e o Policy Engine continuam no fluxo, antes da IA.
+
 ## O que está pendente, em ordem
 
 ### 1. Migrações — FILA VAZIA (27/08)

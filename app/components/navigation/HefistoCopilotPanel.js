@@ -21,6 +21,7 @@ import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs
 import { getHefistoInbox } from "../../lib/hefisto-inbox.js";
 import { recordUserFeedback } from "../../lib/hefisto-telemetry.js";
 import { recordPilotIssue } from "../../lib/hefisto-pilot.js";
+import { perguntarAoHefisto } from "../../lib/hefisto-ai/cliente.js";
 
 export default function HefistoCopilotPanel() {
   const router = useRouter();
@@ -189,7 +190,36 @@ export default function HefistoCopilotPanel() {
         return;
       }
 
-      // 2. Se não for ação preview, processa via intenção/analytics/specialist
+      // 2. Conversa com o Héfisto com IA (endpoint /api/hefisto/agent).
+      // Ele só consulta: quem executa ação continua sendo o passo 1, com
+      // confirmação. Se a IA estiver fora do ar, caímos no motor determinístico
+      // de sempre — o ERP não pode parar por causa do assistente.
+      const iaRes = await perguntarAoHefisto({
+        mensagem: queryComContexto,
+        pageContext,
+        unidadeAtiva,
+      });
+
+      if (iaRes?.ok && iaRes.texto) {
+        const respostaIA = {
+          id: `bot-${Date.now()}`,
+          sender: "hefisto",
+          type: iaRes.rota ? "NAVIGATION" : "TEXT",
+          title: "Héfisto",
+          responseText: iaRes.texto,
+          structured: null,
+          suggestedActions: iaRes.rota
+            ? [{ label: "Abrir a tela", action: () => router.push(iaRes.rota) }]
+            : [],
+          timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+        };
+        setMensagens(prev => [...prev, respostaIA]);
+        falarTexto(iaRes.texto);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Fallback: motor determinístico (intenção/analytics/specialist)
       const res = await processHefistoIntent({
         text: query,
         session: sessao,

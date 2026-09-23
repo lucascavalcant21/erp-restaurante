@@ -6,7 +6,7 @@ import { useERP } from "../context/ERPContext";
 import {
   ArrowLeft, ArrowRight, Beaker, BookOpen, ChefHat, ClipboardList, GlassWater,
   Boxes, CalendarCheck, ChevronDown, Factory, FileInput, Layers3,
-  ListChecks, Plus, ReceiptText, ShoppingCart, Sparkles, Tags, Wine,
+  ListChecks, Plus, ReceiptText, RotateCw, ShoppingCart, Sparkles, Tags, Wine,
 } from "lucide-react";
 
 const ETAPAS = [
@@ -79,14 +79,24 @@ export default function RecipeWorkspace({
     <header className="border-b border-line bg-card shadow-sm">
       <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={abrirMenu}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:bg-elevated hover:text-fg transition"
-              title="Voltar ao menu"
-            >
-              <ArrowLeft size={19} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={abrirMenu}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:bg-elevated hover:text-fg transition"
+                title="Voltar ao menu"
+              >
+                <ArrowLeft size={19} />
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="flex h-11 px-3 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-line bg-slate-50 text-slate-700 hover:bg-elevated hover:text-fg transition font-bold text-xs shadow-sm active:scale-95"
+                title="Atualizar dados e recarregar a tela"
+              >
+                <RotateCw size={15} />
+                <span className="hidden sm:inline">Atualizar</span>
+              </button>
+            </div>
             <div>
               <div className="flex items-center gap-2.5">
                 <div className="flex items-center rounded-xl bg-elevated p-0.5 border border-slate-200/80">

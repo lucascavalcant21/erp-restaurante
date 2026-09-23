@@ -65,7 +65,10 @@ export default function RastreioPage() {
               <Linha k={etiquetaFechada ? "Etiquetado em" : "Manipulação"} v={etiquetaFechada ? fmtData(et.manipulacao_em) : fmtDataHora(et.manipulacao_em)} />
               <Linha k="Validade" v={etiquetaFechada ? fmtData(et.validade_em) : fmtDataHora(et.validade_em)} forte cor={vencido ? "#DC2626" : "var(--accent-fg)"} />
               {et.lote && <Linha k="Lote / SIF" v={et.lote} />}
-              <Linha k="Responsável" v={et.responsavel} />
+              {/* Responsável saiu do rastreio público: é nome de pessoa, e esta
+                  página abre sem login para qualquer um que escaneie o QR.
+                  Quem precisa saber quem manipulou vê no histórico da etiqueta,
+                  dentro do ERP. */}
               <Linha k="Código" v={et.codigo} />
             </div>
           </div>

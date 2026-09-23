@@ -110,11 +110,22 @@ export async function excluirListaEtiquetas(id) {
   return { error: error?.message || null };
 }
 
-// Busca pública por código (usada na página de rastreio ao escanear o QR)
+// Busca pública por código (usada na página de rastreio ao escanear o QR).
+//
+// Passa pela função get_etiqueta_publica em vez de ler a tabela: a linha da
+// etiqueta agora carrega saldo, custo, linhagem e produção, e nada disso pode
+// sair para quem só escaneou um QR na rua. A função devolve apenas o que já
+// está impresso no papel.
 export async function buscarPorCodigo(codigo) {
   if (!isSupabaseReady() || !codigo) return null;
-  const { data } = await supabase.from("etiquetas").select("*").eq("codigo", codigo).maybeSingle();
-  return data || null;
+  const { data, error } = await supabase.rpc("get_etiqueta_publica", { p_codigo: codigo });
+  if (error) {
+    // Ambiente onde a migração ainda não rodou: o rastreio continua de pé pela
+    // leitura antiga, que segue permitida enquanto a policy anônima existir.
+    const { data: antigo } = await supabase.from("etiquetas").select("*").eq("codigo", codigo).maybeSingle();
+    return antigo || null;
+  }
+  return (Array.isArray(data) ? data[0] : data) || null;
 }
 
 // Status da etiqueta: 'ativa' | 'baixa' (consumido/usado) | 'perda' (perdido/descartado)
@@ -133,6 +144,18 @@ export async function atualizarStatusEtiqueta(etiqueta, status) {
     }).catch(() => {});
 
     // 2. Se for perda, lançar o prejuízo no DRE (Financeiro)
+    //
+    // CAMINHO LEGADO. Vale para etiqueta que NÃO é rastreável (rastreavel =
+    // false), que é todo o histórico. Ele tem um risco conhecido: a saída de
+    // estoque acima e este INSERT são duas chamadas de rede, e nada garante
+    // que a segunda aconteça. Também não há chave de idempotência, então um
+    // retry cria duas contas.
+    //
+    // O caminho novo não tem esse problema: etiqueta_perda (db/etiquetas/0001)
+    // grava a pendência na MESMA transação do movimento, e
+    // app/lib/etiqueta-financeiro.js lança a partir da fila, sem duplicar.
+    // Este bloco fica como está de propósito — mexer nele mudaria o
+    // comportamento das telas antigas, que é assunto da fase de consolidação.
     if (status === "perda") {
        const valor = (Number(etiqueta.quantidade) || 0) * (Number(etiqueta.custo_unit) || 0);
        if (valor > 0) {

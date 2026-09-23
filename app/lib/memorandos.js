@@ -1,5 +1,13 @@
 import { supabase, isSupabaseReady } from "./supabase";
 
+export async function salvarPlanoProducao(unidadeId, setor, data, plano) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.rpc("salvar_plano_producao", {
+    p_unidade: unidadeId, p_setor: setor, p_data: data, p_plano: plano,
+  });
+  return { error: error?.message || null };
+}
+
 export async function fetchMemorandoOperacao(unidadeId, dataReferencia) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
   const { data, error } = await supabase

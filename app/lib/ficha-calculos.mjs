@@ -147,10 +147,10 @@ export function custoIngrediente({ custoUnitario, quantidade, fatorCorrecao: fc 
 // rateado pelo rendimento dela e multiplicado pela quantidade utilizada.
 export function custoSubreceita({ custoTotalSubficha, rendimentoSubficha, quantidade, fatorCorrecao: fc = 0 }) {
   const total = parseNumero(custoTotalSubficha);
-  const rend = Math.max(parseNumero(rendimentoSubficha), 1);
+  const rend = parseNumero(rendimentoSubficha);
   const qtd = parseNumero(quantidade);
   const fator = fatorDeCorrecaoNormalizado(fc);
-  if (total <= 0 || qtd <= 0) return 0;
+  if (total <= 0 || qtd <= 0 || rend <= 0) return 0;
   return (total / rend) * qtd * fator;
 }
 
@@ -237,6 +237,7 @@ export function custoUnitarioEfetivoInsumo(insumo) {
 // `custo_embalagens_total` somado no fim.
 export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set()) {
   if (!ficha || guard.has(ficha.id)) return 0;
+  guard = new Set(guard);
   guard.add(ficha.id);
 
   let total = 0;
@@ -249,7 +250,7 @@ export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set())
         || String(fi.insumos.unidade_medida || "un").toLowerCase();
       total += custoIngrediente({
         custoUnitario: custoUnitarioEfetivoInsumo(fi.insumos),
-        quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.insumos.unidade_medida, unBase),
+        quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.unidade || fi.insumos.unidade_medida, unBase),
         fatorCorrecao: fc,
       });
     } else if (fi.subficha_id) {
@@ -523,5 +524,60 @@ export function rendimentoPelosIngredientes(ingLista, departamento = "cozinha") 
     unidade: unidadePadraoDepartamento(departamento),
     valor: Math.round((total / 1000) * 1000) / 1000,
     solidosG, liquidosMl,
+  };
+}
+
+// ─── Função Única de Cálculo Financeiro (Card e Modal) ──────────────────────
+// Recebe os parâmetros financeiros e calcula todos os indicadores derivados
+// com precisão de moeda de 2 casas decimais e arredondamento financeiro consistente.
+export function calculateFichaFinanceiro({
+  custoTotalIngredientes = 0,
+  rendimentoPorcoes = 1,
+  custoEmbalagemPorPorcao = 0,
+  precoVenda = 0,
+  taxaMaquininhaPct = 2.5,
+  impostoPct = 4.0,
+}) {
+  const rend = Math.max(1, parseNumero(rendimentoPorcoes) || 1);
+  const totalIng = Math.max(0, parseNumero(custoTotalIngredientes));
+  const custoIngredPorPorcao = totalIng / rend;
+  const embPorPorcao = Math.max(0, parseNumero(custoEmbalagemPorPorcao));
+  const preco = Math.max(0, parseNumero(precoVenda));
+  const taxaMaq = Math.max(0, parseNumero(taxaMaquininhaPct));
+  const imp = Math.max(0, parseNumero(impostoPct));
+
+  // Arredondamento dos componentes para manter coerência matemática na exibição (R$)
+  const valorMaquininha = preco > 0 ? Math.round(preco * (taxaMaq / 100) * 100) / 100 : 0;
+  const valorImposto = preco > 0 ? Math.round(preco * (imp / 100) * 100) / 100 : 0;
+
+  // Custo por porção do produto (ingredientes rateados pelo rendimento + embalagem)
+  const custoProdutoPorPorcao = custoIngredPorPorcao + embPorPorcao;
+
+  // Custo total por porção incluindo taxas percentuais da venda
+  const custoTotal = custoProdutoPorPorcao + valorMaquininha + valorImposto;
+
+  const lucroPorPorcao = preco > 0 ? Math.round((preco - custoTotal) * 100) / 100 : null;
+
+  // CMV: (custoProdutoPorPorcao / precoVenda) * 100
+  const cmv = preco > 0 ? (custoProdutoPorPorcao / preco) * 100 : null;
+
+  // Margem líquida: (lucroPorPorcao / precoVenda) * 100
+  const margem = preco > 0 && lucroPorPorcao !== null ? (lucroPorPorcao / preco) * 100 : null;
+
+  return {
+    custoTotalIngredientes: totalIng,
+    rendimentoPorcoes: rend,
+    custoIngredientesPorPorcao: Math.round(custoIngredPorPorcao * 100) / 100,
+    custoEmbalagemPorPorcao: Math.round(embPorPorcao * 100) / 100,
+    custoProdutoPorPorcao: Math.round(custoProdutoPorPorcao * 100) / 100,
+    taxaMaquininhaPct: taxaMaq,
+    valorMaquininha,
+    impostoPct: imp,
+    valorImposto,
+    custoTotal: Math.round(custoTotal * 100) / 100,
+    precoVenda: preco,
+    lucroPorPorcao,
+    cmv,
+    margem,
   };
 }

@@ -2,7 +2,7 @@
 // auth.js — Autenticação (Supabase Auth) + permissões por papel
 // ═══════════════════════════════════════════════════════════════
 
-import { supabase, isSupabaseReady } from "./supabase";
+import { supabase, isSupabaseReady } from "./supabase.js";
 import { canAccessRoute, permittedRoutes } from "./permissions-catalog.mjs";
 
 // Papéis: cada um tem uma "home" (pra onde vai ao logar) e os módulos que enxerga.
@@ -61,8 +61,19 @@ export const PAPEIS = [
   },
 ];
 
+export const UNPRIVILEGED_PAPEL = {
+  id: "nao_autorizado",
+  label: "Sem Acesso / Não Autorizado",
+  cor: "#64748b",
+  descricao: "Perfil sem privilégios ou não autorizado.",
+  home: "/login",
+  nav: [],
+};
+
 export function getPapel(papelId) {
-  return PAPEIS.find((p) => p.id === papelId) || PAPEIS[0];
+  if (!papelId) return UNPRIVILEGED_PAPEL;
+  const found = PAPEIS.find((p) => p.id === papelId);
+  return found || UNPRIVILEGED_PAPEL;
 }
 
 /** Verifica se o papel logado é o Cérebro (Administrador Master) */
@@ -77,12 +88,13 @@ export function podeEditarGlobal(papelId) {
 
 /** Rota inicial do papel (pra onde vai ao logar). */
 export function homeDoPapel(papelId) {
-  return getPapel(papelId).home || "/dashboard";
+  return getPapel(papelId).home || "/login";
 }
 
 /** Se o papel pode acessar um módulo (navId). */
 export function podeAcessar(papelId, navId) {
-  const nav = getPapel(papelId).nav;
+  const papelObj = getPapel(papelId);
+  const nav = papelObj.nav;
   return nav === "*" || (Array.isArray(nav) && nav.includes(navId));
 }
 
@@ -93,7 +105,7 @@ function mapUser(u) {
   return {
     id: u.id, email: u.email,
     nome: m.nome || (u.email ? u.email.split("@")[0] : "Usuário"),
-    papel: m.papel || "admin", unidade: m.unidade || null,
+    papel: m.papel || "nao_autorizado", unidade: m.unidade || null,
   };
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { custoDeProduzirFicha as custoTotalDaFicha } from "../../../lib/ficha-calculos.mjs";
 
 import { useState, useEffect, useMemo } from "react";
 import { Percent, AlertCircle, Crown, History, X, TrendingUp, TrendingDown } from "lucide-react";
@@ -28,21 +29,7 @@ function insumosDaFichaRec(f, todasFichas, acc = new Set(), guard = new Set()) {
 const META_CMV = 30; // % alvo máximo de CMV (acima disso = atenção)
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
-function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
-  let total = 0;
-  (f.fichas_ingredientes || []).forEach(fi => {
-    if (fi.insumos) {
-      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
-    } else if (fi.subficha_id) {
-      const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
-      total += custoBaseUnit * (fi.quantidade || 0);
-    }
-  });
-  return total;
-}
+
 
 // Nº real de porções: direto (porções/un) ou derivado do peso total quando
 // o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).

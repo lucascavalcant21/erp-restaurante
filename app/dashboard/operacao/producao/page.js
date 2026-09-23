@@ -1,4 +1,5 @@
 "use client";
+import { custoDeProduzirFicha as custoTotalDaFicha } from "../../../lib/ficha-calculos.mjs";
 // tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, Suspense, useRef } from "react";
@@ -6,31 +7,19 @@ import { useTempoReal } from "../../../lib/realtime";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
-import { calcularConsumoProducao, fetchProducoesPeriodo, registrarProducao } from "../../../lib/estoque";
+import { calcularConsumoProducao, fetchProducoesPeriodo, registrarProducao, preverProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchEstoques, fetchItensEstoque } from "../../../lib/estoques-multiplos";
 import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList, Boxes, History, Search, CheckCircle2 } from "lucide-react";
+import { dataOperacional, ehEstoqueavel, unidadeProducao, totaisPorUnidade } from "../../../lib/producao-calculos.mjs";
+import { salvarPlanoProducao } from "../../../lib/memorandos";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 // guard evita loop infinito se alguém criar uma referência circular.
-function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
-  let total = 0;
-  (f.fichas_ingredientes || []).forEach(fi => {
-    if (fi.insumos) {
-      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
-    } else if (fi.subficha_id) {
-      const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
-      total += custoBaseUnit * (fi.quantidade || 0);
-    }
-  });
-  return total;
-}
+
 
 // Nº real de porções: direto (porções/un) ou derivado do peso total quando
 // o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
@@ -76,8 +65,17 @@ function ProducaoRunner() {
   // Planejamento do dia: { [ficha_id]: { qtd, resp } } — vira planilha impressa
   const [modalPlanejar, setModalPlanejar] = useState(false);
   const [plano, setPlano] = useState({});
-  const [dataPlano, setDataPlano] = useState(() => new Date().toISOString().split("T")[0]);
-  const chavePlano = `producao_plano_${unidadeAtiva || ""}_${deptUrl}`;
+  const [dataPlano, setDataPlano] = useState(() => dataOperacional());
+  const [planoCarregado, setPlanoCarregado] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [previa, setPrevia] = useState(null);
+  const [erroPrevia, setErroPrevia] = useState("");
+  const [carregandoPrevia, setCarregandoPrevia] = useState(false);
+  const [erroCarga, setErroCarga] = useState("");
+  const [incluirPratos, setIncluirPratos] = useState(false);
+  const chaveProducao = useRef(null);
+  const travaConfirmacao = useRef(false);
+  const chavePlano = `producao_plano_${unidadeAtiva || ""}_${deptUrl}_${dataPlano}`;
 
   // Rascunho do plano sobrevive a refresh (por unidade+departamento)
   useEffect(() => {
@@ -85,15 +83,17 @@ function ProducaoRunner() {
       const raw = localStorage.getItem(chavePlano);
       if (raw) {
         const d = JSON.parse(raw);
-        if (d && typeof d.plano === "object") { setPlano(d.plano); if (d.data) setDataPlano(d.data); }
+        if (d && typeof d.plano === "object") setPlano(d.plano);
       } else {
         setPlano({});
       }
-    } catch { /* rascunho corrompido: ignora */ }
+    } catch { setPlano({}); }
+    setPlanoCarregado(chavePlano);
   }, [chavePlano]);
   useEffect(() => {
+    if (planoCarregado !== chavePlano) return;
     try { localStorage.setItem(chavePlano, JSON.stringify({ plano, data: dataPlano })); } catch { }
-  }, [plano, dataPlano, chavePlano]);
+  }, [plano, dataPlano, chavePlano, planoCarregado]);
 
   const setPlanoItem = (fichaId, patch) => {
     setPlano(p => ({ ...p, [fichaId]: { qtd: "", resp: "", ...(p[fichaId] || {}), ...patch } }));
@@ -116,7 +116,7 @@ function ProducaoRunner() {
       <tr>
         <td class="n">${i + 1}</td>
         <td class="item"><b>${x.ficha.nome_receita}</b></td>
-        <td class="qtd">${(Number(String(x.qtd).replace(",", ".")) || 0).toLocaleString("pt-BR")} porç.</td>
+        <td class="qtd">${(Number(String(x.qtd).replace(",", ".")) || 0).toLocaleString("pt-BR")} ${unidadeProducao(x.ficha)}</td>
         <td class="nome">${x.resp || ""}</td>
         <td class="hora"></td>
         <td class="hora"></td>
@@ -212,20 +212,21 @@ function ProducaoRunner() {
 
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+    const hojeISO = dataPlano;
     const [resFichas, resProdutos, resColab, resMemo, resProducoes, resEstoques] = await Promise.all([
-       fetchFichas(unidadeAtiva, deptUrl),
+       fetchFichas(unidadeAtiva),
        fetchProdutos(unidadeAtiva, deptUrl),
        fetchColaboradores(unidadeAtiva),
        fetchMemorandoOperacao(unidadeAtiva, hojeISO).catch(() => ({ data: null })),
        fetchProducoesPeriodo(unidadeAtiva, 30),
        fetchEstoques(unidadeAtiva),
     ]);
+    setErroCarga([resFichas, resProdutos, resColab, resMemo, resProducoes, resEstoques].map(r => r?.error).filter(Boolean).join(" · "));
     setFichas(resFichas.data || []);
     setProdutos(resProdutos.data || []);
     setColaboradores((resColab.data || []).filter(c => c.ativo !== false && c.status !== "inativo"));
     setMemoHoje(resMemo?.data || null);
-    const idsDoSetor = new Set((resFichas.data || []).map(item => String(item.id)));
+    const idsDoSetor = new Set((resFichas.data || []).filter(f => f.departamento === deptUrl).map(item => String(item.id)));
     setProducoes((resProducoes.data || []).filter(item => idsDoSetor.has(String(item.ficha_id))));
     const estoquePreparo = (resEstoques.data || []).find(item => String(item.slug || "").toLowerCase() === `pre-preparos-${deptUrl}`);
     if (estoquePreparo?.id) {
@@ -247,12 +248,14 @@ function ProducaoRunner() {
 
   useEffect(() => {
     if (unidadeAtiva) carregar();
-  }, [unidadeAtiva, deptUrl]);
+  }, [unidadeAtiva, deptUrl, dataPlano]);
   useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   const abrirProduzir = (ficha) => {
     setFichaAtual(ficha);
-    setQtdProd("1");
+    setQtdProd(String(Number(plano[ficha.id]?.qtd) || Number(ficha.rendimento_porcoes) || 1));
+    chaveProducao.current = crypto.randomUUID();
+    setPrevia(null);
     const responsavelPlanejado = plano[ficha.id]?.resp;
     const planejado = colaboradores.find(item => item.nome === responsavelPlanejado);
     let ultimo = "";
@@ -262,36 +265,40 @@ function ProducaoRunner() {
     setModalProduzir(true);
   };
 
+  useEffect(() => {
+    if (!modalProduzir || !fichaAtual || !(Number(qtdProd) > 0)) { setPrevia(null); return; }
+    let vigente = true;
+    setCarregandoPrevia(true); setPrevia(null); setErroPrevia("");
+    const timer = setTimeout(async () => {
+      const res = await preverProducao(unidadeAtiva, fichaAtual.id, qtdProd).catch(e => ({ error: e.message }));
+      if (!vigente) return;
+      setPrevia(res.data || null); setErroPrevia(res.error || ""); setCarregandoPrevia(false);
+    }, 250);
+    return () => { vigente = false; clearTimeout(timer); };
+  }, [modalProduzir, fichaAtual, qtdProd, unidadeAtiva]);
+
   const handleConfirmar = async () => {
-    if(!colabSelecionado) return alert("Selecione quem está produzindo.");
+    if (travaConfirmacao.current) return;
+    if (!colabSelecionado) return alert("Selecione quem está produzindo.");
     const numQtd = Number(qtdProd);
-    if(numQtd <= 0) return alert("Digite uma quantidade válida.");
+    if (!Number.isFinite(numQtd) || numQtd <= 0 || !previa) return alert("Confira a previsão antes de confirmar.");
+    if (previa.itens.some(i => i.faltante > 0)) return alert("Corrija o estoque ou reduza a quantidade.");
+    travaConfirmacao.current = true; setSalvando(true);
+    try {
+      const res = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado, fichas, {
+        departamento: deptUrl, localArmazenamento, chave: chaveProducao.current,
+      });
+      if (res.error) return alert("Produção não confirmada: " + res.error);
+      try { localStorage.setItem(`producao_responsavel_${unidadeAtiva}`, String(colabSelecionado)); } catch {}
+      setModalProduzir(false);
+      await carregar(true);
+    } catch (e) { alert("Não foi possível confirmar: " + e.message + ". Confira o histórico antes de iniciar outra produção."); }
+    finally { travaConfirmacao.current = false; setSalvando(false); }
+  };
 
-    // O pulo do gato: registrarProducao abate do estoque automaticamente!
-    if(fichaAtual.eh_base && !localArmazenamento.trim()) return alert("Informe onde o pré-preparo será guardado.");
-    const colaborador = colaboradores.find(item => String(item.id) === String(colabSelecionado));
-    const erro = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado, fichas, {
-      departamento: deptUrl,
-      localArmazenamento,
-      colaboradorNome: colaborador?.nome || "",
-    });
-    
-    if (erro.codigo === "ESTOQUE_INSUFICIENTE") {
-      const lista = (erro.faltantes || []).map(i =>
-        `• ${i.nome}: precisa ${i.necessario.toLocaleString("pt-BR")} ${i.unidade || ""}, disponível ${i.disponivel.toLocaleString("pt-BR")}`
-      ).join("\n");
-      return alert(`Produção não registrada. Estoque insuficiente:\n\n${lista}\n\nAjuste o estoque ou reduza a quantidade.`);
-    }
-    if (erro.codigo === "FICHA_INVALIDA") {
-      return alert("Produção não registrada. Revise a ficha técnica: " + erro.error);
-    }
-    if(erro.error) return alert("Falha ao registrar produção: " + erro.error);
-    try { localStorage.setItem(`producao_responsavel_${unidadeAtiva}`, String(colabSelecionado)); } catch {}
-
-    alert(erro.preparo
-      ? `Produção registrada!\n\nEntraram ${numQtd} ${fichaAtual.rendimento_unidade || "un"} de ${fichaAtual.nome_receita} no estoque de pré-preparos (${localArmazenamento}).`
-      : "Produção registrada e estoque abatido com sucesso!");
-    setModalProduzir(false);
+  const salvarPlanejamento = async () => {
+    const res = await salvarPlanoProducao(unidadeAtiva, deptUrl, dataPlano, plano);
+    if (res.error) return alert(res.error);
     await carregar(true);
   };
 
@@ -305,13 +312,19 @@ function ProducaoRunner() {
   };
 
   const isBar = deptUrl === 'bar';
-  const totalProduzido = producoes.reduce((total, item) => total + Number(item.quantidade_produzida || 0), 0);
-  const estoqueHref = isBar ? "/dashboard/bar/tablet" : "/dashboard/operacao/cardapio/tablet";
-  const fichasFiltradas = fichas.filter(ficha => String(ficha.nome_receita || "").toLowerCase().includes(buscaFicha.toLowerCase()));
+  const totalProduzido = Object.entries(totaisPorUnidade(producoes)).map(([un,q]) => `${q.toLocaleString("pt-BR")} ${un}`).join(" · ") || "Nenhuma produção registrada";
+  const estoqueHref = `/dashboard/operacao/estoque?dept=${deptUrl}`;
+  const fichasDoSetor = fichas.filter(f => f.departamento === deptUrl);
+  const fichasFiltradas = fichasDoSetor.filter(f => incluirPratos || ehEstoqueavel(f)).filter(ficha => String(ficha.nome_receita || "").toLowerCase().includes(buscaFicha.toLowerCase()));
 
   return (
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
+      {erroCarga && <p role="alert" className="m-4 rounded-xl bg-red-50 p-4 text-red-700">Falha ao carregar: {erroCarga}</p>}
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-4 pt-4">
+        <label>Dia do planejamento <input type="date" value={dataPlano} onChange={e => setDataPlano(e.target.value)} className="rounded border p-2" /></label>
+        <label><input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} /> Incluir pratos para consumo imediato</label>
+      </div>
       {/* TOPBAR */}
       <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -412,7 +425,7 @@ function ProducaoRunner() {
             </button>
             <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
                <span className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-accent"><History size={17}/> Produzido nos últimos 30 dias</span>
-               <strong className="mt-2 block text-2xl font-black text-fg">{totalProduzido.toLocaleString("pt-BR")} porções</strong>
+               <strong className="mt-2 block text-2xl font-black text-fg">{totalProduzido} porções</strong>
                <span className="mt-1 block text-xs font-bold text-slate-600">{producoes.length} lançamento(s) registrado(s)</span>
             </article>
             <button onClick={() => router.push(estoqueHref)} className="rounded-2xl border border-slate-300 bg-slate-900 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -518,7 +531,7 @@ function ProducaoRunner() {
                      )}
                   </div>
 
-                  {fichas.map(f => {
+                  {fichasDoSetor.filter(ehEstoqueavel).map(f => {
                      const item = plano[f.id] || {};
                      const ativo = Number(String(item.qtd || "").replace(",", ".")) > 0;
                      return (
@@ -527,7 +540,7 @@ function ProducaoRunner() {
                            <div className="flex items-center gap-2">
                               <input type="number" min="0" placeholder="0" value={item.qtd || ""} onChange={e=>setPlanoItem(f.id, { qtd: e.target.value })}
                                  className="w-20 p-2.5 text-center bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
-                              <span className="text-3xs font-bold text-subtle uppercase">porç.</span>
+                              <span className="text-3xs font-bold text-subtle uppercase">{unidadeProducao(f)}</span>
                               <select value={item.resp || ""} onChange={e=>setPlanoItem(f.id, { resp: e.target.value })}
                                  className="p-2.5 bg-card border border-line rounded-lg font-bold text-xs text-slate-600 outline-none focus:border-emerald-500 max-w-[170px]">
                                  <option value="">Nome em branco (escrever à mão)</option>
@@ -541,6 +554,7 @@ function ProducaoRunner() {
 
                <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-slate-50 rounded-b-[32px] shrink-0 flex flex-col sm:flex-row sm:items-center gap-3">
                   <p className="flex-1 text-xs font-bold text-muted">{itensPlanejados.length} item(ns) no plano</p>
+                  <button onClick={salvarPlanejamento} className="rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white">Salvar planejamento</button>
                   <button onClick={imprimirPlanoDoDia} className="flex items-center gap-2 bg-accent hover:bg-accent text-accent-fg px-6 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-emerald-600/20">
                      <Printer size={18}/> Imprimir Planilha do Dia
                   </button>
@@ -578,14 +592,14 @@ function ProducaoRunner() {
                         ))}
                      </div>
                      <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={isBar ? "Ex.: Geladeira dos xaropes" : "Ex.: Freezer 3"} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-amber-600" />
-                     <p className="mt-2 text-xs font-semibold text-amber-700">O saldo produzido ficará separado neste local.</p>
+                     <p className="mt-2 text-xs font-semibold text-amber-700">O local será registrado junto à produção e ao item de estoque.</p>
                   </div>}
 
                   {/* Quantidade */}
                   <div className="bg-slate-50 p-6 rounded-2xl border border-line">
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block text-center mb-4">Quantas porções você fez?</label>
+                     <label className="text-xs font-bold text-muted uppercase tracking-widest block text-center mb-4">Quantidade produzida ({unidadeProducao(fichaAtual)})</label>
                      <div className="flex items-center justify-center gap-4">
-                        <button onClick={()=>setQtdProd(p => Math.max(1, Number(p)-1))} className="w-14 h-14 rounded-full bg-card border border-line flex items-center justify-center text-3xl font-black text-muted hover:text-slate-800">-</button>
+                        <button onClick={()=>setQtdProd(p => Math.max(0.001, Number(p)-1))} className="w-14 h-14 rounded-full bg-card border border-line flex items-center justify-center text-3xl font-black text-muted hover:text-slate-800">-</button>
                         <input 
                            type="number" 
                            value={qtdProd} 
@@ -598,7 +612,7 @@ function ProducaoRunner() {
 
                   {/* Valor Total Médio da Produção + CMV desta ficha */}
                   {(() => {
-                     const custoPorcao = custoTotalDaFicha(fichaAtual, fichas) / porcoesDaFicha(fichaAtual);
+                     const custoPorcao = custoTotalDaFicha(fichaAtual, fichas) / Number(fichaAtual.rendimento_porcoes || 1);
                      const valorTotalProducao = custoPorcao * Number(qtdProd || 0);
                      const cmv = calcCmv(fichaAtual, fichas, produtoDaFicha);
                      const cores = cmv !== null ? corCmv(cmv) : null;
@@ -606,7 +620,7 @@ function ProducaoRunner() {
                         <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center justify-between gap-4">
                            <div>
                               <p className="text-3xs font-bold uppercase tracking-widest text-accent">Valor Total Médio desta Produção</p>
-                              <p className="text-3xs font-bold text-emerald-700/70 mt-0.5">{fmtBRL(custoPorcao)} / porção × {qtdProd || 0}</p>
+                              <p className="text-3xs font-bold text-emerald-700/70 mt-0.5">{fmtBRL(custoPorcao)} / {unidadeProducao(fichaAtual)} × {qtdProd || 0}</p>
                               <p className="text-3xl font-black text-accent mt-1">{fmtBRL(valorTotalProducao)}</p>
                            </div>
                            {cmv !== null && (
@@ -619,37 +633,39 @@ function ProducaoRunner() {
                      );
                   })()}
 
-                  {/* Preview da Baixa */}
-                  <div className="pt-2">
-                     <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Previsão de Baixa no Estoque:</p>
-                     <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
-                        {calcularConsumoProducao(fichaAtual, Number(qtdProd), fichas).itens.map(item => {
-                           return (
-                              <div key={item.insumo.id} className="flex justify-between items-center bg-card p-2 rounded border border-line-soft">
-                                 <span className="font-bold text-slate-600 text-sm">{item.insumo.nome}</span>
-                                 <span className="font-black text-slate-600 text-sm">- {item.quantidade.toFixed(3)} {item.insumo.unidade_medida}</span>
-                              </div>
-                           )
-                        })}
-                     </div>
+                  <div className="space-y-2 text-sm" aria-live="polite">
+                    <a href={`/dashboard/operacao/fichas/${fichaAtual.id}`} className="font-bold text-emerald-700 underline">Ver ficha técnica</a>
+                    {carregandoPrevia && <p className="font-bold text-muted">Conferindo ingredientes e saldos…</p>}
+                    {erroPrevia && <p role="alert" className="text-red-700 font-bold">{erroPrevia}</p>}
+                    {previa && <p className="font-bold text-slate-700">Rendimento: {previa.rendimento} {previa.unidade} · {Number(previa.receitas).toLocaleString("pt-BR")} receitas · Custo estimado: {fmtBRL(previa.custo_estimado)}</p>}
+                    {previa?.itens.map(item => <div key={item.insumo_id} className={`rounded-lg border p-3 ${item.faltante > 0 ? "border-red-300 bg-red-50" : "border-line"}`}>
+                      <b>{item.nome}</b><p>Necessário {Number(item.necessario).toLocaleString("pt-BR")} {item.unidade} · Disponível {Number(item.disponivel).toLocaleString("pt-BR")} {item.unidade}</p>
+                      <p className={`font-bold ${item.faltante > 0 ? "text-red-600" : "text-emerald-600"}`}>{item.faltante > 0 ? `Faltam ${Number(item.faltante).toLocaleString("pt-BR")} ${item.unidade}` : "✓ Suficiente"}</p>
+                    </div>)}
+                    {previa?.itens.some(i => i.faltante > 0) && <a className="block text-xs font-bold text-red-700 underline" href={estoqueHref}>Corrigir estoque no módulo de Estoque</a>}
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-line">
+                     <button type="button" onClick={() => setModalProduzir(false)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 rounded-2xl font-bold text-slate-700 transition-colors">
+                        Cancelar
+                     </button>
+                     <button type="button" onClick={handleConfirmar} disabled={salvando || carregandoPrevia || (previa?.itens.some(i => i.faltante > 0))} className="flex-1 py-4 bg-accent hover:bg-accent text-accent-fg rounded-2xl font-black transition-colors disabled:opacity-50">
+                        {salvando ? "Confirmando..." : "Confirmar Produção"}
+                     </button>
                   </div>
                </div>
-
-               <button onClick={handleConfirmar} className={`w-full mt-8 py-5 text-accent-fg font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isBar ? 'bg-accent hover:bg-accent shadow-emerald-600/20' : 'bg-emerald-500 hover:bg-accent shadow-orange-500/20'} shadow-xl`}>
-                  <Save size={20}/> Confirmar Produção e Baixar Estoque
-               </button>
             </div>
          </div>
       )}
-
     </div>
   );
 }
 
-export default function Page() {
+export default function ProducaoPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando Produção...</div>}>
-       <ProducaoRunner />
+    <Suspense fallback={<div className="p-8 text-center font-bold text-muted">Carregando produção...</div>}>
+      <ProducaoRunner />
     </Suspense>
   );
 }
+

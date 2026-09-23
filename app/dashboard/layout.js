@@ -25,15 +25,15 @@ import {
   ShieldCheck, Box, UserCheck
 } from "lucide-react";
 
-// ESTRUTURA UNIFICADA DA SIDEBAR (6 MÓDULOS PRINCIPAIS)
+// ESTRUTURA UNIFICADA DA SIDEBAR (7 DOMÍNIOS CANÔNICOS DO HÉFISTO)
 const SIDEBAR_MENU = [
   {
-    category: "Início",
+    category: "Central de Comando",
     home: "/dashboard",
     icon: BarChart,
     items: [
       { label: "Painel Geral", href: "/dashboard" },
-      { label: "Central Operacional", href: "/dashboard/operacao/inteligente" }
+      { label: "Central Operacional Inteligente", href: "/dashboard/operacao/inteligente" }
     ]
   },
   {
@@ -44,7 +44,7 @@ const SIDEBAR_MENU = [
       { label: "Fichas Técnicas (Cozinha)", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Fichas de Drinks (Bar)", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
-      { label: "Ingredientes & Produtos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
+      { label: "Ingredientes & Insumos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" },
       { label: "Mesas & Pagamentos", href: "/dashboard/salao/mesas" },
@@ -56,15 +56,12 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "Estoque & Compras",
+    category: "Compras & Recebimento",
     home: "/dashboard/operacao/estoque",
-    icon: Package,
+    icon: Truck,
     items: [
       { label: "Visão Geral do Estoque", href: "/dashboard/operacao/estoque" },
-      // A tela de 10 campos, em linguagem de cozinha. Estava sem link nenhum:
-      // so se chegava nela digitando a URL.
-      { label: "Estoque — modo operação", href: "/dashboard/operacao/estoque/tablet" },
-      { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas" },
+      { label: "Estoque — Modo Operação", href: "/dashboard/operacao/estoque/tablet" },
       { label: "Pedidos de Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
       { label: "Entrada de Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha" },
       { label: "Gestão de Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" },
@@ -72,7 +69,31 @@ const SIDEBAR_MENU = [
     ]
   },
   {
-    category: "RH & Pessoas",
+    category: "Vendas & Recebíveis",
+    home: "/dashboard/vendas",
+    icon: ShoppingCart,
+    items: [
+      { label: "Vendas do Dia", href: "/dashboard/vendas" },
+      { label: "Canais de Venda & iFood", href: "/dashboard/vendas/canais" },
+      { label: "Contas a Receber", href: "/dashboard/financeiro/recebiveis" },
+      { label: "Conciliação Financeira", href: "/dashboard/financeiro/conciliacao" }
+    ]
+  },
+  {
+    category: "Financeiro & DRE",
+    home: "/dashboard/financeiro",
+    icon: Wallet,
+    items: [
+      { label: "Contas a Pagar", href: "/dashboard/financeiro/contas" },
+      { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
+      { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
+      { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" },
+      { label: "Custos Fixos", href: "/dashboard/financeiro/custos-fixos" },
+      { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" }
+    ]
+  },
+  {
+    category: "Gestão & Pessoas (RH)",
     home: "/dashboard/rh",
     icon: Users,
     items: [
@@ -86,34 +107,22 @@ const SIDEBAR_MENU = [
       { label: "Folha de Pagamento", href: "/dashboard/rh/fechamento" },
       { label: "Semana do Restaurante", href: "/dashboard/rh/semana" },
       { label: "Organograma", href: "/dashboard/rh/organograma" },
-      { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
-      { label: "Compras do Mês", href: "/dashboard/rh/gastos-admin" }
-    ]
-  },
-  {
-    category: "Financeiro & Fiscal",
-    home: "/dashboard/financeiro",
-    icon: Wallet,
-    items: [
-      { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
-      { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
-      { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" },
-      { label: "Pizza do Lucro", href: "/dashboard/financeiro/pizza" },
-      { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
-    ]
-  },
-  {
-    category: "Gestão & Ajustes",
-    home: "/dashboard/gestao/inventario",
-    icon: Store,
-    items: [
       { label: "Inventário Físico", href: "/dashboard/gestao/inventario" },
       { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
-      { label: "Relatórios", href: "/dashboard/relatorios" },
-      { label: "Clientes (CRM)", href: "/dashboard/clientes" },
-      { label: "Configurações", href: "/dashboard/configuracoes" },
+      { label: "Clientes (CRM)", href: "/dashboard/clientes" }
+    ]
+  },
+  {
+    category: "Configurações & Segurança",
+    home: "/dashboard/configuracoes",
+    icon: Settings,
+    items: [
+      { label: "Configurações Gerais", href: "/dashboard/configuracoes" },
       { label: "Usuários e Acessos", href: "/dashboard/configuracoes/usuarios" },
-      { label: "Perfis de Acesso", href: "/dashboard/configuracoes/perfis" }
+      { label: "Perfis de Acesso", href: "/dashboard/configuracoes/perfis" },
+      { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" },
+      { label: "Auditoria & Logs", href: "/dashboard/gestao/auditoria" },
+      { label: "Saúde do Héfisto", href: "/dashboard/gestao/saude-hefisto" }
     ]
   }
 ];

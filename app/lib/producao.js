@@ -56,83 +56,19 @@ export async function fetchProducoes(unidadeId, setor = null, limite = 200) {
   return { data: data || [], error: null };
 }
 
+import { registrarProducao as registrarProducaoIntegrada } from "./estoque";
+
 /**
- * Registra uma produção e dá baixa no estoque.
- * @param {Object} prod - Dados da produção
- * @param {Array} ingredientes - Lista de ingredientes com { estoque_id, nome, qtd_usada, qtd_ficha, unidade, custo_unit }
- * @param {string} unidadeId
+ * Registra uma produção e dá baixa no estoque através do motor RPC integrado.
  */
 export async function registrarProducao(prod, ingredientes, unidadeId) {
-  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
-
-  // 1. Calcula custo total
-  const custoTotal = ingredientes.reduce(
-    (acc, ing) => acc + (ing.qtd_usada || 0) * (ing.custo_unit || 0), 0
-  );
-
-  // 2. Calcula receita potencial (preço de venda x quantidade produzida)
-  const receitaPotencial = (prod.prato_preco || 0) * (prod.quantidade || 1);
-
-  // 3. Verifica se houve alteração nos ingredientes
-  const teveAlteracao = ingredientes.some(
-    (ing) => Math.abs((ing.qtd_usada || 0) - (ing.qtd_ficha || 0)) > 0.001
-  );
-
-  // 4. Monta registro
-  const registro = carimbarUnidade({
-    setor: prod.setor,
-    prato_id: prod.prato_id,
-    prato_nome: prod.prato_nome,
-    prato_preco: prod.prato_preco || 0,
-    quantidade: prod.quantidade || 1,
-    unidade_medida: prod.unidade_medida || null,
-    custo_total: custoTotal,
-    receita_potencial: receitaPotencial,
-    funcionario_id: prod.funcionario_id || null,
-    funcionario_nome: prod.funcionario_nome || "",
-    teve_alteracao: teveAlteracao,
-    motivo_alteracao: prod.motivo_alteracao || null,
-    ingredientes_usados: JSON.stringify(ingredientes.map((i) => ({
-      estoque_id: i.estoque_id,
-      nome: i.nome,
-      unidade: i.unidade,
-      qtd_ficha: i.qtd_ficha,
-      qtd_usada: i.qtd_usada,
-      custo_unit: i.custo_unit,
-    }))),
-    sobras: prod.sobras || null,
-  }, unidadeId);
-
-  const { data, error } = await supabase
-    .from("producoes")
-    .insert([registro])
-    .select()
-    .single();
-
-  if (error) {
-    console.error("[producao] registrarProducao:", error.message);
-    return { error: error.message };
+  if (prod?.ficha_id || prod?.id) {
+    return registrarProducaoIntegrada(unidadeId, { id: prod.ficha_id || prod.id, ...prod }, prod.quantidade || 1, prod.funcionario_id, [], {
+      departamento: prod.setor,
+      localArmazenamento: prod.localArmazenamento || null,
+    });
   }
-
-  // 5. Incrementar o estoque_producao do item finalizado
-  const tabela = prod.setor === "bar" ? "drinks" : "cardapio";
-  
-  // Busca quantidade atual
-  const { data: itemCardapio, error: fetchErr } = await supabase
-    .from(tabela)
-    .select("estoque_producao")
-    .eq("id", prod.prato_id)
-    .single();
-
-  if (!fetchErr) {
-    const novoEstoque = (itemCardapio.estoque_producao || 0) + (prod.quantidade || 1);
-    await supabase
-      .from(tabela)
-      .update({ estoque_producao: novoEstoque })
-      .eq("id", prod.prato_id);
-  }
-
-  return { data, error: null };
+  return { error: "Ficha técnica inválida para produção integrada." };
 }
 
 /**

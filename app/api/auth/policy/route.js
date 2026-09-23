@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
 
 export const dynamic = "force-dynamic";
 
 function service() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://sezccspqxgklicfndwxx.supabase.co";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+  try {
+    return getSupabaseServerClient();
+  } catch {
+    return null;
+  }
 }
 
 const genericDenied = () => NextResponse.json({ ok: false, error: "Usuário ou senha incorretos." }, { status: 403 });

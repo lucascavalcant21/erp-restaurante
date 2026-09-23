@@ -464,9 +464,12 @@ function IngredientesRunner() {
     const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return {
       total: insumos.length,
-      semMarca: insumos.filter(item => !item.marca).length,
+      semPreco: insumos.filter(item => !item.preco_atualizado_em || new Date(item.preco_atualizado_em).getTime() < limiteRecente).length,
       semFornecedor: insumos.filter(item => !item.fornecedor && !item.fornecedores_vinculados?.length).length,
-      recentes: insumos.filter(item => new Date(item.preco_atualizado_em || 0).getTime() >= limiteRecente).length,
+      abaixoMinimo: insumos.filter(item => {
+        const min = Number(item.estoque_minimo);
+        return Number.isFinite(min) && min > 0 && (Number(item.quantidade_atual) || 0) < min;
+      }).length,
     };
   }, [insumos]);
 
@@ -715,15 +718,15 @@ function IngredientesRunner() {
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { id: "todos", icon: Package, label: `Total de ${rotuloItens}`, value: estatisticas.total, note: "Clique p/ ver todos", color: "emerald", action: () => setBusca("") },
-            { id: "semMarca", icon: Tag, label: "Sem marca", value: estatisticas.semMarca, note: "Clique p/ filtrar", color: "amber", action: () => setBusca("sem marca") },
-            { id: "semFornecedor", icon: Users, label: "Sem fornecedor", value: estatisticas.semFornecedor, note: "Clique p/ filtrar", color: "violet", action: () => setBusca("Sem vínculo") },
-            { id: "recentes", icon: Clock3, label: "Preço atualizado", value: estatisticas.recentes, note: "Últimos 30 dias", color: "blue", action: () => setOrdenacao("recentes") },
+            { id: "semPreco", icon: Clock3, label: "Sem preço recente", value: estatisticas.semPreco, note: "> 30 dias sem atualizar", color: "amber", action: () => setOrdenacao("recentes") },
+            { id: "semFornecedor", icon: Users, label: "Sem fornecedor", value: estatisticas.semFornecedor, note: "Sem vínculo cadastrado", color: "violet", action: () => setBusca("Sem vínculo") },
+            { id: "abaixoMinimo", icon: AlertTriangle, label: "Abaixo do mínimo", value: estatisticas.abaixoMinimo, note: "Necessita reposição", color: "red", action: () => router.push(`/dashboard/operacao/estoque?dept=${deptUrl || "cozinha"}`) },
           ].map(card => {
             const cores = {
               emerald: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white",
               amber: "bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white",
               violet: "bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white",
-              blue: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white",
+              red: "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white",
             };
             return (
               <button

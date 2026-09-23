@@ -1,4 +1,4 @@
-import { supabase, isSupabaseReady } from "./supabase";
+import { supabase, isSupabaseReady } from "./supabase.js";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 export { horarioDoDia } from "./jornada-semana.mjs";
 

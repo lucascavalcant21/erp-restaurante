@@ -39,7 +39,7 @@ returns numeric
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_total numeric := 0;
@@ -119,7 +119,7 @@ create or replace function public.sincronizar_pre_preparo_ficha(p_ficha_id uuid)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_ficha public.fichas_tecnicas%rowtype;
@@ -248,7 +248,7 @@ create or replace function public.trigger_sincronizar_pre_preparo_ficha()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 begin
   perform public.sincronizar_pre_preparo_ficha(new.id);
@@ -260,7 +260,7 @@ create or replace function public.trigger_remover_pre_preparo_ficha()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 begin
   delete from public.estoque_itens ei

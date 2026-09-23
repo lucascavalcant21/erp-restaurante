@@ -1,4 +1,11 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
+import {
+  dividirParcelasExatas,
+  calcularStatusConta,
+  calcularValoresPagamento,
+  montarDREGerencial,
+  montarFluxoCaixaPrevistoERealizado
+} from "./financeiro-domain.js";
 
 export const CATEGORIAS_CUSTO = [
   { id: 'cmv', label: 'CMV (Custo de Mercadoria Vendida)', cor: 'bg-orange-500' },
@@ -14,36 +21,159 @@ export const CATEGORIAS_CUSTO = [
   { id: 'retirada_socio', label: 'Retirada de Sócios (Lucro)', cor: 'bg-indigo-500' }
 ];
 
-// Busca todas as contas a pagar de um determinado mês/status
-export async function fetchContas(unidadeId, mesAno) {
-  if (!isSupabaseReady()) return { data: [], error: "Offline" };
-  
-  // Para simplificar no MVP, trazemos tudo ordenado por data_vencimento
-  // O ideal seria filtrar por mês (ex: '2026-06')
-  const { data, error } = await supabase.from("contas_pagar")
+// ─── CONTAS FINANCEIRAS (BANCOS E CAIXAS) ──────────────────────────────────
+
+export async function fetchContasFinanceiras(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from("contas_financeiras")
     .select("*")
     .eq("unidade_id", unidadeId)
-    .order("data_vencimento", { ascending: true });
-    
-  return { data: data || [], error: error?.message };
+    .order("nome");
+
+  if (error && error.code === "42P01") {
+    // Retorna conta caixa padrão em fallback se a tabela não existir
+    return {
+      data: [{ id: "caixa_padrao", unidade_id: unidadeId, nome: "Caixa Restaurante", tipo: "caixa", saldo_atual: 0 }],
+      error: null
+    };
+  }
+  return { data: data || [], error: error?.message || null };
 }
 
-// Salva uma nova conta ou edita
-export async function salvarConta(conta) {
+export async function salvarContaFinanceira(contaFinanceira, unidadeId) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  
-  if (conta.id) {
-    const { error } = await supabase.from("contas_pagar").update(conta).eq("id", conta.id);
-    return { error: error?.message };
+  const payload = {
+    unidade_id: unidadeId,
+    nome: contaFinanceira.nome,
+    tipo: contaFinanceira.tipo || "banco",
+    saldo_inicial: Number(contaFinanceira.saldo_inicial) || 0,
+    saldo_atual: Number(contaFinanceira.saldo_atual) || Number(contaFinanceira.saldo_inicial) || 0,
+    ativo: true
+  };
+
+  if (contaFinanceira.id) {
+    const { error } = await supabase.from("contas_financeiras").update(payload).eq("id", contaFinanceira.id);
+    return { error: error?.message || null };
   } else {
-    const { error } = await supabase.from("contas_pagar").insert([conta]);
-    return { error: error?.message };
+    const { data, error } = await supabase.from("contas_financeiras").insert([payload]).select().single();
+    return { data, error: error?.message || null };
   }
 }
 
-// Contas recorrentes (aluguel, luz...): ao abrir a tela de contas, recria no
-// mês atual as marcadas como recorrentes que ainda não existem neste mês
-// (dedup por descrição), mantendo o dia do vencimento.
+// ─── CONTAS A PAGAR ──────────────────────────────────────────────────────────
+
+export async function fetchContas(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [], error: "Offline" };
+  const { data, error } = await supabase
+    .from("contas_pagar")
+    .select("*, fornecedor:fornecedores(id, nome, telefone)")
+    .eq("unidade_id", unidadeId)
+    .order("data_vencimento", { ascending: true });
+
+  if (error) return { data: [], error: error.message };
+
+  const formatado = (data || []).map(c => ({
+    ...c,
+    status_calculado: calcularStatusConta(c)
+  }));
+
+  return { data: formatado, error: null };
+}
+
+export async function salvarConta(conta) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+
+  const valOrig = Number(conta.valor_original ?? conta.valor) || 0;
+  const numParcelas = Math.max(1, parseInt(conta.total_parcelas) || 1);
+
+  // Se for uma alteração de conta existente
+  if (conta.id) {
+    const patch = {
+      descricao: conta.descricao,
+      fornecedor_id: conta.fornecedor_id || null,
+      categoria: conta.categoria || "custo_fixo",
+      centro_custo: conta.centro_custo || "geral",
+      numero_documento: conta.numero_documento || null,
+      valor: valOrig,
+      valor_original: valOrig,
+      data_vencimento: conta.data_vencimento,
+      competencia: conta.competencia || conta.data_vencimento,
+      forma_pagamento: conta.forma_pagamento || "pix",
+      conta_financeira_id: conta.conta_financeira_id || null,
+      observacao: conta.observacao || null,
+      anexo_url: conta.anexo_url || null,
+      recorrente: !!conta.recorrente
+    };
+    const { error } = await supabase.from("contas_pagar").update(patch).eq("id", conta.id);
+    return { error: error?.message || null };
+  }
+
+  // Se for um novo lançamento com parcelamento
+  if (numParcelas > 1) {
+    const grupoId = crypto.randomUUID();
+    const parcelas = dividirParcelasExatas(valOrig, numParcelas, conta.data_vencimento);
+
+    const registros = parcelas.map(p => ({
+      unidade_id: conta.unidade_id,
+      documento_grupo_id: grupoId,
+      descricao: `${conta.descricao} (${p.parcela_numero}/${p.total_parcelas})`,
+      fornecedor_id: conta.fornecedor_id || null,
+      categoria: conta.categoria || "custo_fixo",
+      centro_custo: conta.centro_custo || "geral",
+      numero_documento: conta.numero_documento || null,
+      valor: p.valor,
+      valor_original: p.valor,
+      valor_pago: 0,
+      saldo: p.valor,
+      data_vencimento: p.data_vencimento,
+      competencia: conta.competencia || conta.data_vencimento,
+      forma_pagamento: conta.forma_pagamento || "pix",
+      conta_financeira_id: conta.conta_financeira_id || null,
+      status: "PENDENTE",
+      parcela_numero: p.parcela_numero,
+      total_parcelas: p.total_parcelas,
+      origem_tipo: conta.origem_tipo || "MANUAL",
+      origem_id: conta.origem_id || null,
+      observacao: conta.observacao || null,
+      anexo_url: conta.anexo_url || null,
+      recorrente: false
+    }));
+
+    const { error } = await supabase.from("contas_pagar").insert(registros);
+    return { error: error?.message || null };
+  }
+
+  // Lançamento único (1 parcela)
+  const registroUnico = {
+    unidade_id: conta.unidade_id,
+    descricao: conta.descricao,
+    fornecedor_id: conta.fornecedor_id || null,
+    categoria: conta.categoria || "custo_fixo",
+    centro_custo: conta.centro_custo || "geral",
+    numero_documento: conta.numero_documento || null,
+    valor: valOrig,
+    valor_original: valOrig,
+    valor_pago: 0,
+    saldo: valOrig,
+    data_vencimento: conta.data_vencimento,
+    competencia: conta.competencia || conta.data_vencimento,
+    forma_pagamento: conta.forma_pagamento || "pix",
+    conta_financeira_id: conta.conta_financeira_id || null,
+    status: "PENDENTE",
+    parcela_numero: 1,
+    total_parcelas: 1,
+    origem_tipo: conta.origem_tipo || "MANUAL",
+    origem_id: conta.origem_id || null,
+    observacao: conta.observacao || null,
+    anexo_url: conta.anexo_url || null,
+    recorrente: !!conta.recorrente
+  };
+
+  const { error } = await supabase.from("contas_pagar").insert([registroUnico]);
+  return { error: error?.message || null };
+}
+
 export async function gerarContasRecorrentes(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { criadas: 0 };
   const { data: recorrentes, error } = await supabase.from("contas_pagar")
@@ -51,27 +181,36 @@ export async function gerarContasRecorrentes(unidadeId) {
     .eq("unidade_id", unidadeId)
     .eq("recorrente", true)
     .order("data_vencimento", { ascending: false });
+
   if (error || !recorrentes?.length) return { criadas: 0, error: error?.message };
 
   const mesAtual = new Date().toISOString().slice(0, 7);
-  // A instância mais recente de cada descrição é o modelo
   const porDesc = {};
   recorrentes.forEach(c => { if (!porDesc[c.descricao]) porDesc[c.descricao] = c; });
 
   let criadas = 0;
   for (const c of Object.values(porDesc)) {
     const mesConta = String(c.data_vencimento || "").slice(0, 7);
-    if (mesConta >= mesAtual) continue; // já existe neste mês (ou é futura)
+    if (mesConta >= mesAtual) continue;
     const [ano, mes] = mesAtual.split("-").map(Number);
     const ultimoDia = new Date(ano, mes, 0).getDate();
     const dia = Math.min(Number(String(c.data_vencimento || "").slice(8, 10)) || 5, ultimoDia);
+    const dataVenc = `${mesAtual}-${String(dia).padStart(2, "0")}`;
+
     const { error: errIns } = await supabase.from("contas_pagar").insert([{
       unidade_id: unidadeId,
       descricao: c.descricao,
+      fornecedor_id: c.fornecedor_id || null,
       valor: c.valor,
-      data_vencimento: `${mesAtual}-${String(dia).padStart(2, "0")}`,
+      valor_original: c.valor,
+      valor_pago: 0,
+      saldo: c.valor,
+      data_vencimento: dataVenc,
+      competencia: dataVenc,
       categoria: c.categoria,
-      status: "pendente",
+      centro_custo: c.centro_custo || "geral",
+      status: "PENDENTE",
+      origem_tipo: "RECORRENTE",
       recorrente: true,
     }]);
     if (!errIns) criadas++;
@@ -79,12 +218,74 @@ export async function gerarContasRecorrentes(unidadeId) {
   return { criadas };
 }
 
-// Baixa (Paga) uma conta
-export async function pagarConta(contaId) {
+// ─── PAGAMENTOS E LIQUIDAÇÕES (ATÔMICA COM RPC) ──────────────────────────────
+
+export async function pagarConta(contaId, opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const dataHoje = new Date().toISOString().split('T')[0];
-  const { error } = await supabase.from("contas_pagar").update({ status: 'pago', data_pagamento: dataHoje }).eq("id", contaId);
-  return { error: error?.message };
+
+  // Se opcoes for apenas o ID da unidade ou objeto completo
+  const conta = typeof opcoes === "object" ? opcoes : { id: contaId };
+  const unidadeId = conta.unidade_id || opcoes.unidadeId;
+  const valorPago = Number(conta.valor_pago_agora ?? conta.valor_pago ?? conta.valor) || 0;
+  const juros = Number(conta.juros) || 0;
+  const multa = Number(conta.multa) || 0;
+  const desconto = Number(conta.desconto) || 0;
+  const forma = conta.forma_pagamento || "pix";
+  const contaFinId = conta.conta_financeira_id || null;
+  const obs = conta.observacao || null;
+  const user = conta.usuario_nome || "Operador ERP";
+
+  // Tenta via RPC atômica
+  const { data, error } = await supabase.rpc("registrar_pagamento_conta", {
+    p_conta_pagar_id: contaId,
+    p_unidade_id: unidadeId,
+    p_valor_pago: valorPago,
+    p_juros: juros,
+    p_multa: multa,
+    p_desconto: desconto,
+    p_data_pagamento: conta.data_pagamento ? new Date(conta.data_pagamento).toISOString() : new Date().toISOString(),
+    p_forma_pagamento: forma,
+    p_conta_financeira_id: contaFinId,
+    p_observacao: obs,
+    p_usuario_nome: user,
+    p_chave_idempotencia: conta.chave_idempotencia || null
+  });
+
+  if (error) {
+    // Fallback caso a RPC ainda não esteja instalada no Supabase remoto
+    console.warn("RPC registrar_pagamento_conta ausente/falhou, executando fallback JS:", error.message);
+    const dataHoje = new Date().toISOString().split('T')[0];
+    const { error: errUpd } = await supabase.from("contas_pagar").update({ status: 'PAGA', valor_pago: valorPago, saldo: 0, data_pagamento: dataHoje }).eq("id", contaId);
+    return { error: errUpd?.message || null };
+  }
+
+  return { success: true, data };
+}
+
+export async function estornarPagamento(pagamentoId, unidadeId, motivo = "Estorno manual") {
+  if (!isSupabaseReady()) return { error: "Offline" };
+
+  const { data, error } = await supabase.rpc("estornar_pagamento_conta", {
+    p_pagamento_id: pagamentoId,
+    p_unidade_id: unidadeId,
+    p_motivo: motivo,
+    p_usuario_nome: "Operador ERP"
+  });
+
+  if (error) return { error: error.message };
+  return { success: true, data };
+}
+
+export async function fetchHistoricoPagamentos(contaId) {
+  if (!isSupabaseReady() || !contaId) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from("contas_pagar_pagamentos")
+    .select("*, conta_financeira:contas_financeiras(id, nome)")
+    .eq("conta_pagar_id", contaId)
+    .order("created_at", { ascending: false });
+
+  if (error && error.code === "42P01") return { data: [], error: null };
+  return { data: data || [], error: error?.message || null };
 }
 
 export async function removerConta(contaId) {
@@ -93,170 +294,32 @@ export async function removerConta(contaId) {
   return { error: error?.message || null };
 }
 
-// Painel unificado do caixa: vendas do PDV novo + pedidos pagos do módulo de
-// salão/balcão legado. Cada origem é normalizada no mesmo formato para não
-// perder histórico durante a transição entre as duas telas.
-export async function fetchPainelCaixa(unidadeId, inicioIso, fimIso) {
-  if (!isSupabaseReady()) return { data: { vendas: [], despesas: [] }, error: "Offline" };
-
-  let vendasQuery = supabase.from("vendas")
-    .select("id,total,subtotal,desconto,forma_pagamento,cliente,status,created_at,venda_itens(id,nome,quantidade,preco_unit,subtotal,custo_unit)")
-    .eq("unidade_id", unidadeId)
-    .neq("status", "cancelada")
-    .gte("created_at", inicioIso)
-    .lt("created_at", fimIso)
-    .order("created_at", { ascending: false });
-
-  let pedidosQuery = supabase.from("pedidos")
-    .select("id,valor_total,forma_pagamento,tipo_pedido,identificacao,cliente_nome,status,created_at,pedidos_itens(id,quantidade,valor_unitario,produtos(nome_produto,departamento,categoria))")
-    .eq("unidade_id", unidadeId)
-    .eq("status", "pago")
-    .gte("created_at", inicioIso)
-    .lt("created_at", fimIso)
-    .order("created_at", { ascending: false });
-
-  const [resVendas, resPedidos, resDespesas, resProdutos] = await Promise.all([
-    vendasQuery,
-    pedidosQuery,
-    supabase.from("contas_pagar").select("*").eq("unidade_id", unidadeId).order("data_vencimento", { ascending: false }),
-    supabase.from("produtos").select("nome_produto,departamento,categoria").eq("unidade_id", unidadeId),
-  ]);
-
-  const chaveNome = valor => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const setorPorNome = new Map((resProdutos.data || []).map(produto => [chaveNome(produto.nome_produto), produto]));
-  const setorDoProduto = produto => {
-    const departamento = String(produto?.departamento || "").toLowerCase();
-    if (departamento.includes("bar")) return "bar";
-    if (departamento.includes("cozinha")) return "cozinha";
-    const texto = chaveNome(`${produto?.categoria || ""} ${produto?.nome_produto || produto?.nome || ""}`);
-    return /(drink|bebida|cerveja|vinho|whisk|vodka|gin|rum|tequila|suco|refrigerante|agua|chopp)/.test(texto) ? "bar" : "cozinha";
-  };
-
-  const vendasNovas = (resVendas.data || []).map(venda => ({
-    id: venda.id,
-    total: Number(venda.total) || 0,
-    forma_pagamento: venda.forma_pagamento || "nao_informado",
-    cliente: venda.cliente || "Balcão",
-    origem: "PDV",
-    created_at: venda.created_at,
-    itens: (venda.venda_itens || []).map(item => ({
-      nome: item.nome || "Item", quantidade: Number(item.quantidade) || 0,
-      valor_unitario: Number(item.preco_unit) || 0, custo_unitario: Number(item.custo_unit) || 0,
-      setor: setorDoProduto({ nome_produto: item.nome, ...(setorPorNome.get(chaveNome(item.nome)) || {}) }),
-    })),
-  }));
-
-  const pedidosAntigos = (resPedidos.data || []).map(pedido => ({
-    id: pedido.id,
-    total: Number(pedido.valor_total) || (pedido.pedidos_itens || []).reduce((s, item) => s + Number(item.valor_unitario || 0) * Number(item.quantidade || 0), 0),
-    forma_pagamento: pedido.forma_pagamento || "nao_informado",
-    cliente: pedido.cliente_nome || pedido.identificacao || "Cliente",
-    origem: pedido.tipo_pedido || "Salão",
-    created_at: pedido.created_at,
-    itens: (pedido.pedidos_itens || []).map(item => ({
-      nome: item.produtos?.nome_produto || "Item", quantidade: Number(item.quantidade) || 0,
-      valor_unitario: Number(item.valor_unitario) || 0, custo_unitario: 0,
-      setor: setorDoProduto(item.produtos || {}),
-    })),
-  }));
-
-  const inicio = new Date(inicioIso).getTime();
-  const fim = new Date(fimIso).getTime();
-  const despesas = (resDespesas.data || []).filter(conta => {
-    const data = new Date(conta.data_pagamento || conta.data_vencimento || conta.created_at).getTime();
-    return Number.isFinite(data) && data >= inicio && data < fim;
-  });
-
-  const erros = [resVendas.error, resPedidos.error, resDespesas.error, resProdutos.error].filter(Boolean).map(e => e.message).join(" · ");
-  return { data: { vendas: [...vendasNovas, ...pedidosAntigos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), despesas }, error: erros || null };
-}
-
-// Entradas físicas registradas no estoque. O Financeiro usa estas compras
-// para formar o CMV realizado do período sem pedir um segundo lançamento.
-export async function fetchEntradasEstoqueFinanceiro(unidadeId, inicioIso, fimIso) {
-  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
-  const buildQuery = (selectFields) => supabase.from("estoque_movimentacoes_multi")
-    .select(selectFields)
-    .eq("unidade_id", unidadeId)
-    .eq("tipo", "entrada")
-    .gte("data_movimento", inicioIso)
-    .lt("data_movimento", fimIso)
-    .order("data_movimento", { ascending: false });
-
-  let resposta = await buildQuery("id,estoque_id,insumo_id,tipo,quantidade,valor_total,valor_unitario,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
-  if (resposta.error && /valor_total|valor_unitario/i.test(resposta.error.message || "")) {
-    resposta = await buildQuery("id,estoque_id,insumo_id,tipo,quantidade,data_movimento,insumo:insumos(nome,custo_unitario,custo_compra)");
-  }
-  return { data: resposta.data || [], error: resposta.error?.message || null };
-}
-
-// ============================================================================
-// MOTOR DE DRE (Demonstrativo de Resultados) E DASHBOARD
-// ============================================================================
+// ─── DRE E FLUXO DE CAIXA DE ALTA PERFORMANCE ──────────────────────────────
 
 export async function fetchDRE(unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
-  
-  // 1. Busca todo o FATURAMENTO (Pedidos Pagos)
-  const { data: pedidos } = await supabase.from("pedidos")
-    .select("valor_total, tipo_pedido, forma_pagamento")
-    .eq("unidade_id", unidadeId)
-    .eq("status", "pago");
 
-  // 2. Busca todos os CUSTOS (Contas Pagas)
-  const { data: contas } = await supabase.from("contas_pagar")
-    .select("id, descricao, valor, categoria, data_pagamento")
-    .eq("unidade_id", unidadeId)
-    .eq("status", "pago");
+  const [resVendas, resContas, resColab, resRecibos] = await Promise.all([
+    supabase.from("vendas").select("total, status").eq("unidade_id", unidadeId).neq("status", "cancelada"),
+    supabase.from("contas_pagar").select("*").eq("unidade_id", unidadeId),
+    supabase.from("colaboradores").select("salario_base").eq("unidade_id", unidadeId),
+    supabase.from("rh_recibos_prestacao").select("valor_total, pagamento_realizado").eq("unidade_id", unidadeId).eq("pagamento_realizado", true)
+  ]);
 
-  // -- Cálculos do Faturamento --
-  const faturamentoTotal = (pedidos || []).reduce((acc, p) => acc + Number(p.valor_total), 0);
-  
-  const fatPorCanal = { salao: 0, delivery: 0, qrcode: 0 };
-  const fatPorPagamento = { pix: 0, credito: 0, debito: 0, dinheiro: 0, nao_informado: 0 };
-  
-  (pedidos || []).forEach(p => {
-     if(fatPorCanal[p.tipo_pedido] !== undefined) fatPorCanal[p.tipo_pedido] += Number(p.valor_total);
-     if(fatPorPagamento[p.forma_pagamento] !== undefined) fatPorPagamento[p.forma_pagamento] += Number(p.valor_total);
+  const faturamentoTotal = (resVendas.data || []).reduce((s, v) => s + Number(v.total || 0), 0);
+  const folha = (resColab.data || []).reduce((s, c) => s + Number(c.salario_base || 0), 0);
+  const extras = (resRecibos.data || []).reduce((s, r) => s + Number(r.valor_total || 0), 0);
+  const cmoTotal = folha + extras;
+
+  const contasPagar = resContas.data || [];
+  const dre = montarDREGerencial({
+    faturamentoTotal,
+    despesasContasPagar: contasPagar,
+    cmoTotal
   });
 
-  // -- Cálculos de Despesas --
-  const custosPorCategoria = {};
-  const detalhesPorCategoria = {};
-  CATEGORIAS_CUSTO.forEach(c => {
-      custosPorCategoria[c.id] = 0;
-      detalhesPorCategoria[c.id] = [];
-  });
-  
-  (contas || []).forEach(c => {
-     if(custosPorCategoria[c.categoria] !== undefined) {
-         custosPorCategoria[c.categoria] += Number(c.valor);
-         detalhesPorCategoria[c.categoria].push(c);
-     }
-  });
-
-  const totalCustos = (contas || []).reduce((acc, c) => acc + Number(c.valor), 0);
-  const lucroLiquido = faturamentoTotal - totalCustos;
-  const margem = faturamentoTotal > 0 ? ((lucroLiquido / faturamentoTotal) * 100).toFixed(1) : 0;
-
-  return {
-     data: {
-        faturamentoTotal,
-        totalCustos,
-        lucroLiquido,
-        margem,
-        fatPorCanal,
-        fatPorPagamento,
-        custosPorCategoria,
-        detalhesPorCategoria
-     }
-  };
+  return { data: { ...dre, faturamentoTotal, totalCustos: dre.despesasOperacionais + dre.cmo, lucroLiquido: dre.resultadoOperacional, margem: dre.margemOperacionalPct } };
 }
-
-// ============================================================================
-// FLUXO DE CAIXA (Lançamentos manuais + entradas automáticas de venda)
-// Tabela `lancamentos` — ver migração em supabase_lancamentos.sql
-// ============================================================================
 
 export async function fetchLancamentos(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
@@ -270,7 +333,7 @@ export async function inserirLancamento(dados, unidadeId) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const payload = {
     unidade_id: unidadeId,
-    tipo: dados.tipo,                 // 'entrada' | 'saida'
+    tipo: dados.tipo,
     categoria: dados.categoria || null,
     descricao: dados.descricao || null,
     valor: Number(dados.valor) || 0,
@@ -286,27 +349,9 @@ export async function removerLancamento(id) {
   return { error: error?.message };
 }
 
-export const fetchDocumentos = async () => { return { data: [], error: null }; };
-export const inserirDocumento = async () => { return { error: null }; };
-export const atualizarDocumento = async () => { return { error: null }; };
-export const removerDocumento = async () => { return { error: null }; };
-
-// ============================================================================
-// PARÂMETROS E CÁLCULO DE PONTO DE EQUILÍBRIO DIÁRIO
-// ============================================================================
-
 export function obterParametrosPontoEquilibrio(unidadeId) {
   const padrao = {
-    diasTrabalho: 26,
-    luz: 1200,
-    agua: 450,
-    internet: 200,
-    gas: 800,
-    limpeza: 350,
-    manutencao: 500,
-    gastosExtras: 300,
-    impostoPct: 4.0,
-    taxaCartaoPct: 2.5,
+    diasTrabalho: 26, luz: 1200, agua: 450, internet: 200, gas: 800, limpeza: 350, manutencao: 500, gastosExtras: 300, impostoPct: 4.0, taxaCartaoPct: 2.5,
   };
   if (typeof window === "undefined" || !unidadeId) return padrao;
   try {
@@ -338,3 +383,36 @@ export async function registrarVendaManual({ unidadeId, total, formaPagamento, c
   return { data, error: error?.message };
 }
 
+export async function fetchPainelCaixa(unidadeId, inicioIso, fimIso) {
+  if (!isSupabaseReady()) return { data: { vendas: [], despesas: [] }, error: "Offline" };
+
+  const [resVendas, resDespesas] = await Promise.all([
+    supabase.from("vendas").select("*").eq("unidade_id", unidadeId).neq("status", "cancelada").gte("created_at", inicioIso).lt("created_at", fimIso),
+    supabase.from("contas_pagar").select("*").eq("unidade_id", unidadeId)
+  ]);
+
+  return {
+    data: {
+      vendas: resVendas.data || [],
+      despesas: resDespesas.data || []
+    },
+    error: null
+  };
+}
+
+export async function fetchEntradasEstoqueFinanceiro(unidadeId, inicioIso, fimIso) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+  const { data, error } = await supabase.from("estoque_movimentacoes_multi")
+    .select("*, insumo:insumos(nome,custo_unitario,custo_compra)")
+    .eq("unidade_id", unidadeId)
+    .eq("tipo", "entrada")
+    .gte("data_movimento", inicioIso)
+    .lt("data_movimento", fimIso);
+
+  return { data: data || [], error: error?.message || null };
+}
+
+export const fetchDocumentos = async () => { return { data: [], error: null }; };
+export const inserirDocumento = async () => { return { error: null }; };
+export const atualizarDocumento = async () => { return { error: null }; };
+export const removerDocumento = async () => { return { error: null }; };

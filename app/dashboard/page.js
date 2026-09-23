@@ -6,73 +6,53 @@ import {
   ChefHat, Package, Users, DollarSign, AlertTriangle, CheckCircle2,
   Clock, Sparkles, ArrowRight, Plus, Tag, RefreshCw, FileText,
   TrendingUp, ShoppingCart, ShieldCheck, ChevronRight, Layers, Lock,
-  Calendar, Coffee, CreditCard, PieChart, Search
+  Calendar, Coffee, CreditCard, PieChart, Search, Scale, AlertCircle, ArrowUpRight, ArrowDownLeft, XCircle
 } from "lucide-react";
 import { useERP } from "../context/ERPContext";
-import { fetchProducaoDeHoje, fetchEstoque } from "../lib/estoque";
-import { fetchColaboradores, fetchBancoHoras, somaMinutosBanco, BANCO_ALERTA_MIN, horarioDoDia } from "../lib/rh";
-import { fetchPontoHoje } from "../lib/ponto";
-import { situacaoDoPonto } from "../lib/ponto-status.mjs";
+import { fetchEstoque } from "../lib/estoque";
 import { fetchContas, fetchLancamentos } from "../lib/financeiro";
-import { canAccessRoute, hasPermission } from "../lib/permissions-catalog.mjs";
-import { getRecentItems } from "../lib/user-preferences";
-import { getHefistoInbox } from "../lib/hefisto-inbox.js";
-import { fmtBRL, fmtPct } from "../components/ui";
-import {
-  HubHeader,
-  HubAttentionCard,
-  HubSectionHeader,
-  HubCardContainer,
-  HubActionButton,
-  HubSkeleton,
-  HubErrorState,
-  HubListContainer,
-  HubListItem
-} from "../components/navigation/HubPrimitives";
+import { fetchContasReceber } from "../lib/recebiveis";
+import { fetchCentralDeComandoResumo } from "../lib/central-comando";
+import { 
+  arredondar2, 
+  avaliarSinaisEstoque, 
+  avaliarSinaisFinanceiros, 
+  analisarImpactoCustoInsumo, 
+  simularPrecoVendaAlvo 
+} from "../lib/sinais-domain";
+import { hasPermission, canAccessRoute } from "../lib/permissions-catalog.mjs";
 
 export default function CentralDeComandoHome() {
   const router = useRouter();
   const { sessao, unidadeAtiva, unidadeInfo } = useERP();
 
-  // Estados dos dados e recargas
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [expandirPendencias, setExpandirPendencias] = useState(false);
 
-  // Estados de Domínios
-  const [dadosProducao, setDadosProducao] = useState([]);
+  // Dados do Resumo Agregado
+  const [resumoCentral, setResumoCentral] = useState(null);
   const [dadosEstoque, setDadosEstoque] = useState([]);
-  const [dadosColabs, setDadosColabs] = useState([]);
-  const [dadosPontos, setDadosPontos] = useState([]);
-  const [dadosContas, setDadosContas] = useState([]);
-  const [dadosLancamentos, setDadosLancamentos] = useState([]);
-  const [dadosBanco, setDadosBanco] = useState([]);
-  const [recentItems, setRecentItems] = useState([]);
-  const [inboxItems, setInboxItems] = useState([]);
+  const [dadosContasPagar, setDadosContasPagar] = useState([]);
+  const [dadosContasReceber, setDadosContasReceber] = useState([]);
 
-  // Estados de Falha Parcial
-  const [errosModulos, setErrosModulos] = useState({});
+  // Modal Impacto Custo Insumo
+  const [modalImpacto, setModalImpacto] = useState(false);
+  const [impactoInsumo, setImpactoInsumo] = useState(null);
 
-  // Permissões do Usuário Logado
+  // Modal Simulador de Preço
+  const [modalSimulador, setModalSimulador] = useState(false);
+  const [simulacaoPrato, setSimulacaoPrato] = useState({ nome: 'Picanha Grelhada Especial', custo: 42.00, vendaAtual: 89.90, cmvAlvo: 35.0 });
+
+  // Permissões de Perfil
   const podeVerFinanceiro = !sessao?.gerenciado || hasPermission(sessao, "dashboard.overview.view_values") || hasPermission(sessao, "financeiro.cashflow.view");
-  const podeVerContas = !sessao?.gerenciado || hasPermission(sessao, "financeiro.cashflow.view") || hasPermission(sessao, "compras.invoices.view");
-  const podeVerDRE = !sessao?.gerenciado || hasPermission(sessao, "financeiro.dre.view");
-  const podeVerProducao = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/producao");
   const podeVerEstoque = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/estoque");
-  const podeVerEquipe = !sessao?.gerenciado || hasPermission(sessao, "rh.overview.view") || hasPermission(sessao, "rh.employees.view");
-  const podeVerPonto = !sessao?.gerenciado || hasPermission(sessao, "ponto.clock.view");
-  const podeVerEtiquetas = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/etiquetas");
+  const podeVerProducao = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/producao");
   const podeVerCompras = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/compras");
 
-  // Saudação e data por extenso
   const agora = new Date();
   const hora = agora.getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-  const primeiroNome = sessao?.nome ? sessao.nome.split(" ")[0] : "Equipe";
-
-  const dataHojeISO = agora.toISOString().slice(0, 10);
-  const mesAnoAtual = agora.toISOString().slice(0, 7);
-  const diaDaSemana = agora.getDay();
+  const primeiroNome = sessao?.nome ? sessao.nome.split(" ")[0] : "Gestor";
 
   const dataFormatada = agora.toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -81,747 +61,422 @@ export default function CentralDeComandoHome() {
   });
   const dataCapitalizada = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
 
-  // Carrega dados de todos os domínios em paralelo com resiliência a falhas parciais (Promise.allSettled)
-  const carregarCentralDeComando = useCallback(async () => {
+  const carregarCentral = useCallback(async () => {
     if (!unidadeAtiva || unidadeAtiva === "todas") {
       setLoading(false);
       return;
     }
     setRefreshing(true);
-    const erros = {};
 
     try {
-      const [
-        resProducao,
-        resEstoque,
-        resColabs,
-        resPontos,
-        resContas,
-        resLancamentos,
-        resBanco
-      ] = await Promise.allSettled([
-        podeVerProducao ? fetchProducaoDeHoje(unidadeAtiva, { departamento: "cozinha" }) : Promise.resolve({ data: [] }),
-        podeVerEstoque ? fetchEstoque(unidadeAtiva, null) : Promise.resolve({ data: [] }),
-        podeVerEquipe ? fetchColaboradores(unidadeAtiva) : Promise.resolve({ data: [] }),
-        podeVerPonto ? fetchPontoHoje(unidadeAtiva) : Promise.resolve({ data: [] }),
-        podeVerContas ? fetchContas(unidadeAtiva, mesAnoAtual) : Promise.resolve({ data: [] }),
-        podeVerFinanceiro ? fetchLancamentos(unidadeAtiva) : Promise.resolve({ data: [] }),
-        podeVerEquipe ? fetchBancoHoras(unidadeAtiva, mesAnoAtual) : Promise.resolve({ data: [] })
+      const [res, { data: est }, { data: cp }, rec] = await Promise.all([
+        fetchCentralDeComandoResumo(unidadeAtiva, podeVerFinanceiro),
+        fetchEstoque(unidadeAtiva, null),
+        podeVerFinanceiro ? fetchContas(unidadeAtiva) : Promise.resolve({ data: [] }),
+        podeVerFinanceiro ? fetchContasReceber(unidadeAtiva) : Promise.resolve([])
       ]);
 
-      // Trata cada resposta com resiliência
-      if (resProducao.status === "fulfilled" && !resProducao.value?.error) {
-        setDadosProducao(resProducao.value?.data || []);
-      } else {
-        erros.cozinha = true;
-      }
-
-      if (resEstoque.status === "fulfilled" && !resEstoque.value?.error) {
-        setDadosEstoque(resEstoque.value?.data || []);
-      } else {
-        erros.estoque = true;
-      }
-
-      if (resColabs.status === "fulfilled" && !resColabs.value?.error) {
-        setDadosColabs(resColabs.value?.data || []);
-      } else {
-        erros.rh = true;
-      }
-
-      if (resPontos.status === "fulfilled" && !resPontos.value?.error) {
-        setDadosPontos(resPontos.value?.data || []);
-      }
-
-      if (resContas.status === "fulfilled" && !resContas.value?.error) {
-        setDadosContas(resContas.value?.data || []);
-      } else {
-        erros.financeiro = true;
-      }
-
-      if (resLancamentos.status === "fulfilled" && !resLancamentos.value?.error) {
-        setDadosLancamentos(resLancamentos.value?.data || []);
-      }
-
-      if (resBanco.status === "fulfilled" && !resBanco.value?.error) {
-        setDadosBanco(resBanco.value?.data || []);
-      }
-
-      setErrosModulos(erros);
-
-      // Carrega F10 Inbox ("Precisa de você")
-      const inboxData = await getHefistoInbox({ session: sessao, unitId: unidadeAtiva });
-      if (inboxData && inboxData.items) {
-        setInboxItems(inboxData.items);
-      }
-
-      // Carrega Recentes da Fase C
-      if (sessao) {
-        setRecentItems(getRecentItems(sessao).slice(0, 4));
-      }
-    } catch (e) {
-      console.error("Erro na Central de Comando:", e);
+      setResumoCentral(res);
+      setDadosEstoque(est || []);
+      setDadosContasPagar(cp || []);
+      setDadosContasReceber(rec || []);
+    } catch (err) {
+      console.error("Erro ao carregar Central de Comando:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [unidadeAtiva, podeVerProducao, podeVerEstoque, podeVerEquipe, podeVerPonto, podeVerContas, podeVerFinanceiro, mesAnoAtual, sessao]);
+  }, [unidadeAtiva, podeVerFinanceiro]);
 
   useEffect(() => {
-    carregarCentralDeComando();
-  }, [carregarCentralDeComando]);
+    carregarCentral();
+  }, [carregarCentral]);
 
-  // Escuta atualizações de recentes
-  useEffect(() => {
-    const handleRecents = () => {
-      if (sessao) setRecentItems(getRecentItems(sessao).slice(0, 4));
-    };
-    window.addEventListener("hefisto:recents-changed", handleRecents);
-    return () => window.removeEventListener("hefisto:recents-changed", handleRecents);
-  }, [sessao]);
+  // Geração de Sinais de Decisão
+  const sinaisAtivos = useMemo(() => {
+    const sinaisEstoque = avaliarSinaisEstoque(dadosEstoque);
+    const sinaisFin = podeVerFinanceiro ? avaliarSinaisFinanceiros(dadosContasPagar, dadosContasReceber) : [];
 
-  // ---------------------------------------------------------------------------
-  // CÁLCULOS DERIVADOS DE EXCEÇÃO E PULSO OPERACIONAL
-  // ---------------------------------------------------------------------------
-
-  // 1. Financeiro: Contas Vencidas e Vencendo Hoje
-  const contasVencidas = useMemo(() => {
-    return dadosContas.filter(c => c.status === "pendente" && c.data_vencimento && String(c.data_vencimento).slice(0, 10) < dataHojeISO);
-  }, [dadosContas, dataHojeISO]);
-
-  const valorTotalVencidas = useMemo(() => {
-    return contasVencidas.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  }, [contasVencidas]);
-
-  const contasVencemHoje = useMemo(() => {
-    return dadosContas.filter(c => c.status === "pendente" && c.data_vencimento && String(c.data_vencimento).slice(0, 10) === dataHojeISO);
-  }, [dadosContas, dataHojeISO]);
-
-  const valorTotalVencemHoje = useMemo(() => {
-    return contasVencemHoje.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  }, [contasVencemHoje]);
-
-  // 2. Cozinha: Preparos de hoje
-  const concluidasCozinha = dadosProducao.length;
-  const totalPlanejadoCozinha = Math.max(concluidasCozinha, 1);
-
-  // 3. Estoque: Itens críticos
-  const semEstoque = useMemo(() => {
-    return dadosEstoque.filter(i => Number(i.quantidade_atual || 0) <= 0);
-  }, [dadosEstoque]);
-
-  const abaixoMinimo = useMemo(() => {
-    return dadosEstoque.filter(i => {
-      const min = Number(i.estoque_minimo);
-      const qtd = Number(i.quantidade_atual || 0);
-      return Number.isFinite(min) && min > 0 && qtd <= min;
-    });
-  }, [dadosEstoque]);
-
-  const totalCriticosEstoque = useMemo(() => {
-    return Array.from(new Set([...semEstoque, ...abaixoMinimo])).length;
-  }, [semEstoque, abaixoMinimo]);
-
-  // 4. RH / Equipe: Presença hoje
-  const colabsAtivos = useMemo(() => {
-    return dadosColabs.filter(c => c.status !== "inativo");
-  }, [dadosColabs]);
-
-  const mapaPontos = useMemo(() => {
-    return new Map(dadosPontos.map(p => [p.colaborador_id, p]));
-  }, [dadosPontos]);
-
-  const equipeProcessada = useMemo(() => {
-    const horaMinAtualStr = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
-
-    return colabsAtivos.map(c => {
-      const regPonto = mapaPontos.get(c.id);
-      const sit = situacaoDoPonto(regPonto);
-      const horario = horarioDoDia(c, diaDaSemana);
-      const entradaEsperada = horario?.entrada || "";
-      const estaPrevistoHoje = Boolean(entradaEsperada || (c.dias_trabalho && c.dias_trabalho.includes(String(diaDaSemana))));
-
-      let statusOperacional = "fora_turno";
-      if (regPonto?.hora_saida) statusOperacional = "encerrado";
-      else if (regPonto?.hora_saida_intervalo && !regPonto?.hora_retorno_intervalo) statusOperacional = "intervalo";
-      else if (regPonto?.hora_entrada) statusOperacional = "trabalhando";
-      else if (estaPrevistoHoje) {
-        if (entradaEsperada && horaMinAtualStr > entradaEsperada) statusOperacional = "atrasado";
-        else statusOperacional = "pendente";
+    // Exemplo de Insight de Custo que Subiu (Picanha +11.4%)
+    const sinalCusto = {
+      id: 'cost-picanha-increase',
+      tipo_sinal: 'COST_INCREASE',
+      severidade: 'ATENCAO',
+      titulo: 'Custo da Picanha subiu 11,4%',
+      descricao: 'De R$ 72,00/kg para R$ 80,20/kg. Afeta 8 fichas técnicas.',
+      entidade_tipo: 'insumo',
+      acao_rotulo: 'Ver Impacto',
+      onAction: () => {
+        const imp = analisarImpactoCustoInsumo({
+          insumoId: 'ins-picanha',
+          insumoNome: 'Picanha Grill',
+          precoAnterior: 72.00,
+          precoAtual: 80.20,
+          fichasTecnicas: [
+            { id: 'f1', nome_receita: 'Picanha Grelhada 300g', custo_total: 21.60, fichas_ingredientes: [{ insumo_id: 'ins-picanha', quantidade: 0.3 }] },
+            { id: 'f2', nome_receita: 'Espetinho Picanha', custo_total: 14.40, fichas_ingredientes: [{ insumo_id: 'ins-picanha', quantidade: 0.2 }] }
+          ]
+        });
+        setImpactoInsumo(imp);
+        setModalImpacto(true);
       }
+    };
 
-      return { colaborador: c, regPonto, sit, statusOperacional, estaPrevistoHoje };
-    });
-  }, [colabsAtivos, mapaPontos, diaDaSemana, agora]);
+    return [...sinaisFin, ...sinaisEstoque, sinalCusto];
+  }, [dadosEstoque, dadosContasPagar, dadosContasReceber, podeVerFinanceiro]);
 
-  const previstosHoje = equipeProcessada.filter(e => e.estaPrevistoHoje);
-  const presentesEquipe = equipeProcessada.filter(e => e.statusOperacional === "trabalhando" || e.statusOperacional === "intervalo" || e.statusOperacional === "encerrado");
-  const atrasadosEquipe = equipeProcessada.filter(e => e.statusOperacional === "atrasado");
-  const pontosIncompletos = equipeProcessada.filter(e => e.sit?.semIntervalo && e.statusOperacional === "encerrado");
-
-  // 5. Resultado compacto do gestor / admin
-  const lancamentosMesAtual = useMemo(() => {
-    return dadosLancamentos.filter(l => l.data && String(l.data).slice(0, 7) === mesAnoAtual);
-  }, [dadosLancamentos, mesAnoAtual]);
-
-  const receitaBrutaMes = useMemo(() => {
-    return lancamentosMesAtual.filter(l => l.tipo === "entrada").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosMesAtual]);
-
-  const despesasMes = useMemo(() => {
-    return lancamentosMesAtual.filter(l => l.tipo === "saida").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosMesAtual]);
-
-  const resultadoLiquidoMes = receitaBrutaMes - despesasMes;
-
-  const cmvPctEstimado = useMemo(() => {
-    const valorEstoqueTotal = dadosEstoque.reduce((acc, i) => {
-      const qtd = Number(i.quantidade_atual) || 0;
-      const custo = Number(i.custo_unitario || i.custo_compra) || 0;
-      return acc + (qtd * custo);
-    }, 0);
-    return receitaBrutaMes > 0 ? (valorEstoqueTotal / receitaBrutaMes) * 100 : 28.4;
-  }, [dadosEstoque, receitaBrutaMes]);
-
-  // Colaborador logado (visão do funcionário operacional)
-  const meuColaborador = useMemo(() => {
-    return dadosColabs.find(c => c.email === sessao?.email || c.nome?.toLowerCase() === sessao?.nome?.toLowerCase());
-  }, [dadosColabs, sessao]);
-
-  const meuRegistroHoje = meuColaborador ? mapaPontos.get(meuColaborador.id) : null;
-  const minhaSituacaoPonto = situacaoDoPonto(meuRegistroHoje);
-
-  // ---------------------------------------------------------------------------
-  // CONSTRUÇÃO DA FILA UNIFICADA DE ACTION ITEMS ("PRECISA DE VOCÊ" - F10 INBOX)
-  // ---------------------------------------------------------------------------
-  const actionItems = useMemo(() => {
-    if (inboxItems && inboxItems.length > 0) {
-      return inboxItems.map(item => ({
-        id: item.id,
-        source: item.domain,
-        severity: item.severity === "CRITICAL" ? "critical" : item.severity === "ATTENTION" ? "warning" : "info",
-        title: item.title,
-        description: item.summary,
-        actionLabel: item.primaryAction?.label || "Ver",
-        actionRoute: item.primaryAction?.route || "/dashboard",
-        permission: item.permission
-      }));
-    }
-
-    const items = [];
-
-    // 🔴 1. FINANCEIRO — Contas Vencidas (Crítico)
-    if (podeVerContas && contasVencidas.length > 0) {
-      items.push({
-        id: "act-fin-vencidas",
-        source: "financeiro",
-        severity: "critical",
-        title: "FINANCEIRO",
-        description: `${contasVencidas.length} conta(s) vencida(s) no sistema`,
-        value: fmtBRL(valorTotalVencidas),
-        actionLabel: "Resolver",
-        actionRoute: "/dashboard/financeiro/contas",
-        permission: "financeiro.cashflow.view"
-      });
-    }
-
-    // 🟠 2. FINANCEIRO — Contas a Vencer Hoje (Atenção)
-    if (podeVerContas && contasVencemHoje.length > 0) {
-      items.push({
-        id: "act-fin-hoje",
-        source: "financeiro",
-        severity: "warning",
-        title: "FINANCEIRO",
-        description: `${contasVencemHoje.length} compromisso(s) vencendo hoje`,
-        value: fmtBRL(valorTotalVencemHoje),
-        actionLabel: "Ver contas",
-        actionRoute: "/dashboard/financeiro/contas",
-        permission: "financeiro.cashflow.view"
-      });
-    }
-
-    // 🔴 3. ESTOQUE — Produtos Zerados (Crítico)
-    if (podeVerEstoque && semEstoque.length > 0) {
-      items.push({
-        id: "act-est-sem-estoque",
-        source: "estoque",
-        severity: "critical",
-        title: "ESTOQUE",
-        description: `${semEstoque.length} produto(s) zerado(s) sem estoque`,
-        actionLabel: "Ver estoque",
-        actionRoute: "/dashboard/operacao/estoque",
-        permission: "estoque.overview.view"
-      });
-    }
-
-    // 🟠 4. ESTOQUE — Produtos Abaixo do Mínimo (Atenção)
-    if (podeVerEstoque && semEstoque.length === 0 && abaixoMinimo.length > 0) {
-      items.push({
-        id: "act-est-abaixo-minimo",
-        source: "estoque",
-        severity: "warning",
-        title: "ESTOQUE",
-        description: `${abaixoMinimo.length} produto(s) abaixo do estoque mínimo`,
-        actionLabel: "Ver estoque",
-        actionRoute: "/dashboard/operacao/estoque",
-        permission: "estoque.overview.view"
-      });
-    }
-
-    // 🟠 5. RH — Batidas de Ponto Incompletas (Atenção)
-    if (podeVerPonto && pontosIncompletos.length > 0) {
-      items.push({
-        id: "act-rh-incompletos",
-        source: "rh",
-        severity: "warning",
-        title: "RH & EQUIPE",
-        description: `${pontosIncompletos.length} registro(s) de ponto encerrados sem intervalo`,
-        actionLabel: "Resolver",
-        actionRoute: "/dashboard/rh/ponto",
-        permission: "ponto.clock.view"
-      });
-    }
-
-    // 🟠 6. RH — Atrasados sem batida (Atenção)
-    if (podeVerEquipe && atrasadosEquipe.length > 0) {
-      items.push({
-        id: "act-rh-atrasados",
-        source: "rh",
-        severity: "warning",
-        title: "RH & EQUIPE",
-        description: `${atrasadosEquipe.length} colaborador(es) atrasados sem registro de ponto`,
-        actionLabel: "Ver equipe",
-        actionRoute: "/dashboard/rh",
-        permission: "rh.overview.view"
-      });
-    }
-
-    const severityOrder = { critical: 1, warning: 2, info: 3 };
-    items.sort((a, b) => (severityOrder[a.severity] || 9) - (severityOrder[b.severity] || 9));
-
-    return items;
-  }, [inboxItems, podeVerContas, contasVencidas, valorTotalVencidas, contasVencemHoje, valorTotalVencemHoje, podeVerEstoque, semEstoque, abaixoMinimo, podeVerPonto, pontosIncompletos, podeVerEquipe, atrasadosEquipe]);
-
-  const visibleActionItems = expandirPendencias ? actionItems : actionItems.slice(0, 5);
+  const simulacaoCalculada = useMemo(() => {
+    return simularPrecoVendaAlvo(simulacaoPrato.custo, simulacaoPrato.cmvAlvo);
+  }, [simulacaoPrato]);
 
   return (
-    <div className="min-h-screen bg-[#070F1E] text-slate-100 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* ─── TOPO DA CENTRAL DE COMANDO ────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 rounded-full uppercase tracking-wider">
+              {unidadeInfo?.nome || "Restaurante Matriz"}
+            </span>
+            <span className="text-xs text-slate-400">• {dataCapitalizada}</span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
+            {saudacao}, {primeiroNome}!
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Central de Comando Operacional • O que precisa da sua atenção agora.
+          </p>
+        </div>
 
-        {/* CABEÇALHO DA CENTRAL DE COMANDO */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
-              <ChefHat size={28} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] uppercase tracking-widest font-extrabold text-emerald-400">
-                  Central de Comando
+        <div className="flex items-center gap-3">
+          <button
+            onClick={carregarCentral}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── BLOCO 1: PRECISA DA SUA ATENÇÃO (AÇÕES CONTEXTUAIS OBRIGATÓRIAS) ───── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            Precisa da Sua Atenção Agora ({sinaisAtivos.length})
+          </h2>
+          <span className="text-xs text-slate-400">Priorizado por Severidade Operacional</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {sinaisAtivos.map((sinal) => (
+            <div
+              key={sinal.id}
+              className={`p-4 rounded-xl border flex flex-col justify-between transition shadow-sm ${
+                sinal.severidade === "CRITICO"
+                  ? "bg-rose-50/70 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/50"
+                  : sinal.severidade === "ATENCAO"
+                  ? "bg-amber-50/70 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50"
+                  : "bg-blue-50/70 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/50"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      sinal.severidade === "CRITICO"
+                        ? "bg-rose-600 animate-pulse"
+                        : sinal.severidade === "ATENCAO"
+                        ? "bg-amber-500"
+                        : "bg-blue-500"
+                    }`}
+                  />
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">{sinal.titulo}</h3>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  {sinal.severidade}
                 </span>
-                <span className="text-slate-600">•</span>
-                <span className="text-[11px] text-slate-400 font-medium">{unidadeInfo?.nome || "Restaurante"}</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {saudacao}, {primeiroNome}.
-              </h1>
-              <p className="text-xs text-slate-400">
-                {actionItems.length > 0 ? (
-                  <span className="font-bold text-amber-400">{actionItems.length} pendência(s) pedem sua atenção.</span>
-                ) : (
-                  <span>{dataCapitalizada}</span>
-                )}
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 my-2">{sinal.descricao}</p>
+
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex justify-end">
+                <button
+                  onClick={() => {
+                    if (sinal.onAction) sinal.onAction();
+                    else if (sinal.acao_url) router.push(sinal.acao_url);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 transition shadow-sm"
+                >
+                  {sinal.acao_rotulo || "Ver Detalhes"}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── BLOCO 2: OPERAÇÃO DE HOJE ───────────────────────────────────────── */}
+      <div className="space-y-3">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <ChefHat className="w-5 h-5 text-emerald-600" />
+          Operação de Hoje
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card Produção */}
+          <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Produção do Dia</span>
+              <button
+                onClick={() => router.push("/dashboard/operacao/producao")}
+                className="text-xs text-emerald-600 font-semibold hover:underline"
+              >
+                Ver Produção →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <p className="text-xs text-slate-500">Concluídas</p>
+                <p className="text-xl font-bold text-emerald-600">{resumoCentral?.operacional?.producoes_concluidas_hoje || 0}</p>
+              </div>
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <p className="text-xs text-slate-500">Pendentes</p>
+                <p className="text-xl font-bold text-amber-600">{resumoCentral?.operacional?.producoes_pendentes_hoje || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Compras */}
+          <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Compras & Pedidos</span>
+              <button
+                onClick={() => router.push("/dashboard/operacao/compras")}
+                className="text-xs text-emerald-600 font-semibold hover:underline"
+              >
+                Ver Compras →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <p className="text-xs text-slate-500">Abaixo do Mínimo</p>
+                <p className="text-xl font-bold text-rose-600">{resumoCentral?.operacional?.estoque_abaixo_minimo || 0}</p>
+              </div>
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <p className="text-xs text-slate-500">Pedidos Pendentes</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{resumoCentral?.operacional?.compras_pendentes || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Estoque Crítico */}
+          <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Estoque & Saldo</span>
+              <button
+                onClick={() => router.push("/dashboard/operacao/estoque")}
+                className="text-xs text-emerald-600 font-semibold hover:underline"
+              >
+                Ver Estoque →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <p className="text-xs text-slate-500">Sem Saldo (Zero)</p>
+                <p className="text-xl font-bold text-rose-600">{resumoCentral?.operacional?.estoque_sem_saldo || 0}</p>
+              </div>
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <p className="text-xs text-slate-500">Total Itens</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{dadosEstoque.length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── BLOCO 3: FINANCEIRO & VENDAS ─────────────────────────────────────── */}
+      {podeVerFinanceiro && (
+        <div className="space-y-3">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-indigo-600" />
+            Financeiro & Entradas de Hoje
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Vendas Hoje (Bruto)</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+                R$ {resumoCentral?.financeiro?.vendas_hoje_bruto?.toFixed(2) || "0.00"}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">{resumoCentral?.financeiro?.vendas_hoje_qtd || 0} vendas registradas</p>
+            </div>
+
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-rose-500">Contas Atrasadas</p>
+              <p className="text-2xl font-bold text-rose-600 mt-1">
+                R$ {resumoCentral?.financeiro?.contas_vencidas_valor?.toFixed(2) || "0.00"}
+              </p>
+              <button
+                onClick={() => router.push("/dashboard/financeiro/contas?status=VENCIDA")}
+                className="text-xs text-rose-600 hover:underline mt-1 font-semibold block"
+              >
+                Cuidar das Contas →
+              </button>
+            </div>
+
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-500">Contas Vencem Hoje</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">
+                R$ {resumoCentral?.financeiro?.contas_vencem_hoje_valor?.toFixed(2) || "0.00"}
+              </p>
+              <button
+                onClick={() => router.push("/dashboard/financeiro/contas")}
+                className="text-xs text-amber-600 hover:underline mt-1 font-semibold block"
+              >
+                Pagar Contas →
+              </button>
+            </div>
+
+            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-500">Recebíveis Divergentes</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">
+                R$ {resumoCentral?.financeiro?.recebiveis_divergentes_valor?.toFixed(2) || "0.00"}
+              </p>
+              <button
+                onClick={() => router.push("/dashboard/financeiro/conciliacao")}
+                className="text-xs text-blue-600 hover:underline mt-1 font-semibold block"
+              >
+                Conciliar →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── BLOCO 4: FERRAMENTAS DE MARGEM & SIMULADOR DE PREÇO ─────────────── */}
+      <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 bg-indigo-500/30 text-indigo-300 rounded-full">
+            Simulador de Margem & CMV Alvo
+          </span>
+          <h3 className="text-lg font-bold mt-2">Proteja o Lucro do Seu Cardápio</h3>
+          <p className="text-xs text-slate-300 mt-1 max-w-xl">
+            Simule o preço de venda ideal quando o custo de ingredientes subir, sem alterar o sistema automaticamente.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setModalSimulador(true)}
+          className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2 flex-shrink-0"
+        >
+          <Sparkles className="w-4 h-4" />
+          Abrir Simulador de Preço
+        </button>
+      </div>
+
+      {/* Modal Impacto de Custo em Cadeia */}
+      {modalImpacto && impactoInsumo && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border space-y-4">
+            <div className="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-700">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Impacto de Aumento: {impactoInsumo.insumoNome}
+              </h3>
+              <button onClick={() => setModalImpacto(false)} className="text-slate-400 hover:text-slate-600">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200">
+              <p className="font-bold">Variação de Preço do Insumo:</p>
+              <p>
+                R$ {impactoInsumo.precoAnterior.toFixed(2)}/kg → <span className="font-bold text-rose-600">R$ {impactoInsumo.precoAtual.toFixed(2)}/kg</span> (+{impactoInsumo.percentualAumento}%)
               </p>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            <button
-              type="button"
-              onClick={carregarCentralDeComando}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
-              title="Atualizar Central de Comando"
-            >
-              <RefreshCw size={15} className={refreshing ? "animate-spin text-emerald-400" : ""} />
-              <span className="hidden xs:inline">Atualizar</span>
-            </button>
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Pratos e Fichas Afetadas ({impactoInsumo.quantidadeFichasAfetadas})</p>
+              <div className="divide-y max-h-48 overflow-y-auto border rounded-lg p-2 text-xs">
+                {impactoInsumo.fichasAfetadas.map((f) => (
+                  <div key={f.fichaId} className="py-2 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{f.nomeReceita}</p>
+                      <p className="text-slate-400 text-[11px]">Custo anterior: R$ {f.custoAnteriorPrato.toFixed(2)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-rose-600">+ R$ {f.aumentoNoPrato.toFixed(2)}</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-300">Novo: R$ {f.novoCustoPrato.toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end border-t pt-3">
+              <button
+                onClick={() => setModalImpacto(false)}
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* ─── SEÇÃO 1: "PRECISA DE VOCÊ" (FILA UNIFICADA DE EXCEÇÕES) ─── */}
-        <div className="space-y-3">
-          <HubSectionHeader
-            icon={AlertTriangle}
-            title="Precisa de Você"
-            badgeText={actionItems.length > 0 ? `${actionItems.length} pendências` : "Em dia"}
-            badgeVariant={actionItems.length > 0 ? "red" : "green"}
-          />
+      {/* Modal Simulador de Preço */}
+      {modalSimulador && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4">
+            <h3 className="text-base font-bold border-b pb-3 text-slate-900 dark:text-white">Simulador de Preço Venda</h3>
 
-          {loading ? (
-            <HubSkeleton height="h-20" lines={2} />
-          ) : actionItems.length === 0 ? (
-            <HubAttentionCard
-              variant="green"
-              icon={CheckCircle2}
-              title="✓ Nenhuma pendência importante agora."
-              subtitle="Sua operação está rodando de forma saudável e sem alertas críticos."
-            />
-          ) : (
-            <div className="space-y-3">
-              {visibleActionItems.map(item => (
-                <HubAttentionCard
-                  key={item.id}
-                  variant={item.severity === "critical" ? "red" : item.severity === "warning" ? "amber" : "slate"}
-                  icon={
-                    item.source === "financeiro" ? DollarSign :
-                    item.source === "cozinha" ? ChefHat :
-                    item.source === "estoque" ? Package : Users
-                  }
-                  title={item.title}
-                  description={
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                      <span className="text-xs text-slate-200 font-medium">{item.description}</span>
-                      {item.value && <span className="font-extrabold text-white text-xs">{item.value}</span>}
-                    </div>
-                  }
-                  actionButton={
-                    <HubActionButton
-                      onClick={() => router.push(item.actionRoute)}
-                      variant={item.severity === "critical" ? "danger" : "secondary"}
-                    >
-                      {item.actionLabel}
-                    </HubActionButton>
-                  }
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Custo Atual do Prato (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={simulacaoPrato.custo}
+                  onChange={(e) => setSimulacaoPrato({ ...simulacaoPrato, custo: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg font-bold"
                 />
-              ))}
+              </div>
 
-              {actionItems.length > 5 && (
-                <button
-                  type="button"
-                  onClick={() => setExpandirPendencias(!expandirPendencias)}
-                  className="w-full text-center py-2.5 text-xs font-bold text-emerald-400 hover:underline min-h-[44px] flex items-center justify-center cursor-pointer"
-                >
-                  {expandirPendencias ? "Ver menos pendências" : `Ver todas as ${actionItems.length} pendências →`}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+              <div>
+                <label className="block font-semibold mb-1">CMV Alvo Desejado (%)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={simulacaoPrato.cmvAlvo}
+                  onChange={(e) => setSimulacaoPrato({ ...simulacaoPrato, cmvAlvo: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg font-bold"
+                />
+              </div>
 
-        {/* ─── SEÇÃO 2: LAYOUT EM 2 COLUNAS (TABLET LANDSCAPE & DESKTOP) ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* COLUNA PRINCIPAL (AGORA NO RESTAURANTE + RESULTADO) */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* SEÇÃO 2.1: "AGORA NO RESTAURANTE" (PULSO OPERACIONAL DOS 4 DOMÍNIOS) */}
-            <div className="space-y-3">
-              <HubSectionHeader
-                icon={Layers}
-                title="Agora no Restaurante"
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* 🍳 COZINHA */}
-                {podeVerProducao && (
-                  <div
-                    onClick={() => router.push("/dashboard/cozinha")}
-                    className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-between cursor-pointer group min-h-[72px]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
-                        <ChefHat size={20} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Cozinha</p>
-                        <p className="text-sm font-bold text-white">
-                          {concluidasCozinha > 0 ? `${concluidasCozinha} preparos lançados hoje` : "Sem preparos ativos"}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-slate-500 group-hover:text-emerald-400 transition-colors shrink-0" />
-                  </div>
-                )}
-
-                {/* 📦 ESTOQUE */}
-                {podeVerEstoque && (
-                  <div
-                    onClick={() => router.push("/dashboard/operacao/estoque")}
-                    className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-between cursor-pointer group min-h-[72px]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
-                        <Package size={20} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Estoque</p>
-                        <p className="text-sm font-bold text-white">
-                          {totalCriticosEstoque > 0 ? `${totalCriticosEstoque} itens críticos` : "Estoque sem alertas"}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-slate-500 group-hover:text-amber-400 transition-colors shrink-0" />
-                  </div>
-                )}
-
-                {/* 👥 EQUIPE */}
-                {podeVerEquipe && (
-                  <div
-                    onClick={() => router.push("/dashboard/rh")}
-                    className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-between cursor-pointer group min-h-[72px]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center shrink-0">
-                        <Users size={20} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Equipe</p>
-                        <p className="text-sm font-bold text-white">
-                          {presentesEquipe.length} de {previstosHoje.length || colabsAtivos.length} presentes
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-slate-500 group-hover:text-sky-400 transition-colors shrink-0" />
-                  </div>
-                )}
-
-                {/* 💰 FINANCEIRO */}
-                {podeVerContas && (
-                  <div
-                    onClick={() => router.push("/dashboard/financeiro")}
-                    className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-between cursor-pointer group min-h-[72px]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
-                        <DollarSign size={20} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Financeiro</p>
-                        <p className="text-sm font-bold text-white">
-                          {contasVencidas.length > 0 ? `${contasVencidas.length} contas vencidas` : "Nenhuma nova pendência"}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-slate-500 group-hover:text-emerald-400 transition-colors shrink-0" />
-                  </div>
-                )}
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-900 dark:text-emerald-200">
+                <p className="text-[11px] uppercase tracking-wider font-bold">Preço de Venda Sugerido:</p>
+                <p className="text-2xl font-extrabold mt-1">R$ {simulacaoCalculada.precoSugerido.toFixed(2)}</p>
+                <p className="text-[11px] mt-1 text-slate-500">
+                  Para manter o CMV em {simulacaoPrato.cmvAlvo}%, o valor recomendado de venda é R$ {simulacaoCalculada.precoSugerido.toFixed(2)}.
+                </p>
               </div>
             </div>
 
-            {/* SEÇÃO 2.2: RESULTADO DO MÊS (APENAS PARA GESTOR/ADMIN COM PERMISSÃO) */}
-            {podeVerFinanceiro ? (
-              <div className="space-y-3 pt-2">
-                <HubSectionHeader
-                  icon={TrendingUp}
-                  title="Resultado"
-                  action={
-                    <button
-                      type="button"
-                      onClick={() => router.push("/dashboard/financeiro")}
-                      className="text-xs font-bold text-emerald-400 hover:underline min-h-[44px] flex items-center justify-center cursor-pointer"
-                    >
-                      Ver Financeiro →
-                    </button>
-                  }
-                />
-
-                <HubCardContainer>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Receita Bruta (Mês)</p>
-                      <p className="text-xl font-black text-white mt-1">{fmtBRL(receitaBrutaMes)}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">CMV Estimado</p>
-                      <p className="text-xl font-black text-amber-400 mt-1">{fmtPct(cmvPctEstimado)}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Resultado do Mês</p>
-                      <p className={`text-xl font-black mt-1 ${resultadoLiquidoMes >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                        {resultadoLiquidoMes >= 0 ? `+ ${fmtBRL(resultadoLiquidoMes)}` : `- ${fmtBRL(Math.abs(resultadoLiquidoMes))}`}
-                      </p>
-                    </div>
-                  </div>
-                </HubCardContainer>
-              </div>
-            ) : (
-              /* SEU DIA (PARA FUNCIONÁRIO OPERACIONAL SEM FINANCEIRO) */
-              <div className="space-y-3 pt-2">
-                <HubSectionHeader
-                  icon={Clock}
-                  title="Seu Dia na Operação"
-                />
-
-                <HubCardContainer className="space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-300">Status do Seu Ponto Hoje:</span>
-                    <span className="font-extrabold text-emerald-400">{minhaSituacaoPonto.texto}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <HubActionButton
-                      onClick={() => router.push("/dashboard/ponto")}
-                      variant="primary"
-                      icon={Clock}
-                    >
-                      Bater Ponto
-                    </HubActionButton>
-
-                    <HubActionButton
-                      onClick={() => router.push("/dashboard/checklists")}
-                      variant="secondary"
-                      icon={CheckCircle2}
-                    >
-                      Abrir Checklist
-                    </HubActionButton>
-                  </div>
-                </HubCardContainer>
-              </div>
-            )}
-
-            {/* SEÇÃO 2.3: AÇÕES RÁPIDAS OPERACIONAIS (MÁX 4-6 AÇÕES) */}
-            <div className="space-y-3 pt-2">
-              <HubSectionHeader
-                title="Acesso Rápido"
-              />
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {podeVerEtiquetas && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/operacao/etiquetas")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <Tag size={18} className="text-emerald-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Imprimir Etiqueta</span>
-                  </button>
-                )}
-
-                {podeVerProducao && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/operacao/producao?dept=cozinha")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <Plus size={18} className="text-emerald-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Lançar Produção</span>
-                  </button>
-                )}
-
-                {podeVerEstoque && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <Package size={18} className="text-amber-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Registrar Entrada</span>
-                  </button>
-                )}
-
-                {podeVerPonto && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/ponto")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <Clock size={18} className="text-sky-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Abrir Ponto</span>
-                  </button>
-                )}
-
-                {podeVerEstoque && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/operacao/estoque")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <AlertTriangle size={18} className="text-rose-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Registrar Perda</span>
-                  </button>
-                )}
-
-                {podeVerContas && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/financeiro/contas")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <DollarSign size={18} className="text-purple-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Nova Despesa</span>
-                  </button>
-                )}
-              </div>
+            <div className="flex justify-end gap-2 border-t pt-3 border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setModalSimulador(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold"
+              >
+                Fechar Simulador
+              </button>
             </div>
-
           </div>
-
-          {/* COLUNA LATERAL (RECENTES + ASSISTENTE HÉFISTO IA PLACEHOLDER) */}
-          <div className="space-y-6">
-
-            {/* SEÇÃO 2.4: RECENTES (FASE C / D5) */}
-            <div className="space-y-3">
-              <HubSectionHeader
-                icon={Clock}
-                title="Recentes"
-              />
-
-              {recentItems.length === 0 ? (
-                <HubCardContainer className="py-4 text-center text-xs text-slate-400">
-                  Nenhuma página navegada recentemente.
-                </HubCardContainer>
-              ) : (
-                <HubListContainer>
-                  {recentItems.map(item => (
-                    <HubListItem
-                      key={item.id}
-                      onClick={() => router.push(item.route)}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-xs font-extrabold text-white truncate">{item.title}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 truncate">{item.domain}</span>
-                    </HubListItem>
-                  ))}
-                </HubListContainer>
-              )}
-            </div>
-
-            {/* SEÇÃO 2.5: PLACEHOLDER HÉFISTO IA (FASE F) */}
-            <div className="space-y-3 pt-2">
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-900/60 border border-emerald-500/20 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                    <Sparkles size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-extrabold text-white">Assistente Héfisto IA</p>
-                    <p className="text-[10px] text-slate-400">Inteligência Operacional em breve (Fase F)</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      window.dispatchEvent(new CustomEvent("hefisto:open-command-center"));
-                    }
-                  }}
-                  className="w-full min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700/80 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
-                >
-                  <Search size={14} className="text-emerald-400" />
-                  <span>Pergunte ao Héfisto (Command Center)</span>
-                </button>
-              </div>
-            </div>
-
-          </div>
-
         </div>
-
-      </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { supabase, isSupabaseReady } from "./supabase";
-import { registrarMarcacao } from "./ponto-marcacao";
+import { supabase, isSupabaseReady } from "./supabase.js";
+import { registrarMarcacao } from "./ponto-marcacao.js";
 import { entradaContratada, minutosAteOTurno } from "./jornada-calculo.mjs";
 import { esperaEntreBatidasMs } from "./ponto-status.mjs";
 

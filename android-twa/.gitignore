@@ -1,0 +1,8 @@
+node_modules/
+*.keystore
+*.jks
+android.keystore
+twa-credentials.json
+.gradle/
+build/
+app/build/

@@ -1,9 +1,9 @@
 {
   "name": "fooderrp",
-  "version": "1.0.0",
+  "version": "1.0.0-rc.1",
   "description": "FoodERP - Sistema de Gestao para Food Service",
   "scripts": {
-    "start": "node backend_cloud_code/server.js",
+    "start": "next start",
     "dev": "nodemon backend_cloud_code/server.js",
     "dev:next": "next dev",
     "build": "next build",

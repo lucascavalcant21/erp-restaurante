@@ -63,7 +63,7 @@ create or replace function bebida_entrada_unidades(
   p_observacao  text   default null,
   p_data        timestamptz default now()
 ) returns table(saldo_fechado numeric, saldo_aberto numeric, quantidade_atual numeric)
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_conteudo numeric; v_item_id uuid;
 begin
   if p_unidades is null or p_unidades <= 0 then raise exception 'Informe uma quantidade de unidades maior que zero.'; end if;
@@ -89,7 +89,7 @@ create or replace function bebida_baixa_unidades(
   p_usuario_id uuid default null, p_usuario_nome text default null,
   p_observacao text default null, p_data timestamptz default now()
 ) returns table(saldo_fechado numeric, saldo_aberto numeric, quantidade_atual numeric)
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_conteudo numeric; v_item estoque_itens%rowtype;
 begin
   if p_unidades is null or p_unidades <= 0 then raise exception 'Informe uma quantidade de unidades maior que zero.'; end if;
@@ -120,7 +120,7 @@ create or replace function bebida_baixa_conteudo(
   p_usuario_id uuid default null, p_usuario_nome text default null,
   p_observacao text default null, p_data timestamptz default now()
 ) returns table(saldo_fechado numeric, saldo_aberto numeric, quantidade_atual numeric, abertas int)
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_conteudo numeric; v_item estoque_itens%rowtype; v_precisa numeric; v_abrir int := 0;
 begin
   if p_qtd is null or p_qtd <= 0 then raise exception 'Informe uma quantidade maior que zero.'; end if;
@@ -161,7 +161,7 @@ create or replace function bebida_contagem(
   p_fechadas numeric, p_aberto numeric,
   p_usuario_id uuid default null, p_usuario_nome text default null, p_observacao text default null
 ) returns table(saldo_fechado numeric, saldo_aberto numeric, quantidade_atual numeric)
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_conteudo numeric; v_item_id uuid; v_total numeric;
 begin
   if p_fechadas < 0 or p_aberto < 0 then raise exception 'Contagem não pode ser negativa.'; end if;
@@ -185,7 +185,7 @@ create or replace function bebida_zerar(
   p_unidade_id text, p_estoque_id uuid, p_insumo_id uuid, p_motivo text,
   p_usuario_id uuid default null, p_usuario_nome text default null
 ) returns table(saldo_fechado numeric, saldo_aberto numeric, quantidade_atual numeric)
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_item estoque_itens%rowtype;
 begin
   if coalesce(trim(p_motivo),'') = '' then raise exception 'Informe o motivo para zerar o produto.'; end if;

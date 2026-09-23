@@ -4137,7 +4137,7 @@ function FichasRunner() {
                         </div>
                      </div>}
 
-                     {!form.eh_base && (() => {
+                     {(() => {
                         const custoTotalForm = custoTotalFormulario(ingFicha);
                         const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 1;
                         const embForm = Number(String(form.custo_embalagem || "").replace(",", ".")) || 0;

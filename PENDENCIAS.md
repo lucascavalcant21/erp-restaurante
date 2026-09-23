@@ -30,6 +30,19 @@ Supabase, deploy por `git push origin main` na Vercel
   (Vale para `.from()`, `.rpc()`; `supabase.storage` é Promise de verdade.)
 - Escreva comentários e textos de tela em português, explicando o **porquê**, não o quê.
 
+## Regra nova: configuração falha fechada
+
+Nenhuma variável obrigatória tem valor de reserva. `process.env.X || "valor"`
+para URL, chave ou segredo está proibido — era assim que qualquer build sem
+variável (preview, staging, máquina nova) abria o **banco de produção** sem
+ninguém perceber. Quem precisa de configuração usa
+`app/lib/config-supabase.mjs` (público) ou `app/lib/config-supabase-server.js`
+(service role, só servidor); faltando qualquer peça, o app para e diz o que
+falta. `HEFISTO_ENV` declara o ambiente (`development`/`staging`/`production`;
+preview do Vercel conta como staging) e **staging apontando para o projeto de
+produção é recusado**. Confira o ambiente com
+`node scripts/verificar-ambiente-supabase.mjs`.
+
 ## O que está pendente, em ordem
 
 ### 0. SEGURANÇA — `migracao_rls_autorizacao_servidor.sql` NA FILA (22/09)

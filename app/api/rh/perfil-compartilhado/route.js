@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { tentarSupabaseServerConfig } from "../../../lib/config-supabase-server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,23 +20,34 @@ const CAMPOS_OBRIGATORIOS = [
 ];
 
 function clientes() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // O cliente de banco desta rota precisa mesmo da service role (ele lê e
+  // grava dados de colaborador sem sessão). Cair na chave anônima escondia a
+  // falta de configuração e trocava o erro por um resultado vazio.
+  const { config } = tentarSupabaseServerConfig();
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anon) return {};
+  if (!config || !anon) return {};
   const opcoes = { auth: { persistSession: false, autoRefreshToken: false } };
   return {
-    auth: createClient(url, anon, opcoes),
-    db: createClient(url, service || anon, opcoes),
+    auth: createClient(config.url, anon, opcoes),
+    db: createClient(config.url, config.serviceRoleKey, opcoes),
   };
 }
 
+/* O link compartilhado é assinado com RH_LINK_SECRET. Sem ela não existe
+   assinatura: string vazia deixaria qualquer um forjar o link, e usar a
+   service role (ou a chave do Firebase) como segredo de HMAC é reaproveitar
+   credencial para o que ela não foi feita. Faltando, a rota recusa. */
 function segredo() {
-  return process.env.RH_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.FIREBASE_PRIVATE_KEY || "";
+  return String(process.env.RH_LINK_SECRET || "").trim();
 }
 
 function assinatura(conteudo) {
-  return createHmac("sha256", segredo()).update(conteudo).digest("base64url");
+  const chave = segredo();
+  // Sem segredo não se assina nada: string vazia deixaria qualquer um forjar o
+  // link. E a service role (ou a chave do Firebase, que estavam aqui como
+  // reserva) não é segredo de HMAC — é credencial de banco.
+  if (!chave) throw new Error("RH_LINK_SECRET não configurada.");
+  return createHmac("sha256", chave).update(conteudo).digest("base64url");
 }
 
 function criarToken(colaboradorId) {

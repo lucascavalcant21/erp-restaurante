@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { tentarSupabaseServerConfig } from "../../../lib/config-supabase-server";
 
 export async function POST(req) {
   const fiscalUrl = String(process.env.FISCAL_API_URL || "").trim();
@@ -11,12 +12,13 @@ export async function POST(req) {
     }, { status: 503 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: "Banco fiscal não configurado." }, { status: 503 });
+  // Emissão fiscal grava nota: exige service role de verdade. Cair na chave
+  // anônima escondia a falta de configuração e quebrava lá na frente, no RLS.
+  const { config: cfgBanco, erro: erroBanco } = tentarSupabaseServerConfig();
+  if (!cfgBanco) {
+    return NextResponse.json({ error: "Banco fiscal não configurado.", detalhe: erroBanco }, { status: 503 });
   }
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(cfgBanco.url, cfgBanco.serviceRoleKey);
 
   try {
     const { pedido_id, unidade_id, cpf_cliente } = await req.json();

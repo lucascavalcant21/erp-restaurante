@@ -1,7 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import { getSupabasePublicConfig } from "./config-supabase.mjs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://sezccspqxgklicfndwxx.supabase.co";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_hstqbkrp5CM1FBZoyrjcXg_MrOOKCsX";
+// Sem valor de reserva: se a URL ou a chave anônima faltarem, isto estoura com
+// a mensagem dizendo o que configurar. Antes, o código caía no projeto de
+// PRODUÇÃO — qualquer build sem variável (preview, staging, máquina nova)
+// abria o banco real do restaurante sem ninguém perceber.
+const { url: supabaseUrl, anonKey: supabaseKey } = getSupabasePublicConfig();
 
 // A sessão precisa ficar guardada no aparelho e se renovar sozinha — sem isso
 // o app desloga a cada vez que o token de 1h expira (comum no celular/tablet,

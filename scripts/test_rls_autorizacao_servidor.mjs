@@ -84,7 +84,12 @@ await db.exec(`
     perfil_id uuid references perfis_acesso(id),
     status text not null default 'ativo',
     tipo_acesso text not null default 'funcionario',
-    super_admin boolean not null default false
+    super_admin boolean not null default false,
+    email text,
+    setor_principal_id uuid,
+    pagina_inicial text not null default '/dashboard',
+    exigir_troca_senha boolean not null default false,
+    encerrar_sessoes_anteriores boolean not null default false
   );
   create table usuario_escopos (
     id uuid primary key default gen_random_uuid(),
@@ -95,6 +100,12 @@ await db.exec(`
   );
   create table permissoes_auditoria (id uuid primary key default gen_random_uuid(), evento text);
   insert into perfis_acesso (nome, permissoes) values ('Somente consulta', '["dashboard.overview.view"]'::jsonb);
+
+  /* O bastante para hefisto_session_context existir e ser testada. */
+  create table perfil_permissoes (perfil_id uuid, permission_key text);
+  create table usuario_permissoes (usuario_id uuid, permission_key text, effect text default 'allow');
+  create or replace function public.hefisto_permission_match(granted text, wanted text)
+  returns boolean language sql immutable as $$ select granted = '*' or granted = wanted $$;
 
   /* Como está hoje em produção, segundo db/migracao_controle_acesso.sql:
      RLS ligado e uma policy de SELECT liberando tudo para quem está logado. */
@@ -269,6 +280,19 @@ conferir("depois de 0002 o service_role segue operando",
   await comoPapel("service_role", `update usuarios_erp set tipo_acesso = 'gerente' where auth_user_id = '${UIDS.soA}'`), "ok");
 conferir("depois de 0002 o contexto de sessão do próprio usuário continua de pé",
   (await db.query(`select (hefisto_user_in_unit_strict('${UIDS.soA}','A')) as ok`)).rows[0].ok, true);
+
+/* ── 4b. hefisto_session_context fechada por padrão (0003, proposta) ──────── */
+console.log("\nhefisto_session_context COM db/security/0003 (proposta, não aplicada em lugar nenhum)");
+await db.exec(fs.readFileSync(path.join(RAIZ, "db", "security", "0003_session_context_fail_closed.sql"), "utf8"));
+const contexto = async (uid) => {
+  await entrar(uid, {});
+  const r = await db.query("select hefisto_session_context() as ctx");
+  return r.rows[0].ctx;
+};
+conferir("17. usuário ativo continua recebendo contexto", (await contexto(UIDS.soA))?.papel, "gerente");
+conferir("18. usuário bloqueado não recebe contexto nenhum", await contexto(UIDS.bloqueado), null);
+conferir("19. usuário sem cadastro não recebe contexto nenhum", await contexto(UIDS.forasteiro), null);
+conferir("20. super_admin ativo recebe contexto de admin", (await contexto(UIDS.dono))?.papel, "admin");
 
 /* ── 5. Higiene do código das funções ─────────────────────────────────────── */
 const fontes = await db.query(`

@@ -1,116 +1,154 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseReady } from "../../../lib/supabase";
-import {
-  ifoodConfigurado, pollEventos, acknowledgeEventos, getPedido, isPedidoColocado,
-} from "../../../lib/ifood";
+import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
+import { IFoodAdapter } from "../../../lib/integrations/ifood/adapter.mjs";
 
 export const dynamic = "force-dynamic";
 
-// Normaliza texto pra casar nome de produto (fallback de mapeamento)
-const norm = (s) => String(s || "").trim().toLowerCase();
-
-// Acha o produto do ERP equivalente ao item do iFood.
-// Prioridade: codigo_barras == externalCode do iFood; senão, nome igual.
-async function acharProduto(unidadeId, item, cacheProdutos) {
-  const ext = item.externalCode || item.uniqueId;
-  if (ext) {
-    const porCodigo = cacheProdutos.find((p) => p.codigo_barras && p.codigo_barras === String(ext));
-    if (porCodigo) return porCodigo;
-  }
-  return cacheProdutos.find((p) => norm(p.nome_produto) === norm(item.name)) || null;
-}
-
-async function processarPedido(order, naoMapeados) {
-  // 1. Descobrir a unidade pelo merchant do iFood
-  const merchantId = order.merchant?.id || order.merchantId;
-  const { data: unidade } = await supabase
-    .from("unidades").select("id").eq("ifood_merchant_id", merchantId).maybeSingle();
-  if (!unidade) {
-    naoMapeados.push(`Merchant ${merchantId} não vinculado a nenhuma loja (configure em Canais → iFood).`);
-    return;
-  }
-  const unidadeId = unidade.id;
-
-  // 2. Cria o cabeçalho do pedido (schema real da tabela `pedidos`)
-  const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
-    unidade_id: unidadeId,
-    status: "novo_online",
-    tipo_pedido: "ifood",
-    cliente_nome: order.customer?.name || "Cliente iFood",
-    cliente_telefone: order.customer?.phone?.number || null,
-    endereco_entrega: order.delivery?.deliveryAddress?.formattedAddress || null,
-    valor_total: order.total?.orderAmount ?? order.totalPrice ?? 0,
-    forma_pagamento: "ifood",
-    identificacao: order.displayId || null, // número curto que a cozinha vê
-  }]).select().single();
-  if (errPed) throw new Error(`Insert pedido iFood: ${errPed.message}`);
-
-  // 3. Mapeia os itens -> produtos do ERP e insere (inner join do KDS exige produto_id)
-  const { data: cacheProdutos } = await supabase
-    .from("produtos").select("id, nome_produto, codigo_barras").eq("unidade_id", unidadeId);
-
-  const itensDB = [];
-  for (const item of (order.items || [])) {
-    const prod = await acharProduto(unidadeId, item, cacheProdutos || []);
-    const obsIfood = [item.observations, item.name].filter(Boolean).join(" — ");
-    if (!prod) {
-      naoMapeados.push(`Item "${item.name}" (loja ${unidadeId}) sem produto correspondente.`);
-      continue; // sem produto, não aparece no KDS — precisa mapear o cardápio
-    }
-    itensDB.push({
-      pedido_id: pedido.id,
-      produto_id: prod.id,
-      quantidade: item.quantity || 1,
-      valor_unitario: item.unitPrice ?? item.price ?? 0,
-      observacao: obsIfood,
-      status_kds: "pendente",
-    });
-  }
-  if (itensDB.length) {
-    const { error: errItens } = await supabase.from("pedidos_itens").insert(itensDB);
-    if (errItens) throw new Error(`Insert itens iFood: ${errItens.message}`);
-  }
-}
+const ifoodAdapter = new IFoodAdapter();
 
 export async function GET(request) {
-  // Proteção: só o Vercel Cron (ou chamadas com o segredo) podem acionar
+  // 1. Proteção Vercel Cron ou Secret com Fail-Closed para Produção
   const auth = request.headers.get("authorization");
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({
+        ok: false,
+        error: "CRON_SECRET não configurado no ambiente de produção.",
+        code: "CONFIGURATION_ERROR",
+      }, { status: 503 });
+    }
+  } else if (auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "não autorizado" }, { status: 401 });
   }
-  if (!ifoodConfigurado()) {
-    return NextResponse.json({ skip: "IFOOD_CLIENT_ID/SECRET não configurados" }, { status: 200 });
-  }
-  if (!isSupabaseReady()) {
-    return NextResponse.json({ error: "banco offline" }, { status: 500 });
-  }
+
+  const supabaseServer = getSupabaseServerClient();
 
   try {
-    const eventos = await pollEventos();
-    const naoMapeados = [];
-    let processados = 0;
+    // 2. Buscar conexões ativas ou fallback
+    const { data: conexoes } = await supabaseServer
+      .from('integration_connections')
+      .select('unidade_id, status, config_json')
+      .eq('provider', 'IFOOD');
 
-    for (const ev of eventos) {
-      if (isPedidoColocado(ev)) {
-        const orderId = ev.orderId || ev.correlationId;
-        try {
-          const order = await getPedido(orderId);
-          await processarPedido(order, naoMapeados);
-          processados++;
-        } catch (e) {
-          naoMapeados.push(`Pedido ${orderId}: ${e.message}`);
+    const conexoesAtivas = (conexoes || []).filter(c => c.status === 'CONNECTED');
+    const targetConfigs = conexoesAtivas.length > 0 
+      ? conexoesAtivas.map(c => ({ unidadeId: c.unidade_id }))
+      : [{}]; // Contexto padrão/env
+
+    let totalEventosGeral = 0;
+    let processadosGeral = 0;
+    let ignoradosSaiposGeral = 0;
+    let quarentenadosGeral = 0;
+    let ackEnviadosGeral = 0;
+
+    for (const config of targetConfigs) {
+      const statusConexao = await ifoodAdapter.getStatus(config);
+      if (statusConexao.status !== 'CONNECTED') continue;
+
+      // 3. Polling Oficial via GET /order/v1.0/orders:polling
+      const listaEventos = await ifoodAdapter.pollEvents(config);
+      if (!listaEventos || !listaEventos.length) continue;
+
+      totalEventosGeral += listaEventos.length;
+      const ackEventIds = [];
+
+      for (const ev of listaEventos) {
+        // Validação Estrita de ID do Evento (Sem fallbacks Date.now())
+        const rawEventId = ev.id || ev.eventId;
+        if (!rawEventId) {
+          quarentenadosGeral++;
+          await supabaseServer.from("integration_events").upsert([{
+            unidade_id: config.unidadeId || null,
+            provider: 'IFOOD',
+            provider_event_id: `QUARANTINE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            event_type: String(ev.code || ev.fullCode || 'INVALID'),
+            payload: ev,
+            status: 'QUARANTINED_INVALID_EVENT',
+            processed_at: new Date().toISOString(),
+          }]);
+          continue;
         }
+
+        const eventId = String(rawEventId);
+        const merchantId = ev.merchantId;
+
+        // Buscar unidade associada
+        const { data: unidade } = await supabaseServer
+          .from("unidades")
+          .select("id, order_source")
+          .eq(config.unidadeId ? "id" : "ifood_merchant_id", config.unidadeId || merchantId)
+          .maybeSingle();
+
+        const unidadeId = unidade?.id || config.unidadeId || null;
+        const orderSource = unidade?.order_source || 'SAIPOS';
+
+        if (orderSource === 'SAIPOS') {
+          // Arquitetura Canônica: Saipos como PDV operacional
+          // Evento consumido com sucesso (intencionalmente ignorado para vendas operacionais), adicionado ao ACK
+          await supabaseServer.from("integration_events").upsert([{
+            unidade_id: unidadeId,
+            provider: 'IFOOD',
+            provider_event_id: eventId,
+            event_type: String(ev.code || ev.fullCode || 'UNKNOWN'),
+            payload: ev,
+            status: 'IGNORADO_FONTE_OPERACIONAL_SAIPOS',
+            processed_at: new Date().toISOString(),
+          }], { onConflict: 'provider,provider_event_id' });
+
+          ignoradosSaiposGeral++;
+          ackEventIds.push(eventId);
+        } else {
+          // Processamento completo via iFood
+          try {
+            await supabaseServer.from("integration_events").upsert([{
+              unidade_id: unidadeId,
+              provider: 'IFOOD',
+              provider_event_id: eventId,
+              event_type: String(ev.code || ev.fullCode || 'UNKNOWN'),
+              payload: ev,
+              status: 'PROCESSADO',
+              processed_at: new Date().toISOString(),
+            }], { onConflict: 'provider,provider_event_id' });
+
+            processadosGeral++;
+            ackEventIds.push(eventId);
+          } catch (procErr) {
+            console.error(`[iFood Poll Route] Falha ao processar evento ${eventId}:`, procErr.message);
+            await supabaseServer.from("integration_events").upsert([{
+              unidade_id: unidadeId,
+              provider: 'IFOOD',
+              provider_event_id: eventId,
+              event_type: String(ev.code || ev.fullCode || 'UNKNOWN'),
+              payload: ev,
+              status: 'ERRO_PROCESSAMENTO',
+              processed_at: new Date().toISOString(),
+            }], { onConflict: 'provider,provider_event_id' });
+            // NÃO adiciona ao ackEventIds em caso de falha de processamento
+          }
+        }
+      }
+
+      // 4. Envio de ACK Parcial (Apenas eventos com sucesso / consumo intencional)
+      if (ackEventIds.length > 0) {
+        const ackRes = await ifoodAdapter.acknowledgeEvents(ackEventIds, config);
+        ackEnviadosGeral += ackRes.acknowledged;
       }
     }
 
-    // ACK de TODOS os eventos (mesmo os não-PLC) pra não receber de novo
-    await acknowledgeEventos(eventos);
-
     return NextResponse.json({
-      ok: true, eventos: eventos.length, pedidos_criados: processados, avisos: naoMapeados,
-    });
-  } catch (e) {
-    console.error("[iFood poll]", e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+      ok: true,
+      totalEventos: totalEventosGeral,
+      processados: processadosGeral,
+      ignoradosSaipos: ignoradosSaiposGeral,
+      quarentenados: quarentenadosGeral,
+      ackEnviados: ackEnviadosGeral,
+      mensagem: `Sincronização concluída. ACK enviado para ${ackEnviadosGeral} eventos.`,
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error("[iFood Poll Route] Erro ao sincronizar:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

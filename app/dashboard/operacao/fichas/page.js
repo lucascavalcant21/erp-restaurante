@@ -1329,6 +1329,7 @@ function FichasRunner() {
 
       if (!criarOutra) setModalNovo(false);
       if (fichaIdSalva) {
+        setForm(f => ({ ...f, id: fichaIdSalva }));
         setFichas(fichasAntigas => {
           const existe = fichasAntigas.some(f => f.id === fichaIdSalva);
           const novaFichaObjeto = {

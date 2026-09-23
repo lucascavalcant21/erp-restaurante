@@ -147,10 +147,10 @@ export function custoIngrediente({ custoUnitario, quantidade, fatorCorrecao: fc 
 // rateado pelo rendimento dela e multiplicado pela quantidade utilizada.
 export function custoSubreceita({ custoTotalSubficha, rendimentoSubficha, quantidade, fatorCorrecao: fc = 0 }) {
   const total = parseNumero(custoTotalSubficha);
-  const rend = Math.max(parseNumero(rendimentoSubficha), 1);
+  const rend = parseNumero(rendimentoSubficha);
   const qtd = parseNumero(quantidade);
   const fator = fatorDeCorrecaoNormalizado(fc);
-  if (total <= 0 || qtd <= 0) return 0;
+  if (total <= 0 || qtd <= 0 || rend <= 0) return 0;
   return (total / rend) * qtd * fator;
 }
 
@@ -237,6 +237,7 @@ export function custoUnitarioEfetivoInsumo(insumo) {
 // `custo_embalagens_total` somado no fim.
 export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set()) {
   if (!ficha || guard.has(ficha.id)) return 0;
+  guard = new Set(guard);
   guard.add(ficha.id);
 
   let total = 0;
@@ -249,7 +250,7 @@ export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set())
         || String(fi.insumos.unidade_medida || "un").toLowerCase();
       total += custoIngrediente({
         custoUnitario: custoUnitarioEfetivoInsumo(fi.insumos),
-        quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.insumos.unidade_medida, unBase),
+        quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.unidade || fi.insumos.unidade_medida, unBase),
         fatorCorrecao: fc,
       });
     } else if (fi.subficha_id) {

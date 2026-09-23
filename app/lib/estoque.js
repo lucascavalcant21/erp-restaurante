@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
-import { registrarProducaoNoEstoquePreparo } from "./estoques-multiplos.js";
+export { calcularConsumoProducao } from "./producao-calculos.mjs";
 
 // ─── ESTOQUE FÍSICO ──────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ export async function fetchProducoesPeriodo(unidadeId, dias = 30) {
   const inicio = new Date(Date.now() - dias * 86400000).toISOString();
   const { data, error } = await supabase
     .from("producao_diaria")
-    .select("*, fichas_tecnicas(nome_receita), colaboradores(nome)")
+    .select("*, fichas_tecnicas(nome_receita, rendimento_unidade, departamento), colaboradores(nome)")
     .eq("unidade_id", unidadeId)
     .gte("created_at", inicio)
     .order("created_at", { ascending: false });
@@ -125,174 +125,27 @@ export async function fetchProducaoDeHoje(unidadeId, { colaboradorId = null, dep
   return { data: lista, error: null };
 }
 
-export function calcularConsumoProducao(ficha, qtdProduzida, todasFichas = []) {
-  const fichasPorId = new Map((todasFichas || []).map(item => [item.id, item]));
-  if (ficha?.id) fichasPorId.set(ficha.id, ficha);
-
-  const consumo = new Map();
-  const erros = [];
-
-  function visitar(atual, fator, trilha = new Set()) {
-    if (!atual) return;
-    if (trilha.has(atual.id)) {
-      erros.push(`Referência circular encontrada na receita ${atual.nome_receita || "sem nome"}.`);
-      return;
-    }
-
-    const proximaTrilha = new Set(trilha);
-    proximaTrilha.add(atual.id);
-
-    (atual.fichas_ingredientes || []).forEach(item => {
-      if (item.insumos) {
-        const id = item.insumos.id;
-        const quantidade = Number(item.quantidade || 0) * fator;
-        const existente = consumo.get(id) || { insumo: item.insumos, quantidade: 0 };
-        existente.quantidade += quantidade;
-        consumo.set(id, existente);
-        return;
-      }
-
-      if (item.subficha_id) {
-        const base = fichasPorId.get(item.subficha_id);
-        if (!base) {
-          erros.push(`Base não encontrada na receita ${atual.nome_receita || "sem nome"}.`);
-          return;
-        }
-        const rendimentoBase = Number(base.rendimento_porcoes) || 1;
-        const fatorBase = fator * Number(item.quantidade || 0) / rendimentoBase;
-        visitar(base, fatorBase, proximaTrilha);
-      }
-    });
-  }
-
-  visitar(ficha, Number(qtdProduzida || 0));
-  return { itens: Array.from(consumo.values()), erros };
+// O banco relê ficha, custos e saldos e confirma tudo na mesma transação.
+export async function registrarProducao(unidadeId, ficha, quantidade, colaboradorId, todasFichas = [], opcoes = {}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!unidadeId || !ficha?.id || !Number.isFinite(Number(quantidade)) || Number(quantidade) <= 0) return { error: "Produção inválida." };
+  const { data, error } = await supabase.rpc("confirmar_producao_integrada", {
+    p_unidade_id: unidadeId, p_ficha_id: ficha.id, p_quantidade: Number(quantidade),
+    p_colaborador_id: colaboradorId || null,
+    p_local: opcoes.localArmazenamento || null, p_validade: opcoes.validade || null,
+    p_chave: opcoes.chave || crypto.randomUUID(),
+  });
+  if (error) return { error: error.message, codigo: "PRODUCAO_RECUSADA" };
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("hefisto:mudou", { detail: { tabela: "producao_diaria" } }));
+  return { success: true, data, preparo: data?.estoqueavel ? data : null };
 }
 
-export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId, todasFichas = [], opcoes = {}) {
+export async function preverProducao(unidadeId, fichaId, quantidade) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  
-  // Calcula e valida a baixa antes de registrar o histórico da produção.
-  const calculo = calcularConsumoProducao(ficha, qtdProduzida, todasFichas);
-  if (calculo.erros.length > 0) {
-     return { error: calculo.erros.join(" "), codigo: "FICHA_INVALIDA" };
-  }
-  const consumoPorInsumo = {};
-  calculo.itens.forEach(item => {
-     const id = item.insumo.id;
-     consumoPorInsumo[id] = item;
+  const { data, error } = await supabase.rpc("prever_producao_integrada", {
+    p_unidade_id: unidadeId, p_ficha_id: fichaId, p_quantidade: Number(quantidade),
   });
-  const ingIds = Object.keys(consumoPorInsumo);
-  
-  let estoqueDB = [];
-  if (ingIds.length > 0) {
-     const { data, error: errConsultaEstoque } = await supabase.from("estoque_atual")
-        .select("insumo_id, quantidade_atual")
-        .eq("unidade_id", unidadeId)
-        .in("insumo_id", ingIds);
-     if (errConsultaEstoque) return { error: errConsultaEstoque.message };
-     estoqueDB = data || [];
-  }
-
-  const mapaEstoque = {};
-  if(estoqueDB) {
-     estoqueDB.forEach(e => mapaEstoque[e.insumo_id] = e.quantidade_atual);
-  }
-
-  // Impede saldo negativo e informa exatamente o que está faltando.
-  const faltantes = Object.entries(consumoPorInsumo).map(([id, item]) => ({
-     id,
-     nome: item.insumo.nome,
-     unidade: item.insumo.unidade_medida,
-     necessario: item.quantidade,
-     disponivel: Number(mapaEstoque[id] || 0),
-  })).filter(item => item.disponivel < item.necessario);
-
-  if (faltantes.length > 0) {
-     return { error: "Estoque insuficiente", codigo: "ESTOQUE_INSUFICIENTE", faltantes };
-  }
-
-  const atualizacoesEstoque = Object.entries(consumoPorInsumo).map(([id, item]) => {
-     const saldoAnterior = Number(mapaEstoque[id] || 0);
-     const novoSaldo = saldoAnterior - item.quantidade;
-
-     return {
-        unidade_id: unidadeId,
-        insumo_id: id,
-        quantidade_atual: novoSaldo,
-        updated_at: new Date().toISOString()
-     };
-  });
-
-  // Salva a baixa e só então grava o histórico.
-  if (atualizacoesEstoque.length > 0) {
-     const { error: errUpsert } = await supabase.from("estoque_atual").upsert(atualizacoesEstoque, { onConflict: 'unidade_id, insumo_id' });
-     if(errUpsert) return { error: errUpsert.message };
-  }
-
-  // Setor e local no proprio registro: a tela do funcionario le daqui o que ele
-  // fez hoje, sem ter que passar por cada ficha para descobrir de onde veio.
-  const registroProducao = {
-     unidade_id: unidadeId,
-     ficha_id: ficha.id,
-     colaborador_id: colaboradorId,
-     quantidade_produzida: qtdProduzida,
-     departamento: opcoes.departamento || ficha.departamento || null,
-     local_armazenamento: ficha.eh_base ? (opcoes.localArmazenamento || null) : null,
-  };
-  let { data: logProducao, error: errLog } = await supabase.from("producao_diaria").insert([registroProducao]).select("id").single();
-  // Colunas novas so existem depois da migracao; sem ela grava o basico em vez
-  // de recusar a producao inteira por causa de um campo acessorio.
-  if (errLog && /column .* does not exist|could not find/i.test(errLog.message || "")) {
-     const r = await supabase.from("producao_diaria").insert([{
-        unidade_id: unidadeId, ficha_id: ficha.id,
-        colaborador_id: colaboradorId, quantidade_produzida: qtdProduzida,
-     }]).select("id").single();
-     logProducao = r.data; errLog = r.error;
-  }
-
-  if (errLog) {
-     const reversao = Object.keys(consumoPorInsumo).map(id => ({
-        unidade_id: unidadeId,
-        insumo_id: id,
-        quantidade_atual: Number(mapaEstoque[id] || 0),
-        updated_at: new Date().toISOString()
-     }));
-     if (reversao.length > 0) {
-        await supabase.from("estoque_atual").upsert(reversao, { onConflict: 'unidade_id, insumo_id' });
-     }
-     return { error: errLog.message };
-  }
-
-  // Pré-preparo concluído vira saldo físico no estoque correspondente,
-  // separado pelo freezer/geladeira escolhido na produção.
-  if (ficha.eh_base) {
-     const custoTotal = calculo.itens.reduce((total, item) => total + item.quantidade * Number(item.insumo.custo_unitario || 0), 0);
-     const resultadoPreparo = await registrarProducaoNoEstoquePreparo({
-        unidadeId,
-        ficha,
-        departamento: opcoes.departamento || ficha.departamento,
-        quantidade: qtdProduzida,
-        local: opcoes.localArmazenamento,
-        usuarioId: colaboradorId,
-        usuarioNome: opcoes.colaboradorNome || "",
-        custoUnitario: qtdProduzida > 0 ? custoTotal / qtdProduzida : 0,
-     });
-     if (resultadoPreparo.error) {
-        if (logProducao?.id) await supabase.from("producao_diaria").delete().eq("id", logProducao.id);
-        const reversao = Object.keys(consumoPorInsumo).map(id => ({
-           unidade_id: unidadeId,
-           insumo_id: id,
-           quantidade_atual: Number(mapaEstoque[id] || 0),
-           updated_at: new Date().toISOString(),
-        }));
-        if (reversao.length > 0) await supabase.from("estoque_atual").upsert(reversao, { onConflict: "unidade_id,insumo_id" });
-        return { error: `Não foi possível guardar o pré-preparo: ${resultadoPreparo.error}` };
-     }
-     return { success: true, preparo: resultadoPreparo.data };
-  }
-
-  return { success: true };
+  return { data, error: error?.message || null };
 }
 
 // ─── COMPRAS (Integração Estoque -> Financeiro) ──────────────────────────────

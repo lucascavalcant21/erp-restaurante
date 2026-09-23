@@ -309,3 +309,19 @@ Aberto em 31/08, em ordem de esforço:
 E o passo à mão do item 1 continua de pé: ingrediente cadastrado antes das
 colunas de embalagem nasceu sem volume. Enquanto estiver vazio, ele não entra no
 rendimento da ficha — e a linha dele diz isso, em vez de sumir da conta calado.
+
+## Pendências Obrigatórias da HOTFIX V4 (RLS & Autorização Servidor)
+
+> **STATUS:** PROPOSED / UNIT_TESTED — **NÃO EXECUTAR EM BANCO (STAGING_PENDING / PRODUCTION_PENDING)**
+
+1. **`auth_unidade_id()` com validação estrita:**
+   A função `auth_unidade_id()` precisa exigir `public.hefisto_usuario_valido(auth.uid())`. Usuários inativos, bloqueados, fora de horário ou sem perfil válido devem obrigatoriamente receber `NULL`.
+2. **Auditoria real de `hefisto_usuario_valido` e `hefisto_unidades_do_usuario`:**
+   A função privada `hefisto_privado.current_user_can_access_unit()` depende de ambas as funções públicas. O código e o comportamento real delas precisam ser confirmados no catálogo PostgreSQL do `cerebro-erp`.
+3. **Semântica de `data_scope = 'todos'`:**
+   Confirmar se `data_scope = 'todos'` concede acesso global exclusivamente quando acompanhado por `super_admin = true` ou em cenários corporativos multilojas específicos.
+4. **Permissões de leitura pública em catálogos de perfil (`perfis_acesso` / `perfil_permissoes`):**
+   Validar a necessidade do frontend de executar `SELECT USING(true)` para catálogo de menus versus restringir apenas a perfis vinculados ao usuário logado.
+5. **Ampliação do Preflight V4:**
+   O preflight da Hotfix V4 deve validar também os tipos de `usuario_escopos.unidade_id`, `usuarios_erp.perfil_id`, chaves estrangeiras, restrições UNIQUE e integridade das 5 tabelas de autorização no banco real.
+

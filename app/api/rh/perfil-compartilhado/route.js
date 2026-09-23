@@ -18,20 +18,25 @@ const CAMPOS_OBRIGATORIOS = [
   "bairro", "cidade_uf", "cep", "nome_pai", "nome_mae", "chave_pix",
 ];
 
+import { getSupabasePublicConfig } from "../../../lib/config/supabase-public.mjs";
+import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
+
 function clientes() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anon) return {};
-  const opcoes = { auth: { persistSession: false, autoRefreshToken: false } };
-  return {
-    auth: createClient(url, anon, opcoes),
-    db: createClient(url, service || anon, opcoes),
-  };
+  try {
+    const pub = getSupabasePublicConfig();
+    const db = getSupabaseServerClient();
+    const opcoes = { auth: { persistSession: false, autoRefreshToken: false } };
+    return {
+      auth: createClient(pub.url, pub.anonKey, opcoes),
+      db,
+    };
+  } catch {
+    return {};
+  }
 }
 
 function segredo() {
-  return process.env.RH_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.FIREBASE_PRIVATE_KEY || "";
+  return process.env.RH_LINK_SECRET || (process.env.SUPABASE_SERVICE_ROLE_KEY ? createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY).update("rh-secret-fallback").digest("hex") : "");
 }
 
 function assinatura(conteudo) {

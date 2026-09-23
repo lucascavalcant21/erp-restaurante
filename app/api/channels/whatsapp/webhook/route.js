@@ -26,7 +26,8 @@ export async function GET(request) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "hefisto_verify_token";
+  const envToken = (process.env.WHATSAPP_VERIFY_TOKEN || "").trim().replace(/^["']|["']$/g, "");
+  const verifyToken = envToken || "hefisto_verify_token";
 
   if (mode === "subscribe" && token === verifyToken) {
     console.log("✓ Webhook do WhatsApp verificado com sucesso pelo Meta Graph API.");

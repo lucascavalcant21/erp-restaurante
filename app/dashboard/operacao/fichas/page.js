@@ -79,7 +79,6 @@ import {
   unidadePadraoDepartamento,
   rendimentoPadronizado,
   rendimentoPelosIngredientes,
-  calculateFichaFinanceiro,
 } from "../../../lib/ficha-calculos.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
@@ -394,9 +393,6 @@ function FichasRunner() {
     peso_porcao_g: "",
     imagem: "", // Base64 da foto
     preco_venda: "",
-    custo_embalagem: "0,00",
-    taxa_maquininha: "",
-    imposto_pct: "",
     cmv_meta: 30
   });
   
@@ -654,30 +650,25 @@ function FichasRunner() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens, resEstoqueEmbalagens, resParams] = await Promise.all([
+    const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens, resEstoqueEmbalagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, deptUrl, { excluirPrePreparos: true }),
        fetchProdutos(unidadeAtiva),
        fetchMontagens(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, "embalagens"),
        fetchEmbalagens(unidadeAtiva, deptUrl),
-       fetchParams(unidadeAtiva),
     ]);
-    if (resParams?.data) setParamsSis(resParams.data);
     const produtosCarregados = resProd.data || [];
     const embalagensCarregadas = resEstoqueEmbalagens.data || [];
     const fichasComEmbalagens = (resFichas.data || []).map(ficha => {
       const produto = produtosCarregados.find(item => item.ficha_id === ficha.id);
       const embalagensProduto = Array.isArray(produto?.embalagens) ? produto.embalagens : [];
-      const custoPorPorcaoCalc = embalagensProduto.reduce((total, item) => {
+      const custoPorPorcao = embalagensProduto.reduce((total, item) => {
         const embalagem = embalagensCarregadas.find(emb => String(emb.id) === String(item.embalagem_id));
         return total + (Number(embalagem?.preco_unitario) || 0) * (Number(item.qtd) || 0);
       }, 0);
       const rendimento = Math.max(1, Number(ficha.rendimento_porcoes) || 1);
-      const custoEmb = Number(ficha.custo_embalagem) >= 0 && ficha.custo_embalagem !== null && ficha.custo_embalagem !== undefined
-        ? Number(ficha.custo_embalagem)
-        : custoPorPorcaoCalc;
-      return { ...ficha, custo_embalagem: custoEmb, custo_embalagens_total: custoEmb * rendimento };
+      return { ...ficha, custo_embalagens_total: custoPorPorcao * rendimento };
     });
     setFichas(fichasComEmbalagens);
     setInsumosAtivos(resInsumos.data || []);
@@ -822,7 +813,1964 @@ function FichasRunner() {
   const ehAcimaDaMeta = (f) => {
     if (f.eh_base) return false;
     const peso = infoPesoFicha(f, fichas);
-    const custoTotalIng = custoTotalDaFicha(f, fichas);
+    const custoTotal = custoTotalDaFicha(f, fichas);
+    const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+    const rend = Number(f.rendimento_porcoes) || 0;
+    const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+    const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+    const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+    const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
+    const meta = Number(f.cmv_meta) || 30;
+    if (preco <= 0) return false;
+    const cmv = (custoPorcao / preco) * 100;
+    return cmv > meta;
+  };
+
+  // `status` só existe depois da migração da ficha técnica. Ficha sem status
+  // gravado conta como ativa, senão a listagem esvaziaria de uma vez.
+  const statusDaFicha = (f) => String(f.status || "ativa").toLowerCase();
+
+  const passaFiltro = (f) => {
+    if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
+    if (filtroStatus === "ativas" && statusDaFicha(f) === "inativa") return false;
+    if (filtroStatus === "inativas" && statusDaFicha(f) !== "inativa") return false;
+    if (apenasAcimaMeta && !ehAcimaDaMeta(f)) return false;
+    if (tipoFiltro === "Pratos principais") return !f.eh_base;
+    if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
+    if (tipoFiltro === "Pratos") return !f.eh_base;
+    if (modoFicha === "preparos") return !!f.eh_base && (f.categoria || "") === tipoFiltro;
+    return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
+  };
+  const filtradas = fichas
+    .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
+    .sort(ordenarFichas);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
+  const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
+  const fichasSelecionadas = selecionadas.map(id => fichas.find(f => f.id === id)).filter(Boolean);
+  const usuarioAuditoria = {
+    unidadeId: unidadeAtiva,
+    usuarioId: sessao?.id || sessao?.user?.id || null,
+    usuarioNome: sessao?.nome || sessao?.user_metadata?.nome || sessao?.email || "Usuário do sistema",
+    origem: "Ação em lote — fichas técnicas",
+  };
+
+  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina, filtroStatus]);
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
+
+  // Arrastar para reordenar: reposiciona o item arrastado antes do alvo e grava a ordem
+  const reordenar = async (arrastadoId, alvoId) => {
+    if (!arrastadoId || arrastadoId === alvoId) return;
+    const ids = filtradas.map(f => f.id);
+    const from = ids.indexOf(arrastadoId), to = ids.indexOf(alvoId);
+    if (from < 0 || to < 0) return;
+    const nova = [...ids];
+    nova.splice(from, 1);
+    nova.splice(to, 0, arrastadoId);
+    const ordemMap = {};
+    nova.forEach((id, i) => { ordemMap[id] = i; });
+    setFichas(prev => prev.map(f => ordemMap[f.id] !== undefined ? { ...f, ordem: ordemMap[f.id] } : f));
+    setDragId(null);
+    for (const id of nova) await atualizarOrdemFicha(id, ordemMap[id]);
+  };
+
+  const abrirNova = () => {
+    const criandoPreparo = modoFicha === "preparos";
+    const categoriaInicial = criandoPreparo
+      ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
+      : "";
+    setForm({ id: null, codigo: "", versao: "", responsavel: "", tempo_coccao: "", padrao_montagem: "", departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: unidadePadraoDepartamento(deptUrl), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+    setIngFicha([]);
+    setFichaEmbalagens([]);
+    setNovaEmbalagem({ nome: "", custo: "" });
+    setAutoSoma(true);
+    setCalcQtd("");
+    setIaExplicacao("");
+    setModalNovo(true);
+  };
+
+  const abrirOpcaoNovo = () => {
+    if (modoFicha === "preparos") return abrirNova();
+    setModalEscolhaNovo(true);
+  };
+
+  const salvarTitulosEmLote = async () => {
+    const existentes = new Set(fichas.map(ficha => normalizarNome(ficha.nome_receita)));
+    const vistos = new Set();
+    const titulos = String(titulosLote || "")
+      .split(/\r?\n|;/)
+      .map(titulo => titulo.trim())
+      .filter(titulo => {
+        const chave = normalizarNome(titulo);
+        if (!chave || existentes.has(chave) || vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      });
+    if (!titulos.length) return alert("Digite ao menos um título novo, usando uma linha para cada prato.");
+
+    setSalvandoTitulosLote(true);
+    const falhas = [];
+    let criados = 0;
+    for (const titulo of titulos) {
+      const resultado = await salvarFicha({
+        unidade_id: unidadeAtiva,
+        departamento: deptUrl,
+        nome_receita: titulo,
+        categoria: null,
+        rendimento_porcoes: 1,
+        rendimento_unidade: unidadePadraoDepartamento(deptUrl),
+        peso_porcao_g: null,
+        modo_preparo: "",
+        eh_base: false,
+        tipo_base: null,
+        cmv_meta: 30,
+        imagem: null,
+        tempo_preparo: null,
+        validade_dias: null,
+        observacoes: null,
+        metodo_bar: null,
+      }, []);
+      if (resultado.error) falhas.push(`${titulo}: ${resultado.error}`);
+      else criados++;
+    }
+    setSalvandoTitulosLote(false);
+    if (criados > 0) {
+      setModalTitulosLote(false);
+      setTitulosLote("");
+      setModoFicha("principais");
+      setTipoFiltro("Pratos principais");
+      setMensagemLote(`${criados} ${criados === 1 ? "título criado" : "títulos criados"}. Agora abra Editar em cada ficha para completar os dados.`);
+      await carregar();
+    }
+    if (falhas.length) alert(`Alguns títulos não foram criados:\n\n${falhas.join("\n")}`);
+  };
+
+  const abrirEditar = (ficha) => {
+    setAutoSoma(false);
+    const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
+    const rendimentoSetor = rendimentoPadronizado(ficha);
+    setForm({
+       id: ficha.id,
+       codigo: ficha.codigo || "",
+       versao: ficha.versao || "",
+       responsavel: ficha.responsavel || "",
+       tempo_coccao: ficha.tempo_coccao != null ? String(ficha.tempo_coccao) : "",
+       padrao_montagem: ficha.padrao_montagem || "",
+       departamento: ficha.departamento,
+       nome_receita: ficha.nome_receita,
+       categoria: ficha.departamento === "bar" && ficha.eh_base ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
+       rendimento_porcoes: rendimentoSetor.valor,
+       modo_preparo: ficha.modo_preparo || "",
+       eh_base: !!ficha.eh_base,
+       tipo_base: ficha.tipo_base || "pre",
+       produto_pronto: ficha.tipo_base === "produto_pronto",
+       rendimento_unidade: rendimentoSetor.unidade,
+       peso_porcao_g: ficha.peso_porcao_g || "",
+       imagem: ficha.imagem || "",
+       tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
+       validade_dias: ficha.validade_dias != null ? String(ficha.validade_dias) : "",
+       observacoes: ficha.observacoes || "", metodo_bar: ficha.metodo_bar || "",
+       cmv_meta: ficha.cmv_meta != null ? Number(ficha.cmv_meta) : 30,
+       preco_venda: (() => {
+          const prod = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
+          return (prod && Number(prod.preco_venda) > 0) ? String(prod.preco_venda) : (ficha.preco_venda && Number(ficha.preco_venda) > 0 ? String(ficha.preco_venda) : "");
+       })()
+    });
+    setCalcQtd("");
+    // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
+    const mapIng = (ficha.fichas_ingredientes || []).map(fi => {
+       if (fi.subficha_id) {
+          const base = fichas.find(x => x.id === fi.subficha_id);
+          return {
+             chave: fi.subficha_id, tipo: "base", subficha_id: fi.subficha_id,
+             nome: base?.nome_receita || "Base",
+             unidade: base?.rendimento_unidade || "un",
+             custo_unitario: base ? custoUnitBase(base, fichas) : 0,
+             quantidade: fi.quantidade,
+             fator: Number(fi.fator_correcao) || 0,
+             modo: getSub(base?.rendimento_unidade) ? "sub" : "base",
+          };
+       }
+       const unBase = unidadeNormalizada(fi.insumos.unidade_medida) || String(fi.insumos.unidade_medida || "un").toLowerCase();
+       const custoNorm = custoUnitEfetivo(fi.insumos);
+       const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
+       return {
+          chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
+          nome: fi.insumos.nome, unidade: unBase,
+          custo_unitario: custoNorm, quantidade: qtdBase,
+          // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
+          fator: fi.insumos.empanado ? 0 : (Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0),
+          empanado: !!fi.insumos.empanado,
+          peso_medio_g: fi.insumos.peso_medio_g || null,
+          modo: getSub(unBase) ? "sub" : "base",
+       };
+    });
+    setIngFicha(mapIng);
+    setFichaEmbalagens(Array.isArray(produtoFicha?.embalagens) ? produtoFicha.embalagens.map(item => ({ embalagem_id: item.embalagem_id, qtd: Number(item.qtd) || 1 })) : []);
+    setNovaEmbalagem({ nome: "", custo: "" });
+    setIaExplicacao("");
+    setModalNovo(true);
+  };
+
+  const irSecaoEditorFicha = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // ── Histórico de custos da ficha aberta em visualização ──
+  const custoAtualDaFicha = (ficha) => {
+    const custoTotal = custoTotalDaFicha(ficha, fichas);
+    const peso = infoPesoFicha(ficha, fichas);
+    const unR = String(ficha.rendimento_unidade || "porcao").toLowerCase();
+    const rend = Number(ficha.rendimento_porcoes) || 0;
+    const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+    const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+    return { custoTotal, custoPorcao };
+  };
+  const carregarHistoricoCusto = async (ficha) => {
+    if (!ficha) return;
+    setHistStatus("carregando");
+    const { data, error } = await fetchHistoricoCustoFicha(unidadeAtiva, ficha.id);
+    if (error === "sem_tabela") { setHistCustos([]); setHistStatus("sem_tabela"); return; }
+    setHistCustos(data || []);
+    setHistStatus("ok");
+  };
+  const registrarCustoAtual = async (ficha, origem = "manual") => {
+    if (!ficha) return;
+    setRegistrandoCusto(true);
+    const { custoTotal, custoPorcao } = custoAtualDaFicha(ficha);
+    const r = await registrarCustoFicha({
+      unidadeId: unidadeAtiva, fichaId: ficha.id, custoTotal, custoPorcao, origem,
+      usuarioNome: sessao?.nome || sessao?.user?.email || "",
+    });
+    setRegistrandoCusto(false);
+    if (r.error === "sem_tabela") { setHistStatus("sem_tabela"); return; }
+    await carregarHistoricoCusto(ficha);
+  };
+  useEffect(() => {
+    if (fichaView) carregarHistoricoCusto(fichaView);
+    else { setHistCustos([]); setHistStatus("idle"); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fichaView]);
+  // Semeia o custo atual de todas as fichas (primeiro ponto do histórico).
+  const registrarCustoTodasFichas = async () => {
+    const alvo = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
+    if (!alvo.length) return alert("Nenhuma ficha para registrar.");
+    if (!confirm(`Registrar o custo atual de ${alvo.length} ficha(s) no histórico?`)) return;
+    setSemeandoCustos(true);
+    let ok = 0, pulados = 0, semTabela = false;
+    for (const fc of alvo) {
+      const { custoTotal, custoPorcao } = custoAtualDaFicha(fc);
+      const r = await registrarCustoFicha({
+        unidadeId: unidadeAtiva, fichaId: fc.id, custoTotal, custoPorcao,
+        origem: "manual", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+      });
+      if (r.error === "sem_tabela") { semTabela = true; break; }
+      if (r.pulado) pulados++; else ok++;
+    }
+    setSemeandoCustos(false);
+    if (semTabela) return alert("A tabela de histórico ainda não existe. Rode a migração db/migracao_ficha_custo_historico.sql no Supabase.");
+    if (fichaView) await carregarHistoricoCusto(fichaView);
+    alert(`Histórico atualizado.\n\n· ${ok} ponto(s) registrado(s)\n· ${pulados} sem mudança (já estavam no histórico)`);
+  };
+
+  // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
+  const calcularCustoTotal = (ingredientesLista) => {
+    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
+  };
+
+  const numeroPorcoesFormulario = () => {
+    const rendimento = Number(String(form.rendimento_porcoes || "").replace(",", ".")) || 0;
+    const unidade = String(form.rendimento_unidade || "porcao").toLowerCase();
+    if (unidade === "porcao" || unidade === "un") return rendimento;
+    const pesoPorcao = Number(form.peso_porcao_g) || 0;
+    const pesoTotal = pesoTotalDaFicha(rendimento, unidade, pesoPorcao);
+    return pesoPorcao > 0 && pesoTotal > 0 ? pesoTotal / pesoPorcao : rendimento;
+  };
+
+  const custoEmbalagensPorPorcao = () => fichaEmbalagens.reduce((total, item) => {
+    const embalagem = embalagensEstoque.find(emb => String(emb.id) === String(item.embalagem_id));
+    return total + (Number(embalagem?.preco_unitario) || 0) * (Number(item.qtd) || 0);
+  }, 0);
+
+  const custoTotalFormulario = (ingredientesLista = ingFicha) => {
+    const porcoes = Math.max(1, numeroPorcoesFormulario());
+    return calcularCustoTotal(ingredientesLista) + custoEmbalagensPorPorcao() * porcoes;
+  };
+
+  const alternarEmbalagemFicha = (embalagemId) => {
+    setFichaEmbalagens(lista => lista.some(item => String(item.embalagem_id) === String(embalagemId))
+      ? lista.filter(item => String(item.embalagem_id) !== String(embalagemId))
+      : [...lista, { embalagem_id: embalagemId, qtd: 1 }]);
+  };
+
+  const alterarQuantidadeEmbalagem = (embalagemId, qtd) => {
+    setFichaEmbalagens(lista => lista.map(item => String(item.embalagem_id) === String(embalagemId)
+      ? { ...item, qtd: Math.max(0.01, Number(qtd) || 1) }
+      : item));
+  };
+
+  const cadastrarEmbalagemDaFicha = async () => {
+    const nome = novaEmbalagem.nome.trim();
+    const custo = Number(String(novaEmbalagem.custo || "").replace(",", "."));
+    if (!nome) return alert("Informe o nome da embalagem.");
+    if (!Number.isFinite(custo) || custo < 0) return alert("Informe um custo valido.");
+    setSalvandoEmbalagem(true);
+    const resultado = await salvarEmbalagem(unidadeAtiva, {
+      nome, categoria: "Embalagens de fichas", departamento: deptUrl,
+      quantidade_atual: 0, quantidade_minima: 0, preco_unitario: custo,
+    });
+    setSalvandoEmbalagem(false);
+    if (resultado.error) return alert("Erro ao cadastrar embalagem: " + (resultado.error.message || resultado.error));
+    const criada = resultado.data;
+    setEmbalagensEstoque(lista => [...lista, criada].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
+    setFichaEmbalagens(lista => [...lista, { embalagem_id: criada.id, qtd: 1 }]);
+    setNovaEmbalagem({ nome: "", custo: "" });
+  };
+
+  // Adiciona insumo ou base. `valor` = "insumo:<id>" ou "base:<id>"
+  // Constrói um item de ingFicha a partir de "insumo:<id>" ou "base:<id>"
+  const construirIng = (valor, quantidade = 0) => {
+    const [tipo, id] = valor.split(":");
+    if (tipo === "base") {
+       const base = fichas.find(f => f.id === id);
+       if (!base) return null;
+       return {
+          chave: base.id, tipo: "base", subficha_id: base.id,
+          nome: base.nome_receita, unidade: base.rendimento_unidade || "un",
+          custo_unitario: custoUnitBase(base, fichas), quantidade,
+          modo: getSub(base.rendimento_unidade) ? "sub" : "base",
+       };
+    }
+    const insumoDb = insumosAtivos.find(i => i.id === id) || embalagensCat.find(i => i.id === id);
+    if (!insumoDb) return null;
+    const unBase = unidadeNormalizada(insumoDb.unidade_medida) || String(insumoDb.unidade_medida || "un").toLowerCase();
+    const custoNorm = custoUnitEfetivo(insumoDb);
+    return {
+       chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
+       nome: insumoDb.nome, unidade: unBase,
+       custo_unitario: custoNorm, quantidade,
+       peso_medio_g: insumoDb.peso_medio_g || null,
+       // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
+       fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
+       empanado: !!insumoDb.empanado,
+       modo: getSub(unBase) ? "sub" : "base",
+    };
+  };
+
+  // Digitar é mais rápido do que rolar uma lista com centenas de opções.
+  const opcoesIngrediente = useMemo(() => [
+    ...insumosAtivos.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Insumo" })),
+    ...basesDisponiveis.map(b => ({ valor: `base:${b.id}`, nome: b.nome_receita, detalhe: b.rendimento_unidade, tipo: "Pré-preparo" })),
+    ...embalagensCat.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Embalagem" })),
+  ], [insumosAtivos, basesDisponiveis, embalagensCat]);
+
+  const sugestoesIngrediente = useMemo(() => {
+    const termo = normalizarNome(buscaIng);
+    if (!termo) return [];
+    return opcoesIngrediente.filter(o => normalizarNome(o.nome).includes(termo)).slice(0, 8);
+  }, [buscaIng, opcoesIngrediente]);
+
+  const addIngrediente = (valor) => {
+    if (!valor) return;
+    const [, id] = valor.split(":");
+    if (ingFicha.find(i => i.chave === id)) return; // já existe
+    const novo = construirIng(valor, 0);
+    if (!novo) return;
+    setAutoSoma(true);
+    setIngFicha([...ingFicha, novo]);
+    setBuscaIng("");
+  };
+
+  // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
+  const updateQtd = (chave, qtdBase) => {
+    setAutoSoma(true);
+    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
+  };
+
+  const toggleModo = (chave) => {
+    setAutoSoma(true);
+    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
+  };
+
+  // Fator de correção (%) do item — a bruta é calculada e o custo acompanha
+  const updateFator = (chave, fator) => {
+    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, fator: Number(fator) || 0 } : i));
+  };
+
+  const removeIngrediente = (chave) => {
+    setAutoSoma(true);
+    setIngFicha(lista => lista.filter(i => i.chave !== chave));
+  };
+
+  // Confirma a substituição do ingrediente-alvo por outro cadastrado (mantém a qtd)
+  const confirmarSubstituicao = () => {
+    const alvo = substituirAlvo;
+    if (!alvo || !substitutoValor) return;
+    const [, novoId] = substitutoValor.split(":");
+    if (novoId === alvo.chave) { fecharSubstituicao(); return; }
+    const novo = construirIng(substitutoValor, alvo.quantidade || 0);
+    if (!novo) return;
+    setAutoSoma(true);
+    setIngFicha(lista => {
+      // Se o substituto já está na ficha, apenas remove o alvo (evita duplicar)
+      if (lista.find(i => i.chave === novo.chave)) return lista.filter(i => i.chave !== alvo.chave);
+      return lista.map(i => i.chave === alvo.chave ? novo : i);
+    });
+    fecharSubstituicao();
+  };
+
+  // Só remover (sem substituir)
+  const soRemover = () => {
+    if (substituirAlvo) removeIngrediente(substituirAlvo.chave);
+    fecharSubstituicao();
+  };
+
+  const fecharSubstituicao = () => { setSubstituirAlvo(null); setSubstitutoValor(""); };
+
+  // Escala os ingredientes de uma ficha por um fator (simulação de rendimento)
+  const linhasSimuladas = (f, factor) => {
+    const SUB = { kg: { s: "g", fa: 1000 }, l: { s: "ml", fa: 1000 } };
+    const fmt = (qtd, un) => {
+      const c = SUB[String(un || "").toLowerCase()];
+      return c ? `${(+(qtd * c.fa)).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ${c.s}`
+        : `${(+qtd.toFixed(3)).toLocaleString("pt-BR")} ${String(un || "").toUpperCase()}`;
+    };
+    return (f.fichas_ingredientes || []).map(fi => {
+      let nome = "", unidade = "", custoU = 0;
+      if (fi.insumos) { nome = fi.insumos.nome; unidade = fi.insumos.unidade_medida; custoU = fi.insumos.custo_unitario || 0; }
+      else if (fi.subficha_id) { const base = fichas.find(x => x.id === fi.subficha_id); nome = base ? base.nome_receita : "Base"; unidade = base?.rendimento_unidade || "un"; custoU = base ? custoUnitBase(base, fichas) : 0; }
+      const qtd = (Number(fi.quantidade) || 0) * factor;
+      return { nome, qtdFmt: fmt(qtd, unidade), custo: qtd * custoU };
+    });
+  };
+
+  const imprimirSimulacao = (f, factor, alvoTxt) => {
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para imprimir.");
+    const linhas = linhasSimuladas(f, factor);
+    const rows = linhas.map(l => `<tr><td>${l.nome}</td><td style="text-align:right;font-weight:bold">${l.qtdFmt}</td></tr>`).join("");
+    win.document.write(comFecharImpressao(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Simulação — ${f.nome_receita}</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:620px;margin:0 auto}
+      .tag{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+      h1{font-size:34px;margin:6px 0}.meta{font-size:20px;font-weight:bold;color:#0f172a;margin-bottom:16px}
+      table{width:100%;border-collapse:collapse;font-size:22px}td{padding:12px 6px;border-bottom:2px solid #e2e8f0;font-weight:600}
+      @media print{@page{margin:14mm}}</style></head><body>
+      <div class="tag">Simulação de Rendimento</div><h1>${f.nome_receita}</h1>
+      <div class="meta">Para produzir: ${alvoTxt}</div>
+      <table><tbody>${rows || '<tr><td>Sem ingredientes.</td></tr>'}</tbody></table>
+      </body></html>`));
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
+  const handleSalvar = async (criarOutra = false) => {
+    if (salvandoFicha) return;
+    if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
+    if(!form.rendimento_porcoes) return alert("Digite o rendimento");
+    const unidadeRendimento = unidadePadraoDepartamento(form.departamento);
+    const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
+
+    // Filtra ingredientes que estão com qtd = 0
+    const ingValidos = ingFicha.filter(i => i.quantidade > 0);
+    if(ingValidos.length === 0 && !form.produto_pronto) return alert("Adicione pelo menos um ingrediente com quantidade válida.");
+
+    setSalvandoFicha(true);
+    try {
+      const erro = await salvarFicha(
+         {
+            id: form.id,
+            unidade_id: unidadeAtiva,
+            codigo: form.codigo || null,
+            versao: form.versao || "1.0",
+            responsavel: form.responsavel || null,
+            tempo_coccao: form.tempo_coccao ? Number(form.tempo_coccao) : null,
+            padrao_montagem: form.padrao_montagem || null,
+            departamento: form.departamento,
+            nome_receita: form.nome_receita,
+            categoria: form.categoria || null,
+            rendimento_porcoes: Number(form.rendimento_porcoes),
+            modo_preparo: form.eh_base ? form.modo_preparo : "",
+            eh_base: !!form.eh_base,
+            tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
+            cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            preco_venda: precoVendaNum,
+            rendimento_unidade: unidadeRendimento,
+            peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+            imagem: form.imagem || null,
+            tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
+            validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
+            observacoes: form.observacoes || null,
+            // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
+            metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
+         },
+         ingValidos.map(i => ({
+            insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
+            subficha_id: i.tipo === "base" ? i.subficha_id : null,
+            quantidade: i.quantidade,
+            fator_correcao: Number(i.fator) || 0
+         }))
+      );
+
+      if(erro?.error) return alert("Erro ao salvar: " + erro.error);
+
+      const fichaIdSalva = form.id || erro?.id;
+
+      if (form.eh_base && fichaIdSalva) {
+        const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
+        const estoquePreparo = await garantirFichaNoEstoquePreparo({
+          unidadeId: unidadeAtiva,
+          ficha: { ...form, id: fichaIdSalva },
+          departamento: form.departamento,
+          custoUnitario: custoUnitarioPreparo,
+        });
+        if (estoquePreparo.error) alert(`A ficha foi salva, mas não entrou no estoque de preparos: ${estoquePreparo.error}`);
+      }
+
+      if (!criarOutra) setModalNovo(false);
+      if (fichaIdSalva) {
+        setForm(f => ({ ...f, id: fichaIdSalva }));
+        setFichas(fichasAntigas => {
+          const existe = fichasAntigas.some(f => f.id === fichaIdSalva);
+          const novaFichaObjeto = {
+            id: fichaIdSalva,
+            unidade_id: unidadeAtiva,
+            codigo: form.codigo || null,
+            versao: form.versao || "1.0",
+            responsavel: form.responsavel || null,
+            tempo_coccao: form.tempo_coccao ? Number(form.tempo_coccao) : null,
+            padrao_montagem: form.padrao_montagem || null,
+            departamento: form.departamento,
+            nome_receita: form.nome_receita,
+            categoria: form.categoria || null,
+            rendimento_porcoes: Number(form.rendimento_porcoes),
+            modo_preparo: form.eh_base ? form.modo_preparo : "",
+            eh_base: !!form.eh_base,
+            tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? "pre" : null),
+            cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
+            preco_venda: precoVendaNum,
+            rendimento_unidade: unidadeRendimento,
+            peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+            imagem: form.imagem || null,
+            fichas_ingredientes: ingValidos.map(i => ({
+               ficha_id: fichaIdSalva,
+               insumo_id: i.insumo_id || null,
+               subficha_id: i.subficha_id || null,
+               quantidade: i.quantidade,
+               insumos: i.insumo_id ? insumosAtivos.find(x => x.id === i.insumo_id) : null
+            })),
+          };
+          return existe ? fichasAntigas.map(f => f.id === fichaIdSalva ? { ...f, ...novaFichaObjeto } : f) : [novaFichaObjeto, ...fichasAntigas];
+        });
+      }
+      await carregar();
+
+      // As embalagens usadas na receita entram no estoque de Embalagens do setor.
+      if (fichaIdSalva) {
+        try {
+          const dept = (form.departamento || deptUrl || "cozinha").toLowerCase();
+          const { data: estoques } = await fetchEstoques(unidadeAtiva);
+          const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
+
+          const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
+          if (estoqueEmb) {
+            const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
+            for (const item of ingValidos) {
+              if (item.tipo !== "insumo" || !idsEmbalagem.has(item.insumo_id)) continue;
+              await vincularItemEstoque({
+                unidadeId: unidadeAtiva, estoqueId: estoqueEmb.id,
+                insumoId: item.insumo_id, custoUnitario: item.custo_unitario,
+              });
+            }
+          }
+        } catch { /* integração com estoque é acessória: nunca derruba o salvar */ }
+      }
+
+      // Registra um retrato do custo no histórico (não bloqueia o salvar).
+      if (fichaIdSalva && !form.produto_pronto) {
+        const custoTotalS = custoTotalFormulario(ingValidos);
+        const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
+        const rendS = Number(form.rendimento_porcoes) || 0;
+        const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
+        const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
+        const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
+        const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
+        registrarCustoFicha({
+          unidadeId: unidadeAtiva, fichaId: fichaIdSalva, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
+          origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+        }).catch(() => {});
+      }
+
+      // PREÇO DE VENDA sincroniza com o produto do cardápio interno
+      if (!form.eh_base && fichaIdSalva) {
+        try {
+          const nome = form.nome_receita.trim();
+          const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
+          const prodExistente = (prodsAtu || []).find(p =>
+            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+          );
+          if (prodExistente) {
+            await salvarProduto({ id: prodExistente.id, ficha_id: fichaIdSalva, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
+          } else {
+            const ehBarDept = form.departamento === "bar";
+            await salvarProduto({
+              unidade_id: unidadeAtiva,
+              ficha_id: fichaIdSalva,
+              nome_produto: nome,
+              preco_venda: precoVendaNum,
+              categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
+              departamento: form.departamento,
+              observacoes: "Criado automaticamente pela Ficha Técnica.",
+            }, unidadeAtiva);
+          }
+        } catch { /* sincronização de preço não bloqueia o salvar */ }
+      }
+    } catch (errGlobal) {
+      console.error("[handleSalvar] Erro ao salvar ficha:", errGlobal);
+    } finally {
+      setSalvandoFicha(false);
+    }
+
+    // "Salvar e criar outra": limpa o formulário e continua no modal
+    if (criarOutra) {
+      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: unidadePadraoDepartamento(form.departamento), peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+      setIngFicha([]);
+      setFichaEmbalagens([]);
+      setNovaEmbalagem({ nome: "", custo: "" });
+      setAutoSoma(true);
+      setIaExplicacao("");
+    }
+  };
+
+  const toggleSelecionarTodas = () => {
+    if (selecionadas.length === filtradas.length && filtradas.length > 0) {
+      setSelecionadas([]);
+    } else {
+      setSelecionadas(filtradas.map(f => f.id));
+    }
+  };
+
+  const toggleSelecionar = (id) => {
+    setSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const selecionarPaginaLote = () => {
+    setSelecionadas(prev => [...new Set([...prev, ...fichasPagina.map(f => f.id)])]);
+  };
+
+  const selecionarResultadoLote = () => {
+    setSelecionadas(prev => [...new Set([...prev, ...filtradas.map(f => f.id)])]);
+  };
+
+  const limparSelecaoLote = () => setSelecionadas([]);
+
+  const excluirImediatamente = async (lista = fichasSelecionadas) => {
+    if (!lista.length) return;
+    setProcessandoLote(true);
+    setMensagemLote("");
+    setErroLote("");
+    let resposta = await excluirFichasLote(lista, usuarioAuditoria);
+    let arquivada = false;
+    // Se houver histórico ou outra receita ligada, preserva os registros e
+    // arquiva a ficha. Para o usuário ela desaparece da lista no mesmo clique.
+    if (resposta.error) {
+      resposta = await inativarFichasLote(lista, usuarioAuditoria);
+      arquivada = !resposta.error;
+    }
+    setProcessandoLote(false);
+    if (resposta.error) return setErroLote(`Não foi possível excluir: ${resposta.error}`);
+    setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
+    setAcoesCardAberto("");
+    setMensagemLote(arquivada
+      ? `${lista.length} ficha(s) removida(s) da lista; o histórico vinculado foi preservado.`
+      : `${lista.length} ficha(s) excluída(s) definitivamente.`);
+    await carregar();
+    window.setTimeout(() => setMensagemLote(""), 3500);
+  };
+
+  const duplicarFichasSelecionadas = async () => {
+    if (!fichasSelecionadas.length || !confirm(`Duplicar ${fichasSelecionadas.length} ficha(s) selecionada(s)?`)) return;
+    setProcessandoLote(true);
+    const nomes = new Set(fichas.map(f => String(f.nome_receita || "").toLocaleLowerCase("pt-BR")));
+    const criadas = [];
+    for (const origem of fichasSelecionadas) {
+      let indice = 1;
+      let nome = `${origem.nome_receita} (cópia)`;
+      while (nomes.has(nome.toLocaleLowerCase("pt-BR"))) {
+        indice += 1;
+        nome = `${origem.nome_receita} (cópia ${indice})`;
+      }
+      nomes.add(nome.toLocaleLowerCase("pt-BR"));
+      const { id, created_at, updated_at, fichas_ingredientes, ativo, ...campos } = origem;
+      const ingredientes = (fichas_ingredientes || []).map(item => ({
+        insumo_id: item.insumo_id || item.insumos?.id || null,
+        subficha_id: item.subficha_id || null,
+        quantidade: item.quantidade,
+        fator_correcao: item.fator_correcao || 0,
+      }));
+      const resultado = await salvarFicha({ ...campos, nome_receita: nome, ativo: true }, ingredientes);
+      if (!resultado.error) criadas.push({ id: resultado.id, nome_receita: nome });
+    }
+    await registrarAuditoriaFichas({
+      ...usuarioAuditoria,
+      acao: "duplicacao",
+      fichas: criadas,
+      detalhes: { originais: fichasSelecionadas.map(f => f.id) },
+    });
+    setProcessandoLote(false);
+    setSelecionadas([]);
+    setMensagemLote(`${criadas.length} cópia(s) criada(s) sem alterar as fichas originais.`);
+    await carregar();
+    window.setTimeout(() => setMensagemLote(""), 3500);
+  };
+
+  const abrirPreviaImpressao = (modo, lista = fichasSelecionadas) => {
+    if (!lista.length) return;
+    // Busca em lote; a prévia abre na hora e o conteúdo novo entra quando chega.
+    setComplementosImpressao({});
+    fetchComplementosDeFichas(lista.map(f => f.id))
+      .then(r => setComplementosImpressao(r.data || {}))
+      .catch(() => setComplementosImpressao({}));
+    const livroAutomatico = modo === "livro" || lista.length >= 6;
+    const modelo = modo === "livro" ? "livro" : "operacional";
+    setOrdemPersonalizada(lista.map(f => f.id));
+    setConfigImpressao({
+      ordem: "selecao", formato: "a4-retrato", modelo,
+      foto: true, ingredientes: true,
+      custos: false, preco: false, cmv: false, margem: false,
+      preparo: true, montagem: false, observacoes: false,
+      responsaveis: false, atualizacao: false,
+      codigo: true, equipamentos: true, armazenamento: true, alergenicos: true,
+      capa: livroAutomatico, indice: livroAutomatico, livro: livroAutomatico,
+    });
+    setModalImpressao({ modo, lista });
+  };
+
+  const moverFichaNaPrevia = (id, direcao) => {
+    setOrdemPersonalizada(atual => {
+      const proxima = [...atual];
+      const indice = proxima.indexOf(id);
+      const destino = indice + direcao;
+      if (indice < 0 || destino < 0 || destino >= proxima.length) return atual;
+      [proxima[indice], proxima[destino]] = [proxima[destino], proxima[indice]];
+      return proxima;
+    });
+    setConfigImpressao(atual => ({ ...atual, ordem: "personalizada" }));
+  };
+
+  const listaOrdenadaPrevia = () => ordenarFichasDocumento(
+    modalImpressao?.lista || [],
+    configImpressao?.ordem,
+    ordemPersonalizada,
+  );
+
+  const gerarDocumentoConfigurado = async (acao) => {
+    try {
+      const lista = listaOrdenadaPrevia();
+      if (!lista.length) return alert("Nenhuma ficha técnica selecionada.");
+      const html = montarHtmlFichas(lista, configImpressao);
+      if (acao === "pdf") {
+        baixarPdfDeHtml(html, configImpressao?.livro ? "livro-de-fichas" : "fichas-tecnicas");
+      } else {
+        const win = window.open("", "_blank");
+        if (!win) return alert("O navegador bloqueou a janela pop-up. Habilite os pop-ups para visualizar ou imprimir.");
+        win.document.write(comFecharImpressao(html));
+        win.document.close();
+        setTimeout(() => win.print(), 800);
+      }
+      await registrarAuditoriaFichas({
+        ...usuarioAuditoria,
+        acao: configImpressao?.livro ? "livro" : acao === "pdf" ? "pdf" : "impressao",
+        fichas: lista,
+        detalhes: configImpressao,
+      });
+    } catch (err) {
+      console.error("Erro ao gerar documento:", err);
+      alert("Ocorreu um erro ao gerar o documento: " + (err?.message || err));
+    }
+  };
+
+  const salvarModeloImpressao = () => {
+    try {
+      localStorage.setItem("hefisto_modelo_impressao_fichas", JSON.stringify(configImpressao));
+      alert("Modelo de impressão salvo com sucesso!");
+    } catch {
+      alert("Não foi possível salvar o modelo de impressão.");
+    }
+  };
+
+  const imprimirLivroSelecionadas = () => {
+    if (selecionadas.length === 0) return;
+    const fichasParaImprimir = fichas.filter(f => selecionadas.includes(f.id));
+    imprimirFichas(fichasParaImprimir);
+  };
+
+  const imprimirFicha = (f) => {
+    imprimirFichas([f]);
+  };
+
+  const imprimirFichas = (listaDeFichas) => {
+    const html = montarHtmlFichas(listaDeFichas);
+    const win = window.open('', '_blank');
+    if(!win) return alert("Habilite pop-ups para imprimir a ficha.");
+    win.document.write(comFecharImpressao(html));
+    win.document.close();
+    setTimeout(() => win.print(), 800);
+  };
+
+  // PDF de verdade (download direto) — a ficha avulsa ou o Livro completo.
+  const baixarPdfFichas = async (listaDeFichas, nomeArquivo) => {
+    if (!listaDeFichas || !listaDeFichas.length) return alert("Nenhuma ficha técnica selecionada.");
+    let win = null;
+    try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+    if (win) {
+      win.document.write("<!DOCTYPE html><html><head><title>Gerando PDF...</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#64748b;background:#f8fafc'><h3>Gerando PDF, aguarde um instante...</h3></body></html>");
+    }
+
+    try {
+      let complementos = complementosImpressao;
+      try {
+        const res = await fetchComplementosDeFichas(listaDeFichas.map(f => f.id));
+        if (res?.data) {
+          complementos = res.data;
+          setComplementosImpressao(res.data);
+        }
+      } catch (e) {
+        console.error("Erro ao carregar complementos:", e);
+      }
+      const nome = nomeArquivo || (listaDeFichas.length === 1
+        ? (listaDeFichas[0].nome_receita || "ficha-tecnica")
+        : "livro-de-receitas");
+      baixarPdfDeHtml(montarHtmlFichas(listaDeFichas, { complementos }), nome, { windowRef: win });
+    } catch (err) {
+      if (win) win.close();
+      alert("Ocorreu um erro ao gerar o PDF: " + (err?.message || err));
+    }
+  };
+
+  const montarHtmlFichas = (listaDeFichas, opcoes = {}) => {
+    const SUB = { kg: { s: 'g', fa: 1000 }, l: { s: 'ml', fa: 1000 } };
+    const fmtQtd = (qtd, un) => {
+       const c = SUB[String(un || '').toLowerCase()];
+       return c ? `${(+(qtd * c.fa)).toLocaleString('pt-BR')} ${c.s}` : `${qtd} ${String(un || '').toUpperCase()}`;
+    };
+    
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const fmtDataBR = (d) => { if (!d) return '—'; const dt = new Date(d); return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
+    const incluir = (campo, padrao = true) => opcoes[campo] === undefined ? padrao : !!opcoes[campo];
+    const paginaPaisagem = opcoes.formato === "a4-paisagem";
+
+    let conteudoHTML = `
+       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
+       <style>
+          *{margin:0;padding:0;box-sizing:border-box}
+          body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;background:#ffffff;padding:10mm;max-width:840px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          
+          .ficha{page-break-inside:avoid;margin-bottom:24px;background:#ffffff;border:1.5px solid #5b2418;border-radius:0;overflow:hidden}
+          .quebra{page-break-after:always}
+          
+          /* TOP HEADER */
+          .header-top{display:grid;grid-template-columns:220px 1fr 240px;gap:12px;padding:12px 14px;align-items:center;background:#ffffff;border-bottom:1px solid #d3d3d3}
+          .header-brand{display:flex;flex-direction:column;justify-content:center}
+          .brand-logo-text{font-family:'Playfair Display','Georgia',serif;font-size:24px;font-weight:900;color:#5b2418;line-height:1}
+          .brand-sub-text{font-size:9px;font-weight:800;letter-spacing:3px;color:#5b2418;text-transform:uppercase;margin-top:2px}
+          
+          .header-title-box{display:flex;flex-direction:column;justify-content:center;border-left:1px solid #d3d3d3;padding-left:14px}
+          .header-main-title{font-size:18px;font-weight:900;letter-spacing:1px;color:#0f172a;text-transform:uppercase}
+          .header-sub-title{font-size:10px;font-weight:800;letter-spacing:3px;color:#64748b;text-transform:uppercase;margin-top:1px}
+          
+          .meta-table{width:100%;border-collapse:collapse;font-size:10.5px;border:1px solid #cbd5e1}
+          .meta-table td{padding:4px 7px;border:1px solid #cbd5e1;color:#334155}
+          .meta-table td.lbl{font-weight:800;color:#475569;background:#f8fafc;width:40%;text-transform:uppercase;font-size:9.5px;letter-spacing:0.5px}
+          .meta-table td.val{font-weight:700;color:#0f172a}
+          
+          /* DISH NAME BANNER */
+          .banner-nome{padding:10px 14px;color:#ffffff;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+          .banner-nome h1{font-size:20px;font-weight:900;margin:0;letter-spacing:1.5px}
+          
+          .banner-cozinha-prato{background-color:#5b2418}
+          .banner-cozinha-base{background-color:#78350f}
+          .banner-bar-prato{background-color:#0f172a}
+          .banner-bar-base{background-color:#581c87}
+          
+          /* FOTO + DADOS GERAIS */
+          .grid-foto-info{display:grid;grid-template-columns:220px 1fr;gap:14px;padding:12px 14px}
+          .foto-box{width:100%;height:180px;object-fit:cover;border:1px solid #cbd5e1;background:#f1f5f9}
+          .foto-vazia-box{width:100%;height:180px;border:1px dashed #cbd5e1;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:800;text-transform:uppercase}
+          
+          .tbl-geral{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #cbd5e1}
+          .tbl-geral td{padding:5.5px 8px;border:1px solid #cbd5e1}
+          .tbl-geral td.lbl{font-weight:800;color:#475569;background:#f8fafc;width:40%;text-transform:uppercase;font-size:9.5px;letter-spacing:0.5px}
+          .tbl-geral td.val{font-weight:700;color:#0f172a}
+          
+          /* SECTION BLOCKS & BANNERS */
+          .sec-block{margin:0 14px 12px}
+          .sec-banner{padding:6px 10px;color:#ffffff;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px}
+          
+          .tbl-dados{width:100%;border-collapse:collapse;font-size:11px;border:1px solid #cbd5e1}
+          .tbl-dados th{background:#f8fafc;padding:6px 8px;border:1px solid #cbd5e1;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#475569;text-align:left}
+          .tbl-dados td{padding:6px 8px;border:1px solid #cbd5e1;color:#1e293b}
+          .tbl-dados td.lbl{font-weight:800;color:#475569;background:#f8fafc;font-size:9.5px;text-transform:uppercase;letter-spacing:0.5px}
+          .tbl-dados td.val{font-weight:600;color:#0f172a}
+          
+          /* 2-COLUMN GRIDS */
+          .grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 14px 12px}
+          .grid-2col .sec-block{margin:0}
+          
+          .box-text-content{border:1px solid #cbd5e1;padding:8px 10px;font-size:11px;line-height:1.45;color:#334155;background:#ffffff}
+          
+          /* FOOTER DELICADO */
+          .footer-delicado{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 14px;margin-top:8px}
+          .footer-line-left,.footer-line-right{flex:1;height:1px;background:#cbd5e1}
+          .footer-text{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#64748b}
+          
+          @media print{
+            @page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:8mm}
+            body{padding:0}
+            .ficha{box-shadow:none;border-color:#5b2418}
+          }
+          .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
+          .capa h1{font-size:44px;margin-bottom:14px;color:#0f172a;font-weight:900}
+          .capa p{font-size:16px;color:#64748b;font-weight:600}
+          
+          .pagina-livro{page-break-after:always;display:flex;flex-direction:column;height:252mm;overflow:hidden;margin-bottom:0}
+          .pagina-livro:last-child{page-break-after:auto}
+          .conteudo-pg{flex:1;min-height:0}
+          .rodape-livro{margin-top:auto;padding:8px 0 0;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;font-size:10px;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+          
+          .indice{page-break-after:always;min-height:252mm;display:flex;flex-direction:column;padding:10px 0}
+          .indice h1{font-size:24px;text-transform:uppercase;letter-spacing:3px;margin-bottom:16px;border-bottom:3px solid #0f172a;padding-bottom:8px;font-weight:900}
+          .ind-sec{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:14px 0 6px;padding-bottom:2px;border-bottom:1px solid #e2e8f0}
+          .ind-item{display:flex;align-items:baseline;gap:6px;font-size:12.5px;font-weight:600;padding:3px 0;color:#334155}
+          .ind-item .pontos{flex:1;border-bottom:2px dotted #cbd5e1}
+          .ind-item .pg{font-weight:900;color:#0f172a}
+       </style></head><body>
+    `;
+
+    const ORDEM_SECOES = ['Empanamentos', 'Salmouras e Marinadas', 'Molhos', 'Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos'];
+    const secaoDe = (f) => {
+      const nome = String(f.nome_receita || '').toLowerCase();
+      const cat = String(f.categoria || '').toLowerCase();
+      if (cat.includes('empan') || nome.includes('empan')) return 'Empanamentos';
+      if (cat.includes('salmoura') || cat.includes('marinad') || nome.includes('salmoura') || nome.includes('marinad')) return 'Salmouras e Marinadas';
+      if (nome.includes('xarope') || cat.includes('xarope')) return 'Xaropes';
+      if (nome.includes('espuma') || cat.includes('espuma')) return 'Espumas';
+      if (nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Geleias';
+      if (cat.includes('mix') || cat.includes('infus') || nome.includes('infusão') || nome.includes('infusao')) return 'Mixes e Infusões';
+      if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
+      if (f.eh_base) return 'Pré-preparos';
+      if (cat === 'sobremesas') return 'Sobremesas';
+      if (cat === 'sucos') return 'Sucos';
+      return 'Preparos';
+    };
+    const ehLivro = !!opcoes.livro || listaDeFichas.length >= 6;
+    const lista = [...listaDeFichas];
+
+    const dados = lista.map((f) => {
+      const rendimentoSetor = rendimentoPadronizado(f);
+      const rendimentoSetorTexto = textoRendimentoPadronizado(f);
+
+      const rowsIngredientes = (f.fichas_ingredientes || []).map(fi => {
+         let nome = '', unidade = '', obs = '—';
+         if (fi.insumos) {
+            nome = fi.insumos.nome;
+            unidade = fi.insumos.unidade_medida || '';
+            if (fi.insumos.marca) obs = fi.insumos.marca;
+         } else if (fi.subficha_id) {
+            const base = fichas.find(x => x.id === fi.subficha_id);
+            nome = base ? base.nome_receita : 'Base excluída';
+            unidade = base?.rendimento_unidade || 'un';
+            obs = 'Base / Pré-preparo';
+         }
+         return `<tr>
+            <td style="font-weight:700">${esc(nome)}</td>
+            <td>${esc(String(unidade || '').toLowerCase())}</td>
+            <td style="font-weight:700">${fmtQtd(fi.quantidade, unidade)}</td>
+            <td style="color:#64748b">${esc(obs)}</td>
+         </tr>`;
+      }).join('');
+
+      const extra = (opcoes?.complementos && opcoes.complementos[f.id]) || (typeof complementosImpressao !== "undefined" && complementosImpressao && complementosImpressao[f.id]) || {};
+      const etapasNovas = extra.etapas || [];
+
+      let passosRows = '';
+      if (etapasNovas.length > 0) {
+        passosRows = etapasNovas.map((e, i) => `
+          <tr>
+            <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+            <td style="width:160px;font-weight:800;color:#0f172a">${esc(e.titulo || `Etapa ${i + 1}`)}</td>
+            <td style="color:#334155">${esc(e.instrucao || "")}${e.tempo_min ? ` <i style="color:#64748b;font-size:11px">(${e.tempo_min} min)</i>` : ''}</td>
+          </tr>
+        `).join('');
+      } else {
+        const passos = String(f.modo_preparo || '')
+           .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
+        passosRows = passos.length
+           ? passos.map((s, i) => {
+               let tit = `Etapa ${i + 1}`;
+               let txt = s;
+               if (s.includes(":")) {
+                 const pts = s.split(":");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(":").trim();
+               } else if (s.includes(" - ")) {
+                 const pts = s.split(" - ");
+                 tit = pts[0].trim();
+                 txt = pts.slice(1).join(" - ").trim();
+               }
+               return `<tr>
+                 <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+                 <td style="width:160px;font-weight:800;color:#0f172a">${esc(tit)}</td>
+                 <td style="color:#334155">${esc(txt)}</td>
+               </tr>`;
+             }).join('')
+           : `<tr><td colspan="3" style="color:#94a3b8;padding:10px">Não informado.</td></tr>`;
+      }
+
+      const montagemPassosExtra = (extra.montagem && extra.montagem.length > 0)
+        ? extra.montagem
+        : (f.montagem_passos || []);
+
+      let montagemRows = '';
+      if (montagemPassosExtra.length > 0) {
+        montagemRows = montagemPassosExtra.map((m, i) => `
+          <tr>
+            <td style="width:30px;text-align:center;font-weight:900;background:#f8fafc">${i + 1}</td>
+            <td style="color:#0f172a;font-weight:700" colspan="2">${esc(m.descricao || m)}</td>
+          </tr>
+        `).join('');
+      } else {
+        montagemRows = passosRows;
+      }
+
+      const arm = extra.armazenamento;
+      const validadesArm = arm ? [
+        arm.validade_refrigerado_dias ? `Refrigerado: ${esc(String(arm.validade_refrigerado_dias))} dias` : "",
+        arm.validade_congelado_dias ? `Congelado: ${esc(String(arm.validade_congelado_dias))} dias` : "",
+        arm.validade_apos_aberto_dias ? `Após aberto: ${esc(String(arm.validade_apos_aberto_dias))} dias` : "",
+        arm.validade_apos_preparo_horas ? `Após preparo: ${esc(String(arm.validade_apos_preparo_horas))} h` : "",
+      ].filter(Boolean) : [];
+
+      const blocoArmazenamentoLinhas = `
+         <tr><td class="lbl" style="width:45%">Forma & Recipiente</td><td class="val">${esc([arm?.forma, arm?.recipiente].filter(Boolean).join(" · ") || '—')}</td></tr>
+         <tr><td class="lbl">Local & Validade</td><td class="val">${esc(arm?.local_armazenamento || "")}${validadesArm.length ? (arm?.local_armazenamento ? " · " : "") + validadesArm.join(" · ") : (arm?.local_armazenamento ? "" : "—")}</td></tr>
+         <tr><td class="lbl">Observações</td><td class="val">${esc(arm?.observacoes || '—')}</td></tr>
+      `;
+
+      const dept = String(f.departamento || '').toLowerCase();
+      const isBar = dept === 'bar';
+      const ehBase = !!f.eh_base;
+      const deptLabel = isBar ? 'Bar' : 'Cozinha';
+
+      let bannerClass = 'banner-cozinha-prato';
+      if (isBar) {
+        bannerClass = ehBase ? 'banner-bar-base' : 'banner-bar-prato';
+      } else {
+        bannerClass = ehBase ? 'banner-cozinha-base' : 'banner-cozinha-prato';
+      }
+
+      const equipamentosList = (extra.equipamentos || []).map(x => x.nome).filter(Boolean);
+      const blocoEquipamentos = `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">EQUIPAMENTOS E UTENSÍLIOS</div>
+            <div class="box-text-content">
+               ${equipamentosList.length ? esc(equipamentosList.join(", ")) : '—'}
+            </div>
+         </div>
+      `;
+
+      const alergsList = (extra.alergenicos || []).map(x => x.alergenico).filter(Boolean);
+      const blocoAlergenicos = `
+         <div class="sec-block" style="margin-top:10px">
+            <div class="sec-banner ${bannerClass}">ALERGÊNICOS</div>
+            <div class="box-text-content">
+               ${alergsList.length ? `<b>Contém:</b> ${esc(alergsList.join(", ").toLowerCase())}.` : '<b>Contém:</b> Não declarado.'}
+               ${f.alergenicos_pode_conter ? `<br/><b>Pode conter:</b> ${esc(f.alergenicos_pode_conter)}` : ''}
+            </div>
+         </div>
+      `;
+
+      const custoFicha = custoTotalDaFicha(f, fichas);
+      const infoPeso = infoPesoFicha(f, fichas);
+      const porcoesFicha = (() => {
+        const un = String(f.rendimento_unidade || "").toLowerCase();
+        const rend = Number(f.rendimento_porcoes) || 0;
+        return (un === "porcao" || un === "un") ? rend : (infoPeso?.porcoes || 0);
+      })();
+      const custoPorcaoFicha = porcoesFicha > 0 ? custoFicha / porcoesFicha : custoFicha;
+      const precoFicha = Number(f.preco_venda) || 0;
+      const cmvFicha = precoFicha > 0 ? (custoPorcaoFicha / precoFicha) * 100 : null;
+
+      const blocoCustosTabela = podeVerCustos ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">CUSTO DA RECEITA (POR UNIDADE)</div>
+            <table class="tbl-dados">
+               <tr><td class="lbl" style="width:60%">Custo dos ingredientes</td><td class="val">${fmtBRL(custoPorcaoFicha)}</td></tr>
+               <tr><td class="lbl">Custo de embalagem</td><td class="val">R$ 0,00</td></tr>
+               <tr><td class="lbl" style="font-weight:800;color:#0f172a">Custo total</td><td class="val" style="font-weight:900;color:#0f172a">${fmtBRL(custoPorcaoFicha)}</td></tr>
+               ${precoFicha > 0 ? `<tr><td class="lbl" style="font-weight:800;color:#0f172a">Preço de venda sugerido</td><td class="val" style="font-weight:900;color:#0f172a">${fmtBRL(precoFicha)}</td></tr>` : ''}
+               ${cmvFicha !== null ? `<tr><td class="lbl" style="font-weight:800;color:#0f172a">CMV</td><td class="val" style="font-weight:900;color:#0f172a">${cmvFicha.toFixed(1).replace(".", ",")}%</td></tr>` : ''}
+            </table>
+         </div>
+      ` : '';
+
+      const foto = incluir("foto") && f.imagem
+         ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto-box" />`
+         : incluir("foto") ? `<div class="foto-vazia-box">SEM FOTO</div>` : "";
+
+      const codigoVal = f.codigo || `FT-${String(f.id || '').slice(0, 4).toUpperCase()}`;
+      const versaoVal = f.versao || '1.0';
+      const respVal = f.responsavel || deptLabel;
+      const dataVal = fmtDataBR(f.updated_at || f.created_at);
+      const pesoFinalTexto = f.peso_porcao_g ? `${f.peso_porcao_g} g` : '—';
+
+      const corpo = `
+         <!-- TOP HEADER -->
+         <div class="header-top">
+            <div class="header-brand">
+               <div class="brand-logo-text">Seldeestrela</div>
+               <div class="brand-sub-text">RESTAURANTE AMAZÔNICO</div>
+            </div>
+            <div class="header-title-box">
+               <div class="header-main-title">FICHA TÉCNICA</div>
+               <div class="header-sub-title">LIVRO DE RECEITAS</div>
+            </div>
+            <div class="header-meta">
+               <table class="meta-table">
+                  <tr><td class="lbl">CÓDIGO</td><td class="val">${esc(codigoVal)}</td></tr>
+                  <tr><td class="lbl">VERSÃO</td><td class="val">${esc(versaoVal)}</td></tr>
+                  <tr><td class="lbl">DATA</td><td class="val">${esc(dataVal)}</td></tr>
+                  <tr><td class="lbl">RESPONSÁVEL</td><td class="val">${esc(respVal)}</td></tr>
+               </table>
+            </div>
+         </div>
+
+         <!-- BANNER COM NOME DO PRATO -->
+         <div class="banner-nome ${bannerClass}">
+            <h1>${esc(f.nome_receita)}</h1>
+         </div>
+
+         <!-- FOTO + INFORMAÇÕES GERAIS -->
+         <div class="grid-foto-info">
+            <div>
+               ${foto}
+            </div>
+            <div>
+               <table class="tbl-geral">
+                  <tr><td class="lbl">CATEGORIA</td><td class="val">${esc(f.categoria || (isBar ? 'Bar' : 'Cozinha'))}</td></tr>
+                  <tr><td class="lbl">RENDIMENTO</td><td class="val">${rendimentoSetor.valor > 0 ? rendimentoSetorTexto : '—'}</td></tr>
+                  <tr><td class="lbl">TEMPO DE PREPARO</td><td class="val">${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' minutos' : '—'}</td></tr>
+                  <tr><td class="lbl">TEMPO DE COCÇÃO</td><td class="val">${f.tempo_coccao != null && f.tempo_coccao !== '' ? esc(String(f.tempo_coccao)) + ' minutos' : '—'}</td></tr>
+                  ${f.guarnicao ? `<tr><td class="lbl">GUARNIÇÃO</td><td class="val" style="font-weight:800;color:#0f172a">${esc(f.guarnicao)}</td></tr>` : ''}
+                  <tr><td class="lbl">PESO FINAL (aprox.)</td><td class="val">${esc(pesoFinalTexto)}</td></tr>
+                  <tr><td class="lbl">SETOR</td><td class="val">${esc(deptLabel)}</td></tr>
+               </table>
+            </div>
+         </div>
+
+         <!-- BANNER E TABELA DE INGREDIENTES -->
+         ${incluir("ingredientes") ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">INGREDIENTES</div>
+            <table class="tbl-dados">
+               <thead>
+                  <tr>
+                     <th style="width:35%">INGREDIENTE</th>
+                     <th style="width:15%">UNIDADE</th>
+                     <th style="width:20%">QUANTIDADE</th>
+                     <th style="width:30%">OBSERVAÇÃO</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  ${rowsIngredientes || '<tr><td colspan="4" style="text-align:center">Sem ingredientes cadastrados.</td></tr>'}
+               </tbody>
+            </table>
+         </div>` : ""}
+
+         <!-- BANNER MONTAGEM DO PRATO OU MODO DE PREPARO -->
+         ${incluir("preparo") ? `
+         <div class="sec-block">
+            <div class="sec-banner ${bannerClass}">${ehBase ? "MODO DE PREPARO" : (isBar ? "MONTAGEM NO COPO" : "MONTAGEM DO PRATO")}</div>
+            <table class="tbl-dados">
+               <tbody>
+                  ${ehBase ? passosRows : montagemRows}
+               </tbody>
+            </table>
+         </div>` : ""}
+
+         ${!ehBase && f.guarnicao ? `
+         <div class="sec-block" style="margin-top:10px">
+            <div class="sec-banner ${bannerClass}">GUARNIÇÃO / ACOMPANHAMENTO</div>
+            <div class="box-text-content" style="font-weight:800;color:#0f172a">
+               ${esc(f.guarnicao)}
+            </div>
+         </div>` : ""}
+
+         <!-- 2 COLUNAS: ARMAZENAMENTO vs EQUIPAMENTOS & ALERGÊNICOS -->
+         <div class="grid-2col">
+            <div>
+               <div class="sec-block">
+                  <div class="sec-banner ${bannerClass}">ARMAZENAMENTO E VALIDADE</div>
+                  <table class="tbl-dados">
+                     ${blocoArmazenamentoLinhas}
+                  </table>
+               </div>
+            </div>
+            <div>
+               ${blocoEquipamentos}
+               ${blocoAlergenicos}
+            </div>
+         </div>
+
+         <!-- 2 COLUNAS: CUSTO DA RECEITA vs INFORMAÇÕES ADICIONAIS -->
+         <div class="grid-2col">
+            <div>
+               ${blocoCustosTabela}
+            </div>
+            <div>
+               <div class="sec-block">
+                  <div class="sec-banner ${bannerClass}">INFORMAÇÕES ADICIONAIS</div>
+                  <table class="tbl-dados">
+                     <tr><td class="lbl" style="width:45%">Padrão de montagem</td><td class="val">${esc(f.padrao_montagem || 'Conforme foto')}</td></tr>
+                     <tr><td class="lbl">Observações</td><td class="val">${esc(f.observacoes || '—')}</td></tr>
+                  </table>
+               </div>
+            </div>
+         </div>
+
+         <!-- FOOTER DELICADO SEM BARRA ESCURA -->
+         <div class="footer-delicado">
+            <div class="footer-line-left"></div>
+            <div class="footer-text">RESTAURANTE AMAZÔNICO</div>
+            <div class="footer-line-right"></div>
+         </div>
+      `;
+
+      const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + (passosRows ? 30 : 0);
+      return { f, corpo, score, secao: ehLivro ? secaoDe(f) : '' };
+    });
+
+    if (ehLivro) {
+      // Distribui: duas receitas PEQUENAS da mesma seção dividem a página;
+      // as demais ganham página inteira (e o script comprime se estourar).
+      const paginasLivro = [];
+      // Empacota até 4 receitas curtas da mesma seção por página (cards de
+      // preparo rápido); as maiores ficam sozinhas e o script comprime.
+      let i = 0;
+      while (i < dados.length) {
+        const pg = [dados[i]];
+        let soma = dados[i].score;
+        let j = i + 1;
+        while (j < dados.length && pg.length < 4 && dados[j].secao === dados[i].secao && (soma + dados[j].score + 14 * pg.length) <= 226) {
+          soma += dados[j].score;
+          pg.push(dados[j]);
+          j++;
+        }
+        paginasLivro.push(pg);
+        i = j;
+      }
+      const paginasIniciais = (incluir("capa", true) ? 1 : 0) + (incluir("indice", true) ? 1 : 0);
+      const paginaPorFicha = {};
+      paginasLivro.forEach((pg, pi) => pg.forEach(x => { paginaPorFicha[x.f.id] = pi + paginasIniciais + 1; }));
+
+      if (incluir("capa", true)) conteudoHTML += `
+         <div class="capa">
+           <div style="margin-bottom:26px">${logoSeldeestrelaSVG(70)}</div>
+           <h1>Livro de Receitas</h1>
+           <p>${lista.length} receitas catalogadas</p>
+           <p style="margin-top:8px;font-size:15px">${esc(unidadeInfo?.nome || "")}</p>
+           <p style="margin-top:8px;font-size:14px;color:#94a3b8">${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+         </div>
+       `;
+      let indiceHTML = '';
+      ORDEM_SECOES.forEach((sec) => {
+        const doGrupo = dados.filter(x => x.secao === sec);
+        if (!doGrupo.length) return;
+        indiceHTML += `<div class="ind-sec">${sec}</div>` + doGrupo.map(x =>
+          `<div class="ind-item"><span>${esc(x.f.nome_receita)}</span><span class="pontos"></span><span class="pg">${paginaPorFicha[x.f.id]}</span></div>`
+        ).join('');
+      });
+      if (incluir("indice", true)) conteudoHTML += `
+         <div class="indice">
+           <h1>Índice</h1>
+           ${indiceHTML}
+           <div class="rodape-livro"><span>${esc(unidadeInfo?.nome || '')}</span><span>Página ${incluir("capa", true) ? 2 : 1}</span></div>
+         </div>
+       `;
+      paginasLivro.forEach((pg, pi) => {
+        conteudoHTML += `
+         <div class="pagina-livro">
+            <div class="conteudo-pg">${pg.map(x => `<div class="ficha${pg.length >= 2 ? ' ficha-metade' : ''}">${x.corpo}</div>`).join('')}</div>
+            <div class="rodape-livro"><span>${esc(pg[0].secao)} · ${esc(unidadeInfo?.nome || '')}</span><span>Página ${pi + paginasIniciais + 1}</span></div>
+         </div>`;
+      });
+      // Receita/página maior que a folha? Comprime até caber — nunca vaza.
+      conteudoHTML += `<script>addEventListener('load',function(){document.querySelectorAll('.pagina-livro').forEach(function(pg){var c=pg.querySelector('.conteudo-pg');if(!c)return;if(c.scrollHeight>c.clientHeight+4){c.style.zoom=Math.max(0.5,c.clientHeight/c.scrollHeight);}});});<\/script>`;
+    } else {
+      // Ficha(s) avulsa(s): logo da marca no topo de cada folha impressa.
+      conteudoHTML += dados.map((x, indice) => `<div class="ficha${dados.length > 1 && indice < dados.length - 1 ? " quebra" : ""}"><div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(40)}</div>${x.corpo}</div>`).join('');
+    }
+
+    conteudoHTML += `</body></html>`;
+    return conteudoHTML;
+  };
+
+  // ── PLANILHA DE CUSTOS: custo, venda, CMV por receita + CMV médio ──────────
+  const imprimirPlanilhaCustos = () => {
+    const win = window.open('', '_blank');
+    if (!win) return alert('Habilite pop-ups para imprimir.');
+    const esc2 = (v) => String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const brl = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const getOrdemCategoria = (cat) => {
+      const c = String(cat || "").toLowerCase();
+      if (c.includes("entrada")) return 1;
+      if (c.includes("prato") || c.includes("massa") || c.includes("carne") || c.includes("principal")) return 2;
+      if (c.includes("sobremesa") || c.includes("doce") || c.includes("açaí") || c.includes("acai")) return 3;
+      if (c.includes("adiciona") || c.includes("adicional") || c.includes("extra") || c.includes("acompanha") || c.includes("bebida") || c.includes("suco")) return 4;
+      return 5;
+    };
+
+    const linhas = fichas.filter(f => !f.eh_base).map(f => {
+      const custoTotal = custoTotalDaFicha(f, fichas);
+      const peso = infoPesoFicha(f, fichas);
+      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
+      const porcoes = (unR === 'porcao' || unR === 'un') ? (Number(f.rendimento_porcoes) || 1) : (peso?.porcoes || 0);
+      const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+      const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || '').toLowerCase() === String(f.nome_receita || '').toLowerCase());
+      const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
+      const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
+      return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv };
+    }).sort((a, b) => {
+      const oA = getOrdemCategoria(a.cat);
+      const oB = getOrdemCategoria(b.cat);
+      if (oA !== oB) return oA - oB;
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
+
+    const comCmv = linhas.filter(l => l.cmv !== null);
+    const cmvMedio = comCmv.length ? comCmv.reduce((s, l) => s + l.cmv, 0) / comCmv.length : null;
+
+    const comPreco = linhas.filter(l => l.preco > 0);
+    const ticketMedio = comPreco.length ? comPreco.reduce((s, l) => s + l.preco, 0) / comPreco.length : null;
+
+    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoTotal)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos e CMV</title><style>
+      *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
+      .sub{font-size:11px;color:#64748b;font-weight:bold;margin-bottom:12px}
+      .kpi-container{display:flex;gap:14px;margin-bottom:16px;margin-top:10px}
+      .kpi-card{flex:1;border:2px solid #e2e8f0;background:#f8fafc;border-radius:12px;padding:12px 16px;text-align:center}
+      .kpi-cmv{border-color:#fecaca;background:#fef2f2}
+      .kpi-ticket{border-color:#bbf7d0;background:#f0fdf4}
+      .kpi-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b;display:block}
+      .kpi-value{font-size:26px;font-weight:900;line-height:1.2;margin-top:2px;display:block}
+      .kpi-sub{font-size:10px;font-weight:700;color:#64748b;margin-top:2px;display:block}
+      .kpi-bom{color:#047857}
+      .kpi-alerta{color:#dc2626}
+      .text-emerald{color:#047857}
+      table{width:100%;border-collapse:collapse;font-size:12px}
+      th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left}
+      th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
+      td.r,th.r{text-align:right}tbody tr:nth-child(even){background:#f5f7fa}
+      td.bom{color:#047857;font-weight:900}td.ruim{color:#dc2626;font-weight:900}
+      tfoot td{border-top:2px solid #0f172a;font-weight:900;font-size:13px;padding-top:8px}
+      @media print{@page{margin:10mm}}
+    </style></head><body>
+      <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
+      <h1>Planilha de Custos e CMV</h1>
+      <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
+      
+      <div class="kpi-container">
+        <div class="kpi-card kpi-cmv">
+          <span class="kpi-label">CMV Médio da Carta</span>
+          <span class="kpi-value ${cmvMedio !== null && cmvMedio > 35 ? 'kpi-alerta' : 'kpi-bom'}">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</span>
+          <span class="kpi-sub">${comCmv.length} receita(s) precificada(s)</span>
+        </div>
+        <div class="kpi-card kpi-ticket">
+          <span class="kpi-label">Ticket Médio (Preço de Venda)</span>
+          <span class="kpi-value text-emerald">${ticketMedio !== null ? brl(ticketMedio) : '—'}</span>
+          <span class="kpi-sub">${comPreco.length} item(ns) precificado(s)</span>
+        </div>
+      </div>
+
+      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo Total</th><th class="r">Preço de Venda</th><th class="r">CMV</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="4">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
+  // ── IMPORTAR CARDÁPIO (foto): IA extrai pratos/sobremesas/sucos com preço ──
+  const inputCardapioRef = useRef(null);
+  const [importandoCardapio, setImportandoCardapio] = useState(false);
+  const importarCardapioFoto = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setImportandoCardapio(true);
+    try {
+      // Lê cada foto do cardápio (várias páginas de uma vez) e junta os itens,
+      // sem repetir o mesmo prato que aparece em duas fotos.
+      const itensTotais = [];
+      const vistos = new Set();
+      let falhas = 0;
+      for (const file of files) {
+        try {
+          const base64 = await fileParaBase64(file);
+          const res = await fetch("/api/ia-cardapio", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) { falhas++; continue; }
+          for (const i of (data.itens || [])) {
+            const chave = i.nome.toLowerCase().trim();
+            if (!vistos.has(chave)) { vistos.add(chave); itensTotais.push(i); }
+          }
+        } catch { falhas++; }
+      }
+      if (!itensTotais.length) { alert(falhas ? "Não consegui ler nenhuma das fotos. Tente fotos mais nítidas." : "Nenhum item lido no cardápio."); return; }
+      const jaExiste = new Set(fichas.map(f => String(f.nome_receita || "").toLowerCase()));
+      const novos = itensTotais.filter(i => !jaExiste.has(i.nome.toLowerCase()));
+      if (!novos.length) { alert("Todos os itens das fotos já estão cadastrados."); return; }
+      const avisoFalhas = falhas ? `\n(${falhas} foto(s) não puderam ser lidas.)` : "";
+      const resumo = novos.map(i => `• ${i.nome} (${i.categoria}) — R$ ${i.preco.toFixed(2)}`).join("\n");
+      if (!confirm(`A IA leu ${novos.length} item(ns) novos em ${files.length} foto(s):\n\n${resumo}${avisoFalhas}\n\nCriar as fichas já com o preço de venda? (depois é só abrir cada uma e pôr os ingredientes)`)) return;
+      let ok = 0;
+      for (const item of novos) {
+        const catFicha = item.categoria === "Sobremesa" ? "Sobremesas" : item.categoria === "Suco" ? "Sucos" : "";
+        const r = await salvarFicha({
+          unidade_id: unidadeAtiva,
+          departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
+          nome_receita: item.nome,
+          categoria: catFicha || null,
+          rendimento_porcoes: 1,
+          rendimento_unidade: item.categoria === "Drink" ? "l" : "kg",
+          modo_preparo: "",
+          eh_base: false,
+        }, []);
+        if (r?.id) {
+          await salvarProduto({
+            unidade_id: unidadeAtiva,
+            nome_produto: item.nome,
+            categoria: item.categoria === "Drink" ? "Drinks" : (catFicha || "Pratos Principais"),
+            departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
+            tempo_preparo_base: 15,
+            preco_venda: item.preco,
+            ficha_id: r.id,
+            composicao: [{ ficha_id: r.id, qtd: 1 }],
+          });
+          ok++;
+        }
+      }
+      alert(`${ok} ficha(s) criadas com preço de venda a partir de ${files.length} foto(s)! Abra cada uma e adicione os ingredientes.`);
+      carregar();
+    } catch { alert("Não consegui falar com a IA."); } finally { setImportandoCardapio(false); }
+  };
+
+  // ── MANUAL estilo pôster (coquetelaria/cozinha): nome + foto + medidas ─────
+  // Gera um cartaz em 2 colunas com todas as fichas do departamento, no estilo
+  // "Manual de Coquetelaria": fundo creme, nome em destaque e ingredientes
+  // com as quantidades — para imprimir e colar na parede do bar/cozinha.
+  const fmtQtdManual = (q, un) => {
+    const u = String(un || "").toLowerCase();
+    const n = Number(q) || 0;
+    if (u === "kg") return n < 1 ? `${Math.round(n * 1000)}g` : `${(+n.toFixed(2)).toLocaleString("pt-BR")}kg`;
+    if (u === "l") return n < 1 ? `${Math.round(n * 1000)}ml` : `${(+n.toFixed(2)).toLocaleString("pt-BR")}L`;
+    if (u === "g" || u === "ml") return `${(+n.toFixed(1)).toLocaleString("pt-BR")}${u}`;
+    return `${(+n.toFixed(2)).toLocaleString("pt-BR")}un`;
+  };
+
+  const imprimirManual = () => {
+    const lista = [...filtradas].sort((a, b) => a.nome_receita.localeCompare(b.nome_receita, "pt-BR"));
+    if (!lista.length) return alert("Nenhuma ficha para montar o manual.");
+    const ehBar = deptUrl === "bar";
+    const titulo = ehBar ? "MANUAL DE COQUETELARIA" : "MANUAL DA COZINHA";
+
+    const itens = lista.map(f => {
+      const ings = (f.fichas_ingredientes || []).map(fi => {
+        if (fi.insumos) return { nome: fi.insumos.nome, qtd: fmtQtdManual(fi.quantidade, fi.insumos.unidade_medida) };
+        if (fi.subficha_id) {
+          const base = fichas.find(x => x.id === fi.subficha_id);
+          return base ? { nome: base.nome_receita, qtd: fmtQtdManual(fi.quantidade, base.rendimento_unidade || "un") } : null;
+        }
+        return null;
+      }).filter(Boolean);
+      const foto = f.imagem
+        ? `<img src="data:image/jpeg;base64,${f.imagem}" alt=""/>`
+        : `<span>${(f.nome_receita || "?")[0].toUpperCase()}</span>`;
+      const rendimentoSetor = rendimentoPadronizado(f);
+      return `
+      <div class="item">
+        <div class="foto">${foto}</div>
+        <div class="info">
+          <h3>${f.nome_receita}${rendimentoSetor.valor > 0 ? `<span class="peso"> · ${textoRendimentoPadronizado(f)}</span>` : ""}</h3>
+          <ul>${ings.map(i => `<li><b>${i.qtd}</b> ${i.nome}</li>`).join("") || "<li>Sem ingredientes cadastrados</li>"}</ul>
+        </div>
+      </div>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${titulo} - ${unidadeAtiva}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:12mm 10mm}
+        .cabeca{border-bottom:3px solid #0f172a;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
+        .cabeca h1{font-size:20px;letter-spacing:2px;font-weight:800;text-transform:uppercase}
+        .cabeca p{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:bold}
+        .grade{column-count:2;column-gap:9mm}
+        .item{display:flex;gap:10px;align-items:flex-start;break-inside:avoid;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+        .foto{width:50px;height:50px;border-radius:6px;overflow:hidden;flex-shrink:0;background:#f1f5f9;color:#334155;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;border:1px solid #cbd5e1}
+        .foto img{width:100%;height:100%;object-fit:cover}
+        .info{min-width:0}
+        .info h3{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;color:#0f172a}
+        .info h3 .peso{font-weight:700;color:#64748b;text-transform:none;letter-spacing:0}
+        .info ul{list-style:none}
+        .info li{font-size:10.5px;color:#334155;line-height:1.55}
+        .info li b{color:#059669}
+        .rodape{text-align:center;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-top:12px;border-top:1px solid #cbd5e1;padding-top:8px}
+        @media print{@page{margin:10mm}}
+      </style></head><body>
+      <div class="cabeca">
+        <div style="display:flex;justify-content:center;margin-bottom:8px">${logoSeldeestrelaSVG(40)}</div>
+        <h1>${titulo}</h1>
+        <p>${unidadeInfo?.nome || ""} · receituário ${ehBar ? "do bar" : "da cozinha"}</p>
+      </div>
+      <div class="grade">${itens}</div>
+      <div class="rodape">${lista.length} receitas · uso interno · ${new Date().toLocaleDateString("pt-BR")}</div>
+      </body></html>`;
+
+    let win2 = null;
+    try { win2 = window.open("", "_blank", "width=860,height=1000"); } catch { win2 = null; }
+    if (!win2) {
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+        document.body.appendChild(iframe);
+        iframe.srcdoc = html;
+        iframe.onload = () => {
+          setTimeout(() => {
+            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
+            setTimeout(() => iframe.remove(), 60000);
+          }, 400);
+        };
+        return;
+      } catch (e) {
+        return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
+      }
+    }
+    win2.document.write(comFecharImpressao(html));
+    win2.document.close();
+    setTimeout(() => win2.print(), 500);
+  };
+
+  return (
+    <div className="erp-fichas-theme min-h-screen bg-slate-50 pb-24 text-slate-800">
+      <style>{`
+        .erp-fichas-theme { font-family: Aptos, "Segoe UI Variable", "Segoe UI", Arial, sans-serif; letter-spacing: -0.006em; }
+        .erp-fichas-theme .font-black { font-weight: 700 !important; }
+        .erp-fichas-theme .font-bold { font-weight: 600 !important; }
+        .erp-fichas-theme [class*="bg-emerald-600"] { background-color: #ea580c !important; }
+        .erp-fichas-theme [class*="bg-emerald-700"] { background-color: #c2410c !important; }
+        .erp-fichas-theme [class*="hover:bg-emerald-700"]:hover, .erp-fichas-theme [class*="hover:bg-emerald-800"]:hover { background-color: #9a3412 !important; }
+        .erp-fichas-theme [class*="bg-emerald-50"] { background-color: #fff7ed !important; }
+        .erp-fichas-theme [class*="bg-emerald-100"] { background-color: #ffedd5 !important; }
+        .erp-fichas-theme [class*="text-emerald-600"] { color: #ea580c !important; }
+        .erp-fichas-theme [class*="text-emerald-700"], .erp-fichas-theme [class*="text-emerald-800"] { color: #9a3412 !important; }
+        .erp-fichas-theme [class*="border-emerald-100"], .erp-fichas-theme [class*="border-emerald-200"], .erp-fichas-theme [class*="border-emerald-300"] { border-color: #fed7aa !important; }
+        .erp-fichas-theme [class*="border-emerald-500"], .erp-fichas-theme [class*="border-emerald-600"], .erp-fichas-theme [class*="ring-emerald-500"] { border-color: #f97316 !important; --tw-ring-color: rgb(249 115 22 / .22) !important; }
+        .erp-fichas-theme [class*="shadow-emerald"] { --tw-shadow-color: rgb(234 88 12 / .22) !important; }
+        .erp-fichas-theme input[class*="accent-emerald"] { accent-color: #ea580c; }
+        .erp-fichas-theme .erp-status-ativo { background-color: #ffedd5 !important; color: #9a3412 !important; }
+        .erp-fichas-theme input, .erp-fichas-theme select, .erp-fichas-theme textarea, .erp-fichas-theme button { font-family: inherit; }
+        .erp-fichas-card { border-color: #dbe2ee; box-shadow: 0 5px 18px rgb(30 41 59 / .06); }
+        .erp-fichas-card:hover { box-shadow: 0 12px 28px rgb(154 52 18 / .10); }
+      `}</style>
+      <header className="border-b border-line bg-card">
+        <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-slate-50 text-muted hover:text-fg" title="Voltar ao menu">
+                <ArrowLeft size={19} />
+              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">Fichas Técnicas</h1>
+                <div className="flex items-center rounded-xl bg-elevated p-1 border border-slate-200/80">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl !== "bar" ? "bg-card text-accent shadow-sm" : "text-muted hover:text-slate-800"}`}
+                  >
+                    👨‍🍳 Cozinha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl === "bar" ? "bg-card text-accent shadow-sm" : "text-muted hover:text-slate-800"}`}
+                  >
+                    🍹 Bar
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
+              <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-card px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
+                <Search size={19} className="shrink-0 text-fg-soft" />
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-fg outline-none placeholder:font-medium placeholder:text-subtle" />
+                {busca && <button onClick={() => setBusca("")} className="text-subtle hover:text-fg-soft" title="Limpar busca"><X size={16} /></button>}
+              </label>
+              <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-accent-soft px-4 text-sm font-black text-accent-strong shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
+              <button onClick={abrirOpcaoNovo} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-black text-accent-fg shadow-lg shadow-emerald-600/20 hover:bg-accent"><Plus size={18} /> {modoFicha === "preparos" ? "Criar receita" : deptUrl === "bar" ? "Criar drink" : "Criar prato"}</button>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-line bg-slate-50 p-2">
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated"><Printer size={14} /> Livro de receitas</button>
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para baixar."); baixarPdfFichas(selecionadas.length ? fichas.filter(f => selecionadas.includes(f.id)) : fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated"><Download size={14} /> Baixar PDF</button>
+            {podeVerCustos && <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated"><Calculator size={14} /> Custos e CMV</button>}
+            {podeVerCustos && (
+              <button onClick={() => setVerPizza(v => !v)} title="Mostra em cada ficha para onde vai cada real da venda"
+                className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors ${verPizza ? "bg-accent text-accent-fg" : "border border-line bg-card text-fg-soft hover:bg-elevated"}`}>
+                <PieChart size={14} /> {verPizza ? "Ver números" : "Pizza do lucro"}
+              </button>
+            )}
+            <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
+            <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
+            <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-elevated disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
+         {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
+         <div className="mb-2 flex justify-end">
+           <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex min-h-9 items-center gap-2 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50">
+             <BarChart3 size={15} /> {mostrarIndicadores ? "Ocultar indicadores" : "Ver indicadores"}
+           </button>
+         </div>
+         {mostrarIndicadores && (() => {
+            const base = fichas.filter(f => modoFicha === "preparos"
+              ? !!f.eh_base
+              : (!f.eh_base && f.tipo_base !== "produto_pronto"));
+            if (!base.length) return null;
+            if (modoFicha === "preparos") {
+              const comCusto = base.filter(f => custoTotalDaFicha(f, fichas) > 0).length;
+              const semModo = base.filter(f => !String(f.modo_preparo || "").trim()).length;
+              const tempos = base.map(f => Number(f.tempo_preparo) || 0).filter(Boolean);
+              const tempoMedio = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
+              const cardsPreparo = [
+                { rot: "Preparos", val: base.length, sub: deptUrl === "bar" ? "bases do bar" : "bases da cozinha" },
+                { rot: "Pré-preparos", val: base.length, sub: "usados em montagens" },
+                { rot: "Com custo", val: comCusto, sub: `${base.length - comCusto} sem custo` },
+                { rot: "Tempo médio", val: tempoMedio ? `${tempoMedio} min` : "—", sub: `${tempos.length} informados` },
+                { rot: "Sem instruções", val: semModo, sub: "modo de preparo", alerta: semModo > 0 },
+              ];
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
+                  {cardsPreparo.map(c => (
+                    <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-amber-50 border-amber-200" : "bg-card border-amber-100"}`}>
+                      <p className="text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
+                      <p className={`text-lg font-black mt-0.5 ${c.alerta ? "text-amber-700" : "text-orange-700"}`}>{c.val}</p>
+                      <p className="text-3xs font-bold text-subtle truncate">{c.sub}</p>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            if (!podeVerCustos) return null; // indicadores são todos financeiros
+            let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
+            base.forEach(f => {
+               const peso = infoPesoFicha(f, fichas);
+               const custoTotal = custoTotalDaFicha(f, fichas);
+               const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+               const rend = Number(f.rendimento_porcoes) || 0;
+               const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+               const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+               if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
+               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+               const preco = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
+               const meta = Number(f.cmv_meta) || 30;
+               if (preco > 0) {
+                  const cmv = (custoPorcao / preco) * 100;
+                  somaCmv += cmv; nCmv++; somaPreco += preco; nPreco++; somaMargem += (100 - cmv);
+                  if (cmv > meta) acimaMeta++;
+               } else semPreco++;
+            });
+            const cmvMedio = nCmv ? somaCmv / nCmv : null;
+            const cards = [
+               { key: "fichas", rot: "Fichas", val: base.length, sub: "pratos/receitas" },
+               { key: "cmv", rot: "CMV médio", val: cmvMedio != null ? cmvMedio.toFixed(1) + "%" : "—", sub: `${nCmv} precificadas`, alerta: cmvMedio != null && cmvMedio > 35 },
+               { key: "margem", rot: "Margem média", val: nCmv ? (somaMargem / nCmv).toFixed(1) + "%" : "—", sub: "bruta" },
+               { key: "custo", rot: "Custo médio/porção", val: nCusto ? fmtBRL(somaCusto / nCusto) : "—", sub: "por porção" },
+               { key: "ticket", rot: "Ticket médio", val: nPreco ? fmtBRL(somaPreco / nPreco) : "—", sub: "preço de venda" },
+               { key: "acima_meta", rot: "Acima da meta", val: acimaMeta, sub: apenasAcimaMeta ? "Filtrado (clique p/ limpar)" : (semPreco ? `${semPreco} sem preço · clique p/ ver` : "clique para filtrar"), alerta: acimaMeta > 0, clicavel: true },
+            ];
+            return (
+               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
+                  {cards.map(c => {
+                     const isAcima = c.key === "acima_meta";
+                     const ativo = isAcima && apenasAcimaMeta;
+                     return (
+                        <div
+                           key={c.rot}
+                           onClick={() => { if (isAcima) setApenasAcimaMeta(v => !v); }}
+                           title={isAcima ? (apenasAcimaMeta ? "Clique para mostrar todas as fichas" : "Clique para ver somente fichas acima da meta") : ""}
+                           className={`rounded-2xl border shadow-sm px-3 py-2.5 transition-all ${
+                              isAcima ? "cursor-pointer hover:scale-[1.02] hover:shadow-md active:scale-95" : ""
+                           } ${
+                              ativo
+                                 ? "bg-red-600 text-white border-red-700 ring-4 ring-red-500/20"
+                                 : c.alerta
+                                 ? "bg-red-50 border-red-200 hover:border-red-300"
+                                 : "bg-card border-line"
+                           }`}
+                        >
+                           <p className={`text-3xs font-bold uppercase tracking-wider leading-tight flex items-center justify-between ${ativo ? "text-red-100" : "text-subtle"}`}>
+                              <span>{c.rot}</span>
+                              {isAcima && <span className={`text-3xs font-bold ${ativo ? "text-white" : "text-red-500"}`}>{ativo ? "✓ FILTRADO" : "🔍 FILTRAR"}</span>}
+                           </p>
+                           <p className={`text-lg font-black mt-0.5 ${ativo ? "text-white" : c.alerta ? "text-red-600" : "text-accent"}`}>{c.val}</p>
+                           <p className={`text-3xs font-bold truncate ${ativo ? "text-red-100" : "text-subtle"}`}>{c.sub}</p>
+                        </div>
+                     );
+                  })}
+               </div>
+            );
+         })()}
+
+         {apenasAcimaMeta && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border-2 border-red-200 bg-red-50/90 p-3.5 shadow-sm">
+               <div className="flex items-center gap-3 min-w-0">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-600 text-white font-black shadow-sm">
+                     ⚠️
+                  </div>
+                  <div className="min-w-0">
+                     <p className="text-xs font-bold uppercase tracking-wider text-red-900">Filtrando: Fichas Técnicas Acima da Meta</p>
+                     <p className="text-xs font-bold text-red-700 mt-0.5 truncate">{filtradas.length} receita(s) com CMV calculado maior que a meta definida.</p>
+                  </div>
+               </div>
+               <button
+                  onClick={() => setApenasAcimaMeta(false)}
+                  className="shrink-0 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2.5 shadow-sm transition-colors cursor-pointer"
+               >
+                  Ver todas ✕
+               </button>
+            </div>
+         )}
+         {/* Ativas / inativas. Inativar não apaga: a ficha some da lista e
+             volta quando o usuário quiser vê-la de novo. */}
+         <div className="mb-3 flex items-center gap-1.5">
+            {[
+              { id: "ativas", rotulo: "Ativas" },
+              { id: "inativas", rotulo: "Inativas" },
+              { id: "todas", rotulo: "Todas" },
+            ].map(op => (
+              <button
+                key={op.id}
+                onClick={() => setFiltroStatus(op.id)}
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+                  filtroStatus === op.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-line bg-card text-muted hover:bg-slate-50"
+                }`}
+              >
+                {op.rotulo}
+              </button>
+            ))}
+            {filtroStatus !== "ativas" && (
+              <span className="text-2xs font-bold text-subtle">
+                {filtradas.length} ficha(s)
+              </span>
+            )}
+         </div>
+
+         <div className="grid grid-cols-2 gap-2 mb-3">
+            {[
+              {
+                id: "Pré-preparos",
+                modo: "preparos",
+                titulo: "Pré-preparos",
+                quantidade: fichas.filter(f => !!f.eh_base).length,
+                icone: <BookOpen size={24} />,
+              },
+              {
+                id: "Pratos principais",
+                modo: "principais",
+                titulo: deptUrl === "bar" ? "Drinks" : "Pratos",
+                quantidade: fichas.filter(f => !f.eh_base).length,
+                icone: <UtensilsCrossed size={24} />,
+              },
+            ].map(item => (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(false); }}
+                className={`min-h-[58px] rounded-xl border p-2.5 text-left transition-all sm:min-h-[66px] sm:p-3 ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-line bg-card hover:border-slate-300 hover:shadow-sm"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-accent-fg" : "bg-accent text-accent-fg") : "bg-elevated text-slate-600"}`}>{item.icone}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm sm:text-base font-black leading-tight text-fg">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
+                  </span>
+                </div>
+              </button>
+            ))}
+         </div>
+
+         <div className={`mb-3 rounded-xl border p-2.5 transition-colors ${modoFicha === "preparos" ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
+           <div className={`flex items-center justify-between gap-3 ${categoriasRecolhidas ? "" : "mb-2"}`}>
+             <button type="button" onClick={() => setCategoriasRecolhidas(valor => !valor)} className="flex min-h-10 flex-1 items-center gap-2 rounded-lg px-2 text-left text-sm font-black text-slate-800 hover:bg-white/70" aria-expanded={!categoriasRecolhidas}>
+               <ChevronRight size={18} className={`transition-transform ${categoriasRecolhidas ? "" : "rotate-90"}`} />
+               {modoFicha === "preparos" ? "Categorias de preparos" : deptUrl === "bar" ? "Categorias de bebidas e drinks" : "Categorias de pratos"}
+               <span className="rounded-full bg-card px-2 py-0.5 text-3xs text-muted">{categoriasDisponiveis.length}</span>
+             </button>
+             <button type="button" onClick={() => setModalCategorias(true)} className={`flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-accent-fg ${modoFicha === "preparos" ? "bg-amber-700 hover:bg-amber-800" : "bg-accent hover:opacity-90"}`}>
+               <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
+             </button>
+           </div>
+         {!categoriasRecolhidas && <div className="flex flex-wrap items-center justify-center gap-2 py-1">
+            {categoriasDisponiveis.map(cat => {
+              const n = fichasDoModo.filter(f => (f.categoria || "") === cat).length;
+              return (
+                <div key={cat} className="flex items-center">
+                  <button onClick={() => setTipoFiltro(cat)}
+                    className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-accent-fg shadow-lg shadow-amber-600/20" : "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20") : "bg-card text-fg-soft border border-line hover:bg-slate-50"}`}>
+                    {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-subtle"}>({n})</span>
+                  </button>
+                </div>
+              );
+            })}
+            {(modoFicha === "preparos" ? [
+              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base).length],
+            ] : [
+              ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
+            ]).map(([t, label, n]) => (
+              <button key={t} onClick={() => setTipoFiltro(t)}
+                className={`min-h-10 rounded-xl px-3 py-2 font-bold text-xs transition-all sm:px-4 sm:text-sm ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-accent-fg shadow-lg shadow-amber-600/20" : "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20") : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
+                {label} <span className={tipoFiltro === t ? "text-white/75" : "text-subtle"}>({n})</span>
+              </button>
+            ))}
+         </div>}
+         </div>
+         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-card p-2 shadow-sm">
+             <p className="px-2 text-xs font-bold text-muted">{filtradas.length} {filtradas.length === 1 ? "ficha encontrada" : "fichas encontradas"}</p>
+             <div className="flex flex-wrap items-center gap-2">
+                <button onClick={selecionarPaginaLote} disabled={!fichasPagina.length} className="text-xs font-bold text-slate-600 hover:text-accent px-3 py-2 rounded-lg bg-slate-50 border border-line disabled:opacity-50">
+                  <CheckSquare2 size={15} className="inline mr-1.5" /> Selecionar página
+                </button>
+                <button onClick={selecionarResultadoLote} disabled={!filtradas.length} className="text-xs font-bold text-slate-600 hover:text-accent px-3 py-2 rounded-lg bg-slate-50 border border-line disabled:opacity-50">
+                  Selecionar resultado ({filtradas.length})
+                </button>
+                {selecionadas.length > 0 && <button onClick={limparSelecaoLote} className="text-xs font-bold text-muted hover:text-rose-600 px-3 py-2">Limpar seleção</button>}
+             </div>
+         </div>
+
+         {selecionadas.length > 0 && (
+           <div className="sticky top-2 z-30 mb-4 rounded-2xl border border-emerald-200 bg-card p-3 shadow-lg shadow-emerald-900/10">
+             <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+               <div className="flex items-center justify-between gap-3 xl:min-w-48">
+                 <div>
+                   <p className="text-sm font-black text-slate-800">{selecionadas.length} {selecionadas.length === 1 ? "ficha selecionada" : "fichas selecionadas"}</p>
+                   <p className="text-3xs font-bold text-subtle uppercase tracking-wider">A seleção continua ao trocar de página</p>
+                 </div>
+                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="xl:hidden p-2 rounded-lg bg-elevated text-muted"><X size={16}/></button>
+               </div>
+               <div className="flex flex-wrap gap-2 xl:flex-1 xl:justify-end">
+                 <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:opacity-90"><Printer size={15}/> Imprimir</button>
+                 <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
+                 <button onClick={() => { const lista = fichas.filter(f => selecionadas.includes(f.id)); if (lista.length) baixarPdfFichas(lista); }} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
+                 <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
+                  <button onClick={() => excluirImediatamente()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> {processandoLote ? "Excluindo..." : "Excluir"}</button>
+                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-elevated text-muted hover:text-slate-800"><X size={16}/></button>
+               </div>
+             </div>
+           </div>
+         )}
+
+         {mensagemLote && (
+           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-accent-soft px-4 py-3 text-sm font-bold text-accent-strong">
+             <span className="flex items-center gap-2"><CheckCircle2 size={18}/>{mensagemLote}</span>
+             <button onClick={() => setMensagemLote("")}><X size={16}/></button>
+           </div>
+         )}
+         {erroLote && (
+           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+             <span className="flex items-center gap-2"><AlertTriangle size={18}/>{erroLote}</span>
+             <button onClick={() => setErroLote("")}><X size={16}/></button>
+           </div>
+         )}
+
+         {loading ? (
+            <p className="font-bold text-muted">Buscando receitas...</p>
+         ) : filtradas.length === 0 ? (
+            <div className="text-center p-10 bg-card border border-line rounded-3xl">
+               <LayoutList size={40} className="mx-auto text-muted mb-4"/>
+               <h3 className="text-xl font-black text-fg-soft">Nenhuma ficha encontrada</h3>
+               <p className="text-muted mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
+            </div>
+         ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+               {fichasPagina.map(f => {
+                  const peso = infoPesoFicha(f, fichas);
+                  const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+
+                  return (
+                     <div
+                       key={f.id}
+                       onDragOver={e => { if (dragId) e.preventDefault(); }}
+                       onDrop={() => reordenar(dragId, f.id)}
+                       className={`erp-fichas-card bg-card rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200/90'}`}
+                     >
+                       <div>
+                         {/* TOP ROW: Nome e Botão Editar verde */}
+                         <div className="flex items-start justify-between gap-3 mb-3">
+                           <div className="flex items-center gap-2 min-w-0 flex-1">
+                             <label className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-line bg-slate-50 cursor-pointer">
+                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="h-4 w-4 cursor-pointer rounded accent-emerald-600"/>
+                             </label>
+                             <h3
+                               onClick={() => abrirFicha(f)}
+                               className="text-xl font-black leading-snug text-fg break-words cursor-pointer hover:text-accent transition-colors"
+                               title={f.nome_receita}
+                             >
+                               {f.nome_receita}
+                             </h3>
+                           </div>
+                           <div className="flex items-center gap-1.5 shrink-0">
+                             <button
+                               onClick={() => abrirEditar(f)}
+                               className="h-8 px-4 rounded-full bg-accent hover:bg-accent text-accent-fg font-bold text-xs transition-colors shadow-sm"
+                             >
+                               Editar
+                             </button>
+                             <button
+                               onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
+                               title="Mais opções"
+                               className="h-8 w-8 rounded-full border border-line bg-slate-50 text-muted hover:text-fg flex items-center justify-center"
+                             >
+                               <MoreVertical size={16} />
+                             </button>
+                           </div>
+                         </div>
+
+                         {/* Menu suspenso de ações rápidas se clicado */}
+                         {acoesCardAberto === f.id && (
+                           <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl border border-line bg-slate-50 p-2 shadow-lg text-xs font-bold">
+                             <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📖 Ver Ficha</button>
+                             {/* Ficha técnica completa: código, pesos, perdas, precificação e simulador de CMV */}
+                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📑 Ficha técnica</button>
+                             {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📋 Montagem</button>}
+                             <button onClick={() => abrirSimulacao(f)} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">🧮 Simular</button>
+                             <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">🖨️ Imprimir</button>
+                             <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="p-2 rounded-xl bg-card border border-line text-fg-soft text-left">📄 PDF</button>
+                             <button onClick={() => excluirImediatamente([f])} className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-left">🗑️ Excluir</button>
+                           </div>
+                         )}
+
+                         {/* BADGES & CONTEÚDO */}
+                          {(() => {
+                            const custoTotalIng = custoTotalDaFicha(f, fichas);
                             const rend = Number(f.rendimento_porcoes) || 1;
                             const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
                             const precoPorcao = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
@@ -2316,7 +4264,7 @@ function FichasRunner() {
                               </div>
                            </div>
                         );
-                     })()}
+                     })()
 
                      {form.eh_base && <div id="ficha-preparo" className="scroll-mt-24 rounded-2xl border border-line bg-card p-4 shadow-sm">
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">Modo de Preparo</label>

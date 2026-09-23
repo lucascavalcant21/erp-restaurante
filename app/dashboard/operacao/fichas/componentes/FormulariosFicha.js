@@ -13,7 +13,7 @@
 import {
   SecaoEditor, CampoFoto, SeletorSetor, CampoCategoria, ListaIngredientes, CampoInstrucoes,
   CampoRendimento, CampoRendimentoPrato, CampoPesoFinal, CampoTempoPreparo, CampoArmazenamento, CampoEquipamentos,
-  CampoAlergenicos, PainelCustos,
+  CampoAlergenicos, PainelCustos, PainelCustosPrecificacao,
 } from "./CamposFicha";
 
 function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, comResponsavel = false, campoRendimento = null }) {

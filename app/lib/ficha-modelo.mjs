@@ -661,6 +661,22 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
 
   // Rendimento do prato: o peso final servido, digitado em gramas.
   if (tipo === "prato") campos.peso_final_g = numeroOuNulo(form.peso_final_g);
+  if (parseNumero(form.custo_embalagem) > 0) {
+    campos.custo_embalagem = parseNumero(form.custo_embalagem);
+    campos.custo_embalagens_total = parseNumero(form.custo_embalagem) * (parseNumero(form.rendimento_porcoes) || 1);
+  }
+  if (parseNumero(form.preco_venda) > 0) {
+    campos.preco_venda = parseNumero(form.preco_venda);
+  }
+  if (form.taxa_maquininha !== "" && form.taxa_maquininha != null) {
+    campos.taxa_maquininha = parseNumero(form.taxa_maquininha);
+  }
+  if (form.imposto_pct !== "" && form.imposto_pct != null) {
+    campos.imposto_pct = parseNumero(form.imposto_pct);
+  }
+  if (form.cmv_meta != null && form.cmv_meta !== "" && novo) {
+    campos.cmv_meta = parseNumero(form.cmv_meta);
+  }
 
   if (tipo === "pre_preparo") {
     campos.tempo_preparo = numeroOuNulo(form.tempo_preparo);

@@ -21,7 +21,7 @@ import {
 import {
   subUnidade, buscarOpcoes, custoDosItens, precoSuspeito, rendimentoSomado, rendimentoEhAutomatizavel,
 } from "../../../../lib/ficha-editor.mjs";
-import { parseNumero } from "../../../../lib/ficha-calculos.mjs";
+import { parseNumero, calculateFichaFinanceiro } from "../../../../lib/ficha-calculos.mjs";
 
 const numero = (n, casas = 3) => (Number(n) || 0).toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
@@ -548,5 +548,176 @@ export function PainelCustos({ itens, form }) {
       ) : null}
       <p className="mt-2 text-xs font-medium text-muted">Os custos vêm do cadastro dos ingredientes e dos pré-preparos usados.</p>
     </div>
+  );
+}
+
+export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = true, paramsSis }) {
+  if (!podeVerCustos) return null;
+
+  const custoTotalForm = custoDosItens(itens);
+  const rendForm = Math.max(1, parseNumero(form.rendimento_porcoes) || 1);
+  const embForm = parseNumero(form.custo_embalagem);
+  const precoForm = parseNumero(form.preco_venda);
+  const taxaMaqForm = form.taxa_maquininha !== "" && form.taxa_maquininha != null
+    ? parseNumero(form.taxa_maquininha)
+    : Number(paramsSis?.taxaMaquininha ?? paramsSis?.taxa_maquininha ?? 2.5);
+  const impostoForm = form.imposto_pct !== "" && form.imposto_pct != null
+    ? parseNumero(form.imposto_pct)
+    : Number(paramsSis?.impostoPct ?? paramsSis?.imposto_pct ?? 4.0);
+
+  const finModal = calculateFichaFinanceiro({
+    custoTotalIngredientes: custoTotalForm,
+    rendimentoPorcoes: rendForm,
+    custoEmbalagemPorPorcao: embForm,
+    precoVenda: precoForm,
+    taxaMaquininhaPct: form.eh_base ? 0 : taxaMaqForm,
+    impostoPct: form.eh_base ? 0 : impostoForm,
+  });
+
+  const meta = Number(form.cmv_meta) || 30;
+  const sugerido = meta > 0 ? finModal.custoProdutoPorPorcao / (meta / 100) : 0;
+
+  return (
+    <SecaoEditor id="ficha-custos-precificacao" titulo="Custos e Precificação" destaque>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label htmlFor="ficha-rendimento-porcoes" className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted">Rendimento (porções)</label>
+          <input
+            id="ficha-rendimento-porcoes"
+            type="number"
+            min="1"
+            step="1"
+            value={form.rendimento_porcoes || "1"}
+            onChange={e => mudar({ rendimento_porcoes: e.target.value })}
+            className="erp-input text-sm font-bold"
+          />
+        </div>
+        <div>
+          <label htmlFor="ficha-custo-embalagem" className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted">Embalagem (R$ / porção)</label>
+          <input
+            id="ficha-custo-embalagem"
+            type="text"
+            inputMode="decimal"
+            placeholder="0,00"
+            value={form.custo_embalagem || ""}
+            onChange={e => mudar({ custo_embalagem: e.target.value.replace(/[^0-9.,]/g, "") })}
+            className="erp-input text-sm font-bold"
+          />
+        </div>
+        <div>
+          <label htmlFor="ficha-preco-venda" className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted">Preço de Venda (R$)</label>
+          <input
+            id="ficha-preco-venda"
+            type="text"
+            inputMode="decimal"
+            placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"}
+            value={form.preco_venda || ""}
+            onChange={e => mudar({ preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })}
+            className="erp-input text-sm font-black border-2 border-emerald-400 bg-emerald-50/50 text-emerald-900"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-line-soft">
+        <div>
+          <label htmlFor="ficha-cmv-meta" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-muted">CMV Meta (%)</label>
+          <input
+            id="ficha-cmv-meta"
+            type="number"
+            min="1"
+            max="90"
+            value={form.cmv_meta || 30}
+            onChange={e => mudar({ cmv_meta: e.target.value })}
+            className="erp-input text-xs font-bold"
+          />
+        </div>
+        <div>
+          <label htmlFor="ficha-taxa-maquininha" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-muted">Taxa Maquininha (%)</label>
+          <input
+            id="ficha-taxa-maquininha"
+            type="text"
+            inputMode="decimal"
+            placeholder="2.50"
+            value={form.taxa_maquininha || ""}
+            onChange={e => mudar({ taxa_maquininha: e.target.value.replace(/[^0-9.,]/g, "") })}
+            className="erp-input text-xs font-bold"
+          />
+        </div>
+        <div>
+          <label htmlFor="ficha-imposto-pct" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-muted">Imposto (%)</label>
+          <input
+            id="ficha-imposto-pct"
+            type="text"
+            inputMode="decimal"
+            placeholder="4.00"
+            value={form.imposto_pct || ""}
+            onChange={e => mudar({ imposto_pct: e.target.value.replace(/[^0-9.,]/g, "") })}
+            className="erp-input text-xs font-bold"
+          />
+        </div>
+      </div>
+
+      {sugerido > 0 && (
+        <button
+          type="button"
+          onClick={() => mudar({ preco_venda: sugerido.toFixed(2) })}
+          className="mb-3 w-full text-left bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 hover:bg-emerald-100 transition flex items-center justify-between"
+        >
+          <div>
+            <span className="text-3xs font-bold text-emerald-800 uppercase tracking-widest block">Preço Sugerido (CMV Meta {meta}%)</span>
+            <span className="text-base font-black text-slate-900">{fmtBRL(sugerido)}</span>
+          </div>
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">Toque para aplicar</span>
+        </button>
+      )}
+
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <p className="text-3xs font-black uppercase tracking-widest text-slate-700 mb-2">Resultado da Ficha (Por Porção)</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+          <div className="bg-card border border-line rounded-lg p-2 text-center">
+            <p className="text-3xs font-bold text-muted uppercase">Ingredientes</p>
+            <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoIngredientesPorPorcao)}</p>
+          </div>
+          <div className="bg-card border border-line rounded-lg p-2 text-center">
+            <p className="text-3xs font-bold text-muted uppercase">Embalagem</p>
+            <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoEmbalagemPorPorcao)}</p>
+          </div>
+          <div className="bg-card border border-line rounded-lg p-2 text-center">
+            <p className="text-3xs font-bold text-muted uppercase">Maquininha ({finModal.taxaMaquininhaPct}%)</p>
+            <p className="text-xs font-black text-slate-800">{finModal.precoVenda > 0 ? fmtBRL(finModal.valorMaquininha) : "—"}</p>
+          </div>
+          <div className="bg-card border border-line rounded-lg p-2 text-center">
+            <p className="text-3xs font-bold text-muted uppercase">Imposto ({finModal.impostoPct}%)</p>
+            <p className="text-xs font-black text-slate-800">{finModal.precoVenda > 0 ? fmtBRL(finModal.valorImposto) : "—"}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="bg-card border border-emerald-200 rounded-lg p-2 text-center">
+            <p className="text-3xs font-bold text-muted uppercase">Custo Total</p>
+            <p className="text-sm font-black text-slate-900">{fmtBRL(finModal.custoTotal)}</p>
+          </div>
+          <div className="bg-card border border-emerald-200 rounded-lg p-2 text-center">
+            <p className="text-3xs font-bold text-muted uppercase">Preço Venda</p>
+            <p className="text-sm font-black text-emerald-700">{finModal.precoVenda > 0 ? fmtBRL(finModal.precoVenda) : "—"}</p>
+          </div>
+          <div className={`bg-card border rounded-lg p-2 text-center ${finModal.lucroPorPorcao !== null && finModal.lucroPorPorcao < 0 ? 'border-red-300 bg-red-50' : 'border-emerald-200'}`}>
+            <p className="text-3xs font-bold text-muted uppercase">Lucro/porção</p>
+            <p className={`text-sm font-black ${finModal.lucroPorPorcao !== null && finModal.lucroPorPorcao < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+              {finModal.lucroPorPorcao !== null ? fmtBRL(finModal.lucroPorPorcao) : "—"}
+            </p>
+          </div>
+          <div className={`bg-card border rounded-lg p-2 text-center ${finModal.cmv !== null && finModal.cmv > meta ? 'border-red-300 bg-red-50' : 'border-emerald-200'}`}>
+            <p className="text-3xs font-bold text-muted uppercase">CMV</p>
+            <p className={`text-sm font-black ${finModal.cmv !== null && finModal.cmv > meta ? 'text-red-600' : 'text-emerald-700'}`}>
+              {finModal.cmv !== null ? `${finModal.cmv.toFixed(1)}%` : "—"}
+            </p>
+            {finModal.margem !== null && (
+              <span className="text-3xs font-bold text-subtle block">Margem {finModal.margem.toFixed(1)}%</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </SecaoEditor>
   );
 }

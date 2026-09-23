@@ -23,6 +23,19 @@ export const runtime = "nodejs";
 
 const LIMITE_PADRAO = 50;
 
+// A migração db/etiquetas/0001 pode ainda não ter rodado no ambiente. Nesse
+// caso não existe fila para drenar, e o certo é dizer isso em vez de devolver
+// 500 de hora em hora — mesma convenção do resto do ERP (ficha-tecnica.js,
+// estoques-multiplos.js): o que depende de migração pendente degrada, não
+// quebra.
+function migracaoPendente(erro) {
+  const m = String(erro?.message || erro || "").toLowerCase();
+  return m.includes("does not exist")
+    || m.includes("could not find")
+    || m.includes("schema cache")
+    || m.includes("relation");
+}
+
 export async function POST(request) {
   return drenar(request);
 }
@@ -53,7 +66,12 @@ async function status(request) {
   catch (e) { return NextResponse.json({ ok: false, error: e.message }, { status: 503 }); }
 
   const { data, error } = await db.from("vw_etiqueta_financeiro_fila").select("*");
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (error) {
+    if (migracaoPendente(error)) {
+      return NextResponse.json({ ok: true, migracaoPendente: true, fila: saudeDaFila([]), porUnidade: [] });
+    }
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, fila: saudeDaFila(data || []), porUnidade: data || [] });
 }
 
@@ -76,7 +94,17 @@ async function drenar(request) {
     p_limite: limite,
     p_executor: auth.origem || "cron",
   });
-  if (erroLote) return NextResponse.json({ ok: false, error: erroLote.message }, { status: 500 });
+  if (erroLote) {
+    if (migracaoPendente(erroLote)) {
+      // Sem a migração não existe fila, e sem fila não há perda esquecida:
+      // etiqueta_perda também não existe para criar pendência nenhuma.
+      return NextResponse.json({
+        ok: true, migracaoPendente: true,
+        ...resumoDoProcessamento([]), fila: saudeDaFila([]),
+      });
+    }
+    return NextResponse.json({ ok: false, error: erroLote.message }, { status: 500 });
+  }
 
   const resultados = [];
   for (const pendencia of lote || []) {

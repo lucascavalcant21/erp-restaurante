@@ -7,6 +7,7 @@
 import {
   parseNumero, converterParaBaseDoInsumo, custoUnitarioEfetivoInsumo, custoDeProduzirFicha,
   rendimentoPelosIngredientes, unidadePadraoDepartamento, arestasDeSubfichas, criariaCiclo,
+  entradasFinanceirasParaEditor,
 } from "./ficha-calculos.mjs";
 import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
 import {
@@ -115,7 +116,13 @@ export function rendimentoSomado(itens, departamento) {
 }
 
 // Estado inicial do editor. `ficha` nula = ficha nova; `rascunho` vem da IA.
-export function estadoInicialDoEditor({ departamento, tipo = null, ficha = null, rascunho = null, todasFichas = [], complementos = null }) {
+//
+// É o ÚNICO lugar que transforma a ficha do banco no formulário — inclusive a
+// parte comercial (preço, embalagem, maquininha, imposto, meta de CMV), que
+// antes ficava de fora e fazia o Editar abrir vazio enquanto o card mostrava
+// os valores. `produto` é o item do Cardápio ligado à ficha: é dele que sai o
+// preço de venda, como no card.
+export function estadoInicialDoEditor({ departamento, tipo = null, ficha = null, rascunho = null, todasFichas = [], complementos = null, produto = null }) {
   const dept = setorId(ficha?.departamento || rascunho?.departamento || departamento);
   if (ficha) {
     // Sem os complementos (ainda carregando), vale só o texto da própria ficha:
@@ -140,6 +147,7 @@ export function estadoInicialDoEditor({ departamento, tipo = null, ficha = null,
         alergenicos_pode_conter: ficha.alergenicos_pode_conter || "",
         // Não aparece no editor: só entra na conta do custo por porção.
         peso_porcao_g: ficha.peso_porcao_g ?? "",
+        ...entradasFinanceirasParaEditor(ficha, produto),
       },
       itens: (ficha.fichas_ingredientes || []).map(fi => itemDeIngrediente(fi, todasFichas)),
       armazenamento: armazenamentoParaEditar(complementos?.armazenamento, ficha),
@@ -183,6 +191,7 @@ export function estadoInicialDoEditor({ departamento, tipo = null, ficha = null,
       peso_final_g: pesoInicialDoPrato,
       responsavel: "",
       alergenicos_pode_conter: "",
+      ...entradasFinanceirasParaEditor({ eh_base: tipo === "pre_preparo" }, null),
     },
     itens: itensDoRascunho,
     // O rascunho da IA já vem no formato do editor (recipiente, forma, validade_dias).

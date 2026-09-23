@@ -4264,7 +4264,7 @@ function FichasRunner() {
                               </div>
                            </div>
                         );
-                     })()
+                     })()}
 
                      {form.eh_base && <div id="ficha-preparo" className="scroll-mt-24 rounded-2xl border border-line bg-card p-4 shadow-sm">
                         <label className="text-xs font-bold text-muted uppercase tracking-widest">Modo de Preparo</label>

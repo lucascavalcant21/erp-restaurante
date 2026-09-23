@@ -551,19 +551,26 @@ export function PainelCustos({ itens, form }) {
   );
 }
 
-export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = true, paramsSis }) {
+// Custos e precificação do prato. As entradas herdadas (taxa da maquininha e
+// imposto) chegam prontas em `padroes`, montadas por entradasFinanceirasDaFicha
+// — a mesma função que o card usa, para os dois números nunca discordarem.
+// Campo vazio aqui significa "herdar": o valor herdado aparece no placeholder e
+// entra na conta, mas não é gravado como se fosse escolha da ficha.
+export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = true, padroes = null }) {
   if (!podeVerCustos) return null;
 
+  const taxaHerdada = parseNumero(padroes?.taxaMaquininhaPct ?? 2.5);
+  const impostoHerdado = parseNumero(padroes?.impostoPct ?? 4.0);
   const custoTotalForm = custoDosItens(itens);
   const rendForm = Math.max(1, parseNumero(form.rendimento_porcoes) || 1);
   const embForm = parseNumero(form.custo_embalagem);
   const precoForm = parseNumero(form.preco_venda);
   const taxaMaqForm = form.taxa_maquininha !== "" && form.taxa_maquininha != null
     ? parseNumero(form.taxa_maquininha)
-    : Number(paramsSis?.taxaMaquininha ?? paramsSis?.taxa_maquininha ?? 2.5);
+    : taxaHerdada;
   const impostoForm = form.imposto_pct !== "" && form.imposto_pct != null
     ? parseNumero(form.imposto_pct)
-    : Number(paramsSis?.impostoPct ?? paramsSis?.imposto_pct ?? 4.0);
+    : impostoHerdado;
 
   const finModal = calculateFichaFinanceiro({
     custoTotalIngredientes: custoTotalForm,
@@ -637,7 +644,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
             id="ficha-taxa-maquininha"
             type="text"
             inputMode="decimal"
-            placeholder="2.50"
+            placeholder={taxaHerdada.toFixed(2)}
             value={form.taxa_maquininha || ""}
             onChange={e => mudar({ taxa_maquininha: e.target.value.replace(/[^0-9.,]/g, "") })}
             className="erp-input text-xs font-bold"
@@ -649,7 +656,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
             id="ficha-imposto-pct"
             type="text"
             inputMode="decimal"
-            placeholder="4.00"
+            placeholder={impostoHerdado.toFixed(2)}
             value={form.imposto_pct || ""}
             onChange={e => mudar({ imposto_pct: e.target.value.replace(/[^0-9.,]/g, "") })}
             className="erp-input text-xs font-bold"

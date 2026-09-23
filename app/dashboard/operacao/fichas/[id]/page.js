@@ -19,7 +19,7 @@ import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../../lib/operacao";
 import { fetchProdutos, salvarProduto } from "../../../../lib/vendas";
 import { fetchEmbalagens } from "../../../../lib/embalagens";
-import { fetchCategoriasFichas } from "../../../../lib/parametros";
+import { fetchCategoriasFichas, fetchParams, PARAMS_PADRAO } from "../../../../lib/parametros";
 import {
   fetchFichaCompleta, salvarCamposFicha, garantirCodigoFicha, criarVersaoFicha, fetchVersoes,
   compararVersoes, duplicarFicha,
@@ -58,6 +58,7 @@ export default function FichaTecnicaPage() {
   const [insumos, setInsumos] = useState([]);
   const [embalagens, setEmbalagens] = useState([]);
   const [categoriasConfig, setCategoriasConfig] = useState({});
+  const [paramsSistema, setParamsSistema] = useState(PARAMS_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
@@ -91,13 +92,14 @@ export default function FichaTecnicaPage() {
 
     // As demais fichas resolvem o custo dos pré-preparos em cascata; insumos,
     // embalagens e categorias servem ao editor.
-    const [lista, resProdutos, resEmbalagensEstoque, resInsumos, resEmbalagens, resCategorias] = await Promise.all([
+    const [lista, resProdutos, resEmbalagensEstoque, resInsumos, resEmbalagens, resCategorias, resParams] = await Promise.all([
       fetchFichas(unidade, dept),
       fetchProdutos(unidade),
       fetchEmbalagens(unidade, dept),
       fetchInsumos(unidade, dept, { excluirPrePreparos: true }),
       fetchInsumos(unidade, "embalagens"),
       fetchCategoriasFichas(unidade),
+      fetchParams(unidade),
     ]);
     const produtosCarregados = resProdutos.data || [];
     // Mesma conta da listagem: o custo da embalagem do cardápio entra no CMV.
@@ -107,6 +109,7 @@ export default function FichaTecnicaPage() {
     setInsumos(resInsumos.data || []);
     setEmbalagens(resEmbalagens.data || []);
     setCategoriasConfig(resCategorias.data || {});
+    setParamsSistema({ ...PARAMS_PADRAO, ...(resParams.data || {}) });
 
     // Código FT: se ainda não tem, gera agora.
     let codigo = data.codigo;
@@ -433,7 +436,8 @@ export default function FichaTecnicaPage() {
       ) : null}
 
       {editorAberto ? (
-        <EditorFicha tipo={tipo} departamento={ficha.departamento} ficha={{ ...ficha, fichas_ingredientes: ficha.fichas_ingredientes || [] }}
+        <EditorFicha key={ficha.id} tipo={tipo} departamento={ficha.departamento} ficha={{ ...ficha, fichas_ingredientes: ficha.fichas_ingredientes || [] }}
+          produto={produto} paramsSistema={paramsSistema}
           fichas={todasFichas} insumos={insumos} embalagens={embalagens}
           categoriasDe={(departamento, t) => categoriasDoTipo({ departamento, tipo: t, config: categoriasConfig, fichas: todasFichas })}
           unidadeId={ficha.unidade_id || unidadeAtiva} sessao={sessao} podeVerCustos={podeVerCustos}

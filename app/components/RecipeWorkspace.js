@@ -124,7 +124,6 @@ export default function RecipeWorkspace({
               <h1 className="text-2xl font-black tracking-tight text-slate-950 mt-1">{title}</h1>
               {description && <p className="text-sm font-medium text-muted">{description}</p>}
             </div>
-          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {onPrimary && (

@@ -5,7 +5,7 @@
 // Os dois servem para cozinha e bar: o setor é só mais um campo.
 //
 //   FormularioPrato       nome, categoria, setor, foto, rendimento (g),
-//                           ingredientes, montagem
+//                           ingredientes, montagem e custos/precificação
 //   FormularioPrePreparo  + responsável, rendimento, tempo, peso final,
 //                           modo de preparo, armazenamento, equipamentos,
 //                           alergênicos e custos
@@ -67,13 +67,15 @@ function Instrucoes({ cfg, form, mudar, itens }) {
 }
 
 export function FormularioPrato(props) {
-  const { cfg, form, mudar, itens, ingredientes } = props;
+  const { cfg, form, mudar, itens, ingredientes, podeVerCustos, padroesFinanceiros } = props;
   return (
     <div className="space-y-4">
       <Identificacao {...props}
         campoRendimento={<CampoRendimentoPrato form={form} onChange={mudar} itens={itens} ajuda={cfg.rendimento.ajuda} />} />
       <Ingredientes cfg={cfg} ingredientes={ingredientes} />
       <Instrucoes cfg={cfg} form={form} mudar={mudar} itens={itens} />
+      <PainelCustosPrecificacao form={form} mudar={mudar} itens={itens}
+        podeVerCustos={podeVerCustos} padroes={padroesFinanceiros} />
     </div>
   );
 }

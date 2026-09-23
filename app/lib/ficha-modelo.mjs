@@ -674,7 +674,10 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
   if (form.imposto_pct !== "" && form.imposto_pct != null) {
     campos.imposto_pct = parseNumero(form.imposto_pct);
   }
-  if (form.cmv_meta != null && form.cmv_meta !== "" && novo) {
+  // A meta de CMV agora é um campo do editor: se veio preenchida, é escolha da
+  // pessoa e vale também na edição. Antes só era gravada na criação, então
+  // mudar a meta no formulário não tinha efeito nenhum.
+  if (form.cmv_meta != null && form.cmv_meta !== "") {
     campos.cmv_meta = parseNumero(form.cmv_meta);
   }
 
@@ -691,7 +694,7 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
   if (novo) {
     campos.unidade_id = unidadeId;
     campos.versao = "1.0";
-    campos.cmv_meta = 30;
+    if (campos.cmv_meta == null) campos.cmv_meta = 30;
     campos.peso_porcao_g = null;
   }
   return campos;

@@ -4,8 +4,11 @@ import {
   itemDeIngrediente, itemDeOpcao, opcoesDeIngrediente, buscarOpcoes, custoDosItens,
   rendimentoEhAutomatizavel, estadoInicialDoEditor, precoSuspeito,
 } from "./ficha-editor.mjs";
-import { quantidadeParaGravar, comCustoDeEmbalagens, custoPorPorcaoDaFicha } from "./ficha-modelo.mjs";
-import { custoDeProduzirFicha } from "./ficha-calculos.mjs";
+import { quantidadeParaGravar, comCustoDeEmbalagens, custoPorPorcaoDaFicha, camposParaGravar } from "./ficha-modelo.mjs";
+import {
+  custoDeProduzirFicha, parseNumero, calculateFichaFinanceiro,
+  entradasFinanceirasDaFicha, entradasFinanceirasParaEditor,
+} from "./ficha-calculos.mjs";
 
 const arroz = { id: "i-arroz", nome: "Arroz", unidade_medida: "kg", custo_unitario: 6 };
 const sal = { id: "i-sal", nome: "Sal", unidade_medida: "g", custo_unitario: 0.002 };
@@ -148,4 +151,170 @@ test("CMV: embalagem do cardápio e custo por porção como na listagem", () => 
   assert.equal(porPeso.custoPorcao.toFixed(6), (porPeso.custoTotal / 4).toFixed(6));
   const porContagem = custoPorPorcaoDaFicha({ ...comEmb, rendimento_porcoes: 4, rendimento_unidade: "porcao" }, todas);
   assert.equal(porContagem.custoPorcao.toFixed(6), (porContagem.custoTotal / 4).toFixed(6));
+});
+
+// ── Bug: card mostrava os valores e o "Editar prato" abria vazio ────────────
+//
+// A causa era esta função: ela montava o formulário sem a parte comercial, que
+// só o card sabia montar. Os testes abaixo trancam a hidratação completa.
+
+const pratoVendido = {
+  id: "p9", departamento: "cozinha", eh_base: false, nome_receita: "Açaí 1L - farinha amarela",
+  codigo: "FT-0052", categoria: "Açaí", rendimento_porcoes: 1, rendimento_unidade: "porcao",
+  modo_preparo: "1. Montar no copo", imagem: "base64aqui", peso_final_g: 1000,
+  custo_embalagem: 0, taxa_maquininha: 2.5, imposto_pct: 4, cmv_meta: 35, preco_venda: 50,
+  fichas_ingredientes: [{ insumo_id: arroz.id, quantidade: 0.18, insumos: arroz }],
+};
+
+test("editar prato existente hidrata TODOS os campos gravados", () => {
+  const produto = { ficha_id: "p9", preco_venda: 55, taxa_cartao: 3, aliquota_imposto: 5 };
+  const { form, itens } = estadoInicialDoEditor({
+    departamento: "cozinha", tipo: "prato", ficha: pratoVendido, todasFichas: todas, complementos: {}, produto,
+  });
+
+  assert.equal(form.id, "p9");
+  assert.equal(form.codigo, "FT-0052");
+  assert.equal(form.nome_receita, "Açaí 1L - farinha amarela");
+  assert.equal(form.categoria, "Açaí");
+  assert.equal(form.departamento, "cozinha");
+  assert.equal(form.imagem, "base64aqui");
+  assert.equal(form.modo_preparo, "1. Montar no copo");
+  assert.equal(form.rendimento_porcoes, "1");
+  assert.equal(form.rendimento_unidade, "porcao");
+  assert.equal(form.peso_final_g, "1000");
+  // O preço vem do Cardápio (é o que o card mostra), não da coluna da ficha.
+  assert.equal(form.preco_venda, "55");
+  assert.equal(form.custo_embalagem, "0");
+  assert.equal(form.taxa_maquininha, "2.5");
+  assert.equal(form.imposto_pct, "4");
+  assert.equal(form.cmv_meta, "35");
+  assert.equal(form.eh_base, false);
+  // Ingredientes com nome, quantidade, unidade e id.
+  assert.equal(itens.length, 1);
+  assert.equal(itens[0].nome, "Arroz");
+  assert.equal(itens[0].insumo_id, "i-arroz");
+  assert.equal(itens[0].quantidade, 0.18);
+  assert.equal(itens[0].unidade, "kg");
+});
+
+test("campo vazio no editor é herança, não zero", () => {
+  // Ficha sem taxa/imposto próprios: os campos abrem vazios (o painel mostra o
+  // herdado no placeholder) — gravar não congela o padrão na ficha.
+  const semNada = { ...pratoVendido, taxa_maquininha: null, imposto_pct: null, custo_embalagem: null, cmv_meta: null, preco_venda: null };
+  const { form } = estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato", ficha: semNada, todasFichas: todas, complementos: {} });
+  assert.equal(form.taxa_maquininha, "");
+  assert.equal(form.imposto_pct, "");
+  assert.equal(form.custo_embalagem, "");
+  assert.equal(form.preco_venda, "");
+  assert.equal(form.cmv_meta, "30");
+  // Sem produto no Cardápio o preço cai para a coluna da ficha.
+  const soFicha = estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato", ficha: pratoVendido, todasFichas: todas, complementos: {} });
+  assert.equal(soFicha.form.preco_venda, "50");
+  // Imposto 0% é escolha, não ausência: continua 0 e não vira o padrão.
+  const isento = estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato", ficha: { ...pratoVendido, imposto_pct: 0 }, todasFichas: todas, complementos: {} });
+  assert.equal(isento.form.imposto_pct, "0");
+});
+
+test("ficha nova nasce com os campos comerciais vazios e meta 30", () => {
+  const { form } = estadoInicialDoEditor({ departamento: "cozinha", tipo: "prato" });
+  assert.equal(form.preco_venda, "");
+  assert.equal(form.custo_embalagem, "");
+  assert.equal(form.taxa_maquininha, "");
+  assert.equal(form.imposto_pct, "");
+  assert.equal(form.cmv_meta, "30");
+  assert.equal(form.eh_base, false);
+  assert.equal(estadoInicialDoEditor({ departamento: "cozinha", tipo: "pre_preparo" }).form.eh_base, true);
+});
+
+// ── Entradas financeiras: card e editor têm de ler a mesma coisa ────────────
+
+test("entradasFinanceirasDaFicha: ordem de precedência ficha → produto → parâmetro", () => {
+  const ficha = { id: "f1", custo_embalagem: 1.2, taxa_maquininha: 2.5, imposto_pct: 4, cmv_meta: 35, preco_venda: 50 };
+  const produto = { preco_venda: 55, taxa_cartao: 3, aliquota_imposto: 6 };
+  const params = { taxa_maquininha: 9, imposto_pct: 9 };
+
+  const comTudo = entradasFinanceirasDaFicha(ficha, { produto, params });
+  assert.equal(comTudo.precoVenda, 55);          // o Cardápio manda no preço
+  assert.equal(comTudo.taxaMaquininhaPct, 2.5);  // a ficha manda na taxa
+  assert.equal(comTudo.impostoPct, 4);
+  assert.equal(comTudo.custoEmbalagemPorPorcao, 1.2);
+  assert.equal(comTudo.cmvMeta, 35);
+
+  // Sem valor próprio, herda do produto; sem produto, do parâmetro; sem nada, padrão.
+  const semProprio = { id: "f1" };
+  assert.equal(entradasFinanceirasDaFicha(semProprio, { produto, params }).taxaMaquininhaPct, 3);
+  assert.equal(entradasFinanceirasDaFicha(semProprio, { params }).taxaMaquininhaPct, 9);
+  assert.equal(entradasFinanceirasDaFicha(semProprio).taxaMaquininhaPct, 2.5);
+  assert.equal(entradasFinanceirasDaFicha(semProprio).impostoPct, 4);
+
+  // 0% é escolha válida e não pode cair no padrão.
+  assert.equal(entradasFinanceirasDaFicha({ imposto_pct: 0 }, { produto, params }).impostoPct, 0);
+  // Pré-preparo não é vendido: não paga maquininha nem imposto.
+  const ehBase = entradasFinanceirasDaFicha({ eh_base: true, taxa_maquininha: 2.5, imposto_pct: 4 });
+  assert.equal(ehBase.taxaMaquininhaPct, 0);
+  assert.equal(ehBase.impostoPct, 0);
+  // Sem preço em lugar nenhum: zero, não NaN.
+  assert.equal(entradasFinanceirasDaFicha({}).precoVenda, 0);
+});
+
+test("card e editor chegam ao mesmo resultado a partir da mesma ficha", () => {
+  // Números da ficha "Açaí 1L - farinha amarela" (FT-0052) relatada pelo usuário.
+  const ficha = { id: "a1", rendimento_porcoes: 1, custo_embalagem: 0, taxa_maquininha: 2.5, imposto_pct: 4 };
+  const produto = { preco_venda: 55 };
+  const e = entradasFinanceirasDaFicha(ficha, { produto });
+
+  const doCard = calculateFichaFinanceiro({
+    custoTotalIngredientes: 27.7, rendimentoPorcoes: ficha.rendimento_porcoes,
+    custoEmbalagemPorPorcao: e.custoEmbalagemPorPorcao, precoVenda: e.precoVenda,
+    taxaMaquininhaPct: e.taxaMaquininhaPct, impostoPct: e.impostoPct,
+  });
+  // O editor parte do formulário hidratado — os mesmos valores, em texto.
+  const form = entradasFinanceirasParaEditor(ficha, produto);
+  const doEditor = calculateFichaFinanceiro({
+    custoTotalIngredientes: 27.7, rendimentoPorcoes: 1,
+    custoEmbalagemPorPorcao: parseNumero(form.custo_embalagem),
+    precoVenda: parseNumero(form.preco_venda),
+    taxaMaquininhaPct: parseNumero(form.taxa_maquininha),
+    impostoPct: parseNumero(form.imposto_pct),
+  });
+
+  assert.deepEqual(doEditor, doCard);
+  assert.equal(doCard.custoIngredientesPorPorcao, 27.7);
+  assert.equal(doCard.valorMaquininha, 1.38);
+  assert.equal(doCard.valorImposto, 2.2);
+  assert.equal(doCard.custoTotal, 31.28);
+  assert.equal(doCard.precoVenda, 55);
+  assert.equal(doCard.lucroPorPorcao, 23.72);
+});
+
+test("números do Postgres viram número, não milhar nem NaN", () => {
+  const form = entradasFinanceirasParaEditor({ preco_venda: "55.00", custo_embalagem: "3.50" }, null);
+  assert.equal(form.preco_venda, "55");
+  assert.equal(parseNumero(form.preco_venda), 55);
+  assert.equal(parseNumero(form.custo_embalagem), 3.5);
+  // Digitado à brasileira no campo.
+  assert.equal(parseNumero("55,00"), 55);
+  assert.equal(parseNumero("1.234,56"), 1234.56);
+  assert.equal(parseNumero(""), 0);
+  assert.equal(parseNumero(null), 0);
+});
+
+test("editar não apaga o que já estava gravado na ficha", () => {
+  // Reabrir e salvar sem mexer em nada devolve os mesmos valores ao banco:
+  // era isto que quebrava quando o formulário abria vazio.
+  const { form } = estadoInicialDoEditor({
+    departamento: "cozinha", tipo: "prato", ficha: pratoVendido, todasFichas: todas, complementos: {},
+    produto: { preco_venda: 55 },
+  });
+  const campos = camposParaGravar("prato", form, { novo: false });
+  assert.equal(campos.preco_venda, 55);
+  assert.equal(campos.taxa_maquininha, 2.5);
+  assert.equal(campos.imposto_pct, 4);
+  assert.equal(campos.cmv_meta, 35);
+  assert.equal(campos.peso_final_g, 1000);
+  assert.equal(campos.nome_receita, "Açaí 1L - farinha amarela");
+  // Meta alterada no editor agora persiste (antes só era gravada na criação).
+  assert.equal(camposParaGravar("prato", { ...form, cmv_meta: "25" }, { novo: false }).cmv_meta, 25);
+  // Ficha nova sem meta escolhida continua nascendo em 30%.
+  assert.equal(camposParaGravar("prato", { nome_receita: "X", departamento: "cozinha" }, { novo: true }).cmv_meta, 30);
 });

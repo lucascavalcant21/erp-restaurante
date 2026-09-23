@@ -11,6 +11,7 @@ import { configDoTipo, estiloDoTipo, setorId, unidadePadraoDepartamento } from "
 import {
   estadoInicialDoEditor, itemDeOpcao, opcoesDeIngrediente, rendimentoSomado, rendimentoEhAutomatizavel,
 } from "../../../../lib/ficha-editor.mjs";
+import { entradasFinanceirasDaFicha } from "../../../../lib/ficha-calculos.mjs";
 import { carregarComplementosDaFicha, salvarFichaDoEditor } from "../../../../lib/ficha-salvar";
 import { FORMULARIO_DO_TIPO } from "./FormulariosFicha";
 
@@ -21,13 +22,20 @@ export default function EditorFicha({
   fichas = [], insumos = [], embalagens = [],
   categoriasDe, onGerenciarCategorias,
   unidadeId, sessao, podeVerCustos = false,
+  produto = null, paramsSistema = null,
   onFechar, onSalvo,
 }) {
   const cfg = configDoTipo(tipo);
   const Formulario = FORMULARIO_DO_TIPO[cfg.id];
   const Icone = ICONE_DO_TIPO[cfg.id];
 
-  const [inicial] = useState(() => estadoInicialDoEditor({ departamento, tipo: cfg.id, ficha, rascunho, todasFichas: fichas }));
+  const [inicial] = useState(() => estadoInicialDoEditor({ departamento, tipo: cfg.id, ficha, rascunho, todasFichas: fichas, produto }));
+  // Taxa e imposto herdados (produto do Cardápio → parâmetros → padrão), pela
+  // mesma função que o card usa: é o que faz os dois mostrarem o mesmo número.
+  const padroesFinanceiros = useMemo(
+    () => entradasFinanceirasDaFicha(ficha || { eh_base: cfg.id === "pre_preparo" }, { produto, params: paramsSistema }),
+    [ficha, produto, paramsSistema, cfg.id],
+  );
   const [form, setForm] = useState(inicial.form);
   const [itens, setItens] = useState(inicial.itens);
   const [autoRendimento, setAuto] = useState(inicial.autoRendimento);
@@ -82,6 +90,11 @@ export default function EditorFicha({
   const mudar = (patch) => {
     setSujo(true);
     if ("modo_preparo" in patch) textoTocado.current = true;
+    // Rendimento digitado à mão desliga a soma automática: senão o número
+    // voltava para a soma dos ingredientes no mesmo instante em que a pessoa
+    // terminava de digitar.
+    const rendimentoManual = "rendimento_porcoes" in patch || "rendimento_unidade" in patch;
+    if (rendimentoManual) setAuto(false);
     setForm(atual => {
       let proximo = { ...atual, ...patch };
       // Trocar o setor leva junto a unidade do rendimento (kg ↔ L), se era a padrão.
@@ -89,7 +102,7 @@ export default function EditorFicha({
           && atual.rendimento_unidade === unidadePadraoDepartamento(atual.departamento)) {
         proximo.rendimento_unidade = unidadePadraoDepartamento(patch.departamento);
       }
-      proximo = aplicarRendimento(proximo, itens, autoRendimento);
+      proximo = aplicarRendimento(proximo, itens, autoRendimento && !rendimentoManual);
       return proximo;
     });
   };
@@ -193,15 +206,30 @@ export default function EditorFicha({
               <AlertTriangle size={15} className="mt-0.5 shrink-0" /> {avisoComplementos}
             </p>
           ) : null}
-          <Formulario
-            cfg={cfg} form={form} mudar={mudar} itens={itens} ingredientes={ingredientes}
-            categorias={categorias} onGerenciarCategorias={onGerenciarCategorias ? () => onGerenciarCategorias(cfg.id) : null}
-            autoRendimento={autoRendimento} setAutoRendimento={setAutoRendimento}
-            armazenamento={armazenamento} setArmazenamento={setArmazenamento}
-            equipamentos={equipamentos} setEquipamentos={setEquipamentos}
-            alergenicos={alergenicos} setAlergenicos={setAlergenicos}
-            podeVerCustos={podeVerCustos} carregandoComplementos={carregandoComplementos}
-          />
+          {/* Ficha existente só monta os campos depois que as tabelas filhas
+              chegam: senão a montagem aparecia vazia e pulava para o texto
+              certo depois, e quem já tivesse clicado editava o valor errado. */}
+          {carregandoComplementos ? (
+            <div role="status" aria-live="polite" className="space-y-3">
+              <p className="flex items-center gap-2 text-sm font-bold text-muted">
+                <Loader2 size={16} className="animate-spin" /> Carregando ficha...
+              </p>
+              {[180, 120, 260].map((altura, i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-line bg-elevated" style={{ height: altura }} />
+              ))}
+            </div>
+          ) : (
+            <Formulario
+              cfg={cfg} form={form} mudar={mudar} itens={itens} ingredientes={ingredientes}
+              categorias={categorias} onGerenciarCategorias={onGerenciarCategorias ? () => onGerenciarCategorias(cfg.id) : null}
+              autoRendimento={autoRendimento} setAutoRendimento={setAutoRendimento}
+              armazenamento={armazenamento} setArmazenamento={setArmazenamento}
+              equipamentos={equipamentos} setEquipamentos={setEquipamentos}
+              alergenicos={alergenicos} setAlergenicos={setAlergenicos}
+              podeVerCustos={podeVerCustos} carregandoComplementos={carregandoComplementos}
+              padroesFinanceiros={padroesFinanceiros}
+            />
+          )}
         </div>
 
         <footer className="border-t border-line bg-card p-3 sm:p-4">
@@ -211,13 +239,13 @@ export default function EditorFicha({
             </p>
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row">
-            <button type="button" onClick={() => salvar(false)} disabled={salvando}
+            <button type="button" onClick={() => salvar(false)} disabled={salvando || carregandoComplementos}
               className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[color:var(--tipo)] text-base font-black text-[color:var(--tipo-fg)] disabled:opacity-50">
               {salvando ? <Loader2 size={19} className="animate-spin" /> : <Save size={19} />}
               {salvando ? "Salvando..." : `Salvar ${cfg.id === "prato" ? "prato" : "pré-preparo"}`}
             </button>
             {!form.id ? (
-              <button type="button" onClick={() => salvar(true)} disabled={salvando}
+              <button type="button" onClick={() => salvar(true)} disabled={salvando || carregandoComplementos}
                 className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-line px-5 text-sm font-black text-fg-soft hover:border-[color:var(--tipo)] disabled:opacity-50 sm:w-60">
                 <Plus size={17} /> Salvar e criar {cfg.id === "prato" ? "outro prato" : "outro pré-preparo"}
               </button>

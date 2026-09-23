@@ -581,3 +581,61 @@ export function calculateFichaFinanceiro({
     margem,
   };
 }
+
+// ─── Entradas financeiras da ficha (card, editor e modal antigo) ────────────
+//
+// O card sabia montar esses números e o editor não — era essa a origem de
+// "o card mostra R$ 55,00 e o Editar abre vazio". Agora a ordem de precedência
+// mora aqui, uma vez só, e os três lugares leem daqui.
+//
+// Preço: o Cardápio manda (é onde a venda é definida); a coluna da ficha é o
+// espelho, usada quando o produto ainda não existe.
+export function precoVendaEfetivo(ficha = {}, produto = null) {
+  const doProduto = parseNumero(produto?.preco_venda);
+  if (doProduto > 0) return doProduto;
+  const daFicha = parseNumero(ficha?.preco_venda);
+  return daFicha > 0 ? daFicha : 0;
+}
+
+// `??` de propósito, não `||`: 0% de imposto é uma escolha válida e não pode
+// cair no padrão de 4%.
+const primeiroDefinido = (...valores) => valores.find(v => v !== null && v !== undefined);
+
+export function entradasFinanceirasDaFicha(ficha = {}, { produto = null, params = null } = {}) {
+  const ehBase = !!ficha?.eh_base;
+  const custoEmbalagem = ficha?.custo_embalagem !== null && ficha?.custo_embalagem !== undefined
+    ? parseNumero(ficha.custo_embalagem)
+    : (Array.isArray(ficha?.embalagens) ? ficha.embalagens : []).reduce(
+      (total, item) => total + (parseNumero(item?.custo) || parseNumero(item?.preco_unitario)) * (parseNumero(item?.qtd) || 1), 0);
+
+  const taxa = primeiroDefinido(ficha?.taxa_maquininha, produto?.taxa_cartao,
+    params?.taxaMaquininha, params?.taxa_maquininha, 2.5);
+  const imposto = primeiroDefinido(ficha?.imposto_pct, produto?.aliquota_imposto,
+    params?.impostoPct, params?.imposto_pct, 4.0);
+
+  return {
+    custoEmbalagemPorPorcao: custoEmbalagem,
+    precoVenda: precoVendaEfetivo(ficha, produto),
+    // Pré-preparo não é vendido: não paga maquininha nem imposto.
+    taxaMaquininhaPct: ehBase ? 0 : parseNumero(taxa),
+    impostoPct: ehBase ? 0 : parseNumero(imposto),
+    cmvMeta: parseNumero(ficha?.cmv_meta) || 30,
+  };
+}
+
+// O mesmo, já no formato do editor (strings), para hidratar o formulário.
+//
+// Taxa e imposto ficam VAZIOS quando a ficha não tem valor próprio: vazio
+// significa "herdar do produto/parâmetro", e é assim que o campo continua
+// herdando em vez de congelar o padrão no primeiro salvamento.
+export function entradasFinanceirasParaEditor(ficha = {}, produto = null) {
+  const texto = (v) => (v === null || v === undefined || v === "" ? "" : String(v));
+  return {
+    preco_venda: precoVendaEfetivo(ficha, produto) > 0 ? String(precoVendaEfetivo(ficha, produto)) : "",
+    custo_embalagem: texto(ficha?.custo_embalagem),
+    taxa_maquininha: texto(ficha?.taxa_maquininha),
+    imposto_pct: texto(ficha?.imposto_pct),
+    cmv_meta: ficha?.cmv_meta === null || ficha?.cmv_meta === undefined ? "30" : String(ficha.cmv_meta),
+    eh_base: !!ficha?.eh_base,
+  };
+}

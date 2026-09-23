@@ -43,22 +43,30 @@ export async function carregarComplementosDaFicha(fichaId) {
   };
 }
 
-// Prato vendido precisa existir no Cardápio. Preço e embalagem são do Cardápio:
-// aqui só se garante o vínculo — um produto existente nunca tem o preço mexido.
-async function vincularPratoAoCardapio({ unidadeId, fichaId, campos }) {
+// Prato vendido precisa existir no Cardápio, e o preço mora lá.
+//
+// O editor mostra o preço do Cardápio; se a pessoa mudar, o Cardápio tem de
+// receber a mudança — senão o card volta a exibir o preço antigo e ficha e
+// cardápio passam a discordar. Preço vazio ou zero NÃO sobrescreve: campo em
+// branco é "não mexi nisso", não "cobrar R$ 0,00".
+async function vincularPratoAoCardapio({ unidadeId, fichaId, campos, precoVenda = 0 }) {
   const { data: produtos } = await fetchProdutos(unidadeId, campos.departamento);
   const nome = String(campos.nome_receita || "").trim().toLowerCase();
   const existente = (produtos || []).find(p => p.ficha_id === fichaId)
     || (produtos || []).find(p => String(p.nome_produto || "").trim().toLowerCase() === nome);
+  const preco = parseNumero(precoVenda);
   if (existente) {
-    if (existente.ficha_id !== fichaId) return salvarProduto({ id: existente.id, ficha_id: fichaId });
-    return { error: null };
+    const mudancas = {};
+    if (existente.ficha_id !== fichaId) mudancas.ficha_id = fichaId;
+    if (preco > 0 && preco !== parseNumero(existente.preco_venda)) mudancas.preco_venda = preco;
+    if (!Object.keys(mudancas).length) return { error: null };
+    return salvarProduto({ id: existente.id, ...mudancas });
   }
   return salvarProduto({
     unidade_id: unidadeId,
     ficha_id: fichaId,
     nome_produto: campos.nome_receita,
-    preco_venda: 0,
+    preco_venda: preco,
     categoria: campos.departamento === "bar" ? "Drinks" : "Pratos Principais",
     departamento: campos.departamento,
     observacoes: "Criado automaticamente pela Ficha Técnica.",
@@ -139,7 +147,7 @@ export async function salvarFichaDoEditor({
     if (estoque?.error) avisos.push(`A ficha foi salva, mas não entrou no estoque de pré-preparos: ${estoque.error}`);
   } else {
     try {
-      const r = await vincularPratoAoCardapio({ unidadeId: unidade, fichaId, campos });
+      const r = await vincularPratoAoCardapio({ unidadeId: unidade, fichaId, campos, precoVenda: form.preco_venda });
       if (r?.error) avisos.push(`A ficha foi salva, mas o vínculo com o Cardápio falhou: ${r.error}`);
     } catch { /* o vínculo com o cardápio nunca derruba o salvar */ }
   }

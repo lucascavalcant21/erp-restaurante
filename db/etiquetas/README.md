@@ -119,7 +119,7 @@ etiquetas — que é o mesmo esquecimento silencioso que a fila existe para
 impedir.
 
 O acionamento é o cron que o ERP já usa (`vercel.json` → `crons`), apontando
-para `/api/etiquetas/financeiro/drenar` de hora em hora, no mesmo padrão de
+para `/api/etiquetas/financeiro/drenar` uma vez por dia, no mesmo padrão de
 segredo de `/api/hefisto/automation/cron`. A tela pode chamar o mesmo endpoint
 para o operador ver o efeito na hora, mas não é ela a responsável.
 
@@ -141,6 +141,12 @@ trava a linha para sempre.
 `vw_etiqueta_financeiro_fila` responde, numa consulta, quantas estão em cada
 estado, o valor em aberto e a data da mais antiga — é por ali que se percebe
 que o cron parou de rodar.
+
+A frequência é diária porque a conta da Vercel é Hobby, que recusa mais de um
+cron por dia (o deploy falha com `deploy_failed`). Num plano Pro vale voltar
+para de hora em hora: a perda ficaria no máximo uma hora fora do DRE em vez de
+até um dia. Enquanto isso a tela pode chamar o mesmo endpoint na hora da
+perda, e o cron fica como rede de segurança.
 
 **Configuração obrigatória**: `CRON_SECRET` na Vercel. Sem ele o endpoint **não
 abre** — um drenador aberto na internet é um jeito de encher o financeiro de

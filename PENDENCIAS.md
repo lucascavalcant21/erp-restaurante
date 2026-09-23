@@ -60,6 +60,26 @@ o ERP usa hoje (`insumos`, `produtos`, `colaboradores`, `registro_ponto`,
 `pedidos`, `contas_pagar`...) em geral têm policy `to authenticated using
 (true)`, sem escopo de unidade nenhum.
 
+A mesma migração traz, no bloco 4, as funções do modelo definitivo —
+`hefisto_user_in_unit_strict(uuid, text)` e `hefisto_user_in_company(uuid,
+text)` —, fechadas para nulo e prontas para multiunidade. Elas **ainda não
+são usadas por policy nenhuma**: entram na etapa de reescrita das policies.
+`auth_unidade_id()` fica marcada como compatibilidade de unidade única: ela
+devolve UMA unidade e não sabe representar quem atende duas lojas.
+
+### 0b. SEGURANÇA — proposta não aplicada: `db/security/0002_proteger_tabelas_autorizacao.sql`
+
+Fecha as tabelas que decidem autorização. Hoje, quem tem qualquer login
+**lê o cadastro inteiro** (`usuarios_erp`, `usuario_escopos`, `perfis_acesso`
+e `permissoes_auditoria` têm policy de SELECT `using (true)` vinda de
+`db/migracao_controle_acesso.sql`): login, cargo, IPs liberados, janelas de
+horário, bloqueios, perfis e permissões de todo mundo. A proposta troca isso
+por leitura da própria linha e tira `INSERT/UPDATE/DELETE` de `authenticated`
+no nível de privilégio. A administração continua pela rota de servidor com
+service role, como já é. **Rode a prévia do bloco 1 antes** — se aparecer
+policy de escrita para `authenticated` que este repositório não conhece, pare
+e investigue.
+
 ### 1. Migrações — FILA VAZIA (27/08)
 
 Nada de banco pendente. As 17 antigas mais estas quatro foram rodadas em 27/08:

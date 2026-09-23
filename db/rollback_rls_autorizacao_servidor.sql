@@ -11,6 +11,11 @@
    assim que o cadastro estiver certo.
 */
 
+/* As funções novas de acesso por linha não existiam antes; some com elas.
+   Nenhuma policy as usa ainda, então isto não derruba nada. */
+drop function if exists public.hefisto_user_in_unit_strict(uuid, text);
+drop function if exists public.hefisto_user_in_company(uuid, text);
+
 create or replace function public.auth_papel()
 returns text
 language sql

@@ -200,21 +200,134 @@ $$;
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BLOCO 4 — QUEM PODE EXECUTAR
+   BLOCO 4 — ACESSO POR LINHA, MULTIUNIDADE, FECHADO POR PADRÃO
+
+   As três funções acima são LEGACY_SINGLE_UNIT_COMPATIBILITY: existem porque
+   as policies antigas comparam igualdade com UMA unidade. Elas não sabem
+   representar alguém que atende duas lojas. O modelo definitivo é a função
+   abaixo, que responde "este usuário pode ver esta linha?" e aceita quantas
+   unidades o cadastro der.
+
+   hefisto_user_in_unit_strict(p_user_id, p_unidade_id)
+     p_user_id nulo                  -> false
+     p_unidade_id nulo               -> false   (linha sem unidade não é de todos)
+     usuário sem cadastro            -> false
+     usuário não ativo               -> false
+     super_admin                     -> true
+     unidade principal bate          -> true
+     escopo com essa unidade         -> true
+     escopo data_scope 'todos'       -> true
+     escopo 'empresa' da mesma empresa -> true
+     qualquer outro caso             -> false
+
+   NÃO substitui a hefisto_user_in_unit antiga (que devolve true quando a
+   unidade é nula); a antiga fica intocada para não quebrar quem já a usa.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Preflight do vínculo de empresa: sem ele o escopo 'empresa' não tem como
+   ser resolvido e a função não pode ser criada. */
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'unidades' and column_name = 'empresa_id'
+  ) then
+    raise exception 'PREFLIGHT: unidades.empresa_id não existe. Rode docs/controle-acesso-rbac.sql (bloco das empresas) antes, senão data_scope = empresa fica sem significado.';
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'usuario_escopos' and column_name = 'empresa_id'
+  ) then
+    raise exception 'PREFLIGHT: usuario_escopos.empresa_id não existe. Rode docs/controle-acesso-rbac.sql antes.';
+  end if;
+end $$;
+
+/* Escopo de EMPRESA é o conjunto de unidades daquela empresa — nunca "todas".
+   Precisa dos dois lados preenchidos: o escopo tem de dizer qual empresa e a
+   unidade tem de estar ligada a uma. Faltando qualquer um, devolve false. */
+create or replace function public.hefisto_user_in_company(
+  p_user_id uuid,
+  p_unidade_id text
+) returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when p_user_id is null or p_unidade_id is null then false
+    else exists (
+      select 1
+      from usuarios_erp u
+      join usuario_escopos e on e.usuario_id = u.id
+      join unidades un on un.id = p_unidade_id
+      where u.auth_user_id = p_user_id
+        and u.status = 'ativo'
+        and e.data_scope = 'empresa'
+        and e.empresa_id is not null
+        and un.empresa_id is not null
+        and un.empresa_id = e.empresa_id
+    )
+  end;
+$$;
+
+create or replace function public.hefisto_user_in_unit_strict(
+  p_user_id uuid,
+  p_unidade_id text
+) returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when p_user_id is null or p_unidade_id is null then false
+    else exists (
+      select 1
+      from usuarios_erp u
+      where u.auth_user_id = p_user_id
+        and u.status = 'ativo'
+        and (
+          u.super_admin
+          or u.unidade_principal_id = p_unidade_id
+          or exists (
+            select 1 from usuario_escopos e
+            where e.usuario_id = u.id
+              and e.unidade_id = p_unidade_id
+          )
+          or exists (
+            select 1 from usuario_escopos e
+            where e.usuario_id = u.id
+              and e.data_scope = 'todos'
+          )
+          or public.hefisto_user_in_company(p_user_id, p_unidade_id)
+        )
+    )
+  end;
+$$;
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLOCO 5 — QUEM PODE EXECUTAR
    As policies chamam estas funções como o usuário logado, então authenticated
    precisa do execute. anon não precisa e não recebe.
    ═══════════════════════════════════════════════════════════════════════════ */
 revoke all on function public.auth_papel() from public;
 revoke all on function public.auth_unidade_id() from public;
 revoke all on function public.pode_ver_todas() from public;
+revoke all on function public.hefisto_user_in_unit_strict(uuid, text) from public;
+revoke all on function public.hefisto_user_in_company(uuid, text) from public;
 
 grant execute on function public.auth_papel() to authenticated, service_role;
 grant execute on function public.auth_unidade_id() to authenticated, service_role;
 grant execute on function public.pode_ver_todas() to authenticated, service_role;
+grant execute on function public.hefisto_user_in_unit_strict(uuid, text) to authenticated, service_role;
+grant execute on function public.hefisto_user_in_company(uuid, text) to authenticated, service_role;
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BLOCO 5 — CONFERÊNCIA (rode depois, separadamente)
+   BLOCO 6 — CONFERÊNCIA (rode depois, separadamente)
    ═══════════════════════════════════════════════════════════════════════════
 
    1) As três funções não podem mais citar user_metadata:

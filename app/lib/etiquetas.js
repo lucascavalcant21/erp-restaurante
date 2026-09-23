@@ -110,11 +110,22 @@ export async function excluirListaEtiquetas(id) {
   return { error: error?.message || null };
 }
 
-// Busca pública por código (usada na página de rastreio ao escanear o QR)
+// Busca pública por código (usada na página de rastreio ao escanear o QR).
+//
+// Passa pela função get_etiqueta_publica em vez de ler a tabela: a linha da
+// etiqueta agora carrega saldo, custo, linhagem e produção, e nada disso pode
+// sair para quem só escaneou um QR na rua. A função devolve apenas o que já
+// está impresso no papel.
 export async function buscarPorCodigo(codigo) {
   if (!isSupabaseReady() || !codigo) return null;
-  const { data } = await supabase.from("etiquetas").select("*").eq("codigo", codigo).maybeSingle();
-  return data || null;
+  const { data, error } = await supabase.rpc("get_etiqueta_publica", { p_codigo: codigo });
+  if (error) {
+    // Ambiente onde a migração ainda não rodou: o rastreio continua de pé pela
+    // leitura antiga, que segue permitida enquanto a policy anônima existir.
+    const { data: antigo } = await supabase.from("etiquetas").select("*").eq("codigo", codigo).maybeSingle();
+    return antigo || null;
+  }
+  return (Array.isArray(data) ? data[0] : data) || null;
 }
 
 // Status da etiqueta: 'ativa' | 'baixa' (consumido/usado) | 'perda' (perdido/descartado)

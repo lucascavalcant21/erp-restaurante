@@ -23,6 +23,10 @@ export const ACTION_LABELS = {
   record_loss: "Registrar perdas",
   view_history: "Consultar histórico",
   settings: "Alterar configurações",
+  manage_settings: "Configurar bobina e impressão",
+  manage_printers: "Configurar impressoras",
+  manage_templates: "Editar modelos de etiqueta",
+  upload_image: "Enviar imagem na etiqueta",
 };
 
 const CRUD = ["view", "create", "edit", "delete"];
@@ -60,7 +64,10 @@ export const PERMISSION_MODULES = [
       { id: "transfers", label: "Transferências", route: "/dashboard/operacao/estoque", actions: ["view", "create", "confirm", "cancel", "transfer"] },
       { id: "losses", label: "Perdas", route: "/dashboard/operacao/estoque", actions: ["view", "create", "approve", "record_loss", "view_history"] },
       { id: "suppliers", label: "Fornecedores", route: "/dashboard/operacao/fornecedores", actions: CRUD },
-      { id: "labels", label: "Etiquetas e validade", route: "/dashboard/operacao/etiquetas", actions: ["view", "create", "edit", "delete", "print"] },
+      /* Etiquetas: imprimir é do operacional; mexer em bobina, impressora,
+         modelo e imagem é administrativo. Separado de propósito — quem está na
+         cozinha não deve nem enxergar a configuração técnica. */
+      { id: "labels", label: "Etiquetas e validade", route: "/dashboard/operacao/etiquetas", actions: ["view", "create", "edit", "delete", "print", "manage_settings", "manage_printers", "manage_templates", "upload_image"] },
     ],
   },
   {

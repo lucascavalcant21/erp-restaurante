@@ -487,7 +487,6 @@ export function concatenarChunksTspl(chunks = []) {
   return result;
 }
 
-/**
 export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1, perfilFisico = null }) {
   let m = METRICAS_TAMANHO[tamanho] || METRICAS_TAMANHO["60x40"];
 
@@ -758,35 +757,61 @@ export function gerarEtiquetaDiagnosticoTsplMdk022() {
 export async function imprimirEtiquetaMdk022Usb({ dados, tamanho = "60x40", copias = 1, perfilFisico = null, onStatusChange }) {
   try {
     if (onStatusChange) onStatusChange("Conectando à MDK-022...");
+    
+    if (typeof gerarComandosTsplMdk022 !== 'function') {
+      throw new Error("ERRO PRINCIPAL: gerarComandosTsplMdk022 is not defined ou não é uma função.");
+    }
+
     const device = await obterDispositivoMdk022();
     const endpointOut = device._endpointOutNumber || 2;
 
     const buffer = gerarComandosTsplMdk022({ dados, tamanho, copias, perfilFisico });
 
-    console.log(`[ETIQUETA][MDK022] TSPL gerado: ${buffer.length} bytes`);
+    const bytesGerados = buffer.length;
+    console.log(`[ETIQUETA][MDK022] TSPL gerado: ${bytesGerados} bytes`);
     
+    if (bytesGerados === 0) {
+      throw new Error("Nenhum byte gerado pelos comandos TSPL.");
+    }
+
     if (onStatusChange) onStatusChange("Enviando etiqueta...");
     console.log("[ETIQUETA][MDK022] transferOut iniciado");
 
     const resultado = await device.transferOut(endpointOut, buffer);
+    const bytesEnviados = resultado.bytesWritten ?? 0;
+    const status = resultado.status;
 
-    console.log(`[ETIQUETA][MDK022] transferOut status: ${resultado.status}`);
+    console.log(`[ETIQUETA][MDK022] transferOut status: ${status}, bytes enviados: ${bytesEnviados}`);
+    
+    const diagnostico = [
+      `Vendor ID: 0x${device.vendorId.toString(16).toUpperCase()} (${device.vendorId})`,
+      `Product ID: 0x${device.productId.toString(16).toUpperCase()} (${device.productId})`,
+      `Interface: #${device._interfaceTarget ?? 0}`,
+      `Endpoint OUT: #${endpointOut}`,
+      `Tamanho: ${perfilFisico ? `${perfilFisico.widthMm}x${perfilFisico.heightMm}` : tamanho}`,
+      `GAP: ${perfilFisico?.gapMm ?? 2} mm`,
+      `Bytes gerados: ${bytesGerados}`,
+      `Bytes enviados: ${bytesEnviados}`,
+      `Status: ${status}`
+    ].join("\\n");
 
-    if (resultado.status === "ok") {
-      console.log("[ETIQUETA][MDK022] impressão finalizada");
-      if (onStatusChange) onStatusChange("Etiqueta enviada para MDK-022.");
-      return {
-        ok: true,
-        bytes: resultado.bytesWritten || buffer.length,
-        status: resultado.status,
-        vendorId: device.vendorId,
-        productId: device.productId,
-        interfaceNumber: device._interfaceTarget ?? 0,
-        endpointNumber: endpointOut
-      };
-    } else {
-      throw new Error(`A impressora MDK-022 respondeu com o status: ${resultado.status}`);
+    if (status !== "ok" || bytesEnviados === 0) {
+      throw new Error(`Falha no envio da etiqueta.\\n\\nDiagnóstico:\\n${diagnostico}`);
     }
+
+    console.log("[ETIQUETA][MDK022] impressão finalizada");
+    if (onStatusChange) onStatusChange("Etiqueta enviada para MDK-022.");
+    
+    return {
+      ok: true,
+      bytes: bytesEnviados,
+      status: status,
+      vendorId: device.vendorId,
+      productId: device.productId,
+      interfaceNumber: device._interfaceTarget ?? 0,
+      endpointNumber: endpointOut,
+      diagnostico
+    };
   } catch (err) {
     console.error("[ETIQUETA][MDK022] Erro na transmissão WebUSB MDK-022:", err.message || err);
     throw err;
@@ -825,6 +850,10 @@ export async function imprimirFilaMdk022Usb({
   const totalEtiquetas = fila.reduce((acc, p) => acc + Math.max(1, Math.floor(Number(p.copias) || 1)), 0);
 
   if (onStatusChange) onStatusChange("Conectando à MDK-022...");
+  
+  if (typeof gerarComandosTsplMdk022 !== 'function') {
+    throw new Error("ERRO PRINCIPAL: gerarComandosTsplMdk022 is not defined ou não é uma função.");
+  }
 
   // Conecta uma ÚNICA vez via WebUSB
   const device = await obterDispositivoMdk022();
@@ -862,11 +891,18 @@ export async function imprimirFilaMdk022Usb({
       perfilFisico
     });
 
+    const bytesGerados = buffer.length;
+    if (bytesGerados === 0) {
+      throw new Error(`Nenhum byte gerado pelos comandos TSPL para a etiqueta ${i + 1}.`);
+    }
+
     try {
       const resultado = await device.transferOut(endpointOut, buffer);
+      const bytesEnviados = resultado.bytesWritten ?? 0;
+      const status = resultado.status;
 
-      if (resultado.status !== "ok") {
-        throw new Error(`Impressora respondeu com status: ${resultado.status}`);
+      if (status !== "ok" || bytesEnviados === 0) {
+        throw new Error(`Impressora respondeu com status: ${status}. Bytes enviados: ${bytesEnviados}`);
       }
       processadas += copiasItem;
     } catch (errTransfer) {
@@ -876,7 +912,7 @@ export async function imprimirFilaMdk022Usb({
         ok: false,
         processadas,
         total: totalEtiquetas,
-        erro: `Impressão interrompida na etiqueta ${processadas + 1} de ${totalEtiquetas}. ${processadas} etiquetas foram enviadas. Erro: ${msgErro}`,
+        erro: `Impressão interrompida na etiqueta ${processadas + 1} de ${totalEtiquetas}. Erro: ${msgErro}`,
       };
     }
   }

@@ -614,16 +614,142 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1, 
 
   // TESTE DE CALIBRAÇÃO SE SOLICITADO
   if (dados.testeCalibracao) {
-    const dW = mmToDots(wMm) || 480;
-    const dH = mmToDots(hMm) || 320;
-    let txt = `TEXT ${Math.floor(dW/2)},${Math.floor(dH/2)},"3",0,1,1,2,"TESTE HEFISTO"\r\n`;
-    txt += `TEXT ${Math.floor(dW/2)},${Math.floor(dH/2) + 30},"2",0,1,1,2,"${wMm} x ${hMm} mm"\r\n`;
-    txt += `TEXT ${safeLeft},${safeTop},"2",0,1,1,"+"\r\n`; // top left
-    txt += `TEXT ${dW - safeLeft - 20},${safeTop},"2",0,1,1,"+"\r\n`; // top right
-    txt += `TEXT ${safeLeft},${dH - 30},"2",0,1,1,"+"\r\n`; // bot left
-    txt += `TEXT ${dW - safeLeft - 20},${dH - 30},"2",0,1,1,"+"\r\n`; // bot right
-    txt += `PRINT ${Math.max(1, copias)},1\r\n`;
-    chunks.push(txt);
+    const dpiLocal = perfilFisico?.dpi || 203;
+    const toDots = (mm) => Math.round(mm * (dpiLocal / 25.4));
+    
+    const dW = toDots(wMm) || 480;
+    const dH = toDots(hMm) || 320;
+    
+    // Área segura Canvas
+    const wC = dW - (safeLeft * 2); // 456
+    const hC = dH - (safeTop * 2);  // 296
+
+    const bmpTeste = renderizarCanvasParaBitmap((ctx, w, h) => {
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.strokeRect(0, 0, w, h);
+      ctx.setLineDash([]);
+      
+      ctx.fillRect(0, 0, 20, 4); ctx.fillRect(0, 0, 4, 20);
+      ctx.fillRect(w - 20, 0, 20, 4); ctx.fillRect(w - 4, 0, 4, 20);
+      ctx.fillRect(0, h - 4, 20, 4); ctx.fillRect(0, h - 20, 4, 20);
+      ctx.fillRect(w - 20, h - 4, 20, 4); ctx.fillRect(w - 4, h - 20, 4, 20);
+      
+      ctx.font = "bold 34px sans-serif";
+      ctx.fillText("TESTE 60x40", 30, 40);
+      
+      ctx.font = "24px sans-serif";
+      ctx.fillText("ÁREA SEGURA", 30, 80);
+      
+      ctx.font = "18px monospace";
+      ctx.fillText(dataManipulacao, 30, h - 30);
+    }, wC, hC);
+
+    chunks.push(`BITMAP ${safeLeft},${safeTop},${bmpTeste.widthBytes},${bmpTeste.heightDots},0,`);
+    chunks.push(bmpTeste.data);
+    chunks.push("\r\n");
+
+    chunks.push(`QRCODE ${safeLeft + wC - 100},${safeTop + 40},L,4,A,0,"CALIBRACAO OK"\r\n`);
+    chunks.push(`PRINT ${Math.max(1, copias)},1\r\n`);
+    return concatenarChunksTspl(chunks);
+  }
+
+  // ==== NOVO LAYOUT NATIVO EXCLUSIVO PARA 60x40 ====
+  if (tamanho === "60x40" && modeloEtiqueta !== "nome") {
+    const dW = 480;
+    const dH = 320;
+    // Margens recomendadas (1.5mm = 12 dots)
+    const mTop = 12;
+    const mLeft = 12;
+    const cW = dW - (mLeft * 2); // 456
+    const cH = dH - (mTop * 2);  // 296
+    
+    // Área do QR Code (canto superior direito)
+    const qrSize = 100; // cell size 4 -> ~100px
+    const textW = cW - qrSize - 12; // 344 dots para o texto
+    
+    const bmpFundo = renderizarCanvasParaBitmap((ctx, w, h) => {
+      let y = 0;
+      
+      // 1. NOME DO PRODUTO (Bold, max 2 linhas)
+      ctx.font = "bold 28px sans-serif";
+      let palavras = produto.split(" ");
+      let linha1 = "", linha2 = "";
+      for (let p of palavras) {
+        if (ctx.measureText(linha1 + " " + p).width <= textW) linha1 += (linha1 ? " " : "") + p;
+        else linha2 += (linha2 ? " " : "") + p;
+      }
+      ctx.fillText(linha1, 0, y);
+      y += 30;
+      if (linha2) {
+        // Truncate se linha2 for muito grande
+        while (linha2.length > 0 && ctx.measureText(linha2 + "...").width > textW) {
+          linha2 = linha2.slice(0, -1);
+        }
+        if (linha2 !== produto.split(" ").slice(linha1.split(" ").length).join(" ")) linha2 += "...";
+        ctx.fillText(linha2, 0, y);
+        y += 30;
+      } else {
+        y += 10;
+      }
+      
+      // 2. RESFRIADO / MANIPULADO
+      ctx.font = "20px sans-serif";
+      const tipoLbl = tipoEtiqueta === "aberto" ? "MANIPULADO" : "FECHADO";
+      ctx.fillText(`${conservacao} / ${tipoLbl}`, 0, y);
+      y += 24;
+      
+      // Linha divisória
+      ctx.fillRect(0, y, textW, 2);
+      y += 10;
+      
+      // 3. DATAS
+      ctx.font = "18px sans-serif";
+      ctx.fillText(`${tipoEtiqueta === "aberto" ? "MANIP." : "ETIQ."}: ${dataManipulacao}`, 0, y);
+      y += 22;
+      ctx.font = "bold 18px sans-serif";
+      ctx.fillText(`VALIDADE: ${dataValidade}`, 0, y);
+      y += 22;
+      
+      // 4. SETOR E RESPONSÁVEL
+      ctx.font = "18px sans-serif";
+      ctx.fillText(`SETOR: ${dados.lote || "COZINHA"}`, 0, y);
+      y += 22;
+      
+      let respTxt = `RESP.: ${responsavel}`;
+      while (respTxt.length > 7 && ctx.measureText(respTxt + "...").width > textW) {
+        respTxt = respTxt.slice(0, -1);
+      }
+      if (respTxt !== `RESP.: ${responsavel}`) respTxt += "...";
+      ctx.fillText(respTxt, 0, y);
+      y += 24;
+      
+      // Linha divisória total (agora pode ocupar a largura toda porque passou do QR Code)
+      ctx.fillRect(0, y, w, 2);
+      y += 10;
+      
+      // 5. RODAPÉ (EMPRESA E LOTE)
+      ctx.font = "bold 16px sans-serif";
+      ctx.fillText("SELDEESTRELA", 0, y);
+      y += 18;
+      ctx.font = "14px sans-serif";
+      ctx.fillText("COMIDAS NORTISTAS LTDA", 0, y);
+      
+      if (codigo) {
+        ctx.fillText(`LOTE: #${codigo}`, 0, y + 16);
+      }
+    }, cW, cH);
+
+    chunks.push(`BITMAP ${mLeft},${mTop},${bmpFundo.widthBytes},${bmpFundo.heightDots},0,`);
+    chunks.push(bmpFundo.data);
+    chunks.push("\r\n");
+
+    if (codigo) {
+      // Desenha o QR Code nativo na lacuna superior direita deixada pelo Canvas
+      chunks.push(`QRCODE ${mLeft + cW - qrSize},${mTop},L,4,A,0,"${urlRastreio}"\r\n`);
+    }
+
+    chunks.push(`PRINT ${Math.max(1, copias)},1\r\n`);
     return concatenarChunksTspl(chunks);
   }
 

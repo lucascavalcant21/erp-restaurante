@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, GlassWater, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle } from "lucide-react";
+import { ArrowLeft, Bluetooth, CheckCircle2, ChefHat, FolderOpen, GlassWater, Maximize2, Mic, Minus, Plus, Printer, RefreshCw, Save, Search, Tag, Trash2, UserRound, X, XCircle, List, ChevronRight, ChevronDown } from "lucide-react";
 import { useERP } from "../context/ERPContext";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchProdutos } from "../lib/vendas";

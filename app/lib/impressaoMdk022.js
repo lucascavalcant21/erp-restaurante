@@ -50,12 +50,19 @@ export async function obterDispositivoMdk022() {
     console.log("[ETIQUETA][MDK022] dispositivo localizado");
   } else {
     console.log("[ETIQUETA][MDK022] solicitando permissão do dispositivo...");
-    device = await navigator.usb.requestDevice({
-      filters: [
-        { vendorId: 0x36FC, productId: 0x0513 }
-      ]
-    });
-    console.log("[ETIQUETA][MDK022] dispositivo localizado");
+    try {
+      device = await navigator.usb.requestDevice({
+        filters: [
+          { vendorId: 0x36FC, productId: 0x0513 }
+        ]
+      });
+      console.log("[ETIQUETA][MDK022] dispositivo localizado");
+    } catch (err) {
+      if (err.name === 'NotFoundError' || err.message.includes('No device selected')) {
+        throw new Error("Nenhuma impressora foi selecionada. Por favor, conecte a MDK-022 via USB, clique em Imprimir e selecione a impressora na lista que aparecer na tela.");
+      }
+      throw err;
+    }
   }
 
   if (!device) {

@@ -1318,6 +1318,50 @@ export default function RHPage() {
     setTimeout(() => win.print(), 500);
   };
 
+  // O AFD é registro de ponto legal, com CPF: a rota exige sessão desde a
+  // correção SEC-RH-1.1. Um <a href> não manda o token, então a busca é feita
+  // aqui e o arquivo é entregue pelo Blob.
+  const [baixandoAfd, setBaixandoAfd] = useState(false);
+  const exportarAFD = async () => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") {
+      return alert("Selecione uma unidade específica no menu lateral para exportar o AFD dela.");
+    }
+    setBaixandoAfd(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      if (!token) { alert("Sua sessão expirou. Entre novamente para exportar."); return; }
+
+      const resposta = await fetch(`/exportar-afd?unidadeId=${encodeURIComponent(unidadeAtiva)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resposta.ok) {
+        const motivo = await resposta.text().catch(() => "");
+        alert(resposta.status === 403
+          ? "Você não tem acesso aos dados desta unidade."
+          : motivo || `Não foi possível exportar (HTTP ${resposta.status}).`);
+        return;
+      }
+
+      // O nome do arquivo vem do Content-Disposition, que segue a portaria.
+      const disp = resposta.headers.get("content-disposition") || "";
+      const nome = (disp.match(/filename="?([^"]+)"?/) || [])[1] || `AFD-${unidadeAtiva}.txt`;
+      const blob = await resposta.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = nome;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (erro) {
+      alert("Falha ao exportar o AFD: " + (erro?.message || "erro desconhecido"));
+    } finally {
+      setBaixandoAfd(false);
+    }
+  };
+
   const compartilharLinkAtualizacao = async (f) => {
     try {
       const { data } = await supabase.auth.getSession();
@@ -2016,14 +2060,14 @@ export default function RHPage() {
             <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-card text-rose-600 border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <CalendarDays size={14} /> Feriados
             </button>
-            <a
-               href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`}
-               onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
-               target={(!unidadeAtiva || unidadeAtiva === "todas") ? "_self" : "_blank"}
-               rel="noreferrer"
-               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-elevated text-subtle border-line cursor-not-allowed" : "bg-card text-fg-soft border-line hover:bg-slate-50"}`}>
-               <FileText size={14} /> Exportar AFD
-            </a>
+            <button
+               type="button"
+               onClick={exportarAFD}
+               disabled={baixandoAfd}
+               title="Arquivo Fonte de Dados do ponto (Portaria 671/2021)"
+               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-elevated text-subtle border-line" : "bg-card text-fg-soft border-line hover:bg-slate-50"} disabled:opacity-60`}>
+               <FileText size={14} /> {baixandoAfd ? "Exportando..." : "Exportar AFD"}
+            </button>
             {abaAtiva === "Freelancer" && (
                <>
                <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-card text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">

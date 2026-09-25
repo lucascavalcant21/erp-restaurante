@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, List, X, Check } from "lucide-react";
 import Link from "next/link";
-import { useERP } from "../../../../context/ERPContext";
-import supabase from "../../../../lib/supabase";
+import { useERP } from "../../../context/ERPContext";
+import supabase from "../../../lib/supabase";
 
 const FUNIL_ETAPAS = [
   "NOVO CONTATO",
@@ -23,25 +23,27 @@ const FUNIL_ETAPAS = [
 ];
 
 export default function EventosKanbanPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, user } = useERP();
   const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [modoVisao, setModoVisao] = useState("kanban"); // "kanban" | "lista"
+  const [modalAberto, setModalAberto] = useState(false);
+
+  async function carregarEventos() {
+    if (!unidadeAtiva) return;
+    setCarregando(true);
+    const { data, error } = await supabase
+      .from("eventos")
+      .select("*")
+      .eq("unidade_id", unidadeAtiva)
+      .neq("tipo_evento", "especial") // Oculta os antigos temáticos legados
+      .order("data_evento", { ascending: true });
+      
+    if (!error && data) setEventos(data);
+    setCarregando(false);
+  }
 
   useEffect(() => {
-    async function carregarEventos() {
-      if (!unidadeAtiva) return;
-      setCarregando(true);
-      const { data, error } = await supabase
-        .from("eventos")
-        .select("*")
-        .eq("unidade_id", unidadeAtiva)
-        .neq("tipo_evento", "especial") // Oculta os antigos temáticos legados
-        .order("data_evento", { ascending: true });
-        
-      if (!error && data) setEventos(data);
-      setCarregando(false);
-    }
     carregarEventos();
   }, [unidadeAtiva]);
 
@@ -60,14 +62,14 @@ export default function EventosKanbanPage() {
         </div>
         <div className="flex gap-3">
           <div className="flex bg-slate-200 p-1 rounded-xl">
-            <button onClick={() => setModoVisao("lista")} className={\`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 \${modoVisao === 'lista' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-300/50'}\`}>
+            <button onClick={() => setModoVisao("lista")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'lista' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-300/50'}`}>
               <List size={16} /> Lista
             </button>
-            <button onClick={() => setModoVisao("kanban")} className={\`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 \${modoVisao === 'kanban' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-300/50'}\`}>
+            <button onClick={() => setModoVisao("kanban")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'kanban' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-300/50'}`}>
               <LayoutGrid size={16} /> Kanban
             </button>
           </div>
-          <button className="h-11 px-5 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800">
+          <button onClick={() => setModalAberto(true)} className="h-11 px-5 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800">
             <Plus size={18} /> Novo Evento
           </button>
         </div>
@@ -98,7 +100,7 @@ export default function EventosKanbanPage() {
                 
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
                   {cards.map(evt => (
-                    <Link key={evt.id} href={\`/dashboard/reservas-eventos/eventos/\${evt.id}\`} className="block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
+                    <Link key={evt.id} href={`/dashboard/reservas-eventos/eventos/${evt.id}`} className="block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
                       <div className="flex justify-between items-start mb-2">
                         <strong className="text-slate-900 font-bold leading-tight group-hover:text-emerald-700 transition-colors">
                           {evt.nome || evt.cliente_nome || "Evento sem título"}
@@ -149,7 +151,7 @@ export default function EventosKanbanPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {eventos.map(evt => (
-                <tr key={evt.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => window.location.href = \`/dashboard/reservas-eventos/eventos/\${evt.id}\`}>
+                <tr key={evt.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/dashboard/reservas-eventos/eventos/${evt.id}`}>
                   <td className="py-4 px-6">
                     <strong className="block text-slate-900 font-bold">{evt.nome || evt.cliente_nome}</strong>
                     <span className="text-sm text-slate-500 font-medium">{evt.cliente_nome}</span>
@@ -173,6 +175,132 @@ export default function EventosKanbanPage() {
           </table>
         </div>
       )}
+
+      {modalAberto && (
+        <NovoEventoModal 
+          onClose={() => setModalAberto(false)} 
+          unidadeAtiva={unidadeAtiva} 
+          user={user}
+          onSuccess={() => {
+            setModalAberto(false);
+            carregarEventos();
+          }} 
+        />
+      )}
     </main>
+  );
+}
+
+function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, user }) {
+  const [salvando, setSalvando] = useState(false);
+  const [form, setForm] = useState({
+    nome: "",
+    cliente_nome: "",
+    cliente_telefone: "",
+    data_evento: "",
+    capacidade: 50,
+    local_evento: "",
+    tipo_evento: "buffet",
+    funil_status: "NOVO CONTATO",
+    status: "ativo"
+  });
+
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSalvando(true);
+    
+    const payload = {
+      ...form,
+      unidade_id: unidadeAtiva,
+      responsavel_id: user?.id || null
+    };
+
+    // 'nome' é not null no banco, então se o usuário não digitar um título, 
+    // usamos o nome do cliente ou geramos um genérico.
+    if (!payload.nome) {
+      payload.nome = payload.cliente_nome ? `Evento: ${payload.cliente_nome}` : 'Novo Evento Buffet';
+    }
+
+    const { error } = await supabase.from("eventos").insert([payload]);
+    setSalvando(false);
+    
+    if (!error) {
+      onSuccess();
+    } else {
+      console.error(error);
+      alert("Erro ao criar evento.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <header className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Building2 className="text-emerald-600" /> Novo Contato de Evento
+          </h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors">
+            <X size={20} />
+          </button>
+        </header>
+        
+        <div className="flex-1 overflow-auto p-6">
+          <form id="evento-form" onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Informações do Cliente</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Nome do Cliente / Empresa *</label>
+                  <input required type="text" name="cliente_nome" value={form.cliente_nome} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="Ex: Ana Souza" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Telefone (WhatsApp)</label>
+                  <input type="text" name="cliente_telefone" value={form.cliente_telefone} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="(11) 90000-0000" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Detalhes do Evento</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Título do Evento (Opcional)</label>
+                  <input type="text" name="nome" value={form.nome} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="Ex: Casamento Ana e João" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Data Estimada *</label>
+                    <input required type="date" name="data_evento" value={form.data_evento} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium text-slate-700" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Convidados Estimados</label>
+                    <input required type="number" min="1" name="capacidade" value={form.capacidade} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Local</label>
+                  <input type="text" name="local_evento" value={form.local_evento} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="Ex: Salão Principal do Héfisto, Chácara da Família..." />
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        
+        <footer className="px-6 py-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="h-11 px-6 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" form="evento-form" disabled={salvando} className="h-11 px-6 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-50">
+            {salvando ? "Criando..." : <><Check size={18} /> Iniciar Proposta</>}
+          </button>
+        </footer>
+      </div>
+    </div>
   );
 }

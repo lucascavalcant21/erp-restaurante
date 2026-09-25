@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../../lib/supabase";
+import { exigirSessao, verificarAcessoAUnidade } from "../../lib/server/autorizacao-unidade.mjs";
+
+// SEC-RH-1.1 — esta rota era um POST PÚBLICO.
+//
+// Recebia um NSR (que é sequencial), lia nome, CPF e e-mail do colaborador e
+// disparava e-mail. Sem sessão, dava para enumerar o quadro inteiro contando
+// de 1 em diante, e a mensagem de erro devolvia o nome da pessoa. Também
+// servia de disparador de e-mail para quem quisesse encher a caixa de alguém.
+//
+// Agora exige sessão, e o vínculo é conferido DEPOIS de carregar a marcação,
+// contra a unidade dela — a rota não recebe unidadeId, então não há o que
+// confiar na entrada.
 
 // Envio do comprovante de marcação por e-mail (Portaria MTP 671/2021, art. 84).
 //
@@ -71,6 +82,10 @@ async function registrarEntrega(dados) {
 
 export async function POST(request) {
   try {
+    const autz = await exigirSessao(request);
+    if (autz.erro) return NextResponse.json({ erro: autz.erro.mensagem }, { status: autz.erro.status });
+    const { db: supabase, usuario } = autz;
+
     const { nsr } = await request.json();
     if (!nsr) return NextResponse.json({ erro: "Faltando o NSR." }, { status: 400 });
 
@@ -91,6 +106,13 @@ export async function POST(request) {
       .single();
 
     if (errMarc || !marcacao) {
+      return NextResponse.json({ erro: "Marcação não encontrada para este NSR." }, { status: 404 });
+    }
+
+    // A unidade sai da marcação, não do pedido. Sem acesso a ela, a resposta é
+    // a mesma de NSR inexistente: quem sonda não aprende nada.
+    const acesso = await verificarAcessoAUnidade(supabase, usuario, marcacao.unidade_id);
+    if (acesso.erro) {
       return NextResponse.json({ erro: "Marcação não encontrada para este NSR." }, { status: 404 });
     }
 

@@ -1,5 +1,23 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../lib/supabase";
+import { autorizarLeituraDaUnidade } from "../lib/server/autorizacao-unidade.mjs";
+
+// SEC-RH-1.1 — esta rota era um GET PÚBLICO.
+//
+// Bastava a URL com um unidadeId para baixar o registro de ponto legal da
+// empresa inteira, com CPF, sem login nenhum. Agora:
+//
+//   sem sessão .................. 401
+//   sessão válida, outra unidade  403
+//   parâmetro faltando .......... 400
+//   unidade inexistente ......... 404
+//
+// A unidade que vem na URL não autoriza nada por si: quem decide é o vínculo
+// do auth.uid() com aquela unidade, lido de usuarios_erp e usuario_escopos.
+// user_metadata não é consultado — ver app/lib/server/autorizacao-unidade.mjs.
+//
+// A leitura passou a usar o cliente de SERVIDOR porque o role anon perdeu o
+// acesso a ponto_marcacao e colaboradores na contenção SEC-RH-1, e devolver o
+// grant para fazer a exportação funcionar seria desfazer a correção.
 import {
   registro1, registro7, montarAFD, nomeArquivoAFD, soDigitos,
 } from "../lib/afd-layout.mjs";
@@ -25,7 +43,10 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const unidadeId = searchParams.get("unidadeId");
-    if (!unidadeId) return new NextResponse("Faltando unidadeId", { status: 400 });
+
+    const autz = await autorizarLeituraDaUnidade(request, unidadeId);
+    if (autz.erro) return new NextResponse(autz.erro.mensagem, { status: autz.erro.status });
+    const { db: supabase } = autz;
 
     // A fiscalização pede um período. Sem parâmetro, o mês corrente.
     const hoje = new Date();
@@ -34,8 +55,9 @@ export async function GET(request) {
     const inicio = searchParams.get("inicio") || `${mes}-01`;
     const fim = searchParams.get("fim") || `${mes}-${String(ultimo).padStart(2, "0")}`;
 
+    // maybeSingle: unidade inexistente é 404, não 500. .single() estourava.
     const { data: unidade, error: errUnid } = await supabase
-      .from("unidades").select("*").eq("id", unidadeId).single();
+      .from("unidades").select("*").eq("id", unidadeId).maybeSingle();
     if (errUnid) return new NextResponse("Erro ao buscar unidade: " + errUnid.message, { status: 500 });
     if (!unidade) return new NextResponse("Unidade não encontrada", { status: 404 });
 

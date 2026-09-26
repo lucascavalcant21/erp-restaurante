@@ -43,3 +43,4 @@ drop policy if exists "auth_all" on evento_equipe;
 create policy "auth_all" on evento_equipe for all to authenticated using (true) with check (true);
 alter table eventos add column if not exists cardapio_itens jsonb default '[]'::jsonb; 
 alter table eventos add column if not exists checklist jsonb default '{\" "cardapio\:false, \sinal\:false, \equipe\:false, \compras\:false}'::jsonb; 
+alter table eventos add column if not exists historico_pagamentos jsonb default '[]'::jsonb; 

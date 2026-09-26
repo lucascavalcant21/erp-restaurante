@@ -120,7 +120,7 @@ export default function OrcamentoPublicoPage({ params }) {
             <label className="text-sm font-bold text-slate-700">Tipo de Evento</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {["Casamento", "Aniversário", "Corporativo", "Outro"].map(tipo => (
-                <label key={tipo} className={\`border rounded-xl p-3 text-center cursor-pointer font-bold transition-all \${form.tipo === tipo ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}\`}>
+                <label key={tipo} className={`border rounded-xl p-3 text-center cursor-pointer font-bold transition-all ${form.tipo === tipo ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
                   <input type="radio" name="tipo" className="hidden" checked={form.tipo === tipo} onChange={() => setForm({...form, tipo})} />
                   {tipo}
                 </label>

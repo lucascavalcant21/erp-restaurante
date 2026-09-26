@@ -238,7 +238,7 @@ export default function FinanceiroTab({ evento, onUpdate }) {
 
           <div className="flex justify-between items-end mb-4">
             <span className="font-black text-slate-800">Saldo a Receber</span>
-            <strong className={\`text-2xl font-black \${saldoPendente > 0 ? 'text-red-600' : 'text-slate-400'}\`}>R$ {saldoPendente.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+            <strong className={`text-2xl font-black ${saldoPendente > 0 ? 'text-red-600' : 'text-slate-400'}`}>R$ {saldoPendente.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
           </div>
           
           {saldoPendente <= 0 && valorCobrado > 0 && (
@@ -268,11 +268,11 @@ export default function FinanceiroTab({ evento, onUpdate }) {
             </div>
           </div>
 
-          <div className={\`border rounded-2xl p-4 mt-8 \${margemLiquida >= 20 ? 'bg-emerald-500/20 border-emerald-500/30' : margemLiquida >= 0 ? 'bg-yellow-500/20 border-yellow-500/30' : 'bg-red-500/20 border-red-500/30'}\`}>
-            <span className={\`block text-sm font-bold mb-1 \${margemLiquida >= 20 ? 'text-emerald-400' : margemLiquida >= 0 ? 'text-yellow-400' : 'text-red-400'}\`}>Lucro Líquido Real</span>
+          <div className={`border rounded-2xl p-4 mt-8 ${margemLiquida >= 20 ? 'bg-emerald-500/20 border-emerald-500/30' : margemLiquida >= 0 ? 'bg-yellow-500/20 border-yellow-500/30' : 'bg-red-500/20 border-red-500/30'}`}>
+            <span className={`block text-sm font-bold mb-1 ${margemLiquida >= 20 ? 'text-emerald-400' : margemLiquida >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>Lucro Líquido Real</span>
             <div className="flex justify-between items-end">
-              <strong className={\`text-3xl font-black \${margemLiquida >= 20 ? 'text-emerald-400' : margemLiquida >= 0 ? 'text-yellow-400' : 'text-red-400'}\`}>R$ {lucroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
-              <span className={\`font-bold px-2 py-1 rounded-lg text-sm \${margemLiquida >= 20 ? 'text-emerald-400 bg-emerald-900' : margemLiquida >= 0 ? 'text-yellow-400 bg-yellow-900' : 'text-red-400 bg-red-900'}\`}>{margemLiquida.toFixed(1)}%</span>
+              <strong className={`text-3xl font-black ${margemLiquida >= 20 ? 'text-emerald-400' : margemLiquida >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>R$ {lucroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+              <span className={`font-bold px-2 py-1 rounded-lg text-sm ${margemLiquida >= 20 ? 'text-emerald-400 bg-emerald-900' : margemLiquida >= 0 ? 'text-yellow-400 bg-yellow-900' : 'text-red-400 bg-red-900'}`}>{margemLiquida.toFixed(1)}%</span>
             </div>
           </div>
         </section>

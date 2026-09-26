@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import CardapioTab from "./CardapioTab";
+import ComprasTab from "./ComprasTab";
+import PropostaTab from "./PropostaTab";
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 
@@ -64,9 +66,25 @@ export default function EventoHubPage() {
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="bg-slate-900 text-white text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-widest">
-                  {evento.funil_status || "NOVO CONTATO"}
-                </span>
+                
+                <select 
+                  value={evento.funil_status || "NOVO CONTATO"}
+                  onChange={async (e) => {
+                    const novoStatus = e.target.value;
+                    setEvento({...evento, funil_status: novoStatus});
+                    await supabase.from("eventos").update({funil_status: novoStatus}).eq("id", evento.id);
+                  }}
+                  className="bg-slate-900 text-white text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-widest outline-none cursor-pointer appearance-none text-center"
+                >
+                  <option value="NOVO CONTATO">NOVO CONTATO</option>
+                  <option value="PROPOSTA ENVIADA">PROPOSTA ENVIADA</option>
+                  <option value="NEGOCIAÇÃO">NEGOCIAÇÃO</option>
+                  <option value="APROVADO">APROVADO</option>
+                  <option value="AGUARDANDO SINAL">AGUARDANDO SINAL</option>
+                  <option value="CONFIRMADO">CONFIRMADO</option>
+                  <option value="CANCELADO">CANCELADO</option>
+                </select>
+
                 <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">
                   ID: {evento.id.split("-")[0]}
                 </span>
@@ -133,22 +151,36 @@ export default function EventoHubPage() {
                 <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
                   <Activity className="text-emerald-600" /> Checklist de Prontidão
                 </h2>
+                
                 <div className="space-y-3">
-                  {/* Mock do checklist solicitado */}
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600" />
-                    <span className="font-bold text-slate-700">Cardápio definido?</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600" />
-                    <span className="font-bold text-slate-700">Sinal pago?</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600" />
-                    <span className="font-bold text-slate-700">Equipe escalada?</span>
-                  </label>
+                  {[
+                    { id: 'cardapio', label: 'Cardápio definido?' },
+                    { id: 'sinal', label: 'Sinal pago?' },
+                    { id: 'equipe', label: 'Equipe escalada?' },
+                    { id: 'compras', label: 'Compras realizadas?' }
+                  ].map(item => {
+                    const checklistAtual = evento.checklist || { cardapio: false, sinal: false, equipe: false, compras: false };
+                    const isChecked = checklistAtual[item.id] === true;
+                    
+                    return (
+                      <label key={item.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          onChange={async (e) => {
+                            const newChecklist = { ...checklistAtual, [item.id]: e.target.checked };
+                            setEvento({ ...evento, checklist: newChecklist });
+                            await supabase.from("eventos").update({ checklist: newChecklist }).eq("id", evento.id);
+                          }}
+                          className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600" 
+                        />
+                        <span className="font-bold text-slate-700">{item.label}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </section>
+
             </div>
             
             <div className="space-y-6">
@@ -347,7 +379,16 @@ export default function EventoHubPage() {
         })()}
 
 
-        {activeTab !== "resumo" && activeTab !== "cardapio" && activeTab !== "equipe" && activeTab !== "financeiro" && (
+        
+        {activeTab === "compras" && (
+          <ComprasTab evento={evento} unidadeAtiva={unidadeAtiva} />
+        )}
+        
+        {activeTab === "proposta" && (
+          <PropostaTab evento={evento} />
+        )}
+
+        {activeTab !== "resumo" && activeTab !== "cardapio" && activeTab !== "equipe" && activeTab !== "financeiro" && activeTab !== "compras" && activeTab !== "proposta" && (
            <div className="text-center p-12 bg-white border border-slate-200 rounded-3xl">
            <h2 className="text-xl font-bold text-slate-800 mb-2">Aba {TABS.find(t=>t.id === activeTab)?.label}</h2>
            <p className="text-slate-500 max-w-md mx-auto">
@@ -355,6 +396,7 @@ export default function EventoHubPage() {
            </p>
          </div>
         )}
+
       </div>
     </main>
   );

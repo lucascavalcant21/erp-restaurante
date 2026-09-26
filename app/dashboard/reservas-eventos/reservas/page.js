@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, CalendarDays, Filter, MoreHorizontal, User, Clock, Phone, X, Check } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import supabase from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 export default function ReservasPage() {
   const { unidadeAtiva, user } = useERP();

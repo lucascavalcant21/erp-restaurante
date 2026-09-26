@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, Trash2, ChefHat, Info, Save, Loader2, ListOrdered, Check } from "lucide-react";
 import { fetchFichas } from "../../../../lib/operacao";
-import supabase from "../../../../lib/supabase";
+import { supabase } from "../../../../lib/supabase";
 
 export default function CardapioTab({ evento, unidadeAtiva, onUpdate }) {
   const [fichas, setFichas] = useState([]);

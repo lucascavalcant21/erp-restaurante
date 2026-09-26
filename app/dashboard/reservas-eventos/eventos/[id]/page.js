@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import CardapioTab from "./CardapioTab";
-import supabase from "../../../../lib/supabase";
+import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 
 // Abas do Hub

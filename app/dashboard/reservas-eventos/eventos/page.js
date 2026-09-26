@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, List, X, Check } from "lucide-react";
 import Link from "next/link";
 import { useERP } from "../../../context/ERPContext";
-import supabase from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 const FUNIL_ETAPAS = [
   "NOVO CONTATO",

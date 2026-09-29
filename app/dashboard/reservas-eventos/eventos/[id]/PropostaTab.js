@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Link as LinkIcon, Download, CheckCircle, Send } from "lucide-react";
+import { FileText, Download, CheckCircle, Send, ChefHat, Wine, MapPin, Calendar, Clock, Users, ArrowRight } from "lucide-react";
 
 export default function PropostaTab({ evento }) {
   
@@ -9,91 +9,162 @@ export default function PropostaTab({ evento }) {
   };
 
   const valorCobrado = Number(evento?.valor_contratado || 0);
+  const dataEvento = evento?.data_evento ? new Date(evento.data_evento).toLocaleDateString('pt-BR') : 'A definir';
+  
+  // Agrupar pratos por departamento para exibir bonitinho
+  const cardapio = evento?.cardapio_itens || [];
+  const pratosCozinha = cardapio.filter(i => i.departamento === 'cozinha');
+  const pratosBar = cardapio.filter(i => i.departamento === 'bar');
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
       
-      <div className="lg:col-span-1 space-y-6 print:hidden">
-        <div className="bg-white border border-slate-200 rounded-3xl p-6">
+      {/* BARRA LATERAL - CONTROLES (escondida na impressão) */}
+      <div className="xl:col-span-1 space-y-6 print:hidden">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sticky top-8">
           <h2 className="text-lg font-black text-slate-900 mb-6">Ações da Proposta</h2>
           
           <div className="space-y-3">
             <button onClick={handleGerarPDF} className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors">
-              <Download size={18}/> Salvar PDF
+              <Download size={18}/> Salvar PDF (Imprimir)
             </button>
-            <button className="w-full h-12 flex items-center justify-center gap-2 bg-emerald-100 text-emerald-800 rounded-xl font-bold hover:bg-emerald-200 transition-colors">
+            <button className="w-full h-12 flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20b858] transition-colors">
               <Send size={18}/> Enviar por WhatsApp
             </button>
-            <button className="w-full h-12 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors">
-              <LinkIcon size={18}/> Copiar Link Público
-            </button>
           </div>
-        </div>
 
-        <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6">
-          <CheckCircle className="text-emerald-500 mb-2" size={32}/>
-          <h3 className="font-black text-emerald-900 mb-1">Dica de Conversão</h3>
-          <p className="text-sm text-emerald-700 font-medium">
-            Propostas com links digitais têm 40% mais chance de aprovação rápida. O cliente pode aprovar e assinar pelo celular.
-          </p>
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Status do Cliente</h3>
+            <div className="flex items-center gap-3 text-emerald-600 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+              <CheckCircle size={20} />
+              <span className="font-bold text-sm">Proposta Gerada</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="lg:col-span-2">
-        {/* Preview da Proposta (Este container será impresso) */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-12 min-h-[800px] shadow-sm print:border-none print:shadow-none print:p-0">
-          <header className="border-b-2 border-slate-900 pb-8 mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Proposta de Evento</h1>
-              <p className="text-lg font-medium text-slate-500">{evento?.nome || "Evento sem título"}</p>
+      {/* ÁREA DA FOLHA DO DOCUMENTO (tamanho A4) */}
+      <div className="xl:col-span-3 overflow-x-auto pb-12">
+        {/* Usamos max-w-[800px] para simular uma folha A4 em tela. */}
+        <div className="bg-white mx-auto w-full max-w-[800px] min-h-[1122px] shadow-2xl print:shadow-none print:max-w-none print:w-full print:p-0">
+          
+          {/* CABEÇALHO ELEGANTE */}
+          <header className="bg-slate-900 text-white p-12">
+            <div className="flex justify-between items-end mb-12">
+              <div>
+                <h1 className="text-4xl font-black tracking-tighter mb-2">PROPOSTA DE EVENTO</h1>
+                <p className="text-slate-400 font-medium text-lg">Experiência Gastronômica Exclusiva</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black tracking-tight">{evento?.cliente_nome || "Cliente Especial"}</div>
+                <div className="text-slate-400">Proposta #{evento?.id?.split('-')[0].toUpperCase()}</div>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="font-bold text-slate-800">Orçamento #{evento?.id?.split("-")[0]}</p>
-              <p className="text-slate-500">{new Date().toLocaleDateString('pt-BR')}</p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 py-6 border-t border-slate-700/50">
+              <div>
+                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={12}/> Data</div>
+                <div className="font-semibold">{dataEvento}</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Users size={12}/> Convidados</div>
+                <div className="font-semibold">{evento?.capacidade || 0} pax</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Clock size={12}/> Horário</div>
+                <div className="font-semibold">{evento?.hora_inicio || 'A def.'} às {evento?.hora_fim || 'A def.'}</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><MapPin size={12}/> Local</div>
+                <div className="font-semibold truncate" title={evento?.local_evento || 'No restaurante'}>{evento?.local_evento || 'No restaurante'}</div>
+              </div>
             </div>
           </header>
 
-          <section className="mb-8 grid grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Dados do Cliente</h3>
-              <p className="font-bold text-slate-800 text-lg">{evento?.cliente_nome || "Nome não informado"}</p>
-              <p className="text-slate-500">{evento?.cliente_telefone || "Telefone não informado"}</p>
-            </div>
-            <div>
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Detalhes do Evento</h3>
-              <p className="font-bold text-slate-800">Data: {evento?.data_evento ? new Date(evento.data_evento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : "A definir"}</p>
-              <p className="font-bold text-slate-800">Convidados: {evento?.capacidade || 0} pessoas</p>
-            </div>
-          </section>
+          <main className="p-12 space-y-16">
+            
+            {/* INTRODUÇÃO */}
+            <section>
+              <h3 className="text-2xl font-black text-slate-900 mb-4">Olá, {evento?.cliente_nome?.split(' ')[0] || "Cliente"}!</h3>
+              <p className="text-slate-600 leading-relaxed">
+                É um prazer apresentar a nossa proposta gastronômica para o seu evento <strong className="text-slate-900">{evento?.nome_evento}</strong>. 
+                Nossa equipe elaborou um cardápio cuidadosamente selecionado para proporcionar uma experiência inesquecível aos seus convidados,
+                aliando excelência no sabor e um serviço impecável.
+              </p>
+            </section>
 
-          <section className="mb-12">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Cardápio Selecionado</h3>
-            {(!evento?.cardapio_itens || evento.cardapio_itens.length === 0) ? (
-              <p className="text-slate-500 italic">Nenhum prato selecionado no cardápio.</p>
-            ) : (
-              <ul className="space-y-3">
-                {evento.cardapio_itens.map(item => (
-                  <li key={item.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
-                    <span className="font-bold text-slate-800">{item.nome}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* O CARDÁPIO - COZINHA */}
+            {pratosCozinha.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-200 pb-4">
+                  <ChefHat className="text-emerald-600" size={28}/>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Menu de Gastronomia</h3>
+                </div>
+                
+                <ul className="space-y-4">
+                  {pratosCozinha.map((prato, idx) => (
+                    <li key={idx} className="flex gap-4 items-start">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></div>
+                      <div>
+                        <strong className="block text-slate-800 text-lg">{prato.nome}</strong>
+                        <p className="text-slate-500 text-sm">Serviço incluso na experiência gastronômica.</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
-          </section>
 
-          <section className="bg-slate-900 text-white rounded-2xl p-8 flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Investimento Total</h3>
-              <p className="text-slate-300 text-sm">Validade da proposta: 7 dias</p>
-            </div>
-            <div className="text-right">
-              <strong className="text-4xl font-black text-emerald-400">R$ {valorCobrado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
-            </div>
-          </section>
+            {/* O CARDÁPIO - BAR */}
+            {pratosBar.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-200 pb-4">
+                  <Wine className="text-rose-600" size={28}/>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Carta de Bebidas & Bar</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {pratosBar.map((bebida, idx) => (
+                    <div key={idx} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0">🍷</div>
+                      <strong className="text-slate-800">{bebida.nome}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-          <footer className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm font-medium">
-            Obrigado por escolher nosso restaurante. Estamos à disposição para realizar o seu evento dos sonhos!
+            {/* INVESTIMENTO */}
+            <section className="bg-slate-50 border border-slate-200 rounded-3xl p-8">
+              <h3 className="text-xl font-black text-slate-900 mb-6 uppercase tracking-tight">Investimento</h3>
+              
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-slate-600 font-medium">Valor por Convidado ({evento?.capacidade || 0} pax)</span>
+                <span className="text-lg font-bold text-slate-900">
+                  R$ {(valorCobrado / Math.max((evento?.capacidade || 1), 1)).toFixed(2)}
+                </span>
+              </div>
+              
+              <div className="h-px w-full bg-slate-200 mb-6"></div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-xl font-black text-slate-900">Total do Evento</span>
+                <span className="text-3xl font-black text-emerald-600 tracking-tighter">
+                  R$ {valorCobrado.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="mt-8 bg-white p-4 rounded-xl text-sm text-slate-500">
+                <strong>Condições de Pagamento:</strong> O evento é confirmado mediante o pagamento do sinal de reserva. O valor restante deve ser quitado de acordo com a política de contratação do restaurante.
+              </div>
+            </section>
+
+          </main>
+
+          <footer className="bg-slate-900 text-slate-400 text-center py-8 text-sm mt-12">
+            Este é um documento gerado automaticamente. Válido por 15 dias após a emissão.
           </footer>
+
         </div>
       </div>
 

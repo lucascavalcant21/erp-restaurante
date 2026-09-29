@@ -16,13 +16,13 @@ import { useERP } from "../../../../context/ERPContext";
 
 // Abas do Hub
 const TABS = [
-  { id: "resumo", label: "Resumo", icon: Activity },
-  { id: "proposta", label: "Proposta", icon: FileText },
-  { id: "cardapio", label: "Cardápio", icon: ChefHat },
-  { id: "bar", label: "Bar", icon: GlassWater },
-  { id: "equipe", label: "Equipe", icon: Briefcase },
-  { id: "compras", label: "Compras", icon: ShoppingCart },
-  { id: "financeiro", label: "Financeiro", icon: DollarSign },
+  { id: "resumo", label: "CRM & Resumo", icon: FileText },
+  { id: "financeiro", label: "Caixa & DRE", icon: DollarSign },
+  { id: "cozinha", label: "Cozinha", icon: ChefHat },
+  { id: "bar", label: "Bar", icon: Wine },
+  { id: "salao", label: "Salão", icon: Users },
+  { id: "compras", label: "Logística/Compras", icon: ShoppingCart },
+  { id: "proposta", label: "Proposta", icon: LayoutTemplate }
 ];
 
 export default function EventoHubPage() {
@@ -193,69 +193,10 @@ export default function EventoHubPage() {
           </div>
         )}
         
-                {activeTab === "cardapio" && (
-          <CardapioTab 
-            evento={evento} 
-            unidadeAtiva={unidadeAtiva} 
-            onUpdate={(novo) => setEvento({ ...evento, ...novo })} 
-          />
-        )}
+        {activeTab === "cozinha" && <OperacaoTab evento={evento} unidadeAtiva={unidadeAtiva} departamento="cozinha" onUpdate={(n) => setEvento({...evento, ...n})} />}
+        {activeTab === "bar" && <OperacaoTab evento={evento} unidadeAtiva={unidadeAtiva} departamento="bar" onUpdate={(n) => setEvento({...evento, ...n})} />}
+        {activeTab === "salao" && <OperacaoTab evento={evento} unidadeAtiva={unidadeAtiva} departamento="salao" onUpdate={(n) => setEvento({...evento, ...n})} />}
 
-        
-        {activeTab === "equipe" && (
-          <div className="space-y-6">
-            <header className="flex justify-between items-end">
-              <div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">Escala da Equipe</h2>
-                <p className="text-slate-500 font-medium">Controle de funcionários e freelancers (diárias)</p>
-              </div>
-              <button className="h-10 px-4 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800">
-                Escalar Pessoa
-              </button>
-            </header>
-            
-            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="py-4 px-6 text-xs font-black text-slate-400 uppercase tracking-wider">Nome</th>
-                    <th className="py-4 px-6 text-xs font-black text-slate-400 uppercase tracking-wider">Setor</th>
-                    <th className="py-4 px-6 text-xs font-black text-slate-400 uppercase tracking-wider">Função</th>
-                    <th className="py-4 px-6 text-xs font-black text-slate-400 uppercase tracking-wider">Custo (Diária)</th>
-                    <th className="py-4 px-6 text-xs font-black text-slate-400 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {/* Placeholder estático por enquanto */}
-                  <tr className="hover:bg-slate-50">
-                    <td className="py-4 px-6">
-                      <strong className="block text-slate-900 font-bold">Carlos Silva (Fixo)</strong>
-                      <span className="text-sm text-slate-500">Funcionário CLT</span>
-                    </td>
-                    <td className="py-4 px-6 font-bold text-slate-700">Cozinha</td>
-                    <td className="py-4 px-6 font-bold text-slate-700">Chef de Praça</td>
-                    <td className="py-4 px-6 font-black text-red-600">R$ 180,00</td>
-                    <td className="py-4 px-6"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 font-bold text-xs rounded-lg uppercase">Pendente</span></td>
-                  </tr>
-                  <tr className="hover:bg-slate-50">
-                    <td className="py-4 px-6">
-                      <strong className="block text-slate-900 font-bold">Amanda Souza (Freelancer)</strong>
-                      <span className="text-sm text-slate-500">(11) 90000-0000</span>
-                    </td>
-                    <td className="py-4 px-6 font-bold text-slate-700">Salão</td>
-                    <td className="py-4 px-6 font-bold text-slate-700">Garçom</td>
-                    <td className="py-4 px-6 font-black text-red-600">R$ 150,00</td>
-                    <td className="py-4 px-6"><span className="px-2 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-lg uppercase">Pago</span></td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="bg-slate-50 border-t border-slate-200 p-4 text-right">
-                <span className="text-slate-500 font-bold mr-4">Total de Diárias:</span>
-                <span className="text-xl font-black text-red-700">R$ 330,00</span>
-              </div>
-            </div>
-          </div>
-        )}
 
 
         

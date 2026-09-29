@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import supabase from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { Calendar, Users, MessageSquare, Phone, User, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
 import { use } from "react";
 

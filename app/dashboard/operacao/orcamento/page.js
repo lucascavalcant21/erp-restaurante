@@ -1098,8 +1098,7 @@ export default function OrcamentoEventoPage() {
                         <span className="text-center text-sm font-black text-success">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : '—'}</span>
                         <span className="text-right text-xs font-bold text-fg-soft">{fmtBRL(l.vendaTotal)}</span>
                       </div>
-      </div>
-    ))}
+                    ))}
                   </div>
                   {/* Totais */}
                   <div className="px-5 py-3 bg-slate-800 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center min-w-[580px]">
@@ -1131,15 +1130,8 @@ export default function OrcamentoEventoPage() {
                   </div>
                ) : (
                   <div className="space-y-3">
-                     {linhas.map((l, idxL) => { 
-    const prev = idxL > 0 ? linhas[idxL-1] : null; 
-    const catAtual = l.categoria?.toLowerCase()?.includes('bar') || l.categoria?.toLowerCase()?.includes('bebida') ? 'BAR / BEBIDAS' : 'COZINHA / COMIDAS';
-    const catPrev = prev ? (prev.categoria?.toLowerCase()?.includes('bar') || prev.categoria?.toLowerCase()?.includes('bebida') ? 'BAR / BEBIDAS' : 'COZINHA / COMIDAS') : null;
-    const isNewCat = catAtual !== catPrev;
-    return (
-      <div key={l.produto_id + "_wrapper"} className="flex flex-col gap-3">
-        {isNewCat && <div className="mt-6 mb-2 border-b-2 border-slate-800 pb-2"><h3 className="text-xl font-black text-slate-800 uppercase tracking-widest">{catAtual}</h3></div>}
-        <div key={l.produto_id}
+                     {linhas.map((l, idxL) => (
+                        <div key={l.produto_id}
                            onDragOver={e => { if (dragItemId) e.preventDefault(); }}
                            onDrop={() => reordenarItens(dragItemId, l.produto_id)}
                            className={`rounded-2xl border overflow-hidden transition-colors ${dragItemId === l.produto_id ? 'opacity-50 border-emerald-400' : 'border-line hover:border-slate-300'}`}>
@@ -1163,7 +1155,7 @@ export default function OrcamentoEventoPage() {
                                     </p>
                                  </div>
                               </div>
-                              <button onClick={() => { if(confirm('Remover ' + l.nome + '?')) removeItem(l.produto_id); }} className="px-3 py-1.5 bg-red-500 text-white hover:bg-red-600 rounded-lg transition-all shrink-0 font-bold flex items-center gap-2"><Trash2 size={16}/> Excluir Ficha</button>
+                              <button onClick={() => { if(confirm("Remover " + l.nome + "?")) removeItem(l.produto_id); }} className="px-3 py-1.5 bg-red-500 text-white hover:bg-red-600 rounded-lg transition-all shrink-0 font-bold flex items-center gap-2"><Trash2 size={16}/> Excluir Ficha</button>
                            </div>
 
                            {/* INPUTS — grid organizado */}
@@ -1301,8 +1293,7 @@ export default function OrcamentoEventoPage() {
                               </div>
                            </div>
                         </div>
-      </div>
-    ))}
+                     ))}
                   </div>
                )}
             </div>
@@ -1344,8 +1335,7 @@ export default function OrcamentoEventoPage() {
                            </div>
                            <button type="button" onClick={() => setExtras(lista => lista.filter(i => i.id !== x.id))} className="p-2 text-subtle hover:text-red-500 rounded-lg shrink-0"><Trash2 size={15}/></button>
                         </div>
-      </div>
-    ))}
+                     ))}
                      <div className="flex justify-between pt-2 text-xs font-bold text-slate-600">
                         <span>Custo dos extras: {fmtBRL(custoExtras)}</span>
                         <span className="text-accent">Cobrado do cliente: {fmtBRL(vendaExtras)}</span>
@@ -1393,8 +1383,7 @@ export default function OrcamentoEventoPage() {
                                     <p className="text-2xs font-medium text-subtle">{s}</p>
                                  </div>
                               </div>
-      </div>
-    ))}
+                           ))}
                         </div>
                      </div>
                   );
@@ -1465,8 +1454,7 @@ export default function OrcamentoEventoPage() {
                               </div>
                               <span className="font-black text-slate-600 shrink-0 ml-2">{fmtBRL(c.custoCompra)}</span>
                            </div>
-      </div>
-    ))}
+                        ))}
                      </div>
                      <div className="flex justify-between items-center mt-4 pt-3 border-t border-line">
                         <span className="text-3xs font-bold uppercase tracking-widest text-muted">Total de compras</span>

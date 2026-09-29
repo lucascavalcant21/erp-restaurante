@@ -151,36 +151,42 @@ export default function EventoHubPage() {
             <div className="md:col-span-2 space-y-6">
               <section className="bg-white border border-slate-200 rounded-3xl p-6">
                 <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Activity className="text-emerald-600" /> Checklist de Prontidão
+                  <Activity className="text-emerald-600" /> Indicadores de Prontidão
                 </h2>
                 
-                <div className="space-y-3">
-                  {[
-                    { id: 'cardapio', label: 'Cardápio definido?' },
-                    { id: 'sinal', label: 'Sinal pago?' },
-                    { id: 'equipe', label: 'Equipe escalada?' },
-                    { id: 'compras', label: 'Compras realizadas?' }
-                  ].map(item => {
-                    const checklistAtual = evento.checklist || { cardapio: false, sinal: false, equipe: false, compras: false };
-                    const isChecked = checklistAtual[item.id] === true;
-                    
-                    return (
-                      <label key={item.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked}
-                          onChange={async (e) => {
-                            const newChecklist = { ...checklistAtual, [item.id]: e.target.checked };
-                            setEvento({ ...evento, checklist: newChecklist });
-                            await supabase.from("eventos").update({ checklist: newChecklist }).eq("id", evento.id);
-                          }}
-                          className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600" 
-                        />
-                        <span className="font-bold text-slate-700">{item.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                {(() => {
+                  const items = [
+                    { id: 'cardapio', empty: 'Cardápio não definido', done: 'Cardápio montado', isDone: (evento.cardapio_itens && evento.cardapio_itens.length > 0) },
+                    { id: 'equipe', empty: 'Equipe não escalada', done: 'Equipe escalada', isDone: Number(evento.total_custo_equipe) > 0 },
+                    { id: 'sinal', empty: 'Aguardando financeiro', done: 'Sinal/Pagam. recebido', isDone: (evento.historico_pagamentos && evento.historico_pagamentos.length > 0) }
+                  ];
+                  const progresso = Math.round((items.filter(i => i.isDone).length / items.length) * 100);
+                  
+                  return (
+                    <div className="space-y-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Status da Organização</span>
+                        <span className="text-sm font-black text-emerald-600">{progresso}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 mb-6">
+                        <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-1000" style={{ width: `${progresso}%` }}></div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {items.map(item => (
+                          <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border ${item.isDone ? 'border-emerald-100 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${item.isDone ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                              <CheckCircle2 size={14} />
+                            </div>
+                            <span className={`font-bold ${item.isDone ? 'text-emerald-700' : 'text-slate-500'}`}>
+                              {item.isDone ? item.done : item.empty}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </section>
 
             </div>

@@ -32,6 +32,20 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
     loadEquipe();
   }, [evento.id, departamento]);
 
+  
+  const calcularCustoFicha = (ficha) => {
+    let custoTotal = 0;
+    if (ficha.fichas_ingredientes) {
+      ficha.fichas_ingredientes.forEach(ing => {
+        if (ing.insumos) {
+          const custoPorGram = ing.insumos.custo_unit / (ing.insumos.peso_unit || 1);
+          custoTotal += custoPorGram * ing.quantidade;
+        }
+      });
+    }
+    return custoTotal || ficha.custo_unitario || 0;
+  };
+
   // CARDÁPIO / ITENS
   const itensGerais = evento.cardapio_itens || [];
   const itensDoDepto = itensGerais.filter(i => i.departamento === departamento);
@@ -40,9 +54,9 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
     const novoItem = {
       id: crypto.randomUUID(),
       ficha_id: ficha.id,
-      nome: ficha.nome,
+      nome: ficha.nome_receita || ficha.nome,
       quantidade_servida: 1,
-      custo_porcao: ficha.custo_unitario || 0,
+      custo_porcao: calcularCustoFicha(ficha),
       departamento: departamento
     };
     const novaLista = [...itensGerais, novoItem];
@@ -234,14 +248,14 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
                   <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-slate-400" /></div>
                 ) : (
                   fichas
-                    .filter(f => !busca || f.nome.toLowerCase().includes(busca.toLowerCase()))
+                    .filter(f => !busca || (f.nome_receita || f.nome).toLowerCase().includes(busca.toLowerCase()))
                     // Impede de adicionar o que já foi adicionado
                     .filter(f => !itensDoDepto.find(i => i.ficha_id === f.id))
                     .map(ficha => (
                       <div key={ficha.id} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
                         <div>
-                          <strong className="block text-slate-800 text-sm">{ficha.nome}</strong>
-                          <span className="text-xs text-slate-500 font-medium">Custo base: R$ {Number(ficha.custo_unitario || 0).toFixed(2)}</span>
+                          <strong className="block text-slate-800 text-sm">{ficha.nome_receita || ficha.nome}</strong>
+   <span className="text-xs text-slate-500 font-medium">Custo base: R$ {Number(calcularCustoFicha(ficha)).toFixed(2)}</span>
                         </div>
                         <button onClick={() => adicionarPrato(ficha)} className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 shrink-0">
                           <Plus size={16}/>

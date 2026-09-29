@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "../../../../../lib/supabase";
-import { fetchFichas } from "../../../../../lib/operacao";
+import { supabase } from "../../../../lib/supabase";
+import { fetchFichas } from "../../../../lib/operacao";
 import { ChefHat, Users, Clock, Search, Plus, Trash2, CheckSquare, Loader2, Wine, LayoutTemplate, MapPin, Check } from "lucide-react";
 
 export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpdate }) {

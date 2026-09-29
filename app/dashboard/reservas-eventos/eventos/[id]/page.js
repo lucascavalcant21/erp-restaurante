@@ -18,11 +18,11 @@ import { useERP } from "../../../../context/ERPContext";
 // Abas do Hub
 const TABS = [
   { id: "resumo", label: "CRM & Resumo", icon: FileText },
-  { id: "financeiro", label: "Caixa & DRE", icon: DollarSign },
   { id: "cozinha", label: "Cozinha", icon: ChefHat },
   { id: "bar", label: "Bar", icon: Wine },
   { id: "salao", label: "Salão", icon: Users },
   { id: "compras", label: "Logística/Compras", icon: ShoppingCart },
+  { id: "financeiro", label: "Caixa & DRE", icon: DollarSign },
   { id: "proposta", label: "Proposta", icon: LayoutTemplate }
 ];
 

@@ -42,7 +42,7 @@ const COMPLEMENTOS = {
     { label: "Etiquetas e validade", hint: "Rastreio, FEFO e perdas", icon: Tags, href: "/dashboard/operacao/etiquetas" },
     { label: "Controles de limpeza", hint: "Rotinas e registros", icon: ListChecks, href: "/dashboard/operacao/controles" },
     { label: "Checklist da cozinha", hint: "Abertura e fechamento", icon: CalendarCheck, href: "/dashboard/operacao/rotina" },
-    { label: "Orçamento de eventos", hint: "Custos e planejamento", icon: ReceiptText, href: "/dashboard/operacao/orcamento" },
+    { label: "Eventos e Reservas", hint: "Custos e planejamento", icon: ReceiptText, href: "/dashboard/reservas-eventos/eventos" },
   ],
   bar: [
     { label: "Drinks e produtos", hint: "Tudo no receituário integrado", icon: Wine, href: "/dashboard/operacao/fichas?dept=bar" },
@@ -52,7 +52,7 @@ const COMPLEMENTOS = {
     { label: "Produção do dia", hint: "Bases, xaropes e preparos", icon: Factory, href: "/dashboard/operacao/producao" },
     { label: "Etiquetas e validade", hint: "Rastreio e perdas", icon: Tags, href: "/dashboard/operacao/etiquetas" },
     { label: "Checklist do bar", hint: "Abertura e fechamento", icon: CalendarCheck, href: "/dashboard/operacao/rotina" },
-    { label: "Orçamento de eventos", hint: "Bebidas e planejamento", icon: ReceiptText, href: "/dashboard/operacao/orcamento" },
+    { label: "Eventos e Reservas", hint: "Bebidas e planejamento", icon: ReceiptText, href: "/dashboard/reservas-eventos/eventos" },
   ],
 };
 

@@ -42,7 +42,7 @@ const AREAS = {
           { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
           { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha", Icon: LayoutList },
           { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos", Icon: Tag },
-          { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", Icon: PartyPopper },
+          { label: "Eventos e Reservas", href: "/dashboard/reservas-eventos/eventos", Icon: PartyPopper },
         ],
       },
     ],

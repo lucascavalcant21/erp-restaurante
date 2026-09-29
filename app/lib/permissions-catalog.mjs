@@ -203,7 +203,7 @@ export const PERMISSION_MODULES = [
     id: "eventos", label: "Eventos",
     pages: [
       { id: "events", label: "Eventos", route: "/dashboard/eventos", actions: [...CRUD, "approve", "cancel", "view_values", "view_costs", "print", "export"] },
-      { id: "budget", label: "Orçamentos", route: "/dashboard/operacao/orcamento", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
+      { id: "budget", label: "Eventos e Reservas", route: "/dashboard/reservas-eventos/eventos", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
       { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
     ],
   },

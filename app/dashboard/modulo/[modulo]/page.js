@@ -33,7 +33,7 @@ const MODULOS = {
       { title: "Produção", subtitle: "O que preparar hoje e como montar", icon: ClipboardList, accent: "#7c3aed", items: [
         { label: "Guia de Montagem", desc: "Passo a passo das receitas", href: "/dashboard/operacao/montagem?dept=cozinha", icon: LayoutList, countKey: "montagens" },
         { label: "Produção do Dia", desc: "O que preparar e quanto sai do estoque", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
-        { label: "Orçamento de Eventos", desc: "Montar preço de festa e buffet", href: "/dashboard/operacao/orcamento?dept=cozinha", icon: CalendarClock },
+        { label: "Eventos e Reservas", desc: "Montar preço de festa e buffet", href: "/dashboard/reservas-eventos/eventos", icon: CalendarClock },
       ]},
       { title: "Controle", subtitle: "Validade, limpeza e checklists", icon: ShieldCheck, accent: "#ea580c", items: [
         { label: "Controle de Validade", desc: "O que vence hoje e amanhã", href: "/dashboard/operacao/validade", icon: CalendarClock },
@@ -61,7 +61,7 @@ const MODULOS = {
       { title: "Produção", subtitle: "O que preparar hoje e como montar", icon: ClipboardList, accent: "#7c3aed", items: [
         { label: "Guia de Drinks", desc: "Copo, gelo e ordem de montagem", href: "/dashboard/operacao/montagem?dept=bar", icon: LayoutList, countKey: "montagens" },
         { label: "Produção do Dia", desc: "O que preparar e quanto sai do estoque", href: "/dashboard/operacao/producao?dept=bar", icon: Package },
-        { label: "Orçamento de Eventos", desc: "Montar preço de festa e buffet", href: "/dashboard/operacao/orcamento?dept=bar", icon: CalendarClock },
+        { label: "Eventos e Reservas", desc: "Montar preço de festa e buffet", href: "/dashboard/reservas-eventos/eventos", icon: CalendarClock },
       ]},
       { title: "Controle", subtitle: "Checklist de abertura e fechamento", icon: ShieldCheck, accent: "#ea580c", items: [
         { label: "Checklist do Bar", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=bar", icon: ClipboardCheck },

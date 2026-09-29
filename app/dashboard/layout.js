@@ -52,7 +52,7 @@ const SIDEBAR_MENU = [
       { label: "Checklists & Rotinas", href: "/dashboard/checklists" },
       { label: "Treinamentos & Trilhas", href: "/dashboard/treinamentos" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
+      { label: "Eventos e Reservas", href: "/dashboard/reservas-eventos/eventos" }
     ]
   },
   {
@@ -213,8 +213,8 @@ function moduloDaRota(pathname, dept) {
 
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
-  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento", "/dashboard/salao/treinamento"],
-  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento", "/dashboard/salao/treinamento"],
+  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/reservas-eventos/eventos", "/dashboard/salao/treinamento"],
+  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/reservas-eventos/eventos", "/dashboard/salao/treinamento"],
   salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/treinamentos", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 
@@ -233,7 +233,7 @@ const ROTAS_SETORIZADAS = [
   "/dashboard/operacao/notas",
   "/dashboard/operacao/fichas",
   "/dashboard/operacao/montagem",
-  "/dashboard/operacao/orcamento",
+  "/dashboard/reservas-eventos/eventos",
   "/dashboard/salao/treinamento",
 ];
 

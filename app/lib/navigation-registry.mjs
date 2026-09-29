@@ -314,10 +314,10 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "op-orcamento",
-    title: "Orçamento de Eventos",
+    title: "Eventos e Reservas",
     shortTitle: "Orçamento Eventos",
     description: "Simulação de custos e cardápios para reservas e eventos",
-    route: "/dashboard/operacao/orcamento?dept=cozinha",
+    route: "/dashboard/reservas-eventos/eventos",
     domain: "Operação",
     section: "Eventos & Reservas",
     icon: "Calendar",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import supabase from "../../../../../lib/supabase";
+import supabase from "../../../../lib/supabase";
 import { Plus, Trash2, Wallet, DollarSign, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function FinanceiroTab({ evento, onUpdate }) {

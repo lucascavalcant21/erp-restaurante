@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { 
   ArrowLeft, Calendar, Clock, MapPin, Users, DollarSign, 
   FileText, ChefHat, GlassWater, ShoppingCart, Activity, Briefcase 
-} from "lucide-react";
+, Wine, LayoutTemplate } from "lucide-react";
+import OperacaoTab from "./OperacaoTab";
 import Link from "next/link";
 import CardapioTab from "./CardapioTab";
 import ComprasTab from "./ComprasTab";

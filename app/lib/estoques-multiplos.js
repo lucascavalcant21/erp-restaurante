@@ -80,17 +80,22 @@ export async function movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, qu
     2500,
   );
 
-  // 4. Registra histórico da movimentação
-  await supabase.from("estoque_movimentacoes").insert({
-    unidade_id: unidadeId,
-    insumo_id: insumoId,
-    tipo: tipo || "entrada",
-    quantidade: q || Number(saldoContado) || 0,
-    usuario_id: usuarioId || null,
-    usuario_nome: usuarioNome || null,
-    observacao: observacao || null,
-    created_at: new Date().toISOString(),
-  }).catch(() => {});
+  // 4. Registra histórico da movimentação. Falha aqui não desfaz o saldo já
+  // gravado. (Antes havia um .catch() no builder do supabase-js, que não tem
+  // esse método: lançava TypeError depois do saldo gravado e o histórico
+  // nunca era registrado.)
+  try {
+    await supabase.from("estoque_movimentacoes").insert({
+      unidade_id: unidadeId,
+      insumo_id: insumoId,
+      tipo: tipo || "entrada",
+      quantidade: q || Number(saldoContado) || 0,
+      usuario_id: usuarioId || null,
+      usuario_nome: usuarioNome || null,
+      observacao: observacao || null,
+      created_at: new Date().toISOString(),
+    });
+  } catch { /* histórico é acessório; o saldo já está gravado */ }
 
   return { data: { quantidade_atual: novo }, error: null };
 }

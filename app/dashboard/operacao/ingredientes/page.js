@@ -608,6 +608,9 @@ function IngredientesRunner() {
     setSalvando(false);
 
     if (resultado.error) return alert(`Erro ao salvar ingrediente: ${resultado.error}`);
+    if (resultado.colunasIgnoradas?.length) {
+      alert(`Salvo, mas estes campos NÃO foram gravados porque o banco ainda não tem a coluna: ${resultado.colunasIgnoradas.join(", ")}. Peça ao administrador para aplicar db/migracao_insumos_porcionamento.sql.`);
+    }
 
     // Preço por fornecedor: grava o do fornecedor ativo (= valor principal) e os
     // demais informados. Silencioso se a migração ainda não rodou.

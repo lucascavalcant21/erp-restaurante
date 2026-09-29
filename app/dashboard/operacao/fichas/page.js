@@ -1419,8 +1419,9 @@ function FichasRunner() {
           const prodExistente = (prodsAtu || []).find(p =>
             p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
           );
+          let resultadoCardapio;
           if (prodExistente) {
-            await salvarProduto({
+            resultadoCardapio = await salvarProduto({
                id: prodExistente.id, 
                ficha_id: fichaIdSalva, 
                preco_venda: precoVendaNum, 
@@ -1430,7 +1431,7 @@ function FichasRunner() {
             });
           } else {
             const ehBarDept = form.departamento === "bar";
-            await salvarProduto({
+            resultadoCardapio = await salvarProduto({
               unidade_id: unidadeAtiva,
               ficha_id: fichaIdSalva,
               nome_produto: nome,
@@ -1442,6 +1443,11 @@ function FichasRunner() {
               departamento: form.departamento,
               observacoes: "Criado automaticamente pela Ficha Técnica.",
             }, unidadeAtiva);
+          }
+          // O preço que a tela mostra é o do Cardápio: se ele não gravou, a
+          // pessoa precisa saber — senão parece que o salvar "não pegou".
+          if (resultadoCardapio?.error) {
+            alert(`A ficha foi salva, mas o preço de venda não chegou ao Cardápio: ${resultadoCardapio.error}`);
           }
         } catch { /* sincronização de preço não bloqueia o salvar */ }
       }

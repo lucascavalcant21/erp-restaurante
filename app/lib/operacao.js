@@ -197,12 +197,15 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         await inserirHistoricoPreco(historico);
       }
     } catch { /* histórico é acessório */ }
+    const enviadas = Object.keys(campos);
     let { error } = await supabase.from("insumos").update(campos).eq("id", id);
     error = await retrySemColunaAusente(error, async () => {
       const r = await supabase.from("insumos").update(campos).eq("id", id); return r.error;
     }, campos);
     if (!error) await sincronizarFornecedores(id, fornecedorIds);
-    return { id, error: error?.message };
+    // Coluna que o banco não tem sai do envio para o resto gravar — mas quem
+    // editou precisa saber que aquele campo NÃO foi salvo.
+    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)) };
   } else {
     // Trava de duplicidade: não permite dois ingredientes com o mesmo nome no
     // mesmo setor/unidade. Para outro preço, edite o existente e adicione um
@@ -237,6 +240,7 @@ export async function salvarInsumo(insumo, opcoes = {}) {
     campos.preco_normalizado_anterior = null;
     campos.variacao_preco_pct = null;
     campos.preco_atualizado_em = new Date().toISOString();
+    const enviadas = Object.keys(campos);
     let res = await supabase.from("insumos").insert([campos]).select("id").single();
     let data = res.data, error = res.error;
     error = await retrySemColunaAusente(error, async () => {
@@ -280,13 +284,15 @@ export async function salvarInsumo(insumo, opcoes = {}) {
             }) || ests[0];
 
             if (alvo?.id) {
+              // Sem .catch(): o builder do supabase-js não tem esse método, a
+              // chamada lançava TypeError e o vínculo nunca era enviado.
               await supabase.from("estoque_itens").upsert({
                 unidade_id: campos.unidade_id,
                 estoque_id: alvo.id,
                 insumo_id: data.id,
                 quantidade_atual: 0,
                 updated_at: new Date().toISOString(),
-              }, { onConflict: "estoque_id,insumo_id" }).catch(() => {});
+              }, { onConflict: "estoque_id,insumo_id" });
             }
           }
         }
@@ -294,7 +300,7 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         console.warn("Aviso ao vincular novo ingrediente ao estoque:", e);
       }
     }
-    return { id: data?.id, error: error?.message };
+    return { id: data?.id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)) };
   }
 }
 

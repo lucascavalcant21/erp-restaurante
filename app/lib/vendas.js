@@ -39,14 +39,39 @@ export async function salvarProduto(produto) {
     campos.departamento = departamento;
   }
 
-  if (id) {
-    const { error } = await supabase.from("produtos").update(campos).eq("id", id);
-    return { error: error?.message };
-  } else {
-    const { error } = await supabase.from("produtos").insert([campos]);
-    return { error: error?.message };
+  // Colunas que o banco de produção não tem (taxa_cartao, aliquota_imposto e
+  // observacoes em 29/09/2026) derrubavam o UPDATE INTEIRO — inclusive o
+  // preço — e quem chamava ignorava o erro: o preço digitado na ficha nunca
+  // chegava ao Cardápio. Agora a coluna ausente sai do envio e é devolvida em
+  // "colunasIgnoradas"; preço, ficha e nome nunca são descartados.
+  const colunasIgnoradas = [];
+  for (let tentativa = 0; tentativa < 10; tentativa++) {
+    const consulta = id
+      ? supabase.from("produtos").update(campos).eq("id", id).select("id")
+      : supabase.from("produtos").insert([campos]).select("id");
+    const { data, error } = await consulta;
+    if (!error) {
+      // UPDATE barrado por RLS (ou produto que não existe mais) volta SEM erro
+      // e com zero linhas. Isso não é "salvo".
+      if (id && !(data || []).length) {
+        return { error: "O Cardápio não foi alterado: produto não encontrado ou sem permissão para editá-lo.", colunasIgnoradas };
+      }
+      return { error: null, id: id || data?.[0]?.id || null, colunasIgnoradas };
+    }
+    const m = error.message || "";
+    const achou = m.match(/column "?([a-z_]+)"?(?: of relation "[a-z_]+")? does not exist/i)
+      || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+    const coluna = achou?.[1];
+    if (!coluna || !(coluna in campos) || COLUNAS_ESSENCIAIS_PRODUTO.has(coluna)) {
+      return { error: m, colunasIgnoradas };
+    }
+    delete campos[coluna];
+    colunasIgnoradas.push(coluna);
   }
+  return { error: "Não foi possível salvar o produto.", colunasIgnoradas };
 }
+
+const COLUNAS_ESSENCIAIS_PRODUTO = new Set(["preco_venda", "ficha_id", "nome_produto", "unidade_id", "departamento"]);
 
 export async function removerProduto(id) {
   if (!isSupabaseReady()) return { error: "Offline" };

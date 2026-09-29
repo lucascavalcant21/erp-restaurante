@@ -48,9 +48,13 @@ export async function processarPerdasPendentes(unidadeId, { limite = 100 } = {})
     if (erroConta) {
       // Fica pendente: a próxima passada tenta de novo. O contador de
       // tentativas e o motivo ficam na linha, para não virar falha silenciosa.
-      await supabase.rpc("etiqueta_financeiro_marcar_erro", {
-        p_id: pendencia.id, p_erro: erroConta.message || "falha ao lançar",
-      }).catch(() => {});
+      // O builder do supabase-js não tem .catch(): chamá-lo lançava TypeError,
+      // a marcação nunca saía e a drenagem abortava no meio do lote.
+      try {
+        await supabase.rpc("etiqueta_financeiro_marcar_erro", {
+          p_id: pendencia.id, p_erro: erroConta.message || "falha ao lançar",
+        });
+      } catch { /* a reserva expira e a próxima passada retoma */ }
       resultados.push({ id: pendencia.id, status: "erro", erro: erroConta.message });
       continue;
     }

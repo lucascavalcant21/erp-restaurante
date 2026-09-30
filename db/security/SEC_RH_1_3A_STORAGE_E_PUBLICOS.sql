@@ -101,11 +101,21 @@ select e.tabela, e.coluna, f.formato,
 
 
 /* ═══ FASE 1 · ADITIVA — pode rodar ANTES do deploy ═════════════════════════
-   Só cria. Não altera dado existente além de preencher uma coluna nova. */
+   Só CRIA: uma tabela nova, um índice, uma coluna nova e um índice único.
+   Não há DROP, TRUNCATE, DELETE, UPDATE, REVOKE nem GRANT; não toca em
+   Storage, bucket, policy existente ou RPC. Idempotente: rodar de novo não
+   muda nada ("if not exists" em tudo).
+
+   Sobre grants: a tabela nova nasce com RLS LIGADO e NENHUMA policy. Com
+   isso, anon e authenticated não leem nem gravam uma linha sequer, mesmo que
+   os privilégios padrão do Supabase deem grant de tabela a eles. O REVOKE
+   explícito (defesa em profundidade) fica para a FASE 5. Só o servidor, com
+   service_role, usa a tabela. */
 begin;
 
 /* 1.1 · Convite de uso limitado para o portal de vagas (PARTE G).
-   Guarda só o HASH do token. Ninguém além do servidor lê ou escreve. */
+   Guarda só o HASH do token. "on delete cascade" é regra da tabela NOVA:
+   se um cadastro de extra for apagado, os convites dele vão junto. */
 create table if not exists public.extras_convites (
   id                 uuid primary key default gen_random_uuid(),
   token_hash         text not null unique,
@@ -119,21 +129,37 @@ create table if not exists public.extras_convites (
 );
 create index if not exists idx_extras_convites_expira on public.extras_convites (expira_em);
 alter table public.extras_convites enable row level security;
-revoke all on table public.extras_convites from anon, authenticated;
 
 /* 1.2 · Token público do treinamento (PARTE I).
-   64 hex de dois UUID v4 = 244 bits aleatórios; não precisa de pgcrypto. */
-alter table public.treinamentos add column if not exists token_publico text;
-update public.treinamentos
-   set token_publico = replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')
- where token_publico is null;
+   Coluna nova com DEFAULT volátil: o Postgres calcula um valor PARA CADA
+   linha existente no próprio ADD COLUMN — sem UPDATE. 64 hex de dois UUID v4
+   (244 bits aleatórios), sem depender de pgcrypto. Se a coluna já existir,
+   o comando não faz nada. */
 alter table public.treinamentos
-  alter column token_publico set default (replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''));
+  add column if not exists token_publico text
+  default (replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''));
 create unique index if not exists uq_treinamentos_token_publico on public.treinamentos (token_publico);
 
 commit;
 
-/* ROLLBACK FASE 1
+/* 1.3 · Conferência (só leitura). */
+select 'extras_convites existe'            as item, (to_regclass('public.extras_convites') is not null)::text as valor
+union all
+select 'extras_convites RLS ligado', relrowsecurity::text from pg_class where oid = to_regclass('public.extras_convites')
+union all
+select 'extras_convites policies', count(*)::text from pg_policies where schemaname = 'public' and tablename = 'extras_convites'
+union all
+select 'extras_convites linhas', count(*)::text from public.extras_convites
+union all
+select 'treinamentos total', count(*)::text from public.treinamentos
+union all
+select 'treinamentos com token', count(token_publico)::text from public.treinamentos
+union all
+select 'tokens distintos', count(distinct token_publico)::text from public.treinamentos;
+/* ESPERADO: existe = true, RLS = true, policies = 0, linhas = 0,
+   "treinamentos total" = "com token" = "tokens distintos". */
+
+/* ROLLBACK FASE 1 — NÃO faz parte da execução; só se precisar desfazer:
      drop table if exists public.extras_convites;
      drop index if exists public.uq_treinamentos_token_publico;
      alter table public.treinamentos drop column if exists token_publico;
@@ -288,6 +314,11 @@ begin;
    chamador anônimo. Se a 0.1 mostrar public_executa = true, PARE e me mande:
    revogar de PUBLIC afeta authenticated também. */
 revoke execute on function public.extra_cadastro_publico(uuid) from anon;
+
+/* 5.1b · Convites: defesa em profundidade. Desde a FASE 1 o RLS sem policy
+   já bloqueia; aqui sai também o grant de tabela que os privilégios padrão
+   do Supabase dão a anon e authenticated. */
+revoke all on table public.extras_convites from anon, authenticated;
 
 /* 5.2 · candidatos respondia 200 ao anon com 31 linhas em 29/09/2026 —
    nome, telefone, endereço e, em versões antigas do formulário, CPF. */

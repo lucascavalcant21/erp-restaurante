@@ -19,7 +19,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const modules = [
     {
       id: "operacao",
-      label: "Operação",
+      label: "PDV",
       href: "/dashboard/operacao/inteligente",
       submodules: [
         { label: "Inteligente", href: "/dashboard/operacao/inteligente" },
@@ -41,7 +41,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     },
     {
       id: "estoque",
-      label: "Estoque",
+      label: "Operacional",
       href: "/dashboard/operacao/estoque",
       submodules: [
         { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?gestao=1" },

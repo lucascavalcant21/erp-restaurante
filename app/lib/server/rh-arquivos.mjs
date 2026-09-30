@@ -153,17 +153,24 @@ async function donoDoRegistro(db, fonte, registro) {
 /** O arquivo gravado pertence mesmo a este dono? */
 export function arquivoPertence(fonte, ref, dono) {
   if (!ref) return false;
-  if (ref.bucket === BUCKET_RH && ref.formato === "ref") {
-    const [unidade, categoria, donoDoCaminho] = ref.path.split("/");
-    if (unidade !== dono.unidadeId || categoria !== fonte.categoria) return false;
-    // Foto de funcionário/colaborador enviada antes do cadastro existir leva
-    // "novo" no lugar do id; a unidade continua conferida.
-    if (fonte.dono === "registro" && fonte.categoria === "fotos") {
-      return donoDoCaminho === dono.donoId || donoDoCaminho === "novo";
-    }
-    return donoDoCaminho === dono.donoId;
-  }
+  // Vale o formato novo OU a regra de legado — qualquer que seja a forma
+  // gravada (URL antiga ou storage://). A FASE 2 converte URL antiga em
+  // storage://bucket/<caminho antigo>: o caminho continua no formato antigo e
+  // tem de ser aceito pela regra de legado, que também exige o dono certo.
+  if (ref.bucket === BUCKET_RH && pertenceNoFormatoNovo(fonte, ref.path, dono)) return true;
   return fonte.legado.some((l) => l.bucket === ref.bucket && l.aceita(ref.path, dono));
+}
+
+/** <unidade>/<categoria>/<dono>/<arquivo> — o caminho que prepararEnvio monta. */
+function pertenceNoFormatoNovo(fonte, path, dono) {
+  const [unidade, categoria, donoDoCaminho, arquivo] = path.split("/");
+  if (!arquivo || unidade !== dono.unidadeId || categoria !== fonte.categoria) return false;
+  // Foto de funcionário/colaborador enviada antes do cadastro existir leva
+  // "novo" no lugar do id; a unidade continua conferida.
+  if (fonte.dono === "registro" && fonte.categoria === "fotos") {
+    return donoDoCaminho === dono.donoId || donoDoCaminho === "novo";
+  }
+  return donoDoCaminho === dono.donoId;
 }
 
 async function carregarRegistro(db, fonte, id) {

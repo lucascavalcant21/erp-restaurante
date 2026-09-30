@@ -19,25 +19,25 @@ export function HubHeader({
   className = "",
 }) {
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80 ${className}`}>
+    <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 ${className}`}>
       <div className="flex items-center gap-3.5">
         {Icon && (
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200 shadow-inner">
             <Icon size={28} />
           </div>
         )}
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] uppercase tracking-widest font-extrabold text-emerald-400">
+            <span className="text-[10px] uppercase tracking-widest font-extrabold text-emerald-600">
               {domainTag}
             </span>
             <span className="text-slate-600">•</span>
-            <span className="text-[11px] text-slate-400 font-medium">{unitName}</span>
+            <span className="text-[11px] text-slate-500 font-medium">{unitName}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             {title}
           </h1>
-          {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
         </div>
       </div>
 
@@ -47,10 +47,10 @@ export function HubHeader({
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
             title="Atualizar dados"
           >
-            <RefreshCw size={15} className={isRefreshing ? "animate-spin text-emerald-400" : ""} />
+            <RefreshCw size={15} className={isRefreshing ? "animate-spin text-emerald-600" : ""} />
             <span className="hidden xs:inline">Atualizar</span>
           </button>
         )}
@@ -83,15 +83,15 @@ export function HubAttentionCard({
     amber: "bg-amber-950/30 border-amber-900/60 text-amber-200",
     green: "bg-emerald-950/20 border-emerald-900/40 text-emerald-200",
     indigo: "bg-indigo-950/30 border-indigo-900/60 text-indigo-200",
-    slate: "bg-slate-900/80 border-slate-800 text-slate-300",
+    slate: "bg-white/80 border-slate-200 text-slate-600",
   };
 
   const iconColors = {
     red: "bg-rose-500/20 text-rose-400",
-    amber: "bg-amber-500/20 text-amber-400",
-    green: "bg-emerald-500/20 text-emerald-400",
+    amber: "bg-amber-500/20 text-amber-600",
+    green: "bg-emerald-500/20 text-emerald-600",
     indigo: "bg-indigo-500/20 text-indigo-400",
-    slate: "bg-slate-800 text-slate-300",
+    slate: "bg-slate-50 text-slate-600",
   };
 
   return (
@@ -140,14 +140,14 @@ export function HubSectionHeader({
     red: "bg-rose-500/20 text-rose-300 border-rose-500/30",
     amber: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     green: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-    slate: "bg-slate-800 text-slate-300 border-slate-700",
+    slate: "bg-slate-50 text-slate-600 border-slate-700",
   };
 
   return (
     <div className={`flex items-center justify-between gap-2 pb-1 ${className}`}>
       <div className="flex items-center gap-2">
-        {Icon && <Icon size={16} className="text-slate-400 shrink-0" />}
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+        {Icon && <Icon size={16} className="text-slate-500 shrink-0" />}
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">
           {title}
         </h2>
         {badgeText && (
@@ -170,7 +170,7 @@ export function HubSectionHeader({
  */
 export function HubCardContainer({ children, className = "" }) {
   return (
-    <div className={`p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 shadow-sm text-slate-100 ${className}`}>
+    <div className={`p-4 sm:p-5 rounded-2xl bg-white/60 border border-slate-200/80 shadow-sm text-slate-900 ${className}`}>
       {children}
     </div>
   );
@@ -192,10 +192,10 @@ export function HubActionButton({
 }) {
   const variantStyles = {
     primary: "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold shadow-md",
-    secondary: "bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold border border-slate-700/80",
-    outline: "bg-transparent hover:bg-slate-800/60 text-slate-300 hover:text-white border border-slate-700",
+    secondary: "bg-slate-50 hover:bg-slate-700 text-slate-900 font-bold border border-slate-700/80",
+    outline: "bg-transparent hover:bg-slate-50/60 text-slate-600 hover:text-white border border-slate-700",
     danger: "bg-rose-600 hover:bg-rose-500 text-white font-extrabold shadow-md",
-    ghost: "bg-transparent hover:bg-slate-800/40 text-slate-400 hover:text-white",
+    ghost: "bg-transparent hover:bg-slate-50/40 text-slate-500 hover:text-white",
   };
 
   return (
@@ -225,10 +225,10 @@ export function HubSkeleton({ height = "h-20", lines = 1, className = "" }) {
       {Array.from({ length: lines }).map((_, idx) => (
         <div
           key={idx}
-          className={`w-full rounded-2xl bg-slate-900/60 border border-slate-800/80 animate-pulse p-4 ${height}`}
+          className={`w-full rounded-2xl bg-white/60 border border-slate-200/80 animate-pulse p-4 ${height}`}
         >
-          <div className="h-4 bg-slate-800 rounded w-1/3 mb-2" />
-          <div className="h-3 bg-slate-800/60 rounded w-2/3" />
+          <div className="h-4 bg-slate-50 rounded w-1/3 mb-2" />
+          <div className="h-3 bg-slate-50/60 rounded w-2/3" />
         </div>
       ))}
     </div>
@@ -281,7 +281,7 @@ export function HubListItem({ children, onClick, className = "" }) {
     <div
       onClick={onClick}
       className={`py-3 px-2 flex items-center justify-between gap-3 transition-colors ${
-        onClick ? "hover:bg-slate-800/30 cursor-pointer rounded-xl" : ""
+        onClick ? "hover:bg-slate-50/30 cursor-pointer rounded-xl" : ""
       } ${className}`}
     >
       {children}

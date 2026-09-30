@@ -72,7 +72,7 @@ export default function RHPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { unidadeAtiva, unidadeInfo } = useERP();
-  const [modoView, setModoView] = useState(() => searchParams.get("view") === "gestao" || searchParams.get("view") === "tabela" ? "gestao" : "hub");
+  
   // "71 dias de Seldeestrela" diz mais que "71 dias de casa": a equipe chama a
   // unidade pelo nome, e quem opera mais de uma precisa saber de qual se trata.
   const nomeDaCasa = unidadeInfo?.nome || "casa";
@@ -2019,22 +2019,7 @@ export default function RHPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                   <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 mr-1">
-                      <button
-                         type="button"
-                         onClick={() => setModoView("hub")}
-                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
-                      >
-                         Hub Operacional
-                      </button>
-                      <button
-                         type="button"
-                         onClick={() => setModoView("gestao")}
-                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "gestao" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
-                      >
-                         Gestão Completa
-                      </button>
-                   </div>
+                   
                    <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-accent transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
                </button>

@@ -181,30 +181,11 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const meuBancoHoras = meuColaborador ? somaMinutosBanco(bancoPorColab.get(meuColaborador.id) || []) : 0;
 
   return (
-    <div className="min-h-screen bg-[#070F1E] text-slate-100 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* CABEÇALHO PADRONIZADO */}
-        <HubHeader
-          icon={Users}
-          domainTag="Central de Pessoas"
-          unitName={unidadeInfo?.nome || "Unidade"}
-          title={podeVerGestaoRH ? "Situação Operacional da Equipe" : `Meu Dia · ${sessao?.nome || "Colaborador"}`}
-          subtitle={dataCapitalizada}
-          onRefresh={carregarDadosRH}
-          isRefreshing={loading}
-          primaryActionButton={
-            podeVerGestaoRH && onVerGestaoCompleta ? (
-              <HubActionButton
-                onClick={onVerGestaoCompleta}
-                variant="primary"
-                icon={Users}
-              >
-                Gestão Completa de RH
-              </HubActionButton>
-            ) : null
-          }
-        />
+        
 
         {error && (
           <HubErrorState
@@ -229,35 +210,35 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <HubSkeleton height="h-20" lines={1} />
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                  <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <div className="p-4 rounded-2xl bg-white/80 border border-slate-200 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-slate-500 mb-2">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider">Previstos Hoje</span>
-                      <CalendarDays size={18} className="text-slate-400" />
+                      <CalendarDays size={18} className="text-slate-500" />
                     </div>
                     <div>
                       <span className="text-2xl sm:text-3xl font-black text-white">{previstosHoje.length}</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">de {colabsAtivos.length} colaboradores</span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">de {colabsAtivos.length} colaboradores</span>
                     </div>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-emerald-400 mb-2">
+                    <div className="flex items-center justify-between text-emerald-600 mb-2">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider">Presentes</span>
-                      <UserCheck size={18} className="text-emerald-400" />
+                      <UserCheck size={18} className="text-emerald-600" />
                     </div>
                     <div>
-                      <span className="text-2xl sm:text-3xl font-black text-emerald-400">{presentes.length}</span>
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-600">{presentes.length}</span>
                       <span className="text-[10px] text-emerald-300/80 block mt-0.5">{trabalhando.length} no turno · {emIntervalo.length} em pausa</span>
                     </div>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-amber-400 mb-2">
+                    <div className="flex items-center justify-between text-amber-600 mb-2">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider">Atrasados</span>
-                      <Clock size={18} className="text-amber-400" />
+                      <Clock size={18} className="text-amber-600" />
                     </div>
                     <div>
-                      <span className="text-2xl sm:text-3xl font-black text-amber-400">{atrasados.length}</span>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-600">{atrasados.length}</span>
                       <span className="text-[10px] text-amber-300/80 block mt-0.5">sem entrada no horário</span>
                     </div>
                   </div>
@@ -343,7 +324,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                     <button
                       type="button"
                       onClick={() => setExpandirEquipe(!expandirEquipe)}
-                      className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1 min-h-[44px] cursor-pointer"
+                      className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1 min-h-[44px] cursor-pointer"
                     >
                       <span>{expandirEquipe ? "Ver Menos" : `Ver Todos (${equipeProcessada.length})`}</span>
                       <ChevronRight size={14} />
@@ -368,17 +349,17 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
                           <div className="min-w-0">
                             <p className="font-extrabold text-white text-xs sm:text-sm truncate">{colaborador.nome}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{colaborador.cargo || "Sem cargo"} · {colaborador.departamento || "Geral"}</p>
+                            <p className="text-[10px] text-slate-500 truncate">{colaborador.cargo || "Sem cargo"} · {colaborador.departamento || "Geral"}</p>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
                           <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold block ${
-                            statusOperacional === "trabalhando" ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/50" :
+                            statusOperacional === "trabalhando" ? "bg-emerald-950/60 text-emerald-600 border border-emerald-800/50" :
                             statusOperacional === "intervalo" ? "bg-purple-950/60 text-purple-300 border border-purple-800/50" :
-                            statusOperacional === "atrasado" ? "bg-amber-950/60 text-amber-400 border border-amber-800/50" :
+                            statusOperacional === "atrasado" ? "bg-amber-950/60 text-amber-600 border border-amber-800/50" :
                             statusOperacional === "pendente" ? "bg-rose-950/60 text-rose-400 border border-rose-800/50" :
-                            statusOperacional === "encerrado" ? "bg-sky-950/60 text-sky-400 border border-sky-800/50" : "bg-slate-800 text-slate-400"
+                            statusOperacional === "encerrado" ? "bg-sky-950/60 text-sky-400 border border-sky-800/50" : "bg-slate-50 text-slate-500"
                           }`}>
                             {statusOperacional === "trabalhando" ? "Trabalhando" :
                              statusOperacional === "intervalo" ? "☕ Intervalo" :
@@ -387,7 +368,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                              statusOperacional === "encerrado" ? "Encerrado" : "Fora do Turno"}
                           </span>
                           {horario?.entrada && (
-                            <span className="text-[10px] text-slate-400 block mt-0.5">Turno: {horario.entrada} - {horario.saida || "Fim"}</span>
+                            <span className="text-[10px] text-slate-500 block mt-0.5">Turno: {horario.entrada} - {horario.saida || "Fim"}</span>
                           )}
                         </div>
                       </HubListItem>
@@ -408,16 +389,16 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <HubCardContainer className="space-y-3 flex flex-col justify-between">
                   <div>
                     {equipeBancoAtencao.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-4">Nenhum colaborador com acúmulo excessivo de banco de horas este mês.</p>
+                      <p className="text-xs text-slate-500 italic py-4">Nenhum colaborador com acúmulo excessivo de banco de horas este mês.</p>
                     ) : (
                       <HubListContainer>
                         {equipeBancoAtencao.slice(0, 5).map(b => (
                           <HubListItem key={b.colaborador.id}>
                             <div className="min-w-0">
                               <p className="font-extrabold text-white text-xs truncate">{b.colaborador.nome}</p>
-                              <p className="text-[10px] text-slate-400">{b.colaborador.cargo || "Fixo"}</p>
+                              <p className="text-[10px] text-slate-500">{b.colaborador.cargo || "Fixo"}</p>
                             </div>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${b.minutos >= 480 ? "bg-rose-950 text-rose-400 border border-rose-800" : "bg-amber-950 text-amber-400 border border-amber-800"}`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${b.minutos >= 480 ? "bg-rose-950 text-rose-400 border border-rose-800" : "bg-amber-950 text-amber-600 border border-amber-800"}`}>
                               {b.horas > 0 ? `+${b.horas}h` : `${b.horas}h`}
                             </span>
                           </HubListItem>
@@ -450,16 +431,16 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/gestao")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
-                  <Users size={18} className="text-emerald-400 shrink-0" />
+                  <Users size={18} className="text-emerald-600 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Funcionários</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/ponto")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Clock size={18} className="text-sky-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Espelho Ponto</span>
@@ -468,7 +449,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/ponto")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <CalendarDays size={18} className="text-indigo-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Escalas</span>
@@ -477,16 +458,16 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
-                  <Clock size={18} className="text-amber-400 shrink-0" />
+                  <Clock size={18} className="text-amber-600 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Banco Horas</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/extra")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <Plus size={18} className="text-purple-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">+ Trabalho Extra</span>
@@ -496,7 +477,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/rh/recrutamento")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
+                    className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                   >
                     <UserPlus size={18} className="text-teal-400 shrink-0" />
                     <span className="text-xs font-extrabold text-white">Recrutamento</span>
@@ -516,38 +497,38 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/rh/fechamento")}
-                    className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
+                    className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                   >
                     <p className="text-xs font-bold text-white truncate">Folha de Pagamento</p>
-                    <p className="text-[10px] text-slate-400">Fechamento e holerites</p>
+                    <p className="text-[10px] text-slate-500">Fechamento e holerites</p>
                   </button>
                 )}
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/ponto/corrigir")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
+                  className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
                   <p className="text-xs font-bold text-white truncate">Corrigir Ponto</p>
-                  <p className="text-[10px] text-slate-400">Ajustes e justificativas</p>
+                  <p className="text-[10px] text-slate-500">Ajustes e justificativas</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/organograma")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
+                  className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
                   <p className="text-xs font-bold text-white truncate">Organograma</p>
-                  <p className="text-[10px] text-slate-400">Hierarquia e liderança</p>
+                  <p className="text-[10px] text-slate-500">Hierarquia e liderança</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/rh/cardapio-funcionarios")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
+                  className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
                   <p className="text-xs font-bold text-white truncate">Cardápio Refeitório</p>
-                  <p className="text-[10px] text-slate-400">Refeição da equipe</p>
+                  <p className="text-[10px] text-slate-500">Refeição da equipe</p>
                 </button>
               </div>
             </div>
@@ -556,14 +537,14 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
           /* ─── VISÃO PESSOAL ("MEU DIA") PARA COLABORADOR SEM PERMISSÃO GERENCIAL ─── */
           <div className="space-y-6">
             <HubCardContainer className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <h2 className="text-base font-black text-white">Status do Meu Ponto Hoje</h2>
-                <span className="text-xs text-emerald-400 font-bold">{minhaSituacaoPonto.texto}</span>
+                <span className="text-xs text-emerald-600 font-bold">{minhaSituacaoPonto.texto}</span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs text-slate-400">Horário Contratado Hoje:</p>
+                  <p className="text-xs text-slate-500">Horário Contratado Hoje:</p>
                   <p className="text-lg font-black text-white">
                     {horarioDoDia(meuColaborador, diaDaSemana).entrada || "Turno Padrão"} - {horarioDoDia(meuColaborador, diaDaSemana).saida || "Saída"}
                   </p>
@@ -581,33 +562,33 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <HubCardContainer>
-                <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">Meu Banco de Horas</h3>
+                <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Meu Banco de Horas</h3>
                 <p className="text-2xl font-black text-white">{(meuBancoHoras / 60).toFixed(1)}h</p>
-                <p className="text-[10px] text-slate-400 mt-1">Saldo acumulado este mês</p>
+                <p className="text-[10px] text-slate-500 mt-1">Saldo acumulado este mês</p>
               </HubCardContainer>
 
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/rh/colaborador")}
-                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
+                className="p-5 rounded-2xl bg-white/60 border border-slate-200 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
               >
                 <div>
-                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">Meu Espelho</h3>
+                  <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Meu Espelho</h3>
                   <p className="text-sm font-black text-white">Ver histórico de batidas</p>
                 </div>
-                <ArrowRight size={16} className="text-emerald-400 self-end" />
+                <ArrowRight size={16} className="text-emerald-600 self-end" />
               </button>
 
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/rh/cardapio-funcionarios")}
-                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
+                className="p-5 rounded-2xl bg-white/60 border border-slate-200 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
               >
                 <div>
-                  <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">Cardápio Equipe</h3>
+                  <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Cardápio Equipe</h3>
                   <p className="text-sm font-black text-white">Ver refeição do dia</p>
                 </div>
-                <ArrowRight size={16} className="text-emerald-400 self-end" />
+                <ArrowRight size={16} className="text-emerald-600 self-end" />
               </button>
             </div>
           </div>

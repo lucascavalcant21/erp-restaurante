@@ -1551,7 +1551,6 @@ function EstoqueRunner() {
           </>
         )}
         </>
-        )}
       </main>
 
       {/* CONTAGEM POR VOZ: dita o inventário e confere antes de gravar */}

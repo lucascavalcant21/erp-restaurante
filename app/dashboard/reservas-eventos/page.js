@@ -1,8 +1,8 @@
 "use client";
 
 import { Calendar, Users, CalendarDays, BookOpen, Clock } from "lucide-react";
-import EventosKanban from "./eventos/page";
-import ReservasList from "./reservas/page";
+import EventosKanban from "./eventos/EventosKanban";
+import ReservasList from "./reservas/ReservasList";
 import { useERP } from "../../context/ERPContext";
 
 export default function ReservasEventosOverview() {

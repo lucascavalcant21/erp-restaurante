@@ -809,10 +809,7 @@ function EtiquetasRunner() {
         <div className="flex flex-wrap gap-2 mb-4">
           {[["gerar", "Gerar etiqueta"], ["salvas", "Etiquetas salvas"], ["geradas", "Etiquetas geradas"]].map(([v, l]) => (
             <button key={v} onClick={() => setAba(v)}
-              className="px-5 py-2.5 font-bold text-sm rounded-xl transition-all"
-              style={aba === v
-                ? { background: "var(--accent-strong)", color: "#fff", boxShadow: "0 2px 8px rgba(16,185,129,0.28)" }
-                : { background: "var(--panel)", color: "var(--fg)", border: "1px solid var(--line)" }}>
+              className={`px-5 py-2.5 font-bold text-sm rounded-xl transition-all border ${aba === v ? "bg-accent text-accent-fg border-accent shadow-sm" : "bg-card text-fg border-line hover:bg-slate-100"}`}>
               {l}
             </button>
           ))}
@@ -825,11 +822,10 @@ function EtiquetasRunner() {
         ) : (
         <>
         {/* Filtro por departamento: cada área imprime etiquetas só dos seus itens */}
-        <div className="inline-flex gap-1 mb-4 rounded-xl p-1" style={{ background: "var(--elevated)" }}>
+        <div className="inline-flex gap-1 mb-4 rounded-xl p-1 bg-slate-100 border border-line">
           {[["", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"]].map(([d, l]) => (
             <button key={d} onClick={() => router.push(`/dashboard/operacao/etiquetas${d ? `?dept=${d}` : ""}`)}
-              className="px-4 py-2 rounded-lg font-bold text-sm transition-all"
-              style={(deptUrl || "") === d ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.15)" } : { color: "var(--muted)" }}>
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${ (deptUrl || "") === d ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200" }`}>
               {l}
             </button>
           ))}

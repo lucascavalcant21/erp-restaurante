@@ -904,34 +904,72 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
 
   if (!departamento) {
     return (
-      <div className="estoque-inicio">
-        <style>{`
-          .estoque-inicio{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}
-          .estoque-inicio-topo{display:flex;align-items:center;justify-content:space-between;gap:12px}.estoque-inicio-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}
-          .estoque-inicio-centro{width:min(950px,100%);margin:auto;text-align:center}.estoque-inicio-centro h1{font-size:clamp(30px,5vw,58px);line-height:1;margin:18px 0 10px;font-weight:950}.estoque-inicio-centro p{color:#cbd5e1;font-size:clamp(15px,2vw,20px);margin:0 auto 34px}
-          .estoque-inicio-setores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:240px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:28px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25);transition:.15s}.estoque-inicio-setor svg{width:62px;height:62px}.estoque-inicio-setor.cozinha{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.bar{background:linear-gradient(145deg,#1d4ed8,#3b82f6)}.estoque-inicio-setor.limpeza{background:linear-gradient(145deg,#0369a1,#0ea5e9)}.estoque-inicio-setor.embalagens{background:linear-gradient(145deg,#334155,#64748b)}.estoque-inicio-setor:active{transform:scale(.98)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.88}
-          @media(max-width:620px){.estoque-inicio-setores{grid-template-columns:1fr}.estoque-inicio-setor{min-height:175px}.estoque-inicio-centro{margin:30px auto}}
-        `}</style>
-        <div className="estoque-inicio-topo">
-          <button onClick={() => router.push(voltarHref)}><ArrowLeft size={19} /> Voltar</button>
-          <button onClick={pedirTelaCheia}><Maximize2 size={18} /> Tela cheia</button>
+      <div className="fixed inset-0 z-[80] overflow-auto bg-[#F7F8F7] text-zinc-950 p-4 sm:p-10 flex flex-col">
+        <div className="flex items-center justify-between gap-3">
+          <button 
+            className="h-11 border border-zinc-200 rounded-xl bg-white text-zinc-700 px-4 flex items-center gap-2 font-bold shadow-sm hover:bg-zinc-50 transition-colors"
+            onClick={() => router.push(voltarHref)}
+          >
+            <ArrowLeft size={19} /> Voltar
+          </button>
+          <button 
+            className="h-11 border border-zinc-200 rounded-xl bg-white text-zinc-700 px-4 flex items-center gap-2 font-bold shadow-sm hover:bg-zinc-50 transition-colors"
+            onClick={pedirTelaCheia}
+          >
+            <Maximize2 size={18} /> Tela cheia
+          </button>
         </div>
-        <main className="estoque-inicio-centro">
-          <ShoppingBasket size={48} />
-          <h1>Estoque</h1>
-          <p>Primeiro, escolha onde o produto será depositado ou retirado.</p>
-          <div className="estoque-inicio-setores">
-            <button className="estoque-inicio-setor cozinha" onClick={() => selecionarSetor("cozinha")}>
-              <ChefHat /> Cozinha <span>Alimentos e insumos da cozinha</span>
+        
+        <main className="w-full max-w-4xl mx-auto text-center flex-1 flex flex-col justify-center py-10">
+          <div className="w-20 h-20 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm text-zinc-400">
+            <ShoppingBasket size={40} />
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-zinc-900 mb-3">Estoque</h1>
+          <p className="text-zinc-500 font-medium text-lg mb-10">Primeiro, escolha onde o produto será depositado ou retirado.</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <button 
+              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-emerald-500/30 transition-all active:scale-[0.98] group"
+              onClick={() => selecionarSetor("cozinha")}
+            >
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <ChefHat size={32} />
+              </div>
+              <span className="text-2xl font-black text-zinc-900">Cozinha</span>
+              <span className="text-sm font-bold text-zinc-500">Alimentos e insumos da cozinha</span>
             </button>
-            <button className="estoque-inicio-setor bar" onClick={() => selecionarSetor("bar")}>
-              <GlassWater /> Bar <span>Bebidas e insumos do bar</span>
+            
+            <button 
+              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-blue-500/30 transition-all active:scale-[0.98] group"
+              onClick={() => selecionarSetor("bar")}
+            >
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <GlassWater size={32} />
+              </div>
+              <span className="text-2xl font-black text-zinc-900">Bar</span>
+              <span className="text-sm font-bold text-zinc-500">Bebidas e insumos do bar</span>
             </button>
-            <button className="estoque-inicio-setor limpeza" onClick={() => selecionarSetor("limpeza")}>
-              <Sparkles /> Limpeza <span>Produtos de limpeza da casa</span>
+            
+            <button 
+              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-sky-500/30 transition-all active:scale-[0.98] group"
+              onClick={() => selecionarSetor("limpeza")}
+            >
+              <div className="w-16 h-16 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Sparkles size={32} />
+              </div>
+              <span className="text-2xl font-black text-zinc-900">Limpeza</span>
+              <span className="text-sm font-bold text-zinc-500">Produtos de limpeza da casa</span>
             </button>
-            <button className="estoque-inicio-setor embalagens" onClick={() => selecionarSetor("embalagens")}>
-              <Package /> Embalagens <span>Potes, sacos e descartáveis</span>
+            
+            <button 
+              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-slate-500/30 transition-all active:scale-[0.98] group"
+              onClick={() => selecionarSetor("embalagens")}
+            >
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <Package size={32} />
+              </div>
+              <span className="text-2xl font-black text-zinc-900">Embalagens</span>
+              <span className="text-sm font-bold text-zinc-500">Potes, sacos e descartáveis</span>
             </button>
           </div>
         </main>

@@ -168,14 +168,63 @@ select 'tokens distintos', count(distinct token_publico)::text from public.trein
 
 
 /* ═══ FASE 2 · REFERÊNCIAS — DEPOIS do deploy ══════════════════════════════
+
+   2.0 · CONTAGEM — somente leitura. Rode ANTES e DEPOIS do 2.1.
+   Por coluna de arquivo de RH, só números:
+     url_rh_total      URL pública do próprio projeto, na pasta de RH
+     convertiveis      dessas, as que o 2.1 converte (sem caractere codificado)
+     nao_convertiveis  as que têm "%" no caminho — o 2.1 NÃO toca nelas
+     ja_convertidas    já estão como storage://
+   CRITÉRIO DE PARADA: nao_convertiveis > 0 em qualquer linha → NÃO rode o
+   2.1; me mande a tabela. (Elas continuariam abrindo pelo servidor, que lê o
+   formato antigo, mas a sua regra é parar.) */
+with alvo(tabela, coluna, pasta) as (values
+  ('documentos_rh',   'url_arquivo', 'rh-docs/'),
+  ('rh_atestados',    'arquivo_url', 'rh-docs/'),
+  ('rh_regulamentos', 'url_pdf',     'rh-docs/'),
+  ('colaboradores',   'foto_url',    'anexos/fotos/'),
+  ('funcionarios',    'foto_url',    'anexos/fotos/'),
+  ('holerites',       'arquivo_url', 'anexos/holerites/'),
+  ('func_documentos', 'arquivo_url', 'anexos/documentos/'),
+  ('cursos',          'arquivo_url', 'anexos/cursos/'),
+  ('rh_atas',         'arquivo_url', 'anexos/atas/')
+),
+existe as (
+  select a.*, exists (select 1 from information_schema.columns c
+                       where c.table_schema = 'public' and c.table_name = a.tabela
+                         and c.column_name = a.coluna) as ok
+    from alvo a
+),
+conta as (
+  select e.tabela, e.coluna, e.ok,
+         case when e.ok then query_to_xml(format(
+           'select count(*) filter (where %2$I like %3$L) as url_rh_total,
+                   count(*) filter (where %2$I like %3$L and %2$I not like ''%%\%%%%'') as convertiveis,
+                   count(*) filter (where %2$I like %3$L and %2$I like ''%%\%%%%'') as nao_convertiveis,
+                   count(*) filter (where %2$I like ''storage://%%'') as ja_convertidas
+              from public.%1$I',
+           e.tabela, e.coluna,
+           'https://sezccspqxgklicfndwxx.supabase.co/storage/v1/object/public/' || e.pasta || '%'),
+           false, true, '') end as x
+    from existe e
+)
+select tabela, coluna,
+       case when not ok then 'coluna ausente' else 'ok' end as situacao,
+       (xpath('/row/url_rh_total/text()',     x))[1]::text::int as url_rh_total,
+       (xpath('/row/convertiveis/text()',     x))[1]::text::int as convertiveis,
+       (xpath('/row/nao_convertiveis/text()', x))[1]::text::int as nao_convertiveis,
+       (xpath('/row/ja_convertidas/text()',   x))[1]::text::int as ja_convertidas
+  from conta
+ order by tabela;
+
+/* 2.1 · CONVERSÃO
    Troca a URL pública gravada por storage://bucket/caminho, que não abre
    nada sozinha. Guarda o valor antigo numa tabela de backup (sem grant a
    ninguém além do owner/service_role) para o rollback.
 
    Só converte URL do PRÓPRIO projeto, dos buckets de RH, e sem caractere
-   codificado (%): essas o servidor já lê no formato antigo, e decodificar
-   URL em SQL é arriscado demais para ganhar pouco. A contagem 0.4 mostra
-   quantas ficam. */
+   codificado (%). Não apaga URL nem arquivo: o arquivo continua no mesmo
+   lugar, e o servidor o encontra pelo bucket/caminho. */
 begin;
 
 create table if not exists public.sec_rh_backup_urls (
@@ -234,8 +283,9 @@ end $$;
 
 commit;
 
-/* Conferência: rode de novo a 0.4. "URL pública rh-docs" deve ir a 0 (menos
-   as com %, que o servidor lê do jeito antigo).
+/* Conferência: rode de novo o 2.0. Esperado: convertiveis = 0 em todas as
+   linhas, e ja_convertidas = (ja_convertidas de antes + convertiveis de
+   antes). Os arquivos NÃO mudaram de lugar.
 
    ROLLBACK FASE 2 — devolve exatamente o valor antigo:
      do $$ declare b record; begin

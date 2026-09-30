@@ -10,7 +10,9 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchFuncionarios, inserirFuncionario, atualizarFuncionario, removerFuncionario, fetchCargos, fetchTurnos } from "../../../lib/rh";
 import { podeEditarGlobal, getPapel, registrarUsuario, formatarParaEmailFantasma } from "../../../lib/auth";
-import { uploadAnexo } from "../../../lib/pessoas"; // reaproveitando a func de upload
+// SEC-RH-1.3A: foto de colaborador é dado pessoal — bucket privado, via servidor.
+import { enviarArquivoRH } from "../../../lib/rh-arquivos";
+import { useFotosRH } from "../../../lib/useFotosRH";
 
 const VAZIO = { 
   nome: "", cargo: "", turno: "", salario: "", admissao: "", 
@@ -24,7 +26,10 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
   const [f, setF] = useState(inicial ? { ...inicial, salario: String(inicial.salario ?? ""), supervisor_id: inicial.supervisor_id || "", unidade_id: inicial.unidade_id || unidadeAtiva } : { ...VAZIO, unidade_id: unidadeAtiva === "todas" ? "" : unidadeAtiva });
   const [erro, setErro] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [previewFoto, setPreviewFoto] = useState("");
   const fileInputRef = useRef(null);
+  const fotosIniciais = useFotosRH("foto_colaborador", inicial ? [inicial] : []);
+  const srcFoto = previewFoto || (inicial && f.foto_url === inicial.foto_url ? fotosIniciais[inicial.id] : "");
 
   const set = (k, v) => { 
     setF((p) => {
@@ -48,9 +53,12 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
     if (!file) return;
     setUploading(true);
     setErro("");
-    const res = await uploadAnexo(file, `fotos/${Date.now()}_${file.name}`);
+    const res = await enviarArquivoRH({
+      fonte: "foto_colaborador", arquivo: file,
+      donoId: inicial?.id || null, unidadeId: f.unidade_id || unidadeAtiva,
+    });
     if (res.error) setErro("Erro ao fazer upload da foto.");
-    else set("foto_url", res.url);
+    else { set("foto_url", res.ref); setPreviewFoto(URL.createObjectURL(file)); }
     setUploading(false);
   }
 
@@ -82,8 +90,8 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
           className="w-20 h-20 rounded-full border-2 border-dashed border-[var(--line)] flex items-center justify-center cursor-pointer overflow-hidden group relative"
           style={{ background: "var(--elevated)" }}
         >
-          {f.foto_url ? (
-            <img src={f.foto_url} alt="Foto 3x4" className="w-full h-full object-cover" />
+          {srcFoto ? (
+            <img src={srcFoto} alt="Foto 3x4" className="w-full h-full object-cover" />
           ) : (
             <ImageIcon size={24} style={{ color: "var(--muted)" }} />
           )}
@@ -219,6 +227,7 @@ export default function GestaoRhPage() {
     const mc = cargoFiltro === "Todos" || f.cargo === cargoFiltro;
     return mb && mc;
   }), [lista, busca, cargoFiltro]);
+  const fotos = useFotosRH("foto_colaborador", filtrados);
 
   async function salvar(dados) {
     if (editar) await atualizarFuncionario(editar.id, dados);
@@ -290,8 +299,8 @@ export default function GestaoRhPage() {
               {filtrados.map((f) => (
                 <Card key={f.id} className="!p-3">
                   <div className="flex items-center gap-3">
-                    {f.foto_url ? (
-                      <img src={f.foto_url} alt={f.nome} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                    {f.foto_url && fotos[f.id] ? (
+                      <img src={fotos[f.id]} alt={f.nome} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
                         {f.nome?.[0]?.toUpperCase() || "?"}

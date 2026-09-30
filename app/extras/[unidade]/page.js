@@ -26,7 +26,7 @@ export default function PortalExtras() {
   // Textos, funções e perguntas vêm do que o restaurante editou no ERP.
   const [config, setConfig] = useState(PORTAL_EXTRAS_PADRAO);
   const [enviando, setEnviando] = useState(false);
-  const [enviado, setEnviado] = useState(null); // { id, interesse }
+  const [enviado, setEnviado] = useState(null); // { convite, interesse }
   const [erro, setErro] = useState("");
 
   const [form, setForm] = useState({
@@ -66,10 +66,10 @@ export default function PortalExtras() {
     const falta = faltando();
     if (falta) { setErro(falta); return; }
     setErro(""); setEnviando(true);
-    const { id, error } = await enviarCadastroExtra(unidade, form, respostas);
+    const { convite, error } = await enviarCadastroExtra(unidade, form, respostas);
     setEnviando(false);
     if (error) { setErro("Não consegui enviar seu cadastro. Tente de novo em instantes."); return; }
-    setEnviado({ id, interesse: form.interesse });
+    setEnviado({ convite, interesse: form.interesse });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -91,7 +91,7 @@ export default function PortalExtras() {
           {querVaga && (
             <>
               <p className="mt-5 text-sm font-bold text-fg-soft">Você marcou interesse em ser contratado.</p>
-              <button onClick={() => router.push(`/vagas/${unidade}?extra=${enviado.id}`)}
+              <button onClick={() => router.push(enviado.convite ? `/vagas/${unidade}?convite=${enviado.convite}` : `/vagas/${unidade}`)}
                 className="mt-3 w-full rounded-2xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent">
                 Ver as vagas abertas
               </button>

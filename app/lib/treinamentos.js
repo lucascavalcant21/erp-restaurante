@@ -1,15 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 
-const MARCADOR = "\n[[HEFISTO_TREINAMENTO:";
-const normalizar = item => {
-  const descricao = String(item?.descricao || "");
-  const inicio = descricao.lastIndexOf(MARCADOR);
-  if (inicio < 0) return { ...item, departamento: item?.departamento || "salao", modulo: item?.modulo || "Geral", conteudo_texto: item?.conteudo_texto || descricao, duracao_minutos: Number(item?.duracao_minutos) || 5, obrigatorio: Boolean(item?.obrigatorio) };
-  try {
-    const meta = JSON.parse(descricao.slice(inicio + MARCADOR.length, descricao.length - 2));
-    return { ...item, ...meta, descricao: descricao.slice(0, inicio), conteudo_texto: meta.conteudo_texto || descricao.slice(0, inicio) };
-  } catch { return { ...item, departamento: "salao", modulo: "Geral", conteudo_texto: descricao }; }
-};
+import { MARCADOR, normalizarTreinamento as normalizar } from "./treinamento-normalizar.mjs";
 
 export async function fetchTreinamentos(unidadeId) {
   if (!isSupabaseReady()) return { data: [] };
@@ -32,10 +23,19 @@ export async function inserirTreinamento(t) {
   return { data: resposta.data, error: resposta.error?.message };
 }
 
-export async function fetchTreinamento(id) {
-  if (!isSupabaseReady() || !id) return { data: null, error: "Treinamento inválido" };
-  const { data, error } = await supabase.from("treinamentos").select("*").eq("id", id).maybeSingle();
-  return { data: data ? normalizar(data) : null, error: error?.message };
+// Página pública (/treinamento/[token]): sem sessão e sem SELECT do anon na
+// tabela. O servidor procura pelo token_publico e devolve só os campos
+// publicáveis (SEC-RH-1.3A).
+export async function fetchTreinamento(token) {
+  if (!token) return { data: null, error: "Treinamento inválido" };
+  try {
+    const r = await fetch(`/api/public/treinamento/${encodeURIComponent(token)}`, { cache: "no-store" });
+    const json = await r.json().catch(() => ({}));
+    if (!r.ok) return { data: null, error: json.erro || "Treinamento não encontrado" };
+    return { data: json.treinamento || null, error: null };
+  } catch {
+    return { data: null, error: "Sem conexão" };
+  }
 }
 
 export async function uploadMidiaTreinamento({ unidadeId, arquivo, tipo = "arquivo" }) {

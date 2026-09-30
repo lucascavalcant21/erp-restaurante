@@ -54,26 +54,22 @@ export default function EventosKanbanPage() {
   };
 
   return (
-    <main className="h-screen flex flex-col pt-8 pl-8 pr-8 pb-4 max-w-[100vw] overflow-hidden">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 shrink-0">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Eventos & Buffet</h1>
-          <p className="text-slate-900 font-medium mt-1">Gerencie propostas e pipeline de eventos comerciais</p>
-        </div>
-        <div className="flex gap-3">
-          <div className="flex bg-slate-200 p-1 rounded-xl">
-            <button onClick={() => setModoVisao("lista")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'lista' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-900 hover:bg-slate-300/50'}`}>
-              <List size={16} /> Lista
-            </button>
-            <button onClick={() => setModoVisao("kanban")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'kanban' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-900 hover:bg-slate-300/50'}`}>
-              <LayoutGrid size={16} /> Kanban
-            </button>
-          </div>
-          <button onClick={() => setModalAberto(true)} className="h-11 px-5 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800">
-            <Plus size={18} /> Novo Evento
-          </button>
-        </div>
-      </header>
+    <div className="flex flex-col w-full h-[600px] overflow-hidden bg-white border border-slate-200 rounded-3xl p-4">
+      
+  <div className="flex justify-between items-center mb-4">
+    <div className="flex bg-slate-100 p-1 rounded-xl">
+      <button onClick={() => setModoVisao("lista")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'lista' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:bg-slate-200'}`}>
+        <List size={16} /> Lista
+      </button>
+      <button onClick={() => setModoVisao("kanban")} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${modoVisao === 'kanban' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:bg-slate-200'}`}>
+        <LayoutGrid size={16} /> Kanban
+      </button>
+    </div>
+    <button onClick={() => setModalAberto(true)} className="h-10 px-4 rounded-xl bg-accent text-accent-fg font-bold flex items-center gap-2 hover:opacity-90">
+      <Plus size={18} /> Novo Evento
+    </button>
+  </div>
+  
 
       <div className="relative w-full max-w-md mb-6 shrink-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800" size={18} />
@@ -187,7 +183,7 @@ export default function EventosKanbanPage() {
           }} 
         />
       )}
-    </main>
+    </div>
   );
 }
 

@@ -32,21 +32,17 @@ export default function ReservasPage() {
   if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
 
   return (
-    <main className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Reservas (Á La Carte)</h1>
-          <p className="text-slate-900 font-medium mt-1">Gerencie as mesas do dia a dia</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="h-11 px-5 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold flex items-center gap-2 hover:bg-white">
-            <Filter size={18} /> Filtros
-          </button>
-          <button onClick={() => setModalAberto(true)} className="h-11 px-5 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800">
-            <Plus size={18} /> Nova Reserva
-          </button>
-        </div>
-      </header>
+    <div className="flex flex-col w-full h-[500px] overflow-hidden">
+      
+  <div className="flex justify-end items-center mb-4 gap-3">
+    <button className="h-10 px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold flex items-center gap-2 hover:bg-slate-50">
+      <Filter size={18} /> Filtros
+    </button>
+    <button onClick={() => setModalAberto(true)} className="h-10 px-4 rounded-xl bg-accent text-accent-fg font-bold flex items-center gap-2 hover:opacity-90">
+      <Plus size={18} /> Nova Reserva
+    </button>
+  </div>
+  
 
       <div className="flex-1 bg-white border border-slate-200 rounded-3xl overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-200 bg-white flex gap-4">
@@ -137,7 +133,7 @@ export default function ReservasPage() {
           }} 
         />
       )}
-    </main>
+    </div>
   );
 }
 

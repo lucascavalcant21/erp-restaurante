@@ -66,13 +66,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     {
       id: "eventos",
       label: "Eventos",
-      href: "/dashboard/reservas-eventos/eventos",
-      submodules: [
-        { label: "Gestão de Eventos", href: "/dashboard/reservas-eventos/eventos" },
-        { label: "Gestão de Reservas", href: "/dashboard/reservas-eventos/reservas" },
-        { label: "Agenda Mensal", href: "/dashboard/reservas-eventos/agenda" },
-        { label: "Base de Contatos CRM", href: "/dashboard/reservas-eventos/contatos" }
-      ]
+      href: "/dashboard/reservas-eventos"
     },
     {
       id: "rh",

@@ -129,7 +129,13 @@ export default function TreinamentoPage() {
   };
 
   const compartilhar = async item => {
-    const url = `${window.location.origin}/treinamento/${item.id}`;
+    // O link público usa um token aleatório, não o id do registro: quem tem
+    // um link não consegue adivinhar os outros (SEC-RH-1.3A).
+    if (!item.token_publico) {
+      alert("Este treinamento ainda não tem link público. Peça ao administrador para aplicar a atualização de segurança SEC-RH-1.3A.");
+      return;
+    }
+    const url = `${window.location.origin}/treinamento/${item.token_publico}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: item.titulo, text: `Treinamento: ${item.titulo}`, url });

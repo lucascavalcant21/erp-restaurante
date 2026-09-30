@@ -35,7 +35,8 @@ function Campo({ label, children }) {
 export default function PaginaPublicaVagas() {
   const { unidade } = useParams();
   const parametros = useSearchParams();
-  const extraId = parametros.get("extra"); // veio do cadastro de extras
+  // Convite de uso limitado emitido no cadastro de extras (SEC-RH-1.3A).
+  const extraId = parametros.get("convite");
   const [config, setConfig] = useState(PORTAL_VAGAS_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -55,6 +56,8 @@ export default function PaginaPublicaVagas() {
   useEffect(() => {
     if (!extraId) return;
     fetchExtraParaVaga(extraId).then(({ data }) => {
+      // O token sai da barra de endereço: não fica no histórico nem segue em link copiado.
+      try { window.history.replaceState(null, "", window.location.pathname); } catch { /* sem history */ }
       if (!data) return;
       setForm(a => ({
         ...a,
@@ -129,7 +132,7 @@ export default function PaginaPublicaVagas() {
         origem: "Portal público de vagas",
       },
     };
-    const { error } = await enviarCandidatura(unidade, dadosPessoais, respostas, null);
+    const { error } = await enviarCandidatura(unidade, dadosPessoais, respostas);
     setEnviando(false);
     if (error) { setErro("Não consegui enviar sua inscrição. Tente de novo em instantes."); return; }
     setEnviado(true);

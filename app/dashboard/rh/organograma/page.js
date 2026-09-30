@@ -5,11 +5,12 @@ import { Users, User, Search, Network, ChevronDown, Printer } from "lucide-react
 import { PageHeader, PageBody, EmptyState } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores } from "../../../lib/rh";
+import { useFotosRH } from "../../../lib/useFotosRH";
 
 // ════════════════════════════════════════════════════════════
 // NÓ DO ORGANOGRAMA CORPORATIVO
 // ════════════════════════════════════════════════════════════
-function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
+function TreeNode({ func, childrenMap, level, isLast, isRoot, fotos = {} }) {
   const children = childrenMap[func.id] || [];
   const hasChildren = children.length > 0;
   
@@ -33,8 +34,8 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
          <div className={`w-20 h-20 rounded-full overflow-hidden flex items-center justify-center font-black text-2xl mb-4 shadow-inner border-4 ${isCLevel ? 'border-slate-800' : 'border-white'} ${avatarBg}`}>
             {func.foto ? (
               <img src={`data:image/jpeg;base64,${func.foto}`} alt={func.nome} className="w-full h-full object-cover" />
-            ) : func.foto_url ? (
-              <img src={func.foto_url} alt={func.nome} className="w-full h-full object-cover" />
+            ) : func.foto_url && fotos[func.id] ? (
+              <img src={fotos[func.id]} alt={func.nome} className="w-full h-full object-cover" />
             ) : (
               func.nome?.[0]?.toUpperCase()
             )}
@@ -78,6 +79,7 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
                     level={level + 1} 
                     isLast={index === children.length - 1} 
                     isRoot={false}
+                    fotos={fotos}
                   />
                </div>
              ))}
@@ -94,6 +96,7 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
 export default function OrganogramaCorporativoPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [lista, setLista] = useState([]);
+  const fotos = useFotosRH("foto_colaborador", lista);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
 
@@ -243,7 +246,7 @@ export default function OrganogramaCorporativoPage() {
           <div className="w-full overflow-x-auto pb-10 custom-scrollbar">
              <div className="min-w-max flex justify-center p-8">
                {roots.map(root => (
-                 <TreeNode key={root.id} func={root} childrenMap={childrenMap} level={0} isLast={true} isRoot={true} />
+                 <TreeNode key={root.id} func={root} childrenMap={childrenMap} level={0} isLast={true} isRoot={true} fotos={fotos} />
                ))}
              </div>
           </div>

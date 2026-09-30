@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
+import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import BancoTalentos from "./components/BancoTalentos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 
@@ -2533,7 +2534,7 @@ export default function RHPage() {
                      </div>
                      {(f.docs || []).length > 0 && <div className="mt-4 space-y-2 border-t border-line pt-4"><p className="text-3xs font-bold uppercase tracking-widest text-subtle">Arquivos anexados</p>{(f.docs || []).map(d => (
                         <div key={d.id} className="flex items-center gap-2 rounded-xl border border-line bg-card px-3.5 py-2">
-                           <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-accent hover:underline min-w-0">
+                           <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("documento", d.id); }} className="flex-1 flex items-center gap-2 text-xs font-bold text-accent hover:underline min-w-0">
                               <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
                            </a>
                            <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-subtle hover:text-red-500 shrink-0"><X size={14}/></button>
@@ -3808,7 +3809,7 @@ export default function RHPage() {
                                        </div>
                                        <div className="flex items-center gap-2">
                                           {a.arquivo_url && (
-                                             <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-2xs rounded-xl hover:bg-cyan-100">Ver Anexo</a>
+                                             <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("atestado", a.id); }} className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-2xs rounded-xl hover:bg-cyan-100">Ver Anexo</a>
                                           )}
                                           <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
                                        </div>

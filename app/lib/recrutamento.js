@@ -212,36 +212,23 @@ export async function atualizarStatusCandidato(id, novoStatus) {
   return { error: error?.message };
 }
 
-export async function enviarCandidatura(unidadeId, dadosPessoais, respostas, fileUrl) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-
-  // 1. Roda a "Inteligência"
-  const { nota_ia, avaliacao_ia } = gerarLaudoIA(respostas);
-
-  // 2. Salva no banco
-  const payload = {
-    unidade_id: unidadeId,
-    nome: dadosPessoais.nome,
-    cpf: dadosPessoais.cpf,
-    telefone: dadosPessoais.telefone,
-    endereco: dadosPessoais.endereco,
-    cargo_pretendido: dadosPessoais.cargoPretendido,
-    tem_filhos: dadosPessoais.temFilhos,
-    experiencia: dadosPessoais.experiencia,
-    respostas_comportamentais: {
-      ...respostas,
-      _dados_pessoais: dadosPessoais.detalhesCadastro || null,
-      _versao_formulario: 2,
-    },
-    url_curriculo: fileUrl,
-    avaliacao_ia: avaliacao_ia,
-    nota_ia: nota_ia,
-    status: 'Novo'
-  };
-
-  const { data, error } = await supabase.from("candidatos").insert([payload]).select().single();
-  
-  return { data, error: error?.message };
+// SEC-RH-1.3A: o portal público não grava mais direto em `candidatos` (a
+// tabela respondia ao anon com os dados de todos os candidatos). O envio vai
+// para /api/public/vagas/candidatura, que valida os campos e calcula a nota do
+// teste de perfil no servidor — antes a nota vinha pronta do navegador.
+export async function enviarCandidatura(unidadeId, dadosPessoais, respostas) {
+  try {
+    const r = await fetch("/api/public/vagas/candidatura", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unidade: String(unidadeId), dados: dadosPessoais, respostas: respostas || {} }),
+    });
+    const json = await r.json().catch(() => ({}));
+    if (!r.ok) return { data: null, error: json.erro || "Não foi possível enviar." };
+    return { data: null, error: null };
+  } catch {
+    return { data: null, error: "Sem conexão." };
+  }
 }
 
 export async function removerCandidato(id) {

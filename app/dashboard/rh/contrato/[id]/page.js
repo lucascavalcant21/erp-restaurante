@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
 import { fetchCargos, fetchRegulamento } from "../../../../lib/rh";
+import { abrirArquivoRH } from "../../../../lib/rh-arquivos";
 import { Printer, ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
 
 export default function ContratoRhPage() {
@@ -65,7 +66,7 @@ export default function ContratoRhPage() {
         </button>
         <div className="flex flex-wrap gap-2 sm:gap-4 w-full sm:w-auto">
           {regulamento?.url_pdf && (
-            <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex flex-1 sm:flex-none items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 sm:px-4 py-2 rounded-xl font-bold transition-colors">
+            <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("regulamento", regulamento.id); }} className="flex flex-1 sm:flex-none items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 sm:px-4 py-2 rounded-xl font-bold transition-colors">
               <FileText size={16}/> Ver PDF Original
             </a>
           )}

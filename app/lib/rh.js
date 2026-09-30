@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
+import { enviarArquivoRH, removerArquivoRH } from "./rh-arquivos.js";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 export { horarioDoDia } from "./jornada-semana.mjs";
 
@@ -144,35 +145,20 @@ export async function fetchDocumentos(colabId) {
   return { data: data || [] };
 }
 
+// SEC-RH-1.3A: o arquivo vai para o bucket privado pelo servidor, e o banco
+// guarda a referência (storage://rh-docs/...), não uma URL pública.
 export async function uploadDocumentoRH(colabId, arquivo) {
   if (!isSupabaseReady()) return { error: "Offline" };
 
   const extensao = arquivo.name.split('.').pop();
-  const nomeSeguro = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extensao}`;
-  const caminho = `${colabId}/${nomeSeguro}`;
+  const envio = await enviarArquivoRH({ fonte: "documento", donoId: colabId, arquivo });
+  if (envio.error) return { error: envio.error };
 
-  // 1. Tenta fazer o upload para o bucket 'rh-docs'
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('rh-docs')
-    .upload(caminho, arquivo, { cacheControl: '3600', upsert: false });
-
-  if (uploadError) {
-    if (uploadError.message.includes("Bucket not found")) {
-      return { error: "Por favor, crie um Bucket público chamado 'rh-docs' no seu painel do Supabase (Storage) antes de fazer uploads." };
-    }
-    return { error: `Erro no upload: ${uploadError.message}` };
-  }
-
-  // 2. Pega a URL pública
-  const { data: publicUrlData } = supabase.storage.from('rh-docs').getPublicUrl(caminho);
-  const urlPublica = publicUrlData?.publicUrl || "";
-
-  // 3. Salva no banco de dados (tabela documentos_rh)
   const { data: docSalvo, error: bdError } = await supabase.from("documentos_rh").insert([{
     colaborador_id: colabId,
     nome_arquivo: arquivo.name,
     tipo: extensao.toUpperCase(), // PDF, JPG, etc
-    url_arquivo: urlPublica
+    url_arquivo: envio.ref
   }]).select().single();
 
   return { data: docSalvo, error: bdError?.message };
@@ -180,15 +166,10 @@ export async function uploadDocumentoRH(colabId, arquivo) {
 
 export async function removerDocumento(docId, url_arquivo) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  // 1. Remove do Storage
+  // 1. Remove do Storage — pelo servidor, que confere a unidade antes.
   if (url_arquivo) {
-    try {
-      const parts = url_arquivo.split('/rh-docs/');
-      if (parts.length === 2) {
-         const caminho = parts[1];
-         await supabase.storage.from('rh-docs').remove([caminho]);
-      }
-    } catch(e) {}
+    const { error: erroArquivo } = await removerArquivoRH("documento", docId);
+    if (erroArquivo) return { error: erroArquivo };
   }
   // 2. Remove do BD
   const { error } = await supabase.from("documentos_rh").delete().eq("id", docId);
@@ -496,16 +477,9 @@ export async function salvarRegulamento(unidadeId, texto, urlPdf) {
 
 export async function uploadRegulamentoPDF(unidadeId, arquivo) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const extensao = arquivo.name.split('.').pop();
-  const nomeSeguro = `regulamento-${unidadeId}-${Date.now()}.${extensao}`;
-  
-  const { error: uploadError } = await supabase.storage.from('rh-docs').upload(nomeSeguro, arquivo, { upsert: true });
-  if (uploadError) return { error: uploadError.message };
-  
-  const { data: publicUrlData } = supabase.storage.from('rh-docs').getPublicUrl(nomeSeguro);
-  const urlPublica = publicUrlData?.publicUrl || "";
-  
-  return salvarRegulamento(unidadeId, undefined, urlPublica);
+  const envio = await enviarArquivoRH({ fonte: "regulamento", unidadeId, arquivo });
+  if (envio.error) return { error: envio.error };
+  return salvarRegulamento(unidadeId, undefined, envio.ref);
 }
 
 // Os turnos não foram implementados no DB ainda, manter mocks para não quebrar a tela de config
@@ -581,21 +555,26 @@ export async function salvarAtestado(atestado) {
 
 export async function removerAtestado(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
+  // Documento médico não fica órfão no armazenamento depois que o registro
+  // some. Sem arquivo, o servidor responde "nada a remover" e segue.
+  const { error: erroArquivo } = await removerArquivoRH("atestado", id);
+  if (erroArquivo) return { error: erroArquivo };
   const { error } = await supabase.from("rh_atestados").delete().eq("id", id);
   return { error: error?.message };
 }
 
 // O papel do atestado é a prova. Sem ele guardado, o registro no sistema vira
 // a palavra de alguém contra a de outro na hora de justificar o desconto.
+//
+// Documento médico: nunca por URL pública. Vai para o bucket privado e o que
+// volta em `url` é a referência a gravar em arquivo_url — para abrir, a tela
+// pede uma URL assinada curta ao servidor (abrirArquivoRH).
 export async function anexarArquivoAtestado(colaboradorId, arquivo) {
   if (!isSupabaseReady()) return { error: "Offline" };
   if (!arquivo) return { error: "Escolha o arquivo do atestado." };
-  const extensao = (arquivo.name || "").split(".").pop()?.toLowerCase() || "jpg";
-  const caminho = `atestados/${colaboradorId}/${Date.now()}.${extensao}`;
-  const { error } = await supabase.storage.from("rh-docs").upload(caminho, arquivo, { upsert: false });
-  if (error) return { error: error.message };
-  const { data } = supabase.storage.from("rh-docs").getPublicUrl(caminho);
-  return { url: data?.publicUrl || "", caminho, error: null };
+  const envio = await enviarArquivoRH({ fonte: "atestado", donoId: colaboradorId, arquivo });
+  if (envio.error) return { error: envio.error };
+  return { url: envio.ref, caminho: envio.ref, error: null };
 }
 
 // ─── BANCO DE HORAS (intervalo não tirado) ───────────────────────────────────

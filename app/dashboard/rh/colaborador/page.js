@@ -20,6 +20,7 @@ import {
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../../lib/ponto-status.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../../lib/pessoas";
+import { abrirArquivoRH } from "../../../lib/rh-arquivos";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Nome curto de cada batida, para caber na etiqueta de localização.
@@ -407,7 +408,7 @@ export default function VidaColaboradorPage() {
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
-                          {a.arquivo_url && <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="text-3xs font-bold" style={{ color: "var(--accent-strong)" }}>Ver anexo</a>}
+                          {a.arquivo_url && <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("atestado", a.id); }} className="text-3xs font-bold" style={{ color: "var(--accent-strong)" }}>Ver anexo</a>}
                           <button onClick={() => excluirAtestado(a.id)} className="text-3xs font-bold text-rose-600">Excluir</button>
                         </div>
                       </div>
@@ -543,7 +544,7 @@ export default function VidaColaboradorPage() {
                 {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pela Gestão de RH.</p> : (
                   <div className="flex flex-wrap gap-2">
                     {vida.docs.map(doc => (
-                      <a key={doc.id} href={doc.url_arquivo} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1"><FileText size={11} /> {doc.nome_arquivo}</a>
+                      <a key={doc.id} href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("documento", doc.id); }} className="erp-badge erp-badge-ok flex items-center gap-1"><FileText size={11} /> {doc.nome_arquivo}</a>
                     ))}
                   </div>
                 )}

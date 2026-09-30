@@ -18,8 +18,14 @@ import {
   fetchBonificacoes, inserirBonificacao, removerBonificacao, fetchTiposBonificacao,
   fetchAtas, inserirAta, removerAta,
   fetchHistorico, inserirHistorico, removerHistorico,
-  uploadAnexo,
 } from "../../../../lib/pessoas";
+import { enviarArquivoRH, abrirArquivoRH } from "../../../../lib/rh-arquivos";
+import { useFotosRH } from "../../../../lib/useFotosRH";
+
+// SEC-RH-1.3A: holerite, documento, curso e ata são arquivos de RH — bucket
+// privado, abertos por URL assinada curta. Cada aba com upload tem sua fonte
+// no servidor (app/lib/server/rh-arquivos.mjs).
+const FONTE_DA_ABA = { holerites: "holerite", documentos: "documento_funcionario", cursos: "curso", atas: "ata_funcionario" };
 
 const TABS = [
   { key: "avisos", label: "Avisos", icon: Bell, fetch: fetchAvisos, insert: inserirAviso, remove: removerAviso,
@@ -72,9 +78,9 @@ function FormTab({ tab, func, onSalvar, onCancelar, opcoesDinamicas = {} }) {
     setEnviando(true);
     let arquivo_url = null;
     if (tab.upload && file) {
-      const up = await uploadAnexo(file, `${tab.key}/${func.id}`);
+      const up = await enviarArquivoRH({ fonte: FONTE_DA_ABA[tab.key], donoId: func.id, arquivo: file });
       if (up.error) { setErro("Falha no upload: " + up.error); setEnviando(false); return; }
-      arquivo_url = up.url;
+      arquivo_url = up.ref;
     }
     const obj = { ...f, func_id: func.id };
     tab.campos.forEach((c) => { if (c.num) obj[c.k] = Number(f[c.k]) || 0; });
@@ -121,6 +127,7 @@ export default function FuncionarioDetalhePage() {
   const { id } = useParams();
   const { unidadeInfo } = useERP();
   const [func, setFunc] = useState(null);
+  const fotoFunc = useFotosRH("foto_funcionario", func ? [func] : []);
   const [abaKey, setAbaKey] = useState("avisos");
   const [itens, setItens] = useState([]);
   const [tiposB, setTiposB] = useState([]);
@@ -164,8 +171,8 @@ export default function FuncionarioDetalhePage() {
 
         {func && (
           <Card className="flex items-center gap-3">
-            {func.foto_url ? (
-              <img src={func.foto_url} alt={func.nome} className="w-11 h-11 rounded-2xl object-cover flex-shrink-0" />
+            {func.foto_url && fotoFunc[func.id] ? (
+              <img src={fotoFunc[func.id]} alt={func.nome} className="w-11 h-11 rounded-2xl object-cover flex-shrink-0" />
             ) : (
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold flex-shrink-0" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
                 {func.nome?.[0]?.toUpperCase()}
@@ -204,7 +211,7 @@ export default function FuncionarioDetalhePage() {
                     <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{aba.titulo(it)}</p>
                     <p className="text-2xs truncate" style={{ color: "var(--dim)" }}>{aba.sub(it)} · {fmtData(it.created_at || it.data)}</p>
                   </div>
-                  {it.arquivo_url && <a href={it.arquivo_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Download size={14} style={{ color: "var(--muted)" }} /></a>}
+                  {it.arquivo_url && <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH(FONTE_DA_ABA[aba.key], it.id); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Download size={14} style={{ color: "var(--muted)" }} /></a>}
                   <button onClick={() => remover(it)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>
                 </Card>
               ))}

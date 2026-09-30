@@ -3,7 +3,11 @@ import { supabase, isSupabaseReady } from "./supabase";
 // Portal público de cadastro de extras. O candidato preenche sem ter conta e
 // cai num banco separado (extras_cadastros) — não entra direto na folha.
 // Quem marca interesse em CLT é levado ao portal de vagas com os dados já
-// preenchidos, buscados por uma função que devolve só o necessário.
+// preenchidos.
+//
+// SEC-RH-1.3A: o navegador anônimo não toca mais na tabela. O envio vai para
+// /api/public/extras/cadastro (lista fechada de campos, no servidor) e o
+// pré-preenchimento usa um convite de uso limitado no lugar do id do cadastro.
 
 // Funções mais comuns num restaurante — viram a "categoria" do banco.
 // Em ordem alfabética: a lista é longa e o candidato procura pelo nome.
@@ -58,62 +62,35 @@ export async function fetchUnidadePublica(unidadeId) {
   } catch { return { data: null }; }
 }
 
-// Coluna ainda não migrada? Tira do envio e tenta de novo — o portal é público
-// e não pode falhar na cara do candidato por causa de um ALTER TABLE pendente.
-async function envioRetrySemColuna(error, tentar, campos, n = 0) {
-  const m = error?.message || "";
-  const achou = m.match(/column "?([a-z_]+)"? (?:of relation "extras_cadastros" )?does not exist/i)
-    || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
-  if (error && achou && n < 6 && achou[1] in campos) {
-    delete campos[achou[1]];
-    return envioRetrySemColuna(await tentar(), tentar, campos, n + 1);
-  }
-  return error;
-}
 
 export async function enviarCadastroExtra(unidadeId, form, respostas) {
-  if (!isSupabaseReady()) return { error: "Sem conexão." };
-  const payload = {
-    unidade_id: String(unidadeId),
-    nome: String(form.nome || "").trim(),
-    telefone: String(form.telefone || "").trim(),
-    data_nascimento: form.data_nascimento || null,
-    nacionalidade: form.nacionalidade || null,
-    estado_civil: form.estado_civil || null,
-    genero: form.genero || null,
-    escolaridade: form.escolaridade || null,
-    tem_filhos: !!form.tem_filhos,
-    qtd_filhos: form.tem_filhos ? (Number(form.qtd_filhos) || 0) : null,
-    endereco: form.endereco || null,      // rua
-    numero: form.numero || null,
-    bairro: form.bairro || null,
-    cidade: form.cidade || null,
-    funcao_principal: form.funcao_principal,
-    funcao_secundaria: form.funcao_secundaria || null,
-    dias_disponiveis: Array.isArray(form.dias_disponiveis) ? form.dias_disponiveis : [],
-    hora_inicio: form.hora_inicio || null,
-    hora_fim: form.hora_fim || null,
-    experiencia: form.experiencia || null,
-    interesse: form.interesse || "extra",
-    respostas: respostas || {},
-    observacoes: form.observacoes || null,
-  };
-  let res = await supabase.from("extras_cadastros").insert([payload]).select("id").single();
-  const error = await envioRetrySemColuna(res.error, async () => {
-    const r = await supabase.from("extras_cadastros").insert([payload]).select("id").single();
-    res = r; return r.error;
-  }, payload);
-  return { id: res.data?.id, error: erroMsg(error) };
+  try {
+    const r = await fetch("/api/public/extras/cadastro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unidade: String(unidadeId), form, respostas: respostas || {} }),
+    });
+    const json = await r.json().catch(() => ({}));
+    if (!r.ok) return { convite: null, error: json.erro || "Não foi possível enviar." };
+    return { convite: json.convite || null, error: null };
+  } catch {
+    return { convite: null, error: "Sem conexão." };
+  }
 }
 
 // Usado pelo portal de vagas para preencher a candidatura de quem já se
 // cadastrou como extra e marcou interesse em CLT.
-export async function fetchExtraParaVaga(extraId) {
-  if (!isSupabaseReady() || !extraId) return { data: null };
+export async function fetchExtraParaVaga(convite) {
+  if (!convite) return { data: null };
   try {
-    const { data, error } = await supabase.rpc("extra_cadastro_publico", { p_id: extraId });
-    if (error || !data) return { data: null };
-    return { data };
+    const r = await fetch("/api/public/extras/convite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: String(convite) }),
+    });
+    if (!r.ok) return { data: null };
+    const json = await r.json().catch(() => ({}));
+    return { data: json.dados || null };
   } catch { return { data: null }; }
 }
 

@@ -2,11 +2,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const menuRef = useRef(null);
+  const notifRef = useRef(null);
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) setMenuOpen(false);
+      if (notifRef.current && !notifRef.current.contains(event.target)) setNotifOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [hoveredModule, setHoveredModule] = useState(null);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [expandedMobileModule, setExpandedMobileModule] = useState(null);
@@ -163,12 +174,22 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
           <div className="w-px h-6 bg-slate-700 hidden sm:block mx-1"></div>
 
-          <button className="relative w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-600 transition-all group" title="Notificações">
-            <Bell size={18} className="group-hover:scale-110 transition-transform" />
-            <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full"></span>
-          </button>
+          
+          <div className="relative" ref={notifRef}>
+            <button onClick={() => setNotifOpen(!notifOpen)} className="relative w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-600 transition-all group" title="Notificações">
+              <Bell size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-4 px-4 z-50 animate-in fade-in slide-in-from-top-2 flex flex-col items-center justify-center text-center gap-2">
+                <Bell size={24} className="text-slate-300" />
+                <p className="text-sm font-bold text-slate-500">Nenhuma notificação no momento</p>
+              </div>
+            )}
+          </div>
 
-          <div className="relative">
+
+          <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-slate-700">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
                 {sessao?.nome?.substring(0,1).toUpperCase() || <User size={16}/>}

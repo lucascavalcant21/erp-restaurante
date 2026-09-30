@@ -3514,7 +3514,7 @@ function FichasRunner() {
                </nav>
 
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-transparent/50 custom-scrollbar">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-slate-50 custom-scrollbar">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div id="ficha-dados" className="space-y-4 scroll-mt-24">

@@ -88,12 +88,13 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   return (
     <>
-      <header className="bg-zinc-950 border-b border-zinc-900 text-white sticky top-0 z-50 shadow-sm h-16 flex items-center justify-between px-4 lg:px-8 shrink-0 w-full relative">
+      <header className="bg-zinc-950 border-b border-zinc-900 text-white sticky top-0 z-50 shadow-sm shrink-0 w-full relative" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
         <div className="flex items-center gap-4 lg:gap-6 h-full">
           {/* HAMBURGER MOBILE */}
           <button 
             onClick={() => setMobileDrawerOpen(true)} 
-            className="xl:hidden w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+            className="xl:hidden w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
           >
             <Menu size={24} />
           </button>
@@ -155,13 +156,13 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             </kbd>
           </button>
 
-          <button onClick={onOpenSearch} className="md:hidden w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-800">
+          <button onClick={onOpenSearch} className="md:hidden w-11 h-11 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-800">
             <Search size={18} />
           </button>
 
           <div className="w-px h-6 bg-zinc-800 hidden sm:block mx-1"></div>
 
-          <button onClick={() => window.dispatchEvent(new CustomEvent("open-hefisto-copilot"))} className="relative w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400 hover:bg-zinc-800 hover:border-emerald-500/30 transition-all group" title="Héfisto Copiloto">
+          <button onClick={() => window.dispatchEvent(new CustomEvent("open-hefisto-copilot"))} className="relative w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400 hover:bg-zinc-800 hover:border-emerald-500/30 transition-all group" title="Héfisto Copiloto">
             <Sparkles size={18} className="group-hover:scale-110 transition-transform" />
             <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 border-2 border-zinc-950 rounded-full"></span>
           </button>
@@ -194,6 +195,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             )}
           </div>
         </div>
+              </div>
       </header>
 
       {/* MOBILE MENU DRAWER */}
@@ -201,14 +203,14 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         <div className="fixed inset-0 z-[100] flex xl:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)}></div>
           <div className="relative w-80 max-w-[80vw] h-full bg-zinc-950 flex flex-col shadow-2xl animate-in slide-in-from-left">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-900">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-900" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
                   <span className="text-white font-black text-lg">H</span>
                 </div>
                 <span className="font-black tracking-tight text-xl text-white">Héfisto</span>
               </div>
-              <button onClick={() => setMobileDrawerOpen(false)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-900">
+              <button onClick={() => setMobileDrawerOpen(false)} className="w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-900">
                 <X size={20} />
               </button>
             </div>

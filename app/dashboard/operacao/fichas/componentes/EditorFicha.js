@@ -200,7 +200,7 @@ export default function EditorFicha({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-[color:var(--surface)] p-3 sm:p-5">
+        <div className="flex-1 overflow-y-auto bg-white p-3 sm:p-5">
           {avisoComplementos ? (
             <p className="mb-3 flex items-start gap-2 rounded-xl border border-[color:var(--warning)] bg-[color:var(--warning-soft)] px-3 py-2 text-xs font-bold text-[color:var(--warning-strong)]">
               <AlertTriangle size={15} className="mt-0.5 shrink-0" /> {avisoComplementos}

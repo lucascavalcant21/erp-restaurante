@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight } from "lucide-react";
+import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
@@ -163,21 +163,17 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
           <div className="w-px h-6 bg-zinc-800 hidden sm:block mx-1"></div>
 
-          <button onClick={() => window.dispatchEvent(new CustomEvent("open-hefisto-copilot"))} className="relative w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400 hover:bg-zinc-800 hover:border-emerald-500/30 transition-all group" title="Héfisto Copiloto">
-            <Sparkles size={18} className="group-hover:scale-110 transition-transform" />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 border-2 border-zinc-950 rounded-full"></span>
+          <button className="relative w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all group" title="Notificações">
+            <Bell size={18} className="group-hover:scale-110 transition-transform" />
+            <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full"></span>
           </button>
 
           <div className="relative">
             <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 hover:bg-zinc-900 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-zinc-800">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
-                {sessao?.nome?.substring(0,2).toUpperCase() || <User size={16}/>}
+                {sessao?.nome?.substring(0,1).toUpperCase() || <User size={16}/>}
               </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-bold text-white truncate max-w-[100px]">{sessao?.nome || "Administrador"}</div>
-                <div className="text-[10px] text-zinc-400 truncate max-w-[100px]">{sessao?.cargo || "Gestão"}</div>
-              </div>
-              <ChevronDown size={14} className="text-zinc-400 hidden sm:block" />
+              
             </button>
             
             {menuOpen && (

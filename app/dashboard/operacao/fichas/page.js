@@ -3107,8 +3107,8 @@ function FichasRunner() {
          const setorTxt = f.departamento === "bar" ? "Bar" : "Cozinha";
          const fechar = () => setFichaView(null);
          return (
-            <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-               <div className="erp-ficha bg-transparent w-full max-w-6xl min-h-full sm:min-h-0 sm:max-h-[92vh] sm:rounded-[28px] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
+            <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-0 sm:p-4 overflow-y-auto">
+               <div className="erp-ficha bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:rounded-[28px] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 sm:my-8 overflow-hidden">
                   {/* CABEÇALHO */}
                   <div className="bg-card border-b border-line-soft px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
                      <button onClick={fechar} className="w-10 h-10 rounded-full bg-card hover:bg-slate-200 flex items-center justify-center text-slate-900 shrink-0"><ArrowLeft size={19} /></button>
@@ -3145,7 +3145,7 @@ function FichasRunner() {
                   </div>
 
                   {/* CORPO: conteúdo + sidebar */}
-                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-4 sm:gap-5 items-start">
+                  <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-4 sm:gap-5 items-start">
                      {/* COLUNA PRINCIPAL */}
                      <div className="flex flex-col gap-4 sm:gap-5">
                         {viewTab === "ficha" && (<>

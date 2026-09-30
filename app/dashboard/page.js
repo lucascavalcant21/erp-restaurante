@@ -136,7 +136,7 @@ export default function Dashboard() {
             {/* Mock bars */}
             {[40, 60, 30, 80, 100, 50, 70].map((h, i) => (
               <div key={i} className="flex-1 bg-emerald-100 rounded-t-lg relative group">
-                <div className="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg transition-all duration-500" style={{ height: \`\${h}%\` }}></div>
+                <div className="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg transition-all duration-500" style={{ height: `${h}%` }}></div>
               </div>
             ))}
           </div>

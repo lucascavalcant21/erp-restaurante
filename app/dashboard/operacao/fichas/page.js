@@ -2851,7 +2851,7 @@ function FichasRunner() {
                        </div>
                      </div>
                   );
-               }
+               })}
             </div>
          )}
          {!loading && filtradas.length > 0 && (

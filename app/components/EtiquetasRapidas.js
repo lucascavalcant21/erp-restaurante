@@ -243,6 +243,46 @@ export default function EtiquetasRapidas() {
   const [nomeNovaLista, setNomeNovaLista] = useState("");
   const [listaParaExcluir, setListaParaExcluir] = useState(null);
   const [bluetoothNome, setBluetoothNome] = useState("");
+  const chaveLogo = `hefisto_etq_logo_${unidadeAtiva || "sem-unidade"}`;
+  const [logoEtiqueta, setLogoEtiqueta] = useState("");
+  const [mostrarLogo, setMostrarLogo] = useState(() => { try { return localStorage.getItem("hefisto_etq_logo_on") === "1"; } catch { return false; } });
+  const [erroLogo, setErroLogo] = useState("");
+  const inputLogoRef = useRef(null);
+  useEffect(() => { try { setLogoEtiqueta(localStorage.getItem(chaveLogo) || ""); } catch { setLogoEtiqueta(""); } }, [chaveLogo]);
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_logo_on", mostrarLogo ? "1" : "0"); } catch {} }, [mostrarLogo]);
+  const escolherLogo = (arquivo) => {
+    if (!arquivo) return;
+    setErroLogo("");
+    if (!/^image\//.test(arquivo.type)) { setErroLogo("Escolha um arquivo de imagem."); return; }
+    const leitor = new FileReader();
+    leitor.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width, h = img.height;
+        if (w > 300) { h = Math.round((h * 300) / w); w = 300; }
+        if (h > 300) { w = Math.round((w * 300) / h); h = 300; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        try {
+          const reduzida = canvas.toDataURL("image/jpeg", 0.7);
+          localStorage.setItem(chaveLogo, reduzida);
+          setLogoEtiqueta(reduzida);
+          setMostrarLogo(true);
+        } catch { setErroLogo("Imagem muito grande."); }
+      };
+      img.onerror = () => setErroLogo("Não consegui ler essa imagem.");
+      img.src = e.target.result;
+    };
+    leitor.onerror = () => setErroLogo("Não consegui ler o arquivo.");
+    leitor.readAsDataURL(arquivo);
+  };
+  const removerLogo = () => {
+    try { localStorage.removeItem(chaveLogo); } catch {}
+    setLogoEtiqueta(""); setMostrarLogo(false); setErroLogo("");
+  };
   const [conectandoBluetooth, setConectandoBluetooth] = useState(false);
   const [tamanho] = useState(() => { try { return localStorage.getItem("hefisto_etq_tamanho") || "60x40"; } catch { return "60x40"; } });
   const [momento, setMomento] = useState(() => new Date());
@@ -385,7 +425,7 @@ export default function EtiquetasRapidas() {
 
   function adicionarFila() {
     if (!item || numero(item.copias) < 1 || (modeloEtiqueta === "validade" && numero(item.dias) < 0)) return setAviso({ tipo: "erro", texto: "Revise os dados." });
-    setFila(atual => [...atual, { ...item, modeloEtiqueta, tipoEtiqueta, codigo: item.codigo || gerarCodigo() }]);
+    setFila(atual => [...atual, { ...item, modeloEtiqueta, tipoEtiqueta, logoEtiqueta: mostrarLogo ? logoEtiqueta : "", codigo: item.codigo || gerarCodigo() }]);
     setItem(null);
     setCriandoLivre(false);
     setNomeLivre("");
@@ -669,6 +709,34 @@ export default function EtiquetasRapidas() {
                   </div>
                 </div>
 
+                
+                <div className="ux-field">
+                  <label>Formato da Etiqueta</label>
+                  <div className="ux-segmented">
+                    <button className={modeloEtiqueta === "validade" ? "ativo" : ""} onClick={() => setModeloEtiqueta("validade")}>Completa</button>
+                    <button className={modeloEtiqueta === "nome" ? "ativo" : ""} onClick={() => setModeloEtiqueta("nome")}>Somente Nome</button>
+                    <button className={modeloEtiqueta === "logo" ? "ativo" : ""} onClick={() => setModeloEtiqueta("logo")}>Apenas Imagem/Logo</button>
+                  </div>
+                </div>
+
+                <div className="ux-field">
+                  <label>Imagem / Logo na etiqueta</label>
+                  <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={(e) => { escolherLogo(e.target.files?.[0]); e.target.value = ""; }} />
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "4px" }}>
+                    {logoEtiqueta ? (
+                      <>
+                        <img src={logoEtiqueta} alt="Logo" style={{ height: "32px", width: "auto", objectFit: "contain", background: "#fff", borderRadius: "4px", border: "1px solid #cbd5e1" }} />
+                        <button onClick={() => setMostrarLogo(v => !v)} className="ux-btn-pequeno" style={mostrarLogo ? { background: "#059669", color: "#fff" } : { background: "#fff", border: "1px solid #cbd5e1", color: "#475569" }}>{mostrarLogo ? "Visível" : "Oculta"}</button>
+                        <button onClick={() => inputLogoRef.current?.click()} className="ux-btn-pequeno" style={{ background: "#fff", border: "1px solid #cbd5e1", color: "#475569" }}>Trocar</button>
+                        <button onClick={removerLogo} className="ux-btn-pequeno" style={{ background: "#fff", border: "1px solid #cbd5e1", color: "#ef4444" }}>Remover</button>
+                      </>
+                    ) : (
+                      <button onClick={() => inputLogoRef.current?.click()} className="ux-btn-pequeno" style={{ background: "#fff", border: "1px solid #cbd5e1", color: "#475569" }}>+ Adicionar imagem</button>
+                    )}
+                  </div>
+                  {erroLogo && <span style={{ color: "#ef4444", fontSize: "11px", fontWeight: "bold", display: "block", marginTop: "4px" }}>{erroLogo}</span>}
+                </div>
+
                 <div className="ux-field">
                   <label>Conservação</label>
                   <div className="ux-segmented">
@@ -787,6 +855,7 @@ const ESTILOS = `
   button { cursor: pointer; border: none; background: none; font-family: inherit; }
   input, select { font-family: inherit; }
   
+  .ux-btn-pequeno { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
   /* HEADER SIMPLES */
   .ux-header-simples { height: 60px; padding: 0 16px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
   .ux-header-simples button { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #475569; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; }

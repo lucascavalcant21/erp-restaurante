@@ -181,6 +181,26 @@ test("URL pública ANTIGA continua abrindo — agora assinada", async () => {
   assert.equal(regNovo.ok, true);
 });
 
+test("URL antiga CONVERTIDA pela FASE 2 (storage:// com caminho antigo) continua abrindo", async () => {
+  // Bug achado no checkpoint 2 de produção: a FASE 2 troca a URL por
+  // storage://bucket/<caminho antigo>, e o caminho antigo não segue o formato
+  // novo <unidade>/<categoria>/<dono>/. Tem de valer a regra de legado.
+  const b = banco({
+    ...BASE,
+    documentos_rh: [
+      { id: "c1", colaborador_id: "cA", url_arquivo: "storage://rh-docs/cA/antigo.pdf" },
+      { id: "c2", colaborador_id: "cA", url_arquivo: "storage://rh-docs/cB/de-outro.pdf" },
+    ],
+    rh_atestados: [{ id: "c3", colaborador_id: "cA", unidade_id: "A", arquivo_url: "storage://rh-docs/atestados/cA/1.jpg" }],
+    rh_regulamentos: [{ id: "c4", unidade_id: "A", url_pdf: "storage://rh-docs/regulamento-A-9.pdf" }],
+  });
+  assert.equal((await assinar(b, RH_LE, "documento", "c1")).ok, true, "documento convertido");
+  assert.equal((await assinar(b, RH_LE, "atestado", "c3")).ok, true, "atestado convertido");
+  assert.equal((await assinar(b, RH_LE, "regulamento", "c4")).ok, true, "regulamento convertido");
+  // …e a regra de legado continua exigindo o dono certo.
+  assert.equal((await assinar(b, RH_TUDO, "documento", "c2")).codigo, "referencia_inconsistente");
+});
+
 test("registro com unidade própria diferente da do colaborador → 403", async () => {
   const b = banco(BASE);
   assert.equal((await assinar(b, RH_TUDO, "atestado", "a2")).codigo, "referencia_inconsistente");

@@ -30,7 +30,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     },
     {
       id: "cardapio",
-      label: "Cardápio & Produção",
+      label: "Cardápio",
       href: "/dashboard/operacao/fichas",
       submodules: [
         { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas" },
@@ -41,10 +41,11 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     },
     {
       id: "estoque",
-      label: "Estoque & Compras",
+      label: "Estoque",
       href: "/dashboard/operacao/estoque",
       submodules: [
         { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?gestao=1" },
+        { label: "Cadastro de Ingredientes", href: "/dashboard/operacao/ingredientes" },
         { label: "Cotações e Compras", href: "/dashboard/operacao/compras" },
         { label: "Recebimento de Notas", href: "/dashboard/operacao/notas" },
         { label: "Fornecedores", href: "/dashboard/operacao/fornecedores" },
@@ -53,7 +54,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     },
     {
       id: "eventos",
-      label: "Eventos & Reservas",
+      label: "Eventos",
       href: "/dashboard/reservas-eventos/eventos",
       submodules: [
         { label: "Gestão de Eventos", href: "/dashboard/reservas-eventos/eventos" },

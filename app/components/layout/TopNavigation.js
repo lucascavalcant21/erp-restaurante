@@ -33,6 +33,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       label: "Cardápio",
       href: "/dashboard/operacao/fichas",
       submodules: [
+        { label: "Cadastro de Ingredientes", href: "/dashboard/operacao/ingredientes" },
         { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas" },
         { label: "Cardápio Digital", href: "/dashboard/operacao/cardapio" },
         { label: "Produção Diária", href: "/dashboard/operacao/producao" },
@@ -45,7 +46,6 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       href: "/dashboard/operacao/estoque",
       submodules: [
         { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?gestao=1" },
-        { label: "Cadastro de Ingredientes", href: "/dashboard/operacao/ingredientes" },
         { label: "Cotações e Compras", href: "/dashboard/operacao/compras" },
         { label: "Recebimento de Notas", href: "/dashboard/operacao/notas" },
         { label: "Fornecedores", href: "/dashboard/operacao/fornecedores" },

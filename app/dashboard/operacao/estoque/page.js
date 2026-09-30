@@ -1329,14 +1329,8 @@ function EstoqueRunner() {
           </div>
         )}
 
-        {modoView === "hub" ? (
-          <EstoqueHub
-            onVerTabelaCompleta={() => setModoView("tabela")}
-            onAbrirEntrada={() => { setModoView("tabela"); abrirOperacao("entrada"); }}
-            onAbrirSaida={() => { setModoView("tabela"); abrirOperacao("saida"); }}
-          />
-        ) : (
-          <>
+        <>
+            <EstoqueHub onAbrirEntrada={() => abrirOperacao("entrada")} onAbrirSaida={() => abrirOperacao("saida")} />
             <section className="bg-card rounded-2xl border border-line p-3 shadow-xs">
           <div className="flex items-center justify-between gap-3 mb-2 px-1">
             <div>

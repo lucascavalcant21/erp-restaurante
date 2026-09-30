@@ -1999,13 +1999,7 @@ export default function RHPage() {
     <div className="min-h-screen font-sans pb-24 text-slate-800">
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {modoView === "hub" ? (
-        <RhHub
-          onVerGestaoCompleta={() => setModoView("gestao")}
-          onAbrirPonto={() => router.push("/dashboard/rh/ponto")}
-        />
-      ) : (
-        <>
+      <>
           {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
           <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
              <div className="flex items-center justify-between gap-4 flex-wrap">

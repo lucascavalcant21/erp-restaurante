@@ -89,13 +89,13 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   return (
     <>
-      <header className="bg-zinc-950 border-b border-zinc-900 text-white sticky top-0 z-50 shadow-sm shrink-0 w-full relative" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-sm shrink-0 w-full relative" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
         <div className="flex items-center gap-4 lg:gap-6 h-full">
           {/* HAMBURGER MOBILE */}
           <button 
             onClick={() => setMobileDrawerOpen(true)} 
-            className="xl:hidden w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+            className="xl:hidden w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
           >
             <Menu size={24} />
           </button>
@@ -122,7 +122,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                 >
                   <Link 
                     href={mod.href} 
-                    className={`h-full px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap rounded-lg transition-colors border-b-2 mt-[2px] ${isActive ? 'text-white border-emerald-500' : 'text-zinc-400 border-transparent hover:text-white hover:bg-white/5'}`}
+                    className={`h-full px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap rounded-lg transition-colors border-b-2 mt-[2px] ${isActive ? 'text-white border-emerald-500' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
                   >
                     {mod.label}
                     <ChevronDown size={12} className={`opacity-50 transition-transform ${isHovered ? 'rotate-180' : ''}`} />
@@ -130,12 +130,12 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
                   {/* DROPDOWN SUBMENU */}
                   {isHovered && (
-                    <div className="absolute top-full left-0 mt-0 w-64 bg-zinc-900 border border-zinc-800 rounded-b-2xl rounded-tr-2xl z-[100] shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-full left-0 mt-0 w-64 bg-slate-900 border border-slate-800 rounded-b-2xl rounded-tr-2xl z-[100] shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
                       {mod.submodules.map(sub => (
                         <Link 
                           key={sub.href} 
                           href={sub.href}
-                          className="flex items-center px-4 py-2.5 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                          className="flex items-center px-4 py-2.5 text-sm font-medium text-zinc-300 hover:text-white hover:bg-slate-700 transition-colors"
                         >
                           {sub.label}
                         </Link>
@@ -149,27 +149,27 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
-          <button onClick={onOpenSearch} className="hidden md:flex items-center gap-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors rounded-xl px-4 py-2 w-48 lg:w-80 group text-left">
-            <Search size={16} className="text-zinc-400 group-hover:text-emerald-400 transition-colors shrink-0" />
-            <span className="text-sm font-medium text-zinc-400 truncate flex-1">O que quer fazer?</span>
-            <kbd className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-zinc-500 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">
+          <button onClick={onOpenSearch} className="hidden md:flex items-center gap-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors rounded-xl px-4 py-2 w-48 lg:w-80 group text-left">
+            <Search size={16} className="text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0" />
+            <span className="text-sm font-medium text-slate-400 truncate flex-1">O que quer fazer?</span>
+            <kbd className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
               <span className="text-xs">⌘</span> K
             </kbd>
           </button>
 
-          <button onClick={onOpenSearch} className="md:hidden w-11 h-11 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-800">
+          <button onClick={onOpenSearch} className="md:hidden w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
             <Search size={18} />
           </button>
 
-          <div className="w-px h-6 bg-zinc-800 hidden sm:block mx-1"></div>
+          <div className="w-px h-6 bg-slate-700 hidden sm:block mx-1"></div>
 
-          <button className="relative w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all group" title="Notificações">
+          <button className="relative w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-600 transition-all group" title="Notificações">
             <Bell size={18} className="group-hover:scale-110 transition-transform" />
             <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full"></span>
           </button>
 
           <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 hover:bg-zinc-900 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-zinc-800">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-slate-700">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
                 {sessao?.nome?.substring(0,1).toUpperCase() || <User size={16}/>}
               </div>
@@ -199,15 +199,15 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       {mobileDrawerOpen && (
         <div className="fixed inset-0 z-[100] flex xl:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)}></div>
-          <div className="relative w-80 max-w-[80vw] h-full bg-zinc-950 flex flex-col shadow-2xl animate-in slide-in-from-left">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-900" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="relative w-80 max-w-[80vw] h-full bg-slate-900 flex flex-col shadow-2xl animate-in slide-in-from-left">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
                   <span className="text-white font-black text-lg">H</span>
                 </div>
                 <span className="font-black tracking-tight text-xl text-white">Héfisto</span>
               </div>
-              <button onClick={() => setMobileDrawerOpen(false)} className="w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-900">
+              <button onClick={() => setMobileDrawerOpen(false)} className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
                 <X size={20} />
               </button>
             </div>
@@ -221,19 +221,19 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                   <div key={mod.id} className="flex flex-col">
                     <button 
                       onClick={() => setExpandedMobileModule(isExpanded ? null : mod.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-emerald-500/10 text-emerald-400' : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'}`}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-emerald-500/10 text-emerald-400' : 'text-zinc-300 hover:bg-slate-800 hover:text-white'}`}
                     >
                       {mod.label}
                       <ChevronRight size={16} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     </button>
                     
                     {isExpanded && (
-                      <div className="flex flex-col gap-1 ml-4 mt-1 border-l border-zinc-800 pl-3 py-1">
+                      <div className="flex flex-col gap-1 ml-4 mt-1 border-l border-slate-700 pl-3 py-1">
                         {mod.submodules.map((sub) => (
                           <Link 
                             key={sub.href} 
                             href={sub.href}
-                            className="p-2 text-sm font-medium text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-900"
+                            className="p-2 text-sm font-medium text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
                           >
                             {sub.label}
                           </Link>

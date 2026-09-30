@@ -2433,7 +2433,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
 
       <div className="hidden overflow-x-auto lg:block rounded-b-2xl border-x border-b border-line bg-card shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="sticky top-0 z-20 bg-slate-900 text-xs font-bold uppercase tracking-wider text-white shadow-md"><tr>
+          <thead className="sticky top-0 z-20 bg-slate-50 border-b border-line text-xs font-bold uppercase tracking-wider text-slate-500 shadow-sm"><tr>
             <th className="px-5 py-4 whitespace-nowrap">Produto</th>
             <th className="px-4 py-4 whitespace-nowrap">Categoria</th>
             <th className="px-4 py-4 whitespace-nowrap">Embalagem</th>
@@ -2453,7 +2453,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                 <Fragment key={categoria}>
                   <tr
                     onClick={() => toggleColapso(categoria)}
-                    className="bg-slate-100/90 border-y border-line cursor-pointer hover:bg-slate-200/80 transition-colors select-none"
+                    className="bg-slate-50 border-y border-line cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   >
                     <td colSpan={estoque?.controla_validade ? 11 : 10} className="px-5 py-3">
                       <div className="flex items-center justify-between">
@@ -2537,7 +2537,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
             <div key={categoria} className="p-3 space-y-3">
               <div
                 onClick={() => toggleColapso(categoria)}
-                className="flex items-center justify-between rounded-xl bg-card px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer active:bg-slate-200 transition"
+                className="flex items-center justify-between rounded-xl bg-slate-50 border border-line px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer hover:bg-slate-100 transition"
               >
                 <div className="flex items-center gap-2 uppercase tracking-wider">
                   {isColapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}

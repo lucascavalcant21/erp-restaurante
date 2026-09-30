@@ -173,7 +173,8 @@ export async function lerChamadaPublica({ db, unidade }) {
   if (!idValido(unidade)) return falha(404, "nao_encontrado", "Unidade não encontrada.");
   try {
     const { data, error } = await db.from("pedidos")
-      .select("id, numero_pedido, cliente_nome, status, updated_at, tipo_pedido")
+      // numero_pedido não existe em produção (a tela antiga pedia e ficava vazia).
+      .select("id, cliente_nome, status, updated_at, tipo_pedido")
       .eq("unidade_id", unidade).in("tipo_pedido", TIPOS_CHAMADA).in("status", STATUS_CHAMADA)
       .order("updated_at", { ascending: false }).limit(60);
     if (error) return falha(503, "indisponivel", "Chamada indisponível no momento.");

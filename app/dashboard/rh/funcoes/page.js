@@ -495,32 +495,32 @@ export default function GuiaDeFuncoes() {
     <div className="min-h-screen bg-[var(--surface)] pb-16">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6 shadow-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-black text-fg sm:text-xl">Guia de Funções</h1>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-3xs font-bold text-emerald-800 border border-emerald-200">Rotina Interativa</span>
             </div>
-            <p className="text-xs font-bold text-muted">A rotina de cada função, hora a hora — sem nomes, por posição</p>
+            <p className="text-xs font-bold text-fg">A rotina de cada função, hora a hora — sem nomes, por posição</p>
           </div>
 
           {/* Navegação por Abas Principais */}
-          <div className="flex rounded-xl bg-elevated p-1 border border-line text-xs font-bold">
+          <div className="flex rounded-xl bg-card p-1 border border-line text-xs font-bold">
             <button
               onClick={() => setAbaAtiva("guia")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "guia" ? "bg-card text-fg shadow-sm" : "text-muted hover:text-fg"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "guia" ? "bg-card text-fg shadow-sm" : "text-fg hover:text-fg"}`}
             >
               <ListChecks size={15} /> <span>Fichas & Edição</span>
             </button>
             <button
               onClick={() => setAbaAtiva("checklist")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-accent text-accent-fg shadow-sm" : "text-muted hover:text-fg"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-accent text-accent-fg shadow-sm" : "text-fg hover:text-fg"}`}
             >
               <CheckSquare size={15} /> <span>Modo Checklist</span>
             </button>
             <button
               onClick={() => setAbaAtiva("painel")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "painel" ? "bg-slate-900 text-white shadow-sm" : "text-muted hover:text-fg"}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "painel" ? "bg-slate-900 text-white shadow-sm" : "text-fg hover:text-fg"}`}
             >
               <BarChart3 size={15} /> <span>Painel Gerência</span>
             </button>
@@ -536,13 +536,13 @@ export default function GuiaDeFuncoes() {
                     {salvando ? "Salvando..." : "Salvar alterações"}
                   </button>
                   <button onClick={cancelarEdicao} disabled={salvando}
-                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-slate-900 hover:bg-white disabled:opacity-60">
                     <X size={15} /> Cancelar
                   </button>
                 </>
               ) : (
                 <button onClick={iniciarEdicao}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-slate-50">
+                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-white">
                   <Save size={15} /> Editar horários
                 </button>
               )}
@@ -551,12 +551,12 @@ export default function GuiaDeFuncoes() {
                 <Plus size={15} /> Nova função
               </button>
               {editando && (
-                <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-slate-900 hover:bg-white">
                   <RotateCcw size={15} /> Voltar ao padrão
                 </button>
               )}
               <button onClick={imprimirPlanilha} title="Todas as funções numa tabela só, para a mesa da gerência"
-                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-slate-50">
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-white">
                 <Table size={15} /> Planilha
               </button>
               <button onClick={imprimir} title="Uma função por página, para a parede do setor"
@@ -600,7 +600,7 @@ export default function GuiaDeFuncoes() {
                     <button
                       key={f.id}
                       onClick={() => setFuncaoChecklistId(f.id)}
-                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border ${funcaoChecklistId === f.id ? "bg-slate-900 text-white border-slate-900 shadow-md" : "bg-slate-50 text-slate-600 border-line hover:bg-elevated"}`}
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border ${funcaoChecklistId === f.id ? "bg-slate-900 text-white border-slate-900 shadow-md" : "bg-white text-slate-900 border-line hover:bg-card"}`}
                     >
                       <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ background: f.cor }}></span>
                       {f.funcao}
@@ -633,7 +633,7 @@ export default function GuiaDeFuncoes() {
                           <p className="text-xs font-bold text-subtle">{prog.concluidos} de {prog.total} tarefas concluídas no turno de hoje</p>
                         </div>
                       </div>
-                      <div className="w-full sm:w-48 bg-elevated h-3 rounded-full overflow-hidden border border-line">
+                      <div className="w-full sm:w-48 bg-card h-3 rounded-full overflow-hidden border border-line">
                         <div className="bg-emerald-600 h-full transition-all duration-500" style={{ width: `${prog.pct}%` }}></div>
                       </div>
                     </div>
@@ -671,7 +671,7 @@ export default function GuiaDeFuncoes() {
                                 : status === "ativo"
                                 ? "bg-emerald-50/50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-md"
                                 : status === "passado"
-                                ? "bg-slate-50 border-line opacity-80"
+                                ? "bg-white border-line opacity-80"
                                 : "bg-card border-line"
                             }`}
                           >
@@ -768,13 +768,13 @@ export default function GuiaDeFuncoes() {
                       <span className="text-xs font-bold uppercase tracking-wider text-subtle">{setorKey}</span>
                       <span className="text-lg font-black text-fg">{s.pct}%</span>
                     </div>
-                    <div className="w-full bg-elevated h-3 rounded-full overflow-hidden border border-line">
+                    <div className="w-full bg-card h-3 rounded-full overflow-hidden border border-line">
                       <div
                         className={`h-full transition-all duration-500 ${s.pct >= 80 ? "bg-emerald-600" : s.pct >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
                         style={{ width: `${s.pct}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs font-bold text-muted">
+                    <p className="text-xs font-bold text-fg">
                       {s.concluidos} de {s.total} tarefas executadas ({s.funcoesCount} função/funções)
                     </p>
                   </div>
@@ -802,7 +802,7 @@ export default function GuiaDeFuncoes() {
                           <span className="text-xs font-bold text-slate-800">{p.concluidos} / {p.total} tarefas</span>
                           <span className="text-2xs font-bold text-subtle block">{p.pct}% concluído</span>
                         </div>
-                        <div className="w-24 bg-elevated h-2.5 rounded-full overflow-hidden border border-line">
+                        <div className="w-24 bg-card h-2.5 rounded-full overflow-hidden border border-line">
                           <div className="bg-emerald-600 h-full" style={{ width: `${p.pct}%` }}></div>
                         </div>
                       </div>
@@ -852,7 +852,7 @@ export default function GuiaDeFuncoes() {
 
                 <div className="space-y-4 p-4">
                   {funcao.blocos.map((bloco, indice) => (
-                    <div key={indice} className="rounded-2xl border border-line overflow-hidden bg-slate-50/50">
+                    <div key={indice} className="rounded-2xl border border-line overflow-hidden bg-white/50">
                       {editando ? (
                         <div className="p-4 space-y-3">
                           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -871,14 +871,14 @@ export default function GuiaDeFuncoes() {
                             {(bloco.horarios || []).map((horario, idxHorario) => (
                               <div key={idxHorario} className={`p-4.5 rounded-2xl border-2 space-y-3 shadow-sm transition-all ${horario.intervalo ? "border-amber-300 bg-amber-50/90" : "border-slate-300/90 bg-card"}`}>
                                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between border-b border-slate-200/80 pb-2.5">
-                                  <div className="flex items-center gap-1.5 bg-elevated p-1.5 rounded-xl border border-line">
-                                    <Clock size={15} className="text-slate-600 ml-1" />
+                                  <div className="flex items-center gap-1.5 bg-card p-1.5 rounded-xl border border-line">
+                                    <Clock size={15} className="text-slate-900 ml-1" />
                                     <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "hora", e.target.value)} className="h-9 bg-card border border-slate-300 px-2 font-bold text-xs rounded-lg outline-none focus:border-emerald-500" />
-                                    <span className="text-xs font-bold text-muted">até</span>
+                                    <span className="text-xs font-bold text-fg">até</span>
                                     <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "fim", e.target.value)} className="h-9 bg-card border border-slate-300 px-2 font-bold text-xs rounded-lg outline-none focus:border-emerald-500" />
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all ${horario.intervalo ? "bg-amber-200 text-amber-900 border-amber-400" : "bg-elevated text-fg-soft border-line hover:bg-slate-200"}`}>
+                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all ${horario.intervalo ? "bg-amber-200 text-amber-900 border-amber-400" : "bg-card text-fg-soft border-line hover:bg-slate-200"}`}>
                                       <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo" : "É intervalo?"}
                                     </button>
                                     <button onClick={() => removerHorario(funcao.id, indice, idxHorario)} title="Excluir este horário" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center border border-red-200 hover:bg-red-100">
@@ -889,7 +889,7 @@ export default function GuiaDeFuncoes() {
 
                                 {!horario.intervalo && (
                                   <div className="space-y-2 pt-1">
-                                    <p className="text-3xs font-bold uppercase tracking-wider text-muted">Tarefas deste horário (linha por linha)</p>
+                                    <p className="text-3xs font-bold uppercase tracking-wider text-fg">Tarefas deste horário (linha por linha)</p>
                                     {tarefasDoHorario(horario).map((t, idxT) => (
                                       <div
                                         key={idxT}
@@ -905,7 +905,7 @@ export default function GuiaDeFuncoes() {
                                         className={`flex items-center gap-1.5 p-1 rounded-xl transition-all ${dragIndex === idxT ? "opacity-50 border border-emerald-400 bg-emerald-50/50" : ""}`}
                                       >
                                         <div className="flex items-center gap-0.5 shrink-0">
-                                          <span className="grid h-7 w-7 cursor-grab active:cursor-grabbing place-items-center rounded-lg bg-slate-200/80 text-muted hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta tarefa">
+                                          <span className="grid h-7 w-7 cursor-grab active:cursor-grabbing place-items-center rounded-lg bg-slate-200/80 text-fg hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta tarefa">
                                             <GripVertical size={14} />
                                           </span>
                                           <div className="flex flex-col gap-0.5">
@@ -928,10 +928,10 @@ export default function GuiaDeFuncoes() {
                                               <ChevronDown size={10} />
                                             </button>
                                           </div>
-                                          <span className="w-6 h-6 rounded-full bg-elevated border border-line text-3xs font-bold text-slate-600 flex items-center justify-center shrink-0 ml-0.5">{idxT + 1}</span>
+                                          <span className="w-6 h-6 rounded-full bg-card border border-line text-3xs font-bold text-slate-900 flex items-center justify-center shrink-0 ml-0.5">{idxT + 1}</span>
                                         </div>
 
-                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-300 px-3 text-xs font-bold rounded-xl outline-none focus:border-emerald-500 focus:bg-card" />
+                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-white border border-slate-300 px-3 text-xs font-bold rounded-xl outline-none focus:border-emerald-500 focus:bg-card" />
                                         <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-subtle hover:text-red-600 flex items-center justify-center shrink-0">
                                           <Trash2 size={15} />
                                         </button>
@@ -957,7 +957,7 @@ export default function GuiaDeFuncoes() {
                               {periodoDoBloco(bloco) !== "—" && <span className="text-xs font-bold text-dim">{periodoDoBloco(bloco)}</span>}
                             </div>
                           )}
-                          <div className="p-4 space-y-3 bg-slate-50/50">
+                          <div className="p-4 space-y-3 bg-white/50">
                             {(bloco.horarios || []).map((h, idxH) => (
                               <div
                                 key={idxH}
@@ -968,7 +968,7 @@ export default function GuiaDeFuncoes() {
                                 }`}
                               >
                                 <span className={`text-xs font-bold px-2.5 py-1 rounded-md inline-block mb-2 ${
-                                  h.intervalo ? "bg-amber-200/80 text-amber-900" : "bg-elevated text-slate-800"
+                                  h.intervalo ? "bg-amber-200/80 text-amber-900" : "bg-card text-slate-800"
                                 }`}>
                                   {periodoDoHorario(h)}
                                 </span>
@@ -994,7 +994,7 @@ export default function GuiaDeFuncoes() {
                   ))}
 
                   {editando && (
-                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-card border-2 border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-accent font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
+                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-card border-2 border-dashed border-slate-300 text-slate-900 hover:border-emerald-500 hover:text-accent font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
                       <Plus size={15} /> Adicionar Período Maior (Ex: Abertura, Serviço, Fechamento)
                     </button>
                   )}

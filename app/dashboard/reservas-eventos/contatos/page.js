@@ -9,7 +9,7 @@ export default function ContatosPage() {
         <MessageSquare size={40} />
       </div>
       <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Novos Contatos</h1>
-      <p className="text-slate-500 font-medium max-w-md">
+      <p className="text-slate-900 font-medium max-w-md">
         A caixa de entrada de leads vindos de formulários e redes sociais está em construção.
       </p>
     </main>

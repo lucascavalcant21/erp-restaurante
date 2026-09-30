@@ -404,7 +404,7 @@ function EstruturaRadial({ camadas, fotoUrl }) {
                   <p className="font-bold text-2xs md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
                   <p className="text-3xs uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
               </div>
-              <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-600 transition-colors">
+              <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-900 transition-colors">
                 <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="ml-[-4px]">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -430,7 +430,7 @@ function EstruturaRadial({ camadas, fotoUrl }) {
         <div className="flex-1 flex flex-col justify-around h-full gap-6 items-start z-20">
           {dir.map((c, i) => (
             <div key={i} className="flex items-center gap-2 md:gap-4 w-full group">
-              <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-600 transition-colors flex-row-reverse">
+              <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-900 transition-colors flex-row-reverse">
                 <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="mr-[-4px]">
                   <polyline points="9 18 15 12 9 6"></polyline>
@@ -497,7 +497,7 @@ function EditorCamadas({ camadas, setCamadas }) {
     <div className="bg-[var(--panel)] border border-[var(--line)] rounded-xl p-4 mt-3">
       <div className="flex items-center justify-between mb-3">
          <h4 className="text-xs font-bold uppercase text-[var(--subtle)]">Ajuste de Camadas (IA)</h4>
-         <button onClick={adicionar} className="text-xs font-bold text-slate-600 bg-emerald-500/10 px-2 py-1 rounded flex items-center gap-1 hover:bg-emerald-500/20 transition-colors">
+         <button onClick={adicionar} className="text-xs font-bold text-slate-900 bg-emerald-500/10 px-2 py-1 rounded flex items-center gap-1 hover:bg-emerald-500/20 transition-colors">
             <Plus size={12}/> Adicionar
          </button>
       </div>
@@ -520,7 +520,7 @@ function EditorCamadas({ camadas, setCamadas }) {
                  {TIPOS_IA.map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
                </select>
             </div>
-            <button onClick={() => remover(idx)} className="p-2 text-slate-600 hover:text-muted hover:bg-emerald-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
+            <button onClick={() => remover(idx)} className="p-2 text-slate-900 hover:text-fg hover:bg-emerald-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
           </div>
         ))}
       </div>
@@ -619,7 +619,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
             {currentGuia?.foto_url ? (
               <img src={currentGuia.foto_url} alt={currentGuia.nome} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center text-slate-600">
+              <div className="flex h-full w-full flex-col items-center justify-center text-slate-900">
                 <Camera size={48} />
                 <span className="mt-2 text-xs font-bold uppercase tracking-widest">Sem Foto de Referência</span>
               </div>
@@ -668,7 +668,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
             </h2>
 
             {passos.length === 0 ? (
-              <div className="p-12 text-center text-muted font-bold">Nenhum passo de montagem cadastrado para este item.</div>
+              <div className="p-12 text-center text-fg font-bold">Nenhum passo de montagem cadastrado para este item.</div>
             ) : (
               <div className="space-y-3">
                 {passos.map((passo, idx) => {
@@ -985,7 +985,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
           {/* MONTAR COM IA: cola a receita inteira e ela preenche as seções */}
           <div className="rounded-2xl border border-line bg-card p-3">
             <p className="text-xs font-bold text-fg-soft uppercase tracking-widest">Preenchimento manual</p>
-            <p className="mt-1 text-2xs font-medium text-muted">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
+            <p className="mt-1 text-2xs font-medium text-fg">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
           </div>
           <details className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3">
             <summary className="cursor-pointer text-xs font-bold text-accent uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
@@ -1007,8 +1007,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
           {/* SEÇÃO: Ingredientes & Dosagem */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
-              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-success bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
+              <label className="text-xs font-bold text-slate-900 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
+              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-2xs font-bold uppercase text-success bg-white hover:bg-card px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
                 {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                 {gerandoIA ? "Gerando..." : "Preparo com IA"}
               </button>
@@ -1024,7 +1024,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
           {/* SEÇÃO: Copo / Taça — foto real (tirada por você) ou desenho */}
           <div>
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai no guia com a foto ou o desenho)</label>
+            <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Copo / Taça (sai no guia com a foto ou o desenho)</label>
             <div className="flex items-stretch gap-3">
               {fotoCopoAtual ? (
                 <img src={fotoCopoAtual} alt="Copo" className="w-14 h-[76px] object-contain rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#f4f4f5" }} />
@@ -1055,7 +1055,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
           {/* SEÇÃO: Modo de Preparo */}
           <div>
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Modo de Preparo</label>
+            <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Modo de Preparo</label>
             <textarea
               value={f.descritivo}
               onChange={(e) => set("descritivo", e.target.value)}
@@ -1068,8 +1068,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       ) : (
         <div className="relative">
           <div className="flex items-center justify-between mb-1">
-             <label className="text-xs font-bold text-muted uppercase tracking-widest">Ingredientes e Passo a passo</label>
-             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-success bg-slate-50 hover:bg-elevated px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
+             <label className="text-xs font-bold text-fg uppercase tracking-widest">Ingredientes e Passo a passo</label>
+             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-2xs font-bold uppercase text-success bg-white hover:bg-card px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-line">
                {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
              </button>
@@ -2271,7 +2271,7 @@ function MontagemPageInner() {
               {vazios > 0 && (
                 <button onClick={preencherVaziosIA} disabled={preenchendoIA}
                   title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
-                  className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
+                  className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft shadow-sm transition-all hover:bg-white active:scale-[.98] disabled:opacity-50">
                   {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
                 </button>
@@ -2283,7 +2283,7 @@ function MontagemPageInner() {
             </>
           );
         })()}
-        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft shadow-sm transition-all hover:bg-white active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>
@@ -2297,14 +2297,14 @@ function MontagemPageInner() {
             dá para rever e desfazer pelo botão "Fora do guia". */}
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => { setVerForaDoGuia(v => !v); setSelecionadas([]); }}
-            className={`min-h-10 rounded-xl border px-3 text-xs font-bold ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-line bg-card text-slate-600"}`}>
+            className={`min-h-10 rounded-xl border px-3 text-xs font-bold ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-line bg-card text-slate-900"}`}>
             {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia || !temConteudoDrink(m)).length})`}
           </button>
           {filtrados.length > 0 && (() => {
             const todosMarcados = filtrados.every(m => selecionadas.includes(m.id));
             return (
               <button type="button" onClick={alternarTodos}
-                className="flex min-h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-300">
+                className="flex min-h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-900 hover:border-emerald-300">
                 {todosMarcados ? <CheckSquare size={15} /> : <Square size={15} />}
                 {todosMarcados ? "Desmarcar todos" : `Selecionar todos (${filtrados.length})`}
               </button>
@@ -2345,7 +2345,7 @@ function MontagemPageInner() {
                   )}
 
                   {/* Foto de capa (menor) */}
-                  <div className="w-full h-28 sm:h-32 bg-elevated relative">
+                  <div className="w-full h-28 sm:h-32 bg-card relative">
                     {/* Seleção p/ imprimir juntas (não abre o preview) */}
                     <label className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm" title="Selecionar para impressão" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selecionadas.includes(m.id)} onChange={() => toggleSel(m.id)} className="w-4 h-4 accent-emerald-600 block cursor-pointer" />
@@ -2403,7 +2403,7 @@ function MontagemPageInner() {
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
               ].map(({ icon: Ic, label, onClick, perigo }) => (
                 <button key={label} onClick={onClick}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-2xs font-bold transition-colors hover:bg-elevated active:scale-95"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-2xs font-bold transition-colors hover:bg-card active:scale-95"
                   style={{ background: "var(--elevated)", color: perigo ? "#DC2626" : "var(--muted)" }}
                   title={label}>
                   <Ic size={16} />
@@ -2545,7 +2545,7 @@ function MontagemPageInner() {
            <div className="bg-[var(--surface)] sm:rounded-[24px] shadow-2xl w-full max-w-7xl min-h-full sm:min-h-0 my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
              <div className="p-3 sm:p-5 md:p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)] sm:rounded-t-[24px] sticky top-0 z-20">
                 <h2 className="font-black text-base sm:text-lg md:text-xl text-[var(--fg)] flex items-center gap-2">
-                  <ClipboardList size={20} className="text-slate-600 shrink-0" />
+                  <ClipboardList size={20} className="text-slate-900 shrink-0" />
                   {editar ? "Editar Ficha de Montagem" : "Nova Ficha de Montagem"}
                 </h2>
                 <button onClick={() => { setModal(false); setEditar(null); }} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-[var(--surface)] text-[var(--subtle)] border border-[var(--line)] hover:bg-[var(--elevated)] hover:text-[var(--fg)]">

@@ -62,34 +62,34 @@ export default function ComprasTab({ evento, unidadeAtiva }) {
     window.print();
   };
 
-  if (carregando) return <div className="p-12 text-center text-slate-500 font-bold"><Loader2 className="animate-spin mx-auto mb-4"/>Montando Lista de Compras...</div>;
+  if (carregando) return <div className="p-12 text-center text-slate-900 font-bold"><Loader2 className="animate-spin mx-auto mb-4"/>Montando Lista de Compras...</div>;
 
   return (
     <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden print:border-none print:shadow-none">
-      <header className="p-6 border-b border-slate-200 flex justify-between items-end bg-slate-50">
+      <header className="p-6 border-b border-slate-200 flex justify-between items-end bg-white">
         <div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2"><ShoppingCart className="text-emerald-600"/> Lista de Compras</h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">Consolidação exata dos insumos necessários para as porções do cardápio.</p>
+          <p className="text-slate-900 font-medium text-sm mt-1">Consolidação exata dos insumos necessários para as porções do cardápio.</p>
         </div>
-        <button onClick={handlePrint} className="h-10 px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold flex items-center gap-2 hover:bg-slate-100 print:hidden">
+        <button onClick={handlePrint} className="h-10 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold flex items-center gap-2 hover:bg-slate-100 print:hidden">
           <Printer size={16}/> Imprimir Lista
         </button>
       </header>
 
       {lista.length === 0 ? (
-        <div className="p-12 text-center text-slate-400">
+        <div className="p-12 text-center text-slate-800">
           <ShoppingCart size={48} className="mx-auto mb-4 opacity-50"/>
           <p className="font-bold">Nenhum insumo encontrado.</p>
           <p className="text-sm">Adicione pratos na aba Cardápio primeiro.</p>
         </div>
       ) : (
         <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="bg-white border-b border-slate-200">
             <tr>
               <th className="py-3 px-6 w-12 print:hidden"></th>
-              <th className="py-3 px-6 text-xs font-black text-slate-400 uppercase tracking-wider">Insumo</th>
-              <th className="py-3 px-6 text-xs font-black text-slate-400 uppercase tracking-wider text-right">Quantidade a Comprar</th>
-              <th className="py-3 px-6 text-xs font-black text-slate-400 uppercase tracking-wider text-right print:hidden">Custo Estimado</th>
+              <th className="py-3 px-6 text-xs font-black text-slate-800 uppercase tracking-wider">Insumo</th>
+              <th className="py-3 px-6 text-xs font-black text-slate-800 uppercase tracking-wider text-right">Quantidade a Comprar</th>
+              <th className="py-3 px-6 text-xs font-black text-slate-800 uppercase tracking-wider text-right print:hidden">Custo Estimado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -106,7 +106,7 @@ export default function ComprasTab({ evento, unidadeAtiva }) {
               const custoFinal = item.quantidade_total * item.custo_unitario;
 
               return (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={item.id} className="hover:bg-white transition-colors">
                   <td className="py-4 px-6 print:hidden">
                     <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer" />
                   </td>
@@ -116,7 +116,7 @@ export default function ComprasTab({ evento, unidadeAtiva }) {
                       {displayQtd.toFixed(2).replace('.00', '')} {displayUnid}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right font-bold text-slate-400 print:hidden">
+                  <td className="py-4 px-6 text-right font-bold text-slate-800 print:hidden">
                     R$ {custoFinal.toFixed(2)}
                   </td>
                 </tr>

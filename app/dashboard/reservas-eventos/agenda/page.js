@@ -9,7 +9,7 @@ export default function AgendaPage() {
         <CalendarDays size={40} />
       </div>
       <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Agenda Unificada</h1>
-      <p className="text-slate-500 font-medium max-w-md">
+      <p className="text-slate-900 font-medium max-w-md">
         A visão em calendário de todas as reservas e eventos está em construção.
       </p>
     </main>

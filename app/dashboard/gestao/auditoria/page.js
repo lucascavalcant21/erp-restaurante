@@ -224,8 +224,8 @@ export default function AuditoriaPerdasPage() {
                     </div>
 
                     <div className="text-left md:text-right bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-full md:w-28 min-w-0">
-                      <p className="text-3xs font-bold uppercase text-slate-600">Ralo Financeiro</p>
-                      <p className="text-lg font-black text-slate-600">{fmtBRL(item.prejuizo)}</p>
+                      <p className="text-3xs font-bold uppercase text-slate-900">Ralo Financeiro</p>
+                      <p className="text-lg font-black text-slate-900">{fmtBRL(item.prejuizo)}</p>
                     </div>
                   </div>
 

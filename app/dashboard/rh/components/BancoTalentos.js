@@ -282,7 +282,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
   };
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
-    return <div className="p-10 text-center font-bold text-muted bg-card rounded-3xl border border-line">Selecione uma loja específica no menu lateral para ver os candidatos.</div>;
+    return <div className="p-10 text-center font-bold text-fg bg-card rounded-3xl border border-line">Selecione uma loja específica no menu lateral para ver os candidatos.</div>;
   }
 
   const filtrados = candidatos.filter(c =>
@@ -332,14 +332,14 @@ export default function BancoTalentos({ unidadeAtiva }) {
       
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
          <div className="bg-card p-3 rounded-2xl border border-line flex items-center gap-3 w-full max-w-md shadow-sm">
-            <Search size={18} className="text-muted" />
+            <Search size={18} className="text-fg" />
             <input type="text" placeholder="Buscar por nome ou cargo..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-fg-soft text-sm" />
          </div>
          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <button type="button" onClick={carregar} disabled={loading} className="flex items-center justify-center gap-2 bg-card text-slate-600 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-line disabled:opacity-60 whitespace-nowrap">
+            <button type="button" onClick={carregar} disabled={loading} className="flex items-center justify-center gap-2 bg-card text-slate-900 px-4 py-3 rounded-2xl font-bold hover:bg-white transition-colors border border-line disabled:opacity-60 whitespace-nowrap">
                <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> Atualizar
             </button>
-             <button type="button" onClick={abrirEditorPortal} disabled={carregandoPortal} className="flex items-center justify-center gap-2 bg-card text-fg-soft px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-line whitespace-nowrap disabled:opacity-60">
+             <button type="button" onClick={abrirEditorPortal} disabled={carregandoPortal} className="flex items-center justify-center gap-2 bg-card text-fg-soft px-4 py-3 rounded-2xl font-bold hover:bg-white transition-colors border border-line whitespace-nowrap disabled:opacity-60">
                 {carregandoPortal ? <Loader2 size={18} className="animate-spin" /> : <Pencil size={18} />} Editar portal
              </button>
             <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 whitespace-nowrap">
@@ -352,7 +352,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
       </div>
 
       {loading ? (
-        <div className="p-20 text-center flex flex-col items-center text-muted">
+        <div className="p-20 text-center flex flex-col items-center text-fg">
            <Loader2 size={32} className="animate-spin mb-4 text-indigo-500" />
            <p className="font-bold">Carregando banco de talentos...</p>
         </div>
@@ -366,9 +366,9 @@ export default function BancoTalentos({ unidadeAtiva }) {
                  const ativa = abaSituacao === a.id;
                  return (
                    <button key={a.id} type="button" onClick={() => setAbaSituacao(a.id)}
-                     className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${ativa ? a.ativo : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
+                     className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${ativa ? a.ativo : "border border-line bg-card text-fg hover:bg-white"}`}>
                      {a.nome}
-                     <span className={`rounded-full px-2 py-0.5 text-2xs ${ativa ? "bg-white/25" : "bg-elevated text-muted"}`}>{n}</span>
+                     <span className={`rounded-full px-2 py-0.5 text-2xs ${ativa ? "bg-white/25" : "bg-card text-fg"}`}>{n}</span>
                    </button>
                  );
               })}
@@ -401,22 +401,22 @@ export default function BancoTalentos({ unidadeAtiva }) {
                                   </p>
                                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                      <span className={`rounded px-1.5 py-0.5 text-3xs font-bold ${getCorNota(c.nota_ia)}`}>{c.nota_ia} pts</span>
-                                     {c.url_curriculo && <span className="flex items-center gap-1 rounded bg-elevated px-1.5 py-0.5 text-3xs font-bold text-slate-600"><FileText size={10}/> Tem CV</span>}
-                                     {c.tem_filhos === "Sim" && <span className="rounded border border-line bg-slate-50 px-1.5 py-0.5 text-3xs font-bold text-muted">Tem filhos</span>}
+                                     {c.url_curriculo && <span className="flex items-center gap-1 rounded bg-card px-1.5 py-0.5 text-3xs font-bold text-slate-900"><FileText size={10}/> Tem CV</span>}
+                                     {c.tem_filhos === "Sim" && <span className="rounded border border-line bg-white px-1.5 py-0.5 text-3xs font-bold text-fg">Tem filhos</span>}
                                   </div>
                                </div>
 
                                {/* Situação e decisão. Aqui o clique não abre a ficha. */}
                                <div className="flex shrink-0 items-center gap-2" onClick={e => e.stopPropagation()}>
                                   {sit === "aprovado" && <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-3xs font-bold uppercase tracking-widest text-emerald-700">Aprovado</span>}
-                                  {sit === "reprovado" && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-3xs font-bold uppercase tracking-widest text-slate-600">Reprovado</span>}
+                                  {sit === "reprovado" && <span className="rounded-lg bg-slate-200 px-2.5 py-1 text-3xs font-bold uppercase tracking-widest text-slate-900">Reprovado</span>}
                                   {sit !== "aprovado" && (
                                     <button type="button" onClick={() => decidir(c.id, APROVADO)}
                                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-fg hover:bg-accent">Aprovar</button>
                                   )}
                                   {sit !== "reprovado" && (
                                     <button type="button" onClick={() => decidir(c.id, REPROVADO)}
-                                       className="rounded-lg border border-line bg-card px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Reprovar</button>
+                                       className="rounded-lg border border-line bg-card px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-white">Reprovar</button>
                                   )}
                                </div>
                             </div>
@@ -434,11 +434,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
                                     if (navigator.share) navigator.share({ text: texto }).catch(() => {});
                                     else navigator.clipboard?.writeText(texto);
                                   }}
-                                  className="rounded-lg bg-elevated px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:bg-slate-200">
+                                  className="rounded-lg bg-card px-2.5 py-1.5 text-2xs font-bold text-slate-900 hover:bg-slate-200">
                                   Compartilhar
                                 </button>
                                 <button type="button" title="Ficha em PDF para enviar" onClick={() => imprimirFichaCandidato(c)}
-                                  className="rounded-lg bg-elevated px-2.5 py-1.5 text-2xs font-bold text-slate-600 hover:bg-slate-200">
+                                  className="rounded-lg bg-card px-2.5 py-1.5 text-2xs font-bold text-slate-900 hover:bg-slate-200">
                                   PDF
                                 </button>
                               </div>
@@ -466,15 +466,15 @@ export default function BancoTalentos({ unidadeAtiva }) {
               Aprovar
             </button>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(REPROVADO)}
-              className="rounded-xl border-2 border-line bg-card px-3.5 py-2 text-xs font-bold text-fg-soft hover:bg-slate-50 disabled:opacity-50">
+              className="rounded-xl border-2 border-line bg-card px-3.5 py-2 text-xs font-bold text-fg-soft hover:bg-white disabled:opacity-50">
               Reprovar
             </button>
             <button type="button" disabled={movendo} onClick={() => moverSelecionados(A_DECIDIR)}
-              className="rounded-xl border-2 border-line bg-card px-3.5 py-2 text-xs font-bold text-muted hover:bg-slate-50 disabled:opacity-50">
+              className="rounded-xl border-2 border-line bg-card px-3.5 py-2 text-xs font-bold text-fg hover:bg-white disabled:opacity-50">
               Voltar para a decidir
             </button>
             <button type="button" onClick={() => setSelecionados({})} disabled={movendo}
-              className="ml-auto rounded-xl px-3 py-2 text-xs font-bold text-muted hover:text-slate-800 disabled:opacity-50">
+              className="ml-auto rounded-xl px-3 py-2 text-xs font-bold text-fg hover:text-slate-800 disabled:opacity-50">
               {movendo ? "Movendo..." : "Limpar"}
             </button>
           </div>
@@ -487,24 +487,24 @@ export default function BancoTalentos({ unidadeAtiva }) {
             <div className="flex items-center justify-between gap-4 px-5 sm:px-7 py-5 border-b border-line-soft">
               <div>
                 <h2 className="font-black text-xl sm:text-2xl text-slate-800">Editar Portal de Vagas</h2>
-                <p className="text-xs sm:text-sm text-muted mt-1">As alterações aparecem no portal público desta unidade.</p>
+                <p className="text-xs sm:text-sm text-fg mt-1">As alterações aparecem no portal público desta unidade.</p>
               </div>
-              <button type="button" onClick={() => setEditorPortal(null)} className="w-10 h-10 rounded-full bg-elevated text-muted grid place-items-center hover:bg-slate-200"><X size={20} /></button>
+              <button type="button" onClick={() => setEditorPortal(null)} className="w-10 h-10 rounded-full bg-card text-fg grid place-items-center hover:bg-slate-200"><X size={20} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Título</span>
-                  <input value={editorPortal.titulo} onChange={e => setEditorPortal({ ...editorPortal, titulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-slate-50 p-3 font-bold outline-none focus:border-indigo-500" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Título</span>
+                  <input value={editorPortal.titulo} onChange={e => setEditorPortal({ ...editorPortal, titulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-bold outline-none focus:border-indigo-500" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Mensagem depois da candidatura</span>
-                  <input value={editorPortal.mensagem_sucesso} onChange={e => setEditorPortal({ ...editorPortal, mensagem_sucesso: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-slate-50 p-3 font-medium outline-none focus:border-indigo-500" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Mensagem depois da candidatura</span>
+                  <input value={editorPortal.mensagem_sucesso} onChange={e => setEditorPortal({ ...editorPortal, mensagem_sucesso: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-medium outline-none focus:border-indigo-500" />
                 </label>
                 <label className="block md:col-span-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Apresentação do portal</span>
-                  <textarea rows={3} value={editorPortal.subtitulo} onChange={e => setEditorPortal({ ...editorPortal, subtitulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-slate-50 p-3 font-medium outline-none focus:border-indigo-500 resize-y" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Apresentação do portal</span>
+                  <textarea rows={3} value={editorPortal.subtitulo} onChange={e => setEditorPortal({ ...editorPortal, subtitulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-medium outline-none focus:border-indigo-500 resize-y" />
                 </label>
               </div>
 
@@ -512,7 +512,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h3 className="font-black text-lg text-slate-800">Vagas disponíveis</h3>
-                    <p className="text-xs text-muted">Configure remuneração, escala, folgas e pré-requisitos de cada função.</p>
+                    <p className="text-xs text-fg">Configure remuneração, escala, folgas e pré-requisitos de cada função.</p>
                   </div>
                   <button type="button" onClick={() => setEditorPortal({
                     ...editorPortal,
@@ -528,7 +528,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
 
                 <div className="space-y-3">
                   {editorPortal.vagas.map((vaga, index) => (
-                    <div key={vaga.id} className="rounded-2xl border border-line bg-slate-50 p-4">
+                    <div key={vaga.id} className="rounded-2xl border border-line bg-white p-4">
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {[
                           ["cargo", "Cargo"],
@@ -541,19 +541,19 @@ export default function BancoTalentos({ unidadeAtiva }) {
                           ["domingo_folga", "Domingo de folga"],
                         ].map(([campo, label]) => (
                           <label key={campo} className="block">
-                            <span className="text-3xs font-bold uppercase tracking-widest text-muted">{label}</span>
+                            <span className="text-3xs font-bold uppercase tracking-widest text-fg">{label}</span>
                             <input value={vaga[campo] || ""} onChange={e => atualizarVaga(index, { [campo]: e.target.value })} className="mt-1.5 w-full rounded-xl border border-line bg-card p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
                           </label>
                         ))}
                         <label className="block">
-                          <span className="text-3xs font-bold uppercase tracking-widest text-muted">Quantidade</span>
+                          <span className="text-3xs font-bold uppercase tracking-widest text-fg">Quantidade</span>
                           <input type="number" min="1" value={vaga.quantidade} onChange={e => atualizarVaga(index, { quantidade: Number(e.target.value) || 1 })} className="mt-1.5 w-full rounded-xl border border-line bg-card p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
                         </label>
                       </div>
                       <div className="mt-4 rounded-2xl border border-indigo-100 bg-card p-3.5">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                           <div>
-                            <p className="text-3xs font-bold uppercase tracking-widest text-muted">Pré-requisitos da função</p>
+                            <p className="text-3xs font-bold uppercase tracking-widest text-fg">Pré-requisitos da função</p>
                             <p className="text-2xs text-subtle mt-0.5">Um requisito por linha. Você pode editar tudo que a IA sugerir.</p>
                           </div>
                           <button type="button" disabled={gerandoRequisitos === vaga.id} onClick={() => gerarRequisitosIA(vaga, index)} className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">
@@ -566,11 +566,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
                           value={(Array.isArray(vaga.requisitos) ? vaga.requisitos : String(vaga.requisitos || "").split(/\r?\n/)).join("\n")}
                           onChange={e => atualizarVaga(index, { requisitos: e.target.value.split(/\r?\n/) })}
                           placeholder="Ex.: Experiência com atendimento ao cliente&#10;Boa comunicação e trabalho em equipe"
-                          className="w-full rounded-xl border border-line bg-slate-50 p-3 text-sm font-medium leading-relaxed outline-none focus:border-indigo-500 resize-y"
+                          className="w-full rounded-xl border border-line bg-white p-3 text-sm font-medium leading-relaxed outline-none focus:border-indigo-500 resize-y"
                         />
                       </div>
                       <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-line">
-                        <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-900">
                           <input type="checkbox" checked={vaga.ativa} onChange={e => atualizarVaga(index, { ativa: e.target.checked })} />
                           Exibir no portal
                         </label>
@@ -585,7 +585,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-5 sm:px-7 py-4 border-t border-line-soft bg-card">
-              <button type="button" onClick={() => setEditorPortal(null)} className="px-5 py-3 rounded-xl border border-line font-bold text-slate-600">Fechar</button>
+              <button type="button" onClick={() => setEditorPortal(null)} className="px-5 py-3 rounded-xl border border-line font-bold text-slate-900">Fechar</button>
               <button type="button" disabled={salvandoPortal} onClick={salvarEditorPortal} className="px-5 py-3 rounded-xl bg-indigo-600 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60">
                 {salvandoPortal ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} Salvar alterações
               </button>
@@ -601,7 +601,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                <div className="flex justify-between items-start mb-6 shrink-0 border-b border-line-soft pb-4">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">{candidatoAberto.nome}</h2>
-                     <p className="text-sm font-bold text-muted mt-1 uppercase tracking-widest">{candidatoAberto.cargo_pretendido}</p>
+                     <p className="text-sm font-bold text-fg mt-1 uppercase tracking-widest">{candidatoAberto.cargo_pretendido}</p>
                      <p className="text-xs text-subtle mt-2 flex items-center gap-1.5"><CalendarDays size={13} /> Candidatura recebida em {dataHora(candidatoAberto.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -612,7 +612,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                            setCandidatoAberto(null);
                         }
                      }} className="w-10 h-10 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-100"><Trash2 size={18}/></button>
-                     <button onClick={() => setCandidatoAberto(null)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                     <button onClick={() => setCandidatoAberto(null)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                   </div>
                </div>
 
@@ -629,7 +629,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                            { label: "Tem filhos", value: detalhesAbertos.temFilhos, icon: Baby },
                            { label: "Transporte próprio", value: detalhesAbertos.temTransporte, icon: Car },
                         ].map(({ label, value, icon: Icon }) => (
-                           <div key={label} className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-line-soft min-w-0">
+                           <div key={label} className="flex items-start gap-3 bg-white p-4 rounded-2xl border border-line-soft min-w-0">
                               <Icon size={19} className="text-subtle shrink-0 mt-0.5" />
                               <div className="min-w-0">
                                  <p className="text-3xs font-bold text-subtle uppercase tracking-widest">{label}</p>
@@ -642,12 +642,12 @@ export default function BancoTalentos({ unidadeAtiva }) {
 
                   <section>
                      <h3 className="font-black text-lg text-slate-800 mb-3">Endereço informado</h3>
-                     <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-line-soft">
+                     <div className="flex items-start gap-3 bg-white p-4 rounded-2xl border border-line-soft">
                         <MapPin size={20} className="text-subtle shrink-0 mt-0.5" />
                         <div className="min-w-0">
                            <p className="font-black text-fg-soft break-words">{valorOuTraco(detalhesAbertos.enderecoCompleto)}</p>
                            {(detalhesAbertos.cidade || detalhesAbertos.estado) && (
-                              <p className="text-xs font-bold text-muted mt-1">
+                              <p className="text-xs font-bold text-fg mt-1">
                                  {[detalhesAbertos.rua, detalhesAbertos.numero, detalhesAbertos.bairro, detalhesAbertos.cidade, detalhesAbertos.estado].filter(Boolean).join(" • ")}
                               </p>
                            )}
@@ -665,7 +665,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                               <p className="font-black text-indigo-800">{valorOuTraco(detalhesAbertos.cargoPretendido)}</p>
                            </div>
                         </div>
-                        <div className="sm:col-span-2 bg-slate-50 p-4 rounded-2xl border border-line-soft">
+                        <div className="sm:col-span-2 bg-white p-4 rounded-2xl border border-line-soft">
                            <p className="text-3xs font-bold text-subtle uppercase tracking-widest mb-1">Experiência declarada</p>
                            <p className="font-bold text-sm text-fg-soft whitespace-pre-wrap">{valorOuTraco(detalhesAbertos.experiencia)}</p>
                         </div>
@@ -679,14 +679,14 @@ export default function BancoTalentos({ unidadeAtiva }) {
                            const resposta = respostaFormatada(candidatoAberto, pergunta);
                            return (
                               <div key={pergunta.id} className="rounded-2xl border border-line p-4 bg-card">
-                                 <p className="text-xs font-bold text-muted mb-2">{index + 1}. {pergunta.pergunta}</p>
+                                 <p className="text-xs font-bold text-fg mb-2">{index + 1}. {pergunta.pergunta}</p>
                                  {resposta ? (
                                     <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
                                        <p className="font-bold text-sm text-emerald-900">{resposta.texto}</p>
                                        {resposta.tag && <span className="inline-flex mt-2 text-3xs font-bold uppercase tracking-wider text-accent bg-card border border-emerald-200 rounded-full px-2 py-1">{resposta.tag}</span>}
                                     </div>
                                  ) : (
-                                    <p className="text-sm font-bold text-subtle bg-slate-50 rounded-xl p-3">Resposta não disponível neste cadastro antigo.</p>
+                                    <p className="text-sm font-bold text-subtle bg-white rounded-xl p-3">Resposta não disponível neste cadastro antigo.</p>
                                  )}
                               </div>
                            );
@@ -717,7 +717,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                            Visualizar Currículo (PDF)
                         </a>
                      ) : (
-                        <div className="flex items-center justify-center gap-2 bg-slate-50 text-subtle border border-line px-4 py-4 rounded-xl font-black cursor-not-allowed">
+                        <div className="flex items-center justify-center gap-2 bg-white text-subtle border border-line px-4 py-4 rounded-xl font-black cursor-not-allowed">
                            <FileText size={18} />
                            Sem Currículo Anexado
                         </div>

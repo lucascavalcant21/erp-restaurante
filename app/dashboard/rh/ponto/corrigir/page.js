@@ -121,18 +121,18 @@ export default function CorrigirPontoPage() {
   };
 
   const campo = "mt-1.5 h-12 w-full rounded-xl border border-line bg-card px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-500";
-  const rotulo = "text-2xs font-black uppercase tracking-wider text-muted";
+  const rotulo = "text-2xs font-black uppercase tracking-wider text-fg";
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16 text-fg">
       <header className="border-b border-line bg-card px-4 py-4 sm:px-7">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-line text-slate-600 hover:bg-slate-50" aria-label="Voltar">
+          <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-line text-slate-900 hover:bg-white" aria-label="Voltar">
             <ArrowLeft size={20} />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-black sm:text-2xl">Corrigir batida do ponto</h1>
-            <p className="text-sm font-semibold text-muted">A batida original não é apagada — entra um ajuste com motivo e autor</p>
+            <p className="text-sm font-semibold text-fg">A batida original não é apagada — entra um ajuste com motivo e autor</p>
           </div>
         </div>
       </header>
@@ -152,10 +152,10 @@ export default function CorrigirPontoPage() {
           </div>
 
           {colabId && (
-            <div className="mt-5 rounded-xl border border-line bg-slate-50 p-4">
+            <div className="mt-5 rounded-xl border border-line bg-white p-4">
               <p className={rotulo}>O que está gravado neste dia</p>
               {carregando ? (
-                <p className="mt-2 flex items-center gap-2 text-sm font-bold text-muted"><Loader2 size={15} className="animate-spin" /> Carregando…</p>
+                <p className="mt-2 flex items-center gap-2 text-sm font-bold text-fg"><Loader2 size={15} className="animate-spin" /> Carregando…</p>
               ) : (
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {TIPOS.map(([id, nome]) => (
@@ -185,7 +185,7 @@ export default function CorrigirPontoPage() {
               <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className={campo} />
             </label>
           </div>
-          <p className="mt-2 text-xs font-semibold text-muted">
+          <p className="mt-2 text-xs font-semibold text-fg">
             Valor atual: <b className="text-fg-soft">{horaDe(valorAtual) || "não marcado"}</b>
             {tipo === "saida_trabalho" && " · saída antes das 6h é entendida como madrugada do dia seguinte"}
           </p>
@@ -194,7 +194,7 @@ export default function CorrigirPontoPage() {
               placeholder="Ex.: tablet sem rede no fechamento"
               className={`${campo} h-auto py-3`} />
           </label>
-          <p className="mt-1 text-xs font-semibold text-muted">Quando preenchido, fica gravado junto com o ajuste.</p>
+          <p className="mt-1 text-xs font-semibold text-fg">Quando preenchido, fica gravado junto com o ajuste.</p>
         </section>
 
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-6">

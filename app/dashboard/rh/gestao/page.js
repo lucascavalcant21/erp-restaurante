@@ -344,14 +344,14 @@ export default function GestaoRhPage() {
       {/* Modal Criar Acesso Garçom */}
       <Modal open={!!modalAcesso} onClose={() => setModalAcesso(null)} title="Acesso ao PDV Celular">
         <div className="space-y-4">
-          <p className="text-sm text-muted">Crie um login rápido para <b>{modalAcesso?.nome}</b> usar o PDV (Mesas) no celular.</p>
+          <p className="text-sm text-fg">Crie um login rápido para <b>{modalAcesso?.nome}</b> usar o PDV (Mesas) no celular.</p>
           <Field label="Nome de Usuário (Login)">
             <TextInput value={formAcesso.usuario} onChange={e => setFormAcesso({...formAcesso, usuario: e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '')})} placeholder="ex: joao.matriz" />
           </Field>
           <Field label="Senha (PIN)">
             <TextInput value={formAcesso.senha} onChange={e => setFormAcesso({...formAcesso, senha: e.target.value})} placeholder="123456" />
           </Field>
-          {acessoErro && <p className="text-xs text-slate-600 text-center">{acessoErro}</p>}
+          {acessoErro && <p className="text-xs text-slate-900 text-center">{acessoErro}</p>}
           <Btn variant="primary" className="w-full" onClick={gerarAcessoPDV} disabled={acessoEnviando}>
             {acessoEnviando ? "Gerando..." : "Gerar Acesso"}
           </Btn>
@@ -361,14 +361,14 @@ export default function GestaoRhPage() {
       {/* Modal Sucesso Acesso Garçom */}
       <Modal open={!!acessoGerado} onClose={() => setAcessoGerado(null)} title="✅ Acesso Criado!">
         <div className="text-center py-4 space-y-4">
-          <p className="text-muted text-sm">O funcionário já pode entrar no sistema pelo celular usando as credenciais abaixo:</p>
-          <div className="bg-elevated dark:bg-slate-900 border border-line dark:border-slate-700 rounded-xl p-4 space-y-2">
+          <p className="text-fg text-sm">O funcionário já pode entrar no sistema pelo celular usando as credenciais abaixo:</p>
+          <div className="bg-card dark:bg-slate-900 border border-line dark:border-slate-700 rounded-xl p-4 space-y-2">
             <div className="flex justify-between items-center border-b border-line dark:border-slate-800 pb-2">
-              <span className="text-muted text-xs uppercase font-bold">Usuário</span>
+              <span className="text-fg text-xs uppercase font-bold">Usuário</span>
               <span className="text-slate-800 dark:text-white font-mono text-lg font-bold">{acessoGerado?.login}</span>
             </div>
             <div className="flex justify-between items-center pt-2">
-              <span className="text-muted text-xs uppercase font-bold">Senha (PIN)</span>
+              <span className="text-fg text-xs uppercase font-bold">Senha (PIN)</span>
               <span className="text-emerald-500 font-mono text-lg font-bold">{acessoGerado?.senha}</span>
             </div>
           </div>

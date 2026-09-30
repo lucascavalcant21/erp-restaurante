@@ -194,28 +194,28 @@ export default function CadastroExtraPage() {
     return <div className="grid min-h-[60vh] place-items-center"><Loader2 size={28} className="animate-spin text-success" /></div>;
   }
 
-  const rotulo = "text-xs font-black uppercase tracking-widest text-muted";
-  const campo = "w-full p-4 mt-1.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500";
+  const rotulo = "text-xs font-black uppercase tracking-widest text-fg";
+  const campo = "w-full p-4 mt-1.5 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
+    <div className="min-h-screen bg-white pb-28">
       {/* Cabeçalho */}
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
           <button onClick={() => router.back()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200">
             <ArrowLeft size={19} />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-black text-fg sm:text-xl">
               {novo ? "Novo extra" : "Editar extra"}
             </h1>
-            <p className="text-xs font-bold text-muted">Freelancer / diarista · dados do recibo inclusos</p>
+            <p className="text-xs font-bold text-fg">Freelancer / diarista · dados do recibo inclusos</p>
           </div>
           {!novo && <div className="flex gap-2">
             <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100"><FileDown size={17}/> Pré-admissão eSocial</button>
-            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-slate-50"><FileDown size={17}/> PDF</button>
-            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
+            <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white"><FileDown size={17}/> PDF</button>
+            <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white"><Printer size={17}/> Imprimir</button>
           </div>}
         </div>
       </div>
@@ -225,7 +225,7 @@ export default function CadastroExtraPage() {
         <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
           <p className="mb-4 text-xs font-bold uppercase tracking-widest text-accent">Identificação</p>
           <div className="flex gap-4">
-            <label className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:border-emerald-400">
+            <label className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white hover:border-emerald-400">
               {form.foto ? (
                 <img src={`data:image/jpeg;base64,${form.foto}`} alt="Foto" className="h-full w-full object-cover" />
               ) : (
@@ -302,9 +302,9 @@ export default function CadastroExtraPage() {
             </label>
             {form.tem_filhos && (
               <label className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-600">Quantos?</span>
+                <span className="text-sm font-bold text-slate-900">Quantos?</span>
                 <input type="number" min="0" value={form.qtd_filhos} onChange={e => set("qtd_filhos", e.target.value)}
-                  className="h-11 w-20 rounded-xl border border-line bg-slate-50 px-3 text-center font-black text-slate-800 outline-none focus:border-emerald-500" />
+                  className="h-11 w-20 rounded-xl border border-line bg-white px-3 text-center font-black text-slate-800 outline-none focus:border-emerald-500" />
               </label>
             )}
           </div>
@@ -344,7 +344,7 @@ export default function CadastroExtraPage() {
             <label className="block">
               <span className={rotulo}>Valor da diária (R$)</span>
               <input type="number" step="0.01" value={form.salario} onChange={e => set("salario", e.target.value)}
-                className="w-full p-4 mt-1.5 bg-slate-50 border border-line rounded-xl font-black text-accent outline-none focus:border-emerald-500" />
+                className="w-full p-4 mt-1.5 bg-white border border-line rounded-xl font-black text-accent outline-none focus:border-emerald-500" />
             </label>
             <label className="block">
               <span className={rotulo}>Chave PIX</span>
@@ -368,7 +368,7 @@ export default function CadastroExtraPage() {
         {/* Dados do recibo */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-accent">Dados do Recibo de Trabalho Extra</p>
-          <p className="mb-4 mt-1 text-[13px] font-medium text-muted">
+          <p className="mb-4 mt-1 text-[13px] font-medium text-fg">
             Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.
           </p>
           <label className="block">
@@ -420,13 +420,13 @@ export default function CadastroExtraPage() {
           )}
           <div className="mt-3 space-y-2">
             {recibos.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm font-bold text-muted">Nenhum recibo emitido para esta pessoa ainda.</p>
+              <p className="rounded-xl bg-white p-4 text-sm font-bold text-fg">Nenhum recibo emitido para esta pessoa ainda.</p>
             ) : recibos.map(r => (
               <div key={r.id}
                 className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-black text-fg">{dataBR(r.data_trabalho)}</span>
-                  <span className="block text-xs font-bold text-muted">
+                  <span className="block text-xs font-bold text-fg">
                     {r.funcao_exercida || form.cargo || "Extra"}
                     {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
                   </span>
@@ -446,7 +446,7 @@ export default function CadastroExtraPage() {
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto flex max-w-3xl gap-3">
           <button onClick={() => router.back()}
-            className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">
+            className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-900 hover:bg-white">
             Cancelar
           </button>
           <button onClick={() => salvar(false)} disabled={salvando}

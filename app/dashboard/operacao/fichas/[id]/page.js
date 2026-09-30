@@ -328,7 +328,7 @@ export default function FichaTecnicaPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-4 p-3 pb-28 sm:p-4" style={estiloDoTipo(cfg)}>
       <div className="flex items-center justify-between gap-2">
-        <button onClick={voltarParaLista} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-card">
+        <button onClick={voltarParaLista} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-900 hover:bg-card">
           <ArrowLeft size={16} /> {cfg.rotuloPlural}
         </button>
         <button onClick={() => setEditorAberto(true)} className="flex items-center gap-2 rounded-xl bg-[color:var(--tipo)] px-4 py-2 text-sm font-black text-[color:var(--tipo-fg)]">
@@ -341,7 +341,7 @@ export default function FichaTecnicaPage() {
           <IconeTipo size={12} /> {cfg.rotulo}
         </span>
         {ficha.codigo ? <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-2xs font-bold text-white">{ficha.codigo}</span> : null}
-        <span className="rounded-lg bg-card px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
+        <span className="rounded-lg bg-card px-2 py-0.5 text-2xs font-semibold text-slate-900">v{ficha.versao || "1.0"}</span>
         <span className={`rounded-lg px-2 py-0.5 text-2xs font-semibold ${status === "ativa" ? "bg-accent-soft text-accent-strong" : status === "rascunho" ? "bg-amber-50 text-amber-700" : "bg-card text-fg"}`}>
           {STATUS_FICHA.find(s => s.valor === status)?.rotulo || "Ativa"}
         </span>
@@ -406,7 +406,7 @@ export default function FichaTecnicaPage() {
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {CMV_ATALHOS.map(v => (
                   <button key={v} onClick={() => setCmvSimulado(String(v))}
-                    className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${String(v) === String(cmvSimulado) ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-600 hover:bg-card"}`}>
+                    className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${String(v) === String(cmvSimulado) ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-900 hover:bg-card"}`}>
                     {v}%
                   </button>
                 ))}
@@ -468,12 +468,12 @@ export default function FichaTecnicaPage() {
                         <span className="text-xs text-fg">{fmtData(v.created_at)}</span>
                         {v.usuario_nome ? <span className="text-xs text-subtle">· {v.usuario_nome}</span> : null}
                         {anterior ? (
-                          <button onClick={() => setComparando({ a: anterior, b: v })} className="ml-auto rounded-lg border border-line px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-transparent">
+                          <button onClick={() => setComparando({ a: anterior, b: v })} className="ml-auto rounded-lg border border-line px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-transparent">
                             Comparar com v{anterior.versao}
                           </button>
                         ) : null}
                       </div>
-                      {v.alteracao ? <p className="mt-1.5 text-sm text-slate-600">{v.alteracao}</p> : null}
+                      {v.alteracao ? <p className="mt-1.5 text-sm text-slate-900">{v.alteracao}</p> : null}
                     </li>
                   );
                 })}
@@ -489,7 +489,7 @@ export default function FichaTecnicaPage() {
 function AcaoBtn({ icone: Icone, children, onClick, carregando = false }) {
   return (
     <button onClick={onClick} disabled={carregando}
-      className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-transparent disabled:opacity-50">
+      className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-transparent disabled:opacity-50">
       {carregando ? <Loader2 size={15} className="animate-spin" /> : <Icone size={15} />}
       {children}
     </button>

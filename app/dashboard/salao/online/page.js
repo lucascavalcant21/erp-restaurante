@@ -173,10 +173,10 @@ export default function GestorOnlinePage() {
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                               <span className="text-xs font-bold text-red-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
                            </div>
-                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente Não Informado"}</p>
-                           <p className="text-xs text-muted mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{p.bairro || p.endereco_entrega || "Balcão / Retirada"}</p>
+                           <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente Não Informado"}</p>
+                           <p className="text-xs text-fg mt-1 truncate"><MapPin size={10} className="inline mr-1"/>{p.bairro || p.endereco_entrega || "Balcão / Retirada"}</p>
                            <div className="mt-3 flex gap-2">
-                              <button onClick={(e) => { e.stopPropagation(); handleRecusar(p.id); }} className="py-1.5 px-3 bg-[#E0E0E0] text-slate-600 font-bold text-xs rounded hover:bg-slate-300"><X size={14}/></button>
+                              <button onClick={(e) => { e.stopPropagation(); handleRecusar(p.id); }} className="py-1.5 px-3 bg-[#E0E0E0] text-slate-900 font-bold text-xs rounded hover:bg-slate-300"><X size={14}/></button>
                               <button onClick={(e) => { e.stopPropagation(); handleAceitar(p.id); }} className="flex-1 py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Check size={14}/> ACEITAR</button>
                            </div>
                         </div>
@@ -200,7 +200,7 @@ export default function GestorOnlinePage() {
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                               <span className="text-xs font-bold text-orange-500 flex items-center gap-1"><Clock size={12}/> {calcTempo(p.created_at)} min</span>
                            </div>
-                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente"}</p>
+                           <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente"}</p>
                            <p className="text-3xs text-orange-600 font-bold mt-2 uppercase bg-orange-50 p-1 rounded inline-block">Sendo preparado pela Cozinha...</p>
                         </div>
                      ))
@@ -222,7 +222,7 @@ export default function GestorOnlinePage() {
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                            </div>
-                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente"}</p>
+                           <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente"}</p>
                            <div className="mt-3">
                               <button onClick={(e) => { e.stopPropagation(); handleDespachar(p.id); }} className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded flex justify-center items-center gap-1"><Bike size={14}/> CHAMAR MOTOBOY</button>
                            </div>
@@ -246,7 +246,7 @@ export default function GestorOnlinePage() {
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
                            </div>
-                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente"}</p>
+                           <p className="font-bold text-slate-900 text-xs">{p.cliente_nome || "Cliente"}</p>
                            <div className="mt-3">
                               <button onClick={(e) => { e.stopPropagation(); handleEntregue(p.id); }} className="w-full py-1.5 bg-[#4A4A4A] hover:bg-slate-700 text-white font-bold text-xs rounded">MARCAR COMO ENTREGUE</button>
                            </div>
@@ -277,7 +277,7 @@ export default function GestorOnlinePage() {
                 <p className="text-sm font-bold text-fg-soft mt-1">{detalhe.cliente_nome || 'Cliente não informado'}</p>
                 <p className="text-xs font-bold text-subtle">Feito às {new Date(detalhe.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
-              <button onClick={() => setDetalhe(null)} className="w-9 h-9 bg-elevated hover:bg-slate-200 rounded-full flex items-center justify-center text-muted shrink-0"><X size={18} /></button>
+              <button onClick={() => setDetalhe(null)} className="w-9 h-9 bg-card hover:bg-slate-200 rounded-full flex items-center justify-center text-fg shrink-0"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="space-y-2">
@@ -288,7 +288,7 @@ export default function GestorOnlinePage() {
                 <p className="text-2xs font-bold text-subtle uppercase tracking-widest mb-2">Itens</p>
                 <div className="space-y-1.5">
                   {(detalhe.pedidos_itens || []).map(it => (
-                    <div key={it.id} className="flex justify-between items-start bg-slate-50 rounded-lg px-3 py-2">
+                    <div key={it.id} className="flex justify-between items-start bg-white rounded-lg px-3 py-2">
                       <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-2xs font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
                       <span className="font-black text-fg-soft text-sm shrink-0 ml-2">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
                     </div>

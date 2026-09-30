@@ -134,19 +134,19 @@ function EmbalagensContent() {
         
         {/* Menu TABS */}
         <div className="flex bg-slate-200 p-1.5 rounded-2xl mb-8 w-full md:w-max mx-auto shadow-inner">
-           <button onClick={()=>setAba('estoque')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='estoque' ? 'bg-card text-slate-800 shadow-sm scale-100' : 'text-muted hover:text-fg-soft hover:bg-slate-300/50'}`}>
+           <button onClick={()=>setAba('estoque')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='estoque' ? 'bg-card text-slate-800 shadow-sm scale-100' : 'text-fg hover:text-fg-soft hover:bg-slate-300/50'}`}>
               <Box size={16}/> Estoque Físico
            </button>
-           <button onClick={()=>setAba('saida')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='saida' ? 'bg-card text-slate-800 shadow-sm scale-100' : 'text-muted hover:text-fg-soft hover:bg-slate-300/50'}`}>
+           <button onClick={()=>setAba('saida')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='saida' ? 'bg-card text-slate-800 shadow-sm scale-100' : 'text-fg hover:text-fg-soft hover:bg-slate-300/50'}`}>
               <PackageMinus size={16}/> Registrar Saída
            </button>
-           <button onClick={()=>setAba('compras')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='compras' ? 'bg-card text-slate-800 shadow-sm scale-100' : 'text-muted hover:text-fg-soft hover:bg-slate-300/50'}`}>
+           <button onClick={()=>setAba('compras')} className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${aba==='compras' ? 'bg-card text-slate-800 shadow-sm scale-100' : 'text-fg hover:text-fg-soft hover:bg-slate-300/50'}`}>
               <ShoppingCart size={16}/> Lista de Compras {compras.length > 0 && <span className="bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-3xs">{compras.length}</span>}
            </button>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20"><p className="font-bold text-muted animate-pulse">Carregando Embalagens...</p></div>
+          <div className="flex justify-center py-20"><p className="font-bold text-fg animate-pulse">Carregando Embalagens...</p></div>
         ) : (
           <>
             {/* ABA ESTOQUE */}
@@ -160,7 +160,7 @@ function EmbalagensContent() {
                 </div>
                 
                 {embalagens.length === 0 ? (
-                  <div className="bg-card border border-line rounded-[32px] p-10 text-center text-muted font-bold">Nenhuma embalagem cadastrada.</div>
+                  <div className="bg-card border border-line rounded-[32px] p-10 text-center text-fg font-bold">Nenhuma embalagem cadastrada.</div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {embalagens.map(emb => (
@@ -172,24 +172,24 @@ function EmbalagensContent() {
                             </div>
                          </div>
                          
-                         <div className="mt-auto grid grid-cols-2 gap-3 mb-4 bg-slate-50 p-3 rounded-2xl border border-line-soft">
+                         <div className="mt-auto grid grid-cols-2 gap-3 mb-4 bg-white p-3 rounded-2xl border border-line-soft">
                             <div>
-                               <p className="text-3xs font-bold text-muted uppercase">Saldo Atual</p>
+                               <p className="text-3xs font-bold text-fg uppercase">Saldo Atual</p>
                                <p className={`font-black text-xl ${Number(emb.quantidade_atual) <= Number(emb.quantidade_minima) ? 'text-rose-500' : 'text-slate-800'}`}>
                                  {emb.quantidade_atual}
                                </p>
                             </div>
                             <div>
-                               <p className="text-3xs font-bold text-muted uppercase">Mínimo</p>
+                               <p className="text-3xs font-bold text-fg uppercase">Mínimo</p>
                                <p className="font-black text-xl text-subtle">{emb.quantidade_minima}</p>
                             </div>
                          </div>
                          
                          <div className="flex justify-between items-center text-sm">
-                            <span className="font-bold text-muted">Custo: {fmtBRL(emb.preco_unitario)}</span>
+                            <span className="font-bold text-fg">Custo: {fmtBRL(emb.preco_unitario)}</span>
                             <div className="flex gap-2">
-                               <button onClick={()=>abrirEditarEstoque(emb)} className="p-2 bg-elevated text-muted hover:bg-slate-200 rounded-lg transition-colors"><Edit2 size={16}/></button>
-                               <button onClick={()=>handleApagarEstoque(emb.id)} className="p-2 bg-elevated text-subtle hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                               <button onClick={()=>abrirEditarEstoque(emb)} className="p-2 bg-card text-fg hover:bg-slate-200 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                               <button onClick={()=>handleApagarEstoque(emb.id)} className="p-2 bg-card text-subtle hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={16}/></button>
                             </div>
                          </div>
                       </div>
@@ -208,22 +208,22 @@ function EmbalagensContent() {
                    <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center gap-2">
                       <PackageMinus size={24} className="text-teal-600"/> Registrar Saída
                    </h2>
-                   <p className="text-sm font-medium text-muted mb-8 leading-relaxed">
+                   <p className="text-sm font-medium text-fg mb-8 leading-relaxed">
                       Selecione o funcionário e as embalagens retiradas para uso ou perdidas. O saldo no estoque será abatido automaticamente.
                    </p>
                    
                    <form onSubmit={handleRegistrarSaida} className="space-y-5">
                       <div>
-                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Funcionário</label>
-                         <select required value={formSaida.funcionario_id} onChange={e=>setFormSaida({...formSaida, funcionario_id: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500">
+                         <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Funcionário</label>
+                         <select required value={formSaida.funcionario_id} onChange={e=>setFormSaida({...formSaida, funcionario_id: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500">
                             <option value="">-- Selecione o colaborador --</option>
                             {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.cargo})</option>)}
                          </select>
                       </div>
                       
                       <div>
-                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Item (Embalagem)</label>
-                         <select required value={formSaida.embalagem_id} onChange={e=>setFormSaida({...formSaida, embalagem_id: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500">
+                         <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Item (Embalagem)</label>
+                         <select required value={formSaida.embalagem_id} onChange={e=>setFormSaida({...formSaida, embalagem_id: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500">
                             <option value="">-- Selecione o item --</option>
                             {embalagens.map(emb => <option key={emb.id} value={emb.id}>{emb.nome} (Saldo: {emb.quantidade_atual})</option>)}
                          </select>
@@ -231,12 +231,12 @@ function EmbalagensContent() {
                       
                       <div className="grid grid-cols-2 gap-4">
                          <div>
-                            <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Qtd Retirada</label>
-                            <input required type="number" step="0.01" min="0" value={formSaida.quantidade} onChange={e=>setFormSaida({...formSaida, quantidade: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-black text-slate-800 outline-none focus:border-teal-500"/>
+                            <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Qtd Retirada</label>
+                            <input required type="number" step="0.01" min="0" value={formSaida.quantidade} onChange={e=>setFormSaida({...formSaida, quantidade: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-black text-slate-800 outline-none focus:border-teal-500"/>
                          </div>
                          <div>
-                            <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Motivo</label>
-                            <select required value={formSaida.tipo_movimento} onChange={e=>setFormSaida({...formSaida, tipo_movimento: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500">
+                            <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Motivo</label>
+                            <select required value={formSaida.tipo_movimento} onChange={e=>setFormSaida({...formSaida, tipo_movimento: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500">
                                <option value="Uso Normal">Uso Normal</option>
                                <option value="Desperdício">Quebra/Desperdício</option>
                                <option value="Ajuste">Ajuste de Saldo</option>
@@ -251,7 +251,7 @@ function EmbalagensContent() {
                 </div>
 
                 {/* Lado Direito: Histórico */}
-                <div className="bg-slate-50 border border-line rounded-[32px] p-6 h-full flex flex-col">
+                <div className="bg-white border border-line rounded-[32px] p-6 h-full flex flex-col">
                    <h2 className="text-xl font-black text-slate-800 mb-4 border-b border-line pb-4">Extrato de Retiradas</h2>
                    
                    <div className="flex-1 overflow-y-auto max-h-[500px] pr-2 space-y-3 custom-scrollbar">
@@ -263,14 +263,14 @@ function EmbalagensContent() {
                                <div className="flex justify-between items-start mb-2">
                                   <div>
                                      <p className="font-bold text-slate-800">{h.colaboradores?.nome || 'Desconhecido'}</p>
-                                     <p className="text-3xs font-bold text-muted uppercase tracking-widest">{new Date(h.data_registro).toLocaleString('pt-BR')}</p>
+                                     <p className="text-3xs font-bold text-fg uppercase tracking-widest">{new Date(h.data_registro).toLocaleString('pt-BR')}</p>
                                   </div>
                                   <div className={`px-2 py-1 rounded-lg text-3xs font-bold uppercase tracking-widest ${h.tipo_movimento === 'Desperdício' ? 'bg-rose-100 text-rose-600' : 'bg-teal-100 text-teal-700'}`}>
                                      {h.tipo_movimento}
                                   </div>
                                </div>
                                <div className="flex justify-between items-end">
-                                  <span className="text-sm font-medium text-slate-600">{h.operacao_embalagens?.nome || 'Item Removido'}</span>
+                                  <span className="text-sm font-medium text-slate-900">{h.operacao_embalagens?.nome || 'Item Removido'}</span>
                                   <span className="text-lg font-black text-slate-800">{h.quantidade} un</span>
                                </div>
                             </div>
@@ -296,7 +296,7 @@ function EmbalagensContent() {
                 </div>
 
                 {compras.length === 0 ? (
-                  <div className="bg-card border border-line rounded-[32px] p-10 text-center text-muted font-bold flex flex-col items-center">
+                  <div className="bg-card border border-line rounded-[32px] p-10 text-center text-fg font-bold flex flex-col items-center">
                     <CheckCircle size={48} className="text-emerald-400 mb-4"/>
                     Estoque saudável. Nada a comprar por enquanto!
                   </div>
@@ -347,30 +347,30 @@ function EmbalagensContent() {
                <h2 className="font-black text-2xl text-slate-800 mb-6">{formEmbalagem.id ? 'Editar' : 'Nova'} Embalagem</h2>
                <form onSubmit={handleSalvarEstoque} className="space-y-4">
                   <div>
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Nome (Ex: Tampa 500ml)</label>
-                     <input required type="text" value={formEmbalagem.nome} onChange={e=>setFormEmbalagem({...formEmbalagem, nome: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Nome (Ex: Tampa 500ml)</label>
+                     <input required type="text" value={formEmbalagem.nome} onChange={e=>setFormEmbalagem({...formEmbalagem, nome: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Categoria</label>
-                     <input required type="text" placeholder="Potes, Tampas, Talheres" value={formEmbalagem.categoria} onChange={e=>setFormEmbalagem({...formEmbalagem, categoria: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Categoria</label>
+                     <input required type="text" placeholder="Potes, Tampas, Talheres" value={formEmbalagem.categoria} onChange={e=>setFormEmbalagem({...formEmbalagem, categoria: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Qtd Inicial</label>
-                        <input required type="number" step="0.01" value={formEmbalagem.quantidade_atual} onChange={e=>setFormEmbalagem({...formEmbalagem, quantidade_atual: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-black text-slate-800 outline-none focus:border-teal-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Qtd Inicial</label>
+                        <input required type="number" step="0.01" value={formEmbalagem.quantidade_atual} onChange={e=>setFormEmbalagem({...formEmbalagem, quantidade_atual: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-black text-slate-800 outline-none focus:border-teal-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Estoque Mínimo</label>
-                        <input required type="number" step="0.01" value={formEmbalagem.quantidade_minima} onChange={e=>setFormEmbalagem({...formEmbalagem, quantidade_minima: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Estoque Mínimo</label>
+                        <input required type="number" step="0.01" value={formEmbalagem.quantidade_minima} onChange={e=>setFormEmbalagem({...formEmbalagem, quantidade_minima: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
                      </div>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Custo Unitário (R$)</label>
-                     <input type="number" step="0.01" value={formEmbalagem.preco_unitario} onChange={e=>setFormEmbalagem({...formEmbalagem, preco_unitario: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Custo Unitário (R$)</label>
+                     <input type="number" step="0.01" value={formEmbalagem.preco_unitario} onChange={e=>setFormEmbalagem({...formEmbalagem, preco_unitario: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
                   </div>
                   
                   <div className="flex gap-4 mt-8">
-                     <button type="button" onClick={()=>setModalEstoque(false)} className="flex-1 py-4 bg-elevated hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all">Cancelar</button>
+                     <button type="button" onClick={()=>setModalEstoque(false)} className="flex-1 py-4 bg-card hover:bg-slate-200 text-slate-900 font-bold rounded-2xl transition-all">Cancelar</button>
                      <button type="submit" className="flex-1 py-4 bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl transition-all shadow-xl shadow-teal-500/20 active:scale-95 flex items-center justify-center gap-2"><Save size={18}/> Salvar</button>
                   </div>
                </form>
@@ -383,5 +383,5 @@ function EmbalagensContent() {
 }
 
 export default function EmbalagensPage() {
-  return <Suspense fallback={<div className="min-h-screen bg-[var(--surface)] p-10 text-center font-bold text-muted">Carregando embalagens...</div>}><EmbalagensContent /></Suspense>;
+  return <Suspense fallback={<div className="min-h-screen bg-[var(--surface)] p-10 text-center font-bold text-fg">Carregando embalagens...</div>}><EmbalagensContent /></Suspense>;
 }

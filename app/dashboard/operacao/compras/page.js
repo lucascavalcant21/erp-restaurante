@@ -353,7 +353,7 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("necessidade")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "necessidade" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-400 hover:text-white"
+              abaAtiva === "necessidade" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
             }`}
           >
             <Sparkles size={16} /> 1. Necessidade de Compra
@@ -367,7 +367,7 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("pedidos")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "pedidos" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-400 hover:text-white"
+              abaAtiva === "pedidos" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
             }`}
           >
             <FileText size={16} /> 2. Pedidos de Compra
@@ -381,7 +381,7 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("recebimento")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "recebimento" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-400 hover:text-white"
+              abaAtiva === "recebimento" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
             }`}
           >
             <Truck size={16} /> 3. Recebimento & Conferência
@@ -390,7 +390,7 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("fornecedores")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "fornecedores" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-400 hover:text-white"
+              abaAtiva === "fornecedores" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
             }`}
           >
             <Building2 size={16} /> 4. Fornecedores & Preços
@@ -420,7 +420,7 @@ export default function ComprasHubPage() {
                       key={f}
                       onClick={() => setFiltroAcao(f)}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
-                        filtroAcao === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                        filtroAcao === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-900 hover:text-slate-900"
                       }`}
                     >
                       {f}
@@ -439,7 +439,7 @@ export default function ComprasHubPage() {
             </div>
 
             {loading ? (
-              <div className="p-12 text-center text-muted font-bold">Carregando necessidades de compra...</div>
+              <div className="p-12 text-center text-fg font-bold">Carregando necessidades de compra...</div>
             ) : !listaNecessidadesFiltrada.length ? (
               <div className="p-12 text-center bg-card rounded-3xl border border-line space-y-3">
                 <CheckCircle2 size={48} className="mx-auto text-emerald-500" />
@@ -448,7 +448,7 @@ export default function ComprasHubPage() {
               </div>
             ) : (
               <div className="bg-card rounded-3xl border border-line overflow-hidden shadow-sm">
-                <div className="p-4 bg-slate-50 border-b border-line flex items-center justify-between text-xs font-bold text-slate-500">
+                <div className="p-4 bg-white border-b border-line flex items-center justify-between text-xs font-bold text-slate-900">
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -465,7 +465,7 @@ export default function ComprasHubPage() {
                   {listaNecessidadesFiltrada.map((item) => {
                     const isSelected = itensSelecionadosNecessidade.includes(item.insumo_id);
                     return (
-                      <div key={item.insumo_id} className={`p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-slate-50 transition-colors ${isSelected ? "bg-emerald-50/50" : ""}`}>
+                      <div key={item.insumo_id} className={`p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-white transition-colors ${isSelected ? "bg-emerald-50/50" : ""}`}>
                         <div className="flex items-start gap-3.5 min-w-0">
                           {item.acao === "COMPRAR" && (
                             <input
@@ -485,9 +485,9 @@ export default function ComprasHubPage() {
                               </span>
                             </div>
                             <p className="text-xs text-subtle mt-1">
-                              Fornecedor Preferencial: <strong className="text-slate-700">{item.fornecedor_nome}</strong> • Setor: {item.departamento}
+                              Fornecedor Preferencial: <strong className="text-slate-900">{item.fornecedor_nome}</strong> • Setor: {item.departamento}
                             </p>
-                            <div className="mt-2 flex items-center gap-4 text-xs font-medium text-slate-600">
+                            <div className="mt-2 flex items-center gap-4 text-xs font-medium text-slate-900">
                               <span>Saldo Atual: <strong className="text-red-600">{item.saldo_atual} {item.unidade_medida}</strong></span>
                               <span>Estoque Mín: <strong>{item.estoque_minimo ?? 'N/I'}</strong></span>
                               <span>Estoque Máx: <strong>{item.estoque_maximo ?? 'N/I'}</strong></span>
@@ -501,7 +501,7 @@ export default function ComprasHubPage() {
                             <strong className="text-lg font-black text-slate-800">
                               +{item.quantidade_sugerida_embalagem} cx/saco(s)
                             </strong>
-                            <span className="text-3xs text-slate-500 block">
+                            <span className="text-3xs text-slate-900 block">
                               ({item.quantidade_sugerida_base} {item.unidade_medida})
                             </span>
                           </div>
@@ -538,7 +538,7 @@ export default function ComprasHubPage() {
 
             {!pedidos.length ? (
               <div className="p-12 text-center bg-card rounded-3xl border border-line space-y-3">
-                <FileText size={48} className="mx-auto text-slate-400" />
+                <FileText size={48} className="mx-auto text-slate-800" />
                 <h3 className="text-lg font-black text-slate-800">Nenhum Pedido Emitido</h3>
                 <p className="text-xs text-subtle font-bold">Gere um pedido na Aba 1 (Necessidade) para iniciar o acompanhamento.</p>
               </div>
@@ -548,7 +548,7 @@ export default function ComprasHubPage() {
                   <div key={ped.id} className="bg-card rounded-3xl border border-line p-5 shadow-sm space-y-4 hover:border-slate-300 transition-all">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{ped.numero_pedido}</span>
+                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">{ped.numero_pedido}</span>
                         <h3 className="text-lg font-black text-slate-800">{ped.fornecedor?.nome || "Fornecedor Não Informado"}</h3>
                         <p className="text-xs text-subtle">Criado em {new Date(ped.created_at).toLocaleDateString("pt-BR")}</p>
                       </div>
@@ -560,12 +560,12 @@ export default function ComprasHubPage() {
                       </span>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-2xl text-xs space-y-1">
-                      <div className="flex justify-between text-slate-600 font-medium">
+                    <div className="bg-white p-3 rounded-2xl text-xs space-y-1">
+                      <div className="flex justify-between text-slate-900 font-medium">
                         <span>Total de Itens:</span>
                         <strong className="text-slate-800">{ped.itens?.length || 0} produto(s)</strong>
                       </div>
-                      <div className="flex justify-between text-slate-600 font-medium">
+                      <div className="flex justify-between text-slate-900 font-medium">
                         <span>Valor Total Estimado:</span>
                         <strong className="text-emerald-600 font-black">{fmtBRL(ped.valor_total_estimado)}</strong>
                       </div>
@@ -606,7 +606,7 @@ export default function ComprasHubPage() {
                 <h2 className="text-2xl font-black text-white mt-2">
                   {pedidoParaReceber ? `Conferência do Pedido: ${pedidoParaReceber.numero_pedido}` : "Recebimento de Mercadoria (Avulso)"}
                 </h2>
-                <p className="text-xs text-slate-400">Verifique os preços da Nota Fiscal e informe lote/validade</p>
+                <p className="text-xs text-slate-800">Verifique os preços da Nota Fiscal e informe lote/validade</p>
               </div>
 
               {pedidoParaReceber && (
@@ -625,11 +625,11 @@ export default function ComprasHubPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1.5">Fornecedor</label>
+                  <label className="text-xs font-bold text-fg uppercase block mb-1.5">Fornecedor</label>
                   <select
                     value={fornecedorRecebimentoId}
                     onChange={e => setFornecedorRecebimentoId(e.target.value)}
-                    className="w-full p-3.5 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3.5 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm"
                   >
                     <option value="">-- Selecione o Fornecedor --</option>
                     {fornecedores.map(f => (
@@ -639,20 +639,20 @@ export default function ComprasHubPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1.5">Número da Nota Fiscal (NF)</label>
+                  <label className="text-xs font-bold text-fg uppercase block mb-1.5">Número da Nota Fiscal (NF)</label>
                   <input
                     type="text"
                     placeholder="Ex: 104592"
                     value={numeroNF}
                     onChange={e => setNumeroNF(e.target.value)}
-                    className="w-full p-3.5 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3.5 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
               </div>
 
               {!pedidoParaReceber && (
                 <div className="pt-3 border-t border-line">
-                  <label className="text-xs font-bold text-muted uppercase block mb-1.5">Adicionar Insumo ao Recebimento</label>
+                  <label className="text-xs font-bold text-fg uppercase block mb-1.5">Adicionar Insumo ao Recebimento</label>
                   <select
                     onChange={e => { if (e.target.value) { adicionarInsumoAoRecebimentoAvulso(e.target.value); e.target.value = ""; } }}
                     className="w-full p-3.5 bg-emerald-50/50 border border-emerald-200 rounded-2xl font-bold text-emerald-900 outline-none focus:border-emerald-500 text-sm"
@@ -671,13 +671,13 @@ export default function ComprasHubPage() {
               <h3 className="font-black text-slate-800 text-base">2. Conferência de Quantidade, Preço e Validade</h3>
 
               {!itensRecebimento.length ? (
-                <p className="text-center py-8 font-bold text-muted text-sm">Nenhum item adicionado ao recebimento ainda.</p>
+                <p className="text-center py-8 font-bold text-fg text-sm">Nenhum item adicionado ao recebimento ainda.</p>
               ) : (
                 <div className="space-y-4">
                   {itensRecebimento.map((item, idx) => {
                     const div = validarDivergenciaPreco(item.preco_esperado, item.preco_pago);
                     return (
-                      <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-line space-y-3">
+                      <div key={idx} className="p-4 rounded-2xl bg-white border border-line space-y-3">
                         <div className="flex items-start justify-between">
                           <div>
                             <strong className="text-base font-black text-slate-800">{item.nome}</strong>
@@ -699,7 +699,7 @@ export default function ComprasHubPage() {
 
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                           <div>
-                            <label className="text-3xs font-bold text-muted uppercase block mb-1">Qtd Entregue (Emb.)</label>
+                            <label className="text-3xs font-bold text-fg uppercase block mb-1">Qtd Entregue (Emb.)</label>
                             <input
                               type="number"
                               step="0.01"
@@ -710,7 +710,7 @@ export default function ComprasHubPage() {
                           </div>
 
                           <div>
-                            <label className="text-3xs font-bold text-muted uppercase block mb-1">Preço Pago Emb. (R$)</label>
+                            <label className="text-3xs font-bold text-fg uppercase block mb-1">Preço Pago Emb. (R$)</label>
                             <input
                               type="number"
                               step="0.01"
@@ -721,7 +721,7 @@ export default function ComprasHubPage() {
                           </div>
 
                           <div>
-                            <label className="text-3xs font-bold text-muted uppercase block mb-1">Nº do Lote</label>
+                            <label className="text-3xs font-bold text-fg uppercase block mb-1">Nº do Lote</label>
                             <input
                               type="text"
                               placeholder="Ex: L2026-A"
@@ -732,7 +732,7 @@ export default function ComprasHubPage() {
                           </div>
 
                           <div>
-                            <label className="text-3xs font-bold text-muted uppercase block mb-1">Data de Validade</label>
+                            <label className="text-3xs font-bold text-fg uppercase block mb-1">Data de Validade</label>
                             <input
                               type="date"
                               value={item.validade}
@@ -742,7 +742,7 @@ export default function ComprasHubPage() {
                           </div>
 
                           <div>
-                            <label className="text-3xs font-bold text-muted uppercase block mb-1">Setor Destino</label>
+                            <label className="text-3xs font-bold text-fg uppercase block mb-1">Setor Destino</label>
                             <select
                               value={item.departamento}
                               onChange={e => atualizarItemRecebimento(idx, "departamento", e.target.value)}
@@ -816,7 +816,7 @@ export default function ComprasHubPage() {
               <select
                 value={insumoComparacaoId}
                 onChange={e => carregarPrecosComparativo(e.target.value)}
-                className="w-full p-3.5 bg-slate-50 border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm"
+                className="w-full p-3.5 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm"
               >
                 <option value="">-- Selecione um Insumo para Comparar Fornecedores --</option>
                 {insumos.map(i => (
@@ -827,11 +827,11 @@ export default function ComprasHubPage() {
               {insumoComparacaoId && (
                 <div className="pt-2">
                   {!precosFornecedorInsumo.length ? (
-                    <p className="text-xs font-bold text-muted py-4">Nenhum preço por fornecedor cadastrado para este ingrediente.</p>
+                    <p className="text-xs font-bold text-fg py-4">Nenhum preço por fornecedor cadastrado para este ingrediente.</p>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {precosFornecedorInsumo.map(pf => (
-                        <div key={pf.id} className="p-4 rounded-2xl bg-slate-50 border border-line flex items-center justify-between">
+                        <div key={pf.id} className="p-4 rounded-2xl bg-white border border-line flex items-center justify-between">
                           <div>
                             <strong className="text-sm font-black text-slate-800">{pf.fornecedor?.nome}</strong>
                             <p className="text-xs text-subtle mt-0.5">
@@ -874,7 +874,7 @@ export default function ComprasHubPage() {
                     </button>
                   </div>
 
-                  <div className="text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-2xl">
+                  <div className="text-xs text-slate-900 space-y-1 bg-white p-3 rounded-2xl">
                     <p><strong>Tel:</strong> {f.telefone || "Não informado"}</p>
                     <p><strong>E-mail:</strong> {f.email || "Não informado"}</p>
                     <p><strong>Prazo Entrega:</strong> {f.prazo_entrega_dias || 1} dia(s)</p>
@@ -897,29 +897,29 @@ export default function ComprasHubPage() {
 
             <form onSubmit={handleSalvarFornecedor} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Nome do Fornecedor</label>
-                <input required type="text" value={formFornecedor.nome} onChange={e => setFormFornecedor({ ...formFornecedor, nome: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm" />
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Nome do Fornecedor</label>
+                <input required type="text" value={formFornecedor.nome} onChange={e => setFormFornecedor({ ...formFornecedor, nome: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm" />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">CNPJ / CPF</label>
-                <input type="text" value={formFornecedor.cnpj_cpf} onChange={e => setFormFornecedor({ ...formFornecedor, cnpj_cpf: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-slate-800 text-sm" />
+                <label className="text-xs font-bold text-fg uppercase block mb-1">CNPJ / CPF</label>
+                <input type="text" value={formFornecedor.cnpj_cpf} onChange={e => setFormFornecedor({ ...formFornecedor, cnpj_cpf: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Telefone / WhatsApp</label>
-                  <input type="text" value={formFornecedor.telefone} onChange={e => setFormFornecedor({ ...formFornecedor, telefone: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-slate-800 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Telefone / WhatsApp</label>
+                  <input type="text" value={formFornecedor.telefone} onChange={e => setFormFornecedor({ ...formFornecedor, telefone: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Prazo Entrega (dias)</label>
-                  <input type="number" value={formFornecedor.prazo_entrega_dias} onChange={e => setFormFornecedor({ ...formFornecedor, prazo_entrega_dias: parseInt(e.target.value) || 1 })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Prazo Entrega (dias)</label>
+                  <input type="number" value={formFornecedor.prazo_entrega_dias} onChange={e => setFormFornecedor({ ...formFornecedor, prazo_entrega_dias: parseInt(e.target.value) || 1 })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm" />
                 </div>
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setModalFornecedorOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-all cursor-pointer">Cancelar</button>
+                <button type="button" onClick={() => setModalFornecedorOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm rounded-xl transition-all cursor-pointer">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-all cursor-pointer">Salvar</button>
               </div>
             </form>
@@ -935,32 +935,32 @@ export default function ComprasHubPage() {
 
             <form onSubmit={handleRegistrarDevolucao} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Insumo Recusado/Devolvido</label>
-                <select required value={formDevolucao.insumoId} onChange={e => setFormDevolucao({ ...formDevolucao, insumoId: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm">
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Insumo Recusado/Devolvido</label>
+                <select required value={formDevolucao.insumoId} onChange={e => setFormDevolucao({ ...formDevolucao, insumoId: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm">
                   <option value="">-- Selecione o Insumo --</option>
                   {insumos.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Motivo da Devolução</label>
-                <input required type="text" placeholder="Ex: Produto avariado / Embalagem rasgada" value={formDevolucao.motivo} onChange={e => setFormDevolucao({ ...formDevolucao, motivo: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-slate-800 text-sm" />
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Motivo da Devolução</label>
+                <input required type="text" placeholder="Ex: Produto avariado / Embalagem rasgada" value={formDevolucao.motivo} onChange={e => setFormDevolucao({ ...formDevolucao, motivo: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Qtd Devolvida</label>
-                  <input required type="number" step="0.01" value={formDevolucao.quantidade} onChange={e => setFormDevolucao({ ...formDevolucao, quantidade: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Qtd Devolvida</label>
+                  <input required type="number" step="0.01" value={formDevolucao.quantidade} onChange={e => setFormDevolucao({ ...formDevolucao, quantidade: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm" />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Valor Unitário (R$)</label>
-                  <input type="text" placeholder="50,00" value={formDevolucao.valorUnitario} onChange={e => setFormDevolucao({ ...formDevolucao, valorUnitario: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-black text-emerald-600 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Valor Unitário (R$)</label>
+                  <input type="text" placeholder="50,00" value={formDevolucao.valorUnitario} onChange={e => setFormDevolucao({ ...formDevolucao, valorUnitario: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-black text-emerald-600 text-sm" />
                 </div>
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setModalDevolucaoOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-all cursor-pointer">Cancelar</button>
+                <button type="button" onClick={() => setModalDevolucaoOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm rounded-xl transition-all cursor-pointer">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition-all cursor-pointer">Confirmar Devolução</button>
               </div>
             </form>

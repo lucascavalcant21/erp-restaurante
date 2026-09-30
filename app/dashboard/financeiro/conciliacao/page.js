@@ -175,7 +175,7 @@ export default function ConciliacaoPage() {
             <Scale className="w-7 h-7 text-blue-600" />
             Conciliação Bancária & Batimento por Lote (N:1)
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-900">
             Batimento entre extrato do banco/adquirente e recebíveis com suporte a depósitos por lote e justificativa de divergência.
           </p>
         </div>
@@ -196,7 +196,7 @@ export default function ConciliacaoPage() {
 
           <button
             onClick={carregarDados}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-200 rounded-lg text-sm font-medium transition"
           >
             <RefreshCw className="w-4 h-4" />
             Atualizar
@@ -212,7 +212,7 @@ export default function ConciliacaoPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 font-semibold">
+            <thead className="bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-900 font-semibold">
               <tr>
                 <th className="p-3.5 w-10 text-center">
                   <input
@@ -236,15 +236,15 @@ export default function ConciliacaoPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">Buscando pendências...</td>
+                  <td colSpan={8} className="p-8 text-center text-slate-800">Buscando pendências...</td>
                 </tr>
               ) : pendentes.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">Nenhum título pendente de conciliação.</td>
+                  <td colSpan={8} className="p-8 text-center text-slate-800">Nenhum título pendente de conciliação.</td>
                 </tr>
               ) : (
                 pendentes.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                  <tr key={item.id} className="hover:bg-white dark:hover:bg-slate-700/50 transition">
                     <td className="p-3.5 text-center">
                       <input
                         type="checkbox"
@@ -257,13 +257,13 @@ export default function ConciliacaoPage() {
                     </td>
                     <td className="p-3.5">
                       <div className="font-medium text-slate-800 dark:text-slate-200">{item.forma_pagamento}</div>
-                      <div className="text-xs text-slate-400">{item.adquirente_nome || 'STONE'}</div>
+                      <div className="text-xs text-slate-800">{item.adquirente_nome || 'STONE'}</div>
                     </td>
                     <td className="p-3.5 text-right font-medium">R$ {Number(item.valor_bruto || 0).toFixed(2)}</td>
                     <td className="p-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
                       R$ {Number(item.valor_liquido_esperado || 0).toFixed(2)}
                     </td>
-                    <td className="p-3.5 text-xs text-slate-600">
+                    <td className="p-3.5 text-xs text-slate-900">
                       {item.data_prevista_repasse ? new Date(item.data_prevista_repasse).toLocaleDateString('pt-BR') : '-'}
                     </td>
                     <td className="p-3.5 text-center">
@@ -307,35 +307,35 @@ export default function ConciliacaoPage() {
             </h3>
 
             <form onSubmit={handleExecutarConciliacaoLote} className="space-y-4 text-sm">
-              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg text-xs space-y-1">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Títulos Selecionados:</span>
+                  <span className="text-slate-900">Títulos Selecionados:</span>
                   <span className="font-bold">{selecionados.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Valor Esperado Acumulado:</span>
+                  <span className="text-slate-900">Valor Esperado Acumulado:</span>
                   <span className="font-bold text-emerald-600">R$ {totalEsperadoSelecionados.toFixed(2)}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Valor Único Depositado pela Adquirente no Banco (R$)*</label>
+                <label className="block text-xs font-semibold text-slate-900 mb-1">Valor Único Depositado pela Adquirente no Banco (R$)*</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={valorLoteDepositado}
                   onChange={(e) => setValorLoteDepositado(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-base font-bold"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-base font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Conta Bancária Destino</label>
+                <label className="block text-xs font-semibold text-slate-900 mb-1">Conta Bancária Destino</label>
                 <select
                   value={contaFinanceiraId}
                   onChange={(e) => setContaFinanceiraId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-sm"
                 >
                   {contasFinanceiras.map(c => (
                     <option key={c.id} value={c.id}>{c.nome} (R$ {Number(c.saldo_atual || 0).toFixed(2)})</option>
@@ -344,7 +344,7 @@ export default function ConciliacaoPage() {
               </div>
 
               <div className="flex justify-end gap-3 border-t pt-4">
-                <button type="button" onClick={() => setModalLote(false)} className="px-4 py-2 text-sm text-slate-600">Cancelar</button>
+                <button type="button" onClick={() => setModalLote(false)} className="px-4 py-2 text-sm text-slate-900">Cancelar</button>
                 <button type="submit" className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 rounded-lg shadow">Confirmar Lote</button>
               </div>
             </form>
@@ -363,7 +363,7 @@ export default function ConciliacaoPage() {
                 <select
                   value={motivoDivergencia}
                   onChange={(e) => setMotivoDivergencia(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-white border rounded-lg text-sm"
                 >
                   <option value="TAXA_DIFERENTE">Taxa cobrada maior que o contratado</option>
                   <option value="CHARGEBACK">Estorno / Chargeback de cartão</option>
@@ -382,12 +382,12 @@ export default function ConciliacaoPage() {
                   placeholder="Escreva a justificativa para a auditoria..."
                   value={textoJustificativa}
                   onChange={(e) => setTextoJustificativa(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-white border rounded-lg text-sm"
                 />
               </div>
 
               <div className="flex justify-end gap-3 border-t pt-4">
-                <button type="button" onClick={() => setModalJustificar(false)} className="px-4 py-2 text-sm text-slate-600">Cancelar</button>
+                <button type="button" onClick={() => setModalJustificar(false)} className="px-4 py-2 text-sm text-slate-900">Cancelar</button>
                 <button type="submit" className="px-5 py-2 text-sm font-bold text-white bg-amber-600 rounded-lg shadow">Salvar Justificativa</button>
               </div>
             </form>

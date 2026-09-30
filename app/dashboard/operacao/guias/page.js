@@ -285,17 +285,17 @@ export default function GuiaDeUso() {
     <div className="min-h-screen bg-[var(--surface)] pb-16">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/controles")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/controles")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Guia de uso</h1>
-            <p className="text-xs font-bold text-muted">Como usar e como higienizar cada produto e equipamento</p>
+            <p className="text-xs font-bold text-fg">Como usar e como higienizar cada produto e equipamento</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setEditando(v => !v)}
-              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors ${editando ? "bg-accent text-accent-fg hover:bg-accent" : "border border-line bg-card text-fg-soft hover:bg-slate-50"}`}>
+              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors ${editando ? "bg-accent text-accent-fg hover:bg-accent" : "border border-line bg-card text-fg-soft hover:bg-white"}`}>
               <Save size={15} /> {editando ? "Concluir edição" : "Editar"}
             </button>
-            <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-slate-50">
+            <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-4 text-xs font-bold text-fg-soft hover:bg-white">
               <Table size={15} /> Planilha
             </button>
             <button onClick={imprimirCartazes} title="Um guia por página, para o lado do equipamento" className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-800">
@@ -318,20 +318,20 @@ export default function GuiaDeUso() {
             </p>
           </div>
         ) : carregando ? (
-          <div className="flex items-center gap-2 text-sm font-bold text-muted"><Loader2 size={16} className="animate-spin" /> Carregando os guias...</div>
+          <div className="flex items-center gap-2 text-sm font-bold text-fg"><Loader2 size={16} className="animate-spin" /> Carregando os guias...</div>
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-center gap-2">
               {[{ id: "todos", rotulo: "Todos" }, ...TIPOS_USO].map(opcao => (
                 <button key={opcao.id} onClick={() => setFiltro(opcao.id)}
-                  className={`h-9 rounded-xl px-3.5 text-xs font-bold transition-colors ${filtro === opcao.id ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
+                  className={`h-9 rounded-xl px-3.5 text-xs font-bold transition-colors ${filtro === opcao.id ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-900 hover:bg-white"}`}>
                   {opcao.rotulo}
                 </button>
               ))}
               <span className="flex-1" />
               {editando && TIPOS_USO.map(opcao => (
                 <button key={opcao.id} onClick={() => novoGuia(opcao.id)}
-                  className="flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-400 hover:text-accent">
+                  className="flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-900 hover:border-emerald-400 hover:text-accent">
                   <Plus size={14} /> {opcao.rotulo}
                 </button>
               ))}
@@ -357,16 +357,16 @@ export default function GuiaDeUso() {
                               className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-card px-3 text-base font-black text-fg outline-none focus:border-emerald-500" />
                             <input value={guia.setor || ""} onChange={e => alterarGuia(guia.id, "setor", e.target.value)}
                               onBlur={() => gravar(guia)} placeholder="Setor"
-                              className="h-10 w-32 shrink-0 rounded-lg border border-line bg-card px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500" />
+                              className="h-10 w-32 shrink-0 rounded-lg border border-line bg-card px-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-500" />
                             
                             {/* Controle de Foto do Equipamento no Modo Edição */}
                             {guia.imagem_url ? (
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <div onClick={() => setModalImagem({ url: guia.imagem_url, titulo: guia.titulo })}
-                                  className="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-line bg-elevated" title="Ver foto">
+                                  className="relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-line bg-card" title="Ver foto">
                                   <img src={guia.imagem_url} alt="" className="h-full w-full object-cover" />
                                 </div>
-                                <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-slate-50">
+                                <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white">
                                   <Camera size={15} /> Trocar foto
                                   <input type="file" accept="image/*" className="hidden" onChange={e => uploadFotoGuia(guia.id, e.target.files[0])} />
                                 </label>
@@ -376,7 +376,7 @@ export default function GuiaDeUso() {
                                 </button>
                               </div>
                             ) : (
-                              <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-500 hover:text-accent shrink-0">
+                              <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-3 text-xs font-bold text-slate-900 hover:border-emerald-500 hover:text-accent shrink-0">
                                 <Camera size={15} /> Add foto do equipamento
                                 <input type="file" accept="image/*" className="hidden" onChange={e => uploadFotoGuia(guia.id, e.target.files[0])} />
                               </label>
@@ -398,7 +398,7 @@ export default function GuiaDeUso() {
                                 {guia.tipo === "equipamento" ? "Equipamento" : "Produto"}{guia.setor ? ` · ${guia.setor}` : ""}
                               </p>
                             </div>
-                            <span className="rounded-full bg-elevated px-2.5 py-1 text-3xs font-bold text-muted">
+                            <span className="rounded-full bg-card px-2.5 py-1 text-3xs font-bold text-fg">
                               {totalPassos(guia.conteudo)} passo{totalPassos(guia.conteudo) === 1 ? "" : "s"}
                             </span>
                           </>
@@ -408,7 +408,7 @@ export default function GuiaDeUso() {
                       <div className="space-y-3 p-4 sm:p-5">
                         {/* Foto de Exemplo / Referência do Equipamento no Modo Leitura */}
                         {!editando && guia.imagem_url && (
-                          <div className="mb-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3">
+                          <div className="mb-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 rounded-xl border border-slate-200/80 bg-white/80 p-3">
                             <div
                               onClick={() => setModalImagem({ url: guia.imagem_url, titulo: guia.titulo })}
                               className="group relative h-40 w-full sm:w-48 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-line bg-card shadow-xs transition-transform hover:scale-[1.01]"
@@ -420,11 +420,11 @@ export default function GuiaDeUso() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex-1 text-xs text-muted leading-relaxed">
+                            <div className="flex-1 text-xs text-fg leading-relaxed">
                               <p className="font-bold text-fg-soft flex items-center gap-1.5 text-xs">
                                 <ImageIcon size={14} className="text-subtle" /> Foto do Equipamento / Produto
                               </p>
-                              <p className="mt-1 text-slate-600 font-medium">
+                              <p className="mt-1 text-slate-900 font-medium">
                                 Imagem de referência para identificação rápida do modelo e montagem correta. Clique na foto para expandir em tela cheia.
                               </p>
                             </div>
@@ -432,7 +432,7 @@ export default function GuiaDeUso() {
                         )}
 
                         {(guia.conteudo || []).map((secao, indiceSecao) => (
-                          <div key={indiceSecao} className={`rounded-xl border p-3 ${secao.alerta ? "border-red-200 bg-red-50" : "border-line bg-slate-50"}`}>
+                          <div key={indiceSecao} className={`rounded-xl border p-3 ${secao.alerta ? "border-red-200 bg-red-50" : "border-line bg-white"}`}>
                             <div className="mb-2 flex items-center gap-2">
                               {secao.alerta && <AlertTriangle size={14} className="shrink-0 text-red-600" />}
                               {editando ? (
@@ -451,7 +451,7 @@ export default function GuiaDeUso() {
                                   </button>
                                 </>
                               ) : (
-                                <h3 className={`text-3xs font-bold uppercase tracking-widest ${secao.alerta ? "text-red-700" : "text-muted"}`}>
+                                <h3 className={`text-3xs font-bold uppercase tracking-widest ${secao.alerta ? "text-red-700" : "text-fg"}`}>
                                   {secao.titulo}
                                 </h3>
                               )}
@@ -459,7 +459,7 @@ export default function GuiaDeUso() {
                             <ol className="space-y-1.5">
                               {(secao.passos || []).map((passo, indicePasso) => (
                                 <li key={indicePasso} className="flex items-start gap-2">
-                                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-3xs font-bold ${secao.alerta ? "bg-red-200 text-red-800" : "bg-card text-muted"}`}>
+                                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-3xs font-bold ${secao.alerta ? "bg-red-200 text-red-800" : "bg-card text-fg"}`}>
                                     {indicePasso + 1}
                                   </span>
                                   {editando ? (
@@ -473,13 +473,13 @@ export default function GuiaDeUso() {
                                       </button>
                                     </>
                                   ) : (
-                                    <span className={`text-sm font-medium leading-relaxed ${secao.alerta ? "text-red-900" : "text-slate-600"}`}>{passo}</span>
+                                    <span className={`text-sm font-medium leading-relaxed ${secao.alerta ? "text-red-900" : "text-slate-900"}`}>{passo}</span>
                                   )}
                                 </li>
                               ))}
                             </ol>
                             {editando && (
-                              <button onClick={() => adicionarPasso(guia.id, indiceSecao)} className="mt-2 flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-2.5 text-2xs font-bold text-muted hover:border-emerald-400 hover:text-accent">
+                              <button onClick={() => adicionarPasso(guia.id, indiceSecao)} className="mt-2 flex h-8 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-card px-2.5 text-2xs font-bold text-fg hover:border-emerald-400 hover:text-accent">
                                 <Plus size={13} /> Passo
                               </button>
                             )}
@@ -487,7 +487,7 @@ export default function GuiaDeUso() {
                         ))}
                         {editando && (
                           <div className="flex flex-wrap gap-2">
-                            <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-bold text-muted hover:border-emerald-400 hover:text-accent">
+                            <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-bold text-fg hover:border-emerald-400 hover:text-accent">
                               <Plus size={14} /> Seção
                             </button>
                             <button onClick={() => gravar(guia)} className="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-bold text-accent-fg hover:bg-accent">
@@ -517,7 +517,7 @@ export default function GuiaDeUso() {
           <div className="relative max-h-[90vh] max-w-4xl overflow-hidden rounded-2xl bg-card p-2 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-line-soft px-4 py-3">
               <h3 className="text-base font-black text-fg">{modalImagem.titulo}</h3>
-              <button onClick={() => setModalImagem(null)} className="grid h-8 w-8 place-items-center rounded-lg text-subtle hover:bg-elevated hover:text-fg-soft">
+              <button onClick={() => setModalImagem(null)} className="grid h-8 w-8 place-items-center rounded-lg text-subtle hover:bg-card hover:text-fg-soft">
                 <X size={18} />
               </button>
             </div>

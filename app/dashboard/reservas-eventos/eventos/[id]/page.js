@@ -52,16 +52,16 @@ export default function EventoHubPage() {
     carregarEvento();
   }, [unidadeAtiva, id]);
 
-  if (!unidadeAtiva) return <div className="p-8 text-center text-slate-500">Selecione uma loja.</div>;
-  if (carregando) return <div className="p-8 text-center text-slate-500 font-bold">Carregando Hub do Evento...</div>;
-  if (!evento) return <div className="p-8 text-center text-slate-500 font-bold">Evento não encontrado.</div>;
+  if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
+  if (carregando) return <div className="p-8 text-center text-slate-900 font-bold">Carregando Hub do Evento...</div>;
+  if (!evento) return <div className="p-8 text-center text-slate-900 font-bold">Evento não encontrado.</div>;
 
   return (
-    <main className="min-h-screen bg-slate-50/50 flex flex-col">
+    <main className="min-h-screen bg-white/50 flex flex-col">
       {/* HEADER PRINCIPAL */}
       <header className="bg-white border-b border-slate-200 px-8 py-6 shrink-0">
         <div className="max-w-7xl mx-auto flex flex-col gap-6">
-          <Link href="/dashboard/reservas-eventos/eventos" className="inline-flex items-center gap-2 text-slate-500 font-bold text-sm hover:text-slate-900 transition-colors w-max">
+          <Link href="/dashboard/reservas-eventos/eventos" className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-slate-900 transition-colors w-max">
             <ArrowLeft size={16} /> Voltar para o Funil
           </Link>
           
@@ -87,7 +87,7 @@ export default function EventoHubPage() {
                   <option value="CANCELADO">CANCELADO</option>
                 </select>
 
-                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-lg">
+                <span className="bg-slate-100 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-lg">
                   ID: {evento.id.split("-")[0]}
                 </span>
               </div>
@@ -95,22 +95,22 @@ export default function EventoHubPage() {
                 {evento.nome || evento.cliente_nome || "Evento sem Título"}
               </h1>
               {evento.cliente_nome && (
-                <p className="text-lg font-medium text-slate-500">{evento.cliente_nome}</p>
+                <p className="text-lg font-medium text-slate-900">{evento.cliente_nome}</p>
               )}
             </div>
 
             <div className="flex flex-wrap gap-4 md:justify-end">
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[120px]">
-                <span className="text-xs font-bold text-slate-400 uppercase">Data</span>
+              <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[120px]">
+                <span className="text-xs font-bold text-slate-800 uppercase">Data</span>
                 <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Calendar size={14} className="text-slate-400"/> 
+                  <Calendar size={14} className="text-slate-800"/> 
                   {evento.data_evento ? new Date(evento.data_evento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : "A definir"}
                 </span>
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[120px]">
-                <span className="text-xs font-bold text-slate-400 uppercase">Convidados</span>
+              <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[120px]">
+                <span className="text-xs font-bold text-slate-800 uppercase">Convidados</span>
                 <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Users size={14} className="text-slate-400"/> 
+                  <Users size={14} className="text-slate-800"/> 
                   {evento.capacidade || 0}
                 </span>
               </div>
@@ -135,7 +135,7 @@ export default function EventoHubPage() {
               className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold text-sm whitespace-nowrap transition-colors ${
                 activeTab === tab.id 
                   ? 'border-emerald-600 text-emerald-700' 
-                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                  : 'border-transparent text-slate-900 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
               <tab.icon size={16} /> {tab.label}
@@ -165,7 +165,7 @@ export default function EventoHubPage() {
                   return (
                     <div className="space-y-5">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Status da Organização</span>
+                        <span className="text-xs font-bold text-slate-900 uppercase tracking-widest">Status da Organização</span>
                         <span className="text-sm font-black text-emerald-600">{progresso}%</span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-2.5 mb-6">
@@ -174,11 +174,11 @@ export default function EventoHubPage() {
                       
                       <div className="space-y-3">
                         {items.map(item => (
-                          <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border ${item.isDone ? 'border-emerald-100 bg-emerald-50' : 'border-slate-100 bg-slate-50'}`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${item.isDone ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                          <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border ${item.isDone ? 'border-emerald-100 bg-emerald-50' : 'border-slate-100 bg-white'}`}>
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${item.isDone ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
                               <CheckCircle2 size={14} />
                             </div>
-                            <span className={`font-bold ${item.isDone ? 'text-emerald-700' : 'text-slate-500'}`}>
+                            <span className={`font-bold ${item.isDone ? 'text-emerald-700' : 'text-slate-900'}`}>
                               {item.isDone ? item.done : item.empty}
                             </span>
                           </div>
@@ -227,7 +227,7 @@ export default function EventoHubPage() {
         {activeTab !== "resumo" && activeTab !== "cardapio" && activeTab !== "equipe" && activeTab !== "financeiro" && activeTab !== "compras" && activeTab !== "proposta" && (
            <div className="text-center p-12 bg-white border border-slate-200 rounded-3xl">
            <h2 className="text-xl font-bold text-slate-800 mb-2">Aba {TABS.find(t=>t.id === activeTab)?.label}</h2>
-           <p className="text-slate-500 max-w-md mx-auto">
+           <p className="text-slate-900 max-w-md mx-auto">
              Módulo em construção (Próximas Fases).
            </p>
          </div>

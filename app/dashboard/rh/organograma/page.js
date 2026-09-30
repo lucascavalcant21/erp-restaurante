@@ -21,8 +21,8 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot, fotos = {} }) {
 
   const bgCard = isCLevel ? "bg-slate-900 border-slate-800" : isManager ? "bg-card border-line shadow-md" : "bg-card border-line-soft shadow-sm";
   const textName = isCLevel ? "text-white" : "text-fg";
-  const textRole = isCLevel ? "text-emerald-400" : isManager ? "text-emerald-600" : "text-muted";
-  const avatarBg = isCLevel ? "bg-slate-800 text-white" : "bg-elevated text-slate-600";
+  const textRole = isCLevel ? "text-emerald-400" : isManager ? "text-emerald-600" : "text-fg";
+  const avatarBg = isCLevel ? "bg-slate-800 text-white" : "bg-card text-slate-900";
 
   return (
     <div className="relative flex flex-col items-center">
@@ -47,7 +47,7 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot, fotos = {} }) {
 
          {/* Badge de Liderança */}
          {hasChildren && (
-            <div className={`mt-4 px-3 py-1 rounded-full text-3xs font-bold flex items-center gap-1 ${isCLevel ? 'bg-slate-800 text-muted' : 'bg-elevated text-muted'}`}>
+            <div className={`mt-4 px-3 py-1 rounded-full text-3xs font-bold flex items-center gap-1 ${isCLevel ? 'bg-slate-800 text-fg' : 'bg-card text-fg'}`}>
                <Users size={12} /> {children.length} Liderado{children.length > 1 ? 's' : ''}
             </div>
          )}
@@ -195,16 +195,16 @@ export default function OrganogramaCorporativoPage() {
          
          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-7xl mx-auto">
             <div>
-               <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2 flex items-center gap-2">
+               <p className="text-xs font-bold uppercase tracking-widest text-fg mb-2 flex items-center gap-2">
                   <Network size={14}/> Gestão de Pessoas
                </p>
                <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Quadro Corporativo.</h1>
-               <p className="text-sm font-medium text-muted mt-2">Estrutura Hierárquica da {unidadeInfo.nome}</p>
+               <p className="text-sm font-medium text-fg mt-2">Estrutura Hierárquica da {unidadeInfo.nome}</p>
             </div>
             
             <div className="flex items-center gap-3 w-full md:w-auto">
                <div className="flex-1 md:w-96 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted" size={18} />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-fg" size={18} />
                   <input
                     type="text"
                     value={busca}
@@ -230,16 +230,16 @@ export default function OrganogramaCorporativoPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
              {roots.map(func => (
                 <div key={func.id} className="bg-card p-5 rounded-2xl border border-line flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-full overflow-hidden bg-elevated text-slate-600 font-black flex items-center justify-center">
+                   <div className="w-12 h-12 rounded-full overflow-hidden bg-card text-slate-900 font-black flex items-center justify-center">
                       {func.foto ? <img src={`data:image/jpeg;base64,${func.foto}`} alt={func.nome} className="w-full h-full object-cover" /> : func.nome[0].toUpperCase()}
                    </div>
                    <div>
                       <p className="font-bold text-fg">{func.nome}</p>
-                      <p className="text-3xs uppercase font-bold text-muted">{func.cargo}</p>
+                      <p className="text-3xs uppercase font-bold text-fg">{func.cargo}</p>
                    </div>
                 </div>
              ))}
-             {roots.length === 0 && <p className="text-muted font-medium p-4">Nenhum funcionário encontrado.</p>}
+             {roots.length === 0 && <p className="text-fg font-medium p-4">Nenhum funcionário encontrado.</p>}
           </div>
         ) : (
           // Visualização Árvore Hierárquica Horizontal (O Organograma de fato)

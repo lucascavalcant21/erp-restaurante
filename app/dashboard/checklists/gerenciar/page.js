@@ -539,7 +539,7 @@ function GerenciarChecklistsContent() {
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-3xl bg-elevated text-success flex items-center justify-center shadow-inner shrink-0">
+          <div className="w-16 h-16 rounded-3xl bg-card text-success flex items-center justify-center shadow-inner shrink-0">
             <CheckSquare size={32} />
           </div>
           <div>
@@ -550,7 +550,7 @@ function GerenciarChecklistsContent() {
           </div>
         </div>
         <div className="grid grid-cols-2 md:flex w-full md:w-auto items-stretch gap-2">
-          <button onClick={imprimirRelatorioMes} disabled={gerandoRel} className="min-h-12 flex items-center justify-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50">
+          <button onClick={imprimirRelatorioMes} disabled={gerandoRel} className="min-h-12 flex items-center justify-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-white transition-colors shadow-sm disabled:opacity-50">
             {gerandoRel ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />} Relatório do mês
           </button>
           <button onClick={() => setModalModelos(true)} className="min-h-12 flex items-center justify-center gap-2 bg-card text-accent-strong border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-accent-soft transition-colors shadow-sm">
@@ -569,7 +569,7 @@ function GerenciarChecklistsContent() {
             <div className="w-12 h-12 rounded-2xl bg-accent text-accent-fg flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
             <div className="flex-1 text-center sm:text-left">
               <p className="font-black text-slate-800">Comece com checklists completos</p>
-              <p className="text-sm font-medium text-slate-600">Modelos prontos de abertura, fechamento, mise en place e limpeza — com as tarefas certas do dia a dia. É só ajustar.</p>
+              <p className="text-sm font-medium text-slate-900">Modelos prontos de abertura, fechamento, mise en place e limpeza — com as tarefas certas do dia a dia. É só ajustar.</p>
             </div>
             <button onClick={() => setModalModelos(true)} className="bg-accent text-accent-fg px-5 py-3 rounded-xl font-bold hover:bg-accent transition-colors shrink-0">Ver modelos</button>
           </div>
@@ -581,7 +581,7 @@ function GerenciarChecklistsContent() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {[["todos", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"], ["salao", "Salão"]].map(([d, l]) => (
             <button key={d} onClick={() => setDeptFiltro(d)}
-              className={`shrink-0 min-h-11 px-4 py-2 rounded-xl font-bold text-sm transition-all ${deptFiltro === d ? "bg-slate-900 text-white shadow-md" : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
+              className={`shrink-0 min-h-11 px-4 py-2 rounded-xl font-bold text-sm transition-all ${deptFiltro === d ? "bg-slate-900 text-white shadow-md" : "bg-card text-fg border border-line hover:bg-white"}`}>
               {l}
             </button>
           ))}
@@ -592,16 +592,16 @@ function GerenciarChecklistsContent() {
         {loading ? (
           <div className="col-span-full"><SkeletonList /></div>
         ) : filtrados.length === 0 ? (
-          <p className="col-span-full font-bold text-muted text-center py-10">Nenhum checklist {deptFiltro !== "todos" ? `de ${deptFiltro}` : ""} criado ainda. Crie um para cada momento do dia (abertura, fechamento...).</p>
+          <p className="col-span-full font-bold text-fg text-center py-10">Nenhum checklist {deptFiltro !== "todos" ? `de ${deptFiltro}` : ""} criado ainda. Crie um para cada momento do dia (abertura, fechamento...).</p>
         ) : (
           filtrados.map(t => (
             <div key={t.id} className="bg-card p-6 rounded-3xl border border-line shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex flex-wrap gap-1.5">
-                  <span className={`px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest ${CORES_DEPT[t.departamento] || "bg-elevated text-slate-600"}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest ${CORES_DEPT[t.departamento] || "bg-card text-slate-900"}`}>
                     {t.departamento === "salao" ? "Salão" : t.departamento}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-elevated text-slate-600">
+                  <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-card text-slate-900">
                     {rotuloTipo(t.tipo)}
                   </span>
                   <span className="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-widest bg-accent-soft text-accent-strong">
@@ -610,7 +610,7 @@ function GerenciarChecklistsContent() {
                 </div>
               </div>
               <h3 className="text-xl font-black text-slate-800 leading-tight">{t.titulo}</h3>
-              <p className="text-sm font-medium text-muted mt-1.5 flex-1">
+              <p className="text-sm font-medium text-fg mt-1.5 flex-1">
                 {t.itens?.length || 0} tarefas
                 {(t.itens || []).some(i => i.responsavel) && <span className="text-success"> · com responsáveis definidos</span>}
               </p>
@@ -618,8 +618,8 @@ function GerenciarChecklistsContent() {
                 <button onClick={() => imprimirChecklist(t)} className="flex-1 min-h-11 py-2.5 rounded-xl flex items-center justify-center gap-2 bg-accent hover:bg-accent text-accent-fg font-bold text-xs transition-colors">
                   <Printer size={14} /> Imprimir
                 </button>
-                <button onClick={() => abrirEditar(t)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-elevated hover:bg-slate-200 text-slate-600 transition-colors" title="Editar"><Edit3 size={15} /></button>
-                <button onClick={() => handleDesativar(t.id)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-elevated hover:bg-red-100 text-slate-600 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={15} /></button>
+                <button onClick={() => abrirEditar(t)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-card hover:bg-slate-200 text-slate-900 transition-colors" title="Editar"><Edit3 size={15} /></button>
+                <button onClick={() => handleDesativar(t.id)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-card hover:bg-red-100 text-slate-900 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={15} /></button>
               </div>
             </div>
           ))
@@ -633,9 +633,9 @@ function GerenciarChecklistsContent() {
             <div className="flex justify-between items-center mb-5 sticky top-0 bg-card z-10 pb-4 border-b border-line-soft">
               <div>
                 <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2"><Sparkles size={22} className="text-success" /> Modelos Prontos</h2>
-                <p className="text-sm font-bold text-muted mt-0.5">Checklists completos com as tarefas do dia a dia — clique para criar</p>
+                <p className="text-sm font-bold text-fg mt-0.5">Checklists completos com as tarefas do dia a dia — clique para criar</p>
               </div>
-              <button onClick={() => setModalModelos(false)} className="w-11 h-11 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20} /></button>
+              <button onClick={() => setModalModelos(false)} className="w-11 h-11 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20} /></button>
             </div>
 
             <div className="space-y-6">
@@ -645,7 +645,7 @@ function GerenciarChecklistsContent() {
                 return (
                   <div key={dept}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-2xs font-bold uppercase tracking-widest text-muted">{NOMES_DEPT[dept] || dept}</p>
+                      <p className="text-2xs font-bold uppercase tracking-widest text-fg">{NOMES_DEPT[dept] || dept}</p>
                       {faltam > 0 && (
                         <button onClick={() => criarTodosDoSetor(dept)} disabled={criandoTudo}
                           className="min-h-11 flex items-center gap-1 text-2xs font-bold text-accent-strong bg-accent-soft border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
@@ -663,7 +663,7 @@ function GerenciarChecklistsContent() {
                               setModalModelos(false);
                               setModalNovo(true);
                             }}
-                            className={`text-left p-3.5 rounded-xl border transition-all ${jaExiste ? "bg-slate-50 border-line-soft opacity-60 cursor-default" : "bg-card border-line hover:border-emerald-400 hover:shadow-sm"}`}>
+                            className={`text-left p-3.5 rounded-xl border transition-all ${jaExiste ? "bg-white border-line-soft opacity-60 cursor-default" : "bg-card border-line hover:border-emerald-400 hover:shadow-sm"}`}>
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-bold text-slate-800 text-sm">{m.titulo}</p>
                               {jaExiste && <span className="text-3xs font-bold uppercase text-success shrink-0">criado</span>}
@@ -689,22 +689,22 @@ function GerenciarChecklistsContent() {
               <h2 className="font-black text-xl sm:text-2xl text-slate-800">
                 {form.id ? "Editar Checklist" : "Novo Checklist"}{deptFixo ? ` · ${NOMES_DEPT[deptFixo]}` : ""}
               </h2>
-              <button onClick={() => setModalNovo(false)} className="w-11 h-11 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20} /></button>
+              <button onClick={() => setModalNovo(false)} className="w-11 h-11 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20} /></button>
             </div>
 
             <div className="space-y-5">
               <div className={`grid grid-cols-1 gap-4 ${deptFixo ? "" : "sm:grid-cols-2"}`}>
                 {!deptFixo && <div>
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Setor</label>
-                  <select value={form.departamento} onChange={e => mudarDept(e.target.value)} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
+                  <label className="text-xs font-bold text-fg uppercase tracking-widest">Setor</label>
+                  <select value={form.departamento} onChange={e => mudarDept(e.target.value)} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
                     <option value="cozinha">Cozinha</option>
                     <option value="bar">Bar</option>
                     <option value="salao">Salão</option>
                   </select>
                 </div>}
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Momento do dia</label>
-                  <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
+                  <label className="text-xs font-bold text-fg uppercase tracking-widest">Momento do dia</label>
+                  <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
                     {(TIPOS_POR_DEPT[form.departamento] || []).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                   </select>
                 </div>
@@ -768,16 +768,16 @@ function GerenciarChecklistsContent() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest">Título do Checklist</label>
-                <input type="text" placeholder={form.departamento === "cozinha" ? "Ex: Mise en Place do Almoço" : "Ex: Abertura do Salão"} value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
+                <label className="text-xs font-bold text-fg uppercase tracking-widest">Título do Checklist</label>
+                <input type="text" placeholder={form.departamento === "cozinha" ? "Ex: Mise en Place do Almoço" : "Ex: Abertura do Salão"} value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Frequência</label>
+                <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Frequência</label>
                 <div className="flex gap-2">
                   {[["diario", "Diário"], ["semanal", "Semanal"], ["mensal", "Mensal"]].map(([v, l]) => (
                     <button key={v} type="button" onClick={() => setForm({ ...form, frequencia: v })}
-                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${(form.frequencia || "diario") === v ? "bg-accent border-emerald-600 text-accent-fg" : "bg-card border-line text-muted hover:border-slate-300"}`}>
+                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${(form.frequencia || "diario") === v ? "bg-accent border-emerald-600 text-accent-fg" : "bg-card border-line text-fg hover:border-slate-300"}`}>
                       {l}
                     </button>
                   ))}
@@ -785,11 +785,11 @@ function GerenciarChecklistsContent() {
               </div>
 
               {/* Foto Geral do Cômodo / Área */}
-              <div className="rounded-2xl border border-line bg-slate-50 p-4">
+              <div className="rounded-2xl border border-line bg-white p-4">
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div>
                     <p className="font-black text-sm text-slate-800 flex items-center gap-1.5"><Camera size={16} className="text-success"/> Foto Geral do Cômodo / Área (Gabarito da Área)</p>
-                    <p className="text-2xs font-medium text-muted">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
+                    <p className="text-2xs font-medium text-fg">Anexe uma foto de como a área (Cozinha, Estoque, Bar, Salão, Copa, Caixa) deve ficar 100% organizada.</p>
                   </div>
                   {form.foto_ambiente && (
                     <button type="button" onClick={() => setForm(f => ({ ...f, foto_ambiente: "" }))} className="text-xs font-bold text-rose-600 hover:underline">Remover foto</button>
@@ -802,7 +802,7 @@ function GerenciarChecklistsContent() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-card text-xs font-bold text-fg-soft border border-line hover:bg-elevated transition-colors shadow-sm">
+                    <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-card text-xs font-bold text-fg-soft border border-line hover:bg-card transition-colors shadow-sm">
                       <Upload size={15} className="text-success"/> Galeria / PC
                       <input type="file" accept="image/*" className="hidden" onChange={async e => {
                         const file = e.target.files?.[0];
@@ -834,9 +834,9 @@ function GerenciarChecklistsContent() {
 
               <div className="pt-4 border-t border-line-soft">
                 <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Tarefas do Checklist</label>
+                  <label className="text-xs font-bold text-fg uppercase tracking-widest">Tarefas do Checklist</label>
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-elevated px-3 py-1 text-3xs font-bold uppercase tracking-wide text-slate-600">{form.itens.length} ações</span>
+                    <span className="rounded-full bg-card px-3 py-1 text-3xs font-bold uppercase tracking-wide text-slate-900">{form.itens.length} ações</span>
                     <span className="flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-3xs font-bold uppercase tracking-wide text-amber-700"><Clock3 size={12}/>{form.itens.reduce((total, tarefa) => total + (Number(tarefa.tempo_minutos) || 0), 0)} min</span>
                     <span className="flex items-center gap-1 rounded-full bg-accent-soft px-3 py-1 text-3xs font-bold uppercase tracking-wide text-accent-strong"><ImagePlus size={12}/>{form.itens.reduce((total, tarefa) => total + (tarefa.foto_antes ? 1 : 0) + (tarefa.foto_final ? 1 : 0), 0)} fotos gabarito</span>
                   </div>
@@ -870,11 +870,11 @@ function GerenciarChecklistsContent() {
                           <div className="flex-1 h-px bg-violet-100" />
                         </div>
                       )}
-                      <div className={`rounded-2xl border p-3 shadow-sm transition-all sm:p-4 ${dragIndex === i ? "opacity-50 border-emerald-400 bg-emerald-50/40" : "border-line bg-slate-50/70 hover:shadow-md hover:border-slate-300"}`}>
+                      <div className={`rounded-2xl border p-3 shadow-sm transition-all sm:p-4 ${dragIndex === i ? "opacity-50 border-emerald-400 bg-emerald-50/40" : "border-line bg-white/70 hover:shadow-md hover:border-slate-300"}`}>
                         <div className="flex items-start gap-2.5">
                           {/* CONTROLES DE REORDENAÇÃO (ALÇA DE ARRASTO + SETAS CIMA/BAIXO) */}
                           <div className="flex items-center gap-1 shrink-0 pt-1">
-                            <span className="grid h-8 w-8 cursor-grab active:cursor-grabbing place-items-center rounded-xl bg-slate-200/80 text-muted hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta linha">
+                            <span className="grid h-8 w-8 cursor-grab active:cursor-grabbing place-items-center rounded-xl bg-slate-200/80 text-fg hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta linha">
                               <GripVertical size={16} />
                             </span>
                             <div className="flex flex-col gap-0.5">
@@ -901,7 +901,7 @@ function GerenciarChecklistsContent() {
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <label className="mb-1 block text-3xs font-bold uppercase tracking-widest text-muted">Ação a executar</label>
+                            <label className="mb-1 block text-3xs font-bold uppercase tracking-widest text-fg">Ação a executar</label>
                             <input
                               type="text"
                               placeholder="O que deve ser feito?"
@@ -982,7 +982,7 @@ function GerenciarChecklistsContent() {
                                 </div>
                               ) : (
                                 <div>
-                                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-slate-600">{label}</p>
+                                  <p className="mb-2 text-3xs font-bold uppercase tracking-wide text-slate-900">{label}</p>
                                   <div className="grid grid-cols-2 gap-2">
                                     <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-card px-2 text-3xs font-bold text-fg-soft ring-1 ring-slate-200"><Upload size={14} className="text-success"/>Galeria / PC<input type="file" accept="image/*" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
                                     <label className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-accent px-2 text-3xs font-bold text-accent-fg"><Camera size={14}/>Tirar foto<input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { anexarFotoReferencia(it.id, campo, e.target.files?.[0]); e.target.value = ""; }}/></label>
@@ -1018,7 +1018,7 @@ function GerenciarChecklistsContent() {
 
 export default function GerenciarChecklistsPage() {
   return (
-    <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 font-bold text-muted">Carregando checklists...</div>}>
+    <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 font-bold text-fg">Carregando checklists...</div>}>
       <GerenciarChecklistsContent />
     </Suspense>
   );

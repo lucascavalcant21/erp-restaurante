@@ -13,7 +13,7 @@ export default function RecrutamentoPage() {
         <button
           type="button"
           onClick={abrirMenu}
-          className="w-10 h-10 rounded-xl flex items-center justify-center bg-elevated text-slate-600 hover:bg-slate-200"
+          className="w-10 h-10 rounded-xl flex items-center justify-center bg-card text-slate-900 hover:bg-slate-200"
           aria-label="Voltar"
         >
           <ArrowLeft size={19} />
@@ -22,7 +22,7 @@ export default function RecrutamentoPage() {
           <h1 className="text-lg sm:text-xl font-black leading-tight flex items-center gap-2 text-slate-800">
             <Users size={20} className="text-indigo-600" /> Recrutamento e Portal de Vagas
           </h1>
-          <p className="text-xs font-medium text-muted">
+          <p className="text-xs font-medium text-fg">
             Candidaturas e respostas conectadas ao portal · {unidadeInfo?.nome || "Unidade selecionada"}
           </p>
         </div>

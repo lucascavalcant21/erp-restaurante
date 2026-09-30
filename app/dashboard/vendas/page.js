@@ -210,7 +210,7 @@ export default function VendasHubPage() {
             <ShoppingBag className="w-7 h-7 text-emerald-600" />
             Hub de Vendas & Entradas Multi-Canal
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-900">
             Registro unificado de vendas do Salão, iFood, Delivery e Balcão com separação de Gorjeta da Equipe e CMV Teórico.
           </p>
         </div>
@@ -227,7 +227,7 @@ export default function VendasHubPage() {
       {/* Cards de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Vendas (Bruto)</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">Total Vendas (Bruto)</p>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">R$ {totalBruto.toFixed(2)}</p>
         </div>
 
@@ -237,16 +237,16 @@ export default function VendasHubPage() {
             Taxa Serviço (Equipe)
           </p>
           <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">R$ {totalEquipe.toFixed(2)}</p>
-          <p className="text-xs text-slate-400 mt-1">Passivo de Gorjeta Garçons</p>
+          <p className="text-xs text-slate-800 mt-1">Passivo de Gorjeta Garçons</p>
         </div>
 
         <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Valor Líquido Esperado</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">Valor Líquido Esperado</p>
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">R$ {totalLiquido.toFixed(2)}</p>
         </div>
 
         <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Qtd Vendas Registradas</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">Qtd Vendas Registradas</p>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{vendasFiltradas.length}</p>
         </div>
       </div>
@@ -254,20 +254,20 @@ export default function VendasHubPage() {
       {/* Filtros */}
       <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="flex-1 relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-800" />
           <input
             type="text"
             placeholder="Buscar por código ou cliente..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+            className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
           />
         </div>
 
         <select
           value={filtroCanal}
           onChange={(e) => setFiltroCanal(e.target.value)}
-          className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
         >
           <option value="TODOS">Todos os Canais</option>
           <option value="SALAO">Salão</option>
@@ -280,7 +280,7 @@ export default function VendasHubPage() {
         <select
           value={filtroStatus}
           onChange={(e) => setFiltroStatus(e.target.value)}
-          className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
         >
           <option value="TODOS">Todos os Status</option>
           <option value="CONCLUIDA">Concluídas</option>
@@ -292,7 +292,7 @@ export default function VendasHubPage() {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 font-semibold">
+            <thead className="bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-900 font-semibold">
               <tr>
                 <th className="p-3.5">Código / Data</th>
                 <th className="p-3.5">Canal</th>
@@ -308,29 +308,29 @@ export default function VendasHubPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-400">Carregando vendas...</td>
+                  <td colSpan={9} className="p-8 text-center text-slate-800">Carregando vendas...</td>
                 </tr>
               ) : vendasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-400">Nenhuma venda encontrada.</td>
+                  <td colSpan={9} className="p-8 text-center text-slate-800">Nenhuma venda encontrada.</td>
                 </tr>
               ) : (
                 vendasFiltradas.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                  <tr key={v.id} className="hover:bg-white dark:hover:bg-slate-700/50 transition">
                     <td className="p-3.5">
                       <div className="font-semibold text-slate-900 dark:text-white">{v.codigo_venda || v.id.substring(0,8)}</div>
-                      <div className="text-xs text-slate-400">{new Date(v.created_at).toLocaleString('pt-BR')}</div>
+                      <div className="text-xs text-slate-800">{new Date(v.created_at).toLocaleString('pt-BR')}</div>
                     </td>
                     <td className="p-3.5">
-                      <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-semibold text-slate-900 dark:text-slate-300">
                         {v.canal_venda || 'SALAO'}
                       </span>
                     </td>
-                    <td className="p-3.5 text-slate-700 dark:text-slate-300">{v.cliente || 'Consumidor'}</td>
-                    <td className="p-3.5 text-right font-medium text-slate-600">R$ {Number(v.subtotal || v.total || 0).toFixed(2)}</td>
+                    <td className="p-3.5 text-slate-900 dark:text-slate-300">{v.cliente || 'Consumidor'}</td>
+                    <td className="p-3.5 text-right font-medium text-slate-900">R$ {Number(v.subtotal || v.total || 0).toFixed(2)}</td>
                     <td className="p-3.5 text-right text-xs">
                       <span className="text-indigo-600 font-semibold">Equipe: R$ {Number(v.taxa_servico_destinada_equipe || 0).toFixed(2)}</span>
-                      <div className="text-slate-400">Empresa: R$ {Number(v.taxa_servico_retida_empresa || 0).toFixed(2)}</div>
+                      <div className="text-slate-800">Empresa: R$ {Number(v.taxa_servico_retida_empresa || 0).toFixed(2)}</div>
                     </td>
                     <td className="p-3.5 text-right font-bold text-slate-900 dark:text-white">R$ {Number(v.total || v.valor_bruto || 0).toFixed(2)}</td>
                     <td className="p-3.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">
@@ -369,7 +369,7 @@ export default function VendasHubPage() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 my-8">
             <div className="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Lançamento de Nova Venda</h3>
-              <button onClick={() => setModalNovaVenda(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setModalNovaVenda(false)} className="text-slate-800 hover:text-slate-900">
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
@@ -377,22 +377,22 @@ export default function VendasHubPage() {
             <form onSubmit={handleSalvarVenda} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Venda (Opcional)</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Código da Venda (Opcional)</label>
                   <input
                     type="text"
                     placeholder="Ex: VND-1092"
                     value={codigoVenda}
                     onChange={(e) => setCodigoVenda(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-sm"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Canal de Venda</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Canal de Venda</label>
                   <select
                     value={canalVenda}
                     onChange={(e) => setCanalVenda(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-sm"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-sm"
                   >
                     <option value="SALAO">Salão</option>
                     <option value="BALCAO">Balcão</option>
@@ -405,7 +405,7 @@ export default function VendasHubPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Subtotal (R$)*</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Subtotal (R$)*</label>
                   <input
                     type="number"
                     step="0.01"
@@ -413,49 +413,49 @@ export default function VendasHubPage() {
                     required
                     value={subtotal}
                     onChange={(e) => setSubtotal(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-sm font-semibold"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-sm font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Desconto (R$)</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Desconto (R$)</label>
                   <input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     value={desconto}
                     onChange={(e) => setDesconto(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-sm"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Taxa Serviço (%)</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Taxa Serviço (%)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="10"
                     value={taxaServico}
                     onChange={(e) => setTaxaServico(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg text-sm"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-lg text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-900/40 p-3 rounded-lg border text-xs">
+              <div className="grid grid-cols-2 gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-lg border text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-600 mb-1">% Destinado à Equipe (Garçons)</label>
+                  <label className="block font-semibold text-slate-900 mb-1">% Destinado à Equipe (Garçons)</label>
                   <input
                     type="number"
                     value={percentualEquipe}
                     onChange={(e) => setPercentualEquipe(e.target.value)}
                     className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border rounded"
                   />
-                  <p className="text-[10px] text-slate-400 mt-0.5">Passivo operacional de gorjeta</p>
+                  <p className="text-[10px] text-slate-800 mt-0.5">Passivo operacional de gorjeta</p>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Cliente / Identificação</label>
+                  <label className="block font-semibold text-slate-900 mb-1">Cliente / Identificação</label>
                   <input
                     type="text"
                     placeholder="Nome do cliente ou comanda"
@@ -469,7 +469,7 @@ export default function VendasHubPage() {
               {/* Seção Split de Pagamentos */}
               <div className="border-t pt-3 border-slate-200 dark:border-slate-700 space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Formas de Pagamento (Split)</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-900">Formas de Pagamento (Split)</label>
                   <button
                     type="button"
                     onClick={handleAddSplit}
@@ -480,7 +480,7 @@ export default function VendasHubPage() {
                 </div>
 
                 {split.map((sp, idx) => (
-                  <div key={idx} className="grid grid-cols-4 gap-2 items-center bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-lg border">
+                  <div key={idx} className="grid grid-cols-4 gap-2 items-center bg-white dark:bg-slate-900/40 p-2.5 rounded-lg border">
                     <div>
                       <select
                         value={sp.formaPagamento}
@@ -542,7 +542,7 @@ export default function VendasHubPage() {
                 <button
                   type="button"
                   onClick={() => setModalNovaVenda(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-100 rounded-lg"
                 >
                   Cancelar
                 </button>

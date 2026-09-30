@@ -321,9 +321,9 @@ function Modal({ titulo, descricao, onClose, children, largo = false }) {
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-line-soft bg-card px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-black text-fg">{titulo}</h2>
-            {descricao && <p className="mt-1 text-sm text-muted">{descricao}</p>}
+            {descricao && <p className="mt-1 text-sm text-fg">{descricao}</p>}
           </div>
-          <button onClick={onClose} className="rounded-xl p-2 text-muted hover:bg-elevated" aria-label="Fechar"><X size={20} /></button>
+          <button onClick={onClose} className="rounded-xl p-2 text-fg hover:bg-card" aria-label="Fechar"><X size={20} /></button>
         </div>
         <div className="p-5 sm:p-6">{children}</div>
       </div>
@@ -1268,14 +1268,14 @@ function EstoqueRunner() {
   const ativo = estoqueAtual?.status === "ativo";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 text-fg">
+    <div className="min-h-screen bg-white pb-16 text-fg">
       <header className="border-b border-line bg-card px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <button onClick={abrirMenu} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-slate-600 hover:bg-slate-50" aria-label="Voltar ao módulo"><ArrowLeft size={21} /></button>
+            <button onClick={abrirMenu} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-slate-900 hover:bg-white" aria-label="Voltar ao módulo"><ArrowLeft size={21} /></button>
             <div>
               <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Estoque</h1>
-              <p className="text-sm text-muted">Saldos e movimentações separados por área · {unidadeInfo?.nome || "Unidade"}</p>
+              <p className="text-sm text-fg">Saldos e movimentações separados por área · {unidadeInfo?.nome || "Unidade"}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1283,14 +1283,14 @@ function EstoqueRunner() {
               <button
                 type="button"
                 onClick={() => setModoView("hub")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
               >
                 Hub Decisões
               </button>
               <button
                 type="button"
                 onClick={() => setModoView("tabela")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "tabela" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "tabela" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
               >
                 Tabela Completa
               </button>
@@ -1306,14 +1306,14 @@ function EstoqueRunner() {
                   if (pin === String(pinGerente)) definirQuiosque(false);
                   else avisar("PIN incorreto.", "erro");
                 }}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-card px-4 font-black text-slate-600 hover:bg-slate-50"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-card px-4 font-black text-slate-900 hover:bg-white"
                 title="Valores ocultos — PIN do gerente para mostrar">
                 <Lock size={18} /> Valores ocultos
               </button>
             ) : (
               <>
                 <button onClick={() => definirQuiosque(true)}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 font-bold hover:bg-slate-50"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 font-bold hover:bg-white"
                   title="Esconde custo e valor de estoque — para o tablet no salão">
                   <Lock size={18} /> Modo quiosque
                 </button>
@@ -1329,7 +1329,7 @@ function EstoqueRunner() {
                   title="Tela simples para dar entrada e baixa no dia a dia">
                   <Tablet size={18} /> Modo operação
                 </button>
-                <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 font-bold hover:bg-slate-50">
+                <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-4 font-bold hover:bg-white">
                   <Settings2 size={18} /> Gerenciar estoques
                 </button>
               </>
@@ -1356,7 +1356,7 @@ function EstoqueRunner() {
             <section className="bg-card rounded-2xl border border-line p-3 shadow-xs">
           <div className="flex items-center justify-between gap-3 mb-2 px-1">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted">Setores de Estoque</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-fg">Setores de Estoque</p>
               <p className="text-xs text-subtle">Selecione o estoque para visualizar os saldos</p>
             </div>
             <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-accent hover:underline">
@@ -1374,14 +1374,14 @@ function EstoqueRunner() {
                   className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
                     isSelected
                       ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900"
-                      : "border border-line bg-slate-50 text-fg-soft hover:bg-elevated hover:border-slate-300"
+                      : "border border-line bg-white text-fg-soft hover:bg-card hover:border-slate-300"
                   } ${estoque.status !== "ativo" ? "opacity-55" : ""}`}
                 >
-                  <div className={`grid h-6 w-6 place-items-center rounded-md ${isSelected ? "bg-white/20 text-emerald-400" : "bg-slate-200 text-slate-600"}`}>
+                  <div className={`grid h-6 w-6 place-items-center rounded-md ${isSelected ? "bg-white/20 text-emerald-400" : "bg-slate-200 text-slate-900"}`}>
                     <Warehouse size={14} />
                   </div>
                   <span>{estoque.nome}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-3xs font-extrabold ${isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-3xs font-extrabold ${isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-900"}`}>
                     {estoque.itens || 0}
                   </span>
                 </button>
@@ -1397,7 +1397,7 @@ function EstoqueRunner() {
                 <span className="h-3.5 w-3.5 rounded-full shrink-0" style={{ backgroundColor: estoqueAtual.cor || "#047857" }} />
                 <div>
                   <h2 className="text-base font-black text-fg leading-tight">{estoqueAtual.nome}</h2>
-                  <span className="text-2xs font-bold text-muted">{itensDaArea.length} produtos cadastrados</span>
+                  <span className="text-2xs font-bold text-fg">{itensDaArea.length} produtos cadastrados</span>
                 </div>
               </div>
 
@@ -1408,17 +1408,17 @@ function EstoqueRunner() {
                 <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white hover:bg-slate-800 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackageMinus size={16} /> Nova baixa
                 </button>
-                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
                   <ClipboardCheck size={16} className="text-success" /> Contagem
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => { setVozAberta(true); setVozItens([]); setVozTexto(""); setVozErro(""); setVozNaoAchados([]); }}
                   className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-3.5 text-xs font-extrabold text-accent-strong hover:bg-accent-soft disabled:opacity-40 transition-all cursor-pointer">
                   <Mic size={16} /> Contagem por voz
                 </button>
-                <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
                   <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
                 </button>
-                <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-extrabold text-fg-soft hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
                 </button>
                 <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-accent-soft px-3.5 text-xs font-extrabold text-accent-strong hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
@@ -1445,7 +1445,7 @@ function EstoqueRunner() {
                     <Icon size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-3xs font-extrabold uppercase tracking-wider text-muted truncate">{label}</p>
+                    <p className="text-3xs font-extrabold uppercase tracking-wider text-fg truncate">{label}</p>
                     <strong className="text-sm font-black text-fg leading-tight block truncate">{value}</strong>
                   </div>
                 </button>
@@ -1453,12 +1453,12 @@ function EstoqueRunner() {
             </section>
 
             <section className="rounded-2xl border border-line bg-card shadow-xs overflow-hidden">
-              <div className="grid grid-cols-2 gap-x-4 border-b border-line bg-slate-50/50 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
+              <div className="grid grid-cols-2 gap-x-4 border-b border-line bg-white/50 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
                 {[
                   ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-accent" : "border-transparent text-muted hover:text-fg-soft"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-accent" : "border-transparent text-fg hover:text-fg-soft"}`}>{label}</button>
                 ))}
                 {/* Entradas e saídas em forma de calendário, fora das abas. */}
                 <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
@@ -1478,12 +1478,12 @@ function EstoqueRunner() {
                   <div className="border-b border-line-soft px-4 py-3 sm:px-6">
                     {grupos.length > 1 && (
                       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                        <span className="text-xs font-bold text-muted shrink-0">Grupo:</span>
+                        <span className="text-xs font-bold text-fg shrink-0">Grupo:</span>
                         {grupos.map(grupo => (
                           <button
                             key={grupo}
                             onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-accent text-accent-fg shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-accent text-accent-fg shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                           >
                             {grupo} ({contagemGrupos[grupo] || 0})
                           </button>
@@ -1495,7 +1495,7 @@ function EstoqueRunner() {
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-line-soft">
                       {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug?.includes("bar") || estoqueAtual?.nome?.toLowerCase()?.includes("bar")) ? (
                         <>
-                          <span className="text-xs font-bold text-muted mr-1">Temperatura Bar:</span>
+                          <span className="text-xs font-bold text-fg mr-1">Temperatura Bar:</span>
                           {[
                             ["todos_temp", "Todos os Itens"],
                             ["apenas_gelado", "Gelados (Expositor)"],
@@ -1505,7 +1505,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1513,7 +1513,7 @@ function EstoqueRunner() {
                         </>
                       ) : (
                         <>
-                          <span className="text-xs font-bold text-muted mr-1">Estado Insumo/Comida:</span>
+                          <span className="text-xs font-bold text-fg mr-1">Estado Insumo/Comida:</span>
                           {[
                             ["todos_estado", "Todos os Itens"],
                             ["insumos", "Insumos Brutos"],
@@ -1524,7 +1524,7 @@ function EstoqueRunner() {
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
-                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1533,9 +1533,9 @@ function EstoqueRunner() {
                       )}
                     </div>
                   </div>
-                  <div className="erp-busca-fixa grid gap-3 p-4 lg:grid-cols-[1fr_180px_170px_160px] bg-slate-50/30">
+                  <div className="erp-busca-fixa grid gap-3 p-4 lg:grid-cols-[1fr_180px_170px_160px] bg-white/30">
                     <label className="relative flex items-center">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-bold z-10" size={18} />
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg font-bold z-10" size={18} />
                       <input
                         value={filtros.busca}
                         onChange={e => setFiltros({ ...filtros, busca: e.target.value })}
@@ -1583,9 +1583,9 @@ function EstoqueRunner() {
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-fg">Contagem por voz</h2>
-                <p className="text-sm text-muted">Fale item e quantidade: “banana cinco quilos, tomate três caixas”.</p>
+                <p className="text-sm text-fg">Fale item e quantidade: “banana cinco quilos, tomate três caixas”.</p>
               </div>
-              <button onClick={() => setVozAberta(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elevated text-muted"><X size={18} /></button>
+              <button onClick={() => setVozAberta(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-card text-fg"><X size={18} /></button>
             </div>
 
             <button onClick={iniciarContagemVoz} disabled={vozLendo || vozSalvando}
@@ -1596,7 +1596,7 @@ function EstoqueRunner() {
                 : <><Mic size={19} /> Falar a contagem</>}
             </button>
 
-            {vozTexto && <p className="mt-3 rounded-xl bg-slate-50 border border-line p-3 text-sm font-medium text-fg-soft">{vozTexto}</p>}
+            {vozTexto && <p className="mt-3 rounded-xl bg-white border border-line p-3 text-sm font-medium text-fg-soft">{vozTexto}</p>}
             {vozErro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{vozErro}</p>}
             {vozNaoAchados.length > 0 && (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">
@@ -1606,7 +1606,7 @@ function EstoqueRunner() {
 
             {vozItens.length > 0 && (
               <>
-                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-muted">Confira antes de gravar</p>
+                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-fg">Confira antes de gravar</p>
                 <div className="mt-2 space-y-2">
                   {vozItens.map((linha, i) => (
                     <div key={i} className="flex items-center gap-2 rounded-xl border border-line bg-card p-2.5">
@@ -1623,9 +1623,9 @@ function EstoqueRunner() {
                 </div>
 
                 <label className="mt-4 block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Quem está contando *</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Quem está contando *</span>
                   <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })}
-                    className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-line bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
+                    className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-line bg-white text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
                     <option value="">Selecione o responsável...</option>
                     {colaboradoresFiltrados.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
                   </select>
@@ -1649,7 +1649,7 @@ function EstoqueRunner() {
         >
           <form onSubmit={executarOperacao} className="space-y-4">
             <Campo label={`Produto (${modal.tipo === "entrada" ? `Estoque ${estoqueAtual?.nome || ""}` : "Disponível no estoque"})`}>
-              <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:bg-elevated">
+              <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:bg-card">
                 <option value="">Selecione o produto...</option>
                 {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itensDaArea).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
@@ -1659,10 +1659,10 @@ function EstoqueRunner() {
             {modal.tipo === "entrada" && !modal.item && (novoProduto ? (
               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
                 <p className="text-2xs font-bold uppercase tracking-widest text-accent">Cadastrar produto novo</p>
-                <p className="mt-1 text-xs font-semibold text-muted">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
+                <p className="mt-1 text-xs font-semibold text-fg">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_90px_100px_120px]">
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Produto</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Produto</span>
                     <input autoFocus value={novoProduto.nome} onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value }))}
                       placeholder="Nome do produto" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1671,19 +1671,19 @@ function EstoqueRunner() {
                       cadastrado aqui nascia sem volume — e sem volume a ficha
                       técnica não sabe quanto sai de cada garrafa. */}
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Volume</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Volume</span>
                     <input inputMode="decimal" value={novoProduto.volume} onChange={e => setNovoProduto(p => ({ ...p, volume: e.target.value }))}
                       placeholder="750" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Medida</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Medida</span>
                     <select value={novoProduto.unidade} onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value }))}
                       className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-fg-soft outline-none focus:border-emerald-600">
                       {["ml", "l", "g", "kg", "un"].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Custo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Custo</span>
                     <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
                       placeholder="0,00" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1692,7 +1692,7 @@ function EstoqueRunner() {
                     esta unidade que aparece na contagem ("3 garrafas"), e o
                     volume diz quanto tem em cada uma. */}
                 <label className="mt-2 flex flex-col gap-1">
-                  <span className="text-3xs font-bold uppercase tracking-widest text-muted">Como se compra (opcional)</span>
+                  <span className="text-3xs font-bold uppercase tracking-widest text-fg">Como se compra (opcional)</span>
                   <select value={novoProduto.unidadeComercial || ""} onChange={e => setNovoProduto(p => ({ ...p, unidadeComercial: e.target.value }))}
                     className="h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-fg-soft outline-none focus:border-emerald-600">
                     <option value="">A granel — conta na própria medida</option>
@@ -1704,12 +1704,12 @@ function EstoqueRunner() {
                     depois para preencher o que ainda não faltou. */}
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Estoque mínimo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Estoque mínimo</span>
                     <input inputMode="decimal" value={novoProduto.minimo || ""} onChange={e => setNovoProduto(p => ({ ...p, minimo: e.target.value }))}
                       placeholder="Avisa quando cair abaixo" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Estoque máximo</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Estoque máximo</span>
                     <input inputMode="decimal" value={novoProduto.maximo || ""} onChange={e => setNovoProduto(p => ({ ...p, maximo: e.target.value }))}
                       placeholder="Quanto cabe / quanto comprar" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
@@ -1718,7 +1718,7 @@ function EstoqueRunner() {
                     categoria" nunca mais é classificado depois. */}
                 {categoriasDisponiveis(estoqueAtual).length > 0 && (
                   <div className="mt-2">
-                    <span className="text-3xs font-bold uppercase tracking-widest text-muted">Categoria</span>
+                    <span className="text-3xs font-bold uppercase tracking-widest text-fg">Categoria</span>
                     <div className="mt-1 flex gap-2">
                       <select value={novoProduto.categoria} onChange={e => setNovoProduto(p => ({ ...p, categoria: e.target.value }))}
                         className="h-12 flex-1 rounded-xl border border-slate-300 px-2 font-bold text-fg-soft outline-none focus:border-emerald-600">
@@ -1749,7 +1749,7 @@ function EstoqueRunner() {
                   </div>
                 )}
                 <div className="mt-3 flex gap-2">
-                  <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-line bg-card px-4 text-sm font-bold text-slate-600">Cancelar</button>
+                  <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-line bg-card px-4 text-sm font-bold text-slate-900">Cancelar</button>
                   <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
                     className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-60">
                     {novoProduto.salvando ? "Cadastrando..." : "Cadastrar e usar"}
@@ -1838,7 +1838,7 @@ function EstoqueRunner() {
                               {modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}
                             </label>
                             {itemMod && (
-                              <span className="text-3xs font-bold text-muted">
+                              <span className="text-3xs font-bold text-fg">
                                 Cadastro: <strong className="text-slate-800 uppercase">{mostrarUn(itemMod.unidade_medida)}</strong>
                               </span>
                             )}
@@ -1862,7 +1862,7 @@ function EstoqueRunner() {
                                   const unBase = String(itemMod.unidade_medida).toLowerCase();
                                   setOperacao({ ...operacao, unidade_digitada: novaUn });
                                 }}
-                                className="h-14 rounded-2xl border-2 border-slate-300 bg-elevated px-3 font-bold text-xs text-slate-800 outline-none"
+                                className="h-14 rounded-2xl border-2 border-slate-300 bg-card px-3 font-bold text-xs text-slate-800 outline-none"
                               >
                                 {["kg", "g"].includes(String(itemMod.unidade_medida).toLowerCase()) ? (
                                   <>
@@ -1911,8 +1911,8 @@ function EstoqueRunner() {
                       const valorDiff = diff * custo;
                       const unName = mostrarUn(itemMod?.unidade_medida || itemMod?.unidade_comercial || "un");
                       return (
-                        <div className="mt-3 rounded-2xl border border-line bg-slate-50 p-3.5 space-y-2 text-xs">
-                          <div className="flex justify-between items-center text-slate-600 font-medium">
+                        <div className="mt-3 rounded-2xl border border-line bg-white p-3.5 space-y-2 text-xs">
+                          <div className="flex justify-between items-center text-slate-900 font-medium">
                             <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({dinheiro(saldoSistema * custo)})</span>
                             <span>Custo Un.: <b>{dinheiro(custo)}/{unName}</b></span>
                           </div>
@@ -1937,7 +1937,7 @@ function EstoqueRunner() {
                             key={val}
                             type="button"
                             onClick={() => setOperacao(prev => ({ ...prev, quantidade: String((Number(prev.quantidade) || 0) + val) }))}
-                            className="flex-1 min-w-[48px] py-2.5 rounded-xl bg-elevated hover:bg-emerald-100 text-fg hover:text-emerald-900 font-black text-sm border border-line active:scale-95 transition-all"
+                            className="flex-1 min-w-[48px] py-2.5 rounded-xl bg-card hover:bg-emerald-100 text-fg hover:text-emerald-900 font-black text-sm border border-line active:scale-95 transition-all"
                           >
                             +{val}
                           </button>
@@ -1986,13 +1986,13 @@ function EstoqueRunner() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       {[["conteudo", `Por conteúdo (${unConteudo})`], ["unidade", `Por ${unLabel} fechada`]].map(([v, l]) => (
-                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-accent-soft text-accent-strong" : "border-line text-slate-600"}`}>{l}</button>
+                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-accent-soft text-accent-strong" : "border-line text-slate-900"}`}>{l}</button>
                       ))}
                     </div>
                     <Campo label={operacao.modo === "unidade" ? `Quantidade (${unLabel}s)` : `Quantidade (${unConteudo})`}>
                       <input required min="0" step={operacao.modo === "unidade" ? "1" : "0.001"} type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
                     </Campo>
-                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-fg-soft">Saldo: {div.fechadas} {unLabel}s{div.aberto > 0 ? ` + ${fmtEquiv(div.aberto, unConteudo)}` : ""}. {preview}</p>
+                    <p className="rounded-xl bg-white p-3 text-sm font-semibold text-fg-soft">Saldo: {div.fechadas} {unLabel}s{div.aberto > 0 ? ` + ${fmtEquiv(div.aberto, unConteudo)}` : ""}. {preview}</p>
                   </div>
                 );
               }
@@ -2008,7 +2008,7 @@ function EstoqueRunner() {
                       <input min="0" step="0.001" type="number" value={operacao.aberto} onChange={e => setOperacao({ ...operacao, aberto: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
                     </Campo>
                   </div>
-                  <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-fg-soft">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
+                  <p className="rounded-xl bg-white p-3 text-sm font-semibold text-fg-soft">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
                 </div>
               );
             })()}
@@ -2042,8 +2042,8 @@ function EstoqueRunner() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-elevated disabled:text-muted" /></Campo>
-              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-elevated disabled:text-muted" /></Campo>
+              <Campo label="Estoque mínimo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-card disabled:text-fg" /></Campo>
+              <Campo label="Estoque máximo"><input disabled={!unidadeLiberada} type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3 disabled:cursor-not-allowed disabled:bg-card disabled:text-fg" /></Campo>
               {!unidadeLiberada && (
                 <button type="button" onClick={() => setPinDigitado("")} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800">
                   <Lock size={16} /> Liberar mínimo e máximo com PIN
@@ -2051,7 +2051,7 @@ function EstoqueRunner() {
               )}
               <Campo label="Custo unitário">
                 <div className="relative">
-                  <span className="absolute left-3.5 top-3 text-sm font-extrabold text-muted">R$</span>
+                  <span className="absolute left-3.5 top-3 text-sm font-extrabold text-fg">R$</span>
                   <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-line pl-10 pr-3 font-semibold" placeholder="0,00" />
                 </div>
               </Campo>
@@ -2086,7 +2086,7 @@ function EstoqueRunner() {
             {/* Embalagem — valem para o produto em todos os estoques */}
             {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
               <div className="rounded-xl border border-line p-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Bebida / embalado</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-fg">Bebida / embalado</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Campo label="Unidade comercial">
                     {(() => {
@@ -2114,7 +2114,7 @@ function EstoqueRunner() {
                     })()}
                   </Campo>
                   <Campo label="Conteúdo por unidade">
-                    <div className="grid h-12 place-items-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-600">{fmtQtd(formItem.tamanho_embalagem)} {String(formItem.unidade_medida).toLowerCase() === "l" ? "L" : formItem.unidade_medida}</div>
+                    <div className="grid h-12 place-items-center rounded-xl bg-white px-3 text-sm font-bold text-slate-900">{fmtQtd(formItem.tamanho_embalagem)} {String(formItem.unidade_medida).toLowerCase() === "l" ? "L" : formItem.unidade_medida}</div>
                   </Campo>
                 </div>
               </div>
@@ -2137,8 +2137,8 @@ function EstoqueRunner() {
             </div>
             <Campo label="Descrição"><textarea value={formEstoque.descricao || ""} onChange={e => setFormEstoque({ ...formEstoque, descricao: e.target.value })} className="min-h-20 w-full rounded-xl border border-line p-3" /></Campo>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={!!formEstoque.controla_validade} onChange={e => setFormEstoque({ ...formEstoque, controla_validade: e.target.checked })} /> Controlar validade</label>
-              <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formEstoque.controla_minimo !== false} onChange={e => setFormEstoque({ ...formEstoque, controla_minimo: e.target.checked })} /> Controlar estoque mínimo</label>
+              <label className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold"><input type="checkbox" checked={!!formEstoque.controla_validade} onChange={e => setFormEstoque({ ...formEstoque, controla_validade: e.target.checked })} /> Controlar validade</label>
+              <label className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold"><input type="checkbox" checked={formEstoque.controla_minimo !== false} onChange={e => setFormEstoque({ ...formEstoque, controla_minimo: e.target.checked })} /> Controlar estoque mínimo</label>
             </div>
             <div className="flex justify-end"><BotaoSalvar carregando={salvando} /></div>
           </form>
@@ -2161,7 +2161,7 @@ function EstoqueRunner() {
             {(() => {
               const movsItem = movimentos.filter(m => String(m.insumo_id) === String(modal.item?.insumo_id) || String(m.insumo_nome || "").toLowerCase() === String(modal.item?.nome || "").toLowerCase());
               if (!movsItem.length) {
-                return <div className="p-8 text-center text-muted font-bold">Nenhuma movimentação registrada para este produto.</div>;
+                return <div className="p-8 text-center text-fg font-bold">Nenhuma movimentação registrada para este produto.</div>;
               }
               return (
                 <div className="max-h-96 overflow-y-auto rounded-xl border border-line">
@@ -2177,12 +2177,12 @@ function EstoqueRunner() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {movsItem.map(m => (
-                        <tr key={m.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-medium text-slate-600">{fmtData(m.data_movimento, true)}</td>
+                        <tr key={m.id} className="hover:bg-white">
+                          <td className="p-3 font-medium text-slate-900">{fmtData(m.data_movimento, true)}</td>
                           <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>{m.tipo}</span></td>
                           <td className="p-3 font-extrabold text-fg">{fmtQtd(m.quantidade)} {mostrarUn(m.unidade_medida)}</td>
-                          <td className="p-3 text-slate-600">{m.usuario_nome || m.responsavel_nome || "Sistema"}</td>
-                          <td className="p-3 text-muted italic">{m.observacao || "—"}</td>
+                          <td className="p-3 text-slate-900">{m.usuario_nome || m.responsavel_nome || "Sistema"}</td>
+                          <td className="p-3 text-fg italic">{m.observacao || "—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2191,7 +2191,7 @@ function EstoqueRunner() {
               );
             })()}
             <div className="flex justify-end">
-              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-elevated px-5 font-bold text-fg-soft hover:bg-slate-200">Fechar</button>
+              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-card px-5 font-bold text-fg-soft hover:bg-slate-200">Fechar</button>
             </div>
           </div>
         </Modal>
@@ -2206,12 +2206,12 @@ function EstoqueRunner() {
             {/* Marcar mais de um é possível, mas exige marcar: zerar bar e
                 cozinha de um clique só seria fácil demais para uma ação sem volta. */}
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-muted">Quais estoques zerar</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-fg">Quais estoques zerar</span>
               <div className="mt-1.5 max-h-44 space-y-1 overflow-auto rounded-xl border border-line p-2">
                 {estoquesVisiveis.map(e => {
                   const marcado = (modalZerar.alvos || []).includes(e.id);
                   return (
-                    <label key={e.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 hover:bg-slate-50">
+                    <label key={e.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 hover:bg-white">
                       <input type="checkbox" checked={marcado} className="h-4 w-4 accent-red-600"
                         onChange={() => setModalZerar(m => ({
                           ...m,
@@ -2226,18 +2226,18 @@ function EstoqueRunner() {
               </div>
             </div>
             <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-muted">Motivo (opcional)</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-fg">Motivo (opcional)</span>
               <input value={modalZerar.motivo || ""} onChange={e => setModalZerar(m => ({ ...m, motivo: e.target.value }))}
                 placeholder="Ex.: recontagem geral de agosto"
                 className="mt-1 h-12 w-full rounded-xl border border-line px-3 font-semibold text-slate-800 outline-none focus:border-emerald-600" />
             </label>
             <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-muted">Digite ZERAR para confirmar</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-fg">Digite ZERAR para confirmar</span>
               <input autoFocus value={modalZerar.confirmacao} onChange={e => setModalZerar(m => ({ ...m, confirmacao: e.target.value }))}
                 className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-center font-black tracking-widest text-fg outline-none focus:border-red-500" />
             </label>
             <div className="flex gap-2">
-              <button onClick={() => setModalZerar(null)} className="h-12 flex-1 rounded-xl border border-line bg-card font-bold text-slate-600">Cancelar</button>
+              <button onClick={() => setModalZerar(null)} className="h-12 flex-1 rounded-xl border border-line bg-card font-bold text-slate-900">Cancelar</button>
               <button onClick={confirmarZerar} disabled={modalZerar.salvando}
                 className="h-12 flex-1 rounded-xl bg-red-600 font-black text-white hover:bg-red-700 disabled:opacity-60">
                 {modalZerar.salvando ? "Zerando..." : "Zerar estoque"}
@@ -2262,7 +2262,7 @@ function EstoqueRunner() {
               </div>
               <div>
                 <strong className="block text-base font-extrabold text-fg">Gerar PDF / Imprimir Relatório</strong>
-                <p className="text-xs text-muted">Relatório formatado por categorias com subtotais e valor total.</p>
+                <p className="text-xs text-fg">Relatório formatado por categorias com subtotais e valor total.</p>
               </div>
             </button>
 
@@ -2279,7 +2279,7 @@ function EstoqueRunner() {
               </div>
               <div>
                 <strong className="block text-base font-extrabold text-fg">Baixar Planilha Excel (.csv)</strong>
-                <p className="text-xs text-muted">Arquivo formatado compatível com Microsoft Excel e Google Sheets.</p>
+                <p className="text-xs text-fg">Arquivo formatado compatível com Microsoft Excel e Google Sheets.</p>
               </div>
             </button>
 
@@ -2296,7 +2296,7 @@ function EstoqueRunner() {
               </div>
               <div>
                 <strong className="block text-base font-extrabold text-fg">Lista de compras no WhatsApp</strong>
-                <p className="text-xs text-muted">Abre o WhatsApp com os itens abaixo do mínimo — nome, marca, valor e fornecedor, agrupados por fornecedor.</p>
+                <p className="text-xs text-fg">Abre o WhatsApp com os itens abaixo do mínimo — nome, marca, valor e fornecedor, agrupados por fornecedor.</p>
               </div>
             </button>
 
@@ -2318,12 +2318,12 @@ function EstoqueRunner() {
               </div>
               <div>
                 <strong className="block text-base font-extrabold text-fg">Copiar resumo do estoque</strong>
-                <p className="text-xs text-muted">Copia o resumo completo (saldos por categoria) para colar no grupo do WhatsApp.</p>
+                <p className="text-xs text-fg">Copia o resumo completo (saldos por categoria) para colar no grupo do WhatsApp.</p>
               </div>
             </button>
 
             <div className="flex justify-end pt-2">
-              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-elevated px-5 font-bold text-fg-soft hover:bg-slate-200">Cancelar</button>
+              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-card px-5 font-bold text-fg-soft hover:bg-slate-200">Cancelar</button>
             </div>
           </div>
         </Modal>
@@ -2418,16 +2418,16 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
     setColapsadas(mapa);
   };
 
-  if (loading) return <div className="grid min-h-64 place-items-center text-muted"><Loader2 className="animate-spin" /></div>;
-  if (!itens || !itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-dim" /><p className="font-black text-fg-soft">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-muted">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
+  if (loading) return <div className="grid min-h-64 place-items-center text-fg"><Loader2 className="animate-spin" /></div>;
+  if (!itens || !itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-dim" /><p className="font-black text-fg-soft">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-fg">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-line text-xs font-bold text-slate-600">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-line text-xs font-bold text-slate-900">
         <span>Total de {agrupadoPorCategoria.length} {agruparPor === "local" ? "lugar(es)" : "categoria(s)"} no resultado</span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={expandirTodas} className="rounded-lg px-2.5 py-1 bg-card border border-line hover:bg-slate-50 text-fg-soft transition">Expandir todas</button>
-          <button type="button" onClick={recolherTodas} className="rounded-lg px-2.5 py-1 bg-card border border-line hover:bg-slate-50 text-fg-soft transition">Recolher todas</button>
+          <button type="button" onClick={expandirTodas} className="rounded-lg px-2.5 py-1 bg-card border border-line hover:bg-white text-fg-soft transition">Expandir todas</button>
+          <button type="button" onClick={recolherTodas} className="rounded-lg px-2.5 py-1 bg-card border border-line hover:bg-white text-fg-soft transition">Recolher todas</button>
         </div>
       </div>
 
@@ -2481,7 +2481,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                   {!isColapsed && lista.map(item => {
                     const status = statusItemEstoque(item, estoque || {});
                     const valTotalItem = calcularValorItem(item);
-                    return <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    return <tr key={item.id} className="hover:bg-white transition-colors">
                       <td className="px-5 py-3.5 min-w-[240px] max-w-[320px]"><strong className="block text-fg font-black text-sm leading-snug whitespace-normal break-words">{item.nome}</strong><span className="text-xs text-subtle font-extrabold block mt-0.5">{item.codigo_interno || item.marca || "Sem código"}</span></td>
                       <td className="px-4 py-3.5 whitespace-nowrap">{(() => {
                         const cat = String(item.categoria || "").trim();
@@ -2513,14 +2513,14 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
-                      {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-600">{fmtData(item.ultima_movimentacao_em, true)}</td>
+                      {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-900"}`}>{fmtData(item.validade)}</td>}
+                      <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-900">{fmtData(item.ultima_movimentacao_em, true)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
                         <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-accent text-accent-fg hover:bg-accent font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
                         <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
-                        <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-slate-50 text-fg-soft hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
+                        <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white text-fg-soft hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
                         <SimuladorRendimento item={item} variant="icon" />
-                        <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-slate-50 text-fg-soft hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
+                        <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white text-fg-soft hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
                       </div></td>
                     </tr>;
                   })}
@@ -2537,7 +2537,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
             <div key={categoria} className="p-3 space-y-3">
               <div
                 onClick={() => toggleColapso(categoria)}
-                className="flex items-center justify-between rounded-xl bg-elevated px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer active:bg-slate-200 transition"
+                className="flex items-center justify-between rounded-xl bg-card px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer active:bg-slate-200 transition"
               >
                 <div className="flex items-center gap-2 uppercase tracking-wider">
                   {isColapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
@@ -2553,12 +2553,12 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     <div className="min-w-0 flex-1">
                       <strong className="text-base sm:text-lg font-black text-fg leading-snug block truncate">{item.nome}</strong>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md bg-elevated px-2 py-0.5 text-xs font-bold text-fg-soft">{item.categoria || "Sem categoria"}</span>
+                        <span className="rounded-md bg-card px-2 py-0.5 text-xs font-bold text-fg-soft">{item.categoria || "Sem categoria"}</span>
                         {(estoqueAtual?.locais_internos || []).length > 0 ? (
                           // Realocar é escolher o lugar aqui mesmo: um toque e
                           // o produto muda de grupo na lista.
                           <select value={item.local_interno || ""} onChange={e => realocarItem(item, e.target.value)}
-                            className="rounded-md border border-line bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
+                            className="rounded-md border border-line bg-white px-2 py-0.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
                             aria-label={`Lugar de ${item.nome}`}>
                             <option value="">Sem lugar</option>
                             {(estoqueAtual.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
@@ -2567,10 +2567,10 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                             )}
                           </select>
                         ) : item.local_interno ? (
-                          <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-muted">{item.local_interno}</span>
+                          <span className="rounded-md bg-white px-2 py-0.5 text-xs font-medium text-fg">{item.local_interno}</span>
                         ) : null}
                       </div>
-                      <p className="mt-1.5 text-xs font-semibold text-muted">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
+                      <p className="mt-1.5 text-xs font-semibold text-fg">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
                     </div>
                     <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
                       <span className="block text-3xs font-extrabold uppercase tracking-wider text-subtle">Saldo Atual</span>
@@ -2596,10 +2596,10 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     </button>
                   </div>
                   <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                    <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-elevated hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                    <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-card hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
                       <History size={16} /> Histórico
                     </button>
-                    <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-elevated hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                    <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-card hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
                       <Settings2 size={16} /> Configurar
                     </button>
                   </div>
@@ -2667,7 +2667,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
   }, [movimentos, modo, busca, tipoFiltro, colabFiltro, periodoFiltro]);
 
   if (!movimentos || !movimentos.length) {
-    return <div className="grid min-h-64 place-items-center text-sm font-semibold text-muted">Nenhuma movimentação registrada nesta área.</div>;
+    return <div className="grid min-h-64 place-items-center text-sm font-semibold text-fg">Nenhuma movimentação registrada nesta área.</div>;
   }
 
   return (
@@ -2720,7 +2720,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
 
       {/* Lista de Movimentações */}
       {!listaFiltrada.length ? (
-        <div className="p-8 text-center text-sm font-bold text-muted">Nenhum registro encontrado com esses filtros.</div>
+        <div className="p-8 text-center text-sm font-bold text-fg">Nenhum registro encontrado com esses filtros.</div>
       ) : (
         <div className="divide-y divide-slate-100 rounded-2xl border border-line bg-card shadow-sm overflow-hidden">
           {listaFiltrada.map(mov => {
@@ -2741,14 +2741,14 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
             const qtd = Math.abs(Number(mov.quantidade) || 0);
 
             return (
-              <div key={mov.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-slate-50/90 transition-colors">
+              <div key={mov.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-white/90 transition-colors">
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
                   <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-black text-lg border ${badgeConfig.bg}`}>
                     {badgeConfig.icon}
                   </div>
                   <div className="min-w-0">
                     <strong className="block truncate text-base font-black text-fg">{nomeProduto}</strong>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-fg">
                       <span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs border ${badgeConfig.bg}`}>{badgeConfig.label}</span>
                       <span>·</span>
                       <span className="inline-flex items-center gap-1 font-bold text-slate-800">
@@ -2756,9 +2756,9 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                         {mov.usuario_nome || mov.responsavel_nome || "Sistema"}
                       </span>
                       <span>·</span>
-                      <span className="font-semibold text-slate-600">📅 {fmtData(mov.data_movimento, true)}</span>
+                      <span className="font-semibold text-slate-900">📅 {fmtData(mov.data_movimento, true)}</span>
                     </div>
-                    {mov.observacao && <p className="mt-1 text-xs text-muted italic">“{mov.observacao}”</p>}
+                    {mov.observacao && <p className="mt-1 text-xs text-fg italic">“{mov.observacao}”</p>}
                     {ehContagem && (() => {
                       const ins = mov.insumo || itensDaArea.find(i => (i.insumo_id === mov.insumo_id || i.id === mov.insumo_id));
                       const custo = Number(ins?.preco_normalizado || ins?.custo_unitario || 0);
@@ -2770,7 +2770,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                       return (
                         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs font-bold">
                           {mov.saldo_anterior !== undefined && (
-                            <span className="text-muted">Sistema: {fmtQtd(anterior)} → Contado: {fmtQtd(posterior)}</span>
+                            <span className="text-fg">Sistema: {fmtQtd(anterior)} → Contado: {fmtQtd(posterior)}</span>
                           )}
                           {custo > 0 && Math.abs(diff) > 0.001 && (
                             <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-3xs font-bold ${
@@ -2789,7 +2789,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                   <strong className={`text-lg font-black ${ehEntrada ? "text-accent" : ehSaida ? "text-red-600" : "text-fg"}`}>
                     {ehEntrada ? "+" : ehSaida ? "−" : ""} {fmtQtd(qtd)} {unMedida}
                   </strong>
-                  {mov.destino?.nome && <p className="text-xs font-bold text-muted">Destino: {mov.destino.nome}</p>}
+                  {mov.destino?.nome && <p className="text-xs font-bold text-fg">Destino: {mov.destino.nome}</p>}
                 </div>
               </div>
             );
@@ -2809,6 +2809,6 @@ function EstoqueUnificado() {
   if (searchParams.get("gestao") === "1") return <EstoqueRunner />;
   // Mesmo respiro das rotas /tablet: sem ele o "voltar" encosta na barra de
   // status do celular.
-  return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"
+  return <div className="fixed inset-0 z-[200] overflow-auto bg-white"
     style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><TabletSetor titulo="Estoque" voltarHref="/dashboard" /></div>;
 }

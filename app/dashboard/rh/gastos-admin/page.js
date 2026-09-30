@@ -25,7 +25,7 @@ const COR_CATEGORIA = {
   Embalagens: "border-pink-200 bg-pink-50 text-pink-800",
   Limpeza: "border-sky-200 bg-sky-50 text-sky-800",
   "Materiais gerais": "border-amber-200 bg-amber-50 text-amber-800",
-  Outros: "border-line bg-slate-50 text-fg-soft",
+  Outros: "border-line bg-white text-fg-soft",
 };
 
 export default function ComprasDoMesPage() {
@@ -92,10 +92,10 @@ export default function ComprasDoMesPage() {
     <div className="min-h-screen bg-[var(--surface)] pb-16">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Compras do mês</h1>
-            <p className="text-xs font-bold text-muted">Vem das entradas de estoque — lançou lá, aparece aqui</p>
+            <p className="text-xs font-bold text-fg">Vem das entradas de estoque — lançou lá, aparece aqui</p>
           </div>
           <button onClick={() => router.push("/dashboard/operacao/estoque")}
             className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
@@ -107,7 +107,7 @@ export default function ComprasDoMesPage() {
           <div className="flex rounded-xl border border-line bg-card p-1">
             {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"], ["meses", "Vários meses"]].map(([v, r]) => (
               <button key={v} onClick={() => setModo(v)}
-                className={`h-9 rounded-lg px-3.5 text-sm font-black ${modo === v ? "bg-accent text-accent-fg" : "text-slate-600 hover:bg-slate-50"}`}>
+                className={`h-9 rounded-lg px-3.5 text-sm font-black ${modo === v ? "bg-accent text-accent-fg" : "text-slate-900 hover:bg-white"}`}>
                 {r}
               </button>
             ))}
@@ -119,9 +119,9 @@ export default function ComprasDoMesPage() {
             </select>
           )}
           <div className="flex items-center gap-1">
-            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, -1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, -1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900 hover:bg-white"><ChevronLeft size={18} /></button>
             <span className="min-w-[200px] text-center text-sm font-black capitalize text-slate-800">{rotuloPeriodo(faixa, modo)}</span>
-            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, 1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
+            <button onClick={() => setReferencia(andarPeriodo(referencia, modo, 1, mesesJuntos))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900 hover:bg-white"><ChevronRight size={18} /></button>
           </div>
           {!hojeNoPeriodo && (
             <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">Hoje</button>
@@ -131,7 +131,7 @@ export default function ComprasDoMesPage() {
 
       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-fg">Selecione uma unidade específica.</div>
         ) : carregando ? (
           <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
         ) : (
@@ -139,13 +139,13 @@ export default function ComprasDoMesPage() {
             <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm sm:p-6">
               <p className="text-2xs font-bold uppercase tracking-widest text-accent">Total comprado no período</p>
               <p className="mt-1 text-4xl font-black text-fg sm:text-5xl">{brl(totalGeral)}</p>
-              <p className="mt-2 text-sm font-bold text-muted">{doPeriodo.length} entrada(s) de estoque</p>
+              <p className="mt-2 text-sm font-bold text-fg">{doPeriodo.length} entrada(s) de estoque</p>
             </section>
 
             {/* Por onde o dinheiro foi */}
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {totais.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-300 bg-card p-6 text-center font-bold text-muted sm:col-span-2 lg:col-span-3">
+                <p className="rounded-2xl border border-dashed border-slate-300 bg-card p-6 text-center font-bold text-fg sm:col-span-2 lg:col-span-3">
                   Nenhuma compra neste período.
                 </p>
               ) : totais.map(([cat, v]) => (
@@ -182,7 +182,7 @@ export default function ComprasDoMesPage() {
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-strong"><ShoppingCart size={16} /></span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[15px] font-black text-fg">{m.insumo?.nome || "Produto removido"}</p>
-                          <p className="truncate text-2xs font-bold text-muted">
+                          <p className="truncate text-2xs font-bold text-fg">
                             {Number(m.quantidade || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {m.insumo?.unidade_medida || ""}
                             {m.estoque?.nome ? ` · ${m.estoque.nome}` : ""}
                             {m.usuario_nome ? ` · ${m.usuario_nome}` : ""}

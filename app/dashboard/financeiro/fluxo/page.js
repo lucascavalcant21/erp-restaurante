@@ -14,7 +14,7 @@ const CAT_ENTRADA = ["Vendas Balcão", "iFood / Delivery", "Eventos", "Outras re
 const CAT_SAIDA   = ["Fornecedores", "Folha de Pagamento", "Aluguel", "Energia", "Marketing", "Impostos", "Outras despesas"];
 
 const CatIcon = ({ cat, isEntrada }) => {
-  const IconProps = { size: 16, className: isEntrada ? "text-emerald-600" : "text-slate-600" };
+  const IconProps = { size: 16, className: isEntrada ? "text-emerald-600" : "text-slate-900" };
   if (cat.includes("Vendas") || cat.includes("iFood")) return <Wallet {...IconProps} />;
   if (cat.includes("Eventos")) return <Calendar {...IconProps} />;
   if (cat.includes("Fornecedores")) return <FileText {...IconProps} />;
@@ -41,13 +41,13 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
 
   return (
     <div className="p-2">
-      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${isReceita ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-600'}`}>
+      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${isReceita ? 'bg-emerald-50 text-emerald-500' : 'bg-white text-slate-900'}`}>
          {isReceita ? <Plus size={32} /> : <Minus size={32} />}
       </div>
 
       <div className="text-center mb-6">
          <h3 className="text-xl font-black text-slate-800">{isReceita ? "Nova Receita" : "Nova Despesa"}</h3>
-         <p className="text-sm font-medium text-muted">{isReceita ? "Dinheiro entrando no caixa" : "Pagamento saindo do caixa"}</p>
+         <p className="text-sm font-medium text-fg">{isReceita ? "Dinheiro entrando no caixa" : "Pagamento saindo do caixa"}</p>
       </div>
 
       <div className="space-y-4">
@@ -56,25 +56,25 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
         </Field>
 
         <Field label="Descrição Interna">
-          <TextInput value={descricao} onChange={(e) => { setDescricao(e.target.value); setErro(""); }} placeholder="ex: Compra de hortifruti..." className="!bg-slate-50" />
+          <TextInput value={descricao} onChange={(e) => { setDescricao(e.target.value); setErro(""); }} placeholder="ex: Compra de hortifruti..." className="!bg-white" />
         </Field>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Categoria Contábil">
-            <Select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="!bg-slate-50">
+            <Select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="!bg-white">
                {cats.map((c) => <option key={c}>{c}</option>)}
             </Select>
           </Field>
           <Field label="Data Competência">
-            <TextInput type="date" value={data} onChange={(e) => setData(e.target.value)} className="!bg-slate-50" />
+            <TextInput type="date" value={data} onChange={(e) => setData(e.target.value)} className="!bg-white" />
           </Field>
         </div>
       </div>
 
-      {erro && <div className="mt-4 p-3 bg-slate-50 text-success text-sm font-bold rounded-xl text-center">{erro}</div>}
+      {erro && <div className="mt-4 p-3 bg-white text-success text-sm font-bold rounded-xl text-center">{erro}</div>}
 
       <div className="flex gap-3 mt-8">
-        <button className="flex-1 py-4 font-bold text-muted hover:bg-elevated rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-4 font-bold text-fg hover:bg-card rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
         <button className={`flex-1 py-4 font-black text-white rounded-xl shadow-lg transition-all transform hover:-translate-y-1 ${corBotao}`} onClick={salvar}>
            Registrar {isReceita ? "Receita" : "Despesa"}
         </button>
@@ -153,12 +153,12 @@ export default function FluxoCaixaFintechPage() {
          {/* CARDS PREVISTO VS REALIZADO */}
          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="bg-card p-5 rounded-3xl shadow-md border border-line">
-               <span className="text-3xs font-bold uppercase tracking-widest text-slate-400">Entradas Realizadas</span>
+               <span className="text-3xs font-bold uppercase tracking-widest text-slate-800">Entradas Realizadas</span>
                <p className="text-2xl font-black text-emerald-600 mt-1">{fmtBRL(visaoCaixa.entradasRealizadas)}</p>
             </div>
 
             <div className="bg-card p-5 rounded-3xl shadow-md border border-line">
-               <span className="text-3xs font-bold uppercase tracking-widest text-slate-400">Saídas Realizadas</span>
+               <span className="text-3xs font-bold uppercase tracking-widest text-slate-800">Saídas Realizadas</span>
                <p className="text-2xl font-black text-slate-800 mt-1">{fmtBRL(visaoCaixa.saidasRealizadas)}</p>
             </div>
 
@@ -184,7 +184,7 @@ export default function FluxoCaixaFintechPage() {
               onClick={() => setModalDespesa(true)}
               className="bg-card p-6 rounded-[32px] shadow-lg border border-line-soft flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer"
             >
-               <div className="w-14 h-14 rounded-full bg-slate-50 group-hover:bg-emerald-500 text-slate-600 group-hover:text-white flex items-center justify-center transition-colors">
+               <div className="w-14 h-14 rounded-full bg-white group-hover:bg-emerald-500 text-slate-900 group-hover:text-white flex items-center justify-center transition-colors">
                   <ArrowUpRight size={24} />
                </div>
                <span className="font-bold text-slate-800">Nova Despesa</span>
@@ -201,31 +201,31 @@ export default function FluxoCaixaFintechPage() {
          <div className="bg-card rounded-[32px] border border-line shadow-sm overflow-hidden">
             {loading ? (
                <div className="p-12 text-center">
-                  <ArrowDownUp size={32} className="mx-auto text-muted animate-pulse mb-4" />
-                  <p className="font-bold text-muted">Buscando transações...</p>
+                  <ArrowDownUp size={32} className="mx-auto text-fg animate-pulse mb-4" />
+                  <p className="font-bold text-fg">Buscando transações...</p>
                </div>
             ) : filtrados.length === 0 ? (
                <div className="p-12 text-center">
-                  <Search size={32} className="mx-auto text-muted mb-4" />
+                  <Search size={32} className="mx-auto text-fg mb-4" />
                   <p className="font-bold text-slate-800 text-lg">Extrato Limpo</p>
-                  <p className="text-sm text-muted mt-2">Você ainda não tem {filtro !== "Todos" ? filtro.toLowerCase() : "lançamentos"} nesse período.</p>
+                  <p className="text-sm text-fg mt-2">Você ainda não tem {filtro !== "Todos" ? filtro.toLowerCase() : "lançamentos"} nesse período.</p>
                </div>
             ) : (
                <div className="divide-y divide-slate-100">
                   {filtrados.map((l) => {
                     const isEntrada = l.tipo === "entrada";
                     return (
-                      <div key={l.id} className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition-colors group">
+                      <div key={l.id} className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 hover:bg-white transition-colors group">
                          <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isEntrada ? 'bg-emerald-50' : 'bg-elevated'}`}>
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isEntrada ? 'bg-emerald-50' : 'bg-card'}`}>
                                <CatIcon cat={l.categoria} isEntrada={isEntrada} />
                             </div>
 
                             <div>
                                <p className="font-bold text-fg">{l.descricao}</p>
                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-3xs font-bold uppercase tracking-widest text-muted bg-elevated px-2 py-0.5 rounded-md">{l.categoria}</span>
-                                  <span className="text-xs font-medium text-muted">{fmtData(l.data)}</span>
+                                  <span className="text-3xs font-bold uppercase tracking-widest text-fg bg-card px-2 py-0.5 rounded-md">{l.categoria}</span>
+                                  <span className="text-xs font-medium text-fg">{fmtData(l.data)}</span>
                                </div>
                             </div>
                          </div>
@@ -237,7 +237,7 @@ export default function FluxoCaixaFintechPage() {
 
                             <button
                               onClick={() => remover(l.id)}
-                              className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-500 hover:text-white cursor-pointer"
+                              className="w-10 h-10 rounded-xl bg-white text-slate-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-500 hover:text-white cursor-pointer"
                               title="Remover lançamento"
                             >
                                <Trash2 size={16} />

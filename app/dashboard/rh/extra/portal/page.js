@@ -75,7 +75,7 @@ export default function EditarPortalExtras() {
     setTimeout(() => setLinkCopiado(false), 2500);
   };
 
-  const rotulo = "text-xs font-black uppercase tracking-widest text-muted";
+  const rotulo = "text-xs font-black uppercase tracking-widest text-fg";
   const campo = "mt-1.5 w-full rounded-xl border border-slate-300 bg-card p-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600";
 
   if (carregando) return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-success" size={30} /></div>;
@@ -84,10 +84,10 @@ export default function EditarPortalExtras() {
     <div className="min-h-screen bg-[var(--surface)] pb-28">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Editar portal de prestadores</h1>
-            <p className="text-xs font-bold text-muted">Textos, funções e perguntas do link público</p>
+            <p className="text-xs font-bold text-fg">Textos, funções e perguntas do link público</p>
           </div>
           <button onClick={copiarLink} className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             {linkCopiado ? <><Check size={17} /> Copiado</> : <><Copy size={17} /> Copiar link</>}
@@ -101,7 +101,7 @@ export default function EditarPortalExtras() {
 
       <main className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-fg">Selecione uma unidade específica.</div>
         ) : (
           <>
             {/* Textos */}
@@ -129,7 +129,7 @@ export default function EditarPortalExtras() {
             {/* Funções */}
             <section className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
               <p className="text-xs font-bold uppercase tracking-widest text-accent">Funções oferecidas</p>
-              <p className="mb-3 mt-1 text-sm font-medium text-muted">
+              <p className="mb-3 mt-1 text-sm font-medium text-fg">
                 O candidato escolhe uma principal e, se quiser, uma segunda. A principal vira a categoria no seu banco.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -156,7 +156,7 @@ export default function EditarPortalExtras() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-accent">Perguntas do cadastro</p>
-                  <p className="mt-1 text-sm font-medium text-muted">Cada pergunta precisa de pelo menos duas opções.</p>
+                  <p className="mt-1 text-sm font-medium text-fg">Cada pergunta precisa de pelo menos duas opções.</p>
                 </div>
                 <button onClick={addPergunta} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-card px-3.5 font-black text-accent-strong hover:bg-accent-soft">
                   <Plus size={17} /> Pergunta
@@ -190,7 +190,7 @@ export default function EditarPortalExtras() {
                   </div>
                 ))}
                 {config.perguntas.length === 0 && (
-                  <p className="rounded-xl bg-slate-50 p-4 text-sm font-bold text-muted">Sem perguntas: o cadastro fica só com os dados básicos.</p>
+                  <p className="rounded-xl bg-white p-4 text-sm font-bold text-fg">Sem perguntas: o cadastro fica só com os dados básicos.</p>
                 )}
               </div>
             </section>
@@ -204,7 +204,7 @@ export default function EditarPortalExtras() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 backdrop-blur sm:p-4"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto flex max-w-3xl gap-3">
-          <button onClick={() => router.push("/dashboard/rh/extra")} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Voltar</button>
+          <button onClick={() => router.push("/dashboard/rh/extra")} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-900 hover:bg-white">Voltar</button>
           <button onClick={salvar} disabled={salvando || !config.funcoes.length}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
             {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : <><Save size={18} /> Salvar portal</>}

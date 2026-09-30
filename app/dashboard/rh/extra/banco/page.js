@@ -120,10 +120,10 @@ export default function BancoDeExtras() {
     <div className="min-h-screen bg-[var(--surface)] pb-20">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Banco de extras</h1>
-            <p className="text-xs font-bold text-muted">Quem se cadastrou pelo link público</p>
+            <p className="text-xs font-bold text-fg">Quem se cadastrou pelo link público</p>
           </div>
           <button onClick={copiarLink} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">
             {linkCopiado ? <><Check size={18} /> Link copiado</> : <><Copy size={18} /> Copiar link</>}
@@ -155,14 +155,14 @@ export default function BancoDeExtras() {
         {aviso && <p className="rounded-xl border border-emerald-200 bg-accent-soft px-4 py-3 text-sm font-bold text-accent-strong">{aviso}</p>}
 
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-fg">Selecione uma unidade específica.</div>
         ) : carregando ? (
           <div className="grid min-h-52 place-items-center"><Loader2 className="animate-spin text-success" size={30} /></div>
         ) : filtrados.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <UsersRound className="mx-auto text-dim" size={42} />
             <p className="mt-3 font-black text-fg-soft">Nenhum cadastro por aqui</p>
-            <p className="mt-1 text-sm text-muted">Mande o link de cadastro no WhatsApp para começar a formar seu banco.</p>
+            <p className="mt-1 text-sm text-fg">Mande o link de cadastro no WhatsApp para começar a formar seu banco.</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -180,7 +180,7 @@ export default function BancoDeExtras() {
                   )}
                 </div>
 
-                <div className="mt-3 space-y-1.5 text-[13px] font-semibold text-slate-600">
+                <div className="mt-3 space-y-1.5 text-[13px] font-semibold text-slate-900">
                   <p className="flex items-center gap-1.5"><Phone size={14} className="text-subtle" /> {e.telefone}</p>
                   {(e.bairro || e.cidade) && <p className="flex items-center gap-1.5"><MapPin size={14} className="text-subtle" /> {[e.bairro, e.cidade].filter(Boolean).join(" · ")}</p>}
                   {Array.isArray(e.dias_disponiveis) && e.dias_disponiveis.length > 0 && (
@@ -190,15 +190,15 @@ export default function BancoDeExtras() {
                   {Number(e.valor_diaria_pretendido) > 0 && <p>Diária pretendida: <b className="text-slate-800">{moeda(e.valor_diaria_pretendido)}</b></p>}
                 </div>
 
-                {e.experiencia && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-[13px] font-medium text-slate-600 line-clamp-3">{e.experiencia}</p>}
+                {e.experiencia && <p className="mt-3 rounded-xl bg-white p-3 text-[13px] font-medium text-slate-900 line-clamp-3">{e.experiencia}</p>}
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <a href={`https://wa.me/55${String(e.telefone).replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
-                    className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-card px-3 text-sm font-black text-fg-soft hover:bg-slate-50">
+                    className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-card px-3 text-sm font-black text-fg-soft hover:bg-white">
                     <Phone size={15} /> WhatsApp
                   </a>
                   <button onClick={() => setEditando({ ...e })} title="Corrigir dados"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-muted hover:bg-slate-50"><Pencil size={16} /></button>
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-fg hover:bg-white"><Pencil size={16} /></button>
                   {e.status === "novo" && (
                     <>
                       <button onClick={() => aprovar(e)} disabled={aprovando === e.id}
@@ -206,7 +206,7 @@ export default function BancoDeExtras() {
                         {aprovando === e.id ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />} Cadastrar
                       </button>
                       <button onClick={() => arquivar(e)} title="Arquivar"
-                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-muted hover:bg-slate-50">
+                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-fg hover:bg-white">
                         <Archive size={16} />
                       </button>
                     </>
@@ -231,37 +231,37 @@ export default function BancoDeExtras() {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-fg">Corrigir cadastro</h2>
-                <p className="text-sm text-muted">Ajuste antes de cadastrar como extra.</p>
+                <p className="text-sm text-fg">Ajuste antes de cadastrar como extra.</p>
               </div>
-              <button onClick={() => setEditando(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-elevated text-muted"><X size={18} /></button>
+              <button onClick={() => setEditando(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-card text-fg"><X size={18} /></button>
             </div>
 
             <div className="space-y-4">
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-muted">Nome</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-fg">Nome</span>
                 <input value={editando.nome || ""} onChange={ev => setEditando(v => ({ ...v, nome: ev.target.value }))}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Telefone</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Telefone</span>
                   <input value={editando.telefone || ""} onChange={ev => setEditando(v => ({ ...v, telefone: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Diária combinada (R$)</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Diária combinada (R$)</span>
                   <input type="number" step="0.01" value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-accent outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Função principal</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Função principal</span>
                   <select value={editando.funcao_principal || ""} onChange={ev => setEditando(v => ({ ...v, funcao_principal: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-fg-soft outline-none focus:border-emerald-600">
                     {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Segunda função</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Segunda função</span>
                   <select value={editando.funcao_secundaria || ""} onChange={ev => setEditando(v => ({ ...v, funcao_secundaria: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-fg-soft outline-none focus:border-emerald-600">
                     <option value="">Nenhuma</option>
@@ -269,23 +269,23 @@ export default function BancoDeExtras() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Bairro</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Bairro</span>
                   <input value={editando.bairro || ""} onChange={ev => setEditando(v => ({ ...v, bairro: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted">Cidade</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Cidade</span>
                   <input value={editando.cidade || ""} onChange={ev => setEditando(v => ({ ...v, cidade: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
               </div>
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-muted">Chave PIX</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-fg">Chave PIX</span>
                 <input value={editando.chave_pix || ""} onChange={ev => setEditando(v => ({ ...v, chave_pix: ev.target.value }))}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
               </label>
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-muted">Observações do RH</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-fg">Observações do RH</span>
                 <textarea rows={3} value={editando.observacoes || ""} onChange={ev => setEditando(v => ({ ...v, observacoes: ev.target.value }))}
                   className="mt-1.5 w-full rounded-xl border border-slate-300 p-3.5 font-medium text-slate-800 outline-none focus:border-emerald-600"
                   placeholder="Só o RH vê." />

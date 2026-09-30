@@ -110,9 +110,9 @@ function EtiquetasSalvas({ unidadeAtiva }) {
           <div className="bg-card rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-slate-800">Como aparece no {aparelho}</h3>
-              <button onClick={() => setSim(null)} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-muted"><X size={16} /></button>
+              <button onClick={() => setSim(null)} className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-fg"><X size={16} /></button>
             </div>
-            <div className="flex gap-1 p-1 rounded-xl bg-elevated mb-4 w-max mx-auto">
+            <div className="flex gap-1 p-1 rounded-xl bg-card mb-4 w-max mx-auto">
               {[["telefone", "Telefone", Smartphone], ["tablet", "Tablet", Tablet]].map(([v, l, Ic]) => (
                 <button key={v} onClick={() => setAparelho(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
                   style={aparelho === v ? { background: "#fff", color: "#0f172a", boxShadow: "0 1px 2px rgba(0,0,0,.12)" } : { color: "#64748b" }}>
@@ -1079,7 +1079,7 @@ function EtiquetasRunner() {
                 ))}
               </div>
             </div>
-            <div className="flex justify-center overflow-auto p-4 bg-elevated rounded-2xl border border-line">
+            <div className="flex justify-center overflow-auto p-4 bg-card rounded-2xl border border-line">
               <div id="area-impressao" className="flex flex-col gap-4" style={{ width: dim.paginaW }}>
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (
                   modelo === "nome" ? (
@@ -1305,7 +1305,7 @@ function EtiquetasUnificadas() {
   if (searchParams.get("gestao") === "1") return <EtiquetasRunner />;
   // Tela cheia por cima da barra do app: sem este respiro o "voltar" encosta na
   // barra de status do celular. Mesmo tratamento das rotas /tablet no layout.
-  return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"
+  return <div className="fixed inset-0 z-[200] overflow-auto bg-white"
     style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><EtiquetasRapidas /></div>;
 }
 

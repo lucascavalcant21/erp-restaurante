@@ -11,7 +11,7 @@ export default function SalaoHubPage() {
       
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-6xl mx-auto flex items-center gap-3 sm:gap-4">
-         <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-2xl sm:rounded-3xl bg-elevated text-slate-800 flex items-center justify-center shadow-inner">
+         <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-2xl sm:rounded-3xl bg-card text-slate-800 flex items-center justify-center shadow-inner">
             <Store size={32} />
          </div>
          <div>
@@ -34,7 +34,7 @@ export default function SalaoHubPage() {
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/rotina?dept=salao&tipo=operacional")} className="rounded-[32px] p-6 sm:p-10 bg-card border-2 border-line hover:border-slate-400 transition-all shadow-sm flex flex-col justify-between group text-left min-h-56 sm:h-64">
-            <div className="w-16 h-16 rounded-2xl bg-elevated text-slate-800 flex items-center justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-card text-slate-800 flex items-center justify-center mb-6">
                <CheckSquare size={32} />
             </div>
             <div>
@@ -44,7 +44,7 @@ export default function SalaoHubPage() {
          </button>
 
          <button onClick={() => router.push("/dashboard/salao/treinamento")} className="rounded-[32px] p-6 sm:p-10 bg-card border-2 border-line hover:border-slate-400 transition-all shadow-sm flex flex-col justify-between group text-left min-h-56 sm:h-64">
-            <div className="w-16 h-16 rounded-2xl bg-elevated text-slate-800 flex items-center justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-card text-slate-800 flex items-center justify-center mb-6">
                <GraduationCap size={32} />
             </div>
             <div>

@@ -806,18 +806,18 @@ export default function SaloesMesasPage() {
   // ==========================================
   // RENDERS
   // ==========================================
-  if (loading) return <div className="p-6 flex justify-center text-muted font-bold">Carregando Frente de Loja...</div>;
+  if (loading) return <div className="p-6 flex justify-center text-fg font-bold">Carregando Frente de Loja...</div>;
 
   // --- BLOQUEADO SE CAIXA FECHADO ---
   if (!caixa) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-elevated min-h-[calc(100vh-72px)] p-6">
+      <div className="flex-1 flex items-center justify-center bg-card min-h-[calc(100vh-72px)] p-6">
         <div className="max-w-md w-full bg-card rounded-3xl p-5 sm:p-8 shadow-2xl text-center border border-line-soft">
            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
              <Lock size={32} className="text-emerald-500" />
            </div>
            <h2 className="text-2xl font-black text-slate-800 mb-2">Caixa Principal Fechado</h2>
-           <p className="text-muted font-medium mb-8">Para atender mesas ou vender no balcão, você precisa abrir o turno declarando o fundo de gaveta.</p>
+           <p className="text-fg font-medium mb-8">Para atender mesas ou vender no balcão, você precisa abrir o turno declarando o fundo de gaveta.</p>
            
            {!modalAbrir ? (
              <button onClick={() => setModalAbrir(true)} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 transition-transform shadow-lg">
@@ -826,12 +826,12 @@ export default function SaloesMesasPage() {
            ) : (
              <form onSubmit={handleAbrirCaixa} className="text-left animate-in fade-in">
                 <div className="mb-4">
-                   <label className="block text-xs font-bold text-muted uppercase mb-2">Fundo Inicial (Em Gaveta)</label>
+                   <label className="block text-xs font-bold text-fg uppercase mb-2">Fundo Inicial (Em Gaveta)</label>
                    <input type="number" step="0.01" required min="0" value={fundoCaixa} onChange={e => setFundoCaixa(e.target.value)}
-                     className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0.00" autoFocus />
+                     className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0.00" autoFocus />
                 </div>
                 <div className="flex gap-3 mt-6">
-                   <button type="button" onClick={() => setModalAbrir(false)} className="flex-1 py-3 text-muted font-bold hover:bg-elevated rounded-xl">Voltar</button>
+                   <button type="button" onClick={() => setModalAbrir(false)} className="flex-1 py-3 text-fg font-bold hover:bg-card rounded-xl">Voltar</button>
                    <button type="submit" disabled={processando} className="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl shadow-md">Confirmar</button>
                 </div>
              </form>
@@ -843,7 +843,7 @@ export default function SaloesMesasPage() {
 
   // --- CAIXA ABERTO ---
   return (
-    <div className="flex flex-col h-[calc(100dvh-72px)] bg-elevated overflow-hidden font-sans">
+    <div className="flex flex-col h-[calc(100dvh-72px)] bg-card overflow-hidden font-sans">
       
       {/* BANNER DE ALERTA — PEDIDO NOVO VIA QR CODE */}
       {showAlertaOnline && pedidosOnline.length > 0 && (
@@ -946,20 +946,20 @@ export default function SaloesMesasPage() {
             <>
                {/* SIDEBAR ESQUERDA: DETALHES DA CONTA */}
                <div className="w-full lg:w-[320px] h-[42%] lg:h-auto bg-card border-b lg:border-b-0 lg:border-r border-line shadow-xl flex flex-col shrink-0 z-20">
-                  <div className="px-5 py-4 bg-slate-50 border-b border-line flex flex-col gap-1">
+                  <div className="px-5 py-4 bg-white border-b border-line flex flex-col gap-1">
                      <div className="flex justify-between items-start">
                         <span className="font-bold text-fg-soft text-lg">Ident: <span className="font-normal">{pedidoAtivo.identificacao || 'Sem Ident'}</span></span>
                         <span className="font-black text-slate-800 text-xl">{fmtBRL(pedidoAtivo.pedidos_itens?.reduce((a,i)=>a+(i.quantidade*i.valor_unitario),0)||0)}</span>
                      </div>
-                     <span className="font-bold text-slate-600 text-sm">Comanda: {pedidoAtivo.id.substring(0,6).toUpperCase()}</span>
+                     <span className="font-bold text-slate-900 text-sm">Comanda: {pedidoAtivo.id.substring(0,6).toUpperCase()}</span>
                      <div className="flex gap-4 mt-2">
-                        <span className="font-bold text-slate-600 text-sm flex items-center gap-1"><Utensils size={14}/> Mesa: {mesaAtiva.numero_mesa}</span>
+                        <span className="font-bold text-slate-900 text-sm flex items-center gap-1"><Utensils size={14}/> Mesa: {mesaAtiva.numero_mesa}</span>
                      </div>
-                     <span className="text-xs text-muted font-bold mt-1">Garçom: {garcons.find(g => g.id === pedidoAtivo.garcom_id)?.nome || 'Sem garçom'}</span>
+                     <span className="text-xs text-fg font-bold mt-1">Garçom: {garcons.find(g => g.id === pedidoAtivo.garcom_id)?.nome || 'Sem garçom'}</span>
                   </div>
                   
-                  <div className="flex-1 overflow-y-auto p-3 bg-slate-50/50 custom-scrollbar space-y-1">
-                     <h3 className="font-bold text-muted text-xs uppercase tracking-widest mb-3 px-2 mt-2">Itens não enviados</h3>
+                  <div className="flex-1 overflow-y-auto p-3 bg-white/50 custom-scrollbar space-y-1">
+                     <h3 className="font-bold text-fg text-xs uppercase tracking-widest mb-3 px-2 mt-2">Itens não enviados</h3>
                      {pedidoAtivo.pedidos_itens?.length === 0 && <p className="text-center text-subtle text-sm font-bold pt-4">Nenhum item novo adicionado</p>}
                      {pedidoAtivo.pedidos_itens?.map(it => (
                         <div key={it.id} className="flex flex-col bg-card p-2 rounded border border-line shadow-sm mb-1">
@@ -967,7 +967,7 @@ export default function SaloesMesasPage() {
                               <span className="font-bold text-fg-soft text-sm">{it.quantidade}x {it.produtos?.nome_produto}</span>
                               <span className="font-black text-slate-800 text-sm">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
                            </div>
-                           {it.observacao && <span className="text-3xs text-muted mt-1 uppercase font-bold">Obs: {it.observacao}</span>}
+                           {it.observacao && <span className="text-3xs text-fg mt-1 uppercase font-bold">Obs: {it.observacao}</span>}
                         </div>
                      ))}
                   </div>
@@ -977,9 +977,9 @@ export default function SaloesMesasPage() {
                         <Send size={16}/> Enviar para a Cozinha
                      </button>
                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
-                        <button onClick={() => setModalTransferir(true)} className="py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
-                        <button onClick={imprimirPreConta} className="py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
+                        <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
+                        <button onClick={() => setModalTransferir(true)} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
+                        <button onClick={imprimirPreConta} className="py-3 bg-card hover:bg-slate-200 text-fg-soft font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
                         <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-accent text-accent-fg font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
                      </div>
                   </div>
@@ -991,9 +991,9 @@ export default function SaloesMesasPage() {
                   <div className="p-3 bg-card border-b border-line flex gap-2">
                      <div className="flex-1 relative">
                         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-subtle" />
-                        <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-slate-50 border border-line rounded font-normal outline-none text-fg-soft" />
+                        <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-white border border-line rounded font-normal outline-none text-fg-soft" />
                      </div>
-                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-bold text-2xs uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-elevated text-muted hover:bg-slate-200'}`}>
+                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-bold text-2xs uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-card text-fg hover:bg-slate-200'}`}>
                         <ShoppingBag size={14}/> {modoViagem ? 'Viagem: ON' : 'Viagem: OFF'}
                      </button>
                   </div>
@@ -1001,7 +1001,7 @@ export default function SaloesMesasPage() {
                   <div className="px-3 py-2 bg-card flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10 border-b border-line">
                      {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
                         <button key={cat} onClick={() => setFiltroCategoria(cat)}
-                           className={`px-4 py-2.5 rounded-lg text-2xs font-bold uppercase whitespace-nowrap transition-all ${filtroCategoria === cat ? 'bg-emerald-500 text-white shadow-sm' : 'bg-elevated text-slate-600 hover:bg-slate-200'}`}>
+                           className={`px-4 py-2.5 rounded-lg text-2xs font-bold uppercase whitespace-nowrap transition-all ${filtroCategoria === cat ? 'bg-emerald-500 text-white shadow-sm' : 'bg-card text-slate-900 hover:bg-slate-200'}`}>
                            {cat}
                         </button>
                      ))}
@@ -1030,7 +1030,7 @@ export default function SaloesMesasPage() {
             // ==========================================
             <>
                {/* LADO ESQUERDO (AÇÃO: MESAS ou GRID PRODUTOS BALCÃO) */}
-               <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
+               <div className="flex-1 flex flex-col overflow-hidden bg-white relative">
                   
                   {abaAtiva === 'salao' && (
                      <div className="flex w-full h-full">
@@ -1044,8 +1044,8 @@ export default function SaloesMesasPage() {
                         <div className="flex-1 flex flex-col h-full overflow-hidden">
                             <div className="bg-card border-b border-line shrink-0 z-10 flex flex-col md:flex-row md:items-center p-2 gap-2 md:gap-4">
                            <div className="flex gap-2 w-full sm:w-auto">
-                              <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-slate-50 border border-line text-fg-soft outline-none focus:border-blue-500 rounded" />
-                              <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-slate-50 border border-line text-fg-soft outline-none focus:border-blue-500 rounded" />
+                              <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-white border border-line text-fg-soft outline-none focus:border-blue-500 rounded" />
+                              <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-white border border-line text-fg-soft outline-none focus:border-blue-500 rounded" />
                            </div>
                            
                             <div className="flex items-center gap-2 sm:gap-4 text-3xs sm:text-xs font-bold text-subtle flex-wrap">
@@ -1055,14 +1055,14 @@ export default function SaloesMesasPage() {
                            </div>
 
                             <div className="hidden md:block flex-1"></div>
-                           <button onClick={() => setModalGestaoMesas(true)} className="px-4 py-1.5 bg-elevated hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors rounded"><Settings size={14} className="inline mr-1"/> Config. Mesas</button>
-                           <button onClick={() => setModalGestaoGarcons(true)} className="px-4 py-1.5 bg-elevated hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors rounded"><Users size={14} className="inline mr-1"/> Garçons</button>
+                           <button onClick={() => setModalGestaoMesas(true)} className="px-4 py-1.5 bg-card hover:bg-slate-200 text-slate-900 font-bold text-xs transition-colors rounded"><Settings size={14} className="inline mr-1"/> Config. Mesas</button>
+                           <button onClick={() => setModalGestaoGarcons(true)} className="px-4 py-1.5 bg-card hover:bg-slate-200 text-slate-900 font-bold text-xs transition-colors rounded"><Users size={14} className="inline mr-1"/> Garçons</button>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto p-2 bg-[#F1F5F9] custom-scrollbar">
                            {mesas.length === 0 ? (
                               <div className="text-center py-10">
-                                 <p className="text-muted font-bold mb-4">Nenhuma mesa cadastrada no salão.</p>
+                                 <p className="text-fg font-bold mb-4">Nenhuma mesa cadastrada no salão.</p>
                                  <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
                               </div>
                            ) : (
@@ -1093,14 +1093,14 @@ export default function SaloesMesasPage() {
                         <div className="p-4 bg-card border-b border-line shrink-0 z-10 flex gap-3">
                            <div className="flex-1 relative">
                               <Barcode size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-subtle" />
-                              <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} onKeyDown={checkBipeBusca} placeholder="Bipar código de barras ou buscar nome..." className="w-full pl-12 pr-4 py-3 bg-elevated border-none rounded-xl font-bold outline-none" />
+                              <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} onKeyDown={checkBipeBusca} placeholder="Bipar código de barras ou buscar nome..." className="w-full pl-12 pr-4 py-3 bg-card border-none rounded-xl font-bold outline-none" />
                            </div>
                         </div>
 
                         <div className="px-4 py-2 bg-card border-b border-line flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10">
                            {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
                               <button key={cat} onClick={() => setFiltroCategoria(cat)}
-                                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm border ${filtroCategoria === cat ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-card text-slate-600 border-line hover:border-emerald-300'}`}>
+                                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm border ${filtroCategoria === cat ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-card text-slate-900 border-line hover:border-emerald-300'}`}>
                                  {cat}
                               </button>
                            ))}
@@ -1129,7 +1129,7 @@ export default function SaloesMesasPage() {
                      <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
                         <h2 className="font-black text-emerald-800 flex items-center gap-2 uppercase"><ShoppingCart size={18}/> Cupom {abaAtiva}</h2>
                      </div>
-                     <div className="flex-1 overflow-y-auto p-3 bg-slate-50/30 custom-scrollbar space-y-2">
+                     <div className="flex-1 overflow-y-auto p-3 bg-white/30 custom-scrollbar space-y-2">
                         {carrinho.length === 0 ? (
                            <p className="text-center text-subtle text-sm font-bold py-10">Carrinho Vazio</p>
                         ) : carrinho.map(item => {
@@ -1146,7 +1146,7 @@ export default function SaloesMesasPage() {
                                     {item.modsSelecionados && item.modsSelecionados.length > 0 && (
                                        <div className="flex flex-wrap gap-1 mt-1">
                                           {item.modsSelecionados.map((m, idx) => (
-                                             <span key={idx} className="text-3xs bg-elevated text-muted px-1.5 py-0.5 rounded font-bold">
+                                             <span key={idx} className="text-3xs bg-card text-fg px-1.5 py-0.5 rounded font-bold">
                                                 + {m.nome}
                                              </span>
                                           ))}
@@ -1156,10 +1156,10 @@ export default function SaloesMesasPage() {
                                  <span className="font-black text-success text-sm">{fmtBRL(itemTotal)}</span>
                               </div>
                               <div className="flex justify-between items-center mt-1">
-                                 <div className="flex items-center gap-2 bg-elevated rounded-lg p-1">
-                                    <button onClick={() => alterarQtd(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center bg-card rounded-md shadow-sm text-slate-600 hover:text-red-500"><Minus size={12}/></button>
+                                 <div className="flex items-center gap-2 bg-card rounded-lg p-1">
+                                    <button onClick={() => alterarQtd(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center bg-card rounded-md shadow-sm text-slate-900 hover:text-red-500"><Minus size={12}/></button>
                                     <span className="font-bold text-fg-soft text-xs w-4 text-center">{item.quantidade}</span>
-                                    <button onClick={() => alterarQtd(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center bg-card rounded-md shadow-sm text-slate-600 hover:text-emerald-500"><Plus size={12}/></button>
+                                    <button onClick={() => alterarQtd(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center bg-card rounded-md shadow-sm text-slate-900 hover:text-emerald-500"><Plus size={12}/></button>
                                  </div>
                               </div>
                            </div>
@@ -1167,7 +1167,7 @@ export default function SaloesMesasPage() {
                      </div>
                      <div className="p-5 bg-card border-t border-line shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-10">
                         <div className="flex justify-between items-end mb-4">
-                           <span className="text-xs font-bold text-muted uppercase tracking-widest">Total a Receber</span>
+                           <span className="text-xs font-bold text-fg uppercase tracking-widest">Total a Receber</span>
                            <span className="text-3xl font-black text-emerald-500 tracking-tight">{fmtBRL(totalCarrinho)}</span>
                         </div>
                         <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-accent disabled:bg-slate-200 disabled:text-subtle disabled:shadow-none text-accent-fg font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
@@ -1191,9 +1191,9 @@ export default function SaloesMesasPage() {
                <div className="flex justify-between items-center mb-6">
                   <div>
                      <h2 className="text-2xl font-black text-slate-800">{prodModAtual.nome_produto}</h2>
-                     <p className="text-sm font-bold text-muted uppercase tracking-widest mt-1">Selecione os adicionais</p>
+                     <p className="text-sm font-bold text-fg uppercase tracking-widest mt-1">Selecione os adicionais</p>
                   </div>
-                  <button onClick={() => setModalMod(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalMod(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
                
                <div className="space-y-3 my-8 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
@@ -1207,7 +1207,7 @@ export default function SaloesMesasPage() {
                               </div>
                               <span className={`font-bold ${selecionado ? 'text-emerald-900' : 'text-fg-soft'}`}>{mod.nome}</span>
                            </div>
-                           <span className={`font-black ${selecionado ? 'text-accent' : 'text-muted'}`}>
+                           <span className={`font-black ${selecionado ? 'text-accent' : 'text-fg'}`}>
                               {mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}
                            </span>
                         </button>
@@ -1233,8 +1233,8 @@ export default function SaloesMesasPage() {
                
                <div className="space-y-4">
                   <div>
-                     <label className="block text-xs font-bold text-muted uppercase mb-2">Produto do Cardápio</label>
-                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-blue-500">
+                     <label className="block text-xs font-bold text-fg uppercase mb-2">Produto do Cardápio</label>
+                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">-- Selecione --</option>
                         {produtos.map(p => (
                            <option key={p.id} value={p.id}>{p.nome_produto} - {fmtBRL(p.preco_venda||p.preco||0)}</option>
@@ -1245,14 +1245,14 @@ export default function SaloesMesasPage() {
                   {/* Mostra Modificadores se o Produto Selecionado tiver */}
                   {produtoSel && produtos.find(p => p.id === produtoSel)?.modificadores?.length > 0 && (
                      <div>
-                        <label className="block text-xs font-bold text-muted uppercase mb-2">Adicionais</label>
+                        <label className="block text-xs font-bold text-fg uppercase mb-2">Adicionais</label>
                         <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
                            {produtos.find(p => p.id === produtoSel).modificadores.map((mod, i) => {
                               const selecionado = modsLancarMesa.find(m => m.nome === mod.nome);
                               return (
-                                 <button key={i} onClick={() => toggleModLancarMesa(mod)} className={`w-full flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selecionado ? 'border-emerald-500 bg-emerald-50' : 'border-line bg-slate-50'}`}>
+                                 <button key={i} onClick={() => toggleModLancarMesa(mod)} className={`w-full flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selecionado ? 'border-emerald-500 bg-emerald-50' : 'border-line bg-white'}`}>
                                     <span className={`font-bold text-sm ${selecionado ? 'text-emerald-900' : 'text-fg-soft'}`}>{mod.nome}</span>
-                                    <span className={`font-black text-sm ${selecionado ? 'text-accent' : 'text-muted'}`}>{mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}</span>
+                                    <span className={`font-black text-sm ${selecionado ? 'text-accent' : 'text-fg'}`}>{mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}</span>
                                  </button>
                               );
                            })}
@@ -1261,16 +1261,16 @@ export default function SaloesMesasPage() {
                   )}
 
                   <div>
-                     <label className="block text-xs font-bold text-muted uppercase mb-2">Quantidade</label>
-                     <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-blue-500" />
+                     <label className="block text-xs font-bold text-fg uppercase mb-2">Quantidade</label>
+                     <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div>
-                     <label className="block text-xs font-bold text-muted uppercase mb-2">Observação (Ex: Sem cebola)</label>
-                     <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-blue-500" placeholder="Opcional..." />
+                     <label className="block text-xs font-bold text-fg uppercase mb-2">Observação (Ex: Sem cebola)</label>
+                     <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-blue-500" placeholder="Opcional..." />
                      {observacoesPadrao.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                            {observacoesPadrao.map(o => (
-                              <button key={o.id} type="button" onClick={() => setObsLancamento(prev => prev ? prev + ', ' + o.texto : o.texto)} className="bg-elevated hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-3xs font-bold uppercase transition-colors shadow-sm">
+                              <button key={o.id} type="button" onClick={() => setObsLancamento(prev => prev ? prev + ', ' + o.texto : o.texto)} className="bg-card hover:bg-slate-200 text-slate-900 px-3 py-1.5 rounded-full text-3xs font-bold uppercase transition-colors shadow-sm">
                                  + {o.texto}
                               </button>
                            ))}
@@ -1280,7 +1280,7 @@ export default function SaloesMesasPage() {
                </div>
 
                <div className="mt-8 flex gap-3">
-                  <button type="button" onClick={() => setModalLancar(false)} className="flex-1 py-3 text-muted font-bold hover:bg-elevated rounded-xl">Cancelar</button>
+                  <button type="button" onClick={() => setModalLancar(false)} className="flex-1 py-3 text-fg font-bold hover:bg-card rounded-xl">Cancelar</button>
                   <button type="button" onClick={confirmarLancamentoMesa} disabled={processando} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-black py-3 rounded-xl shadow-md flex justify-center items-center gap-2">
                      <Send size={16}/> Enviar para Produção
                   </button>
@@ -1295,15 +1295,15 @@ export default function SaloesMesasPage() {
              <div className="bg-card rounded-[24px] sm:rounded-[32px] w-full max-w-4xl shadow-2xl flex flex-col md:flex-row overflow-y-auto md:overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[95vh]">
                
                {/* Lado Esquerdo: Identificação e Descontos */}
-               <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r border-line p-4 sm:p-6 overflow-y-visible md:overflow-y-auto custom-scrollbar">
+               <div className="w-full md:w-1/3 bg-white border-b md:border-b-0 md:border-r border-line p-4 sm:p-6 overflow-y-visible md:overflow-y-auto custom-scrollbar">
                   <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2"><Users size={18}/> Cliente na Nota</h3>
                   <div className="space-y-4 mb-8">
                      <div>
-                        <label className="block text-xs font-bold text-muted uppercase mb-1.5">CPF / CNPJ</label>
+                        <label className="block text-xs font-bold text-fg uppercase mb-1.5">CPF / CNPJ</label>
                         <input type="text" value={clienteCpf} onChange={e=>setClienteCpf(e.target.value)} placeholder="000.000.000-00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
                      </div>
                      <div>
-                        <label className="block text-xs font-bold text-muted uppercase mb-1.5">Nome Cliente</label>
+                        <label className="block text-xs font-bold text-fg uppercase mb-1.5">Nome Cliente</label>
                         <input type="text" value={clienteNome} onChange={e=>setClienteNome(e.target.value)} placeholder="Consumidor Final" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
                      </div>
                   </div>
@@ -1320,21 +1320,21 @@ export default function SaloesMesasPage() {
                      )}
                      <div className="grid grid-cols-2 gap-2">
                         <div>
-                           <label className="block text-3xs font-bold text-muted uppercase mb-1">Desc %</label>
-                           <input type="number" value={descontoPerc} onChange={e=>setDescontoPerc(e.target.value)} placeholder="0%" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-elevated" disabled={cupomAplicado} />
+                           <label className="block text-3xs font-bold text-fg uppercase mb-1">Desc %</label>
+                           <input type="number" value={descontoPerc} onChange={e=>setDescontoPerc(e.target.value)} placeholder="0%" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-card" disabled={cupomAplicado} />
                         </div>
                         <div>
-                           <label className="block text-3xs font-bold text-muted uppercase mb-1">Desc R$</label>
-                           <input type="number" step="0.01" value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-elevated" disabled={cupomAplicado} />
+                           <label className="block text-3xs font-bold text-fg uppercase mb-1">Desc R$</label>
+                           <input type="number" step="0.01" value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-card" disabled={cupomAplicado} />
                         </div>
                      </div>
                      <div>
-                        <label className="block text-3xs font-bold text-muted uppercase mb-1">Taxas Extras (Serviço, Entrega)</label>
+                        <label className="block text-3xs font-bold text-fg uppercase mb-1">Taxas Extras (Serviço, Entrega)</label>
                         <input type="number" step="0.01" value={taxaExtra} onChange={e=>setTaxaExtra(e.target.value)} placeholder="R$ 0.00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
                      </div>
 
                      <div className="pt-2 border-t border-line">
-                        <label className="block text-xs font-bold text-muted uppercase mb-1.5"><Tag size={12} className="inline mr-1"/> Cupom de Desconto</label>
+                        <label className="block text-xs font-bold text-fg uppercase mb-1.5"><Tag size={12} className="inline mr-1"/> Cupom de Desconto</label>
                         {cupomAplicado ? (
                            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
                               <span className="font-bold text-emerald-800 text-sm">{cupomAplicado.codigo} aplicado! (-{cupomAplicado.tipo === 'percentual' ? cupomAplicado.valor+'%' : fmtBRL(cupomAplicado.valor)})</span>
@@ -1355,7 +1355,7 @@ export default function SaloesMesasPage() {
                   
                   <div className="flex items-center justify-between gap-3 mb-5 sm:mb-8 pb-4 border-b border-line-soft">
                      <h2 className="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2"><CreditCard className="text-blue-500"/> Fechar Pagamento</h2>
-                     <button onClick={() => setModalPagamento(false)} className="text-subtle hover:text-slate-600 font-bold uppercase text-sm">Cancelar</button>
+                     <button onClick={() => setModalPagamento(false)} className="text-subtle hover:text-slate-900 font-bold uppercase text-sm">Cancelar</button>
                   </div>
 
                   <div className="flex justify-between items-center bg-slate-800 text-white rounded-2xl p-5 mb-6 shadow-md">
@@ -1372,35 +1372,35 @@ export default function SaloesMesasPage() {
                      </div>
                   </div>
 
-                  <div className="bg-slate-50 p-4 rounded-xl border border-line mb-6 flex items-center justify-between shadow-inner">
+                  <div className="bg-white p-4 rounded-xl border border-line mb-6 flex items-center justify-between shadow-inner">
                      <div className="flex items-center gap-3">
                         <div className="bg-card p-2 rounded-lg shadow-sm">
                            <Users className="text-blue-500" size={20} />
                         </div>
                         <div>
-                           <label className="block text-3xs font-bold text-muted uppercase">Dividir Conta Por:</label>
+                           <label className="block text-3xs font-bold text-fg uppercase">Dividir Conta Por:</label>
                            <div className="flex items-center gap-2 mt-1">
-                              <button onClick={() => setQuantidadePessoas(Math.max(1, quantidadePessoas - 1))} className="w-7 h-7 bg-card border border-slate-300 rounded-md text-slate-600 font-bold flex items-center justify-center hover:bg-elevated transition-colors">-</button>
+                              <button onClick={() => setQuantidadePessoas(Math.max(1, quantidadePessoas - 1))} className="w-7 h-7 bg-card border border-slate-300 rounded-md text-slate-900 font-bold flex items-center justify-center hover:bg-card transition-colors">-</button>
                               <span className="font-black text-fg-soft w-6 text-center text-lg">{quantidadePessoas}</span>
-                              <button onClick={() => setQuantidadePessoas(quantidadePessoas + 1)} className="w-7 h-7 bg-card border border-slate-300 rounded-md text-slate-600 font-bold flex items-center justify-center hover:bg-elevated transition-colors">+</button>
+                              <button onClick={() => setQuantidadePessoas(quantidadePessoas + 1)} className="w-7 h-7 bg-card border border-slate-300 rounded-md text-slate-900 font-bold flex items-center justify-center hover:bg-card transition-colors">+</button>
                            </div>
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="text-3xs font-bold text-muted uppercase">Total por Pessoa</p>
+                        <p className="text-3xs font-bold text-fg uppercase">Total por Pessoa</p>
                         <span className="text-2xl font-black text-blue-600 tracking-tight">{fmtBRL(valorTotalFinal / Math.max(1, quantidadePessoas))}</span>
                      </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-2">
                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-slate-600 text-sm uppercase tracking-widest flex items-center gap-2"><SplitSquareHorizontal size={16}/> Formas de Pagamento</h3>
+                        <h3 className="font-bold text-slate-900 text-sm uppercase tracking-widest flex items-center gap-2"><SplitSquareHorizontal size={16}/> Formas de Pagamento</h3>
                         <button onClick={() => setPagamentos([...pagamentos, { id: Date.now(), forma: 'pix', valor: 0 }])} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">+ Forma Adicional</button>
                      </div>
 
                      <div className="space-y-3">
                         {pagamentos.map((p) => (
-                            <div key={p.id} className="flex flex-col sm:flex-row gap-3 sm:items-center bg-slate-50 p-3 rounded-xl border border-line">
+                            <div key={p.id} className="flex flex-col sm:flex-row gap-3 sm:items-center bg-white p-3 rounded-xl border border-line">
                               <select value={p.forma} onChange={e => {
                                   const n = [...pagamentos];
                                   n.find(x=>x.id===p.id).forma = e.target.value;
@@ -1437,7 +1437,7 @@ export default function SaloesMesasPage() {
                   </div>
 
                   <div className="pt-6 shrink-0 mt-4 border-t border-line-soft space-y-4">
-                     <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-3 rounded-xl border border-line hover:bg-elevated transition-colors">
+                     <label className="flex items-center gap-2 cursor-pointer bg-white p-3 rounded-xl border border-line hover:bg-card transition-colors">
                         <input type="checkbox" checked={emitirNFCe} onChange={e => setEmitirNFCe(e.target.checked)} className="w-5 h-5 accent-emerald-600 cursor-pointer"/>
                         <span className="font-bold text-fg-soft">Emitir Cupom Fiscal (NFC-e / SAT)</span>
                      </label>
@@ -1482,7 +1482,7 @@ export default function SaloesMesasPage() {
                {/* Totais */}
                <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-xs space-y-1">
                   <div className="flex justify-between"><span>Subtotal:</span><span>{fmtBRL(dadosRecibo.subtotal)}</span></div>
-                  {dadosRecibo.desconto > 0 && <div className="flex justify-between text-muted"><span>Desconto:</span><span>- {fmtBRL(dadosRecibo.desconto)}</span></div>}
+                  {dadosRecibo.desconto > 0 && <div className="flex justify-between text-fg"><span>Desconto:</span><span>- {fmtBRL(dadosRecibo.desconto)}</span></div>}
                   {dadosRecibo.taxa > 0 && <div className="flex justify-between"><span>Taxas:</span><span>+ {fmtBRL(dadosRecibo.taxa)}</span></div>}
                   <div className="flex justify-between font-black text-sm pt-1 border-t border-line mt-1"><span>TOTAL:</span><span>{fmtBRL(dadosRecibo.total)}</span></div>
                </div>
@@ -1514,7 +1514,7 @@ export default function SaloesMesasPage() {
                <div className="flex gap-2 mt-6">
                   <button
                      onClick={() => setModalRecibo(false)}
-                     className="flex-1 bg-elevated text-fg-soft font-bold py-3 rounded-xl"
+                     className="flex-1 bg-card text-fg-soft font-bold py-3 rounded-xl"
                   >
                      Fechar
                   </button>
@@ -1539,15 +1539,15 @@ export default function SaloesMesasPage() {
                </h2>
                <form onSubmit={handleMovimentacao}>
                   <div className="mb-4">
-                     <label className="block text-xs font-bold text-muted uppercase mb-2">Valor (R$)</label>
-                     <input type="number" step="0.01" required value={valorMov} onChange={e => setValorMov(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-bold" autoFocus />
+                     <label className="block text-xs font-bold text-fg uppercase mb-2">Valor (R$)</label>
+                     <input type="number" step="0.01" required value={valorMov} onChange={e => setValorMov(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold" autoFocus />
                   </div>
                   <div className="mb-6">
-                     <label className="block text-xs font-bold text-muted uppercase mb-2">Motivo / Descrição</label>
-                     <input type="text" required value={descMov} onChange={e => setDescMov(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-medium" />
+                     <label className="block text-xs font-bold text-fg uppercase mb-2">Motivo / Descrição</label>
+                     <input type="text" required value={descMov} onChange={e => setDescMov(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium" />
                   </div>
                   <div className="flex gap-3">
-                     <button type="button" onClick={() => setModalMov(false)} className="flex-1 py-3 text-muted font-bold hover:bg-elevated rounded-xl">Cancelar</button>
+                     <button type="button" onClick={() => setModalMov(false)} className="flex-1 py-3 text-fg font-bold hover:bg-card rounded-xl">Cancelar</button>
                      <button type="submit" disabled={processando} className={`flex-1 text-white font-black py-3 rounded-xl ${tipoMov === 'sangria' ? 'bg-orange-500' : 'bg-blue-500'}`}>Confirmar</button>
                   </div>
                </form>
@@ -1561,22 +1561,22 @@ export default function SaloesMesasPage() {
             <div className="bg-card rounded-3xl p-6 w-full max-w-md shadow-2xl">
                <h2 className="text-xl font-black text-slate-800 mb-6 border-b pb-4">Leitura Z (Fim de Turno)</h2>
                <div className="space-y-4 mb-6">
-                  <div className="bg-slate-50 rounded-xl p-4">
-                     <p className="text-xs font-bold text-muted uppercase mb-2">Gaveta Física</p>
+                  <div className="bg-white rounded-xl p-4">
+                     <p className="text-xs font-bold text-fg uppercase mb-2">Gaveta Física</p>
                      <div className="flex justify-between text-sm"><span>Fundo</span><span>{fmtBRL(resumoZ.fundo_inicial)}</span></div>
                      <div className="flex justify-between text-sm text-blue-600"><span>Suprimento</span><span>{fmtBRL(resumoZ.suprimentos)}</span></div>
                      <div className="flex justify-between text-sm text-orange-600"><span>Sangria</span><span>- {fmtBRL(resumoZ.sangrias)}</span></div>
                      <div className="flex justify-between text-sm text-success"><span>Vendas em Dinheiro</span><span>{fmtBRL(resumoZ.vendas_dinheiro)}</span></div>
                      <div className="flex justify-between font-black mt-2 pt-2 border-t"><span>Total Esperado:</span><span>{fmtBRL(resumoZ.esperado_gaveta)}</span></div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                     <p className="text-xs font-bold text-muted uppercase mb-2">Cartões e Outros</p>
+                  <div className="bg-white rounded-xl p-4">
+                     <p className="text-xs font-bold text-fg uppercase mb-2">Cartões e Outros</p>
                      <div className="flex justify-between text-sm"><span>PIX</span><span>{fmtBRL(resumoZ.vendas_pix)}</span></div>
                      <div className="flex justify-between text-sm"><span>Cartões</span><span>{fmtBRL(resumoZ.vendas_cartao)}</span></div>
                   </div>
                </div>
                <div className="flex gap-2">
-                  <button onClick={() => setModalFechamento(false)} className="px-4 py-3 bg-elevated font-bold rounded-xl text-muted">Voltar</button>
+                  <button onClick={() => setModalFechamento(false)} className="px-4 py-3 bg-card font-bold rounded-xl text-fg">Voltar</button>
                   <button onClick={confirmarFechamento} className="flex-1 bg-red-500 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
                      <Lock size={18}/> TRAVAR CAIXA
                   </button>
@@ -1602,13 +1602,13 @@ export default function SaloesMesasPage() {
                      else { setNovoGarcomNome(""); const { data } = await fetchGarcons(unidadeAtiva); setGarcons(data); }
                      setProcessando(false);
                   }} className="flex flex-col gap-3 mb-8">
-                     <label className="text-xs font-bold text-muted uppercase">Nome do Garçom</label>
+                     <label className="text-xs font-bold text-fg uppercase">Nome do Garçom</label>
                      <div className="flex gap-2">
-                        <input type="text" value={novoGarcomNome} onChange={e => setNovoGarcomNome(e.target.value)} required className="flex-1 px-4 py-3 bg-slate-50 border border-line rounded-xl font-bold" placeholder="Ex: João, Maria" />
+                        <input type="text" value={novoGarcomNome} onChange={e => setNovoGarcomNome(e.target.value)} required className="flex-1 px-4 py-3 bg-white border border-line rounded-xl font-bold" placeholder="Ex: João, Maria" />
                         <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white font-black rounded-xl shadow-lg"><Plus size={18} className="inline"/></button>
                      </div>
                   </form>
-                  <h3 className="text-sm font-black text-fg-soft mb-4 flex items-center gap-2"><Users size={16}/> Equipe <span className="bg-elevated px-2 py-0.5 rounded text-xs text-muted">{garcons.length}</span></h3>
+                  <h3 className="text-sm font-black text-fg-soft mb-4 flex items-center gap-2"><Users size={16}/> Equipe <span className="bg-card px-2 py-0.5 rounded text-xs text-fg">{garcons.length}</span></h3>
                   <div className="flex flex-col gap-2">
                      {garcons.map(g => (
                         <div key={g.id} className="p-3 bg-card border border-line rounded-xl font-bold text-fg-soft shadow-sm">{g.nome}</div>
@@ -1629,7 +1629,7 @@ export default function SaloesMesasPage() {
              <div className="flex-1 overflow-y-auto p-4 sm:p-10 bg-[#F1F5F9] flex flex-col items-center">
                 <h2 className="text-xl sm:text-2xl font-black text-[#1E293B] mb-6 sm:mb-12 tracking-tight text-center">SELECIONE O GARÇOM</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 sm:gap-x-12 sm:gap-y-10 max-w-5xl w-full">
-                  {garcons.length === 0 ? <p className="col-span-full text-center text-muted font-bold">Nenhum garçom cadastrado. Vá em 'Garçons' no topo do mapa de mesas para cadastrar.</p> : garcons.map(g => (
+                  {garcons.length === 0 ? <p className="col-span-full text-center text-fg font-bold">Nenhum garçom cadastrado. Vá em 'Garçons' no topo do mapa de mesas para cadastrar.</p> : garcons.map(g => (
                      <button key={g.id} onClick={async () => { 
                         setGarcomAtivo(g); 
                         setModalGarcom(false); 
@@ -1658,11 +1658,11 @@ export default function SaloesMesasPage() {
                   <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><ArrowRightLeft size={20} className="text-purple-500"/> Transferir Comanda</h2>
                   <button onClick={() => setModalTransferir(false)} className="text-subtle hover:text-red-500"><X size={20}/></button>
                </div>
-               <p className="text-sm font-bold text-slate-600 mb-4">Transferindo a comanda <span className="text-blue-500">{pedidoAtivo.identificacao}</span> da Mesa {mesaAtiva.numero_mesa} para onde?</p>
+               <p className="text-sm font-bold text-slate-900 mb-4">Transferindo a comanda <span className="text-blue-500">{pedidoAtivo.identificacao}</span> da Mesa {mesaAtiva.numero_mesa} para onde?</p>
                
                <div className="mb-6">
-                  <label className="block text-xs font-bold text-muted uppercase mb-2">Mesa Destino</label>
-                  <select value={mesaDestinoId} onChange={e => setMesaDestinoId(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none">
+                  <label className="block text-xs font-bold text-fg uppercase mb-2">Mesa Destino</label>
+                  <select value={mesaDestinoId} onChange={e => setMesaDestinoId(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none">
                      <option value="">-- Selecione a Mesa --</option>
                      {mesas.filter(m => m.id !== mesaAtiva.id).map(m => (
                         <option key={m.id} value={m.id}>Mesa {m.numero_mesa} {m.status !== 'livre' ? '(Ocupada)' : '(Livre)'}</option>
@@ -1671,7 +1671,7 @@ export default function SaloesMesasPage() {
                </div>
                
                <div className="flex gap-3">
-                  <button onClick={() => { setModalTransferir(false); setMesaDestinoId(""); }} className="flex-1 py-3 bg-elevated hover:bg-slate-200 font-bold text-slate-600 rounded-xl transition-colors">Cancelar</button>
+                  <button onClick={() => { setModalTransferir(false); setMesaDestinoId(""); }} className="flex-1 py-3 bg-card hover:bg-slate-200 font-bold text-slate-900 rounded-xl transition-colors">Cancelar</button>
                   <button disabled={!mesaDestinoId || processando} onClick={async () => {
                      setProcessando(true);
                      const { error } = await transferirComanda(pedidoAtivo.id, mesaAtiva.id, mesaDestinoId);
@@ -1742,13 +1742,13 @@ export default function SaloesMesasPage() {
       {/* MODAL ABERTURA DE COMANDA (IDENTIFICAÇÃO) */}
       {modalComanda && (
          <div className="fixed inset-0 bg-card z-[60] flex flex-col">
-            <div className="bg-[#fff] border-b border-line p-4 text-slate-600 flex justify-between items-center shadow-sm">
+            <div className="bg-[#fff] border-b border-line p-4 text-slate-900 flex justify-between items-center shadow-sm">
                <span className="font-bold">Abertura de comanda</span>
                <span className="font-bold">Mesa: {mesaAtiva?.numero_mesa}</span>
             </div>
              <div className="flex-1 flex flex-col items-center p-4 sm:p-10 bg-[#fafafa] overflow-y-auto">
                 <div className="w-full max-w-2xl mt-4 sm:mt-10">
-                  <p className="text-muted font-normal mb-2 text-sm">Digite uma identificação a ser adicionada à venda:</p>
+                  <p className="text-fg font-normal mb-2 text-sm">Digite uma identificação a ser adicionada à venda:</p>
                   <form onSubmit={async (e) => {
                      e.preventDefault();
                      setProcessando(true);
@@ -1801,9 +1801,9 @@ export default function SaloesMesasPage() {
                      }
                      setProcessando(false);
                   }} className="flex flex-col gap-3 mb-8">
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest">Nome ou Número da Mesa</label>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest">Nome ou Número da Mesa</label>
                      <div className="flex gap-2">
-                        <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda..." required className="flex-1 px-4 py-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-blue-500 focus:bg-card transition-colors" />
+                        <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda..." required className="flex-1 px-4 py-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-blue-500 focus:bg-card transition-colors" />
                         <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
                            {processando ? 'Salvando...' : <><Plus size={18}/> Adicionar</>}
                         </button>
@@ -1811,11 +1811,11 @@ export default function SaloesMesasPage() {
                   </form>
 
                      <h3 className="text-sm font-black text-fg-soft mb-4 flex items-center gap-2">
-                        <Utensils size={16}/> Lista de Mesas <span className="bg-elevated text-muted px-2 py-0.5 rounded-md text-xs">{mesas.length}</span>
+                        <Utensils size={16}/> Lista de Mesas <span className="bg-card text-fg px-2 py-0.5 rounded-md text-xs">{mesas.length}</span>
                      </h3>
                      
                      {mesas.length === 0 ? (
-                        <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-line">
+                        <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-line">
                            <p className="text-subtle font-bold text-sm">Nenhuma mesa foi criada ainda.</p>
                         </div>
                      ) : (
@@ -1823,13 +1823,13 @@ export default function SaloesMesasPage() {
                            {mesas.map(m => (
                               <div key={m.id} className="flex justify-between items-center p-3 bg-card border border-line rounded-xl shadow-sm hover:border-slate-300 transition-colors">
                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center font-black text-slate-600">
+                                    <div className="w-10 h-10 rounded-full bg-card flex items-center justify-center font-black text-slate-900">
                                        {m.numero_mesa}
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${m.status==='ocupada' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>{m.status}</span>
                                  </div>
                                  <div className="flex gap-2">
-                                    <button onClick={() => setQrMesa(m)} className="p-2 bg-elevated text-muted rounded-lg hover:bg-slate-200 transition" title="Gerar QR Code">
+                                    <button onClick={() => setQrMesa(m)} className="p-2 bg-card text-fg rounded-lg hover:bg-slate-200 transition" title="Gerar QR Code">
                                        <Barcode size={18} />
                                     </button>
                                     <button onClick={async () => {
@@ -1871,7 +1871,7 @@ export default function SaloesMesasPage() {
             </div>
 
             {/* Conteúdo (Lista) */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4 relative">
+            <div className="flex-1 overflow-y-auto p-4 bg-white flex flex-col gap-4 relative">
                {carregandoPainel ? (
                   <div className="flex items-center justify-center h-full text-subtle">
                      <p className="font-bold animate-pulse">Carregando pedidos...</p>
@@ -1886,16 +1886,16 @@ export default function SaloesMesasPage() {
                      <div key={pedido.id} className="bg-card rounded-xl border border-line shadow-sm overflow-hidden flex flex-col">
                         
                         {/* Cabeçalho do Card */}
-                        <div className="p-3 border-b border-line-soft flex justify-between items-start bg-slate-50/50">
+                        <div className="p-3 border-b border-line-soft flex justify-between items-start bg-white/50">
                            <div>
                               <div className="flex gap-2 items-center mb-1">
                                 <span className={`text-3xs font-bold uppercase px-2 py-0.5 rounded ${pedido.tipo_pedido === 'qrcode' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
                                    {pedido.tipo_pedido}
                                 </span>
-                                <span className="text-xs font-bold text-muted">#{pedido.numero_pedido}</span>
+                                <span className="text-xs font-bold text-fg">#{pedido.numero_pedido}</span>
                               </div>
                               <h3 className="font-black text-slate-800 uppercase">{pedido.cliente_nome || 'Cliente não informado'}</h3>
-                              {pedido.cliente_telefone && <p className="text-xs text-muted mt-0.5 font-mono">{pedido.cliente_telefone}</p>}
+                              {pedido.cliente_telefone && <p className="text-xs text-fg mt-0.5 font-mono">{pedido.cliente_telefone}</p>}
                            </div>
                            <div className="text-right">
                               <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md uppercase">
@@ -1919,8 +1919,8 @@ export default function SaloesMesasPage() {
                         </div>
 
                         {/* Totais e Pagamento */}
-                        <div className="px-3 py-2 bg-slate-50 border-t border-line-soft text-xs flex justify-between items-center font-bold">
-                           <span className="text-muted font-normal uppercase flex items-center gap-1">
+                        <div className="px-3 py-2 bg-white border-t border-line-soft text-xs flex justify-between items-center font-bold">
+                           <span className="text-fg font-normal uppercase flex items-center gap-1">
                              <CreditCard size={12}/> Pagamento: {pedido.forma_pagamento || 'N/A'}
                              {pedido.troco_para && <span className="text-3xs bg-yellow-100 text-yellow-800 px-1 rounded ml-1">Troco p/ {fmtBRL(parseFloat(pedido.troco_para))}</span>}
                            </span>
@@ -1941,7 +1941,7 @@ export default function SaloesMesasPage() {
 
                         {/* Ações para Chamada de TV */}
                         {(pedido.status === 'preparando_delivery' || pedido.status === 'preparando' || pedido.status === 'aberto' || pedido.status === 'pronto') && (
-                           <div className="p-3 flex gap-2 border-t border-line bg-slate-50">
+                           <div className="p-3 flex gap-2 border-t border-line bg-white">
                               <button onClick={() => handleChamarTV(pedido.id)} disabled={pedido.status === 'pronto'} className="flex-1 py-2 text-xs font-bold text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1">
                                 <Bell size={14}/> {pedido.status === 'pronto' ? 'Chamado' : 'Chamar na TV'}
                               </button>

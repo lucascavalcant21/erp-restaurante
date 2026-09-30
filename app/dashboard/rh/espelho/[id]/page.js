@@ -96,7 +96,7 @@ export default function EspelhoDePonto() {
     carregar();
   }, [colabId, mesParam]);
 
-  if (loading) return <div className="p-10 font-bold text-center text-muted">Carregando relatório...</div>;
+  if (loading) return <div className="p-10 font-bold text-center text-fg">Carregando relatório...</div>;
   if (!colaborador) return <div className="p-10 font-bold text-center text-red-500">Colaborador não encontrado.</div>;
 
   const diasNoMes = new Date(mesParam.slice(0,4), mesParam.slice(5,7), 0).getDate();
@@ -207,11 +207,11 @@ export default function EspelhoDePonto() {
   };
 
   return (
-    <div className="min-h-screen bg-elevated font-sans pb-20 print:bg-card print:pb-0">
+    <div className="min-h-screen bg-card font-sans pb-20 print:bg-card print:pb-0">
       
       {/* Barra de Ações (Oculta na impressão) */}
       <div className="bg-card border-b border-line p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
-         <button onClick={() => router.push("/dashboard/rh")} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
+         <button onClick={() => router.push("/dashboard/rh")} className="flex items-center gap-2 text-slate-900 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
 
@@ -231,7 +231,7 @@ export default function EspelhoDePonto() {
                 errado — e sem isto não haveria como corrigir. */}
             {fechamento && (
                <button onClick={refazerRetrato} disabled={refazendo}
-                  className="w-full text-left text-xs font-bold text-muted hover:text-slate-800 underline underline-offset-2 disabled:opacity-40 sm:w-auto sm:text-right">
+                  className="w-full text-left text-xs font-bold text-fg hover:text-slate-800 underline underline-offset-2 disabled:opacity-40 sm:w-auto sm:text-right">
                   {refazendo ? "Atualizando..." : "Refazer retrato do contrato"}
                </button>
             )}
@@ -240,7 +240,7 @@ export default function EspelhoDePonto() {
                <Printer size={18}/> Imprimir
             </button>
             <button onClick={salvarPdf} title="Abre a mesma janela, com o nome do arquivo pronto: escolha 'Salvar como PDF' no destino"
-               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-line bg-card px-3 py-2.5 font-bold text-fg-soft transition-colors hover:bg-slate-50 sm:flex-none sm:px-5 sm:py-2">
+               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-line bg-card px-3 py-2.5 font-bold text-fg-soft transition-colors hover:bg-white sm:flex-none sm:px-5 sm:py-2">
                <Download size={18}/> Salvar PDF
             </button>
          </div>
@@ -355,7 +355,7 @@ export default function EspelhoDePonto() {
             <thead>
                {/* Duas linhas de cabeçalho, como na folha: INTERVALO e HORAS
                    EXTRAS são grupos com subcolunas. */}
-               <tr className="bg-elevated">
+               <tr className="bg-card">
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-14">DIAS</th>
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-16">ENTRADA</th>
                   <th colSpan={2} className="border border-slate-800 !py-0 !px-1">INTERVALO</th>
@@ -363,7 +363,7 @@ export default function EspelhoDePonto() {
                   <th colSpan={3} className="border border-slate-800 !py-0 !px-1">HORAS EXTRAS</th>
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1">ASSINATURA<br/>DO TRABALHADOR</th>
                </tr>
-               <tr className="bg-elevated">
+               <tr className="bg-card">
                   <th className="border border-slate-800 !py-0 !px-1 w-16">INÍCIO</th>
                   <th className="border border-slate-800 !py-0 !px-1 w-16">FIM</th>
                   <th className="border border-slate-800 !py-0 !px-1 w-12">ENTRADA</th>
@@ -414,9 +414,9 @@ export default function EspelhoDePonto() {
                   if ((isFolga || feriado) && !reg) {
                       return (
                          <tr key={dia}>
-                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-muted text-left">{rotuloDia(dia)}</td>
-                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-slate-50">{textoFolga}</td>
-                            <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.12em] bg-slate-50 text-3xs">{partesFolga[0]} — NÃO ASSINAR</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-white text-fg text-left">{rotuloDia(dia)}</td>
+                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-white">{textoFolga}</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.12em] bg-white text-3xs">{partesFolga[0]} — NÃO ASSINAR</td>
                          </tr>
                       );
                   }
@@ -451,7 +451,7 @@ export default function EspelhoDePonto() {
                })}
             </tbody>
             <tfoot>
-               <tr className="bg-elevated">
+               <tr className="bg-card">
                   <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Total de Horas no Mês:</td>
                   <td colSpan={4} className="border border-slate-800 !py-1 !px-2 text-left font-bold text-2xs">{fmtHoras(totalHorasMes)} hrs</td>
                </tr>
@@ -506,7 +506,7 @@ export default function EspelhoDePonto() {
                   <p className="text-3xs font-bold uppercase tracking-widest mb-0.5">Hora extra e adicionais — dia a dia</p>
                   <table className="w-full border-collapse text-3xs">
                      <thead>
-                        <tr className="bg-elevated">
+                        <tr className="bg-card">
                            <th className="border border-slate-800 !py-1 !px-2 text-left">Dia</th>
                            <th className="border border-slate-800 !py-1 !px-2 text-right">Hora extra (+50%)</th>
                            <th className="border border-slate-800 !py-1 !px-2 text-right">Ad. noturno (+20%)</th>
@@ -532,7 +532,7 @@ export default function EspelhoDePonto() {
                         ))}
                      </tbody>
                      <tfoot>
-                        <tr className="bg-elevated">
+                        <tr className="bg-card">
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Totais:</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.e)}</td>
                            <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.n)}</td>
@@ -544,12 +544,12 @@ export default function EspelhoDePonto() {
             );
          })()}
 
-         <div className="mt-2 text-3xs text-slate-600 leading-snug">
+         <div className="mt-2 text-3xs text-slate-900 leading-snug">
             <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% das 22h00 às 05h00, com hora noturna reduzida de 52min30s (CLT art. 73). Hora extra além da jornada contratada com acréscimo de 50%; tolerância de 5 min por marcação, limitada a 10 min diários (CLT art. 58, §1º). Feriado trabalhado com adicional de 100%.
          </div>
 
          
-         <div className="mt-2 text-3xs text-center text-muted">
+         <div className="mt-2 text-3xs text-center text-fg">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.
             {fechamento?.fechado_em && ` Mês encerrado em ${new Date(fechamento.fechado_em).toLocaleDateString("pt-BR")} — jornada contratada congelada nesta data.`}
          </div>

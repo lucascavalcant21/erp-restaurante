@@ -46,7 +46,7 @@ const AGENDA_VAZIA = () => ({
   turno: "", responsavel_id: "", funcao_responsavel: "", ativo: true,
 });
 
-const rotulo = "text-2xs font-black uppercase tracking-widest text-muted";
+const rotulo = "text-2xs font-black uppercase tracking-widest text-fg";
 const campo = "mt-1 w-full rounded-xl border border-slate-300 bg-card px-3 py-2.5 text-[15px] font-semibold text-slate-800 outline-none focus:border-emerald-600";
 
 export default function ConstrutorProcesso() {
@@ -295,10 +295,10 @@ export default function ConstrutorProcesso() {
     <div className="min-h-screen bg-[var(--surface)] pb-32">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-black text-fg sm:text-xl">{novo ? "Novo processo" : processo.nome || "Processo"}</h1>
-            <p className="text-xs font-bold text-muted">{secoes.length} seções · {totalItens} itens · {agendas.length} agendamento(s)</p>
+            <p className="text-xs font-bold text-fg">{secoes.length} seções · {totalItens} itens · {agendas.length} agendamento(s)</p>
           </div>
         </div>
       </div>
@@ -367,11 +367,11 @@ export default function ConstrutorProcesso() {
                   className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[16px] font-black text-fg outline-none focus:border-emerald-600" />
                 <input value={secao.descricao || ""} onChange={e => mudarSecao(iS, "descricao", e.target.value)}
                   placeholder="Explicação da seção (opcional)"
-                  className="mt-2 w-full rounded-xl border border-line px-3 py-2 text-sm font-semibold text-slate-600 outline-none focus:border-emerald-600" />
+                  className="mt-2 w-full rounded-xl border border-line px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600" />
               </div>
               <div className="flex shrink-0 flex-col gap-1">
-                <button onClick={() => moverSecao(iS, -1)} disabled={iS === 0} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted hover:bg-slate-50 disabled:opacity-30"><ChevronUp size={16} /></button>
-                <button onClick={() => moverSecao(iS, 1)} disabled={iS === secoes.length - 1} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted hover:bg-slate-50 disabled:opacity-30"><ChevronDown size={16} /></button>
+                <button onClick={() => moverSecao(iS, -1)} disabled={iS === 0} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-fg hover:bg-white disabled:opacity-30"><ChevronUp size={16} /></button>
+                <button onClick={() => moverSecao(iS, 1)} disabled={iS === secoes.length - 1} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-fg hover:bg-white disabled:opacity-30"><ChevronDown size={16} /></button>
                 <button onClick={() => removerSecao(iS)} disabled={secoes.length === 1} className="grid h-9 w-9 place-items-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-30"><Trash2 size={16} /></button>
               </div>
             </div>
@@ -385,8 +385,8 @@ export default function ConstrutorProcesso() {
                     <div className="flex items-start gap-2 p-3">
                       <button onClick={() => setAberto(expandido ? "" : item.chave)} className="min-w-0 flex-1 text-left">
                         <p className="text-[15px] font-black text-fg">{item.titulo || <span className="text-subtle">Item sem título</span>}</p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs font-bold text-muted">
-                          <span className="rounded bg-elevated px-1.5 py-0.5">{info.rotulo}</span>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs font-bold text-fg">
+                          <span className="rounded bg-card px-1.5 py-0.5">{info.rotulo}</span>
                           {ehNumerico(item.tipo) && (item.valor_min !== "" || item.valor_max !== "") && (
                             <span>{item.valor_min !== "" ? item.valor_min : "—"} a {item.valor_max !== "" ? item.valor_max : "—"}{item.unidade_medida}</span>
                           )}
@@ -397,9 +397,9 @@ export default function ConstrutorProcesso() {
                         </p>
                       </button>
                       <div className="flex shrink-0 gap-1">
-                        <button onClick={() => moverItem(iS, iI, -1)} disabled={iI === 0} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-elevated disabled:opacity-30"><ChevronUp size={15} /></button>
-                        <button onClick={() => moverItem(iS, iI, 1)} disabled={iI === secao.itens.length - 1} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-elevated disabled:opacity-30"><ChevronDown size={15} /></button>
-                        <button onClick={() => duplicarItem(iS, iI)} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-elevated"><Copy size={15} /></button>
+                        <button onClick={() => moverItem(iS, iI, -1)} disabled={iI === 0} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-card disabled:opacity-30"><ChevronUp size={15} /></button>
+                        <button onClick={() => moverItem(iS, iI, 1)} disabled={iI === secao.itens.length - 1} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-card disabled:opacity-30"><ChevronDown size={15} /></button>
+                        <button onClick={() => duplicarItem(iS, iI)} className="grid h-9 w-9 place-items-center rounded-lg text-subtle hover:bg-card"><Copy size={15} /></button>
                         <button onClick={() => removerItem(iS, iI)} className="grid h-9 w-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50"><Trash2 size={15} /></button>
                       </div>
                     </div>
@@ -428,7 +428,7 @@ export default function ConstrutorProcesso() {
                               </optgroup>
                             ))}
                           </select>
-                          <span className="mt-1 block text-xs font-medium text-muted">{info.ajuda}</span>
+                          <span className="mt-1 block text-xs font-medium text-fg">{info.ajuda}</span>
                         </label>
 
                         {ehNumerico(item.tipo) && (
@@ -515,9 +515,9 @@ export default function ConstrutorProcesso() {
 
                         {/* Condicional */}
                         <div className="mt-3 rounded-xl border border-line bg-card p-3">
-                          <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted"><Settings2 size={13} /> Mostrar só em certos casos</p>
+                          <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-fg"><Settings2 size={13} /> Mostrar só em certos casos</p>
                           {candidatosCondicao(iS, iI).length === 0 ? (
-                            <p className="mt-1.5 text-[13px] font-medium text-muted">Depende de um item anterior de resposta fechada. Não há nenhum antes deste.</p>
+                            <p className="mt-1.5 text-[13px] font-medium text-fg">Depende de um item anterior de resposta fechada. Não há nenhum antes deste.</p>
                           ) : (
                             <div className="mt-2 grid gap-2 sm:grid-cols-2">
                               <select value={item.depende_chave || ""} onChange={e => mudarItem(iS, iI, { depende_chave: e.target.value, depende_valor: "" })} className={campo}>
@@ -548,7 +548,7 @@ export default function ConstrutorProcesso() {
           </section>
         ))}
 
-        <button onClick={addSecao} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 font-black text-slate-600 hover:border-emerald-400 hover:text-accent">
+        <button onClick={addSecao} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 font-black text-slate-900 hover:border-emerald-400 hover:text-accent">
           <Plus size={18} /> Nova seção
         </button>
 
@@ -557,7 +557,7 @@ export default function ConstrutorProcesso() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent"><Clock size={14} /> Quando esta rotina acontece</p>
-              <p className="mt-1 text-sm font-medium text-muted">A execução aparece sozinha na Central, no horário marcado.</p>
+              <p className="mt-1 text-sm font-medium text-fg">A execução aparece sozinha na Central, no horário marcado.</p>
             </div>
             <button onClick={addAgenda} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border-2 border-emerald-200 bg-card px-3.5 font-black text-accent-strong hover:bg-accent-soft">
               <Plus size={17} /> Horário
@@ -598,7 +598,7 @@ export default function ConstrutorProcesso() {
                           const marcado = (a.dias_semana || []).includes(d.valor);
                           return (
                             <button key={d.valor} onClick={() => alternarDia(iA, d.valor)}
-                              className={`h-11 min-w-[58px] rounded-xl border-2 text-sm font-black ${marcado ? "border-emerald-600 bg-accent text-accent-fg" : "border-line bg-card text-slate-600 hover:border-emerald-300"}`}>
+                              className={`h-11 min-w-[58px] rounded-xl border-2 text-sm font-black ${marcado ? "border-emerald-600 bg-accent text-accent-fg" : "border-line bg-card text-slate-900 hover:border-emerald-300"}`}>
                               {d.rotulo}
                             </button>
                           );
@@ -667,7 +667,7 @@ export default function ConstrutorProcesso() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 backdrop-blur sm:p-4"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto flex max-w-4xl gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")} className="rounded-xl border border-line px-5 py-3.5 text-sm font-bold text-slate-900 hover:bg-white">Cancelar</button>
           <button onClick={salvar} disabled={salvando}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-60">
             {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : <><Save size={18} /> Salvar processo</>}

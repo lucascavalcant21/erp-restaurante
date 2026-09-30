@@ -155,7 +155,7 @@ export default function ModoTV() {
           <Numero rotulo="Do dia" valor={`${contadores.progresso}%`} destaque />
           {score.score != null && <Numero rotulo="Score" valor={score.score} destaque />}
         </div>
-        <div className="flex items-center gap-3 text-muted">
+        <div className="flex items-center gap-3 text-fg">
           {online ? <Wifi size={16} /> : <WifiOff size={16} className="text-amber-400" />}
           <span className="text-xs font-bold">
             {online
@@ -200,7 +200,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
       </h2>
 
       {itens.length === 0 ? (
-        <p className="text-lg font-bold text-slate-600">{vazio}</p>
+        <p className="text-lg font-bold text-slate-900">{vazio}</p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
           {mostrar.map(execucao => {
@@ -229,7 +229,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
             );
           })}
           {sobra > 0 && (
-            <p className="pt-1 text-base font-black text-muted">e mais {sobra}</p>
+            <p className="pt-1 text-base font-black text-fg">e mais {sobra}</p>
           )}
         </div>
       )}
@@ -240,7 +240,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
 function Numero({ rotulo, valor, destaque = false }) {
   return (
     <div>
-      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-muted">{rotulo}</p>
+      <p className="text-3xs font-bold uppercase tracking-[0.15em] text-fg">{rotulo}</p>
       <p className={`text-3xl font-black tabular-nums ${destaque ? "text-emerald-400" : "text-white"}`}>{valor}</p>
     </div>
   );

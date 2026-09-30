@@ -80,7 +80,7 @@ export default function DreGerencialPage() {
                {["Semanal", "Mensal", "Anual"].map(p => (
                   <button
                     key={p} onClick={() => setPeriodoLetra(p)}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-card text-fg shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-card text-fg shadow-sm' : 'text-slate-800 hover:text-white'}`}
                   >
                     {p}
                   </button>
@@ -129,12 +129,12 @@ export default function DreGerencialPage() {
 
                    <div className="space-y-4">
                       <div>
-                         <p className="text-2xs font-bold text-muted uppercase">Receita Operacional Bruta</p>
+                         <p className="text-2xs font-bold text-fg uppercase">Receita Operacional Bruta</p>
                          <p className="text-xl font-black text-fg">{fmtBRL(dre.receitaBruta)}</p>
                       </div>
-                      <div className="w-full h-px bg-elevated"></div>
+                      <div className="w-full h-px bg-card"></div>
                       <div>
-                         <p className="text-2xs font-bold text-muted uppercase">Custos & Despesas Totais</p>
+                         <p className="text-2xs font-bold text-fg uppercase">Custos & Despesas Totais</p>
                          <p className="text-xl font-black text-fg">{fmtBRL(dre.cmv + dre.cmo + dre.despesasOperacionais)}</p>
                       </div>
                    </div>
@@ -146,16 +146,16 @@ export default function DreGerencialPage() {
              <div className="lg:col-span-2">
                 <div className="bg-card rounded-[32px] shadow-sm border border-line overflow-hidden">
 
-                   <div className="bg-slate-50 px-4 sm:px-6 py-4 border-b border-line flex flex-wrap justify-between items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-widest text-muted">Estrutura DRE Gerencial</span>
-                      <span className="text-xs font-bold uppercase tracking-widest text-muted">Valor Acumulado</span>
+                   <div className="bg-white px-4 sm:px-6 py-4 border-b border-line flex flex-wrap justify-between items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-widest text-fg">Estrutura DRE Gerencial</span>
+                      <span className="text-xs font-bold uppercase tracking-widest text-fg">Valor Acumulado</span>
                    </div>
 
                    {/* Linha 1: Receita Bruta */}
                    <LinhaTotal codigo="1" label="(=) Receita Operacional Bruta" valor={dre.receitaBruta} cor="text-fg" bg="bg-slate-100/50" />
 
                    {/* Linha 2: Lucro Bruto / CMV */}
-                   <div className="px-6 py-2.5 flex justify-between text-xs font-bold text-slate-600 border-b border-line">
+                   <div className="px-6 py-2.5 flex justify-between text-xs font-bold text-slate-900 border-b border-line">
                       <span>(-) CMV (Custo Mercadoria Vendida)</span>
                       <span className="font-mono text-red-600">- {fmtBRL(dre.cmv)}</span>
                    </div>
@@ -164,26 +164,26 @@ export default function DreGerencialPage() {
                    <div className="h-2"></div>
 
                    {/* Linha 3: CMO */}
-                   <div className="px-6 py-2.5 flex justify-between text-xs font-bold text-slate-600 border-b border-line">
+                   <div className="px-6 py-2.5 flex justify-between text-xs font-bold text-slate-900 border-b border-line">
                       <span>(-) CMO (Custo Mão de Obra / RH)</span>
                       <span className="font-mono text-red-600">- {fmtBRL(dre.cmo)}</span>
                    </div>
 
                    {/* Listagem de Despesas Operacionais */}
                    <div className="px-6 py-2">
-                      <span className="text-3xs font-bold uppercase tracking-widest text-slate-600 bg-slate-50 px-2 py-1 rounded-md">
+                      <span className="text-3xs font-bold uppercase tracking-widest text-slate-900 bg-white px-2 py-1 rounded-md">
                          (-) Outras Despesas Operacionais
                       </span>
                    </div>
 
                    <div className="pb-4">
                       {Object.entries(dre.categoriasDespesas).sort((a, b) => b[1] - a[1]).map(([cat, val], idx) => (
-                         <div key={cat} className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 hover:bg-slate-50 transition-colors group">
+                         <div key={cat} className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 hover:bg-white transition-colors group">
                             <div className="flex items-center gap-3">
-                               <span className="text-3xs font-bold text-muted w-4">{idx + 1}</span>
-                               <span className="text-sm font-bold text-slate-600 group-hover:text-fg transition-colors">{cat}</span>
+                               <span className="text-3xs font-bold text-fg w-4">{idx + 1}</span>
+                               <span className="text-sm font-bold text-slate-900 group-hover:text-fg transition-colors">{cat}</span>
                             </div>
-                            <span className="text-sm font-medium text-muted font-mono">
+                            <span className="text-sm font-medium text-fg font-mono">
                                - {fmtBRL(val)}
                             </span>
                          </div>
@@ -191,7 +191,7 @@ export default function DreGerencialPage() {
                    </div>
 
                    {/* Linha Final: Resultado Operacional */}
-                   <div className={`px-4 sm:px-6 py-5 sm:py-6 border-t-2 border-slate-900 flex flex-wrap justify-between items-center gap-2 ${isLucro ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                   <div className={`px-4 sm:px-6 py-5 sm:py-6 border-t-2 border-slate-900 flex flex-wrap justify-between items-center gap-2 ${isLucro ? 'bg-emerald-50' : 'bg-white'}`}>
                       <div className="flex items-center gap-3">
                          <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-xs font-bold">3</span>
                          <div>
@@ -238,7 +238,7 @@ function LinhaTotal({ codigo, label, valor, cor, bg }) {
   return (
     <div className={`flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-4 border-b border-line ${bg}`}>
       <div className="flex items-center gap-3">
-         <span className="text-3xs font-bold text-muted border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-card">{codigo}</span>
+         <span className="text-3xs font-bold text-fg border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-card">{codigo}</span>
          <span className={`text-sm font-black uppercase tracking-widest ${cor}`}>{label}</span>
       </div>
       <span className={`text-lg font-black font-mono ${cor}`}>{fmtBRL(valor)}</span>

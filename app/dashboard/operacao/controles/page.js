@@ -22,7 +22,7 @@ import {
 
 // Situação de uma limpeza programada a partir da próxima data prevista.
 function statusManutencao(proxima) {
-  if (!proxima) return { label: "Sem agenda", cor: "bg-elevated text-muted", dias: null };
+  if (!proxima) return { label: "Sem agenda", cor: "bg-card text-fg", dias: null };
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const alvo = new Date(proxima + "T00:00:00");
   const dias = Math.round((alvo - hoje) / 86400000);
@@ -274,17 +274,17 @@ export default function ControlesCozinha() {
         <Toast show={!!toast}>{toast}</Toast>
 
         {/* Abas */}
-        <div className="mb-3 flex flex-wrap gap-1.5 rounded-xl bg-elevated p-1.5">
-          <button onClick={() => setAbaAtiva("limpeza")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "limpeza" ? "bg-card text-accent shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+        <div className="mb-3 flex flex-wrap gap-1.5 rounded-xl bg-card p-1.5">
+          <button onClick={() => setAbaAtiva("limpeza")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "limpeza" ? "bg-card text-accent shadow-sm" : "text-fg hover:text-fg-soft"}`}>
             <Sparkles size={16} /> Limpeza
           </button>
-          <button onClick={() => setAbaAtiva("gas")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "gas" ? "bg-card text-orange-600 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+          <button onClick={() => setAbaAtiva("gas")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "gas" ? "bg-card text-orange-600 shadow-sm" : "text-fg hover:text-fg-soft"}`}>
             <Flame size={16} /> Gás
           </button>
-          <button onClick={() => setAbaAtiva("oleo")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "oleo" ? "bg-card text-amber-600 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+          <button onClick={() => setAbaAtiva("oleo")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "oleo" ? "bg-card text-amber-600 shadow-sm" : "text-fg hover:text-fg-soft"}`}>
             <Droplets size={16} /> Óleo de Fritura
           </button>
-          <button onClick={() => setAbaAtiva("agenda")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "agenda" ? "bg-card text-accent shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+          <button onClick={() => setAbaAtiva("agenda")} className={`min-h-10 rounded-lg px-3 font-bold text-xs transition-colors flex items-center gap-2 ${abaAtiva === "agenda" ? "bg-card text-accent shadow-sm" : "text-fg hover:text-fg-soft"}`}>
             <CalendarCheck size={16} /> Agenda de Limpezas
           </button>
         </div>
@@ -327,17 +327,17 @@ export default function ControlesCozinha() {
                         {item.nome}
                       </h3>
                     </div>
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-900">
                       <div className="flex items-center gap-1"><CalendarClock size={14} className="text-subtle" /> Próxima: <b className="text-slate-800">{formatarData(item.proxima_prevista)}</b></div>
                       <div className="flex items-center gap-1"><CheckCircle2 size={14} className="text-subtle" /> Última: <b>{formatarData(item.ultima_execucao)}</b></div>
                       <div className="flex items-center gap-1">A cada <b>{item.frequencia_dias} dias</b></div>
                       {item.funcao && <div className="flex items-center gap-1">Função: <b>{item.funcao}</b></div>}
                       {item.responsavel && <div className="flex items-center gap-1">Responsável: <b>{item.responsavel}</b></div>}
                     </div>
-                    {item.observacao && <p className="mt-2 text-xs text-muted">{item.observacao}</p>}
+                    {item.observacao && <p className="mt-2 text-xs text-fg">{item.observacao}</p>}
                     {item.historico?.length > 0 && (
-                      <div className="mt-3 text-xs text-muted bg-slate-50 p-2 rounded-lg border border-line-soft inline-block">
-                        <span className="font-bold text-slate-600">Histórico ({item.historico.length}):</span>
+                      <div className="mt-3 text-xs text-fg bg-white p-2 rounded-lg border border-line-soft inline-block">
+                        <span className="font-bold text-slate-900">Histórico ({item.historico.length}):</span>
                         <div className="flex gap-2 flex-wrap mt-1">
                           {item.historico.slice(0, 6).map((h, i) => (
                             <span key={i} className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-medium" title={h.responsavel || ""}>{formatarData(h.data)}</span>
@@ -365,7 +365,7 @@ export default function ControlesCozinha() {
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className={`px-2 py-1 text-3xs font-bold uppercase rounded-md ${item.fim_uso ? 'bg-elevated text-muted' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <span className={`px-2 py-1 text-3xs font-bold uppercase rounded-md ${item.fim_uso ? 'bg-card text-fg' : 'bg-emerald-100 text-emerald-700'}`}>
                       {item.fim_uso ? "Finalizado" : "Em Uso"}
                     </span>
                     <h3 className="font-bold text-lg text-slate-800">
@@ -375,7 +375,7 @@ export default function ControlesCozinha() {
                     </h3>
                   </div>
 
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-900">
                     <div className="flex items-center gap-1"><Clock size={14} className="text-subtle" /> Início: <b>{formatarDataHora(item.inicio_uso)}</b></div>
                     {item.fim_uso && <div className="flex items-center gap-1"><CheckCircle2 size={14} className="text-subtle" /> Fim: <b>{formatarDataHora(item.fim_uso)}</b></div>}
                     
@@ -387,7 +387,7 @@ export default function ControlesCozinha() {
 
                   {/* Informações Específicas por Aba */}
                   {abaAtiva === "limpeza" && (
-                    <div className="mt-3 text-xs flex flex-wrap gap-4 text-muted">
+                    <div className="mt-3 text-xs flex flex-wrap gap-4 text-fg">
                       <span>Volume: <b>{item.volume}</b></span>
                       {item.diluicao && <span>Diluição: <b>{item.diluicao}</b></span>}
                       <span>Custo: <b>R$ {Number(item.preco).toFixed(2)}</b></span>
@@ -396,13 +396,13 @@ export default function ControlesCozinha() {
                   )}
 
                   {abaAtiva === "gas" && item.peso_inicial > 0 && (
-                    <div className="mt-3 text-xs text-muted">
+                    <div className="mt-3 text-xs text-fg">
                       <span>Peso: <b>{item.peso_inicial} kg</b></span>
                     </div>
                   )}
 
                   {abaAtiva === "oleo" && (
-                    <div className="mt-3 text-xs text-muted bg-slate-50 p-2 rounded-lg border border-line-soft inline-block">
+                    <div className="mt-3 text-xs text-fg bg-white p-2 rounded-lg border border-line-soft inline-block">
                       <span className="block mb-1">Volume: <b>{item.volume_litros} L</b></span>
                       <span className="block mb-1">Filtragens realizadas: <b>{item.filtragens?.length || 0}</b></span>
                       {item.filtragens?.length > 0 && (
@@ -453,7 +453,7 @@ export default function ControlesCozinha() {
                   {PRESETS_MANUTENCAO.map((p) => (
                     <button type="button" key={p.nome}
                       onClick={() => setForm({ ...form, nome: p.nome, categoria: p.categoria, frequencia_dias: p.frequencia_dias })}
-                      className="px-3 py-1.5 rounded-full text-xs font-bold border border-line text-slate-600 hover:border-emerald-400 hover:text-accent transition-colors">
+                      className="px-3 py-1.5 rounded-full text-xs font-bold border border-line text-slate-900 hover:border-emerald-400 hover:text-accent transition-colors">
                       {p.nome}
                     </button>
                   ))}
@@ -476,10 +476,10 @@ export default function ControlesCozinha() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Field label="Última vez feita (opcional)">
-                  <input type="date" value={form.ultima_execucao || ""} onChange={e => setForm({ ...form, ultima_execucao: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
+                  <input type="date" value={form.ultima_execucao || ""} onChange={e => setForm({ ...form, ultima_execucao: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
                 </Field>
                 <Field label="Próxima (deixe vazio p/ calcular)">
-                  <input type="date" value={form.proxima_prevista || ""} onChange={e => setForm({ ...form, proxima_prevista: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
+                  <input type="date" value={form.proxima_prevista || ""} onChange={e => setForm({ ...form, proxima_prevista: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
                 </Field>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -547,7 +547,7 @@ export default function ControlesCozinha() {
 
           {abaAtiva !== "agenda" && (
             <Field label="Data/Hora de Início (opcional, padrão: agora)">
-              <input type="datetime-local" value={form.inicio_uso || ""} onChange={e => setForm({...form, inicio_uso: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
+              <input type="datetime-local" value={form.inicio_uso || ""} onChange={e => setForm({...form, inicio_uso: e.target.value})} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
             </Field>
           )}
 
@@ -561,9 +561,9 @@ export default function ControlesCozinha() {
       {/* Registrar que uma limpeza programada foi executada */}
       <Modal open={!!execAlvo} onClose={() => setExecAlvo(null)} title={execAlvo ? `Registrar: ${execAlvo.nome}` : ""}>
         <form onSubmit={confirmarExecucao}>
-          <p className="text-sm text-muted mb-4">Ao registrar, a próxima limpeza será reagendada automaticamente para daqui a <b>{execAlvo?.frequencia_dias} dias</b>.</p>
+          <p className="text-sm text-fg mb-4">Ao registrar, a próxima limpeza será reagendada automaticamente para daqui a <b>{execAlvo?.frequencia_dias} dias</b>.</p>
           <Field label="Data em que foi feita">
-            <input type="date" value={execForm.data || ""} onChange={e => setExecForm({ ...execForm, data: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
+            <input type="date" value={execForm.data || ""} onChange={e => setExecForm({ ...execForm, data: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
             <span className="text-2xs text-subtle mt-1 block">Deixe vazio para usar hoje.</span>
           </Field>
           <Field label="Responsável (opcional)">

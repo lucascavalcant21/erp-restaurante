@@ -115,27 +115,27 @@ function ModalHistorico({ onClose, colaborador }) {
         width: "min(400px, 100%)", maxHeight: "80vh", display: "flex", flexDirection: "column",
         boxShadow: "0 32px 64px rgba(0,0,0,0.2)", position: "relative"
       }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-subtle hover:text-slate-600 bg-elevated p-2 rounded-full">
+        <button onClick={onClose} className="absolute top-4 right-4 text-subtle hover:text-slate-900 bg-card p-2 rounded-full">
           <X size={20} />
         </button>
         
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-full bg-elevated flex items-center justify-center text-muted">
+          <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-fg">
              <Calendar size={24}/>
           </div>
           <div>
             <h2 className="text-xl font-black text-fg">Histórico</h2>
-            <p className="text-xs font-bold text-muted uppercase tracking-widest">{colaborador.nome}</p>
+            <p className="text-xs font-bold text-fg uppercase tracking-widest">{colaborador.nome}</p>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-          {loading && <p className="text-center font-bold text-muted py-10">Carregando...</p>}
-          {!loading && historico.length === 0 && <p className="text-center font-bold text-muted py-10">Nenhum registro encontrado.</p>}
+          {loading && <p className="text-center font-bold text-fg py-10">Carregando...</p>}
+          {!loading && historico.length === 0 && <p className="text-center font-bold text-fg py-10">Nenhum registro encontrado.</p>}
           {!loading && historico.map(reg => {
              const dataFormatada = new Date(reg.data_referencia + "T12:00:00").toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
              return (
-               <div key={reg.id} className="p-4 rounded-2xl border border-line bg-slate-50 flex flex-col gap-2">
+               <div key={reg.id} className="p-4 rounded-2xl border border-line bg-white flex flex-col gap-2">
                  <p className="text-sm font-black text-fg-soft border-b border-line pb-2 mb-1">{dataFormatada}</p>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
@@ -326,7 +326,7 @@ export default function PontoPage() {
      }
   };
 
-  if(!unidadeAtiva) return <div className="p-10 font-bold text-muted">Selecione uma loja no topo.</div>;
+  if(!unidadeAtiva) return <div className="p-10 font-bold text-fg">Selecione uma loja no topo.</div>;
 
   // Tela de Bloqueio Inicial
   if(!pinOk) {
@@ -346,7 +346,7 @@ export default function PontoPage() {
   }
 
   return (
-    <div ref={containerRef} className="erp-safe-top h-screen bg-elevated p-4 font-sans flex flex-col overflow-hidden">
+    <div ref={containerRef} className="erp-safe-top h-screen bg-card p-4 font-sans flex flex-col overflow-hidden">
       
       {/* Modal de Saída do Modo Ponto */}
       {pedindoSaida && (
@@ -386,7 +386,7 @@ export default function PontoPage() {
               </div>
               <div>
                  <h1 className="text-2xl font-black text-fg tracking-tight">Relógio de Ponto</h1>
-                 <p className="text-muted font-bold uppercase tracking-widest text-3xs mt-0.5">Unidade: {unidadeInfo?.nome}</p>
+                 <p className="text-fg font-bold uppercase tracking-widest text-3xs mt-0.5">Unidade: {unidadeInfo?.nome}</p>
               </div>
            </div>
 
@@ -396,13 +396,13 @@ export default function PontoPage() {
                  {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                  <span className="text-2xl sm:text-3xl text-subtle">:{String(agora.getSeconds()).padStart(2, "0")}</span>
               </p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted">
+              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-fg">
                  {agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </p>
            </div>
 
            <div className="flex items-center gap-3">
-              <button onClick={toggleFullscreen} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-elevated text-slate-600 hover:bg-slate-200 transition-all text-sm">
+              <button onClick={toggleFullscreen} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-card text-slate-900 hover:bg-slate-200 transition-all text-sm">
                  <Maximize size={16}/> Tela Cheia
               </button>
               <button onClick={() => setPedindoSaida(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-rose-100 text-rose-700 hover:bg-rose-200 transition-all text-sm">
@@ -414,11 +414,11 @@ export default function PontoPage() {
         <div className="bg-card rounded-[24px] shadow-sm border border-line overflow-hidden flex-1 flex flex-col md:flex-row min-h-0">
            
            {/* Lado Esquerdo: Lista de Funcionários */}
-           <div className="w-full md:w-1/2 border-r border-line-soft flex flex-col bg-slate-50">
+           <div className="w-full md:w-1/2 border-r border-line-soft flex flex-col bg-white">
               {areaAtiva && (
                  <div className="p-4 border-b border-line shrink-0">
                     <button onClick={() => { setAreaAtiva(""); setColabAtivo(null); }}
-                       className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-50">
+                       className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 text-sm font-black text-slate-900 hover:bg-white">
                        <ArrowLeft size={16} /> Trocar de área · {AREAS_PONTO.find(a => a.id === areaAtiva)?.nome}
                     </button>
                  </div>
@@ -438,7 +438,7 @@ export default function PontoPage() {
                              </span>
                              <span className="min-w-0">
                                 <span className="block text-3xl font-black leading-tight text-fg">{area.nome}</span>
-                                <span className="mt-1 block text-sm font-bold text-muted">{equipe.length} pessoa(s)</span>
+                                <span className="mt-1 block text-sm font-bold text-fg">{equipe.length} pessoa(s)</span>
                              </span>
                           </button>
                        );
@@ -446,7 +446,7 @@ export default function PontoPage() {
                  </div>
               ) : (
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-                 {loading && <p className="text-center font-bold text-muted mt-10">Carregando...</p>}
+                 {loading && <p className="text-center font-bold text-fg mt-10">Carregando...</p>}
                  {!loading && filtrados.map(f => {
                     const status = getStatus(f.id);
                     const isSelected = colabAtivo?.id === f.id;
@@ -456,14 +456,14 @@ export default function PontoPage() {
                           <div className="flex justify-between items-center gap-3">
                              <div className="min-w-0">
                                 <p className={`font-black text-2xl leading-tight ${isSelected ? 'text-white' : 'text-fg'}`}>{f.nome}</p>
-                                <p className={`text-sm font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-50' : 'text-muted'}`}>{f.cargo}</p>
+                                <p className={`text-sm font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-50' : 'text-fg'}`}>{f.cargo}</p>
                              </div>
                              {status === 4 && <CheckCircle2 className={isSelected ? 'text-white shrink-0' : 'text-emerald-500 shrink-0'} size={30} />}
                           </div>
                        </button>
                     );
                  })}
-                 {!loading && filtrados.length === 0 && <p className="text-center font-bold text-muted mt-10">Ninguém cadastrado nesta área.</p>}
+                 {!loading && filtrados.length === 0 && <p className="text-center font-bold text-fg mt-10">Ninguém cadastrado nesta área.</p>}
               </div>
               )}
            </div>
@@ -482,12 +482,12 @@ export default function PontoPage() {
                  return (
                     <div className="w-full max-w-md flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
                        <div className="flex items-center gap-4 mb-6 w-full justify-center">
-                          <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-success shadow-inner shrink-0">
+                          <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-success shadow-inner shrink-0">
                              <Clock size={32} />
                           </div>
                           <div className="text-left">
                              <h2 className="text-2xl font-black text-fg leading-tight">{colabAtivo.nome}</h2>
-                             <p className="text-xs font-bold text-muted uppercase tracking-widest">{colabAtivo.cargo}</p>
+                             <p className="text-xs font-bold text-fg uppercase tracking-widest">{colabAtivo.cargo}</p>
                           </div>
                        </div>
                        
@@ -518,7 +518,7 @@ export default function PontoPage() {
                            
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
                              {/* Botão 1 */}
-                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-accent text-accent-fg shadow-xl shadow-emerald-600/20 hover:bg-accent scale-105 cursor-pointer' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
+                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-accent text-accent-fg shadow-xl shadow-emerald-600/20 hover:bg-accent scale-105 cursor-pointer' : 'bg-white text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">1. Entrada</span>
                                    {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}
@@ -531,7 +531,7 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 2 */}
-                             <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
+                             <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-white text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">2. Saída Int.</span>
                                    {st > 1 && <CheckCircle2 size={16} className={st === 1 ? 'text-white' : 'text-amber-500'} />}
@@ -544,7 +544,7 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 3 */}
-                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
+                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-white text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">3. Volta Int.</span>
                                    {st > 2 && <CheckCircle2 size={16} className={st === 2 ? 'text-white' : 'text-blue-500'} />}
@@ -557,7 +557,7 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 4 */}
-                             <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-subtle border border-line-soft'}`}>
+                             <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-white text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">4. Saída Final</span>
                                    {st > 3 && <CheckCircle2 size={16} className={st === 3 ? 'text-white' : 'text-rose-500'} />}
@@ -570,7 +570,7 @@ export default function PontoPage() {
                              </button>
                           </div>
                           
-                          <button onClick={() => setHistoricoAberto(true)} className="w-full py-3 rounded-xl bg-elevated text-slate-600 font-bold hover:bg-slate-200 transition-all text-sm flex items-center justify-center gap-2 border border-line">
+                          <button onClick={() => setHistoricoAberto(true)} className="w-full py-3 rounded-xl bg-card text-slate-900 font-bold hover:bg-slate-200 transition-all text-sm flex items-center justify-center gap-2 border border-line">
                              <Clock size={16}/> Ver Histórico de Dias Anteriores
                           </button>
                        </div>

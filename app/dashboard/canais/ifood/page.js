@@ -90,11 +90,11 @@ export default function IFoodConfigPage() {
            </div>
            <div>
              <h1 className="text-2xl font-black text-slate-800 tracking-tight">Integração iFood Merchant API</h1>
-             <p className="text-sm text-muted font-medium">Conexão oficial com a API de Vendas, Pedidos e Finanças do iFood.</p>
+             <p className="text-sm text-fg font-medium">Conexão oficial com a API de Vendas, Pedidos e Finanças do iFood.</p>
            </div>
          </div>
          
-         <div className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-black uppercase w-fit ${conectado ? 'bg-emerald-100 text-emerald-700' : 'bg-elevated text-muted'}`}>
+         <div className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-black uppercase w-fit ${conectado ? 'bg-emerald-100 text-emerald-700' : 'bg-card text-fg'}`}>
             {conectado ? <><CheckCircle size={16}/> Conectado</> : <><AlertCircle size={16}/> Desconectado</>}
          </div>
       </div>
@@ -116,20 +116,20 @@ export default function IFoodConfigPage() {
          
          {/* CARD CONFIGURAÇÕES */}
          <div className="md:col-span-2 bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-            <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center justify-between">
+            <div className="bg-white border-b border-line-soft p-4 flex items-center justify-between">
                <div className="flex items-center gap-2">
-                 <Settings size={18} className="text-muted" />
+                 <Settings size={18} className="text-fg" />
                  <h2 className="font-bold text-fg-soft">Configuração da Unidade</h2>
                </div>
-               <span className="text-xs font-mono font-bold text-slate-500">API BASE: merchant-api.ifood.com.br</span>
+               <span className="text-xs font-mono font-bold text-slate-900">API BASE: merchant-api.ifood.com.br</span>
             </div>
             <div className="p-6 space-y-6">
                
                <div>
-                  <label className="block text-xs font-bold text-muted mb-1.5 uppercase">Merchant ID (ID da Loja no iFood)</label>
+                  <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Merchant ID (ID da Loja no iFood)</label>
                   <input 
                      type="text" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} disabled={conectado}
-                     className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-[#EA1D2C] outline-none disabled:opacity-60 font-mono text-sm"
+                     className="w-full bg-white border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-[#EA1D2C] outline-none disabled:opacity-60 font-mono text-sm"
                      placeholder="Ex: 12345678-abcd-1234-abcd-123456789abc"
                   />
                   <p className="text-xs text-subtle mt-2">Identificador único do merchant obtido no Portal do Parceiro iFood.</p>
@@ -156,7 +156,7 @@ export default function IFoodConfigPage() {
                <div className="pt-4 border-t border-line-soft flex flex-wrap gap-3 justify-end">
                   <button 
                      onClick={testarConexaoReal} disabled={testing}
-                     className="px-6 py-3 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-2 text-sm"
+                     className="px-6 py-3 rounded-xl font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-2 text-sm"
                   >
                      {testing ? <RefreshCw size={16} className="animate-spin" /> : <><RefreshCw size={16} /> Testar Conexão Server-Side</>}
                   </button>
@@ -181,31 +181,31 @@ export default function IFoodConfigPage() {
                </div>
                
                <ul className="space-y-3 text-xs">
-                  <li className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                     <span className="font-bold text-slate-700">Merchant API</span>
+                  <li className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100">
+                     <span className="font-bold text-slate-900">Merchant API</span>
                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold uppercase text-3xs">Disponível</span>
                   </li>
-                  <li className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                     <span className="font-bold text-slate-700">Inbox & Webhook</span>
+                  <li className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100">
+                     <span className="font-bold text-slate-900">Inbox & Webhook</span>
                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold uppercase text-3xs">Disponível</span>
                   </li>
-                  <li className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                     <span className="font-bold text-slate-700">Financial API (Taxas/Repasses)</span>
+                  <li className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100">
+                     <span className="font-bold text-slate-900">Financial API (Taxas/Repasses)</span>
                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold uppercase text-3xs">Disponível</span>
                   </li>
-                  <li className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                     <span className="font-bold text-slate-700">Pedidos (Matching/Audit)</span>
+                  <li className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100">
+                     <span className="font-bold text-slate-900">Pedidos (Matching/Audit)</span>
                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold uppercase text-3xs">Disponível</span>
                   </li>
-                  <li className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                     <span className="font-bold text-slate-700">Mapeamento De/Para Cardápio</span>
+                  <li className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100">
+                     <span className="font-bold text-slate-900">Mapeamento De/Para Cardápio</span>
                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold uppercase text-3xs">Disponível</span>
                   </li>
                </ul>
             </div>
 
             <div className="mt-6 pt-4 border-t border-line-soft text-center">
-               <div className="flex items-center justify-center gap-1.5 text-xs text-muted font-bold">
+               <div className="flex items-center justify-center gap-1.5 text-xs text-fg font-bold">
                   <DollarSign size={14} className="text-emerald-600" />
                   <span>Conciliação Financeira Habilitada</span>
                </div>

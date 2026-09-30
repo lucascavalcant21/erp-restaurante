@@ -139,7 +139,7 @@ function TecladoSenha({ cor, onSuccess, onClose, senha }) {
           ))}
         </div>
         {erro && <p className="text-red-400 text-xs font-bold mb-2">{erro}</p>}
-        <button onClick={onClose} className="text-muted hover:text-dim text-xs font-bold">Cancelar</button>
+        <button onClick={onClose} className="text-fg hover:text-dim text-xs font-bold">Cancelar</button>
       </div>
     </div>
   );
@@ -204,11 +204,11 @@ function AreaRunner() {
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{area.nome}</h1>
-              <p className="text-muted font-bold uppercase tracking-widest text-3xs">{unidadeInfo?.nome || ""} · estação de trabalho</p>
+              <p className="text-fg font-bold uppercase tracking-widest text-3xs">{unidadeInfo?.nome || ""} · estação de trabalho</p>
             </div>
           </div>
           <button onClick={() => setPedindoSenha(true)} title="Sair da área (senha)"
-            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-muted hover:text-dim bg-slate-900 border border-slate-800 transition-colors flex-shrink-0">
+            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-fg hover:text-dim bg-slate-900 border border-slate-800 transition-colors flex-shrink-0">
             <Lock size={14} /> <span className="hidden sm:inline">Travado</span>
           </button>
         </div>
@@ -237,7 +237,7 @@ function AreaRunner() {
           ))}
         </div>
 
-        <p className="text-2xs font-medium text-slate-600 mt-8 text-center">
+        <p className="text-2xs font-medium text-slate-900 mt-8 text-center">
           Esta estação está travada na área {area.nome}. Os módulos abertos daqui voltam para cá; sair exige a senha da área.
         </p>
       </div>
@@ -247,7 +247,7 @@ function AreaRunner() {
 
 export default function AreaPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando área...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-fg">Carregando área...</div>}>
       <AreaRunner />
     </Suspense>
   );

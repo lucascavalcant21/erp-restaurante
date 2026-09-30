@@ -111,15 +111,15 @@ export default function SemanaPage() {
     <div className="min-h-screen bg-[var(--surface)] pb-16">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Semana do restaurante</h1>
-            <p className="text-xs font-bold text-muted">Escala, extras e custo de cada dia</p>
+            <p className="text-xs font-bold text-fg">Escala, extras e custo de cada dia</p>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => andar(-1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button onClick={() => andar(-1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900 hover:bg-white"><ChevronLeft size={18} /></button>
             <span className="min-w-[130px] text-center text-sm font-black text-slate-800">{faixa}</span>
-            <button onClick={() => andar(1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
+            <button onClick={() => andar(1)} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900 hover:bg-white"><ChevronRight size={18} /></button>
           </div>
           <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">Esta semana</button>
         </div>
@@ -127,7 +127,7 @@ export default function SemanaPage() {
 
       <main className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-fg">Selecione uma unidade específica.</div>
         ) : carregando ? (
           <div className="grid min-h-40 place-items-center"><Loader2 className="animate-spin text-success" size={28} /></div>
         ) : (
@@ -135,7 +135,7 @@ export default function SemanaPage() {
             <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm">
               <p className="text-2xs font-bold uppercase tracking-widest text-accent">Diárias de extras na semana</p>
               <p className="mt-1 text-3xl font-black text-fg sm:text-4xl">{brl(totalSemana)}</p>
-              <p className="mt-1 text-sm font-bold text-muted">
+              <p className="mt-1 text-sm font-bold text-fg">
                 {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(c => !ehExtra(c)).length} contratado(s) na escala
                 {semana.reduce((s, d) => s + d.eventosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.eventosDoDia.length, 0)} evento(s)`}
                 {semana.reduce((s, d) => s + d.feriadosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.feriadosDoDia.length, 0)} feriado(s)`}
@@ -174,7 +174,7 @@ export default function SemanaPage() {
                       </button>
                     ))}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted">
+                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-fg">
                       <Users size={13} /> Escala · {dia.escalados.length}
                     </p>
                     {dia.escalados.length === 0 ? (
@@ -182,7 +182,7 @@ export default function SemanaPage() {
                     ) : (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {dia.escalados.map(c => (
-                          <span key={c.id} className="rounded-lg bg-elevated px-2 py-1 text-2xs font-bold text-fg-soft">
+                          <span key={c.id} className="rounded-lg bg-card px-2 py-1 text-2xs font-bold text-fg-soft">
                             {String(c.nome || "").split(" ")[0]}
                             {c.horario_entrada ? ` ${String(c.horario_entrada).slice(0, 5)}` : ""}
                           </span>
@@ -190,7 +190,7 @@ export default function SemanaPage() {
                       </div>
                     )}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted">
+                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-fg">
                       <UserRound size={13} /> Extras · {dia.diarias.length}
                     </p>
                     {dia.diarias.length === 0 ? (
@@ -205,7 +205,7 @@ export default function SemanaPage() {
                             <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_total)}</span>
                           </div>
                         ))}
-                        <p className="pt-1 text-right text-2xs font-bold text-muted">Dia: {brl(dia.custoDiarias)}</p>
+                        <p className="pt-1 text-right text-2xs font-bold text-fg">Dia: {brl(dia.custoDiarias)}</p>
                       </div>
                     )}
                   </section>

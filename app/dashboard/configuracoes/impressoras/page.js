@@ -369,7 +369,7 @@ export default function DiagnosticoImpressorasUsbPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/configuracoes"
-            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition-colors"
+            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl flex items-center justify-center transition-colors"
             title="Voltar às Configurações"
           >
             <ArrowLeft size={20} />
@@ -381,7 +381,7 @@ export default function DiagnosticoImpressorasUsbPage() {
             <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
               Diagnóstico de Impressoras USB
             </h1>
-            <p className="text-sm text-muted font-medium">
+            <p className="text-sm text-fg font-medium">
               Detecção de hardware via WebUSB no Android / Tablet TWA
             </p>
           </div>
@@ -412,7 +412,7 @@ export default function DiagnosticoImpressorasUsbPage() {
             <p className={`text-base font-black ${suportaWebUsb ? "text-emerald-900" : "text-rose-900"}`}>
               {suportaWebUsb ? "Disponível (SIM)" : "Indisponível (NÃO)"}
             </p>
-            <p className="text-2xs text-muted mt-1 font-medium">
+            <p className="text-2xs text-fg mt-1 font-medium">
               {suportaWebUsb
                 ? "O navegador aceita chamadas diretas a dispositivos USB via WebUSB."
                 : "Este navegador ou ambiente não suporta navigator.usb. Use Chrome no Android ou Hefisto TWA."}
@@ -428,7 +428,7 @@ export default function DiagnosticoImpressorasUsbPage() {
             <p className="text-base font-black text-slate-800">
               {dispositivosAutorizados.length} dispositivo(s)
             </p>
-            <p className="text-2xs text-muted mt-1 font-medium">
+            <p className="text-2xs text-fg mt-1 font-medium">
               Dispositivos USB aos quais você já concedeu permissão neste aparelho.
             </p>
           </div>
@@ -446,7 +446,7 @@ export default function DiagnosticoImpressorasUsbPage() {
               {statusConexao === "erro" && <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />}
               {statusConexao}
             </p>
-            <p className="text-2xs text-muted mt-1 font-medium">
+            <p className="text-2xs text-fg mt-1 font-medium">
               {dispositivoAtivo
                 ? `${dispositivoAtivo.productName || "Impressora USB"} conectada`
                 : "Nenhuma impressora ativa no momento"}
@@ -468,7 +468,7 @@ export default function DiagnosticoImpressorasUsbPage() {
 
       {/* SEÇÃO PRINCIPAL: IMPRESSORAS NO DISPOSITIVO */}
       <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-        <div className="bg-slate-50 border-b border-line-soft p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white border-b border-line-soft p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Usb size={18} className="text-accent" />
             <h2 className="font-bold text-slate-800">Impressoras no dispositivo</h2>
@@ -503,7 +503,7 @@ export default function DiagnosticoImpressorasUsbPage() {
                       className={`p-4 rounded-xl border transition-all ${
                         estaAtivo
                           ? "border-emerald-500 bg-emerald-50/30 ring-2 ring-emerald-500/20"
-                          : "border-line bg-slate-50/50 hover:bg-slate-50"
+                          : "border-line bg-white/50 hover:bg-white"
                       } flex flex-col md:flex-row md:items-center justify-between gap-4`}
                     >
                       <div className="space-y-1">
@@ -517,7 +517,7 @@ export default function DiagnosticoImpressorasUsbPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <p className="text-xs text-fg font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span>Fabricante: <b>{dev.manufacturerName || "Não Informado"}</b></span>
                           <span>•</span>
                           <span>Vendor ID: <code className="bg-slate-200/70 px-1 py-0.5 rounded text-fg-soft font-mono">{vendorHex}</code></span>
@@ -559,13 +559,13 @@ export default function DiagnosticoImpressorasUsbPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-slate-50 border border-dashed border-line rounded-xl p-8 text-center space-y-3">
-              <div className="w-12 h-12 bg-slate-200 text-muted rounded-full flex items-center justify-center mx-auto">
+            <div className="bg-white border border-dashed border-line rounded-xl p-8 text-center space-y-3">
+              <div className="w-12 h-12 bg-slate-200 text-fg rounded-full flex items-center justify-center mx-auto">
                 <Usb size={24} />
               </div>
               <div>
                 <p className="font-bold text-slate-800 text-sm">Nenhuma impressora USB selecionada ainda</p>
-                <p className="text-xs text-muted max-w-md mx-auto mt-1 font-medium">
+                <p className="text-xs text-fg max-w-md mx-auto mt-1 font-medium">
                   Conecte a impressora térmica/etiquetas ao tablet Android usando o adaptador USB-C e clique no botão acima para permitir o acesso do navegador.
                 </p>
               </div>
@@ -606,25 +606,25 @@ export default function DiagnosticoImpressorasUsbPage() {
 
               {/* GRID DE INFORMAÇÕES TÉCNICAS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div className="bg-slate-50 border border-line p-3 rounded-xl">
+                <div className="bg-white border border-line p-3 rounded-xl">
                   <p className="text-subtle font-bold uppercase tracking-wider text-3xs">Vendor ID</p>
                   <p className="font-mono font-bold text-slate-800 mt-0.5">
                     0x{dispositivoAtivo.vendorId.toString(16).padStart(4, "0").toUpperCase()} ({dispositivoAtivo.vendorId})
                   </p>
                 </div>
-                <div className="bg-slate-50 border border-line p-3 rounded-xl">
+                <div className="bg-white border border-line p-3 rounded-xl">
                   <p className="text-subtle font-bold uppercase tracking-wider text-3xs">Product ID</p>
                   <p className="font-mono font-bold text-slate-800 mt-0.5">
                     0x{dispositivoAtivo.productId.toString(16).padStart(4, "0").toUpperCase()} ({dispositivoAtivo.productId})
                   </p>
                 </div>
-                <div className="bg-slate-50 border border-line p-3 rounded-xl">
+                <div className="bg-white border border-line p-3 rounded-xl">
                   <p className="text-subtle font-bold uppercase tracking-wider text-3xs">Interface Ativa</p>
                   <p className="font-mono font-bold text-slate-800 mt-0.5">
                     {interfaceSelecionada !== null ? `Interface #${interfaceSelecionada}` : "Nenhuma"}
                   </p>
                 </div>
-                <div className="bg-slate-50 border border-line p-3 rounded-xl">
+                <div className="bg-white border border-line p-3 rounded-xl">
                   <p className="text-subtle font-bold uppercase tracking-wider text-3xs">Endpoint OUT (Bulk)</p>
                   <p className="font-mono font-bold text-emerald-700 mt-0.5">
                     {endpointOut ? `#${endpointOut.endpointNumber} (${endpointOut.packetSize}B)` : "Não Encontrado"}
@@ -643,7 +643,7 @@ export default function DiagnosticoImpressorasUsbPage() {
                       Interface #{iface.interfaceNumber} (claimed: {iface.claimed ? "SIM" : "NÃO"}):
                     </p>
                     {iface.alternates.map((alt, aIndex) => (
-                      <div key={aIndex} className="pl-4 space-y-1 text-slate-400">
+                      <div key={aIndex} className="pl-4 space-y-1 text-slate-800">
                         <p>
                           Alternate #{alt.alternateSetting} (Class: {alt.interfaceClass}, Subclass: {alt.interfaceSubClass}, Protocol: {alt.interfaceProtocol})
                         </p>
@@ -671,7 +671,7 @@ export default function DiagnosticoImpressorasUsbPage() {
                     <div className="text-xs space-y-1 font-mono">
                       <p>Protocolo: <b>{ultimoResultadoImpressao.protocolo || "ESC/POS"}</b></p>
                       <p>Bytes gravados no Endpoint OUT: <b>{ultimoResultadoImpressao.bytesEnviados} bytes</b></p>
-                      <p className="text-2xs text-muted">Hex Dump (Primeiros 32 bytes): <code className="bg-emerald-100 px-1 py-0.5 rounded">{ultimoResultadoImpressao.hexDump}</code></p>
+                      <p className="text-2xs text-fg">Hex Dump (Primeiros 32 bytes): <code className="bg-emerald-100 px-1 py-0.5 rounded">{ultimoResultadoImpressao.hexDump}</code></p>
                     </div>
                   ) : (
                     <p className="text-xs">{ultimoResultadoImpressao.erro}</p>
@@ -685,9 +685,9 @@ export default function DiagnosticoImpressorasUsbPage() {
 
       {/* PAINEL DE LOGS DE DIAGNÓSTICO EM TEMPO REAL */}
       <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-        <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center justify-between">
+        <div className="bg-white border-b border-line-soft p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Terminal size={18} className="text-muted" />
+            <Terminal size={18} className="text-fg" />
             <h2 className="font-bold text-slate-800">Log de Diagnóstico do Sistema</h2>
           </div>
           <button
@@ -702,7 +702,7 @@ export default function DiagnosticoImpressorasUsbPage() {
           {logs.length > 0 ? (
             logs.map(log => (
               <div key={log.id} className="flex items-start gap-2">
-                <span className="text-slate-500 shrink-0">[{log.hora}]</span>
+                <span className="text-slate-900 shrink-0">[{log.hora}]</span>
                 <span
                   className={
                     log.tipo === "sucesso"
@@ -714,23 +714,23 @@ export default function DiagnosticoImpressorasUsbPage() {
                       : "text-slate-300"
                   }
                 >
-                  {log.mensagem} {log.detalhe && <span className="text-slate-400 font-normal">{log.detalhe}</span>}
+                  {log.mensagem} {log.detalhe && <span className="text-slate-800 font-normal">{log.detalhe}</span>}
                 </span>
               </div>
             ))
           ) : (
-            <p className="text-slate-600 italic">Nenhum evento registrado ainda.</p>
+            <p className="text-slate-900 italic">Nenhum evento registrado ainda.</p>
           )}
         </div>
       </div>
 
       {/* INFORMAÇÕES DE COMPATIBILIDADE E AJUDA */}
-      <div className="bg-slate-50 border border-line rounded-2xl p-5 space-y-3">
+      <div className="bg-white border border-line rounded-2xl p-5 space-y-3">
         <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
           <Info size={18} className="text-accent" />
           Como funciona a impressão USB no Hefisto Android?
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600 font-medium">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-900 font-medium">
           <div>
             <p className="font-bold text-fg-soft mb-1">1. Conexão Física (OTG)</p>
             <p>Conecte a impressora térmica USB à porta USB-C do tablet Android usando um adaptador OTG simples. Ligue a impressora na tomada.</p>

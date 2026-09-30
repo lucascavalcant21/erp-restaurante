@@ -481,19 +481,19 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
             </div>
             <div>
               <h3 className="font-black text-fg text-base sm:text-lg">Custo da Folha por Setor & Remuneração</h3>
-              <p className="text-xs text-muted font-medium">Impacto financeiro mensal de salários, vales e taxa de serviço da equipe ativa</p>
+              <p className="text-xs text-fg font-medium">Impacto financeiro mensal de salários, vales e taxa de serviço da equipe ativa</p>
             </div>
           </div>
-          <span className="text-xs font-bold bg-elevated text-fg-soft px-3 py-1 rounded-full">
+          <span className="text-xs font-bold bg-card text-fg-soft px-3 py-1 rounded-full">
             👥 {resumoFinanceiroFolha.ativosCount} Colaboradores Ativos
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-slate-50 rounded-2xl p-4 border border-line-soft space-y-1">
+          <div className="bg-white rounded-2xl p-4 border border-line-soft space-y-1">
             <span className="text-3xs font-bold text-subtle uppercase tracking-widest block">Folha Total Mensal</span>
             <p className="text-xl font-black text-fg">{fmtBRL(resumoFinanceiroFolha.totalGeral)}</p>
-            <p className="text-2xs font-bold text-muted">Média: {fmtBRL(resumoFinanceiroFolha.mediaPorPessoa)} / colab</p>
+            <p className="text-2xs font-bold text-fg">Média: {fmtBRL(resumoFinanceiroFolha.mediaPorPessoa)} / colab</p>
           </div>
 
           <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-100 space-y-1">
@@ -534,7 +534,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
             className={`px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${
               departamentoFiltro === dep
                 ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
-                : "bg-card text-slate-600 border border-line hover:bg-slate-50"
+                : "bg-card text-slate-900 border border-line hover:bg-white"
             }`}
           >
             {dep}
@@ -545,11 +545,11 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
       {/* LISTAGEM DE CARGOS POR DEPARTAMENTO */}
       {cargosFiltrados.length === 0 ? (
         <div className="bg-card rounded-3xl border border-line p-12 text-center space-y-3">
-          <div className="w-16 h-16 bg-elevated text-subtle rounded-full flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-card text-subtle rounded-full flex items-center justify-center mx-auto">
             <Award size={32} />
           </div>
           <h3 className="font-black text-slate-800 text-lg">Nenhum cargo neste setor</h3>
-          <p className="text-muted text-sm max-w-md mx-auto">
+          <p className="text-fg text-sm max-w-md mx-auto">
             Clique no botão acima para adicionar cargos como Cozinheiro, Garçom, Barman ou Supervisor.
           </p>
         </div>
@@ -574,7 +574,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     <span className="text-3xs font-bold uppercase tracking-widest bg-accent-soft text-accent-strong px-2.5 py-1 rounded-lg border border-emerald-100">
                       {c.departamento || "Geral"}
                     </span>
-                    <span className="text-3xs font-bold text-muted bg-elevated px-2 py-0.5 rounded-md">
+                    <span className="text-3xs font-bold text-fg bg-card px-2 py-0.5 rounded-md">
                       {c.nivel || "Geral"}
                     </span>
                   </div>
@@ -586,7 +586,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
 
                   {/* DESCRIÇÃO DA FUNÇÃO */}
                   {c.descricao && (
-                    <p className="text-xs font-medium text-muted mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-xs font-medium text-fg mt-1 line-clamp-2 leading-relaxed">
                       {c.descricao}
                     </p>
                   )}
@@ -609,8 +609,8 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   )}
 
                   {/* DESMEMBRAMENTO DE REMUNERAÇÃO */}
-                  <div className="mt-4 bg-slate-50 border border-line-soft rounded-2xl p-3.5 space-y-1.5">
-                    <div className="flex justify-between items-center text-xs text-slate-600 font-semibold">
+                  <div className="mt-4 bg-white border border-line-soft rounded-2xl p-3.5 space-y-1.5">
+                    <div className="flex justify-between items-center text-xs text-slate-900 font-semibold">
                       <span>Salário Base:</span>
                       <span className="font-bold text-slate-800">{fmtBRL(fixo)}</span>
                     </div>
@@ -636,7 +636,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 {/* COLABORADORES ATUAIS NO CARGO & AÇÕES */}
                 <div className="space-y-3 pt-3 border-t border-line-soft">
                   <div className="flex items-center justify-between">
-                    <span className="text-2xs font-bold text-muted flex items-center gap-1.5">
+                    <span className="text-2xs font-bold text-fg flex items-center gap-1.5">
                       <Users size={14} className="text-subtle" />
                       Contratados: <b className="text-slate-800">{contratados.length}</b>
                     </span>
@@ -654,9 +654,9 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                       {contratados.map(f => (
                         <div
                           key={f.id}
-                          className="flex items-center gap-1.5 bg-elevated text-fg-soft text-2xs font-bold px-2 py-1 rounded-lg border border-line"
+                          className="flex items-center gap-1.5 bg-card text-fg-soft text-2xs font-bold px-2 py-1 rounded-lg border border-line"
                         >
-                          <div className="w-4 h-4 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center text-3xs font-bold">
+                          <div className="w-4 h-4 rounded-full bg-slate-300 text-slate-900 flex items-center justify-center text-3xs font-bold">
                             {(f.nome || "?")[0].toUpperCase()}
                           </div>
                           <span className="truncate max-w-[110px]">{f.nome}</span>
@@ -677,7 +677,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => abrirEdicaoCargo(c)}
-                        className="p-2 text-muted hover:text-slate-800 hover:bg-elevated rounded-xl transition-colors"
+                        className="p-2 text-fg hover:text-slate-800 hover:bg-card rounded-xl transition-colors"
                         title="Editar Cargo"
                       >
                         <Edit2 size={16} />
@@ -708,14 +708,14 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
               <h3 className="text-lg font-black text-fg">
                 {form.id ? "Editar Cargo & Requisitos" : "Criar Novo Cargo no Plano de Carreiras"}
               </h3>
-              <button onClick={() => setModalEdit(false)} className="text-subtle hover:text-slate-600 font-black">
+              <button onClick={() => setModalEdit(false)} className="text-subtle hover:text-slate-900 font-black">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleSalvarCargoSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                   Nome do Cargo / Função *
                 </label>
                 <input
@@ -724,19 +724,19 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   placeholder="Ex: Cozinheiro 2, Bartender, Chef de Fila"
                   value={form.nome}
                   onChange={e => setForm({ ...form, nome: e.target.value })}
-                  className="w-full p-3.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                  className="w-full p-3.5 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                  <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Setor / Departamento
                   </label>
                   <select
                     value={form.departamento}
                     onChange={e => setForm({ ...form, departamento: e.target.value })}
-                    className="w-full p-3.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                    className="w-full p-3.5 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
                   >
                     <option value="Cozinha">Cozinha</option>
                     <option value="Bar">Bar</option>
@@ -747,7 +747,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                  <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Nível / Categoria
                   </label>
                   <input
@@ -755,14 +755,14 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: Nível I, Pleno, Liderança"
                     value={form.nivel}
                     onChange={e => setForm({ ...form, nivel: e.target.value })}
-                    className="w-full p-3.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                    className="w-full p-3.5 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">
+                  <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Salário Base (R$)
                   </label>
                   <input
@@ -772,11 +772,11 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 2200"
                     value={form.salario_base}
                     onChange={e => setForm({ ...form, salario_base: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-accent outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3 bg-white border border-line rounded-xl font-bold text-accent outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">
+                  <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Vale Alim. (R$)
                   </label>
                   <input
@@ -786,11 +786,11 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 350"
                     value={form.vale_alimentacao}
                     onChange={e => setForm({ ...form, vale_alimentacao: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-teal-700 outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3 bg-white border border-line rounded-xl font-bold text-teal-700 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">
+                  <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Taxa Serv. (R$)
                   </label>
                   <input
@@ -800,13 +800,13 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 400"
                     value={form.taxa_servico}
                     onChange={e => setForm({ ...form, taxa_servico: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-indigo-700 outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3 bg-white border border-line rounded-xl font-bold text-indigo-700 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                   Requisitos para Promoção (1 por linha)
                 </label>
                 <textarea
@@ -814,12 +814,12 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   placeholder="Ex: 6 meses como Auxiliar I&#10;Domínio de cortes e fichas técnicas&#10;90%+ de assiduidade nos checklists"
                   value={form.requisitos}
                   onChange={e => setForm({ ...form, requisitos: e.target.value })}
-                  className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none text-xs"
+                  className="w-full p-3 bg-white border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none text-xs"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                   Atribuições & Descrição Geral
                 </label>
                 <textarea
@@ -827,7 +827,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   placeholder="Descreva o que é esperado do funcionário neste cargo..."
                   value={form.descricao}
                   onChange={e => setForm({ ...form, descricao: e.target.value })}
-                  className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none text-xs"
+                  className="w-full p-3 bg-white border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none text-xs"
                 />
               </div>
 
@@ -835,7 +835,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <button
                   type="button"
                   onClick={() => setModalEdit(false)}
-                  className="flex-1 py-3.5 bg-elevated hover:bg-slate-200 text-fg-soft font-bold rounded-2xl transition-colors"
+                  className="flex-1 py-3.5 bg-card hover:bg-slate-200 text-fg-soft font-bold rounded-2xl transition-colors"
                 >
                   Cancelar
                 </button>
@@ -861,21 +861,21 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <span className="text-3xs font-bold uppercase tracking-widest text-success">Alocação / Promoção</span>
                 <h3 className="text-lg font-black text-fg">Vincular a: {cargoAlocar.nome}</h3>
               </div>
-              <button onClick={() => setModalAlocar(false)} className="text-subtle hover:text-slate-600 font-black">
+              <button onClick={() => setModalAlocar(false)} className="text-subtle hover:text-slate-900 font-black">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleAlocarFuncionarioSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                   Selecione o Funcionário da Equipe
                 </label>
                 <select
                   required
                   value={funcSelecionadoId}
                   onChange={e => setFuncSelecionadoId(e.target.value)}
-                  className="w-full p-3.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                  className="w-full p-3.5 bg-white border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
                 >
                   <option value="">Selecione um colaborador...</option>
                   {funcionarios
@@ -889,7 +889,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">
+                <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">
                   Motivo da Promoção / Observação
                 </label>
                 <input
@@ -897,7 +897,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   value={motivoPromocao}
                   onChange={e => setMotivoPromocao(e.target.value)}
                   placeholder="Ex: Excelente assiduidade e alcance de metas"
-                  className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-emerald-500"
+                  className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -914,7 +914,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 <button
                   type="button"
                   onClick={() => setModalAlocar(false)}
-                  className="flex-1 py-3 bg-elevated text-fg-soft font-bold rounded-2xl"
+                  className="flex-1 py-3 bg-card text-fg-soft font-bold rounded-2xl"
                 >
                   Cancelar
                 </button>

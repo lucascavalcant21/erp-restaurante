@@ -34,7 +34,7 @@ export default function PropostaTab({ evento }) {
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-100">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Status do Cliente</h3>
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest mb-4">Status do Cliente</h3>
             <div className="flex items-center gap-3 text-emerald-600 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
               <CheckCircle size={20} />
               <span className="font-bold text-sm">Proposta Gerada</span>
@@ -53,29 +53,29 @@ export default function PropostaTab({ evento }) {
             <div className="flex justify-between items-end mb-12">
               <div>
                 <h1 className="text-4xl font-black tracking-tighter mb-2">PROPOSTA DE EVENTO</h1>
-                <p className="text-slate-400 font-medium text-lg">Experiência Gastronômica Exclusiva</p>
+                <p className="text-slate-800 font-medium text-lg">Experiência Gastronômica Exclusiva</p>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-black tracking-tight">{evento?.cliente_nome || "Cliente Especial"}</div>
-                <div className="text-slate-400">Proposta #{evento?.id?.split('-')[0].toUpperCase()}</div>
+                <div className="text-slate-800">Proposta #{evento?.id?.split('-')[0].toUpperCase()}</div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 py-6 border-t border-slate-700/50">
               <div>
-                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={12}/> Data</div>
+                <div className="text-slate-900 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={12}/> Data</div>
                 <div className="font-semibold">{dataEvento}</div>
               </div>
               <div>
-                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Users size={12}/> Convidados</div>
+                <div className="text-slate-900 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Users size={12}/> Convidados</div>
                 <div className="font-semibold">{evento?.capacidade || 0} pax</div>
               </div>
               <div>
-                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Clock size={12}/> Horário</div>
+                <div className="text-slate-900 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Clock size={12}/> Horário</div>
                 <div className="font-semibold">{evento?.hora_inicio || 'A def.'} às {evento?.hora_fim || 'A def.'}</div>
               </div>
               <div>
-                <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><MapPin size={12}/> Local</div>
+                <div className="text-slate-900 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><MapPin size={12}/> Local</div>
                 <div className="font-semibold truncate" title={evento?.local_evento || 'No restaurante'}>{evento?.local_evento || 'No restaurante'}</div>
               </div>
             </div>
@@ -86,7 +86,7 @@ export default function PropostaTab({ evento }) {
             {/* INTRODUÇÃO */}
             <section>
               <h3 className="text-2xl font-black text-slate-900 mb-4">Olá, {evento?.cliente_nome?.split(' ')[0] || "Cliente"}!</h3>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-slate-900 leading-relaxed">
                 É um prazer apresentar a nossa proposta gastronômica para o seu evento <strong className="text-slate-900">{evento?.nome_evento}</strong>. 
                 Nossa equipe elaborou um cardápio cuidadosamente selecionado para proporcionar uma experiência inesquecível aos seus convidados,
                 aliando excelência no sabor e um serviço impecável.
@@ -107,7 +107,7 @@ export default function PropostaTab({ evento }) {
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></div>
                       <div>
                         <strong className="block text-slate-800 text-lg">{prato.nome}</strong>
-                        <p className="text-slate-500 text-sm">Serviço incluso na experiência gastronômica.</p>
+                        <p className="text-slate-900 text-sm">Serviço incluso na experiência gastronômica.</p>
                       </div>
                     </li>
                   ))}
@@ -125,7 +125,7 @@ export default function PropostaTab({ evento }) {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {pratosBar.map((bebida, idx) => (
-                    <div key={idx} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center gap-3">
+                    <div key={idx} className="bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0">🍷</div>
                       <strong className="text-slate-800">{bebida.nome}</strong>
                     </div>
@@ -135,11 +135,11 @@ export default function PropostaTab({ evento }) {
             )}
 
             {/* INVESTIMENTO */}
-            <section className="bg-slate-50 border border-slate-200 rounded-3xl p-8">
+            <section className="bg-white border border-slate-200 rounded-3xl p-8">
               <h3 className="text-xl font-black text-slate-900 mb-6 uppercase tracking-tight">Investimento</h3>
               
               <div className="flex justify-between items-center mb-6">
-                <span className="text-slate-600 font-medium">Valor por Convidado ({evento?.capacidade || 0} pax)</span>
+                <span className="text-slate-900 font-medium">Valor por Convidado ({evento?.capacidade || 0} pax)</span>
                 <span className="text-lg font-bold text-slate-900">
                   R$ {(valorCobrado / Math.max((evento?.capacidade || 1), 1)).toFixed(2)}
                 </span>
@@ -154,14 +154,14 @@ export default function PropostaTab({ evento }) {
                 </span>
               </div>
 
-              <div className="mt-8 bg-white p-4 rounded-xl text-sm text-slate-500">
+              <div className="mt-8 bg-white p-4 rounded-xl text-sm text-slate-900">
                 <strong>Condições de Pagamento:</strong> O evento é confirmado mediante o pagamento do sinal de reserva. O valor restante deve ser quitado de acordo com a política de contratação do restaurante.
               </div>
             </section>
 
           </main>
 
-          <footer className="bg-slate-900 text-slate-400 text-center py-8 text-sm mt-12">
+          <footer className="bg-slate-900 text-slate-800 text-center py-8 text-sm mt-12">
             Este é um documento gerado automaticamente. Válido por 15 dias após a emissão.
           </footer>
 

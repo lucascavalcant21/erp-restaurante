@@ -51,19 +51,19 @@ function CardInstalar() {
           <p className="text-sm font-bold text-accent flex items-center gap-2"><CheckCircle size={16}/> Você já está usando o app instalado.</p>
         ) : (
           <>
-            <p className="text-sm text-slate-600 mb-4">Instalado, o Hefisto abre em tela cheia como um app de verdade — sem barra de navegador, e o Modo Ponto/Estações funcionam como quiosque.</p>
+            <p className="text-sm text-slate-900 mb-4">Instalado, o Hefisto abre em tela cheia como um app de verdade — sem barra de navegador, e o Modo Ponto/Estações funcionam como quiosque.</p>
             <button type="button" onClick={instalar} className="bg-accent hover:bg-accent text-accent-fg font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors">
               <Download size={18} /> {temPrompt ? "Instalar agora" : "Como instalar neste aparelho"}
             </button>
             {(mostrarComo || !temPrompt) && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="bg-slate-50 border border-line rounded-xl p-4">
+                <div className="bg-white border border-line rounded-xl p-4">
                   <p className="font-black text-fg-soft mb-1">Android (Chrome)</p>
-                  <p className="text-slate-600 font-medium">Toque no menu <b>⋮</b> (canto superior direito) → <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.</p>
+                  <p className="text-slate-900 font-medium">Toque no menu <b>⋮</b> (canto superior direito) → <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.</p>
                 </div>
-                <div className="bg-slate-50 border border-line rounded-xl p-4">
+                <div className="bg-white border border-line rounded-xl p-4">
                   <p className="font-black text-fg-soft mb-1">iPhone / iPad (Safari)</p>
-                  <p className="text-slate-600 font-medium">Toque em <b>Compartilhar</b> (quadrado com seta) → <b>"Adicionar à Tela de Início"</b>.</p>
+                  <p className="text-slate-900 font-medium">Toque em <b>Compartilhar</b> (quadrado com seta) → <b>"Adicionar à Tela de Início"</b>.</p>
                 </div>
               </div>
             )}
@@ -116,8 +116,8 @@ function CardParametros({ unidadeAtiva }) {
   ];
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-        <SlidersHorizontal size={18} className="text-muted" />
+      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
+        <SlidersHorizontal size={18} className="text-fg" />
         <h2 className="font-bold text-slate-800">Parâmetros do Sistema</h2>
       </div>
       <div className="p-6 space-y-6">
@@ -127,10 +127,10 @@ function CardParametros({ unidadeAtiva }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {campos.map(([k, label, hint]) => (
                 <div key={k}>
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">{label}</label>
+                  <label className="text-xs font-bold text-fg uppercase tracking-widest">{label}</label>
                   <input type="number" min="0" step="1" value={p[k]}
                     onChange={e => setP(prev => ({ ...prev, [k]: e.target.value === "" ? "" : Number(e.target.value) }))}
-                    className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
+                    className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
                   <p className="text-3xs text-subtle font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
                 </div>
               ))}
@@ -142,7 +142,7 @@ function CardParametros({ unidadeAtiva }) {
             className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar parâmetros
           </button>
-          <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-muted hover:text-fg-soft">Voltar aos padrões</button>
+          <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-fg hover:text-fg-soft">Voltar aos padrões</button>
           {ok && <span className="text-success font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
         </div>
       </div>
@@ -198,11 +198,11 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
   if (!categorias) return null;
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
         <Tag size={18} className="text-success" />
         <div>
           <h2 className="font-bold text-slate-800">Validades padrão das etiquetas</h2>
-          <p className="text-2xs text-muted font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
+          <p className="text-2xs text-fg font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
         </div>
       </div>
       <div className="p-6 space-y-3">
@@ -212,13 +212,13 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
               <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Categoria</label>
               <input value={item.nome} onChange={(e) => alterar(indice, "nome", e.target.value)}
                 placeholder="Ex.: Molhos e bases"
-                className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+                className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
             </div>
             <div>
               <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Validade (dias)</label>
               <input type="number" min="0" max="3650" value={item.dias}
                 onChange={(e) => alterar(indice, "dias", e.target.value)}
-                className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
+                className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-emerald-500" />
             </div>
             <button type="button" onClick={() => setCategorias((lista) => lista.filter((_, i) => i !== indice))}
               title="Remover categoria" className="h-11 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center">
@@ -268,11 +268,11 @@ function CardCargos({ unidadeAtiva }) {
 
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-        <Briefcase size={18} className="text-muted" />
+      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
+        <Briefcase size={18} className="text-fg" />
         <div>
           <h2 className="font-bold text-slate-800">Funções / Cargos</h2>
-          <p className="text-2xs text-muted font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
+          <p className="text-2xs text-fg font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
         </div>
       </div>
       <div className="p-6 space-y-4">
@@ -285,7 +285,7 @@ function CardCargos({ unidadeAtiva }) {
                   {c.eh_supervisor && <span className="text-3xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Supervisor</span>}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => alternarSup(c)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-elevated text-fg-soft hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
+                  <button onClick={() => alternarSup(c)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-card text-fg-soft hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
                   <button onClick={() => excluir(c)} title="Excluir" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
                 </div>
               </div>
@@ -294,8 +294,8 @@ function CardCargos({ unidadeAtiva }) {
         )}
         <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
           <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nova função (ex: Chef de Fila)"
-            className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
-          <label className="flex items-center gap-2 text-sm font-bold text-slate-600 px-2 whitespace-nowrap cursor-pointer">
+            className="flex-1 p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-900 px-2 whitespace-nowrap cursor-pointer">
             <input type="checkbox" checked={ehSup} onChange={e => setEhSup(e.target.checked)} style={{ accentColor: "#F59E0B" }} /> É supervisor
           </label>
           <button onClick={criar} disabled={salvando} className="bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
@@ -340,11 +340,11 @@ function CardUnidades() {
 
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-        <Store size={18} className="text-muted" />
+      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
+        <Store size={18} className="text-fg" />
         <div>
           <h2 className="font-bold text-slate-800">Unidades (lojas)</h2>
-          <p className="text-2xs text-muted font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
+          <p className="text-2xs text-fg font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
         </div>
       </div>
       <div className="p-6 space-y-4">
@@ -353,11 +353,11 @@ function CardUnidades() {
             <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-line"}`}>
               <div className="min-w-0">
                 <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-3xs font-bold uppercase tracking-widest text-success">Ativa</span>}</p>
-                {u.cidade && <p className="text-2xs text-muted truncate">{u.cidade}</p>}
+                {u.cidade && <p className="text-2xs text-fg truncate">{u.cidade}</p>}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {unidadeAtiva !== u.id && (
-                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-elevated text-fg-soft hover:bg-slate-200">Usar</button>
+                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-2xs font-bold px-3 h-9 rounded-lg bg-card text-fg-soft hover:bg-slate-200">Usar</button>
                 )}
                 <button onClick={() => excluir(u)} title="Excluir unidade" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
               </div>
@@ -368,7 +368,7 @@ function CardUnidades() {
 
         <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-line-soft">
           <input value={nova} onChange={e => setNova(e.target.value)} placeholder="Nome da nova unidade (ex: Filial Centro)"
-            className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+            className="flex-1 p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
           <button onClick={criar} disabled={salvando} className="bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
             <Plus size={16} /> {salvando ? "Criando..." : "Criar unidade"}
           </button>
@@ -382,23 +382,23 @@ function CardUnidades() {
 function CardControleAcessos() {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-      <div className="flex items-center gap-2 border-b border-line-soft bg-slate-50 p-4">
+      <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
         <ShieldCheck size={18} className="text-violet-600" />
         <div>
           <h2 className="font-bold text-slate-800">Usuários, perfis e permissões</h2>
-          <p className="text-2xs font-medium text-muted">Controle acessos por empresa, unidade, setor, página e ação.</p>
+          <p className="text-2xs font-medium text-fg">Controle acessos por empresa, unidade, setor, página e ação.</p>
         </div>
       </div>
       <div className="grid gap-3 p-5 sm:grid-cols-2">
         <a href="/dashboard/configuracoes/usuarios" className="group rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Users size={20} className="mb-3 text-success" />
           <p className="font-black text-slate-800">Usuários e acessos</p>
-          <p className="mt-1 text-xs text-muted">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
+          <p className="mt-1 text-xs text-fg">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
         </a>
         <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-line p-4 transition hover:border-violet-300 hover:bg-violet-50">
           <ShieldCheck size={20} className="mb-3 text-violet-600" />
           <p className="font-black text-slate-800">Perfis de acesso</p>
-          <p className="mt-1 text-xs text-muted">Monte permissões reutilizáveis por módulo, página e ação.</p>
+          <p className="mt-1 text-xs text-fg">Monte permissões reutilizáveis por módulo, página e ação.</p>
         </a>
       </div>
     </div>
@@ -408,23 +408,23 @@ function CardControleAcessos() {
 function CardImpressoras() {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-      <div className="flex items-center gap-2 border-b border-line-soft bg-slate-50 p-4">
+      <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
         <Printer size={18} className="text-emerald-600" />
         <div>
           <h2 className="font-bold text-slate-800">Impressoras e Hardware</h2>
-          <p className="text-2xs font-medium text-muted">Diagnóstico WebUSB, conexão de impressoras térmicas e testes de impressão.</p>
+          <p className="text-2xs font-medium text-fg">Diagnóstico WebUSB, conexão de impressoras térmicas e testes de impressão.</p>
         </div>
       </div>
       <div className="p-5 space-y-3">
         <a href="/dashboard/configuracoes/impressoras" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Printer size={20} className="mb-3 text-success" />
           <p className="font-black text-slate-800">Diagnóstico WebUSB (Android / Tablet)</p>
-          <p className="mt-1 text-xs text-muted">Detectar impressoras USB conectadas, inspecionar Vendor/Product ID e testar comandos ESC/POS.</p>
+          <p className="mt-1 text-xs text-fg">Detectar impressoras USB conectadas, inspecionar Vendor/Product ID e testar comandos ESC/POS.</p>
         </a>
         <a href="/dashboard/configuracoes/etiquetas" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
           <Tag size={20} className="mb-3 text-emerald-600" />
           <p className="font-black text-slate-800">Tamanhos e Perfis de Etiquetas</p>
-          <p className="mt-1 text-xs text-muted">Configure a largura, altura, margens e impressora de cada setor (Cozinha, Bar, etc).</p>
+          <p className="mt-1 text-xs text-fg">Configure a largura, altura, margens e impressora de cada setor (Cozinha, Bar, etc).</p>
         </a>
       </div>
     </div>
@@ -459,18 +459,18 @@ function CardSenhas({ unidadeAtiva }) {
   ];
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden mt-6">
-      <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-        <Lock size={18} className="text-muted" />
+      <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
+        <Lock size={18} className="text-fg" />
         <h2 className="font-bold text-slate-800">Senhas e PINs (4 números)</h2>
       </div>
       <div className="p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           {CAMPOS_PIN.map(([k, label, hint]) => (
             <div key={k}>
-              <label className="text-xs font-bold text-muted uppercase tracking-widest">{label}</label>
+              <label className="text-xs font-bold text-fg uppercase tracking-widest">{label}</label>
               <input type="text" inputMode="numeric" maxLength={4} value={pins[k] || ""}
                 onChange={e => setPins(p => ({ ...p, [k]: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-black text-fg-soft tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
+                className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-black text-fg-soft tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
               <p className="text-3xs text-subtle font-medium mt-1">{hint}</p>
             </div>
           ))}
@@ -589,8 +589,8 @@ export default function ConfiguracoesPage() {
 
   if (loading) return <div className="p-6"><SkeletonList /></div>;
 
-  const inputCls = "w-full bg-slate-50 border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none";
-  const labelCls = "block text-xs font-bold text-muted mb-1.5 uppercase";
+  const inputCls = "w-full bg-white border border-line rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none";
+  const labelCls = "block text-xs font-bold text-fg mb-1.5 uppercase";
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto w-full font-sans">
@@ -601,7 +601,7 @@ export default function ConfiguracoesPage() {
         </div>
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Configurações da Loja</h1>
-          <p className="text-sm text-muted font-medium">Dados cadastrais, fiscais e físicos da unidade — usados nos documentos impressos (atas, orçamentos, fichas).</p>
+          <p className="text-sm text-fg font-medium">Dados cadastrais, fiscais e físicos da unidade — usados nos documentos impressos (atas, orçamentos, fichas).</p>
         </div>
       </div>
 
@@ -609,8 +609,8 @@ export default function ConfiguracoesPage() {
 
         {/* CARD 1: Informações Públicas */}
         <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-          <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
-            <Store size={18} className="text-muted" />
+          <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
+            <Store size={18} className="text-fg" />
             <h2 className="font-bold text-fg-soft">Informações Públicas</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -635,7 +635,7 @@ export default function ConfiguracoesPage() {
 
         {/* CARD 2: Dados Fiscais */}
         <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-          <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+          <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
             <Landmark size={18} className="text-success" />
             <h2 className="font-bold text-fg-soft">Dados Fiscais</h2>
           </div>
@@ -675,7 +675,7 @@ export default function ConfiguracoesPage() {
 
         {/* CARD 3: Endereço Físico */}
         <div className="bg-card rounded-2xl shadow-sm border border-line overflow-hidden">
-          <div className="bg-slate-50 border-b border-line-soft p-4 flex items-center gap-2">
+          <div className="bg-white border-b border-line-soft p-4 flex items-center gap-2">
             <MapPin size={18} className="text-success" />
             <h2 className="font-bold text-fg-soft">Endereço Físico</h2>
           </div>

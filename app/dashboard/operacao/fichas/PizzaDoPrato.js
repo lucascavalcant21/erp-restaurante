@@ -32,7 +32,7 @@ export default function PizzaDoPrato({
 
   if (!fatias.length) {
     return (
-      <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-2xs font-bold text-subtle">
+      <p className="rounded-xl bg-white px-3 py-4 text-center text-2xs font-bold text-subtle">
         Sem preço de venda: não dá para dividir a pizza.
       </p>
     );
@@ -93,7 +93,7 @@ export default function PizzaDoPrato({
             <>
               <span className="text-3xs font-bold uppercase tracking-wider text-subtle">Sobra</span>
               <span className="text-lg font-black text-success">{pctLucro.toFixed(0)}%</span>
-              <span className="text-3xs font-bold text-muted">{fmt(lucro)}</span>
+              <span className="text-3xs font-bold text-fg">{fmt(lucro)}</span>
             </>
           )}
         </div>
@@ -104,7 +104,7 @@ export default function PizzaDoPrato({
           {fatias.map((f) => (
             <li key={f.id}
               onMouseEnter={() => setEmFoco(f.id)} onMouseLeave={() => setEmFoco(null)}
-              className={`rounded-md px-1 py-0.5 transition-colors ${emFoco === f.id ? "bg-slate-50" : ""}`}>
+              className={`rounded-md px-1 py-0.5 transition-colors ${emFoco === f.id ? "bg-white" : ""}`}>
               <button type="button" disabled={!f.partes.length}
                 onClick={() => setAberto(aberto === f.id ? null : f.id)}
                 aria-expanded={aberto === f.id}
@@ -117,7 +117,7 @@ export default function PizzaDoPrato({
                   )}
                 </span>
                 <span className="shrink-0 font-black text-slate-800">{fmt(f.valor)}</span>
-                <span className="w-11 shrink-0 text-right font-black text-muted">{f.pct.toFixed(1)}%</span>
+                <span className="w-11 shrink-0 text-right font-black text-fg">{f.pct.toFixed(1)}%</span>
               </button>
               {/* Do que o segmento é feito — só quando a pessoa pede. Aberto
                   sempre, isto vira uma parede de vinte linhas num prato com
@@ -127,7 +127,7 @@ export default function PizzaDoPrato({
                   {f.partes.map((x) => (
                     <li key={x.rotulo} className="flex items-center gap-2 text-3xs">
                       <span className="min-w-0 flex-1 truncate font-bold text-subtle">{x.rotulo}</span>
-                      <span className="shrink-0 font-bold text-muted">{fmt(x.valor)}</span>
+                      <span className="shrink-0 font-bold text-fg">{fmt(x.valor)}</span>
                       <span className="w-11 shrink-0 text-right font-bold text-subtle">{x.pctNoSegmento.toFixed(0)}%</span>
                     </li>
                   ))}

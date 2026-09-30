@@ -22,7 +22,7 @@ function ProtecaoPermissao({ sessao, children }) {
   }, [permitido, pathname, router, sessao]);
 
   if (!sessao || !permitido) {
-    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando área segura...</div>;
+    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando área segura...</div>;
   }
   return children;
 }
@@ -73,7 +73,7 @@ export default function DashboardLayout({ children }) {
 
   if (interfaceTelaCheia) {
     return (
-      <div className="fixed inset-0 z-[200] overflow-hidden bg-slate-50" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className="fixed inset-0 z-[200] overflow-hidden bg-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <Suspense fallback={<div className="grid h-screen place-items-center"><Loader2 className="animate-spin text-emerald-600" /></div>}>
           <ProtecaoPermissao sessao={sessao}>
             {children}
@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }) {
         <TopNavigation sessao={sessao} onSair={sair} onOpenSearch={() => setCommandCenterOpen(true)} />
 
         <main className="flex-1 w-full max-w-[1920px] mx-auto overflow-y-auto overflow-x-hidden custom-scrollbar relative print:overflow-visible print:block bg-[#F7F8F7]">
-          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando módulo...</div>}>
+          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando módulo...</div>}>
             <ProtecaoPermissao sessao={sessao}>
               {children}
             </ProtecaoPermissao>

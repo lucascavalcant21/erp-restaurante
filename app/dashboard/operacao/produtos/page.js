@@ -517,7 +517,7 @@ function CardapioRunner() {
      return (
      <div key={p.id} className="bg-card p-6 rounded-3xl border border-line shadow-sm hover:shadow-md transition-shadow relative group flex flex-col h-full">
         <div className="flex justify-between items-start mb-2 gap-2">
-           <span className="bg-elevated text-muted px-3 py-1 rounded-lg font-bold text-3xs uppercase tracking-widest">
+           <span className="bg-card text-fg px-3 py-1 rounded-lg font-bold text-3xs uppercase tracking-widest">
               {p.departamento}
            </span>
            <div className="flex items-center gap-2">
@@ -526,9 +526,9 @@ function CardapioRunner() {
                     CMV {cmv.toFixed(1)}%
                  </span>
               )}
-              <button onClick={() => abrirGuia(p)} title="Guia de montagem do prato (IA)" className="text-muted hover:text-success opacity-0 group-hover:opacity-100 transition-opacity p-1"><ClipboardList size={18}/></button>
-              <button onClick={() => abrirEditar(p)} title="Editar" className="text-muted hover:text-success opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
-              <button onClick={() => handleExcluir(p)} title="Excluir do cardápio" className="text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Trash2 size={18}/></button>
+              <button onClick={() => abrirGuia(p)} title="Guia de montagem do prato (IA)" className="text-fg hover:text-success opacity-0 group-hover:opacity-100 transition-opacity p-1"><ClipboardList size={18}/></button>
+              <button onClick={() => abrirEditar(p)} title="Editar" className="text-fg hover:text-success opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+              <button onClick={() => handleExcluir(p)} title="Excluir do cardápio" className="text-fg hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Trash2 size={18}/></button>
            </div>
         </div>
 
@@ -536,7 +536,7 @@ function CardapioRunner() {
            {p.imagem_url ? (
               <img src={p.imagem_url} alt={p.nome_produto} className="w-16 h-16 object-cover rounded-xl border border-line-soft shadow-sm" />
            ) : (
-              <div className="w-16 h-16 bg-slate-50 border border-line-soft rounded-xl flex items-center justify-center text-dim">
+              <div className="w-16 h-16 bg-white border border-line-soft rounded-xl flex items-center justify-center text-dim">
                  <ImageIcon size={24} />
               </div>
            )}
@@ -558,7 +558,7 @@ function CardapioRunner() {
 
         <div className="flex justify-between items-end mt-auto pt-4 border-t border-line-soft">
            <div>
-              <p className="text-3xs font-bold text-muted uppercase tracking-widest mb-1">Preço de Venda</p>
+              <p className="text-3xs font-bold text-fg uppercase tracking-widest mb-1">Preço de Venda</p>
               {Number(p.preco_venda) > 0 ? (
                  <p className="font-black text-2xl text-success">{fmtBRL(p.preco_venda)}</p>
               ) : (
@@ -568,7 +568,7 @@ function CardapioRunner() {
               )}
            </div>
            <div className="text-right">
-              <p className="text-3xs font-bold text-muted uppercase tracking-widest mb-1">Ficha Técnica</p>
+              <p className="text-3xs font-bold text-fg uppercase tracking-widest mb-1">Ficha Técnica</p>
               {(() => {
                  const comps = componentesDoProduto(p);
                  if (!comps.length) return <p className="font-bold text-3xs uppercase text-red-500">Não vinculada</p>;
@@ -591,10 +591,10 @@ function CardapioRunner() {
       <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <button onClick={() => abrirMenu()} className="p-3 text-muted hover:text-slate-800 bg-slate-50 rounded-full border border-line">
+              <button onClick={() => abrirMenu()} className="p-3 text-fg hover:text-slate-800 bg-white rounded-full border border-line">
                  <ArrowLeft size={20}/>
               </button>
-               <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-elevated text-success items-center justify-center shadow-inner">
+               <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-card text-success items-center justify-center shadow-inner">
                  <Tag size={28} />
               </div>
               <div>
@@ -609,7 +609,7 @@ function CardapioRunner() {
                      <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
                   </div>
                )}
-               <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
+               <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-card text-fg-soft border border-line px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-white transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
                   <Printer size={18} /> <span className="hidden sm:inline">Imprimir Tabela</span>
                </button>
                <button onClick={abrirNovo} className="flex items-center gap-2 bg-accent text-accent-fg px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-accent transition-colors shadow-lg shadow-emerald-600/20">
@@ -633,11 +633,11 @@ function CardapioRunner() {
          {/* Chips de categoria (as que você criou aparecem aqui automaticamente) */}
          {categoriasEmUso.length > 0 && (
             <div className="flex gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-               <button onClick={() => setCatFiltro("")} className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all active:scale-95 ${!catFiltro ? 'bg-slate-900 text-white shadow-md' : 'bg-card text-muted border border-line hover:text-slate-800'}`}>
+               <button onClick={() => setCatFiltro("")} className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all active:scale-95 ${!catFiltro ? 'bg-slate-900 text-white shadow-md' : 'bg-card text-fg border border-line hover:text-slate-800'}`}>
                   Todas
                </button>
                {categoriasEmUso.map(cat => (
-                  <button key={cat} onClick={() => setCatFiltro(cat)} className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all active:scale-95 ${catFiltro === cat ? 'bg-slate-900 text-white shadow-md' : 'bg-card text-muted border border-line hover:text-slate-800'}`}>
+                  <button key={cat} onClick={() => setCatFiltro(cat)} className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all active:scale-95 ${catFiltro === cat ? 'bg-slate-900 text-white shadow-md' : 'bg-card text-fg border border-line hover:text-slate-800'}`}>
                      {cat} <span className="opacity-60">({produtos.filter(p => p.categoria === cat).length})</span>
                   </button>
                ))}
@@ -645,12 +645,12 @@ function CardapioRunner() {
          )}
 
          {loading ? (
-            <p className="font-bold text-muted">Buscando produtos...</p>
+            <p className="font-bold text-fg">Buscando produtos...</p>
          ) : filtrados.length === 0 ? (
             <div className="text-center p-10 bg-card border border-line rounded-3xl">
-               <UtensilsCrossed size={40} className="mx-auto text-muted mb-4"/>
+               <UtensilsCrossed size={40} className="mx-auto text-fg mb-4"/>
                <h3 className="text-xl font-black text-fg-soft">{produtos.length === 0 ? 'O cardápio está vazio' : 'Nada encontrado nesse filtro'}</h3>
-               <p className="text-muted mt-2 font-medium">{produtos.length === 0 ? 'Você precisa cadastrar produtos para que o garçom consiga lançar comandas.' : 'Tente outra categoria ou limpe a busca.'}</p>
+               <p className="text-fg mt-2 font-medium">{produtos.length === 0 ? 'Você precisa cadastrar produtos para que o garçom consiga lançar comandas.' : 'Tente outra categoria ou limpe a busca.'}</p>
             </div>
          ) : (
             <div className="space-y-10">
@@ -659,7 +659,7 @@ function CardapioRunner() {
                      {/* Cabeçalho da seção de categoria */}
                      <div className="flex items-center gap-3 mb-4">
                         <h2 className="text-xl font-black text-slate-800 tracking-tight">{g.categoria}</h2>
-                        <span className="text-3xs font-bold uppercase tracking-widest bg-elevated text-muted px-2.5 py-1 rounded-full">{g.itens.length} {g.itens.length === 1 ? 'item' : 'itens'}</span>
+                        <span className="text-3xs font-bold uppercase tracking-widest bg-card text-fg px-2.5 py-1 rounded-full">{g.itens.length} {g.itens.length === 1 ? 'item' : 'itens'}</span>
                         <div className="flex-1 h-px bg-slate-200" />
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -676,19 +676,19 @@ function CardapioRunner() {
             <div className="bg-card rounded-[32px] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[92vh]">
                <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-6 border-b border-line-soft shrink-0">
                   <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Produto" : "Novo Produto"}</h2>
-                  <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-6">
                   {/* Básico */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="md:col-span-2">
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Nome do Produto</label>
-                        <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_produto} onChange={e=>setForm({...form, nome_produto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Nome do Produto</label>
+                        <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_produto} onChange={e=>setForm({...form, nome_produto: e.target.value})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
                      </div>
 
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Categoria</label>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Categoria</label>
                         {criandoCategoria ? (
                            <div className="flex gap-2 mt-1">
                               <input
@@ -699,7 +699,7 @@ function CardapioRunner() {
                                  onChange={e=>setNovaCategoria(e.target.value)}
                                  className="flex-1 p-4 bg-emerald-50 border border-emerald-300 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
                               />
-                              <button type="button" onClick={() => { setCriandoCategoria(false); setNovaCategoria(""); }} className="px-3 bg-elevated hover:bg-slate-200 rounded-xl text-muted font-bold text-xs">
+                              <button type="button" onClick={() => { setCriandoCategoria(false); setNovaCategoria(""); }} className="px-3 bg-card hover:bg-slate-200 rounded-xl text-fg font-bold text-xs">
                                  Cancelar
                               </button>
                            </div>
@@ -710,7 +710,7 @@ function CardapioRunner() {
                                  if (e.target.value === "__nova__") { setCriandoCategoria(true); setNovaCategoria(""); }
                                  else setForm({...form, categoria: e.target.value});
                               }}
-                              className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"
+                              className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"
                            >
                               {categoriasModal.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                               <option value="__nova__">+ Criar nova categoria...</option>
@@ -718,8 +718,8 @@ function CardapioRunner() {
                         )}
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Setor (Cozinha ou Bar)</label>
-                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, ficha_id: "", composicao: []})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Setor (Cozinha ou Bar)</label>
+                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, ficha_id: "", composicao: []})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500">
                            <option value="cozinha">Cozinha</option>
                            <option value="bar">Bar</option>
                         </select>
@@ -729,7 +729,7 @@ function CardapioRunner() {
                   {/* PRATO PRONTO — a montagem é feita na Ficha Técnica; aqui
                       só se escolhe o prato e o resto é financeiro (custo/preço/CMV) */}
                   <div className="pt-4 border-t border-line-soft">
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest">{form.departamento === "bar" ? "Drink pronto (montado na Ficha de Drinks)" : "Prato pronto (montado na Ficha Técnica)"}</label>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest">{form.departamento === "bar" ? "Drink pronto (montado na Ficha de Drinks)" : "Prato pronto (montado na Ficha Técnica)"}</label>
                      <select
                         value={(form.composicao || []).length === 1 ? form.composicao[0].ficha_id : ""}
                         onChange={e => {
@@ -746,7 +746,7 @@ function CardapioRunner() {
                               nome_produto: id && ficha && nomeEhAutomatico ? ficha.nome_receita : form.nome_produto,
                            });
                         }}
-                        className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500"
+                        className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500"
                      >
                         <option value="">{form.departamento === "bar" ? "Selecione o drink..." : "Selecione o prato..."}</option>
                         {fichas.filter(f => f.departamento === form.departamento && !f.eh_base).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
@@ -757,8 +757,8 @@ function CardapioRunner() {
                   {/* Compatibilidade: produto antigo montado com VÁRIOS componentes
                       aqui no cardápio — continua funcionando e editável */}
                   {(form.composicao || []).length > 1 && (
-                     <div className="bg-slate-50 border border-line rounded-2xl p-4 space-y-2">
-                        <p className="text-3xs font-bold uppercase tracking-widest text-muted">Produto antigo com múltiplos componentes — o custo soma todos</p>
+                     <div className="bg-white border border-line rounded-2xl p-4 space-y-2">
+                        <p className="text-3xs font-bold uppercase tracking-widest text-fg">Produto antigo com múltiplos componentes — o custo soma todos</p>
                         {(form.composicao || []).map((c, idx) => {
                            const f = fichas.find(x => x.id === c.ficha_id);
                            const custoUnit = f ? custoTotalDaFicha(f, fichas) / porcoesDaFicha(f) : 0;
@@ -779,7 +779,7 @@ function CardapioRunner() {
                                           <input type="number" min="0" step="1" 
                                              value={c.qtd !== "" && c.qtd != null ? Math.round(Number(c.qtd) * f.peso_porcao_g) : ""} 
                                              onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value === "" ? "" : Number(e.target.value) / f.peso_porcao_g } : x) })} 
-                                             className="w-20 p-1.5 text-center bg-slate-50 border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
+                                             className="w-20 p-1.5 text-center bg-white border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
                                              placeholder="Ex: 150"/>
                                        </div>
                                     ) : (
@@ -787,13 +787,13 @@ function CardapioRunner() {
                                           <label className="text-3xs font-bold text-subtle uppercase tracking-widest block">Porções</label>
                                           <input type="number" min="0" step="0.5" value={c.qtd} 
                                              onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
-                                             className="w-16 p-1.5 text-center bg-slate-50 border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
+                                             className="w-16 p-1.5 text-center bg-white border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
                                           />
                                        </div>
                                     )}
                                  </div>
-                                 <span className="font-black text-slate-600 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(c.qtd) || 0))}</span>
-                                 <button type="button" onClick={() => setForm({ ...form, composicao: form.composicao.filter((_, i) => i !== idx) })} className="p-1.5 text-subtle hover:text-red-500 bg-slate-50 rounded-lg border border-line"><Trash2 size={13}/></button>
+                                 <span className="font-black text-slate-900 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(c.qtd) || 0))}</span>
+                                 <button type="button" onClick={() => setForm({ ...form, composicao: form.composicao.filter((_, i) => i !== idx) })} className="p-1.5 text-subtle hover:text-red-500 bg-white rounded-lg border border-line"><Trash2 size={13}/></button>
                               </div>
                            );
                         })}
@@ -807,8 +807,8 @@ function CardapioRunner() {
                      const cores = cmvLive !== null ? corCmv(cmvLive) : null;
                      return (
                         <div className="grid grid-cols-3 gap-3">
-                           <div className="p-4 rounded-2xl border border-line bg-slate-50 text-center">
-                              <p className="text-3xs font-bold uppercase tracking-widest text-muted">{form.departamento === "bar" ? "Custo do drink" : "Custo do prato"}</p>
+                           <div className="p-4 rounded-2xl border border-line bg-white text-center">
+                              <p className="text-3xs font-bold uppercase tracking-widest text-fg">{form.departamento === "bar" ? "Custo do drink" : "Custo do prato"}</p>
                               <p className="text-xl font-black text-slate-800 mt-1">{(form.composicao || []).length ? fmtBRL(custoLive) : "—"}</p>
                               <p className="text-3xs font-medium text-subtle">automático da montagem</p>
                            </div>
@@ -817,8 +817,8 @@ function CardapioRunner() {
                               <input type="number" step="0.01" placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-success text-xl outline-none"/>
                               <p className="text-3xs font-medium text-emerald-600/70">você define</p>
                            </div>
-                           <div className={`p-4 rounded-2xl border text-center ${cmvLive !== null ? `${cores.bg} ${cores.border}` : "border-line bg-slate-50"}`}>
-                              <p className={`text-3xs font-bold uppercase tracking-widest ${cmvLive !== null ? cores.text : "text-muted"}`}>CMV</p>
+                           <div className={`p-4 rounded-2xl border text-center ${cmvLive !== null ? `${cores.bg} ${cores.border}` : "border-line bg-white"}`}>
+                              <p className={`text-3xs font-bold uppercase tracking-widest ${cmvLive !== null ? cores.text : "text-fg"}`}>CMV</p>
                               <p className={`text-xl font-black mt-1 ${cmvLive !== null ? cores.text : "text-subtle"}`}>{cmvLive !== null ? `${cmvLive.toFixed(1)}%` : "—"}</p>
                               <p className={`text-3xs font-medium ${cmvLive !== null ? cores.text : "text-subtle"}`}>muda automático</p>
                            </div>
@@ -828,20 +828,20 @@ function CardapioRunner() {
 
                   {/* Imagem do Produto */}
                   <div className="pt-4 border-t border-line-soft">
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest flex items-center gap-1 mb-2"><ImageIcon size={14}/> Imagem do Produto (Opcional)</label>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest flex items-center gap-1 mb-2"><ImageIcon size={14}/> Imagem do Produto (Opcional)</label>
                      <div className="flex gap-4 items-center mt-2">
                         {form.imagem_url ? (
-                           <div className="relative w-24 h-24 rounded-2xl border border-line overflow-hidden shrink-0 shadow-sm bg-slate-50">
+                           <div className="relative w-24 h-24 rounded-2xl border border-line overflow-hidden shrink-0 shadow-sm bg-white">
                               <img src={form.imagem_url} alt="Produto" className="w-full h-full object-cover" />
                               <button type="button" onClick={() => setForm({...form, imagem_url: ""})} className="absolute top-1.5 right-1.5 bg-card rounded-full p-1.5 shadow-sm text-subtle hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
                            </div>
                         ) : (
-                           <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-line flex items-center justify-center text-dim bg-slate-50 shrink-0">
+                           <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-line flex items-center justify-center text-dim bg-white shrink-0">
                               <ImageIcon size={28} />
                            </div>
                         )}
                         <div className="flex-1">
-                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-slate-50 border border-line hover:border-emerald-500 hover:bg-accent-soft text-slate-600 hover:text-accent-strong transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
+                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-white border border-line hover:border-emerald-500 hover:bg-accent-soft text-slate-900 hover:text-accent-strong transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
                               {loading ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
                               <span>{loading ? "Enviando..." : "Selecionar arquivo do computador"}</span>
                               <input type="file" accept="image/*" disabled={loading} className="hidden" onChange={async (e) => {
@@ -875,7 +875,7 @@ function CardapioRunner() {
                      </div>
 
                      <div className="mb-4">
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Adicionar Embalagem / Item</label>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Adicionar Embalagem / Item</label>
                         <select
                            value=""
                            onChange={e => {
@@ -883,7 +883,7 @@ function CardapioRunner() {
                               if (!id || (form.embalagens || []).find(emb => emb.embalagem_id === id)) return;
                               setForm({ ...form, embalagens: [...(form.embalagens || []), { embalagem_id: id, qtd: 1 }] });
                            }}
-                           className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500"
+                           className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500"
                         >
                            <option value="">+ Selecionar do estoque...</option>
                            {embalagensDB.filter(e => !(form.embalagens || []).find(emb => emb.embalagem_id === e.id)).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
@@ -891,8 +891,8 @@ function CardapioRunner() {
                      </div>
 
                      {form.embalagens && form.embalagens.length > 0 && (
-                        <div className="bg-slate-50 border border-line rounded-2xl p-4 space-y-2">
-                           <p className="text-3xs font-bold uppercase tracking-widest text-muted">Custo e baixa somam todos ao vender</p>
+                        <div className="bg-white border border-line rounded-2xl p-4 space-y-2">
+                           <p className="text-3xs font-bold uppercase tracking-widest text-fg">Custo e baixa somam todos ao vender</p>
                            {form.embalagens.map((emb, idx) => {
                               const eDB = embalagensDB.find(x => x.id === emb.embalagem_id);
                               const custoUnit = eDB ? Number(eDB.preco_unitario) : 0;
@@ -907,12 +907,12 @@ function CardapioRunner() {
                                           <label className="text-3xs font-bold text-subtle uppercase tracking-widest block">Qtd (Un)</label>
                                           <input type="number" min="1" step="1" value={emb.qtd} 
                                              onChange={e => setForm({ ...form, embalagens: form.embalagens.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
-                                             className="w-16 p-1.5 text-center bg-slate-50 border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
+                                             className="w-16 p-1.5 text-center bg-white border border-line rounded-lg font-black text-fg-soft outline-none focus:border-emerald-500"
                                           />
                                        </div>
                                     </div>
-                                    <span className="font-black text-slate-600 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(emb.qtd) || 0))}</span>
-                                    <button type="button" onClick={() => setForm({ ...form, embalagens: form.embalagens.filter((_, i) => i !== idx) })} className="p-1.5 text-subtle hover:text-red-500 bg-slate-50 rounded-lg border border-line"><Trash2 size={13}/></button>
+                                    <span className="font-black text-slate-900 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(emb.qtd) || 0))}</span>
+                                    <button type="button" onClick={() => setForm({ ...form, embalagens: form.embalagens.filter((_, i) => i !== idx) })} className="p-1.5 text-subtle hover:text-red-500 bg-white rounded-lg border border-line"><Trash2 size={13}/></button>
                                  </div>
                               );
                            })}
@@ -921,7 +921,7 @@ function CardapioRunner() {
                   </div>
                </div>
 
-               <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-slate-50 rounded-b-[32px] shrink-0">
+               <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-white rounded-b-[32px] shrink-0">
                   <button onClick={handleSalvar} className="w-full py-5 bg-accent hover:bg-accent text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                      <Save size={20}/> Salvar Produto
                   </button>
@@ -939,10 +939,10 @@ function CardapioRunner() {
                      <div className="w-11 h-11 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center"><ClipboardList size={22}/></div>
                      <div>
                         <h2 className="font-black text-2xl text-slate-800">Guia de Montagem</h2>
-                        <p className="text-xs font-bold text-muted mt-0.5">{guiaProduto.nome_produto} — padronize e cole na parede</p>
+                        <p className="text-xs font-bold text-fg mt-0.5">{guiaProduto.nome_produto} — padronize e cole na parede</p>
                      </div>
                   </div>
-                  <button onClick={() => setModalGuia(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalGuia(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
@@ -955,18 +955,18 @@ function CardapioRunner() {
                   {!guiaResultado ? (
                      <>
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Observações do chef (opcional)</label>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest">Observações do chef (opcional)</label>
                            <textarea
                               placeholder="Ex: sai em prato fundo, molho por cima na hora, salsinha picada por cima, servir bem quente..."
                               value={guiaObs}
                               onChange={e => setGuiaObs(e.target.value)}
-                              className="w-full h-24 p-4 mt-1 bg-slate-50 border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none"
+                              className="w-full h-24 p-4 mt-1 bg-white border border-line rounded-xl font-medium text-fg-soft outline-none focus:border-emerald-500 resize-none"
                            ></textarea>
                         </div>
                         {ingredientesDoProduto(guiaProduto).length > 0 && (
-                           <div className="bg-slate-50 border border-line-soft rounded-xl p-3">
-                              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Ingredientes por porção (da ficha)</p>
-                              <p className="text-xs text-muted font-medium">{ingredientesDoProduto(guiaProduto).map(i => `${i.nome} ${i.quantidade}${i.unidade}`).join(" · ")}</p>
+                           <div className="bg-white border border-line-soft rounded-xl p-3">
+                              <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">Ingredientes por porção (da ficha)</p>
+                              <p className="text-xs text-fg font-medium">{ingredientesDoProduto(guiaProduto).map(i => `${i.nome} ${i.quantidade}${i.unidade}`).join(" · ")}</p>
                            </div>
                         )}
                         <button onClick={gerarGuia} disabled={guiaLoading} className="w-full py-4 bg-accent hover:bg-accent disabled:opacity-50 text-accent-fg font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95">
@@ -976,29 +976,29 @@ function CardapioRunner() {
                   ) : (
                      <div className="space-y-4">
                         {guiaResultado.louca && (
-                           <div><p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Louça / recipiente</p><p className="font-bold text-slate-800">{guiaResultado.louca}</p></div>
+                           <div><p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">Louça / recipiente</p><p className="font-bold text-slate-800">{guiaResultado.louca}</p></div>
                         )}
                         {(guiaResultado.porcionamento || []).length > 0 && (
                            <div>
-                              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Porcionamento</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-2">Porcionamento</p>
                               <div className="space-y-1">
                                  {guiaResultado.porcionamento.map((p, i) => (
-                                    <div key={i} className="flex justify-between text-sm bg-slate-50 rounded-lg px-3 py-2"><span className="font-bold text-fg-soft">{p.item}</span><span className="font-black text-success">{p.quantidade}</span></div>
+                                    <div key={i} className="flex justify-between text-sm bg-white rounded-lg px-3 py-2"><span className="font-bold text-fg-soft">{p.item}</span><span className="font-black text-success">{p.quantidade}</span></div>
                                  ))}
                               </div>
                            </div>
                         )}
                         {(guiaResultado.montagem || []).length > 0 && (
                            <div>
-                              <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Ordem de montagem</p>
+                              <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-2">Ordem de montagem</p>
                               <ol className="list-decimal ml-5 space-y-1 text-sm font-medium text-fg-soft">{guiaResultado.montagem.map((m, i) => <li key={i}>{m}</li>)}</ol>
                            </div>
                         )}
                         {guiaResultado.finalizacao && (
-                           <div><p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Finalização</p><p className="text-sm font-medium text-fg-soft">{guiaResultado.finalizacao}</p></div>
+                           <div><p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">Finalização</p><p className="text-sm font-medium text-fg-soft">{guiaResultado.finalizacao}</p></div>
                         )}
                         {guiaResultado.visual && (
-                           <div><p className="text-3xs font-bold uppercase tracking-widest text-muted mb-1">Visual esperado</p><p className="text-sm font-medium text-fg-soft">{guiaResultado.visual}</p></div>
+                           <div><p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">Visual esperado</p><p className="text-sm font-medium text-fg-soft">{guiaResultado.visual}</p></div>
                         )}
                         {(guiaResultado.dicas || []).length > 0 && (
                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
@@ -1006,13 +1006,13 @@ function CardapioRunner() {
                               <ul className="list-disc ml-4 text-sm font-medium text-emerald-800 space-y-0.5">{guiaResultado.dicas.map((d, i) => <li key={i}>{d}</li>)}</ul>
                            </div>
                         )}
-                        <button onClick={() => setGuiaResultado(null)} className="text-xs font-bold text-muted hover:text-fg-soft">← Gerar de novo</button>
+                        <button onClick={() => setGuiaResultado(null)} className="text-xs font-bold text-fg hover:text-fg-soft">← Gerar de novo</button>
                      </div>
                   )}
                </div>
 
                {guiaResultado && (
-                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-slate-50 rounded-b-[32px] shrink-0">
+                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-line-soft bg-white rounded-b-[32px] shrink-0">
                      <button onClick={imprimirGuia} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
                         <Printer size={20}/> Imprimir guia (colar na parede)
                      </button>
@@ -1028,7 +1028,7 @@ function CardapioRunner() {
 
 export default function ProdutosPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-muted">Carregando Cardápio...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-fg">Carregando Cardápio...</div>}>
        <CardapioRunner />
     </Suspense>
   );

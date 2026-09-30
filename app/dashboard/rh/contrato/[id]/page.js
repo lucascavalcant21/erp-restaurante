@@ -49,15 +49,15 @@ export default function ContratoRhPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center font-bold text-muted">Gerando documento...</div>;
+    return <div className="min-h-screen flex items-center justify-center font-bold text-fg">Gerando documento...</div>;
   }
 
   if (!colaborador) {
-    return <div className="min-h-screen flex items-center justify-center font-bold text-muted">Funcionário não encontrado.</div>;
+    return <div className="min-h-screen flex items-center justify-center font-bold text-fg">Funcionário não encontrado.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-elevated font-sans text-slate-800 pb-20">
+    <div className="min-h-screen bg-card font-sans text-slate-800 pb-20">
       
       {/* Barra de Ferramentas (Não sai na impressão) */}
       <div className="print:hidden bg-slate-900 text-white p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-xl">
@@ -82,7 +82,7 @@ export default function ContratoRhPage() {
         {/* Cabeçalho */}
         <div className="text-center border-b-2 border-slate-900 pb-6 mb-8">
            <h1 className="text-3xl font-black uppercase tracking-tighter text-fg">{unidadeInfo?.nome || "Empresa"}</h1>
-           <p className="text-sm font-bold text-muted tracking-widest mt-1">Termo de Ciência e Responsabilidade</p>
+           <p className="text-sm font-bold text-fg tracking-widest mt-1">Termo de Ciência e Responsabilidade</p>
         </div>
 
         {/* Dados do Funcionário */}
@@ -94,25 +94,25 @@ export default function ContratoRhPage() {
 
         {/* Funções do Cargo */}
         <div className="mb-10">
-           <h2 className="text-lg font-black bg-elevated p-2 mb-4 uppercase tracking-widest border-l-4 border-slate-900">1. Descrição do Cargo</h2>
+           <h2 className="text-lg font-black bg-card p-2 mb-4 uppercase tracking-widest border-l-4 border-slate-900">1. Descrição do Cargo</h2>
            {cargoPadrao?.funcoes_padrao ? (
               <div className="text-sm text-fg-soft whitespace-pre-wrap leading-relaxed pl-4 border-l-2 border-line">
                 {cargoPadrao.funcoes_padrao}
               </div>
            ) : (
-              <p className="text-sm text-muted italic pl-4">Nenhuma função preestabelecida para o cargo de {colaborador.cargo}. (Você pode adicionar isso nas Configurações de RH).</p>
+              <p className="text-sm text-fg italic pl-4">Nenhuma função preestabelecida para o cargo de {colaborador.cargo}. (Você pode adicionar isso nas Configurações de RH).</p>
            )}
         </div>
 
         {/* Regulamento Interno */}
         <div className="mb-16">
-           <h2 className="text-lg font-black bg-elevated p-2 mb-4 uppercase tracking-widest border-l-4 border-slate-900">2. Regulamento Interno</h2>
+           <h2 className="text-lg font-black bg-card p-2 mb-4 uppercase tracking-widest border-l-4 border-slate-900">2. Regulamento Interno</h2>
            {regulamento?.texto_regulamento ? (
               <div className="text-sm text-fg-soft whitespace-pre-wrap leading-relaxed text-justify">
                 {regulamento.texto_regulamento}
               </div>
            ) : (
-              <p className="text-sm text-muted italic pl-4">O regulamento interno da empresa não foi preenchido nas configurações.</p>
+              <p className="text-sm text-fg italic pl-4">O regulamento interno da empresa não foi preenchido nas configurações.</p>
            )}
         </div>
 
@@ -126,13 +126,13 @@ export default function ContratoRhPage() {
               <div className="text-center w-full sm:w-1/2 print:w-1/2 px-4">
                  <div className="border-t border-slate-900 pt-2">
                     <p className="font-bold text-sm text-fg">{unidadeInfo?.nome}</p>
-                    <p className="text-xs text-muted">Contratante</p>
+                    <p className="text-xs text-fg">Contratante</p>
                  </div>
               </div>
               <div className="text-center w-full sm:w-1/2 print:w-1/2 px-4">
                  <div className="border-t border-slate-900 pt-2">
                     <p className="font-bold text-sm text-fg">{colaborador.nome}</p>
-                    <p className="text-xs text-muted">Colaborador(a)</p>
+                    <p className="text-xs text-fg">Colaborador(a)</p>
                  </div>
               </div>
            </div>

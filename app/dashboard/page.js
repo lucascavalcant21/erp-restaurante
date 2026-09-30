@@ -49,7 +49,7 @@ export default function Dashboard() {
                 <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                   <DollarSign size={16} />
                 </div>
-                <span className="text-xs font-bold text-slate-500 uppercase">Faturamento hoje</span>
+                <span className="text-xs font-bold text-slate-900 uppercase">Faturamento hoje</span>
               </div>
               <div>
                 <div className="text-2xl font-black text-slate-900">R$ 8.542,00</div>
@@ -62,7 +62,7 @@ export default function Dashboard() {
                 <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                   <Activity size={16} />
                 </div>
-                <span className="text-xs font-bold text-slate-500 uppercase">CMV hoje</span>
+                <span className="text-xs font-bold text-slate-900 uppercase">CMV hoje</span>
               </div>
               <div>
                 <div className="text-2xl font-black text-slate-900">R$ 2.134,00</div>
@@ -72,10 +72,10 @@ export default function Dashboard() {
 
             <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 flex flex-col justify-between">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0">
                   <Calendar size={16} />
                 </div>
-                <span className="text-xs font-bold text-slate-500 uppercase">Reservas hoje</span>
+                <span className="text-xs font-bold text-slate-900 uppercase">Reservas hoje</span>
               </div>
               <div>
                 <div className="text-2xl font-black text-slate-900">28</div>
@@ -85,27 +85,27 @@ export default function Dashboard() {
 
             <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 flex flex-col justify-between">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0">
                   <Users size={16} />
                 </div>
-                <span className="text-xs font-bold text-slate-500 uppercase">Eventos</span>
+                <span className="text-xs font-bold text-slate-900 uppercase">Eventos</span>
               </div>
               <div>
                 <div className="text-2xl font-black text-slate-900">2</div>
-                <div className="text-xs font-bold text-slate-500 mt-1">1 em andamento</div>
+                <div className="text-xs font-bold text-slate-900 mt-1">1 em andamento</div>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 flex flex-col justify-between">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="8" width="18" height="8" rx="2"/><path d="M12 8v8"/><path d="M8 8v8"/><path d="M16 8v8"/></svg>
                 </div>
-                <span className="text-xs font-bold text-slate-500 uppercase">Mesas</span>
+                <span className="text-xs font-bold text-slate-900 uppercase">Mesas</span>
               </div>
               <div>
                 <div className="text-2xl font-black text-slate-900">18 / 32</div>
-                <div className="text-xs font-bold text-slate-500 mt-1">56% de ocupação</div>
+                <div className="text-xs font-bold text-slate-900 mt-1">56% de ocupação</div>
               </div>
             </div>
 
@@ -118,7 +118,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <div className="text-2xl font-black text-slate-900">7 itens</div>
-                <button className="text-xs font-bold text-slate-500 hover:text-slate-900 mt-1 underline">Ver itens →</button>
+                <button className="text-xs font-bold text-slate-900 hover:text-slate-900 mt-1 underline">Ver itens →</button>
               </div>
             </div>
 
@@ -140,7 +140,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-2">
+          <div className="flex justify-between text-[10px] font-bold text-slate-800 mt-2">
             <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span><span>Dom</span>
           </div>
         </div>
@@ -151,16 +151,16 @@ export default function Dashboard() {
           <div className="flex items-center justify-center h-48">
             <div className="w-40 h-40 rounded-full border-[16px] border-emerald-500 border-r-indigo-500 border-b-amber-500 border-l-rose-500 flex items-center justify-center">
               <div className="text-center">
-                <div className="text-xs font-bold text-slate-400">Total</div>
+                <div className="text-xs font-bold text-slate-800">Total</div>
                 <div className="text-lg font-black text-slate-900">R$ 8.542</div>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-6">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-600"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Pratos Principais</div>
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-600"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Bebidas</div>
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-600"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Entradas</div>
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-600"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Sobremesas</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-900"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Pratos Principais</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-900"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Bebidas</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-900"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Entradas</div>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-900"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Sobremesas</div>
           </div>
         </div>
 
@@ -168,26 +168,26 @@ export default function Dashboard() {
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200 lg:col-span-1">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-black text-slate-900">Próximos eventos</h3>
-            <button className="text-xs font-bold text-slate-500 hover:text-slate-900">Ver todos →</button>
+            <button className="text-xs font-bold text-slate-900 hover:text-slate-900">Ver todos →</button>
           </div>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-white transition-colors cursor-pointer">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400 shrink-0">07/11</div>
+                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-800 shrink-0">07/11</div>
                 <div>
                   <strong className="block text-slate-900 text-sm">Casamento Seldeestrela</strong>
-                  <span className="text-xs text-slate-500 font-medium">20 convidados</span>
+                  <span className="text-xs text-slate-900 font-medium">20 convidados</span>
                 </div>
               </div>
               <span className="bg-amber-50 text-amber-600 font-bold text-[10px] px-2 py-1 rounded-lg uppercase tracking-widest">Negociação</span>
             </div>
             
-            <div className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-white transition-colors cursor-pointer">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400 shrink-0">14/11</div>
+                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-800 shrink-0">14/11</div>
                 <div>
                   <strong className="block text-slate-900 text-sm">Jantar Corporativo</strong>
-                  <span className="text-xs text-slate-500 font-medium">60 convidados</span>
+                  <span className="text-xs text-slate-900 font-medium">60 convidados</span>
                 </div>
               </div>
               <span className="bg-emerald-50 text-emerald-600 font-bold text-[10px] px-2 py-1 rounded-lg uppercase tracking-widest">Confirmado</span>

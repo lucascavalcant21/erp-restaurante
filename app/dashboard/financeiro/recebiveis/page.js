@@ -67,14 +67,14 @@ export default function RecebiveisPage() {
             <CreditCard className="w-7 h-7 text-indigo-600" />
             Contas a Receber & Calendário de Repasses
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-900">
             Gestão detalhada de cartões, PIX, vouchers e repasses de marketplaces (iFood) por prazo D+N.
           </p>
         </div>
 
         <button
           onClick={carregarDados}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition"
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200 rounded-lg text-sm font-medium transition"
         >
           <RefreshCw className="w-4 h-4" />
           Atualizar
@@ -84,7 +84,7 @@ export default function RecebiveisPage() {
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Vendas Brutas</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">Total Vendas Brutas</p>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
             R$ {resumo?.totalBruto?.toFixed(2) || '0.00'}
           </p>
@@ -115,20 +115,20 @@ export default function RecebiveisPage() {
       {/* Filtros */}
       <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="flex-1 relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-800" />
           <input
             type="text"
             placeholder="Buscar por código de venda ou adquirente..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+            className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
           />
         </div>
 
         <select
           value={filtroStatus}
           onChange={(e) => setFiltroStatus(e.target.value)}
-          className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
         >
           <option value="TODOS">Todos os Status</option>
           <option value="PREVISTO">Previstos</option>
@@ -140,7 +140,7 @@ export default function RecebiveisPage() {
         <select
           value={filtroForma}
           onChange={(e) => setFiltroForma(e.target.value)}
-          className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
         >
           <option value="TODOS">Todas as Formas</option>
           <option value="DINHEIRO">Dinheiro</option>
@@ -157,7 +157,7 @@ export default function RecebiveisPage() {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 font-semibold">
+            <thead className="bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-900 font-semibold">
               <tr>
                 <th className="p-3.5">Venda / Canal</th>
                 <th className="p-3.5">Método / Adquirente</th>
@@ -172,24 +172,24 @@ export default function RecebiveisPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">Carregando recebíveis...</td>
+                  <td colSpan={8} className="p-8 text-center text-slate-800">Carregando recebíveis...</td>
                 </tr>
               ) : contasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">Nenhum recebível encontrado.</td>
+                  <td colSpan={8} className="p-8 text-center text-slate-800">Nenhum recebível encontrado.</td>
                 </tr>
               ) : (
                 contasFiltradas.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                  <tr key={c.id} className="hover:bg-white dark:hover:bg-slate-700/50 transition">
                     <td className="p-3.5">
                       <div className="font-semibold text-slate-900 dark:text-white">{c.codigo_venda || 'VND'}</div>
-                      <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-600">
+                      <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-900">
                         {c.canal_venda || 'SALAO'}
                       </span>
                     </td>
                     <td className="p-3.5">
                       <div className="font-medium text-slate-800 dark:text-slate-200">{c.forma_pagamento}</div>
-                      <div className="text-xs text-slate-400">{c.adquirente_nome || 'STONE'}</div>
+                      <div className="text-xs text-slate-800">{c.adquirente_nome || 'STONE'}</div>
                     </td>
                     <td className="p-3.5 text-center font-mono text-xs">
                       {c.parcela_numero}/{c.total_parcelas}
@@ -201,7 +201,7 @@ export default function RecebiveisPage() {
                     <td className="p-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
                       R$ {Number(c.valor_liquido_esperado || 0).toFixed(2)}
                     </td>
-                    <td className="p-3.5 text-xs text-slate-600 dark:text-slate-300">
+                    <td className="p-3.5 text-xs text-slate-900 dark:text-slate-300">
                       {c.data_prevista_repasse ? new Date(c.data_prevista_repasse).toLocaleDateString('pt-BR') : '-'}
                     </td>
                     <td className="p-3.5 text-center">
@@ -212,7 +212,7 @@ export default function RecebiveisPage() {
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                           : c.status === 'DIVERGENTE'
                           ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
-                          : 'bg-slate-100 text-slate-600'
+                          : 'bg-slate-100 text-slate-900'
                       }`}>
                         {c.status}
                       </span>

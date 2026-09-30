@@ -348,7 +348,7 @@ export default function VidaColaboradorPage() {
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                     {vida.advertencias.map(a => (
                       <div key={a.id} className="flex items-center gap-2 text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
-                        <span className={`text-3xs font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
+                        <span className={`text-3xs font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-900"}`}>{a.gravidade}</span>
                         <span className="font-bold truncate flex-1" style={{ color: "var(--fg-soft)" }}>{a.motivo}</span>
                         <span className="font-medium shrink-0" style={{ color: "var(--dim)" }}>{a.data ? a.data.split("-").reverse().join("/") : ""}</span>
                       </div>

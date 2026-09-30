@@ -55,13 +55,13 @@ function CampoNumero({ rotulo, valor, onChange, step = "0.01", destacado = false
   const mostrado = texto !== null ? texto : (Number(valor) ? String(valor) : "");
   return (
     <label className="min-w-0">
-      <span className="block truncate text-3xs font-bold text-muted">{rotulo}</span>
+      <span className="block truncate text-3xs font-bold text-fg">{rotulo}</span>
       <input
         type="number" min="0" step={step} inputMode="decimal" placeholder="0"
         value={mostrado}
         onChange={(e) => { setTexto(e.target.value); onChange(e.target.value); }}
         onBlur={() => setTexto(null)}
-        className={`mt-0.5 h-10 w-full min-w-0 rounded-lg border px-2 text-sm font-bold text-slate-800 outline-none placeholder:font-medium placeholder:text-dim focus:border-emerald-500 ${destacado ? "border-slate-400 bg-slate-50" : "border-line bg-card"}`}
+        className={`mt-0.5 h-10 w-full min-w-0 rounded-lg border px-2 text-sm font-bold text-slate-800 outline-none placeholder:font-medium placeholder:text-dim focus:border-emerald-500 ${destacado ? "border-slate-400 bg-white" : "border-line bg-card"}`}
       />
     </label>
   );
@@ -310,11 +310,11 @@ export default function PizzaDoLucroPage() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
+    <div className="min-h-screen bg-white pb-16">
       <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/modulo/financeiro")}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"
             aria-label="Voltar ao módulo Financeiro">
             <ArrowLeft size={19} />
           </button>
@@ -322,14 +322,14 @@ export default function PizzaDoLucroPage() {
             <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-fg">
               <PieChart className="text-success" size={24} /> Pizza do Lucro
             </h1>
-            <p className="text-xs font-bold text-muted">Para onde vai cada real que você vende.</p>
+            <p className="text-xs font-bold text-fg">Para onde vai cada real que você vende.</p>
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {[["pratos", "Pizza dos pratos"], ["dia", "Custo por dia"], ["simulacao", "Simulação"], ["conferir", "O que falta"]].map(([id, rotulo]) => (
             <button key={id} onClick={() => setVisao(id)}
-              className={`rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${visao === id ? "bg-accent text-accent-fg" : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
+              className={`rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${visao === id ? "bg-accent text-accent-fg" : "border border-line bg-card text-fg hover:bg-white"}`}>
               {rotulo}
             </button>
           ))}
@@ -347,7 +347,7 @@ export default function PizzaDoLucroPage() {
                 {/* Fechado, a linha precisa dizer o suficiente para ninguém
                     abrir só para conferir se está preenchido. */}
                 {!abrirPainel && (
-                  <span className="block truncate text-2xs font-bold text-muted">
+                  <span className="block truncate text-2xs font-bold text-fg">
                     {fmt(contasDia.totalMes)} de contas + {fmt(cmo ? cmo.total : 0)} de folha · {dias || 0} dias · toque para editar
                   </span>
                 )}
@@ -367,7 +367,7 @@ export default function PizzaDoLucroPage() {
               de quem mais precisa dele: o divisor errado não estraga uma linha
               da tela, estraga o custo de TODO prato da casa. */}
           {medidoDiverge && (
-            <div className="mt-3 flex flex-wrap items-start gap-x-2 gap-y-1 rounded-xl bg-slate-50 px-3 py-2.5 text-2xs font-bold text-slate-600">
+            <div className="mt-3 flex flex-wrap items-start gap-x-2 gap-y-1 rounded-xl bg-white px-3 py-2.5 text-2xs font-bold text-slate-900">
               <AlertTriangle size={13} className="mt-px shrink-0 text-subtle" />
               {/* `flex-1` prende o texto na MESMA linha do ícone. Sem isso, na
                   largura do celular o texto não cabia ao lado e descia inteiro,
@@ -398,7 +398,7 @@ export default function PizzaDoLucroPage() {
               {" · vem do RH e dos Extras, não precisa digitar"}
             </p>
             {cmo && cmo.extrasEmAberto > 0 && (
-              <p className="mt-1 text-3xs font-bold text-slate-600">
+              <p className="mt-1 text-3xs font-bold text-slate-900">
                 Faltam {fmt(cmo.extrasEmAberto)} em recibos de extra ainda não pagos. Enquanto não forem, não entram no CMO e o lucro abaixo aparece maior do que é.
               </p>
             )}
@@ -424,7 +424,7 @@ export default function PizzaDoLucroPage() {
                 {/* Quem já tinha embalagem em % não pode ver a conta mudar em
                     silêncio: a tela converte o valor antigo e oferece. */}
                 {Number(params.embalagem_pct) > 0 && !Number(params.embalagem_valor) && precoMedio > 0 && (
-                  <p className="col-span-2 text-2xs font-bold text-muted">
+                  <p className="col-span-2 text-2xs font-bold text-fg">
                     Você tinha {Number(params.embalagem_pct)}% de embalagem aqui. No prato médio de {fmt(precoMedio)} isso dava{" "}
                     <button type="button" onClick={() => editar("embalagem_valor", (precoMedio * Number(params.embalagem_pct)) / 100)}
                       className="font-black text-accent underline underline-offset-2">
@@ -448,7 +448,7 @@ export default function PizzaDoLucroPage() {
                   prejuízo, sem nada na tela dizendo o porquê. Vendo o valor
                   por prato, o erro salta. */}
               {!semVolume && (
-                <p className="mt-1.5 text-2xs font-bold text-muted">
+                <p className="mt-1.5 text-2xs font-bold text-fg">
                   Cada prato carrega <b className="text-slate-800">{fmt(rateioPorPratoTotal)}</b> de custo fixo e folha
                   {" "}({(Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0)} pratos no mês).
                 </p>
@@ -457,7 +457,7 @@ export default function PizzaDoLucroPage() {
                   ("bate com o que estou usando?"). O convite para adotar fica na
                   faixa acima, que aparece mesmo com o painel fechado. */}
               {medido?.temDados && (
-                <p className="mt-1 text-2xs font-bold text-muted">
+                <p className="mt-1 text-2xs font-bold text-fg">
                   Medido nas suas vendas:{" "}
                   <b className="text-slate-800">{medidoDia} itens por dia</b>{" "}
                   ({medido.totalItens.toLocaleString("pt-BR")} itens em {medido.diasComVenda} dias com movimento
@@ -465,7 +465,7 @@ export default function PizzaDoLucroPage() {
                 </p>
               )}
               {medido && !medido.temDados && (
-                <p className="mt-1 text-2xs font-bold text-muted">
+                <p className="mt-1 text-2xs font-bold text-fg">
                   Sem vendas registradas nos últimos 30 dias, não dá para medir esse número aqui — ele fica por sua conta.
                 </p>
               )}
@@ -473,7 +473,7 @@ export default function PizzaDoLucroPage() {
           </div>
 
           {semVolume && (
-            <p className="mt-2 flex items-start gap-1.5 text-2xs font-bold text-slate-600">
+            <p className="mt-2 flex items-start gap-1.5 text-2xs font-bold text-slate-900">
               <AlertTriangle size={13} className="mt-0.5 shrink-0" />
               Sem dias de operação e pratos por dia não dá para dividir o fixo nem o CMO por prato — e o lucro aparece maior do que é.
             </p>
@@ -489,7 +489,7 @@ export default function PizzaDoLucroPage() {
             <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
               <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Custo de um dia aberto</p>
               <p className="mt-1 text-3xl font-black text-fg">{fmt(custoDiaTotal)}</p>
-              <p className="text-2xs font-bold text-muted">
+              <p className="text-2xs font-bold text-fg">
                 {dias > 0 ? `${fmt(contasDia.totalMes + (cmo ? cmo.total : 0))} por mês ÷ ${dias} dias que a casa abre` : "Preencha os dias de operação acima"}
               </p>
               <div className="mt-3 space-y-1.5 border-t border-line-soft pt-3 text-xs">
@@ -511,7 +511,7 @@ export default function PizzaDoLucroPage() {
               <div className="mt-4 rounded-xl bg-emerald-50 px-3 py-2.5">
                 <p className="text-3xs font-bold uppercase tracking-widest text-accent">Quanto faturar por dia para empatar</p>
                 {equilibrio.faturamentoDia === null ? (
-                  <p className="mt-0.5 text-2xs font-bold text-slate-600">
+                  <p className="mt-0.5 text-2xs font-bold text-slate-900">
                     {!equilibrio.rateavel
                       ? "Preencha os dias de operação acima."
                       : `Com ${equilibrio.variavelPct.toFixed(1)}% de custo variável não sobra nada de cada venda — nenhum faturamento empata. Reveja a meta de CMV, o imposto, a maquininha e a embalagem.`}
@@ -531,7 +531,7 @@ export default function PizzaDoLucroPage() {
               <ul className="mt-1.5 space-y-1">
                 {contasDia.itens.map((i) => (
                   <li key={i.chave} className="flex items-center gap-2 text-xs">
-                    <span className="min-w-0 flex-1 truncate font-bold text-slate-600">{i.rotulo}</span>
+                    <span className="min-w-0 flex-1 truncate font-bold text-slate-900">{i.rotulo}</span>
                     <span className="shrink-0 font-bold text-subtle">{fmt(i.mes)}/mês</span>
                     <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(i.dia)}</span>
                   </li>
@@ -543,7 +543,7 @@ export default function PizzaDoLucroPage() {
             {/* Quanto cada pessoa custa por dia. */}
             <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
               <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Quanto cada pessoa custa por dia</p>
-              <p className="mt-1 text-2xs font-bold text-muted">
+              <p className="mt-1 text-2xs font-bold text-fg">
                 Contratado: salário do mês ÷ {dias || "—"} dias. Extra: a diária inteira, no dia em que vem.
               </p>
               <ul className="mt-3 space-y-1">
@@ -562,7 +562,7 @@ export default function PizzaDoLucroPage() {
                   <ul className="mt-1.5 space-y-1">
                     {equipeDia.extras.map((pe) => (
                       <li key={pe.id} className="flex items-center gap-2 text-xs">
-                        <span className="min-w-0 flex-1 truncate font-bold text-slate-600">{pe.nome}
+                        <span className="min-w-0 flex-1 truncate font-bold text-slate-900">{pe.nome}
                           {pe.cargo && <span className="font-bold text-subtle"> · {pe.cargo}</span>}</span>
                         <span className="w-20 shrink-0 text-right font-black text-slate-800">{fmt(pe.dia)}</span>
                       </li>
@@ -584,7 +584,7 @@ export default function PizzaDoLucroPage() {
             <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Monte o cardápio</p>
-                <p className="text-2xs font-bold text-muted">
+                <p className="text-2xs font-bold text-fg">
                   {qtdPratos}/{LIMITE_PRATOS} pratos · {qtdBebidas}/{LIMITE_BEBIDAS} bebidas
                 </p>
               </div>
@@ -604,7 +604,7 @@ export default function PizzaDoLucroPage() {
                       return (
                         <li key={x.ficha.id}>
                           <button type="button" onClick={() => adicionar(x)} disabled={!cabe}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-slate-50 disabled:opacity-40">
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-white disabled:opacity-40">
                             <span className="min-w-0 flex-1 truncate font-bold text-fg-soft">{x.ficha.nome_receita}</span>
                             <span className="shrink-0 font-bold text-subtle">{fmt(x.conta.preco)}</span>
                             {!cabe && <span className="shrink-0 text-3xs font-bold uppercase text-subtle">limite</span>}
@@ -641,22 +641,22 @@ export default function PizzaDoLucroPage() {
                             {it.nome}
                             <span className="ml-1.5 text-3xs font-bold uppercase text-subtle">{it.departamento === "bar" ? "bebida" : "prato"}</span>
                           </td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(it.preco)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(it.preco)}</td>
                           <td className="whitespace-nowrap py-2 px-2 text-right">
                             <input type="number" min="0" step="10" value={it.quantidade}
                               onChange={(e) => mudarQtd(it.id, e.target.value)}
                               className="h-9 w-24 rounded-lg border border-line bg-card px-2 text-right text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
                           </td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(it.receita)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(it.receita)}</td>
                           {/* A sobra DELE é o que esta linha deixa para pagar o
                               fixo — não é lucro: o fixo ainda não foi tirado. */}
-                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${it.contribuicaoTotal < 0 ? "text-muted" : "text-slate-800"}`}>
+                          <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${it.contribuicaoTotal < 0 ? "text-fg" : "text-slate-800"}`}>
                             {fmt(it.contribuicaoTotal)}
                           </td>
                           <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-subtle">{it.pctDaReceita.toFixed(0)}%</td>
                           <td className="py-2 pl-2 text-right">
                             <button type="button" onClick={() => remover(it.id)} aria-label={`Tirar ${it.nome}`}
-                              className="text-dim hover:text-slate-600"><X size={14} /></button>
+                              className="text-dim hover:text-slate-900"><X size={14} /></button>
                           </td>
                         </tr>
                       ))}
@@ -670,27 +670,27 @@ export default function PizzaDoLucroPage() {
               <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
                 <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Resultado do mês</p>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <div className="rounded-xl bg-white px-3 py-2.5">
                     <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Fatura</p>
                     <p className="text-lg font-black text-slate-800">{fmt(cardapio.receita)}</p>
                     <p className="text-3xs font-bold text-subtle">{cardapio.quantidadeTotal.toLocaleString("pt-BR")} itens vendidos</p>
                   </div>
-                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <div className="rounded-xl bg-white px-3 py-2.5">
                     <p className="text-3xs font-bold uppercase tracking-wider text-subtle">CMV + variável</p>
                     <p className="text-lg font-black text-slate-800">{fmt(cardapio.cmvTotal + cardapio.variavelTotal)}</p>
                     <p className="text-3xs font-bold text-subtle">{fmt(cardapio.cmvTotal)} de mercadoria</p>
                   </div>
-                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                  <div className="rounded-xl bg-white px-3 py-2.5">
                     <p className="text-3xs font-bold uppercase tracking-wider text-subtle">Fixo + folha</p>
                     <p className="text-lg font-black text-slate-800">{fmt(cardapio.fixoTotal)}</p>
                     <p className="text-3xs font-bold text-subtle">entra uma vez, não por item</p>
                   </div>
                   <div className={`rounded-xl px-3 py-2.5 ${cardapio.sobra >= 0 ? "bg-emerald-50" : "bg-slate-200"}`}>
-                    <p className={`text-3xs font-bold uppercase tracking-wider ${cardapio.sobra >= 0 ? "text-accent" : "text-slate-600"}`}>
+                    <p className={`text-3xs font-bold uppercase tracking-wider ${cardapio.sobra >= 0 ? "text-accent" : "text-slate-900"}`}>
                       {cardapio.sobra >= 0 ? "Sobra para você" : "Falta"}
                     </p>
                     <p className={`text-lg font-black ${cardapio.sobra >= 0 ? "text-accent" : "text-slate-800"}`}>{fmt(Math.abs(cardapio.sobra))}</p>
-                    <p className={`text-3xs font-bold ${cardapio.sobra >= 0 ? "text-emerald-700/70" : "text-muted"}`}>
+                    <p className={`text-3xs font-bold ${cardapio.sobra >= 0 ? "text-emerald-700/70" : "text-fg"}`}>
                       margem média {cardapio.margemMediaPct.toFixed(1)}%
                     </p>
                   </div>
@@ -732,7 +732,7 @@ export default function PizzaDoLucroPage() {
                 style={{ fontVariantNumeric: "tabular-nums", color: lacunas.cobertura.pct >= 90 ? "var(--accent)" : "var(--danger-strong)" }}>
                 {lacunas.cobertura.total ? `${Math.round(lacunas.cobertura.pct)}%` : "—"}
               </p>
-              <p className="mt-1 text-2xs font-bold text-muted">
+              <p className="mt-1 text-2xs font-bold text-fg">
                 {lacunas.cobertura.total
                   ? `${lacunas.cobertura.cobertos} de ${lacunas.cobertura.total} itens com preço estão ligados a uma ficha.`
                   : "Nenhum item do cardápio tem preço de venda ainda."}
@@ -768,17 +768,17 @@ export default function PizzaDoLucroPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span className="w-1 self-stretch rounded-full" style={{ background: grave ? "var(--danger-strong)" : "var(--subtle)" }} />
-                    <p className="text-sm font-bold text-fg">{titulo} <span className="text-muted">({lista.length})</span></p>
+                    <p className="text-sm font-bold text-fg">{titulo} <span className="text-fg">({lista.length})</span></p>
                   </div>
                   <button onClick={() => router.push(href)}
                     className="shrink-0 text-2xs font-bold text-accent underline underline-offset-2">{acao} →</button>
                 </div>
-                <p className="px-4 pb-2 text-2xs font-medium text-muted">{porque}</p>
+                <p className="px-4 pb-2 text-2xs font-medium text-fg">{porque}</p>
                 <ul className="border-t border-line-soft">
                   {lista.slice(0, 8).map((item) => (
                     <li key={item.id} className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-2 last:border-b-0">
                       <span className="min-w-0 flex-1 truncate text-2xs font-bold text-fg-soft">{item.nome}</span>
-                      <span className="shrink-0 text-3xs font-bold text-muted">
+                      <span className="shrink-0 text-3xs font-bold text-fg">
                         {item.fichas ? `em ${item.fichas} ficha${item.fichas > 1 ? "s" : ""}` : item.preco ? fmt(item.preco) : item.departamento || ""}
                       </span>
                     </li>
@@ -796,9 +796,9 @@ export default function PizzaDoLucroPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {ABAS.map((a) => (
                   <button key={a.id} onClick={() => { setAba(a.id); setEscolhida(null); }}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${aba === a.id ? "bg-accent text-accent-fg" : "border border-line bg-card text-muted hover:bg-slate-50"}`}>
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${aba === a.id ? "bg-accent text-accent-fg" : "border border-line bg-card text-fg hover:bg-white"}`}>
                     {a.rotulo}
-                    <span className={`rounded-full px-1.5 text-3xs ${aba === a.id ? "bg-white/25" : "bg-elevated text-muted"}`}>{contarAba(a.id)}</span>
+                    <span className={`rounded-full px-1.5 text-3xs ${aba === a.id ? "bg-white/25" : "bg-card text-fg"}`}>{contarAba(a.id)}</span>
                   </button>
                 ))}
               </div>
@@ -833,20 +833,20 @@ export default function PizzaDoLucroPage() {
                       return (
                         <Fragment key={x.ficha.id}>
                         <tr onClick={() => setEscolhida(escolhida === x.ficha.id ? null : x.ficha.id)}
-                          className={`cursor-pointer transition-colors ${ehAtual ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
+                          className={`cursor-pointer transition-colors ${ehAtual ? "bg-emerald-50" : "hover:bg-white"}`}>
                           <td className="py-2 pr-2 font-bold text-fg-soft">
                             <span className="mr-1.5">{x.ficha.nome_receita}</span>
                             {x.entrada.semCusto && (
-                              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-elevated px-1.5 py-0.5 text-3xs font-bold uppercase text-muted">
+                              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-card px-1.5 py-0.5 text-3xs font-bold uppercase text-fg">
                                 <AlertTriangle size={9} /> sem custo
                               </span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(x.cmv)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(x.cmoUnit)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(x.fixoUnit)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(x.variavelUnit)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-muted">{fmt(x.conta.preco)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.cmv)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.cmoUnit)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.fixoUnit)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.variavelUnit)}</td>
+                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.conta.preco)}</td>
                           {/* Verde só quando o sugerido é MAIOR que o preço de
                               hoje: é o caso em que há dinheiro na mesa. */}
                           <td className={`whitespace-nowrap py-2 px-2 text-right font-black ${x.sugerido === null ? "text-dim" : x.sugerido > x.conta.preco ? "text-accent" : "text-subtle"}`}
@@ -857,7 +857,7 @@ export default function PizzaDoLucroPage() {
                             {x.conta.prejuizo > 0 ? `\u2212\u00A0${fmt(x.conta.prejuizo)}` : fmt(x.conta.lucro)}
                           </td>
                           <td className="whitespace-nowrap py-2 pl-2 text-right">
-                            <span className={`inline-block whitespace-nowrap rounded-lg px-2 py-0.5 font-black ${x.conta.prejuizo > 0 ? "bg-slate-200 text-fg-soft" : duvidoso ? "bg-elevated text-muted" : "bg-emerald-100 text-emerald-800"}`}>
+                            <span className={`inline-block whitespace-nowrap rounded-lg px-2 py-0.5 font-black ${x.conta.prejuizo > 0 ? "bg-slate-200 text-fg-soft" : duvidoso ? "bg-card text-fg" : "bg-emerald-100 text-emerald-800"}`}>
                               {x.conta.prejuizo > 0 ? "prejuízo" : `${pct.toFixed(0)}%`}
                             </span>
                           </td>
@@ -867,9 +867,9 @@ export default function PizzaDoLucroPage() {
                             cem linhas de distância do prato que explica. */}
                         {ehAtual && (
                           <tr>
-                            <td colSpan={9} className="bg-slate-50 px-3 py-4">
+                            <td colSpan={9} className="bg-white px-3 py-4">
                               {(x.entrada.semCusto || x.entrada.semRendimento) && (
-                                <p className="mx-auto mb-3 flex max-w-xl items-start gap-1.5 rounded-lg bg-card px-2.5 py-2 text-3xs font-bold text-slate-600">
+                                <p className="mx-auto mb-3 flex max-w-xl items-start gap-1.5 rounded-lg bg-card px-2.5 py-2 text-3xs font-bold text-slate-900">
                                   <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                                   {x.entrada.semCusto
                                     ? "Este item não tem custo de produto na ficha (revenda, por exemplo). O lucro está alto porque falta o custo, não porque ele é bom."

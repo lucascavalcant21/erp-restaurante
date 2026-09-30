@@ -625,7 +625,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-line-soft">
+      <div className="grid grid-cols-3 gap-2.5 mb-3 bg-white p-3 rounded-xl border border-line-soft">
         <div>
           <label htmlFor="ficha-cmv-meta" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-fg">CMV Meta (%)</label>
           <input
@@ -678,8 +678,8 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         </button>
       )}
 
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-        <p className="text-3xs font-black uppercase tracking-widest text-slate-700 mb-2">Resultado da Ficha (Por Porção)</p>
+      <div className="bg-white border border-slate-200 rounded-xl p-3">
+        <p className="text-3xs font-black uppercase tracking-widest text-slate-900 mb-2">Resultado da Ficha (Por Porção)</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           <div className="bg-card border border-line rounded-lg p-2 text-center">
             <p className="text-3xs font-bold text-fg uppercase">Ingredientes</p>

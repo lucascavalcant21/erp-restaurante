@@ -96,7 +96,7 @@ export default function MesasPDVPage() {
   const mesaMuitoCompacta = quantidadeVisivel > 32;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] bg-elevated relative overflow-hidden font-sans">
+    <div className="flex flex-col h-[calc(100vh-100px)] bg-card relative overflow-hidden font-sans">
       <style>{`
         .mesas-grade-adaptativa{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--mesa-min),1fr));gap:var(--mesa-gap)}
         @media(max-width:640px){.mesas-grade-adaptativa{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
@@ -120,7 +120,7 @@ export default function MesasPDVPage() {
               <div className="px-3 sm:px-4 py-2 bg-accent-soft text-accent-strong rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> {mesasLivres} Livres
               </div>
-              <div className="px-3 sm:px-4 py-2 bg-slate-50 text-accent rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-2 bg-white text-accent rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div> {mesasOcupadas} Ocupadas
               </div>
             </div>
@@ -128,16 +128,16 @@ export default function MesasPDVPage() {
 
          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="relative flex-1 lg:flex-none">
-              <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+              <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg" />
               <input 
                 type="text" 
                 placeholder="Buscar Mesa..." 
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="pl-12 pr-4 py-3 bg-elevated rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full lg:w-64 transition-all"
+                className="pl-12 pr-4 py-3 bg-card rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full lg:w-64 transition-all"
               />
             </div>
-            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-card border border-line text-muted hover:bg-slate-50 hover:text-success flex items-center justify-center transition-colors shadow-sm active:scale-95">
+            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-card border border-line text-fg hover:bg-white hover:text-success flex items-center justify-center transition-colors shadow-sm active:scale-95">
               <RefreshCw size={20} />
             </button>
             <button onClick={handleAdicionarMesa} disabled={salvando} className="px-3 sm:px-5 py-3 rounded-2xl bg-slate-800 text-white font-black text-sm uppercase tracking-wide sm:tracking-widest hover:bg-slate-900 shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center gap-2 shrink-0">
@@ -149,11 +149,11 @@ export default function MesasPDVPage() {
       {/* MAPA DE MESAS (GRID) */}
       <div className={`flex-1 overflow-y-auto hide-scrollbar ${mesaMuitoCompacta ? "p-2 sm:p-3" : "p-3 sm:p-5"}`}>
         {loading ? (
-          <div className="h-full flex items-center justify-center font-black text-2xl text-muted">Carregando Mapa...</div>
+          <div className="h-full flex items-center justify-center font-black text-2xl text-fg">Carregando Mapa...</div>
         ) : mesas.length === 0 ? (
-           <div className="h-full flex flex-col items-center justify-center text-muted px-4 text-center">
+           <div className="h-full flex flex-col items-center justify-center text-fg px-4 text-center">
               <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
-                <Coffee size={40} className="text-muted" />
+                <Coffee size={40} className="text-fg" />
               </div>
               <p className="font-black text-2xl mb-2 text-slate-800">O Salão está vazio</p>
               <p className="mb-8 font-medium">Adicione mesas para começar a operar.</p>
@@ -199,7 +199,7 @@ export default function MesasPDVPage() {
                     </div>
                   ) : (
                     <div className="mt-auto w-full">
-                       <span className={`inline-block rounded-lg bg-elevated text-muted font-bold uppercase group-hover:bg-accent-soft group-hover:text-accent-strong transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-3xs" : "px-4 py-2 text-xs tracking-widest"}`}>
+                       <span className={`inline-block rounded-lg bg-card text-fg font-bold uppercase group-hover:bg-accent-soft group-hover:text-accent-strong transition-colors ${mesaMuitoCompacta ? "px-2 py-1 text-3xs" : "px-4 py-2 text-xs tracking-widest"}`}>
                          Livre
                        </span>
                     </div>
@@ -230,12 +230,12 @@ export default function MesasPDVPage() {
         {mesaSelecionada && (
           <>
             {/* Header Drawer */}
-            <div className="p-4 sm:p-8 bg-slate-50 border-b border-line flex items-center justify-between">
+            <div className="p-4 sm:p-8 bg-white border-b border-line flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-muted uppercase tracking-widest mb-1">Gerenciar</p>
+                <p className="text-xs font-bold text-fg uppercase tracking-widest mb-1">Gerenciar</p>
                 <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">{mesaSelecionada.numero}</h2>
               </div>
-              <button onClick={fecharDrawer} className="w-14 h-14 bg-card rounded-full flex items-center justify-center text-muted hover:text-slate-800 shadow-sm border border-line transition-colors active:scale-95">
+              <button onClick={fecharDrawer} className="w-14 h-14 bg-card rounded-full flex items-center justify-center text-fg hover:text-slate-800 shadow-sm border border-line transition-colors active:scale-95">
                 <X size={24}/>
               </button>
             </div>
@@ -253,7 +253,7 @@ export default function MesasPDVPage() {
                  <span className="font-black text-xl uppercase tracking-widest">Abrir Comanda</span>
                </button>
 
-               <div className="text-sm font-bold text-muted uppercase tracking-widest mb-4">Comandas em Atividade</div>
+               <div className="text-sm font-bold text-fg uppercase tracking-widest mb-4">Comandas em Atividade</div>
                
                {mesaSelecionada.comandas?.length > 0 ? (
                  <div className="flex flex-col gap-4">
@@ -265,17 +265,17 @@ export default function MesasPDVPage() {
                          onClick={() => router.push(`/dashboard/vendas?comanda=${c.id}`)} 
                           className="flex items-center gap-3 sm:gap-5 p-3 sm:p-5 bg-card border-2 border-line-soft hover:border-emerald-500 rounded-3xl transition-all text-left w-full shadow-sm hover:shadow-lg group active:scale-95"
                        >
-                         <div className="w-14 h-14 rounded-full bg-slate-50 text-emerald-600 font-black flex items-center justify-center text-2xl group-hover:bg-accent group-hover:text-accent-fg transition-colors">
+                         <div className="w-14 h-14 rounded-full bg-white text-emerald-600 font-black flex items-center justify-center text-2xl group-hover:bg-accent group-hover:text-accent-fg transition-colors">
                            {c.nome_cliente?.[0]?.toUpperCase()||"C"}
                          </div>
                          <div className="flex-1">
                            <p className="font-black text-slate-800 text-lg mb-1">{c.nome_cliente || "Sem nome"}</p>
                            <div className="flex items-center gap-3">
-                             <span className="text-xs font-bold text-muted bg-elevated px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
+                             <span className="text-xs font-bold text-fg bg-card px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
                              <span className="text-sm font-black text-success">{fmtBRL(totalComanda)}</span>
                            </div>
                          </div>
-                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-muted group-hover:bg-elevated group-hover:text-success transition-colors">
+                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-fg group-hover:bg-card group-hover:text-success transition-colors">
                            <ChevronRight size={24}/>
                          </div>
                        </button>
@@ -283,8 +283,8 @@ export default function MesasPDVPage() {
                    })}
                  </div>
                ) : (
-                 <div className="text-center py-10 px-4 text-muted bg-slate-50 rounded-3xl border-2 border-dashed border-line">
-                    <Coffee size={40} className="mx-auto mb-4 text-muted" />
+                 <div className="text-center py-10 px-4 text-fg bg-white rounded-3xl border-2 border-dashed border-line">
+                    <Coffee size={40} className="mx-auto mb-4 text-fg" />
                     <p className="font-bold text-lg mb-1">Mesa Livre</p>
                     <p className="text-sm">Nenhuma comanda aberta nesta mesa no momento.</p>
                  </div>

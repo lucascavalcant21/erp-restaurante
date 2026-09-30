@@ -283,7 +283,7 @@ export default function ContasAPagarHubPage() {
               <CalendarDays size={24} />
             </div>
             <div>
-              <p className="text-3xs uppercase font-bold tracking-widest text-slate-400">Total Pendente</p>
+              <p className="text-3xs uppercase font-bold tracking-widest text-slate-800">Total Pendente</p>
               <p className="text-2xl font-black text-amber-400">{fmtBRL(kpis.pendente)}</p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function ContasAPagarHubPage() {
               <AlertTriangle size={24} />
             </div>
             <div>
-              <p className="text-3xs uppercase font-bold tracking-widest text-slate-400">Total Vencido</p>
+              <p className="text-3xs uppercase font-bold tracking-widest text-slate-800">Total Vencido</p>
               <p className="text-2xl font-black text-red-400">{fmtBRL(kpis.vencido)}</p>
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function ContasAPagarHubPage() {
               <Wallet size={24} />
             </div>
             <div>
-              <p className="text-3xs uppercase font-bold tracking-widest text-slate-400">Total Pago no Mês</p>
+              <p className="text-3xs uppercase font-bold tracking-widest text-slate-800">Total Pago no Mês</p>
               <p className="text-2xl font-black text-emerald-400">{fmtBRL(kpis.pago)}</p>
             </div>
           </div>
@@ -316,13 +316,13 @@ export default function ContasAPagarHubPage() {
           {/* BARRA DE BUSCA E FILTROS */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative md:col-span-1">
-              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-800" />
               <input
                 type="text"
                 placeholder="Buscar fornecedor, NF ou descrição..."
                 value={busca}
                 onChange={e => setBusca(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -330,7 +330,7 @@ export default function ContasAPagarHubPage() {
               <select
                 value={filtroStatus}
                 onChange={e => setFiltroStatus(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                className="w-full p-2.5 bg-white border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
               >
                 <option value="TODOS">-- Todos os Status --</option>
                 <option value="PENDENTE">PENDENTE</option>
@@ -346,7 +346,7 @@ export default function ContasAPagarHubPage() {
               <select
                 value={filtroCategoria}
                 onChange={e => setFiltroCategoria(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                className="w-full p-2.5 bg-white border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
               >
                 <option value="TODAS">-- Todas as Categorias --</option>
                 {CATEGORIAS_CUSTO.map(c => (
@@ -359,7 +359,7 @@ export default function ContasAPagarHubPage() {
               <select
                 value={filtroFornecedor}
                 onChange={e => setFiltroFornecedor(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                className="w-full p-2.5 bg-white border border-line rounded-2xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
               >
                 <option value="TODOS">-- Todos os Fornecedores --</option>
                 {fornecedores.map(f => (
@@ -371,11 +371,11 @@ export default function ContasAPagarHubPage() {
 
           {/* TABELA DE CONTAS OPERACIONAL */}
           {loading ? (
-            <div className="py-12 text-center text-muted font-bold">Carregando contas a pagar...</div>
+            <div className="py-12 text-center text-fg font-bold">Carregando contas a pagar...</div>
           ) : !contasFiltradas.length ? (
-            <div className="py-12 text-center text-muted space-y-2">
+            <div className="py-12 text-center text-fg space-y-2">
               <Wallet size={40} className="mx-auto text-slate-300" />
-              <p className="font-bold text-slate-700">Nenhuma conta encontrada para o filtro selecionado.</p>
+              <p className="font-bold text-slate-900">Nenhuma conta encontrada para o filtro selecionado.</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-line overflow-hidden shadow-xs">
@@ -402,21 +402,21 @@ export default function ContasAPagarHubPage() {
                       const saldo = Number(c.saldo !== undefined ? c.saldo : (orig - pago));
 
                       return (
-                        <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={c.id} className="hover:bg-white transition-colors">
                           <td className="p-3.5">
                             <strong className="text-slate-800 font-black block">{c.fornecedor?.nome || c.descricao}</strong>
                             <span className="text-3xs text-subtle font-medium">{c.descricao} • {c.categoria}</span>
                           </td>
 
-                          <td className="p-3.5 font-medium text-slate-600">
+                          <td className="p-3.5 font-medium text-slate-900">
                             {c.numero_documento ? `NF ${c.numero_documento}` : (c.origem_tipo || "Manual")}
                           </td>
 
-                          <td className="p-3.5 font-bold text-slate-700">
+                          <td className="p-3.5 font-bold text-slate-900">
                             {c.data_vencimento ? new Date(`${c.data_vencimento}T12:00:00`).toLocaleDateString("pt-BR") : "N/I"}
                           </td>
 
-                          <td className="p-3.5 text-right font-medium text-slate-600">{fmtBRL(orig)}</td>
+                          <td className="p-3.5 text-right font-medium text-slate-900">{fmtBRL(orig)}</td>
                           <td className="p-3.5 text-right font-medium text-emerald-600">{fmtBRL(pago)}</td>
                           <td className="p-3.5 text-right font-black text-slate-800">{fmtBRL(saldo)}</td>
 
@@ -425,7 +425,7 @@ export default function ContasAPagarHubPage() {
                               st === "PAGA" ? "bg-emerald-100 text-emerald-800" :
                               st === "PARCIALMENTE PAGA" ? "bg-blue-100 text-blue-800" :
                               st === "VENCIDA" ? "bg-red-100 text-red-800" :
-                              st === "VENCENDO" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"
+                              st === "VENCENDO" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-900"
                             }`}>
                               {st}
                             </span>
@@ -434,7 +434,7 @@ export default function ContasAPagarHubPage() {
                           <td className="p-3.5 text-right space-x-2">
                             <button
                               onClick={() => abrirDetalhesConta(c)}
-                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg transition-colors cursor-pointer"
                               title="Ver Detalhes e Histórico"
                             >
                               <Eye size={15} />
@@ -466,61 +466,61 @@ export default function ContasAPagarHubPage() {
           <div className="bg-card rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-line">
               <h3 className="text-xl font-black text-slate-800">Lançar Nova Despesa</h3>
-              <button onClick={() => setModalNovaContaOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+              <button onClick={() => setModalNovaContaOpen(false)} className="text-slate-800 hover:text-slate-900"><X size={20} /></button>
             </div>
 
             <form onSubmit={handleSalvarConta} className="space-y-3.5">
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Descrição</label>
-                <input required type="text" placeholder="Ex: Conta de Luz ou Distribuidora XYZ" value={formConta.descricao} onChange={e => setFormConta({ ...formConta, descricao: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm" />
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Descrição</label>
+                <input required type="text" placeholder="Ex: Conta de Luz ou Distribuidora XYZ" value={formConta.descricao} onChange={e => setFormConta({ ...formConta, descricao: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Fornecedor (Opcional)</label>
-                  <select value={formConta.fornecedor_id} onChange={e => setFormConta({ ...formConta, fornecedor_id: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm">
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Fornecedor (Opcional)</label>
+                  <select value={formConta.fornecedor_id} onChange={e => setFormConta({ ...formConta, fornecedor_id: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm">
                     <option value="">-- Sem Fornecedor --</option>
                     {fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Número da NF / Doc</label>
-                  <input type="text" placeholder="Ex: 10482" value={formConta.numero_documento} onChange={e => setFormConta({ ...formConta, numero_documento: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-slate-800 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Número da NF / Doc</label>
+                  <input type="text" placeholder="Ex: 10482" value={formConta.numero_documento} onChange={e => setFormConta({ ...formConta, numero_documento: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Valor Total (R$)</label>
-                  <input required type="text" placeholder="1200,00" value={formConta.valor} onChange={e => setFormConta({ ...formConta, valor: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-black text-emerald-600 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Valor Total (R$)</label>
+                  <input required type="text" placeholder="1200,00" value={formConta.valor} onChange={e => setFormConta({ ...formConta, valor: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-black text-emerald-600 text-sm" />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">Nº Parcelas</label>
-                  <input required type="number" min="1" max="60" value={formConta.total_parcelas} onChange={e => setFormConta({ ...formConta, total_parcelas: parseInt(e.target.value) || 1 })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">Nº Parcelas</label>
+                  <input required type="number" min="1" max="60" value={formConta.total_parcelas} onChange={e => setFormConta({ ...formConta, total_parcelas: parseInt(e.target.value) || 1 })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm" />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted uppercase block mb-1">1º Vencimento</label>
-                  <input required type="date" value={formConta.data_vencimento} onChange={e => setFormConta({ ...formConta, data_vencimento: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm" />
+                  <label className="text-xs font-bold text-fg uppercase block mb-1">1º Vencimento</label>
+                  <input required type="date" value={formConta.data_vencimento} onChange={e => setFormConta({ ...formConta, data_vencimento: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Categoria Contábil</label>
-                <select value={formConta.categoria} onChange={e => setFormConta({ ...formConta, categoria: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm">
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Categoria Contábil</label>
+                <select value={formConta.categoria} onChange={e => setFormConta({ ...formConta, categoria: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm">
                   {CATEGORIAS_CUSTO.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
                 <input type="checkbox" id="recorrente" checked={formConta.recorrente} onChange={e => setFormConta({ ...formConta, recorrente: e.target.checked })} className="w-4 h-4 rounded text-emerald-500 accent-emerald-500 cursor-pointer" />
-                <label htmlFor="recorrente" className="text-xs font-bold text-slate-700 cursor-pointer">Despesa Recorrente (Recriar todo mês)</label>
+                <label htmlFor="recorrente" className="text-xs font-bold text-slate-900 cursor-pointer">Despesa Recorrente (Recriar todo mês)</label>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-line">
-                <button type="button" onClick={() => setModalNovaContaOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl cursor-pointer">Cancelar</button>
+                <button type="button" onClick={() => setModalNovaContaOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm rounded-xl cursor-pointer">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl cursor-pointer">Salvar Despesa</button>
               </div>
             </form>
@@ -537,33 +537,33 @@ export default function ContasAPagarHubPage() {
                 <span className="text-3xs font-black uppercase text-emerald-600 tracking-wider">Liquidação Financeira</span>
                 <h3 className="text-xl font-black text-slate-800">{contaSelecionada.fornecedor?.nome || contaSelecionada.descricao}</h3>
               </div>
-              <button onClick={() => setModalPagarOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+              <button onClick={() => setModalPagarOpen(false)} className="text-slate-800 hover:text-slate-900"><X size={20} /></button>
             </div>
 
             <form onSubmit={handleConfirmarPagamento} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Valor a Pagar Agora (R$)</label>
-                <input required type="text" value={formPagamento.valor_pago_agora} onChange={e => setFormPagamento({ ...formPagamento, valor_pago_agora: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-line rounded-2xl font-black text-emerald-600 text-lg outline-none focus:border-emerald-500" />
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Valor a Pagar Agora (R$)</label>
+                <input required type="text" value={formPagamento.valor_pago_agora} onChange={e => setFormPagamento({ ...formPagamento, valor_pago_agora: e.target.value })} className="w-full p-3.5 bg-white border border-line rounded-2xl font-black text-emerald-600 text-lg outline-none focus:border-emerald-500" />
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
-                  <label className="font-bold text-muted uppercase block mb-1">Juros (R$)</label>
-                  <input type="text" value={formPagamento.juros} onChange={e => setFormPagamento({ ...formPagamento, juros: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800" />
+                  <label className="font-bold text-fg uppercase block mb-1">Juros (R$)</label>
+                  <input type="text" value={formPagamento.juros} onChange={e => setFormPagamento({ ...formPagamento, juros: e.target.value })} className="w-full p-2.5 bg-white border border-line rounded-xl font-bold text-slate-800" />
                 </div>
                 <div>
-                  <label className="font-bold text-muted uppercase block mb-1">Multa (R$)</label>
-                  <input type="text" value={formPagamento.multa} onChange={e => setFormPagamento({ ...formPagamento, multa: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-line rounded-xl font-bold text-slate-800" />
+                  <label className="font-bold text-fg uppercase block mb-1">Multa (R$)</label>
+                  <input type="text" value={formPagamento.multa} onChange={e => setFormPagamento({ ...formPagamento, multa: e.target.value })} className="w-full p-2.5 bg-white border border-line rounded-xl font-bold text-slate-800" />
                 </div>
                 <div>
-                  <label className="font-bold text-muted uppercase block mb-1">Desconto (R$)</label>
-                  <input type="text" value={formPagamento.desconto} onChange={e => setFormPagamento({ ...formPagamento, desconto: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-line rounded-xl font-bold text-emerald-600" />
+                  <label className="font-bold text-fg uppercase block mb-1">Desconto (R$)</label>
+                  <input type="text" value={formPagamento.desconto} onChange={e => setFormPagamento({ ...formPagamento, desconto: e.target.value })} className="w-full p-2.5 bg-white border border-line rounded-xl font-bold text-emerald-600" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted uppercase block mb-1">Debitar da Conta Financeira</label>
-                <select value={formPagamento.conta_financeira_id} onChange={e => setFormPagamento({ ...formPagamento, conta_financeira_id: e.target.value })} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-slate-800 text-sm">
+                <label className="text-xs font-bold text-fg uppercase block mb-1">Debitar da Conta Financeira</label>
+                <select value={formPagamento.conta_financeira_id} onChange={e => setFormPagamento({ ...formPagamento, conta_financeira_id: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm">
                   {contasFinanceiras.map(cf => (
                     <option key={cf.id} value={cf.id}>{cf.nome} (Saldo: {fmtBRL(cf.saldo_atual)})</option>
                   ))}
@@ -571,7 +571,7 @@ export default function ContasAPagarHubPage() {
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-line">
-                <button type="button" onClick={() => setModalPagarOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl cursor-pointer">Cancelar</button>
+                <button type="button" onClick={() => setModalPagarOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm rounded-xl cursor-pointer">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm rounded-xl cursor-pointer shadow-lg shadow-emerald-500/20">Confirmar Pagamento</button>
               </div>
             </form>
@@ -585,13 +585,13 @@ export default function ContasAPagarHubPage() {
           <div className="bg-card rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-line">
               <div>
-                <span className="text-3xs font-black uppercase text-slate-500 tracking-wider">Detalhamento & Rastreabilidade</span>
+                <span className="text-3xs font-black uppercase text-slate-900 tracking-wider">Detalhamento & Rastreabilidade</span>
                 <h3 className="text-xl font-black text-slate-800">{contaSelecionada.fornecedor?.nome || contaSelecionada.descricao}</h3>
               </div>
-              <button onClick={() => setModalDetalheOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+              <button onClick={() => setModalDetalheOpen(false)} className="text-slate-800 hover:text-slate-900"><X size={20} /></button>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl text-xs space-y-2">
+            <div className="bg-white p-4 rounded-2xl text-xs space-y-2">
               <div className="flex justify-between"><span>Origem:</span><strong className="text-slate-800">{contaSelecionada.origem_tipo || 'Manual'}</strong></div>
               <div className="flex justify-between"><span>Número Documento:</span><strong className="text-slate-800">{contaSelecionada.numero_documento || 'N/A'}</strong></div>
               <div className="flex justify-between"><span>Valor Original:</span><strong className="text-slate-800">{fmtBRL(contaSelecionada.valor_original ?? contaSelecionada.valor)}</strong></div>
@@ -600,9 +600,9 @@ export default function ContasAPagarHubPage() {
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-black text-xs uppercase tracking-wider text-slate-700">Histórico de Pagamentos</h4>
+              <h4 className="font-black text-xs uppercase tracking-wider text-slate-900">Histórico de Pagamentos</h4>
               {!historicoPagamentos.length ? (
-                <p className="text-xs text-muted py-3">Nenhum pagamento efetuado até o momento.</p>
+                <p className="text-xs text-fg py-3">Nenhum pagamento efetuado até o momento.</p>
               ) : (
                 <div className="space-y-2">
                   {historicoPagamentos.map(h => (

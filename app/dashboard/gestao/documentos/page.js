@@ -145,7 +145,7 @@ export default function DocumentosLegaisPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{d.titulo}</p>
-                        <span className="text-3xs uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-muted">{d.tipo}</span>
+                        <span className="text-3xs uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-fg">{d.tipo}</span>
                       </div>
                       {d.descricao && <p className="text-xs mt-0.5 break-words" style={{ color: "var(--subtle)" }}>{d.descricao}</p>}
                       
@@ -216,7 +216,7 @@ export default function DocumentosLegaisPage() {
             </div>
           </Field>
 
-          {erro && <p className="text-xs text-slate-600 text-center">{erro}</p>}
+          {erro && <p className="text-xs text-slate-900 text-center">{erro}</p>}
 
           <Btn variant="primary" className="w-full" onClick={salvar} disabled={salvando}>
             {salvando ? "Salvando..." : "Salvar Documento"}

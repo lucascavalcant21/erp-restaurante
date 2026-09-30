@@ -41,7 +41,7 @@ export default function IntegracoesCentralPage() {
         </div>
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Central de Integrações Canônicas</h1>
-          <p className="text-sm text-muted font-medium">Gerencie conexões de PDVs operacionais e canais de venda externos sem duplicidade de dados.</p>
+          <p className="text-sm text-fg font-medium">Gerencie conexões de PDVs operacionais e canais de venda externos sem duplicidade de dados.</p>
         </div>
       </div>
 
@@ -71,26 +71,26 @@ export default function IntegracoesCentralPage() {
                 </div>
                 <div>
                   <h3 className="font-black text-lg text-slate-800">iFood Merchant API</h3>
-                  <p className="text-xs text-muted">Canal de Delivery / Marketplaces</p>
+                  <p className="text-xs text-fg">Canal de Delivery / Marketplaces</p>
                 </div>
               </div>
 
-              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase flex items-center gap-1.5 ${ifoodStatus === 'CONNECTED' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase flex items-center gap-1.5 ${ifoodStatus === 'CONNECTED' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-900'}`}>
                 {ifoodStatus === 'CONNECTED' ? <><CheckCircle size={14}/> Conectado</> : <><AlertCircle size={14}/> Desconectado</>}
               </span>
             </div>
 
-            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+            <p className="text-xs text-slate-900 mb-4 leading-relaxed">
               Integração oficial via API Merchant do iFood (<code>merchant-api.ifood.com.br</code>). Permite importação de comissões, taxas reais, repasses e reconciliação de recebíveis sem duplicar vendas.
             </p>
 
             <div className="space-y-2 mb-6">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Capacidades:</span>
+              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-1">Capacidades:</span>
               <div className="flex flex-wrap gap-2 text-3xs font-bold uppercase">
-                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-700">Merchant API</span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-700">Financial API</span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-700">Inbox Webhook</span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-700">Matching Pedidos</span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-900">Merchant API</span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-900">Financial API</span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-900">Inbox Webhook</span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-900">Matching Pedidos</span>
               </div>
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function IntegracoesCentralPage() {
                 </div>
                 <div>
                   <h3 className="font-black text-lg text-slate-800">Saipos PDV</h3>
-                  <p className="text-xs text-muted">PDV Operacional de Frente de Loja</p>
+                  <p className="text-xs text-fg">PDV Operacional de Frente de Loja</p>
                 </div>
               </div>
 
@@ -120,21 +120,21 @@ export default function IntegracoesCentralPage() {
               </span>
             </div>
 
-            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+            <p className="text-xs text-slate-900 mb-4 leading-relaxed">
               Adaptador canônico para a Saipos API. As vendas operacionais importadas registram a chave do iFood (<code>upstream_external_id</code>), garantindo que a mesma venda não entre duplicada no ERP.
             </p>
 
             <div className="space-y-2 mb-6">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Capacidades:</span>
+              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-1">Capacidades:</span>
               <div className="flex flex-wrap gap-2 text-3xs font-bold uppercase">
                 <span className="px-2.5 py-1 rounded bg-emerald-100 text-emerald-800">Vendas (Disponível)</span>
                 <span className="px-2.5 py-1 rounded bg-amber-100 text-amber-800">Pedidos (Aguardando Chave)</span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-500">Financeiro (Via Canal)</span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-900">Financeiro (Via Canal)</span>
               </div>
             </div>
           </div>
 
-          <div className="w-full py-3 bg-slate-100 text-slate-500 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
+          <div className="w-full py-3 bg-slate-100 text-slate-900 font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
             <span>Aguardando Chave de API da Saipos</span>
           </div>
         </div>

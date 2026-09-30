@@ -70,17 +70,17 @@ export default function Rankings() {
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/operacao/inteligente")}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200">
             <ArrowLeft size={19} />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Rankings</h1>
-            <p className="text-xs font-bold text-muted">Desempenho por pessoa e por setor ao longo do tempo</p>
+            <p className="text-xs font-bold text-fg">Desempenho por pessoa e por setor ao longo do tempo</p>
           </div>
           <div className="flex rounded-xl border border-line bg-card p-1">
             {PERIODOS.map(p => (
               <button key={p.dias} onClick={() => setDias(p.dias)}
-                className={`h-9 rounded-lg px-3 text-sm font-black transition-colors ${dias === p.dias ? "bg-accent text-accent-fg" : "text-muted hover:text-slate-800"}`}>
+                className={`h-9 rounded-lg px-3 text-sm font-black transition-colors ${dias === p.dias ? "bg-accent text-accent-fg" : "text-fg hover:text-slate-800"}`}>
                 {p.rotulo}
               </button>
             ))}
@@ -109,7 +109,7 @@ export default function Rankings() {
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <Users className="mx-auto text-dim" size={38} />
             <p className="mt-3 font-black text-fg-soft">Nenhuma rotina neste período</p>
-            <p className="mt-1 text-sm text-muted">O ranking se monta sozinho conforme as rotinas do dia forem acontecendo.</p>
+            <p className="mt-1 text-sm text-fg">O ranking se monta sozinho conforme as rotinas do dia forem acontecendo.</p>
           </div>
         ) : (
           <>
@@ -128,18 +128,18 @@ export default function Rankings() {
 
             <Secao titulo="Por pessoa" icone={Users}>
               {pessoas.ranqueados.length === 0 ? (
-                <p className="text-sm font-bold text-muted">
+                <p className="text-sm font-bold text-fg">
                   Ninguém tem {pessoas.minimo} rotinas ou mais no período — sem isso, o ranking premiaria quem fez menos.
                 </p>
               ) : (
                 <Tabela linhas={pessoas.ranqueados} rotuloCol="Pessoa" chave="nome" comPosicao />
               )}
               {pessoas.poucosDados.length > 0 && (
-                <details className="mt-3 rounded-xl border border-line bg-slate-50 px-4 py-3">
-                  <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-muted">
+                <details className="mt-3 rounded-xl border border-line bg-white px-4 py-3">
+                  <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-fg">
                     Poucos dados para ranquear ({pessoas.poucosDados.length})
                   </summary>
-                  <p className="mt-2 text-xs font-bold text-muted">
+                  <p className="mt-2 text-xs font-bold text-fg">
                     Menos de {pessoas.minimo} rotinas no período. Quem fez uma e acertou aparece com 100%, e ordenar
                     isso junto colocaria quem trabalhou menos na frente.
                   </p>
@@ -154,7 +154,7 @@ export default function Rankings() {
 
             {falhas.length > 0 && (
               <Secao titulo="Rotinas que mais falham" icone={TrendingDown}>
-                <p className="mb-3 text-xs font-bold text-muted">
+                <p className="mb-3 text-xs font-bold text-fg">
                   Não fazer, fazer atrasado ou fazer com item não conforme. Rotina que falha sempre, com gente
                   diferente, costuma ser problema do processo — não de quem executa.
                 </p>
@@ -162,8 +162,8 @@ export default function Rankings() {
                   {falhas.map(p => (
                     <div key={p.nome} className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3">
                       <span className="min-w-0 flex-1 truncate font-black text-slate-800">{p.nome}</span>
-                      <span className="shrink-0 text-sm font-bold text-muted">{p.falhas} de {p.total}</span>
-                      <div className="h-2 w-24 shrink-0 overflow-hidden rounded-full bg-elevated">
+                      <span className="shrink-0 text-sm font-bold text-fg">{p.falhas} de {p.total}</span>
+                      <div className="h-2 w-24 shrink-0 overflow-hidden rounded-full bg-card">
                         <div className="h-full rounded-full bg-red-400" style={{ width: `${Math.min(100, Math.round(p.falhas / p.total * 100))}%` }} />
                       </div>
                     </div>
@@ -231,11 +231,11 @@ function Tabela({ linhas, rotuloCol, chave, comPosicao = false, capitalizar = fa
                 {comPosicao && <span className="mr-2 text-subtle tabular-nums">{i + 1}º</span>}
                 {l[chave]}
               </td>
-              <td className="px-2 text-center font-bold tabular-nums text-slate-600">{l.concluidas}/{l.total}</td>
-              <td className="px-2 text-center font-bold tabular-nums text-slate-600">{l.atrasadas + l.comAtraso}</td>
-              <td className="px-2 text-center font-bold tabular-nums text-slate-600">{l.naoConformes}</td>
-              <td className="px-2 text-center font-bold tabular-nums text-muted">{l.pontualidade == null ? "—" : `${l.pontualidade}%`}</td>
-              <td className="px-2 text-center font-bold tabular-nums text-muted">{l.qualidade == null ? "—" : `${l.qualidade}%`}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-slate-900">{l.concluidas}/{l.total}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-slate-900">{l.atrasadas + l.comAtraso}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-slate-900">{l.naoConformes}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-fg">{l.pontualidade == null ? "—" : `${l.pontualidade}%`}</td>
+              <td className="px-2 text-center font-bold tabular-nums text-fg">{l.qualidade == null ? "—" : `${l.qualidade}%`}</td>
               <td className={`pl-2 text-right text-base font-black tabular-nums ${tomDoScore(l.score)}`}>{l.score ?? "—"}</td>
             </tr>
           ))}

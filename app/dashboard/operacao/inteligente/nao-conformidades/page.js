@@ -20,7 +20,7 @@ const ROTULO = {
   RESOLVIDA: "Resolvida", CANCELADA: "Cancelada",
 };
 const COR = (s) => s === "RESOLVIDA" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-  : s === "CANCELADA" ? "bg-elevated text-muted border-line"
+  : s === "CANCELADA" ? "bg-card text-fg border-line"
   : s === "ABERTA" ? "bg-red-50 text-red-700 border-red-200"
   : "bg-amber-50 text-amber-700 border-amber-200";
 
@@ -90,10 +90,10 @@ export default function NaoConformidades() {
     <div className="min-h-screen bg-[var(--surface)] pb-20">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/inteligente")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Não conformidades</h1>
-            <p className="text-xs font-bold text-muted">O que saiu do padrão e as ações corretivas</p>
+            <p className="text-xs font-bold text-fg">O que saiu do padrão e as ações corretivas</p>
           </div>
           <select value={filtro} onChange={e => setFiltro(e.target.value)} className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft">
             {STATUS.map(s => <option key={s} value={s}>{ROTULO[s]}</option>)}
@@ -109,7 +109,7 @@ export default function NaoConformidades() {
           <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
             <ShieldAlert className="mx-auto text-dim" size={40} />
             <p className="mt-3 font-black text-fg-soft">Nada fora do padrão por aqui</p>
-            <p className="mt-1 text-sm text-muted">As não conformidades aparecem sozinhas quando um item reprova numa execução.</p>
+            <p className="mt-1 text-sm text-fg">As não conformidades aparecem sozinhas quando um item reprova numa execução.</p>
           </div>
         ) : lista.map(nc => (
           <article key={nc.id} className="rounded-2xl border border-line bg-card shadow-sm">
@@ -119,7 +119,7 @@ export default function NaoConformidades() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-black text-fg">{nc.titulo}</span>
-                {nc.descricao && <span className="mt-0.5 block whitespace-pre-line text-[13px] font-medium text-muted line-clamp-2">{nc.descricao}</span>}
+                {nc.descricao && <span className="mt-0.5 block whitespace-pre-line text-[13px] font-medium text-fg line-clamp-2">{nc.descricao}</span>}
                 <span className="mt-1 block text-2xs font-bold text-subtle">
                   {nc.setor || "geral"} · {new Date(nc.created_at).toLocaleString("pt-BR")}
                   {nc.criticidade === "critica" ? " · crítica" : ""}
@@ -133,7 +133,7 @@ export default function NaoConformidades() {
                 <div className="flex flex-wrap gap-2">
                   {["EM_ANALISE", "EM_CORRECAO", "RESOLVIDA", "CANCELADA"].map(s => (
                     <button key={s} onClick={() => mudarStatus(nc, s)}
-                      className={`min-h-10 rounded-xl px-3 text-xs font-bold ${nc.status === s ? "bg-accent text-accent-fg" : "border border-line bg-card text-slate-600 hover:bg-slate-50"}`}>
+                      className={`min-h-10 rounded-xl px-3 text-xs font-bold ${nc.status === s ? "bg-accent text-accent-fg" : "border border-line bg-card text-slate-900 hover:bg-white"}`}>
                       {ROTULO[s]}
                     </button>
                   ))}
@@ -141,7 +141,7 @@ export default function NaoConformidades() {
 
                 <p className="mt-4 text-2xs font-bold uppercase tracking-widest text-accent">Ações corretivas</p>
                 {acoes.length === 0 ? (
-                  <p className="mt-1.5 text-[13px] font-medium text-muted">Nenhuma ação definida ainda.</p>
+                  <p className="mt-1.5 text-[13px] font-medium text-fg">Nenhuma ação definida ainda.</p>
                 ) : (
                   <div className="mt-2 space-y-2">
                     {acoes.map(a => (

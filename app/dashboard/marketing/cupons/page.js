@@ -99,7 +99,7 @@ export default function CuponsPage() {
           <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
             <Tag size={28} className="text-[#4970AF]" /> Cupons de Desconto
           </h1>
-          <p className="text-muted font-bold mt-1">Crie promoções e atraia mais clientes</p>
+          <p className="text-fg font-bold mt-1">Crie promoções e atraia mais clientes</p>
         </div>
         <button onClick={() => abrirModal()} className="bg-[#4970AF] hover:bg-[#3A5B99] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95">
           <Plus size={18} /> Novo Cupom
@@ -110,7 +110,7 @@ export default function CuponsPage() {
         <div className="bg-card rounded-[32px] p-16 text-center shadow-sm border border-line flex flex-col items-center justify-center">
           <Tag size={48} className="text-dim mb-4" />
           <h3 className="text-xl font-black text-fg-soft">Nenhum cupom cadastrado</h3>
-          <p className="text-muted mt-2">Crie seu primeiro cupom para começar a dar descontos aos clientes.</p>
+          <p className="text-fg mt-2">Crie seu primeiro cupom para começar a dar descontos aos clientes.</p>
           <button onClick={() => abrirModal()} className="mt-6 text-[#4970AF] font-bold hover:underline">Criar agora</button>
         </div>
       ) : (
@@ -128,7 +128,7 @@ export default function CuponsPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${!cupom.ativo ? 'bg-elevated text-muted' : expirado ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${!cupom.ativo ? 'bg-card text-fg' : expirado ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
                     {cupom.ativo ? (expirado ? 'Expirado' : 'Ativo') : 'Inativo'}
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function CuponsPage() {
                    <span className="text-3xl font-black text-[#4970AF]">
                      {cupom.tipo === 'percentual' ? `${cupom.valor}%` : fmtBRL(cupom.valor)}
                    </span>
-                   <span className="text-muted font-bold mb-1">OFF</span>
+                   <span className="text-fg font-bold mb-1">OFF</span>
                 </div>
 
                 {cupom.data_validade && (
@@ -158,31 +158,31 @@ export default function CuponsPage() {
           <div className="bg-card rounded-2xl sm:rounded-[32px] p-4 sm:p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 max-h-[94vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800">{cupomEdit ? 'Editar Cupom' : 'Novo Cupom'}</h2>
-              <button onClick={() => setModalOpen(false)} className="text-subtle hover:text-slate-600"><X size={24}/></button>
+              <button onClick={() => setModalOpen(false)} className="text-subtle hover:text-slate-900"><X size={24}/></button>
             </div>
             <form onSubmit={handleSalvar} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-2">Código (Ex: BLACK10)</label>
-                <input type="text" required value={formCodigo} onChange={e => setFormCodigo(e.target.value.toUpperCase())} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-black text-fg-soft uppercase outline-none focus:border-[#4970AF]" placeholder="CÓDIGO" />
+                <label className="block text-xs font-bold text-fg uppercase mb-2">Código (Ex: BLACK10)</label>
+                <input type="text" required value={formCodigo} onChange={e => setFormCodigo(e.target.value.toUpperCase())} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-fg-soft uppercase outline-none focus:border-[#4970AF]" placeholder="CÓDIGO" />
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                   <label className="block text-xs font-bold text-muted uppercase mb-2">Tipo de Desconto</label>
-                   <select value={formTipo} onChange={e => setFormTipo(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:border-[#4970AF]">
+                   <label className="block text-xs font-bold text-fg uppercase mb-2">Tipo de Desconto</label>
+                   <select value={formTipo} onChange={e => setFormTipo(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:border-[#4970AF]">
                       <option value="percentual">Porcentagem (%)</option>
                       <option value="fixo">Valor Fixo (R$)</option>
                    </select>
                 </div>
                 <div>
-                   <label className="block text-xs font-bold text-muted uppercase mb-2">Valor ({formTipo === 'percentual' ? '%' : 'R$'})</label>
-                   <input type="number" step="0.01" required value={formValor} onChange={e => setFormValor(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-black text-fg-soft outline-none focus:border-[#4970AF]" placeholder="0.00" />
+                   <label className="block text-xs font-bold text-fg uppercase mb-2">Valor ({formTipo === 'percentual' ? '%' : 'R$'})</label>
+                   <input type="number" step="0.01" required value={formValor} onChange={e => setFormValor(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-fg-soft outline-none focus:border-[#4970AF]" placeholder="0.00" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-2">Validade (Opcional)</label>
-                <input type="date" value={formValidade} onChange={e => setFormValidade(e.target.value)} className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:border-[#4970AF]" />
+                <label className="block text-xs font-bold text-fg uppercase mb-2">Validade (Opcional)</label>
+                <input type="date" value={formValidade} onChange={e => setFormValidade(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:border-[#4970AF]" />
               </div>
 
               <div className="flex items-center gap-3 pt-2">

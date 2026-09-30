@@ -302,8 +302,8 @@ export default function FinanceiroPage() {
     carregar();
   };
 
-  if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="p-8 text-center font-bold text-muted">Selecione uma unidade para abrir o caixa.</div>;
-  if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-muted"><Loader2 className="animate-spin text-success" size={42} /><b>Carregando o caixa...</b></div>;
+  if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="p-8 text-center font-bold text-fg">Selecione uma unidade para abrir o caixa.</div>;
+  if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-fg"><Loader2 className="animate-spin text-success" size={42} /><b>Carregando o caixa...</b></div>;
 
   return (
     <div className="min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8">
@@ -319,27 +319,27 @@ export default function FinanceiroPage() {
             <div>
               <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Financeiro · {unidadeInfo?.nome}</p>
               <h1 className="mt-1 text-3xl font-black tracking-tight text-fg sm:text-4xl">Fluxo de caixa do balcão</h1>
-              <p className="mt-1 font-medium text-muted">Vendas, recebimentos, despesas e ponto de equilíbrio diário.</p>
+              <p className="mt-1 font-medium text-fg">Vendas, recebimentos, despesas e ponto de equilíbrio diário.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center rounded-xl bg-slate-200/80 p-1 border border-slate-300 mr-1">
                 <button
                   type="button"
                   onClick={() => setModoView("hub")}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
                 >
                   Hub Decisões
                 </button>
                 <button
                   type="button"
                   onClick={() => setModoView("tabela")}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "tabela" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "tabela" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
                 >
                   Fluxo Completo
                 </button>
               </div>
               <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl bg-slate-200/80 p-1.5">
-                {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-black ${periodo === p.id ? "bg-card text-accent shadow-sm" : "text-slate-600"}`}>{p.label}</button>)}
+                {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-black ${periodo === p.id ? "bg-card text-accent shadow-sm" : "text-slate-900"}`}>{p.label}</button>)}
               </div>
             </div>
           </header>
@@ -380,7 +380,7 @@ export default function FinanceiroPage() {
             <div className="rounded-2xl border-2 border-emerald-300 bg-card p-5 shadow-sm">
               <span className="text-2xs font-bold uppercase tracking-wider text-accent">Venda Diária Necessária</span>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-950">{fmtBRL(calculoPE.metaVendaDiaria)}</p>
-              <p className="mt-2 text-xs font-bold text-muted">
+              <p className="mt-2 text-xs font-bold text-fg">
                 Para cobrir <b className="text-slate-800">{fmtBRL(calculoPE.custoFixoDiario)}/dia</b> de custos fixos + CMO ({calculoPE.dias} dias úteis)
               </p>
             </div>
@@ -388,7 +388,7 @@ export default function FinanceiroPage() {
             {/* CARD 2: REALIZADO HOJE VS META */}
             <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-2xs font-bold uppercase tracking-wider text-muted">Vendido Hoje</span>
+                <span className="text-2xs font-bold uppercase tracking-wider text-fg">Vendido Hoje</span>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
@@ -408,14 +408,14 @@ export default function FinanceiroPage() {
               <p className="mt-1 text-2xl sm:text-3xl font-black text-fg">{fmtBRL(calculoPE.vendasHoje)}</p>
 
               {/* BARRA DE PROGRESSO DO DIA */}
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-elevated">
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-card">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${calculoPE.vendasHoje >= calculoPE.metaVendaDiaria ? "bg-emerald-500" : "bg-amber-500"}`}
                   style={{ width: `${calculoPE.progressoHojePct}%` }}
                 />
               </div>
 
-              <p className="mt-2 text-xs font-bold text-muted">
+              <p className="mt-2 text-xs font-bold text-fg">
                 {calculoPE.faltaHoje > 0 ? (
                   <>Falta vender <b className="text-slate-800">{fmtBRL(calculoPE.faltaHoje)}</b> para o ponto de equilíbrio.</>
                 ) : (
@@ -426,9 +426,9 @@ export default function FinanceiroPage() {
 
             {/* CARD 3: META MENSAL TOTAL */}
             <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-              <span className="text-2xs font-bold uppercase tracking-wider text-muted">Ponto de Equilíbrio Mensal</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-fg">Ponto de Equilíbrio Mensal</span>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-fg">{fmtBRL(calculoPE.metaVendaMensal)}</p>
-              <p className="mt-2 text-xs font-bold text-muted">
+              <p className="mt-2 text-xs font-bold text-fg">
                 Faturamento no mês em {calculoPE.dias} dias de trabalho ({fmtBRL(calculoPE.custoFixoTotalMensal)} de custo fixo mensal)
               </p>
             </div>
@@ -453,7 +453,7 @@ export default function FinanceiroPage() {
                   <span className="rounded-md bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-3xs font-bold text-orange-800">{calculoPE.cmvPct.toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-orange-950">{calculoPE.cmvPct.toFixed(1)}%</span>
-                <span className="text-3xs font-semibold text-muted">Baseado nas Fichas Técnicas</span>
+                <span className="text-3xs font-semibold text-fg">Baseado nas Fichas Técnicas</span>
               </button>
 
               {/* CMO */}
@@ -467,8 +467,8 @@ export default function FinanceiroPage() {
                   <span className="block text-3xs font-bold uppercase tracking-wider text-blue-700">2. CMO (Mão de Obra) 🔗</span>
                   <span className="rounded-md bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-3xs font-bold text-blue-800">{calculoPE.cmoPct.toFixed(1)}%</span>
                 </div>
-                <span className="mt-1 block text-lg font-black text-blue-950">{fmtBRL(calculoPE.cmoDiario)}<small className="text-xs text-muted">/dia</small></span>
-                <span className="text-3xs font-semibold text-muted">{fmtBRL(calculoPE.cmoMensal)} / mês</span>
+                <span className="mt-1 block text-lg font-black text-blue-950">{fmtBRL(calculoPE.cmoDiario)}<small className="text-xs text-fg">/dia</small></span>
+                <span className="text-3xs font-semibold text-fg">{fmtBRL(calculoPE.cmoMensal)} / mês</span>
               </button>
 
               {/* OPERACIONAIS FIXOS */}
@@ -482,8 +482,8 @@ export default function FinanceiroPage() {
                   <span className="block text-3xs font-bold uppercase tracking-wider text-purple-700">3. Operacional Fixo ✏️</span>
                   <span className="rounded-md bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-3xs font-bold text-purple-800">{calculoPE.operacaoPct.toFixed(1)}%</span>
                 </div>
-                <span className="mt-1 block text-lg font-black text-purple-950">{fmtBRL(calculoPE.operacaoDiaria)}<small className="text-xs text-muted">/dia</small></span>
-                <span className="text-3xs font-semibold text-muted">{fmtBRL(calculoPE.operacionaisMensais)} / mês</span>
+                <span className="mt-1 block text-lg font-black text-purple-950">{fmtBRL(calculoPE.operacaoDiaria)}<small className="text-xs text-fg">/dia</small></span>
+                <span className="text-3xs font-semibold text-fg">{fmtBRL(calculoPE.operacionaisMensais)} / mês</span>
               </button>
 
               {/* TAXAS & IMPOSTOS */}
@@ -498,7 +498,7 @@ export default function FinanceiroPage() {
                   <span className="rounded-md bg-amber-100 border border-amber-200 px-1.5 py-0.5 text-3xs font-bold text-amber-800">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-amber-950">{(calculoPE.impostoPct + calculoPE.taxaCartaoPct).toFixed(1)}%</span>
-                <span className="text-3xs font-semibold text-muted">({calculoPE.impostoPct}% imp + {calculoPE.taxaCartaoPct}% maq)</span>
+                <span className="text-3xs font-semibold text-fg">({calculoPE.impostoPct}% imp + {calculoPE.taxaCartaoPct}% maq)</span>
               </button>
 
               {/* MARGEM CONTRIBUIÇÃO */}
@@ -513,7 +513,7 @@ export default function FinanceiroPage() {
                   <span className="rounded-md bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 text-3xs font-bold text-emerald-800">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
                 </div>
                 <span className="mt-1 block text-lg font-black text-emerald-950">{calculoPE.margemContribucaoPct.toFixed(1)}%</span>
-                <span className="text-3xs font-semibold text-muted">100% - Deduções Totais</span>
+                <span className="text-3xs font-semibold text-fg">100% - Deduções Totais</span>
               </button>
             </div>
 
@@ -522,13 +522,13 @@ export default function FinanceiroPage() {
               const metaM = calculoPE.metaVendaMensal || 1;
               const calcPct = (v) => ((Number(v) || 0) / metaM * 100).toFixed(1);
               return (
-                <div className="mt-4 pt-3 border-t border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-600">
+                <div className="mt-4 pt-3 border-t border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-900">
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Luz" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-amber-50 hover:text-amber-900 transition-all cursor-pointer border border-transparent hover:border-amber-200"><Zap size={14} className="text-amber-500"/> Luz: <b>{fmtBRL(paramsPE.luz)}</b> <span className="text-3xs font-bold text-amber-700 bg-amber-100/80 px-1 rounded">({calcPct(paramsPE.luz)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-blue-50 hover:text-blue-900 transition-all cursor-pointer border border-transparent hover:border-blue-200"><Droplets size={14} className="text-blue-500"/> Água: <b>{fmtBRL(paramsPE.agua)}</b> <span className="text-3xs font-bold text-blue-700 bg-blue-100/80 px-1 rounded">({calcPct(paramsPE.agua)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-indigo-50 hover:text-indigo-900 transition-all cursor-pointer border border-transparent hover:border-indigo-200"><Wifi size={14} className="text-indigo-500"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b> <span className="text-3xs font-bold text-indigo-700 bg-indigo-100/80 px-1 rounded">({calcPct(paramsPE.internet)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Gás" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-900 transition-all cursor-pointer border border-transparent hover:border-rose-200"><Flame size={14} className="text-rose-500"/> Gás: <b>{fmtBRL(paramsPE.gas)}</b> <span className="text-3xs font-bold text-rose-700 bg-rose-100/80 px-1 rounded">({calcPct(paramsPE.gas)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-cyan-50 hover:text-cyan-900 transition-all cursor-pointer border border-transparent hover:border-cyan-200"><Sparkles size={14} className="text-cyan-500"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b> <span className="text-3xs font-bold text-cyan-700 bg-cyan-100/80 px-1 rounded">({calcPct(paramsPE.limpeza)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-elevated hover:text-fg transition-all cursor-pointer border border-transparent hover:border-line"><Wrench size={14} className="text-muted"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b> <span className="text-3xs font-bold text-fg-soft bg-slate-200/80 px-1 rounded">({calcPct(paramsPE.manutencao)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-card hover:text-fg transition-all cursor-pointer border border-transparent hover:border-line"><Wrench size={14} className="text-fg"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b> <span className="text-3xs font-bold text-fg-soft bg-slate-200/80 px-1 rounded">({calcPct(paramsPE.manutencao)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar Gastos Extras" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 transition-all cursor-pointer border border-transparent hover:border-emerald-200"><PackagePlus size={14} className="text-emerald-500"/> Extras: <b>{fmtBRL(paramsPE.gastosExtras)}</b> <span className="text-3xs font-bold text-emerald-700 bg-emerald-100/80 px-1 rounded">({calcPct(paramsPE.gastosExtras)}%)</span></button>
                 </div>
               );
@@ -539,7 +539,7 @@ export default function FinanceiroPage() {
         {/* CARDS RESUMO FINANCEIRO E FATURAMENTOS */}
         <section className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           {PERIODOS.map(p => <button key={p.id} onClick={() => setPeriodo(p.id)} className={`rounded-2xl border p-4 text-left shadow-sm transition ${periodo === p.id ? "border-emerald-400 bg-emerald-50" : "border-line bg-card"}`}>
-            <span className="text-2xs font-bold uppercase tracking-widest text-muted">Faturamento · {p.label}</span>
+            <span className="text-2xs font-bold uppercase tracking-widest text-fg">Faturamento · {p.label}</span>
             <strong className="mt-2 block break-words text-xl font-black text-fg sm:text-2xl">{fmtBRL(faturamentos[p.id] || 0)}</strong>
           </button>)}
         </section>
@@ -554,7 +554,7 @@ export default function FinanceiroPage() {
             [Wallet, "Resultado", resumo.resultado, resumo.resultado >= 0 ? "text-emerald-700" : "text-rose-700", "bg-slate-200"],
           ].map(([Icon, label, valor, cor, fundo]) => <div key={label} className="min-w-0 rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
             <div className={`mb-3 grid h-10 w-10 place-items-center rounded-xl ${fundo} ${cor}`}><Icon size={20} /></div>
-            <p className="text-xs font-bold uppercase tracking-wider text-muted">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-fg">{label}</p>
             <p className={`mt-1 break-words text-xl font-black sm:text-2xl ${cor}`}>{fmtBRL(valor)}</p>
             {label === "Faturamento" && <p className="mt-1 text-xs font-bold text-subtle">{resumo.vendas.length} venda(s)</p>}
           </div>)}
@@ -565,20 +565,20 @@ export default function FinanceiroPage() {
             <div className="mb-4 flex items-center gap-2"><CreditCard className="text-success" /><h2 className="text-lg font-black text-fg">Formas de pagamento pagas</h2></div>
             <div className="space-y-2">
               {!resumo.pagamentos.length && <p className="py-8 text-center font-semibold text-subtle">Nenhum pagamento no período.</p>}
-              {resumo.pagamentos.map(([nome, valor]) => <div key={nome} className="flex items-center justify-between gap-4 rounded-xl bg-elevated p-3"><span className="font-bold text-fg-soft">{nome}</span><b className="text-fg">{fmtBRL(valor)}</b></div>)}
+              {resumo.pagamentos.map(([nome, valor]) => <div key={nome} className="flex items-center justify-between gap-4 rounded-xl bg-card p-3"><span className="font-bold text-fg-soft">{nome}</span><b className="text-fg">{fmtBRL(valor)}</b></div>)}
             </div>
           </div>
           <div className="rounded-2xl border border-line bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2"><ShoppingBag className="text-success" /><h2 className="text-lg font-black text-fg">Itens vendidos</h2></div>
             <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
               {!resumo.itens.length && <p className="py-8 text-center font-semibold text-subtle">Nenhum item vendido no período.</p>}
-              {resumo.itens.map(item => <div key={item.nome} className="flex items-center justify-between gap-4 rounded-xl bg-elevated p-3"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{item.nome}</p><p className="text-xs font-bold text-muted">{item.quantidade.toLocaleString("pt-BR")} vendido(s)</p></div><b className="shrink-0 text-accent">{fmtBRL(item.total)}</b></div>)}
+              {resumo.itens.map(item => <div key={item.nome} className="flex items-center justify-between gap-4 rounded-xl bg-card p-3"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{item.nome}</p><p className="text-xs font-bold text-fg">{item.quantidade.toLocaleString("pt-BR")} vendido(s)</p></div><b className="shrink-0 text-accent">{fmtBRL(item.total)}</b></div>)}
             </div>
           </div>
         </section>
 
         <div className="mb-3 flex items-center justify-between gap-3">
-          <div><h2 className="text-2xl font-black text-fg">Despesas por categoria</h2><p className="text-sm font-medium text-muted">Crie, pague ou exclua despesas dentro de cada grupo.</p></div>
+          <div><h2 className="text-2xl font-black text-fg">Despesas por categoria</h2><p className="text-sm font-medium text-fg">Crie, pague ou exclua despesas dentro de cada grupo.</p></div>
         </div>
         <section className="grid gap-4 xl:grid-cols-2">
           {CATEGORIAS_PAINEL.map(id => {
@@ -589,15 +589,15 @@ export default function FinanceiroPage() {
             const quantidade = id === "cmo" ? (resumo.automaticos.recibosExtras.length + (resumo.automaticos.folha > 0 ? 1 : 0)) : id === "cmv" ? resumo.automaticos.entradasEstoque.length : contas.length;
             return <div key={id} className="overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
               <div className="flex items-center justify-between gap-3 border-b border-line-soft p-4">
-                <div className="min-w-0"><h3 className="truncate font-black text-fg">{categoria?.label || id}</h3><p className="text-sm font-bold text-muted">{fmtBRL(total)} · {quantidade} lançamento(s)</p></div>
+                <div className="min-w-0"><h3 className="truncate font-black text-fg">{categoria?.label || id}</h3><p className="text-sm font-bold text-fg">{fmtBRL(total)} · {quantidade} lançamento(s)</p></div>
                 {automatico ? <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-3xs font-bold uppercase tracking-wider text-emerald-700">Automático</span> : <button onClick={() => abrirDespesa(id)} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white"><Plus size={18} /> Adicionar</button>}
               </div>
               <div className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
-                {id === "cmo" && <><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Funcionários contratados</p><p className="text-xs font-semibold text-muted">Salários e benefícios do período</p></div><b>{fmtBRL(resumo.automaticos.folha)}</b></div><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Extras pagos</p><p className="text-xs font-semibold text-muted">{resumo.automaticos.recibosExtras.length} recibo(s) pago(s)</p></div><b>{fmtBRL(resumo.automaticos.extras)}</b></div></>}
-                {id === "cmv" && <>{!resumo.automaticos.entradasEstoque.length ? <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma entrada de estoque neste período.</p> : resumo.automaticos.entradasEstoque.slice(0, 30).map(movimento => <div key={movimento.id} className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{movimento.insumo?.nome || "Entrada de estoque"}</p><p className="text-xs font-semibold text-muted">{new Date(movimento.data_movimento).toLocaleDateString("pt-BR")} · {Number(movimento.quantidade || 0).toLocaleString("pt-BR")}</p></div><b className="shrink-0">{fmtBRL(valorDaCompra(movimento))}</b></div>)}</>}
+                {id === "cmo" && <><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Funcionários contratados</p><p className="text-xs font-semibold text-fg">Salários e benefícios do período</p></div><b>{fmtBRL(resumo.automaticos.folha)}</b></div><div className="flex items-center justify-between gap-3 p-4"><div><p className="font-bold text-slate-800">Extras pagos</p><p className="text-xs font-semibold text-fg">{resumo.automaticos.recibosExtras.length} recibo(s) pago(s)</p></div><b>{fmtBRL(resumo.automaticos.extras)}</b></div></>}
+                {id === "cmv" && <>{!resumo.automaticos.entradasEstoque.length ? <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma entrada de estoque neste período.</p> : resumo.automaticos.entradasEstoque.slice(0, 30).map(movimento => <div key={movimento.id} className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{movimento.insumo?.nome || "Entrada de estoque"}</p><p className="text-xs font-semibold text-fg">{new Date(movimento.data_movimento).toLocaleDateString("pt-BR")} · {Number(movimento.quantidade || 0).toLocaleString("pt-BR")}</p></div><b className="shrink-0">{fmtBRL(valorDaCompra(movimento))}</b></div>)}</>}
                 {!automatico && !contas.length && <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma despesa neste período.</p>}
                 {contas.map(conta => <div key={conta.id} className="flex items-center gap-3 p-4">
-                  <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-800">{conta.descricao}</p><p className="text-xs font-semibold text-muted">{dataConta(conta).toLocaleDateString("pt-BR")} · {conta.status === "pago" ? "Pago" : "Pendente"}</p></div>
+                  <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-800">{conta.descricao}</p><p className="text-xs font-semibold text-fg">{dataConta(conta).toLocaleDateString("pt-BR")} · {conta.status === "pago" ? "Pago" : "Pendente"}</p></div>
                   <b className="shrink-0 text-fg">{fmtBRL(conta.valor)}</b>
                   {conta.status !== "pago" && <button title="Marcar como paga" onClick={() => marcarPaga(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><CheckCircle2 size={19} /></button>}
                   <button title="Excluir despesa" onClick={() => excluirDespesa(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700"><Trash2 size={18} /></button>
@@ -623,12 +623,12 @@ export default function FinanceiroPage() {
             </div>
 
             <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              <p className="text-xs font-semibold text-muted leading-relaxed">
+              <p className="text-xs font-semibold text-fg leading-relaxed">
                 Informe os valores médios mensais de cada custo fixo operacional e a quantidade de dias que o restaurante trabalha no mês. O sistema irá dividir estes custos pelos dias e calcular o ponto de equilíbrio exato.
               </p>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">
                   Dias de Funcionamento no Mês
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -637,7 +637,7 @@ export default function FinanceiroPage() {
                       key={dias}
                       type="button"
                       onClick={() => setParamsPE(p => ({ ...p, diasTrabalho: dias }))}
-                      className={`h-9 px-3 rounded-lg text-xs font-bold transition ${Number(paramsPE.diasTrabalho) === dias ? "bg-accent text-accent-fg" : "bg-elevated text-fg-soft"}`}
+                      className={`h-9 px-3 rounded-lg text-xs font-bold transition ${Number(paramsPE.diasTrabalho) === dias ? "bg-accent text-accent-fg" : "bg-card text-fg-soft"}`}
                     >
                       {dias} dias
                     </button>
@@ -649,81 +649,81 @@ export default function FinanceiroPage() {
                   max="31"
                   value={paramsPE.diasTrabalho}
                   onChange={e => setParamsPE({ ...paramsPE, diasTrabalho: Math.max(1, Number(e.target.value)) })}
-                  className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                  className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-line-soft">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">⚡ Luz / Energia (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">⚡ Luz / Energia (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.luz}
                     onChange={e => setParamsPE({ ...paramsPE, luz: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">💧 Água (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">💧 Água (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.agua}
                     onChange={e => setParamsPE({ ...paramsPE, agua: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🌐 Internet / Telefone (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🌐 Internet / Telefone (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.internet}
                     onChange={e => setParamsPE({ ...paramsPE, internet: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🔥 Gás (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🔥 Gás (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.gas}
                     onChange={e => setParamsPE({ ...paramsPE, gas: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🧹 Material de Limpeza (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🧹 Material de Limpeza (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.limpeza}
                     onChange={e => setParamsPE({ ...paramsPE, limpeza: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🛠️ Manutenção (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🛠️ Manutenção (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.manutencao}
                     onChange={e => setParamsPE({ ...paramsPE, manutencao: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">📦 Gastos Extras (R$/mês)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">📦 Gastos Extras (R$/mês)</label>
                   <input
                     type="number" step="0.01" value={paramsPE.gastosExtras}
                     onChange={e => setParamsPE({ ...paramsPE, gastosExtras: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">🏛️ Imposto Fiscais (%)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🏛️ Imposto Fiscais (%)</label>
                   <input
                     type="number" step="0.1" value={paramsPE.impostoPct}
                     onChange={e => setParamsPE({ ...paramsPE, impostoPct: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">💳 Taxa Maquininha Cartão (%)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">💳 Taxa Maquininha Cartão (%)</label>
                   <input
                     type="number" step="0.1" value={paramsPE.taxaCartaoPct}
                     onChange={e => setParamsPE({ ...paramsPE, taxaCartaoPct: e.target.value })}
-                    className="w-full h-11 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                    className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -750,13 +750,13 @@ export default function FinanceiroPage() {
         <form onSubmit={salvarDespesa} className="w-full max-w-lg overflow-hidden rounded-3xl bg-card shadow-2xl">
           <div className="flex items-center justify-between bg-slate-900 p-5 text-white"><div><p className="text-xs font-bold uppercase tracking-widest text-subtle">Financeiro</p><h2 className="text-xl font-black">Nova despesa</h2></div><button type="button" onClick={() => setModal(false)} className="grid h-11 w-11 place-items-center rounded-xl bg-white/10"><X /></button></div>
           <div className="space-y-4 p-5">
-            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Descrição</span><input required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: energia elétrica" /></label>
+            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Descrição</span><input required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: energia elétrica" /></label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Valor</span><input required min="0.01" step="0.01" type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-slate-50 px-4 font-black outline-none focus:border-emerald-500" placeholder="0,00" /></label>
-              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500" /></label>
+              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Valor</span><input required min="0.01" step="0.01" type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-black outline-none focus:border-emerald-500" placeholder="0,00" /></label>
+              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500" /></label>
             </div>
-            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-slate-50 px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
-            <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-elevated font-black text-slate-600">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-accent font-black text-accent-fg disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
+            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
+            <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-card font-black text-slate-900">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-accent font-black text-accent-fg disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
           </div>
         </form>
       </div>}
@@ -776,7 +776,7 @@ export default function FinanceiroPage() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Valor da Venda (R$)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">Valor da Venda (R$)</label>
                 <input
                   required
                   autoFocus
@@ -786,15 +786,15 @@ export default function FinanceiroPage() {
                   placeholder="0,00"
                   value={formVenda.valor}
                   onChange={e => setFormVenda({ ...formVenda, valor: e.target.value })}
-                  className="w-full h-12 rounded-xl border border-line bg-slate-50 px-4 font-black text-xl text-fg outline-none focus:border-emerald-500"
+                  className="w-full h-12 rounded-xl border border-line bg-white px-4 font-black text-xl text-fg outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Forma de Pagamento</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">Forma de Pagamento</label>
                 <select
                   value={formVenda.forma_pagamento}
                   onChange={e => setFormVenda({ ...formVenda, forma_pagamento: e.target.value })}
-                  className="w-full h-12 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                  className="w-full h-12 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                 >
                   <option value="pix">PIX</option>
                   <option value="credito">Cartão de Crédito</option>
@@ -803,17 +803,17 @@ export default function FinanceiroPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Identificação / Descrição (opcional)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">Identificação / Descrição (opcional)</label>
                 <input
                   type="text"
                   placeholder="Ex.: Vendas do Almoço, Fechamento do caixa, etc."
                   value={formVenda.cliente}
                   onChange={e => setFormVenda({ ...formVenda, cliente: e.target.value })}
-                  className="w-full h-12 rounded-xl border border-line bg-slate-50 px-4 font-bold text-fg outline-none focus:border-emerald-500"
+                  className="w-full h-12 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                 />
               </div>
               <div className="pt-2 flex gap-3">
-                <button type="button" onClick={() => setModalVenda(false)} className="flex-1 py-3.5 bg-elevated rounded-xl font-black text-fg-soft">Cancelar</button>
+                <button type="button" onClick={() => setModalVenda(false)} className="flex-1 py-3.5 bg-card rounded-xl font-black text-fg-soft">Cancelar</button>
                 <button disabled={salvandoVenda} className="flex-1 py-3.5 bg-accent hover:bg-accent text-accent-fg rounded-xl font-black disabled:opacity-50 transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
                   {salvandoVenda ? "Gravando..." : "Confirmar Venda"}
                 </button>

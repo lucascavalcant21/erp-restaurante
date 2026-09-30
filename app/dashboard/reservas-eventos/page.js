@@ -16,7 +16,7 @@ export default function ReservasEventosOverview() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Eventos & Reservas</h1>
-          <p className="text-slate-500 font-medium mt-1">Visão geral do dia e próximos agendamentos</p>
+          <p className="text-slate-900 font-medium mt-1">Visão geral do dia e próximos agendamentos</p>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/reservas-eventos/reservas" className="h-11 px-5 rounded-xl bg-slate-900 text-white font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors">
@@ -43,12 +43,12 @@ export default function ReservasEventosOverview() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <span className="block text-slate-500 text-sm font-bold mb-1">Reservas</span>
+            <div className="bg-white rounded-2xl p-4">
+              <span className="block text-slate-900 text-sm font-bold mb-1">Reservas</span>
               <strong className="text-3xl font-black text-slate-900">0</strong>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <span className="block text-slate-500 text-sm font-bold mb-1">Pessoas</span>
+            <div className="bg-white rounded-2xl p-4">
+              <span className="block text-slate-900 text-sm font-bold mb-1">Pessoas</span>
               <strong className="text-3xl font-black text-slate-900">0</strong>
             </div>
             <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
@@ -72,7 +72,7 @@ export default function ReservasEventosOverview() {
               <div className="w-2 h-2 rounded-full bg-red-500 mt-2 flex-shrink-0" />
               <div>
                 <strong className="block text-slate-900 font-bold text-sm">Nenhum alerta</strong>
-                <span className="text-slate-500 text-xs">Tudo em dia para as reservas e eventos de hoje.</span>
+                <span className="text-slate-900 text-xs">Tudo em dia para as reservas e eventos de hoje.</span>
               </div>
             </div>
           </div>
@@ -83,14 +83,14 @@ export default function ReservasEventosOverview() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
           <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-6">Próximos Eventos</h2>
-          <div className="text-slate-500 text-sm font-medium py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+          <div className="text-slate-900 text-sm font-medium py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
             Nenhum evento futuro agendado.
           </div>
         </section>
         
         <section className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
           <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-6">Novos Contatos / Reservas</h2>
-          <div className="text-slate-500 text-sm font-medium py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+          <div className="text-slate-900 text-sm font-medium py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
             Nenhum contato pendente.
           </div>
         </section>

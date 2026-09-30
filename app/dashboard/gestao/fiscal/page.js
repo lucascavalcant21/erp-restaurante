@@ -76,7 +76,7 @@ export default function ConfiguracoesFiscaisPage() {
   };
 
   if (loading) {
-    return <div className="p-4 sm:p-8 text-muted animate-pulse flex items-center gap-3">
+    return <div className="p-4 sm:p-8 text-fg animate-pulse flex items-center gap-3">
       <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
       Carregando dados fiscais...
     </div>;
@@ -90,7 +90,7 @@ export default function ConfiguracoesFiscaisPage() {
             <FileText className="text-emerald-500" size={32} />
             Configurações Fiscais
           </h1>
-          <p className="text-muted mt-2">Dados obrigatórios para emissão de NFC-e e SAT</p>
+          <p className="text-fg mt-2">Dados obrigatórios para emissão de NFC-e e SAT</p>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.cnpj}
                 onChange={e => setDadosLoja({...dadosLoja, cnpj: e.target.value})}
                 placeholder="00.000.000/0001-00"
-                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
             
@@ -128,7 +128,7 @@ export default function ConfiguracoesFiscaisPage() {
               <select 
                 value={dadosLoja.regime_tributario}
                 onChange={e => setDadosLoja({...dadosLoja, regime_tributario: e.target.value})}
-                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               >
                 <option value="Simples Nacional">Simples Nacional</option>
                 <option value="Lucro Presumido">Lucro Presumido</option>
@@ -143,7 +143,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.inscricao_estadual}
                 onChange={e => setDadosLoja({...dadosLoja, inscricao_estadual: e.target.value})}
                 placeholder="Isento ou Número"
-                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.inscricao_municipal}
                 onChange={e => setDadosLoja({...dadosLoja, inscricao_municipal: e.target.value})}
                 placeholder="Opcional"
-                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.endereco_fiscal}
                 onChange={e => setDadosLoja({...dadosLoja, endereco_fiscal: e.target.value})}
                 placeholder="Rua Exemplo, 123, Bairro - Cidade/UF - CEP"
-                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
             
@@ -186,7 +186,7 @@ export default function ConfiguracoesFiscaisPage() {
                 value={dadosLoja.codigo_ibge}
                 onChange={e => setDadosLoja({...dadosLoja, codigo_ibge: e.target.value})}
                 placeholder="Ex: 3550308 (São Paulo)"
-                className="w-full bg-slate-50 border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />
             </div>
           </div>

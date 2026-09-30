@@ -457,7 +457,7 @@ export default function NotasFiscaisPage() {
                             <CheckCircle size={12} className="inline align-[-2px] mr-1" />Marcar paga
                           </button>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); remover(n.id); }} className="p-1.5 rounded-md hover:bg-emerald-500/10 text-slate-600 transition">
+                        <button onClick={(e) => { e.stopPropagation(); remover(n.id); }} className="p-1.5 rounded-md hover:bg-emerald-500/10 text-slate-900 transition">
                           <Trash2 size={16} />
                         </button>
                       </div>

@@ -80,7 +80,7 @@ export default function FechamentoFolhaPage() {
   const totalCalculado = pagamentos.reduce((acc, p) => acc + p.valor_liquido, 0);
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
-    return <div className="p-10 text-center font-bold text-muted">Por favor, selecione uma unidade/loja específica no menu lateral.</div>;
+    return <div className="p-10 text-center font-bold text-fg">Por favor, selecione uma unidade/loja específica no menu lateral.</div>;
   }
 
   return (
@@ -118,7 +118,7 @@ export default function FechamentoFolhaPage() {
                   </div>
                   <div>
                      <h2 className="text-xl font-black text-slate-800">Cálculo de Pagamentos</h2>
-                     <p className="text-sm text-muted font-medium">Revise os dias e ajuste os descontos antes de finalizar.</p>
+                     <p className="text-sm text-fg font-medium">Revise os dias e ajuste os descontos antes de finalizar.</p>
                   </div>
                </div>
                <div className="text-right">
@@ -135,12 +135,12 @@ export default function FechamentoFolhaPage() {
             </div>
 
             {loading ? (
-               <div className="py-20 text-center text-muted flex flex-col items-center">
+               <div className="py-20 text-center text-fg flex flex-col items-center">
                   <Loader2 size={32} className="animate-spin mb-4 text-indigo-500"/>
                   <p className="font-bold">Calculando pagamentos...</p>
                </div>
             ) : pagamentos.length === 0 ? (
-               <div className="py-20 text-center text-muted">
+               <div className="py-20 text-center text-fg">
                   <p className="font-bold">Nenhum funcionário encontrado para esta unidade.</p>
                </div>
             ) : (
@@ -159,21 +159,21 @@ export default function FechamentoFolhaPage() {
                      </thead>
                      <tbody className="text-sm font-bold">
                         {pagamentos.map(p => (
-                           <tr key={p.colaborador_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
+                           <tr key={p.colaborador_id} className="border-b border-slate-50 hover:bg-white transition-colors group">
                               <td className="py-4 pl-4">
                                  <p className="text-slate-800">{p.nome}</p>
-                                 <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-elevated text-slate-600'}`}>
+                                 <span className={`text-3xs uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 ${p.tipo_contrato === 'Freelancer' ? 'bg-amber-100 text-amber-700' : 'bg-card text-slate-900'}`}>
                                     {p.tipo_contrato} {p.tipo_contrato === 'Freelancer' && `(${fmtBRL(p.salario_cadastrado)}/dia)`}
                                  </span>
                               </td>
                               
                               <td className="py-4 text-center">
-                                 <span className="bg-elevated text-fg-soft px-3 py-1 rounded-lg font-black">
+                                 <span className="bg-card text-fg-soft px-3 py-1 rounded-lg font-black">
                                     {p.dias_trabalhados}
                                  </span>
                               </td>
 
-                              <td className="py-4 text-right text-muted whitespace-nowrap">
+                              <td className="py-4 text-right text-fg whitespace-nowrap">
                                  {fmtBRL(p.base_calculada)}
                               </td>
 
@@ -215,7 +215,7 @@ export default function FechamentoFolhaPage() {
                               </td>
 
                               <td className="py-4 pr-4 text-right whitespace-nowrap">
-                                 <p className="text-lg font-black text-fg bg-elevated px-3 py-1.5 rounded-xl inline-block whitespace-nowrap shadow-inner">
+                                 <p className="text-lg font-black text-fg bg-card px-3 py-1.5 rounded-xl inline-block whitespace-nowrap shadow-inner">
                                     {fmtBRL(p.valor_liquido)}
                                  </p>
                               </td>

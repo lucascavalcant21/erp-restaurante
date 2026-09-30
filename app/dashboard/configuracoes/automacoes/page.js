@@ -120,12 +120,12 @@ export default function AutomacoesPage() {
                   <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                     auto.enabled
                       ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                      : "bg-slate-800 text-slate-400 border-slate-700"
+                      : "bg-slate-800 text-slate-800 border-slate-700"
                   }`}>
                     {auto.enabled ? "Ativo" : "Inativo"}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">{auto.description}</p>
+                <p className="text-xs text-slate-800 mt-1">{auto.description}</p>
               </div>
 
               <button
@@ -134,7 +134,7 @@ export default function AutomacoesPage() {
                 className={`p-2.5 rounded-xl border transition-all cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center ${
                   auto.enabled
                     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30"
-                    : "bg-slate-800 text-slate-400 border-slate-700 hover:text-white"
+                    : "bg-slate-800 text-slate-800 border-slate-700 hover:text-white"
                 }`}
                 title={auto.enabled ? "Desativar automação" : "Ativar automação"}
               >
@@ -145,7 +145,7 @@ export default function AutomacoesPage() {
             {/* SELEÇÃO DE HORÁRIO E DIAS */}
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-bold flex items-center gap-1.5">
+                <span className="text-slate-800 font-bold flex items-center gap-1.5">
                   <Clock size={14} className="text-emerald-400" />
                   Horário de Execução:
                 </span>
@@ -155,7 +155,7 @@ export default function AutomacoesPage() {
               </div>
 
               <div className="space-y-1">
-                <span className="text-xs text-slate-400 font-bold flex items-center gap-1.5">
+                <span className="text-xs text-slate-800 font-bold flex items-center gap-1.5">
                   <Calendar size={14} className="text-emerald-400" />
                   Dias de Operação:
                 </span>
@@ -168,7 +168,7 @@ export default function AutomacoesPage() {
                         className={`text-[10px] font-black px-2.5 py-1 rounded-md border ${
                           isSelected
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : "bg-slate-950 text-slate-600 border-slate-900"
+                            : "bg-slate-950 text-slate-900 border-slate-900"
                         }`}
                       >
                         {d.label}
@@ -180,7 +180,7 @@ export default function AutomacoesPage() {
             </div>
 
             {/* METADADOS E METRICAS DE EXECUÇÃO */}
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-800">
               <div>
                 <span>Próxima: </span>
                 <strong className="text-slate-200">
@@ -209,11 +209,11 @@ export default function AutomacoesPage() {
             <Clock size={16} className="text-emerald-400" />
             <span>Histórico Recente de Execuções Automatizadas</span>
           </h3>
-          <span className="text-[10px] text-slate-400 font-bold uppercase">Auditoria F6 Integrada</span>
+          <span className="text-[10px] text-slate-800 font-bold uppercase">Auditoria F6 Integrada</span>
         </div>
 
         {historico.length === 0 ? (
-          <div className="text-center py-6 text-xs text-slate-500">
+          <div className="text-center py-6 text-xs text-slate-900">
             Nenhuma execução automática registrada nesta sessão.
           </div>
         ) : (
@@ -222,7 +222,7 @@ export default function AutomacoesPage() {
               <div key={h.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between text-xs">
                 <div className="space-y-0.5">
                   <div className="font-bold text-white">{h.name}</div>
-                  <div className="text-[10px] text-slate-400">{h.summaryText}</div>
+                  <div className="text-[10px] text-slate-800">{h.summaryText}</div>
                 </div>
                 <div className="text-right space-y-1">
                   <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
@@ -232,7 +232,7 @@ export default function AutomacoesPage() {
                   }`}>
                     {h.status}
                   </span>
-                  <div className="text-[10px] text-slate-500 font-mono">
+                  <div className="text-[10px] text-slate-900 font-mono">
                     {new Date(h.executedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
@@ -254,7 +254,7 @@ export default function AutomacoesPage() {
               <button
                 type="button"
                 onClick={() => setPreviewModal(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold"
+                className="text-slate-800 hover:text-white text-xs font-bold"
               >
                 ✕
               </button>

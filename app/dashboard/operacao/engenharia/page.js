@@ -50,10 +50,10 @@ function EngenhariaRunner() {
     <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex items-center gap-3 sm:gap-4">
-         <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-card border border-line text-muted flex items-center justify-center hover:bg-elevated transition-colors">
+         <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-card border border-line text-fg flex items-center justify-center hover:bg-card transition-colors">
             <ArrowLeft size={20} />
          </button>
-         <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-elevated text-success items-center justify-center shadow-inner">
+         <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-card text-success items-center justify-center shadow-inner">
             <BarChart size={32} />
          </div>
          <div>
@@ -64,7 +64,7 @@ function EngenhariaRunner() {
 
       <PageBody className="max-w-5xl">
         {loading ? (
-           <div className="text-center p-10"><p className="font-bold text-muted">Calculando matriz...</p></div>
+           <div className="text-center p-10"><p className="font-bold text-fg">Calculando matriz...</p></div>
         ) : itens.length === 0 ? (
            <EmptyState icon={BarChart} title="Sem dados suficientes" hint="Você precisa ter produtos no cardápio e histórico de pedidos para que a inteligência calcule a rentabilidade." />
         ) : (
@@ -73,16 +73,16 @@ function EngenhariaRunner() {
               {/* KPIs de Referência */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <Card className="flex items-center gap-4 border-l-4 border-l-indigo-500">
-                    <div className="p-3 bg-slate-50 rounded-xl text-success"><TrendingUp size={24}/></div>
+                    <div className="p-3 bg-white rounded-xl text-success"><TrendingUp size={24}/></div>
                     <div>
-                       <p className="text-xs font-bold text-muted uppercase">Média de Volume Vendido</p>
+                       <p className="text-xs font-bold text-fg uppercase">Média de Volume Vendido</p>
                        <p className="text-xl sm:text-2xl font-black text-slate-800">{medias.avgVolume.toFixed(1)} un / prato</p>
                     </div>
                  </Card>
                  <Card className="flex items-center gap-4 border-l-4 border-l-emerald-500">
                     <div className="p-3 bg-accent-soft rounded-xl text-accent-strong"><TrendingUp size={24}/></div>
                     <div>
-                       <p className="text-xs font-bold text-muted uppercase">Média de Margem Bruta</p>
+                       <p className="text-xs font-bold text-fg uppercase">Média de Margem Bruta</p>
                        <p className="text-xl sm:text-2xl font-black text-slate-800">{fmtBRL(medias.avgMargem)} / prato</p>
                     </div>
                  </Card>
@@ -104,28 +104,28 @@ function EngenhariaRunner() {
                                 </div>
                                 <div>
                                    <h2 className="text-xl font-black text-fg">{tipo}</h2>
-                                   <p className="text-xs font-bold text-muted uppercase tracking-wide">{grupo.length} ITENS</p>
+                                   <p className="text-xs font-bold text-fg uppercase tracking-wide">{grupo.length} ITENS</p>
                                 </div>
                              </div>
                              <span className="text-3xs sm:text-xs font-bold px-2 py-1 rounded-md text-right" style={{backgroundColor: cfg.bg, color: cfg.cor}}>
                                 {tipo === "Estrela" ? "++ Volume / ++ Margem" : tipo === "Burro de Carga" ? "++ Volume / -- Margem" : tipo === "Quebra-Cabeça" ? "-- Volume / ++ Margem" : "-- Volume / -- Margem"}
                              </span>
                           </div>
-                          <p className="text-sm font-medium text-slate-600 mb-4 px-1">{cfg.desc}</p>
+                          <p className="text-sm font-medium text-slate-900 mb-4 px-1">{cfg.desc}</p>
                           
                           <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                              {grupo.length === 0 ? (
-                                <p className="text-center text-muted font-medium text-sm mt-10">Nenhum prato nesta categoria.</p>
+                                <p className="text-center text-fg font-medium text-sm mt-10">Nenhum prato nesta categoria.</p>
                              ) : (
                                 grupo.map(it => (
-                                   <div key={it.id} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 border border-line-soft hover:border-line transition-colors">
+                                   <div key={it.id} className="flex justify-between items-center p-3 rounded-2xl bg-white border border-line-soft hover:border-line transition-colors">
                                       <div>
                                          <p className="font-bold text-slate-800 text-sm">{it.nome}</p>
-                                         <p className="text-2xs font-medium text-muted">Custo: {fmtBRL(it.custo)} • Preço: {fmtBRL(it.preco)}</p>
+                                         <p className="text-2xs font-medium text-fg">Custo: {fmtBRL(it.custo)} • Preço: {fmtBRL(it.preco)}</p>
                                       </div>
                                       <div className="text-right">
                                          <p className="text-sm font-black text-fg" style={{color: cfg.cor}}>{it.volume} un</p>
-                                         <p className="text-2xs font-bold text-muted uppercase mt-0.5">+{fmtBRL(it.margem)} l.b.</p>
+                                         <p className="text-2xs font-bold text-fg uppercase mt-0.5">+{fmtBRL(it.margem)} l.b.</p>
                                       </div>
                                    </div>
                                 ))
@@ -145,7 +145,7 @@ function EngenhariaRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center text-muted font-bold">Carregando Engenharia...</div>}>
+    <Suspense fallback={<div className="p-10 text-center text-fg font-bold">Carregando Engenharia...</div>}>
       <EngenhariaRunner />
     </Suspense>
   );

@@ -119,10 +119,10 @@ export default function CalendarioEstoque() {
     <div className="min-h-screen bg-[var(--surface)] pb-20">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-          <button onClick={() => router.push("/dashboard/operacao/estoque")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-elevated text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <button onClick={() => router.push("/dashboard/operacao/estoque")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-black text-fg sm:text-xl">Entradas e saídas</h1>
-            <p className="text-xs font-bold text-muted">Movimento do estoque por dia, semana ou mês</p>
+            <p className="text-xs font-bold text-fg">Movimento do estoque por dia, semana ou mês</p>
           </div>
           <select value={estoqueId} onChange={e => setEstoqueId(e.target.value)} className="h-11 rounded-xl border border-line bg-card px-3 font-bold text-fg-soft">
             <option value="todos">Todos os estoques</option>
@@ -134,15 +134,15 @@ export default function CalendarioEstoque() {
           <div className="flex rounded-xl border border-line bg-card p-1">
             {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"]].map(([v, r]) => (
               <button key={v} onClick={() => setModo(v)}
-                className={`h-9 rounded-lg px-4 text-sm font-black ${modo === v ? "bg-accent text-accent-fg" : "text-slate-600 hover:bg-slate-50"}`}>
+                className={`h-9 rounded-lg px-4 text-sm font-black ${modo === v ? "bg-accent text-accent-fg" : "text-slate-900 hover:bg-white"}`}>
                 {r}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setReferencia(andar(referencia, modo, -1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronLeft size={18} /></button>
+            <button onClick={() => setReferencia(andar(referencia, modo, -1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900 hover:bg-white"><ChevronLeft size={18} /></button>
             <span className="min-w-[190px] text-center text-sm font-black capitalize text-slate-800">{rotuloPeriodo(faixa, modo)}</span>
-            <button onClick={() => setReferencia(andar(referencia, modo, 1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-600 hover:bg-slate-50"><ChevronRight size={18} /></button>
+            <button onClick={() => setReferencia(andar(referencia, modo, 1))} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900 hover:bg-white"><ChevronRight size={18} /></button>
           </div>
           {!ehHoje && (
             <button onClick={() => setReferencia(new Date())} className="h-11 rounded-xl border-2 border-emerald-200 bg-card px-4 font-black text-accent-strong hover:bg-accent-soft">Hoje</button>
@@ -154,19 +154,19 @@ export default function CalendarioEstoque() {
 
       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {!unidadeAtiva || unidadeAtiva === "todas" ? (
-          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-muted">Selecione uma unidade específica.</div>
+          <div className="rounded-2xl border border-line bg-card p-10 text-center font-bold text-fg">Selecione uma unidade específica.</div>
         ) : (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-emerald-200 bg-card p-4 shadow-sm">
                 <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-accent"><ArrowUpRight size={13} /> Entrou</p>
                 <p className="mt-1 text-3xl font-black text-fg">{fmtQtd(totais.qtdE)}</p>
-                <p className="text-xs font-bold text-muted">{totais.entradas} movimentação(ões)</p>
+                <p className="text-xs font-bold text-fg">{totais.entradas} movimentação(ões)</p>
               </div>
               <div className="rounded-2xl border border-rose-200 bg-card p-4 shadow-sm">
                 <p className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-rose-700"><ArrowDownRight size={13} /> Saiu</p>
                 <p className="mt-1 text-3xl font-black text-fg">{fmtQtd(totais.qtdS)}</p>
-                <p className="text-xs font-bold text-muted">{totais.saidas} movimentação(ões)</p>
+                <p className="text-xs font-bold text-fg">{totais.saidas} movimentação(ões)</p>
               </div>
             </div>
 
@@ -176,7 +176,7 @@ export default function CalendarioEstoque() {
               <div className="rounded-2xl border border-dashed border-slate-300 bg-card p-10 text-center">
                 <CalendarDays className="mx-auto text-dim" size={40} />
                 <p className="mt-3 font-black text-fg-soft">Nada movimentado neste período</p>
-                <p className="mt-1 text-sm text-muted">Troque o período acima ou escolha outro estoque.</p>
+                <p className="mt-1 text-sm text-fg">Troque o período acima ou escolha outro estoque.</p>
               </div>
             ) : porDia.map(([dia, lista]) => {
               const entrou = lista.filter(m => m.tipo === "entrada").reduce((s, m) => s + (Number(m.quantidade) || 0), 0);
@@ -203,7 +203,7 @@ export default function CalendarioEstoque() {
                           </span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[15px] font-black text-fg">{m.insumo?.nome || "Produto removido"}</p>
-                            <p className="truncate text-2xs font-bold text-muted">
+                            <p className="truncate text-2xs font-bold text-fg">
                               {hora}
                               {m.estoque?.nome ? ` · ${m.estoque.nome}` : ""}
                               {m.destino?.nome ? ` → ${m.destino.nome}` : ""}

@@ -1783,7 +1783,7 @@ export default function RHPage() {
      
      // Tempo de casa: aparece para todo mundo, em experiência ou efetivo.
      const casa = tempoDeCasa(f, hj);
-     if (casa) badges.push({ text: `${casa.texto} de ${nomeDaCasa}`, color: 'text-fg-soft bg-elevated border-line' });
+     if (casa) badges.push({ text: `${casa.texto} de ${nomeDaCasa}`, color: 'text-fg-soft bg-card border-line' });
 
      // Aniversário próximo (ou hoje) — o RH costuma querer lembrar.
      const aniv = aniversario(f, hj);
@@ -2015,7 +2015,7 @@ export default function RHPage() {
                   </div>
                   <div>
                      <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-fg">RH & Equipe</h1>
-                     <p className="text-xs font-semibold text-muted mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
+                     <p className="text-xs font-semibold text-fg mt-0.5">Gestão de Colaboradores e Pessoas · {unidadeInfo?.nome || "Unidade"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -2023,14 +2023,14 @@ export default function RHPage() {
                       <button
                          type="button"
                          onClick={() => setModoView("hub")}
-                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "hub" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
                       >
                          Hub Operacional
                       </button>
                       <button
                          type="button"
                          onClick={() => setModoView("gestao")}
-                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "gestao" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${modoView === "gestao" ? "bg-card text-emerald-700 shadow-xs" : "text-slate-900 hover:text-slate-900"}`}
                       >
                          Gestão Completa
                       </button>
@@ -2066,7 +2066,7 @@ export default function RHPage() {
                onClick={exportarAFD}
                disabled={baixandoAfd}
                title="Arquivo Fonte de Dados do ponto (Portaria 671/2021)"
-               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-elevated text-subtle border-line" : "bg-card text-fg-soft border-line hover:bg-slate-50"} disabled:opacity-60`}>
+               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-card text-subtle border-line" : "bg-card text-fg-soft border-line hover:bg-white"} disabled:opacity-60`}>
                <FileText size={14} /> {baixandoAfd ? "Exportando..." : "Exportar AFD"}
             </button>
             {abaAtiva === "Freelancer" && (
@@ -2213,7 +2213,7 @@ export default function RHPage() {
                            {segs.map(s => (
                               <div key={s.rot} className="flex items-center gap-2 text-xs">
                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.cor }} />
-                                 <span className="font-bold text-slate-600 flex-1 truncate">{s.rot}</span>
+                                 <span className="font-bold text-slate-900 flex-1 truncate">{s.rot}</span>
                                  <span className="font-black text-slate-800">{s.n}</span>
                                  <span className="text-subtle font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
                               </div>
@@ -2237,9 +2237,9 @@ export default function RHPage() {
                      { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
                      { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
                   ].map(a => (
-                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-line bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
+                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-line bg-white hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
                         <a.icon size={18} className="text-success" />
-                        <span className="text-3xs font-bold text-slate-600 leading-tight">{a.rot}</span>
+                        <span className="text-3xs font-bold text-slate-900 leading-tight">{a.rot}</span>
                      </button>
                   ))}
                </div>
@@ -2253,7 +2253,7 @@ export default function RHPage() {
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
             {[["Fixo", "Equipe Fixa"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
                <button key={id} onClick={() => setAbaAtiva(id)}
-                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20" : "bg-card text-muted border border-line hover:bg-slate-50"}`}>
+                  className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-accent text-accent-fg shadow-lg shadow-emerald-600/20" : "bg-card text-fg border border-line hover:bg-white"}`}>
                   {rot}
                </button>
             ))}
@@ -2272,15 +2272,15 @@ export default function RHPage() {
          ) : (
             <>
                <div className="bg-card p-4 rounded-t-3xl border border-line border-b-0 flex items-center gap-3">
-                  <Search size={18} className="text-muted" />
+                  <Search size={18} className="text-fg" />
                   <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-fg-soft" />
                </div>
 
                <div className="bg-card rounded-b-3xl border border-line border-t-0 shadow-sm p-3 sm:p-4">
                   {loading ? (
-                     <p className="p-10 text-center text-muted font-bold">Carregando...</p>
+                     <p className="p-10 text-center text-fg font-bold">Carregando...</p>
                   ) : filtrados.length === 0 ? (
-                     <p className="p-10 text-center text-muted font-bold">Nenhum funcionário cadastrado.</p>
+                     <p className="p-10 text-center text-fg font-bold">Nenhum funcionário cadastrado.</p>
                   ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {filtrados.map(f => {
@@ -2306,7 +2306,7 @@ export default function RHPage() {
                               const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
                               if (minAgora > strToMin(entradaEsperada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {entradaEsperada})</span>;
                            }
-                           return <span className="text-2xs font-bold text-muted bg-elevated px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
+                           return <span className="text-2xs font-bold text-fg bg-card px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
                         }
                         // A frase base vem do módulo de status, para o RH falar
                         // igual em toda tela. O que a tela acrescenta são os
@@ -2335,10 +2335,10 @@ export default function RHPage() {
                            <div className="flex items-center gap-3">
                               {f.foto
                                  ? <img src={`data:image/jpeg;base64,${f.foto}`} alt={f.nome} className="w-12 h-12 rounded-full object-cover border border-line shrink-0" />
-                                 : <div className="w-12 h-12 rounded-full bg-elevated flex items-center justify-center font-black text-muted shrink-0">{(f.nome || "?")[0].toUpperCase()}</div>}
+                                 : <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center font-black text-fg shrink-0">{(f.nome || "?")[0].toUpperCase()}</div>}
                               <div className="min-w-0 flex-1">
                                  <p className="font-black text-slate-800 truncate">{f.nome}</p>
-                                 <p className="text-xs font-bold text-muted truncate">{f.cargo || "—"}</p>
+                                 <p className="text-xs font-bold text-fg truncate">{f.cargo || "—"}</p>
                                  {ehFreela && (
                                     <div className="flex text-amber-400 mt-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (f.avaliacao_estrelas || 0) ? "fill-amber-400" : "text-slate-200"} />)}</div>
                                  )}
@@ -2346,7 +2346,7 @@ export default function RHPage() {
                               {ehInativo(f) && <span className="text-3xs font-bold uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 shrink-0">{f.tipo_desligamento || "Desligado"}</span>}
                            </div>
                            {(f.telefone || f.chave_pix) && (
-                              <div className="text-2xs font-semibold text-muted flex flex-wrap gap-x-3 gap-y-0.5">
+                              <div className="text-2xs font-semibold text-fg flex flex-wrap gap-x-3 gap-y-0.5">
                                  {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-accent hover:underline"><Phone size={10} /> {f.telefone}</a>}
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
@@ -2358,8 +2358,8 @@ export default function RHPage() {
                               const adm = f.data_admissao ? new Date(`${String(f.data_admissao).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : null;
                               if (!adm && !casa && !aniv && !f.tipo_contrato) return null;
                               return (
-                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-muted">
-                                    {f.tipo_contrato && <span className="rounded-md bg-elevated px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
+                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-fg">
+                                    {f.tipo_contrato && <span className="rounded-md bg-card px-2 py-0.5 text-slate-900">{f.tipo_contrato}</span>}
                                     {adm && <span>Admissão {adm}</span>}
                                     {casa && <span className="text-accent">{casa.textoDias} de {nomeDaCasa}</span>}
                                     {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>Aniversário {aniv.diaMes}{aniv.ehHoje ? " · é hoje" : ""}</span>}
@@ -2391,8 +2391,8 @@ export default function RHPage() {
                                     alert(`${titulo}\n\n${ls.join("\n") || "Nenhum dia registrado."}\n\nTotal: ${tot} min\n${regra}`);
                                  };
                                  return (
-                                 <div className="rounded-xl bg-slate-50 border border-line-soft p-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
-                                    {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-muted font-semibold">Salário base</span><span className="font-bold text-fg-soft">{fmtBRL(p.fixo)}</span></div>
+                                 <div className="rounded-xl bg-white border border-line-soft p-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
+                                    {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-fg font-semibold">Salário base</span><span className="font-bold text-fg-soft">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
                                     {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nValor mensal definido no cadastro (rateio da taxa de 10%). Entra no total e no holerite no fim do mês.\n\nTrabalhou até agora: ${diasTrab.length} dia(s) — por dia dá ${fmtBRL(p.taxa / Math.max(1, diasTrab.length))}.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
                                     {p.ad.valorExtra > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`HORA EXTRA (+50%): ${fmtBRL(p.ad.valorExtra)}`, "minExtra", "Regra: após 00:00, hora + 50% (base = salário ÷ 220).")}><span className="text-success font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-accent">{fmtBRL(p.ad.valorExtra)}</span></div>}
@@ -2404,17 +2404,17 @@ export default function RHPage() {
                                     {(() => {
                                        const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
                                        if (!nDias || !p.fixo) return null;
-                                       return <div className="flex justify-between mt-0.5"><span className="text-3xs font-bold text-subtle">Valor por dia trabalhado</span><span className="text-3xs font-bold text-muted">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
+                                       return <div className="flex justify-between mt-0.5"><span className="text-3xs font-bold text-subtle">Valor por dia trabalhado</span><span className="text-3xs font-bold text-fg">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
                                     })()}
                                     {detAberto[f.id] && (<>{/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
                                     <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-line text-3xs font-bold">
-                                       <span className="text-muted">Dias no mês (escala)</span><span className="text-right text-fg-soft font-black">{diasPrevistos}</span>
-                                       <span className="text-muted">Trabalhou até agora</span><span className="text-right text-accent font-black">{diasTrab.length}</span>
-                                       <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-muted"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
-                                       <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-muted"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
+                                       <span className="text-fg">Dias no mês (escala)</span><span className="text-right text-fg-soft font-black">{diasPrevistos}</span>
+                                       <span className="text-fg">Trabalhou até agora</span><span className="text-right text-accent font-black">{diasTrab.length}</span>
+                                       <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-fg"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
+                                       <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-fg"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
                                     </div>
                                     </>)}
-                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-3xs font-bold text-subtle hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
+                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-3xs font-bold text-subtle hover:text-slate-900 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
                                     <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-2xs flex items-center justify-center gap-1.5">
                                        <Printer size={12} /> Holerite
                                     </button>
@@ -2426,7 +2426,7 @@ export default function RHPage() {
                            <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-line-soft" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                  {f.docs?.length > 0
-                                    ? <span className="text-3xs font-bold bg-elevated text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
+                                    ? <span className="text-3xs font-bold bg-card text-slate-900 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
                                     : <span className="text-3xs text-subtle">Sem docs</span>}
                                  {tb >= BANCO_ALERTA_MIN && (
                                     <button onClick={() => abrirModalBanco(f)} className={`text-3xs font-bold px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
@@ -2440,7 +2440,7 @@ export default function RHPage() {
                                        <LogOut size={12} /> Desligar
                                     </button>
                                  )}
-                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-card border border-line px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
+                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-900 bg-card border border-line px-3 py-1.5 rounded-lg hover:bg-white">Editar</button>
                                  <button onClick={() => { setAbaMenuAcoes("trabalho"); setMenuAcoes(f); }} className="flex items-center gap-1 text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>
                            </div>
@@ -2462,7 +2462,7 @@ export default function RHPage() {
          const ir = (fn) => { fechar(); fn(); };
          const tb = totalBancoDe(f.id);
          const critico = tb >= BANCO_LIMITE_MIN, alerta = tb >= BANCO_ALERTA_MIN;
-         const Acao = ({ icon: Icon, cor = "text-fg-soft", bg = "bg-slate-50 group-hover:bg-elevated", onClick, children, extra }) => (
+         const Acao = ({ icon: Icon, cor = "text-fg-soft", bg = "bg-white group-hover:bg-card", onClick, children, extra }) => (
             <button onClick={onClick} className="group flex min-h-[52px] w-full items-center gap-2.5 rounded-xl border border-line bg-card px-2.5 py-2 text-left transition-all hover:border-slate-300 hover:shadow-sm sm:min-h-[56px] sm:rounded-2xl sm:px-3">
                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${bg} ${cor}`}><Icon size={17}/></span>
                <span className={`min-w-0 flex-1 text-[13px] font-black leading-tight sm:text-sm ${cor}`}>{children}</span>
@@ -2477,7 +2477,7 @@ export default function RHPage() {
          ];
          return (
          <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-0 backdrop-blur-sm sm:items-center sm:p-3" onClick={fechar}>
-            <div className="flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-slate-50 shadow-2xl sm:max-h-[calc(100dvh-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
+            <div className="flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[calc(100dvh-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
                <div className="flex shrink-0 items-center gap-2.5 bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3 text-white sm:gap-3 sm:px-5 sm:py-4">
                   {f.foto
                      ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-white/20 object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
@@ -2492,7 +2492,7 @@ export default function RHPage() {
 
                <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-line bg-card p-1.5 sm:p-2">
                   {abas.map(([id, rotulo, Icone]) => (
-                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-3xs font-bold transition-colors sm:min-h-11 sm:rounded-xl sm:text-3xs ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-muted hover:bg-elevated"}`}>
+                     <button key={id} onClick={() => setAbaMenuAcoes(id)} className={`flex min-h-10 items-center justify-center gap-1 rounded-lg px-1 text-3xs font-bold transition-colors sm:min-h-11 sm:rounded-xl sm:text-3xs ${abaMenuAcoes === id ? "bg-slate-900 text-white shadow-sm" : "text-fg hover:bg-card"}`}>
                         <Icone size={15}/><span className="truncate">{rotulo}</span>
                      </button>
                   ))}
@@ -2503,7 +2503,7 @@ export default function RHPage() {
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
                      <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-sky-50 group-hover:bg-sky-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
-                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-elevated px-2 py-1 text-3xs font-bold text-fg-soft">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
+                        extra={tb > 0 && <span className="shrink-0 rounded-lg bg-card px-2 py-1 text-3xs font-bold text-fg-soft">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
@@ -2547,12 +2547,12 @@ export default function RHPage() {
                      {abaAtiva !== "Ex-funcionários" && (
                         <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 group-hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar e arquivar</Acao>
                      )}
-                     <Acao icon={Trash2} cor="text-muted" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
+                     <Acao icon={Trash2} cor="text-fg" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
                   </div>}
                </div>
                <div className="flex shrink-0 items-center justify-between border-t border-line bg-card px-3 py-2 sm:px-4 sm:py-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
                   <p className="hidden text-3xs font-bold text-subtle sm:block">Mostrando somente {abas.find(([id]) => id === abaMenuAcoes)?.[1].toLowerCase()}</p>
-                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-elevated px-4 text-xs font-bold text-slate-600 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
+                  <button onClick={fechar} className="ml-auto min-h-9 rounded-lg bg-card px-4 text-xs font-bold text-slate-900 hover:bg-slate-200 sm:rounded-xl">Fechar</button>
                </div>
             </div>
          </div>
@@ -2573,33 +2573,33 @@ export default function RHPage() {
                   <div className="min-w-0">
                      <p className="text-3xs font-bold uppercase tracking-[.18em] text-accent">Equipe fixa · cadastro completo</p>
                      <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar funcionário" : "Novo funcionário fixo"}</h2>
-                     <p className="mt-1 text-xs font-bold text-muted">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
+                     <p className="mt-1 text-xs font-bold text-fg">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
                   </div>
-                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={21}/></button>
+                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
                </div>
 
-               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-slate-50 px-4 py-3 sm:px-6">
+               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-white px-4 py-3 sm:px-6">
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
                     ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"],
-                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-accent">{label}</button>)}
+                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-line bg-card px-3 text-xs font-bold text-slate-900 hover:border-emerald-300 hover:text-accent">{label}</button>)}
                </nav>
 
-               <div className="space-y-5 flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/60">
+               <div className="space-y-5 flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-white/60">
                   <section id="func-identificacao" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-muted">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-fg">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold uppercase text-emerald-700">Funcionário fixo</span></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Tipo de Contrato</label>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Tipo de Contrato</label>
                         <div className="flex min-h-12 items-center rounded-xl border border-emerald-200 bg-accent-soft px-4 font-black text-accent-strong">Equipe fixa (CLT / mensalista)</div>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Nome Completo</label>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Nome Completo</label>
                         <div className="flex items-center gap-3 mt-1">
                            {/* Foto do colaborador (aparece no ponto, organograma e portal) */}
                            <div className="relative shrink-0">
                               <button type="button" onClick={() => fotoInputRef.current?.click()} title="Adicionar/trocar foto"
-                                 className="w-14 h-14 rounded-full overflow-hidden border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center hover:border-emerald-400">
+                                 className="w-14 h-14 rounded-full overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center hover:border-emerald-400">
                                  {novoFunc.foto
                                     ? <img src={`data:image/jpeg;base64,${novoFunc.foto}`} alt="Foto" className="w-full h-full object-cover" />
                                     : <Camera size={18} className="text-subtle" />}
@@ -2610,13 +2610,13 @@ export default function RHPage() {
                               )}
                               <input ref={fotoInputRef} type="file" accept="image/*" onChange={escolherFotoColab} className="hidden" />
                            </div>
-                           <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="flex-1 p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="flex-1 p-4 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Função / Cargo</label>
-                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-fg-soft">
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Função / Cargo</label>
+                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-fg-soft">
                         <option value="">Selecione um Cargo</option>
                         <optgroup label="Liderança">
                            {CARGOS_LIDERANCA.map(c => <option key={c} value={c}>{c}</option>)}
@@ -2630,14 +2630,14 @@ export default function RHPage() {
                      </select>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Supervisor(es) diretos — organograma</label>
-                     <div className="bg-slate-50 border border-line rounded-xl p-3 max-h-32 overflow-y-auto space-y-1">
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Supervisor(es) diretos — organograma</label>
+                     <div className="bg-white border border-line rounded-xl p-3 max-h-32 overflow-y-auto space-y-1">
                         {funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").length === 0 ? (
                            <p className="text-xs font-medium text-subtle">Nenhum outro colaborador cadastrado ainda.</p>
                         ) : funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").map(f => {
                            const marcado = (novoFunc.supervisores_ids || []).includes(f.id);
                            return (
-                              <label key={f.id} className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer ${marcado ? "bg-emerald-100" : "hover:bg-elevated"}`}>
+                              <label key={f.id} className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer ${marcado ? "bg-emerald-100" : "hover:bg-card"}`}>
                                  <input type="checkbox" checked={marcado} onChange={e=>{
                                     const atual = novoFunc.supervisores_ids || [];
                                     setNovoFunc({...novoFunc, supervisores_ids: e.target.checked ? [...atual, f.id] : atual.filter(x => x !== f.id)});
@@ -2652,56 +2652,56 @@ export default function RHPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Telefone / WhatsApp</label>
-                        <input type="text" inputMode="numeric" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Telefone / WhatsApp</label>
+                        <input type="text" inputMode="numeric" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">E-mail</label>
-                        <input type="email" value={novoFunc.email || ""} onChange={e=>setNovoFunc({...novoFunc, email: e.target.value})} placeholder="nome@email.com" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">E-mail</label>
+                        <input type="email" value={novoFunc.email || ""} onChange={e=>setNovoFunc({...novoFunc, email: e.target.value})} placeholder="nome@email.com" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">CPF</label>
-                        <input type="text" inputMode="numeric" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: mascaraCPF(e.target.value)})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">CPF</label>
+                        <input type="text" inputMode="numeric" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: mascaraCPF(e.target.value)})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">RG</label>
-                        <input type="text" inputMode="numeric" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: mascaraRG(e.target.value)})} placeholder="000.000-0" className="w-full p-3.5 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">RG</label>
+                        <input type="text" inputMode="numeric" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: mascaraRG(e.target.value)})} placeholder="000.000-0" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
                   </section>
 
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
                   <div id="func-pessoais" className="bg-card border border-line rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                     <div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-muted">Informações completas para documentos e gestão do RH.</p></div>
+                     <div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-fg">Informações completas para documentos e gestão do RH.</p></div>
                      
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Rua / Avenida</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Rua / Avenida</label>
                            <input type="text" value={novoFunc.rua_av || ""} onChange={e=>setNovoFunc({...novoFunc, rua_av: e.target.value, endereco: `${e.target.value}${novoFunc.numero_casa ? `, ${novoFunc.numero_casa}` : ""}${novoFunc.bairro ? `, ${novoFunc.bairro}` : ""}`})} placeholder="Ex.: Av. Paulista" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Número</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Número</label>
                            <input type="text" value={novoFunc.numero_casa || ""} onChange={e=>setNovoFunc({...novoFunc, numero_casa: e.target.value})} placeholder="Ex.: 1500 ou S/N" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
 
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Bairro</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Bairro</label>
                            <input type="text" value={novoFunc.bairro || ""} onChange={e=>setNovoFunc({...novoFunc, bairro: e.target.value})} placeholder="Ex.: Bela Vista" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Cidade / UF</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Cidade / UF</label>
                            <input type="text" value={novoFunc.cidade_uf || ""} onChange={e=>setNovoFunc({...novoFunc, cidade_uf: e.target.value})} placeholder="Ex.: São Paulo / SP" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">CEP</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">CEP</label>
                            <input type="text" value={novoFunc.cep || ""} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Data de Nascimento</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Data de Nascimento</label>
                            <input type="date" value={novoFunc.data_nascimento || ""} onChange={e=>setNovoFunc({...novoFunc, data_nascimento: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                            {novoFunc.data_nascimento && (() => {
                               const n = new Date(novoFunc.data_nascimento + "T12:00:00");
@@ -2712,21 +2712,21 @@ export default function RHPage() {
                            })()}
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Cidade de Nascimento</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Cidade de Nascimento</label>
                            <input type="text" value={novoFunc.cidade_nascimento} onChange={e=>setNovoFunc({...novoFunc, cidade_nascimento: e.target.value})} placeholder="Ex: Belém - PA" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Nome do pai</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Nome do pai</label>
                            <input type="text" value={novoFunc.nome_pai || ""} onChange={e=>setNovoFunc({...novoFunc, nome_pai: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Nome da mãe</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Nome da mãe</label>
                            <input type="text" value={novoFunc.nome_mae || ""} onChange={e=>setNovoFunc({...novoFunc, nome_mae: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         {/* Filhos com nome e CPF: entram no contrato */}
                         <div className="sm:col-span-2">
                            <div className="flex items-center justify-between gap-2">
-                              <label className="text-3xs font-bold text-muted uppercase tracking-widest">Filhos</label>
+                              <label className="text-3xs font-bold text-fg uppercase tracking-widest">Filhos</label>
                               <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-bold text-accent hover:underline">+ Adicionar filho</button>
                            </div>
                            <div className="mt-2 space-y-2">
@@ -2746,7 +2746,7 @@ export default function RHPage() {
                            </div>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Gênero</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Gênero</label>
                            <select value={novoFunc.genero} onChange={e=>setNovoFunc({...novoFunc, genero: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               <option value="Feminino">Feminino</option>
@@ -2756,7 +2756,7 @@ export default function RHPage() {
                            </select>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Estado civil</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Estado civil</label>
                            <select value={novoFunc.estado_civil || ""} onChange={e=>setNovoFunc({...novoFunc, estado_civil: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               {ESTADOS_CIVIS.map(v => <option key={v} value={v}>{v}</option>)}
@@ -2765,7 +2765,7 @@ export default function RHPage() {
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Escolaridade</label>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Escolaridade</label>
                            <select value={novoFunc.escolaridade} onChange={e=>setNovoFunc({...novoFunc, escolaridade: e.target.value})} className="w-full p-3 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500">
                               <option value="">Selecione...</option>
                               <option value="Fundamental incompleto">Fundamental incompleto</option>
@@ -2783,7 +2783,7 @@ export default function RHPage() {
                            <input type="checkbox" checked={novoFunc.tem_transporte}
                               onChange={e=>setNovoFunc({...novoFunc, tem_transporte: e.target.checked, tipo_transporte: e.target.checked ? novoFunc.tipo_transporte : ""})}
                               className="w-4 h-4 accent-emerald-600"/>
-                           <span className="text-xs font-bold text-slate-600">Possui transporte próprio</span>
+                           <span className="text-xs font-bold text-slate-900">Possui transporte próprio</span>
                         </label>
                         {/* Moto ou carro muda o que a casa precisa saber: vaga,
                             seguro e quem pode fazer entrega. Perguntar só "tem
@@ -2796,28 +2796,28 @@ export default function RHPage() {
                                        checked={novoFunc.tipo_transporte === v}
                                        onChange={()=>setNovoFunc({...novoFunc, tipo_transporte: v})}
                                        className="h-4 w-4 accent-emerald-600"/>
-                                    <span className="text-xs font-bold text-slate-600">{v}</span>
+                                    <span className="text-xs font-bold text-slate-900">{v}</span>
                                  </label>
                               ))}
                            </div>
                         )}
                         <label className="flex items-center gap-2 cursor-pointer">
                            <input type="checkbox" checked={novoFunc.usa_vale_transporte} onChange={e=>setNovoFunc({...novoFunc, usa_vale_transporte: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
-                           <span className="text-xs font-bold text-slate-600">Usa vale transporte</span>
+                           <span className="text-xs font-bold text-slate-900">Usa vale transporte</span>
                         </label>
                      </div>
                   </div>
 
                   <div id="func-contrato" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm">
-                  <div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-muted">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
+                  <div><p className="text-2xs font-bold uppercase tracking-widest text-accent">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-fg">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">Chave PIX</label>
-                        <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Chave PIX</label>
+                        <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
-                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-line rounded-xl font-black text-success outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
+                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-black text-success outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
@@ -2825,17 +2825,17 @@ export default function RHPage() {
                   {novoFunc.tipo_contrato === "Freelancer" && (
                      <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
                         <p className="text-xs font-bold uppercase tracking-widest text-accent">Dados do Recibo de Trabalho Extra</p>
-                        <p className="mt-1 mb-4 text-xs font-medium text-muted">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
+                        <p className="mt-1 mb-4 text-xs font-medium text-fg">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
 
                         <label className="block">
-                           <span className="text-xs font-bold text-muted uppercase tracking-widest">O que a função faz (sai impresso no recibo)</span>
+                           <span className="text-xs font-bold text-fg uppercase tracking-widest">O que a função faz (sai impresso no recibo)</span>
                            <textarea rows={3} value={novoFunc.topicos_funcao} onChange={e=>setNovoFunc({...novoFunc, topicos_funcao: e.target.value})}
                               placeholder="Ex.: Atender mesas, levar pedidos, repor bebidas, apoiar a limpeza do salão."
                               className="w-full p-3.5 mt-1 bg-card border border-line rounded-xl font-medium outline-none focus:border-emerald-500" />
                         </label>
 
                         <label className="mt-4 block">
-                           <span className="text-xs font-bold text-muted uppercase tracking-widest">Itens emprestados (separe por vírgula)</span>
+                           <span className="text-xs font-bold text-fg uppercase tracking-widest">Itens emprestados (separe por vírgula)</span>
                            <input type="text" value={novoFunc.itens_emprestados} onChange={e=>setNovoFunc({...novoFunc, itens_emprestados: e.target.value})}
                               placeholder="Uniforme / Camisa, Avental, Cartão de Consumo"
                               className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
@@ -2843,19 +2843,19 @@ export default function RHPage() {
 
                         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Forma de pagamento</label>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest">Forma de pagamento</label>
                               <select value={novoFunc.forma_pagamento} onChange={e=>setNovoFunc({...novoFunc, forma_pagamento: e.target.value})}
                                  className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500">
                                  {["Pix", "Dinheiro", "Transferência"].map(v => <option key={v} value={v}>{v}</option>)}
                               </select>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Vale transporte (R$)</label>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest">Vale transporte (R$)</label>
                               <input type="number" step="0.01" value={novoFunc.vale_transporte_val} onChange={e=>setNovoFunc({...novoFunc, vale_transporte_val: e.target.value})}
                                  placeholder="0,00" className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Setor</label>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest">Setor</label>
                               <input type="text" value={novoFunc.setor_entrega} onChange={e=>setNovoFunc({...novoFunc, setor_entrega: e.target.value})}
                                  placeholder="Salão, Cozinha, Bar" className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                            </div>
@@ -2873,11 +2873,11 @@ export default function RHPage() {
                         <p className="text-3xs font-bold uppercase tracking-widest text-accent mb-3">Composição da remuneração (além do fixo)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
                               <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest">Pontos na taxa de serviço</label>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest">Pontos na taxa de serviço</label>
                               {/* A taxa é rateada por pontos, não digitada em
                                   reais pessoa por pessoa: o valor do ponto só
                                   se sabe no fim do mês, quando se divide o que
@@ -2923,8 +2923,8 @@ export default function RHPage() {
 
                   <div id="func-jornada" className="rounded-2xl border border-line bg-card p-4 sm:p-5 shadow-sm">
                      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                        <p className="text-3xs font-bold uppercase tracking-widest text-muted">Jornada de trabalho</p>
-                        <label className="flex items-center gap-2 text-2xs font-bold text-slate-600 cursor-pointer">
+                        <p className="text-3xs font-bold uppercase tracking-widest text-fg">Jornada de trabalho</p>
+                        <label className="flex items-center gap-2 text-2xs font-bold text-slate-900 cursor-pointer">
                            <input type="checkbox" checked={novoFunc.horario_por_dia} onChange={e=>setNovoFunc({...novoFunc, horario_por_dia: e.target.checked})} style={{accentColor:"#059669"}} />
                            Horário diferente por dia da semana
                         </label>
@@ -2932,26 +2932,26 @@ export default function RHPage() {
 
                      {!novoFunc.horario_por_dia ? (
                      <>
-                     <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2">Horário — dias normais (seg a sáb)</p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-2">Horário — dias normais (seg a sáb)</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Entrada</label>
-                           <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest">Entrada</label>
+                           <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Saída</label>
-                           <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest">Saída</label>
+                           <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
-                     <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-subtle">(deixe vazio se for igual)</span></p>
+                     <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-subtle">(deixe vazio se for igual)</span></p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Entrada (dom)</label>
-                           <input type="time" value={novoFunc.horario_dom_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest">Entrada (dom)</label>
+                           <input type="time" value={novoFunc.horario_dom_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_entrada: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest">Saída (dom)</label>
-                           <input type="time" value={novoFunc.horario_dom_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest">Saída (dom)</label>
+                           <input type="time" value={novoFunc.horario_dom_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_saida: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                      </>
@@ -2965,10 +2965,10 @@ export default function RHPage() {
                            const trabalha = !!(hd.e || hd.s);
                            return (
                               <div key={d} className="flex items-center gap-2">
-                                 <span className="w-16 text-3xs font-bold uppercase text-muted shrink-0">{lbl}</span>
-                                 <input type="time" value={hd.e||""} onChange={e=>setDia('e',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-line rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
+                                 <span className="w-16 text-3xs font-bold uppercase text-fg shrink-0">{lbl}</span>
+                                 <input type="time" value={hd.e||""} onChange={e=>setDia('e',e.target.value)} className="flex-1 min-w-0 p-2 bg-white border border-line rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
                                  <span className="text-dim shrink-0">→</span>
-                                 <input type="time" value={hd.s||""} onChange={e=>setDia('s',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-line rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
+                                 <input type="time" value={hd.s||""} onChange={e=>setDia('s',e.target.value)} className="flex-1 min-w-0 p-2 bg-white border border-line rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
                                  <button type="button" onClick={limpar} title="Marcar folga neste dia" className="text-3xs font-bold shrink-0 w-12 text-center rounded-md py-1 border border-line text-subtle hover:text-rose-500 hover:border-rose-200">{trabalha ? "folga" : "—"}</button>
                               </div>
                            );
@@ -2996,7 +2996,7 @@ export default function RHPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-2">Dias Trabalho</label>
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-2">Dias Trabalho</label>
                         <div className="flex flex-wrap gap-1">
                            {[ {v:'0',l:'D'},{v:'1',l:'S'},{v:'2',l:'T'},{v:'3',l:'Q'},{v:'4',l:'Q'},{v:'5',l:'S'},{v:'6',l:'S'} ].map(dia => {
                               const selecionados = novoFunc.dias_trabalho ? novoFunc.dias_trabalho.split(',') : [];
@@ -3007,7 +3007,7 @@ export default function RHPage() {
                                     if(ativo) novos = novos.filter(d => d !== dia.v);
                                     else novos.push(dia.v);
                                     setNovoFunc({...novoFunc, dias_trabalho: novos.sort().join(',')});
-                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-accent text-accent-fg shadow-md' : 'bg-elevated text-subtle hover:bg-slate-200'}`}>
+                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-accent text-accent-fg shadow-md' : 'bg-card text-subtle hover:bg-slate-200'}`}>
                                     {dia.l}
                                  </button>
                               );
@@ -3028,8 +3028,8 @@ export default function RHPage() {
                         })()}
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo (Minutos)</label>
-                        <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest">Intervalo (Minutos)</label>
+                        <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
@@ -3038,23 +3038,23 @@ export default function RHPage() {
                       jornada, no formato "int: 17:00 as 18:00". */}
                   <div className="grid grid-cols-2 gap-3 mt-3">
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo começa</label>
-                        <input type="time" value={novoFunc.intervalo_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest">Intervalo começa</label>
+                        <input type="time" value={novoFunc.intervalo_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_inicio: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo termina</label>
-                        <input type="time" value={novoFunc.intervalo_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest">Intervalo termina</label>
+                        <input type="time" value={novoFunc.intervalo_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_fim: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      {/* Só aparece para quem trabalha domingo com jornada
                          diferente — caso da chefia de cozinha. */}
                      {(novoFunc.horario_dom_entrada || novoFunc.horario_dom_saida) && <>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo domingo · início</label>
-                           <input type="time" value={novoFunc.intervalo_dom_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Intervalo domingo · início</label>
+                           <input type="time" value={novoFunc.intervalo_dom_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_inicio: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
-                           <label className="text-3xs font-bold text-muted uppercase tracking-widest">Intervalo domingo · fim</label>
-                           <input type="time" value={novoFunc.intervalo_dom_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                           <label className="text-3xs font-bold text-fg uppercase tracking-widest">Intervalo domingo · fim</label>
+                           <input type="time" value={novoFunc.intervalo_dom_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_fim: e.target.value})} className="w-full p-3 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </>}
                   </div>
@@ -3083,9 +3083,9 @@ export default function RHPage() {
                  <div>
                    <p className="text-3xs font-bold uppercase tracking-widest text-accent">Recibo de Trabalho Extra</p>
                    <h2 className="mt-1 text-xl font-black text-fg">Escolha um extra cadastrado</h2>
-                   <p className="mt-1 text-xs font-bold text-muted">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
+                   <p className="mt-1 text-xs font-bold text-fg">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
                  </div>
-                 <button onClick={() => setModalEscolherExtra(false)} className="rounded-full bg-elevated p-2.5 text-muted"><X size={18}/></button>
+                 <button onClick={() => setModalEscolherExtra(false)} className="rounded-full bg-card p-2.5 text-fg"><X size={18}/></button>
                </div>
                <div className="p-5">
                  <div className="flex items-center gap-2 rounded-xl border border-line px-3">
@@ -3130,12 +3130,12 @@ export default function RHPage() {
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Preparar Recibo de Trabalho Extra</h2>
-                     <p className="text-sm font-bold text-muted mt-1">{fichaFunc ? `${fichaFunc.nome} · dados importados do cadastro` : "Preencha os dados pelo sistema; somente as assinaturas ficarão para a caneta."}</p>
+                     <p className="text-sm font-bold text-fg mt-1">{fichaFunc ? `${fichaFunc.nome} · dados importados do cadastro` : "Preencha os dados pelo sistema; somente as assinaturas ficarão para a caneta."}</p>
                   </div>
-                  <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="rounded-2xl border border-line bg-slate-50 p-4 mb-5">
+               <div className="rounded-2xl border border-line bg-white p-4 mb-5">
                   <div className="mb-4 bg-card p-3 rounded-xl border border-emerald-200">
                      <label className="text-xs font-bold text-emerald-800 block mb-1">Puxar dados do cadastro do colaborador:</label>
                      <select
@@ -3182,40 +3182,40 @@ export default function RHPage() {
 
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
-                        <p className="text-3xs font-bold uppercase tracking-widest text-muted">Dados que sairão no recibo</p>
+                        <p className="text-3xs font-bold uppercase tracking-widest text-fg">Dados que sairão no recibo</p>
                         <p className="text-xs font-bold text-subtle">Quando o colaborador é selecionado, estes campos são puxados automaticamente do cadastro.</p>
                      </div>
                      {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-3xs font-bold text-emerald-700">Importado do cadastro</span>}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     <label className="text-xs font-bold text-slate-600">Nome completo
+                     <label className="text-xs font-bold text-slate-900">Nome completo
                         <input type="text" value={fichaDados.nome} onChange={e => setFichaDados(d => ({...d, nome: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="text-xs font-bold text-slate-600">CPF
+                     <label className="text-xs font-bold text-slate-900">CPF
                         <input type="text" value={fichaDados.cpf} onChange={e => setFichaDados(d => ({...d, cpf: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="text-xs font-bold text-slate-600">RG
+                     <label className="text-xs font-bold text-slate-900">RG
                         <input type="text" value={fichaDados.rg} onChange={e => setFichaDados(d => ({...d, rg: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="text-xs font-bold text-slate-600">Telefone
+                     <label className="text-xs font-bold text-slate-900">Telefone
                         <input type="text" value={fichaDados.telefone} onChange={e => setFichaDados(d => ({...d, telefone: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="sm:col-span-2 text-xs font-bold text-slate-600">Chave PIX
+                     <label className="sm:col-span-2 text-xs font-bold text-slate-900">Chave PIX
                         <input type="text" value={fichaDados.chave_pix} onChange={e => setFichaDados(d => ({...d, chave_pix: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
 
                      {/* Endereço Estruturado */}
                      <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-line pt-3 mt-1">
-                       <label className="sm:col-span-2 text-xs font-bold text-slate-600">Rua ou Avenida
+                       <label className="sm:col-span-2 text-xs font-bold text-slate-900">Rua ou Avenida
                          <input type="text" value={fichaDados.rua_av} onChange={e => setFichaDados(d => ({...d, rua_av: e.target.value}))} placeholder="Ex.: Av. Paulista" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
-                       <label className="text-xs font-bold text-slate-600">Número da casa/apto
+                       <label className="text-xs font-bold text-slate-900">Número da casa/apto
                          <input type="text" value={fichaDados.numero_casa} onChange={e => setFichaDados(d => ({...d, numero_casa: e.target.value}))} placeholder="Ex.: 1500 ou S/N" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
-                       <label className="sm:col-span-2 text-xs font-bold text-slate-600">Bairro
+                       <label className="sm:col-span-2 text-xs font-bold text-slate-900">Bairro
                          <input type="text" value={fichaDados.bairro} onChange={e => setFichaDados(d => ({...d, bairro: e.target.value}))} placeholder="Ex.: Bela Vista" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
-                       <label className="text-xs font-bold text-slate-600">Cidade / UF
+                       <label className="text-xs font-bold text-slate-900">Cidade / UF
                          <input type="text" value={fichaDados.cidade_uf} onChange={e => setFichaDados(d => ({...d, cidade_uf: e.target.value}))} placeholder="Ex.: São Paulo / SP" className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
                      </div>
@@ -3223,18 +3223,18 @@ export default function RHPage() {
                </div>
 
                <div className="rounded-2xl border border-line bg-card p-4 mb-5">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Trabalho e controle do turno</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-3">Trabalho e controle do turno</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                     <label className="col-span-2 text-xs font-bold text-slate-600">Data do trabalho
+                     <label className="col-span-2 text-xs font-bold text-slate-900">Data do trabalho
                        <input type="date" value={fichaDados.data_trabalho} onChange={e => setFichaDados(d => ({...d, data_trabalho: e.target.value}))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="col-span-2 text-xs font-bold text-slate-600">Evento / ocasião
+                     <label className="col-span-2 text-xs font-bold text-slate-900">Evento / ocasião
                        <input type="text" value={fichaDados.evento} onChange={e => setFichaDados(d => ({...d, evento: e.target.value}))} placeholder="Ex.: casamento, festival, reforço de salão" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="col-span-2 text-xs font-bold text-slate-600">Função no dia
+                     <label className="col-span-2 text-xs font-bold text-slate-900">Função no dia
                        <input type="text" value={fichaDados.funcao} onChange={e => setFichaDados(d => ({...d, funcao: e.target.value}))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
-                     <label className="col-span-2 sm:col-span-4 text-xs font-bold text-slate-600">Descreva por tópicos o que irá fazer no trabalho (atribuições)
+                     <label className="col-span-2 sm:col-span-4 text-xs font-bold text-slate-900">Descreva por tópicos o que irá fazer no trabalho (atribuições)
                        <textarea
                          rows={3}
                          value={fichaDados.topicos_funcao}
@@ -3247,11 +3247,11 @@ export default function RHPage() {
                        ["entrada", "Entrada"], ["saida_intervalo", "Saída intervalo"],
                        ["retorno_intervalo", "Retorno intervalo"], ["saida_final", "Saída final"],
                      ].map(([campo, label]) => (
-                       <label key={campo} className="text-xs font-bold text-slate-600">{label}
+                       <label key={campo} className="text-xs font-bold text-slate-900">{label}
                          <input type="time" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                        </label>
                      ))}
-                     <label className="col-span-2 text-xs font-bold text-slate-600">Intervalo acordado
+                     <label className="col-span-2 text-xs font-bold text-slate-900">Intervalo acordado
                        <input type="text" value={fichaDados.intervalo} onChange={e => setFichaDados(d => ({...d, intervalo: e.target.value}))} placeholder="Ex.: 60 min" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="col-span-2 flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-accent-soft p-3 text-sm font-black text-accent-strong">
@@ -3281,14 +3281,14 @@ export default function RHPage() {
                   </div>
 
                   {total > 0 ? (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs font-bold text-slate-600">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs font-bold text-slate-900">
                         <span>Valor Fixo: <b className="text-slate-800">{fmt(fixo)}</b></span>
                         <span>INSS (5%): <b className="text-slate-800">{fmt(inss)}</b></span>
                         <span>FGTS (8%): <b className="text-slate-800">{fmt(fgts)}</b></span>
                         <span>Taxa de Serviço (10%): <b className="text-slate-800">{fmt(taxa)}</b></span>
                         <span className="col-span-2 pt-2 mt-1 border-t border-emerald-200 text-sm">
                            {nDias > 1
-                              ? <>Total: <b className="text-accent">{fmt(totalGeral)}</b> <span className="font-medium text-muted">({nDias} dias × {fmt(total)})</span></>
+                              ? <>Total: <b className="text-accent">{fmt(totalGeral)}</b> <span className="font-medium text-fg">({nDias} dias × {fmt(total)})</span></>
                               : <>Total do dia: <b className="text-accent">{fmt(total)}</b></>}
                         </span>
                      </div>
@@ -3298,16 +3298,16 @@ export default function RHPage() {
                </div>
 
                <div className="rounded-2xl border border-line bg-card p-4 mb-5">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Ajustes e pagamento</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-3">Ajustes e pagamento</p>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     {[
                       ["vale_transporte", "Vale-transporte"], ["adicional", "Adicional / bônus"], ["descontos", "Descontos"],
                     ].map(([campo, label]) => (
-                      <label key={campo} className="text-xs font-bold text-slate-600">{label} (R$)
+                      <label key={campo} className="text-xs font-bold text-slate-900">{label} (R$)
                         <input type="number" min="0" step="0.01" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} placeholder="0,00" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                       </label>
                     ))}
-                    <label className="text-xs font-bold text-slate-600">Forma de pagamento
+                    <label className="text-xs font-bold text-slate-900">Forma de pagamento
                       <select value={fichaDados.forma_pagamento} onChange={e => setFichaDados(d => ({...d, forma_pagamento: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500">
                         <option>Pix</option><option>Dinheiro</option><option>Transferência</option>
                       </select>
@@ -3318,18 +3318,18 @@ export default function RHPage() {
                       <input type="checkbox" checked={!!fichaDados.pagamento_realizado} onChange={e => setFichaDados(d => ({ ...d, pagamento_realizado: e.target.checked }))} className="h-5 w-5 accent-emerald-700" />
                       Pagamento já realizado
                     </label>
-                    <label className="text-xs font-bold text-slate-600">Data do pagamento
-                      <input type="date" disabled={!fichaDados.pagamento_realizado} value={fichaDados.data_pagamento || ""} onChange={e => setFichaDados(d => ({ ...d, data_pagamento: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500 disabled:bg-elevated" />
+                    <label className="text-xs font-bold text-slate-900">Data do pagamento
+                      <input type="date" disabled={!fichaDados.pagamento_realizado} value={fichaDados.data_pagamento || ""} onChange={e => setFichaDados(d => ({ ...d, data_pagamento: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500 disabled:bg-card" />
                     </label>
                   </div>
                </div>
 
                {/* Itens emprestados: escolhe na hora */}
-               <div className="bg-slate-50 border border-line rounded-2xl p-4 mb-6">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
+               <div className="bg-white border border-line rounded-2xl p-4 mb-6">
+                  <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
                   <div className="space-y-1.5 mb-3">
                      {fichaItens.map((it, idx) => (
-                        <label key={idx} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer border ${it.incluir ? "bg-card border-emerald-200" : "bg-elevated border-line opacity-60"}`}>
+                        <label key={idx} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer border ${it.incluir ? "bg-card border-emerald-200" : "bg-card border-line opacity-60"}`}>
                            <input type="checkbox" checked={it.incluir} onChange={e=>setFichaItens(lista => lista.map((x, i) => i === idx ? { ...x, incluir: e.target.checked } : x))} className="w-4 h-4 accent-emerald-600"/>
                            <span className="text-sm font-bold text-fg-soft flex-1">{it.nome}</span>
                         </label>
@@ -3343,7 +3343,7 @@ export default function RHPage() {
                </div>
 
                <div className="rounded-2xl border border-line bg-card p-4 mb-5">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted mb-3">Entrega e devolução dos itens</p>
+                  <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-3">Entrega e devolução dos itens</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(() => {
                       const lideres = (funcionarios || []).filter(f => {
@@ -3354,7 +3354,7 @@ export default function RHPage() {
                       });
                       return (
                         <>
-                          <label className="text-xs font-bold text-slate-600">Entregue por
+                          <label className="text-xs font-bold text-slate-900">Entregue por
                             <select value={fichaDados.responsavel_entrega || ""} onChange={e => setFichaDados(d => ({ ...d, responsavel_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500 font-bold">
                               <option value="">Selecione o responsável...</option>
                               {lideres.map(l => (
@@ -3363,11 +3363,11 @@ export default function RHPage() {
                             </select>
                           </label>
 
-                          <label className="text-xs font-bold text-slate-600">Local / setor
+                          <label className="text-xs font-bold text-slate-900">Local / setor
                             <input type="text" value={fichaDados.setor_entrega} onChange={e => setFichaDados(d => ({ ...d, setor_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                           </label>
 
-                          <label className="text-xs font-bold text-slate-600">Devolução conferida por (Chef / Supervisor)
+                          <label className="text-xs font-bold text-slate-900">Devolução conferida por (Chef / Supervisor)
                             <select value={fichaDados.conferencia_devolucao || ""} onChange={e => setFichaDados(d => ({ ...d, conferencia_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 outline-none focus:border-emerald-500 font-bold">
                               <option value="">Selecione o Chef / Supervisor / Responsável...</option>
                               {lideres.map(l => (
@@ -3376,7 +3376,7 @@ export default function RHPage() {
                             </select>
                           </label>
 
-                          <label className="text-xs font-bold text-slate-600">Horário da devolução
+                          <label className="text-xs font-bold text-slate-900">Horário da devolução
                             <input type="time" value={fichaDados.horario_devolucao} onChange={e => setFichaDados(d => ({ ...d, horario_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                           </label>
                         </>
@@ -3427,9 +3427,9 @@ export default function RHPage() {
             <div className="bg-card rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-1">
                   <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-success" /> Histórico completo do extra</h2>
-                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={17} /></button>
+                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={17} /></button>
                </div>
-               <p className="text-xs font-bold text-muted mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
+               <p className="text-xs font-bold text-fg mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
                {modalDiarias.loading ? (
                   <p className="text-center font-bold text-subtle py-8">Carregando...</p>
                ) : (
@@ -3444,8 +3444,8 @@ export default function RHPage() {
                          ["Recibos emitidos", recibos.length],
                          ["Total já pago", fmtBRL(totalPago)],
                        ].map(([rotulo, valor]) => (
-                         <div key={rotulo} className="rounded-2xl border border-line bg-slate-50 p-3">
-                           <p className="text-3xs font-bold uppercase tracking-wider text-muted">{rotulo}</p>
+                         <div key={rotulo} className="rounded-2xl border border-line bg-white p-3">
+                           <p className="text-3xs font-bold uppercase tracking-wider text-fg">{rotulo}</p>
                            <p className="mt-1 text-lg font-black text-fg">{valor}</p>
                          </div>
                        ))}
@@ -3454,7 +3454,7 @@ export default function RHPage() {
                      <div className="mt-5">
                        <h3 className="mb-2 text-sm font-black text-slate-800">Dias, valores e horários</h3>
                        {dias.length === 0 ? (
-                         <p className="rounded-xl bg-slate-50 p-5 text-center text-sm font-medium text-subtle">Nenhum dia contratado ou trabalhado registrado.</p>
+                         <p className="rounded-xl bg-white p-5 text-center text-sm font-medium text-subtle">Nenhum dia contratado ou trabalhado registrado.</p>
                        ) : (
                          <div className="overflow-x-auto rounded-2xl border border-line">
                            <table className="w-full min-w-[720px] text-left text-xs">
@@ -3464,7 +3464,7 @@ export default function RHPage() {
                                  <tr key={item.data}>
                                    <td className="p-3 font-black">{dataBR(item.data)}</td>
                                    <td className="p-3"><span className={`rounded-full px-2 py-1 font-black ${item.ponto?.hora_entrada ? "bg-accent-soft text-accent-strong" : "bg-amber-50 text-amber-700"}`}>{item.ponto?.hora_entrada ? "Trabalhou" : "Contratado"}</span></td>
-                                   <td className="p-3 font-bold text-slate-600">{hora(item.ponto?.hora_entrada || item.recibo?.hora_entrada)} às {hora(item.ponto?.hora_saida || item.recibo?.hora_saida)}</td>
+                                   <td className="p-3 font-bold text-slate-900">{hora(item.ponto?.hora_entrada || item.recibo?.hora_entrada)} às {hora(item.ponto?.hora_saida || item.recibo?.hora_saida)}</td>
                                    <td className="p-3 font-black text-accent">{fmtBRL(item.valor || 0)}</td>
                                    <td className="p-3 font-bold">{item.recibo ? (item.recibo.pagamento_realizado ? "Pago" : "Pendente") : "Sem recibo"}</td>
                                    <td className="p-3">{item.liberacao && !item.recibo && <button onClick={async () => { if (confirm("Remover esta liberação?")) { await removerLiberacao(item.liberacao.id); abrirHistoricoDiarias(modalDiarias.func); } }} className="rounded-lg bg-rose-50 p-2 text-rose-600"><Trash2 size={14} /></button>}</td>
@@ -3480,7 +3480,7 @@ export default function RHPage() {
                         <section>
                           <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de prestação</h3>
                           <div className="space-y-3">
-                            {recibos.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm text-subtle">Nenhum recibo emitido.</p> : recibos.map(recibo => {
+                            {recibos.length === 0 ? <p className="rounded-xl bg-white p-4 text-sm text-subtle">Nenhum recibo emitido.</p> : recibos.map(recibo => {
                               const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador Extra";
                               const hEntrada = recibo.hora_entrada || recibo.dados?.entrada || "—";
                               const hSaida = recibo.hora_saida || recibo.dados?.saida_final || "—";
@@ -3492,17 +3492,17 @@ export default function RHPage() {
                                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line-soft pb-2">
                                   <div>
                                     <p className="font-black text-fg text-sm">{recibo.numero}</p>
-                                    <p className="text-xs font-bold text-muted">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
+                                    <p className="text-xs font-bold text-fg">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-accent">{fmtBRL(recibo.valor_total)}</b></p>
                                   </div>
                                   <span className={`rounded-full px-2.5 py-1 text-3xs font-bold ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
                                 </div>
 
                                 <div className="text-xs space-y-1">
                                   <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
-                                  <p className="font-medium text-slate-600">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
+                                  <p className="font-medium text-slate-900">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
                                   {topicos.length > 0 && (
-                                    <div className="mt-1 bg-slate-50 border border-line rounded-xl p-2 text-2xs font-medium text-fg-soft">
-                                      <p className="font-bold text-muted text-3xs uppercase mb-0.5">Atribuições do dia:</p>
+                                    <div className="mt-1 bg-white border border-line rounded-xl p-2 text-2xs font-medium text-fg-soft">
+                                      <p className="font-bold text-fg text-3xs uppercase mb-0.5">Atribuições do dia:</p>
                                       {topicos.map((t, idx) => <p key={idx} className="truncate">• {t.replace(/^[•\-\*]\s*/, "")}</p>)}
                                     </div>
                                   )}
@@ -3524,7 +3524,7 @@ export default function RHPage() {
                                 )}
 
                                 <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-line-soft">
-                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-slate-50 px-3 py-2 text-xs font-bold text-fg-soft hover:bg-elevated"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-fg-soft hover:bg-card"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
                                   <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
                                   <label className="cursor-pointer rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-fg hover:bg-accent inline-flex items-center gap-1.5 shadow-sm">
                                     {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
@@ -3585,9 +3585,9 @@ export default function RHPage() {
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Feriados</h2>
-                     <p className="text-sm font-bold text-muted mt-1">Quem trabalhar nesses dias recebe +100% (dobro, CLT)</p>
+                     <p className="text-sm font-bold text-fg mt-1">Quem trabalhar nesses dias recebe +100% (dobro, CLT)</p>
                   </div>
-                  <button onClick={() => setModalFeriados(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalFeriados(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <form onSubmit={salvarFeriado} className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-4 shrink-0 space-y-3">
@@ -3600,14 +3600,14 @@ export default function RHPage() {
 
                <div className="flex items-center gap-2 mb-3 shrink-0">
                   <label className="text-3xs font-bold uppercase tracking-widest text-subtle">Mês:</label>
-                  <input type="month" value={mesFeriados} onChange={e=>{ setMesFeriados(e.target.value); carregarFeriados(e.target.value); }} className="p-2 bg-slate-50 border border-line rounded-lg font-bold text-sm text-fg-soft outline-none"/>
+                  <input type="month" value={mesFeriados} onChange={e=>{ setMesFeriados(e.target.value); carregarFeriados(e.target.value); }} className="p-2 bg-white border border-line rounded-lg font-bold text-sm text-fg-soft outline-none"/>
                </div>
 
                <div className="overflow-y-auto space-y-2">
                   {feriadosLista.length === 0 ? (
                      <p className="text-sm font-medium text-subtle text-center py-4">Nenhum feriado marcado neste mês.</p>
                   ) : feriadosLista.map(fe => (
-                     <div key={fe.id} className="p-3 bg-slate-50 border border-line-soft rounded-xl flex items-center gap-3">
+                     <div key={fe.id} className="p-3 bg-white border border-line-soft rounded-xl flex items-center gap-3">
                         <span className="text-sm font-black text-rose-600 shrink-0">{fe.data?.split("-").reverse().slice(0, 2).join("/")}</span>
                         <span className="flex-1 text-sm font-bold text-fg-soft truncate">{fe.nome || "Feriado"}</span>
                         <button onClick={() => excluirFeriado(fe.id)} className="p-2 text-subtle hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
@@ -3625,9 +3625,9 @@ export default function RHPage() {
                <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Desligamento / Aviso Prévio</h2>
-                     <p className="text-sm font-bold text-muted mt-0.5">{funcDeslig.nome} · {funcDeslig.cargo || "Sem cargo"}</p>
+                     <p className="text-sm font-bold text-fg mt-0.5">{funcDeslig.nome} · {funcDeslig.cargo || "Sem cargo"}</p>
                   </div>
-                  <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* Se o funcionário já está cumprindo aviso */}
@@ -3642,11 +3642,11 @@ export default function RHPage() {
                )}
 
                {/* Alternador de Modo: Cumprir Aviso vs Desligar Imediatamente */}
-               <div className="grid grid-cols-2 gap-2 mb-4 bg-elevated p-1.5 rounded-2xl">
-                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "aviso" ? "bg-card text-slate-800 shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+               <div className="grid grid-cols-2 gap-2 mb-4 bg-card p-1.5 rounded-2xl">
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "aviso" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "aviso" ? "bg-card text-slate-800 shadow-sm" : "text-fg hover:text-fg-soft"}`}>
                      1. Cumprindo Aviso Prévio
                   </button>
-                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-muted hover:text-fg-soft"}`}>
+                  <button type="button" onClick={() => setDesligForm({ ...desligForm, modo: "imediato" })} className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${desligForm.modo === "imediato" ? "bg-rose-600 text-white shadow-sm" : "text-fg hover:text-fg-soft"}`}>
                      2. Desligar Imediatamente
                   </button>
                </div>
@@ -3658,17 +3658,17 @@ export default function RHPage() {
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            <div>
-                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Início do Aviso</label>
+                              <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Início do Aviso</label>
                               <input type="date" value={desligForm.inicio_aviso} onChange={e=>setDesligForm({...desligForm, inicio_aviso: e.target.value})} className="w-full p-3 bg-card border border-amber-200 rounded-xl font-bold text-fg-soft outline-none focus:border-amber-500"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Dias de Aviso</label>
+                              <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Dias de Aviso</label>
                               <input type="number" min="1" max="90" value={desligForm.dias_aviso} onChange={e=>setDesligForm({...desligForm, dias_aviso: e.target.value})} placeholder="Ex: 27 ou 30" className="w-full p-3 bg-card border border-amber-200 rounded-xl font-black text-amber-900 outline-none focus:border-amber-500"/>
                            </div>
                         </div>
 
                         <div>
-                           <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Aviso</label>
+                           <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Tipo de Aviso</label>
                            <select value={desligForm.tipo_aviso} onChange={e=>setDesligForm({...desligForm, tipo_aviso: e.target.value})} className="w-full p-3 bg-card border border-amber-200 rounded-xl font-bold text-fg-soft outline-none focus:border-amber-500">
                               <option value="Trabalhado">Trabalhado (cumpre horário no restaurante)</option>
                               <option value="Indenizado">Indenizado (sem cumprimento presencial)</option>
@@ -3697,11 +3697,11 @@ export default function RHPage() {
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                            <div>
-                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Data de Saída</label>
+                              <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Data de Saída</label>
                               <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-rose-500"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1">Tipo de Recisão</label>
+                              <label className="text-xs font-bold text-slate-900 uppercase tracking-widest block mb-1">Tipo de Recisão</label>
                               <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-rose-500">
                                  <option>Pedido de demissão</option>
                                  <option>Demissão sem justa causa</option>
@@ -3715,12 +3715,12 @@ export default function RHPage() {
                   )}
 
                   <div>
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Motivo / Observações</label>
-                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: cumprindo aviso de 27 dias / iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-line rounded-xl font-medium text-sm text-fg-soft outline-none focus:border-emerald-500 resize-none"/>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Motivo / Observações</label>
+                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: cumprindo aviso de 27 dias / iniciativa do colaborador..." className="w-full p-3 bg-white border border-line rounded-xl font-medium text-sm text-fg-soft outline-none focus:border-emerald-500 resize-none"/>
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-elevated hover:bg-slate-200 text-slate-600 font-bold rounded-xl">Cancelar</button>
+                     <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-card hover:bg-slate-200 text-slate-900 font-bold rounded-xl">Cancelar</button>
                      <button type="submit" className={`flex-1 py-3.5 text-white font-black rounded-xl flex items-center justify-center gap-2 transition-colors ${desligForm.modo === "aviso" ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20" : "bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"}`}>
                         <LogOut size={18}/> {desligForm.modo === "aviso" ? "Registrar Aviso Prévio" : "Desligar e Arquivar"}
                      </button>
@@ -3737,9 +3737,9 @@ export default function RHPage() {
                <div className="flex flex-wrap justify-between items-center gap-2 mb-4 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Central de Ocorrências & Documentos</h2>
-                     <p className="text-sm font-bold text-muted mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
+                     <p className="text-sm font-bold text-fg mt-0.5">{funcOcorrencias.nome} · {funcOcorrencias.cargo || "Sem cargo"}</p>
                   </div>
-                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalOcorrencias(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* ABAS */}
@@ -3750,7 +3750,7 @@ export default function RHPage() {
                      { id: "reunioes", rotulo: "🤝 Reuniões & Feedbacks", count: listaReunioes.length },
                      { id: "treinamentos", rotulo: "🎓 Treinamentos", count: listaTreinamentos.length },
                   ].map(tab => (
-                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-elevated text-slate-600 hover:bg-slate-200"}`}>
+                     <button key={tab.id} type="button" onClick={() => setAbaOcorrencia(tab.id)} className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center gap-1.5 ${abaOcorrencia === tab.id ? "bg-slate-900 text-white shadow-sm" : "bg-card text-slate-900 hover:bg-slate-200"}`}>
                         <span>{tab.rotulo}</span>
                         {tab.count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-3xs ${abaOcorrencia === tab.id ? "bg-slate-700 text-white" : "bg-slate-200 text-fg-soft"}`}>{tab.count}</span>}
                      </button>
@@ -3769,27 +3769,27 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Início do Afastamento</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Início do Afastamento</label>
                                        <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Qtd Dias Afastado</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Qtd Dias Afastado</label>
                                        <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">CID (Opcional)</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">CID (Opcional)</label>
                                        <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                  </div>
 
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Médico / CRM (Opcional)</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Médico / CRM (Opcional)</label>
                                        <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-cyan-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
-                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
+                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-900 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
                                     </div>
                                  </div>
 
@@ -3826,11 +3826,11 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-rose-900">Nova Advertência Disciplinar</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Data da Ocorrência</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data da Ocorrência</label>
                                        <input type="date" value={advFormNovo.data} onChange={e=>setAdvFormNovo({...advFormNovo, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Tipo de Medida</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Tipo de Medida</label>
                                        <select value={advFormNovo.tipo} onChange={e=>setAdvFormNovo({...advFormNovo, tipo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-rose-500">
                                           <option value="Advertência Verbal">Advertência Verbal</option>
                                           <option value="Advertência Escrita">Advertência Escrita</option>
@@ -3840,7 +3840,7 @@ export default function RHPage() {
                                     </div>
                                  </div>
                                  <div>
-                                    <label className="text-3xs font-bold text-muted uppercase block mb-1">Motivo / Descrição Detalhada</label>
+                                    <label className="text-3xs font-bold text-fg uppercase block mb-1">Motivo / Descrição Detalhada</label>
                                     <textarea rows={2} placeholder="Ex: atraso reiterado, não uso de EPI..." value={advFormNovo.motivo} onChange={e=>setAdvFormNovo({...advFormNovo, motivo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-rose-500 resize-none"/>
                                  </div>
                                  <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
@@ -3872,16 +3872,16 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Data</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data</label>
                                        <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-indigo-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Título / Pauta da Reunião</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Título / Pauta da Reunião</label>
                                        <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-indigo-500"/>
                                     </div>
                                  </div>
                                  <div>
-                                    <label className="text-3xs font-bold text-muted uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
+                                    <label className="text-3xs font-bold text-fg uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
                                     <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-indigo-500 resize-none"/>
                                  </div>
                                  <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
@@ -3896,7 +3896,7 @@ export default function RHPage() {
                                     <div key={r.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
                                        <div>
                                           <p className="font-bold text-slate-800 text-xs">🤝 {r.titulo} · {new Date(r.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-xs text-slate-600 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
+                                          <p className="text-xs text-slate-900 mt-1 font-medium whitespace-pre-line">{r.resumo}</p>
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir reunião?")) { await removerReuniaoColab(r.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
                                     </div>
@@ -3912,25 +3912,25 @@ export default function RHPage() {
                                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">Registrar Treinamento / Certificado</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Nome do Curso / Treinamento</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Nome do Curso / Treinamento</label>
                                        <input type="text" placeholder="Ex: Higiene ANVISA, Atendimento ao Cliente" value={treinoForm.nome_curso} onChange={e=>setTreinoForm({...treinoForm, nome_curso: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Instituição / Instrutor</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Instituição / Instrutor</label>
                                        <input type="text" placeholder="Ex: SENAC, Interno, Chef" value={treinoForm.instituicao} onChange={e=>setTreinoForm({...treinoForm, instituicao: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Data Conclusão</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Data Conclusão</label>
                                        <input type="date" value={treinoForm.data} onChange={e=>setTreinoForm({...treinoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Carga Horária</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Carga Horária</label>
                                        <input type="text" placeholder="Ex: 8 horas" value={treinoForm.carga_horaria} onChange={e=>setTreinoForm({...treinoForm, carga_horaria: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                     <div>
-                                       <label className="text-3xs font-bold text-muted uppercase block mb-1">Vencimento (Opcional)</label>
+                                       <label className="text-3xs font-bold text-fg uppercase block mb-1">Vencimento (Opcional)</label>
                                        <input type="date" value={treinoForm.vencimento} onChange={e=>setTreinoForm({...treinoForm, vencimento: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-500"/>
                                     </div>
                                  </div>
@@ -3946,7 +3946,7 @@ export default function RHPage() {
                                     <div key={t.id} className="p-3 bg-card border border-line rounded-2xl flex justify-between gap-2 shadow-sm">
                                        <div>
                                           <p className="font-bold text-slate-800 text-xs">🎓 {t.nome_curso} {t.carga_horaria ? `(${t.carga_horaria})` : ""}</p>
-                                          <p className="text-2xs font-bold text-muted mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="text-2xs font-bold text-fg mt-0.5">{t.instituicao ? `Instituição: ${t.instituicao} · ` : ""}Concluído em {new Date(t.data + "T12:00:00").toLocaleDateString("pt-BR")}</p>
                                           {t.vencimento && <p className="text-3xs font-bold text-amber-700 mt-0.5">Reciclagem prevista: {new Date(t.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}</p>}
                                        </div>
                                        <button type="button" onClick={async () => { if(confirm("Excluir treinamento?")) { await removerTreinamentoColab(t.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl shrink-0"><Trash2 size={14}/></button>
@@ -3969,9 +3969,9 @@ export default function RHPage() {
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Advertências</h2>
-                     <p className="text-sm font-bold text-muted mt-1">{funcAdv.nome} · aparecem na vida do colaborador</p>
+                     <p className="text-sm font-bold text-fg mt-1">{funcAdv.nome} · aparecem na vida do colaborador</p>
                   </div>
-                  <button onClick={() => setModalAdv(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalAdv(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <form onSubmit={salvarAdvertencia} className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 shrink-0 space-y-3">
@@ -3993,8 +3993,8 @@ export default function RHPage() {
                   {advLista.length === 0 ? (
                      <p className="text-sm font-medium text-subtle text-center py-4">Nenhuma advertência registrada.</p>
                   ) : advLista.map(a => (
-                     <div key={a.id} className="p-3 bg-slate-50 border border-line-soft rounded-xl flex items-center gap-3">
-                        <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
+                     <div key={a.id} className="p-3 bg-white border border-line-soft rounded-xl flex items-center gap-3">
+                        <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-900"}`}>{a.gravidade}</span>
                         <div className="flex-1 min-w-0">
                            <p className="text-sm font-bold text-fg-soft truncate">{a.motivo}</p>
                            <p className="text-3xs font-medium text-subtle">{a.data ? a.data.split("-").reverse().join("/") : "—"}{a.descricao ? ` · ${a.descricao}` : ""}</p>
@@ -4021,15 +4021,15 @@ export default function RHPage() {
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
-                     <p className="text-sm font-bold text-muted mt-1">{funcBanco.nome} · mês atual</p>
+                     <p className="text-sm font-bold text-fg mt-1">{funcBanco.nome} · mês atual</p>
                   </div>
-                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* Acumulado do mês vs limite de 8h */}
-               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-line"}`}>
+               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-white border-line"}`}>
                   <div className="flex justify-between items-baseline mb-2">
-                     <span className={`text-3xs font-bold uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-muted"}`}>
+                     <span className={`text-3xs font-bold uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-fg"}`}>
                         {critico ? "Limite de 8h atingido!" : alerta ? "Perto de estourar as 8h!" : "Acumulado no mês"}
                      </span>
                      <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-subtle">/ 8h00</span></span>
@@ -4037,7 +4037,7 @@ export default function RHPage() {
                   <div className="h-2.5 rounded-full overflow-hidden bg-card border border-line">
                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: critico ? "#DC2626" : alerta ? "#F59E0B" : "#059669" }} />
                   </div>
-                  {(alerta || critico) && <p className="text-2xs font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
+                  {(alerta || critico) && <p className="text-2xs font-bold mt-2 text-slate-900">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
                </div>
 
                {/* Compensar tudo com uma folga (registra a folga e zera os créditos) */}
@@ -4056,11 +4056,11 @@ export default function RHPage() {
                   <p className="text-3xs font-bold uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
                   <div className="flex flex-wrap items-end gap-3">
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block">Dia</label>
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block">Dia</label>
                         <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-card border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-sky-500"/>
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block">Minutos que faltaram</label>
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block">Minutos que faltaram</label>
                         <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
                      </div>
                      <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
@@ -4074,7 +4074,7 @@ export default function RHPage() {
                   {lancs.length === 0 ? (
                      <p className="text-sm font-medium text-subtle text-center py-4">Nenhum lançamento neste mês.</p>
                   ) : lancs.map(b => (
-                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-line-soft"}`}>
+                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-white border-line-soft"}`}>
                         <div className="flex-1 min-w-0">
                            <p className="text-sm font-bold text-fg-soft">
                               {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
@@ -4099,16 +4099,16 @@ export default function RHPage() {
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Gerenciar Folgas</h2>
-                     <p className="text-xs font-bold text-muted">{funcParaFolgas.nome}</p>
+                     <p className="text-xs font-bold text-fg">{funcParaFolgas.nome}</p>
                   </div>
-                  <button onClick={() => setModalFolgas(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalFolgas(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                   {/* Coluna 1: Adicionar Folgas */}
                   <div>
-                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-line-soft">
-                        <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Folgas Fixas (Semanais)</p>
+                     <div className="bg-white p-4 rounded-2xl mb-6 border border-line-soft">
+                        <p className="text-xs font-bold text-fg uppercase tracking-widest mb-2">Folgas Fixas (Semanais)</p>
                         <p className="text-sm font-medium text-fg-soft leading-snug">
                            As folgas semanais de <b>{funcParaFolgas.nome}</b> são os dias da semana que NÃO estão marcados na ficha de contratação.
                         </p>
@@ -4150,16 +4150,16 @@ export default function RHPage() {
                      </div>
 
                      <div>
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
                         <div className="flex gap-2">
-                           <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-fg-soft"/>
+                           <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-fg-soft"/>
                            <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-accent text-accent-fg px-4 font-bold rounded-xl hover:bg-accent transition-colors">Adicionar</button>
                         </div>
                      </div>
                   </div>
 
                   {/* Coluna 2: Folgas Agendadas */}
-                  <div className="bg-slate-50 rounded-2xl border border-line-soft p-4">
+                  <div className="bg-white rounded-2xl border border-line-soft p-4">
                      <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-line pb-2">Folgas Extras Agendadas</h3>
                      <div className="space-y-3">
                         {folgasEsporadicas.length === 0 ? (
@@ -4170,7 +4170,7 @@ export default function RHPage() {
                                  <div className="font-black text-fg-soft">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
                                  <div className="text-3xs font-bold text-indigo-500 uppercase">{folga.descricao || "Folga Extra"}</div>
                               </div>
-                              <button onClick={() => handleRemoverFolga(folga.id)} className="text-subtle hover:text-rose-600 transition-colors bg-slate-50 p-2 rounded-lg"><Trash2 size={16}/></button>
+                              <button onClick={() => handleRemoverFolga(folga.id)} className="text-subtle hover:text-rose-600 transition-colors bg-white p-2 rounded-lg"><Trash2 size={16}/></button>
                            </div>
                         ))}
                      </div>
@@ -4191,10 +4191,10 @@ export default function RHPage() {
                      </div>
                      <div>
                         <h2 className="font-black text-2xl text-slate-800">Consumo & Vales</h2>
-                        <p className="text-xs font-bold text-muted">{funcionarioConsumo.nome}</p>
+                        <p className="text-xs font-bold text-fg">{funcionarioConsumo.nome}</p>
                      </div>
                   </div>
-                  <button onClick={() => setModalConsumo(false)} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-muted hover:bg-slate-200 transition-colors"><X size={20}/></button>
+                  <button onClick={() => setModalConsumo(false)} className="w-10 h-10 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200 transition-colors"><X size={20}/></button>
                </div>
 
                <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
@@ -4210,16 +4210,16 @@ export default function RHPage() {
                      {/* Pratos do cardápio: clique para preencher descrição + valor */}
                      <div className="mb-5">
                         <div className="flex items-center justify-between mb-2">
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest flex items-center gap-1.5"><UtensilsCrossed size={13} /> Pratos do Cardápio</label>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest flex items-center gap-1.5"><UtensilsCrossed size={13} /> Pratos do Cardápio</label>
                            {cardapioConsumo.length > 0 && <span className="text-3xs font-bold text-subtle">{cardapioConsumo.length} itens</span>}
                         </div>
                         {cardapioConsumo.length === 0 ? (
-                           <p className="text-xs font-medium text-subtle bg-slate-50 border border-line-soft rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
+                           <p className="text-xs font-medium text-subtle bg-white border border-line-soft rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
                         ) : (
                            <>
                               <div className="relative mb-2">
                                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
-                                 <input type="text" value={buscaPrato} onChange={e => setBuscaPrato(e.target.value)} placeholder="Buscar prato..." className="w-full p-2.5 pl-9 bg-slate-50 border border-line rounded-xl font-medium text-sm outline-none focus:border-teal-500 text-fg-soft" />
+                                 <input type="text" value={buscaPrato} onChange={e => setBuscaPrato(e.target.value)} placeholder="Buscar prato..." className="w-full p-2.5 pl-9 bg-white border border-line rounded-xl font-medium text-sm outline-none focus:border-teal-500 text-fg-soft" />
                               </div>
                               <div className="max-h-40 overflow-y-auto pr-1 space-y-1.5">
                                  {cardapioConsumo
@@ -4244,24 +4244,24 @@ export default function RHPage() {
 
                      <div className="space-y-4 flex-1">
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Descrição do Consumo</label>
-                           <input type="text" value={novoConsumo.descricao} onChange={e=>setNovoConsumo({...novoConsumo, descricao: e.target.value})} placeholder="Ex: Almoço, Cerveja, Hambúrguer..." className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft"/>
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Descrição do Consumo</label>
+                           <input type="text" value={novoConsumo.descricao} onChange={e=>setNovoConsumo({...novoConsumo, descricao: e.target.value})} placeholder="Ex: Almoço, Cerveja, Hambúrguer..." className="w-full p-4 bg-white border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft"/>
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Data / Hora</label>
-                              <input type="datetime-local" value={novoConsumo.data_consumo} onChange={e=>setNovoConsumo({...novoConsumo, data_consumo: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft"/>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Data / Hora</label>
+                              <input type="datetime-local" value={novoConsumo.data_consumo} onChange={e=>setNovoConsumo({...novoConsumo, data_consumo: e.target.value})} className="w-full p-4 bg-white border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Valor Original (R$)</label>
-                              <input type="number" step="0.01" value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50.00" className="w-full p-4 bg-slate-50 border border-line rounded-xl font-black text-fg-soft outline-none focus:border-teal-500"/>
+                              <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Valor Original (R$)</label>
+                              <input type="number" step="0.01" value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50.00" className="w-full p-4 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-teal-500"/>
                            </div>
                         </div>
 
                         <div>
-                           <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-1">Forma de Pagamento</label>
-                           <select value={novoConsumo.forma_pagamento} onChange={e=>setNovoConsumo({...novoConsumo, forma_pagamento: e.target.value})} className="w-full p-4 bg-slate-50 border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft appearance-none">
+                           <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Forma de Pagamento</label>
+                           <select value={novoConsumo.forma_pagamento} onChange={e=>setNovoConsumo({...novoConsumo, forma_pagamento: e.target.value})} className="w-full p-4 bg-white border border-line rounded-xl font-bold outline-none focus:border-teal-500 text-fg-soft appearance-none">
                               <option value="Desconto em Folha">Desconto em Folha (Fica Pendente)</option>
                               <option value="Dinheiro">Dinheiro (Pago na hora)</option>
                               <option value="Pix">PIX (Pago na hora)</option>
@@ -4284,11 +4284,11 @@ export default function RHPage() {
                   </div>
 
                   {/* Lado Direito: Histórico */}
-                  <div className="bg-slate-50 rounded-2xl border border-line-soft p-4 flex flex-col h-full overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-line-soft p-4 flex flex-col h-full overflow-hidden">
                      <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-line pb-2 flex items-center justify-between">
                         <span>Extrato de Consumo</span>
                         {listaConsumo.length > 0 && (
-                           <span className="text-3xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{listaConsumo.length} itens</span>
+                           <span className="text-3xs bg-slate-200 text-slate-900 px-2 py-0.5 rounded-full">{listaConsumo.length} itens</span>
                         )}
                      </h3>
                      
@@ -4332,7 +4332,7 @@ export default function RHPage() {
                                        <select 
                                           value={item.forma_pagamento} 
                                           onChange={(e) => alterarFormaPagamentoConsumo(item.id, item.status_pagamento, e.target.value)}
-                                          className="text-3xs font-bold bg-slate-50 border border-line text-slate-600 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
+                                          className="text-3xs font-bold bg-white border border-line text-slate-900 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
                                        >
                                           <option value="Desconto em Folha">Desconto em Folha</option>
                                           <option value="Dinheiro">Dinheiro</option>
@@ -4347,7 +4347,7 @@ export default function RHPage() {
                                        )}
                                     </div>
                                     
-                                    <button onClick={() => apagarConsumo(item.id)} className="text-subtle hover:text-rose-600 transition-colors bg-slate-50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
+                                    <button onClick={() => apagarConsumo(item.id)} className="text-subtle hover:text-rose-600 transition-colors bg-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
                                        <Trash2 size={14}/>
                                     </button>
                                  </div>
@@ -4359,7 +4359,7 @@ export default function RHPage() {
                      {!loadingConsumo && listaConsumo.length > 0 && (
                         <div className="pt-4 border-t border-line mt-2">
                            <div className="flex justify-between items-center text-sm">
-                              <span className="font-bold text-muted uppercase tracking-widest text-xs">Total Pendente</span>
+                              <span className="font-bold text-fg uppercase tracking-widest text-xs">Total Pendente</span>
                               <span className="font-black text-rose-600 text-lg">
                                  {fmtBRL(listaConsumo.filter(i => i.status_pagamento !== "Pago").reduce((acc, curr) => acc + curr.valor_desconto, 0))}
                               </span>
@@ -4378,9 +4378,9 @@ export default function RHPage() {
                <div className="flex items-center justify-between mb-6">
                   <div>
                      <h2 className="text-2xl font-black tracking-tight text-slate-800">Lançar Diária</h2>
-                     <p className="text-muted font-medium text-sm">Desmembramento do Financeiro</p>
+                     <p className="text-fg font-medium text-sm">Desmembramento do Financeiro</p>
                   </div>
-                  <button onClick={() => setModalLancamento(false)} className="w-10 h-10 flex items-center justify-center bg-elevated text-muted rounded-full hover:bg-slate-200 transition-colors">
+                  <button onClick={() => setModalLancamento(false)} className="w-10 h-10 flex items-center justify-center bg-card text-fg rounded-full hover:bg-slate-200 transition-colors">
                      <X size={20} />
                   </button>
                </div>
@@ -4393,20 +4393,20 @@ export default function RHPage() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">INSS (5%)</label>
-                        <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">INSS (5%)</label>
+                        <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">FGTS (8%)</label>
-                        <input type="text" value={formLancamento.fgts} onChange={e => setFormLancamento({...formLancamento, fgts: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">FGTS (8%)</label>
+                        <input type="text" value={formLancamento.fgts} onChange={e => setFormLancamento({...formLancamento, fgts: e.target.value})} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
-                        <input type="text" value={formLancamento.taxa} onChange={e => setFormLancamento({...formLancamento, taxa: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
+                        <input type="text" value={formLancamento.taxa} onChange={e => setFormLancamento({...formLancamento, taxa: e.target.value})} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                      <div>
-                        <label className="text-3xs font-bold text-muted uppercase tracking-widest block mb-1">Valor Fixo Base</label>
-                        <input type="text" value={formLancamento.fixo} onChange={e => setFormLancamento({...formLancamento, fixo: e.target.value})} className="w-full p-3 bg-slate-50 border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
+                        <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">Valor Fixo Base</label>
+                        <input type="text" value={formLancamento.fixo} onChange={e => setFormLancamento({...formLancamento, fixo: e.target.value})} className="w-full p-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500" />
                      </div>
                   </div>
                   

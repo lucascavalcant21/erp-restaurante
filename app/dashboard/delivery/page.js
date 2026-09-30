@@ -123,13 +123,13 @@ export default function DeliveryKanbanPage() {
   // ------------------------------------------------------------------
   if (abaConfig) {
     return (
-      <div className="flex flex-col h-[calc(100vh-80px)] bg-slate-50 relative overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-80px)] bg-white relative overflow-hidden">
         {toast && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-800 text-white px-6 py-3 rounded-full font-bold">{toast}</div>}
         
         <div className="bg-card border-b border-line p-4 sm:p-6 flex flex-wrap justify-between items-center gap-3 z-10 shadow-sm">
            <div>
               <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-success"/> Ajustes do Delivery</h1>
-              <p className="text-sm font-bold text-muted mt-1">Taxas, Zonas de Entrega e Motoboys</p>
+              <p className="text-sm font-bold text-fg mt-1">Taxas, Zonas de Entrega e Motoboys</p>
            </div>
            <button onClick={() => setAbaConfig(false)} className="px-6 py-3 bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-slate-900 transition-colors">
               <ArrowLeft size={18} /> Voltar para Operação
@@ -140,7 +140,7 @@ export default function DeliveryKanbanPage() {
            <div className="max-w-4xl mx-auto space-y-8">
               {/* Regras Gerais */}
               <div className="bg-card p-4 sm:p-8 rounded-2xl sm:rounded-[24px] shadow-sm border border-line">
-                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Map size={24} className="text-slate-600" /> Regras de Raio e Taxa</h2>
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Map size={24} className="text-slate-900" /> Regras de Raio e Taxa</h2>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <Field label="Raio de Atendimento (KM)">
                       <NumberInput value={configs.raio_km} onChange={(e) => handleConfigChange("raio_km", Number(e.target.value))} />
@@ -159,22 +159,22 @@ export default function DeliveryKanbanPage() {
 
               {/* Tabela de Motoboys Simplificada pro Walkthrough */}
               <div className="bg-card p-4 sm:p-8 rounded-2xl sm:rounded-[24px] shadow-sm border border-line">
-                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-slate-600" /> Frota de Entregadores</h2>
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-slate-900" /> Frota de Entregadores</h2>
                  
                  {motoboys.length === 0 ? (
-                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 font-bold text-muted">Nenhum motoboy cadastrado.</div>
+                    <div className="text-center py-10 bg-white rounded-xl border border-dashed border-slate-300 font-bold text-fg">Nenhum motoboy cadastrado.</div>
                  ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        {motoboys.map(m => (
-                          <div key={m.id} className="flex items-center justify-between p-4 border border-line rounded-xl bg-slate-50">
+                          <div key={m.id} className="flex items-center justify-between p-4 border border-line rounded-xl bg-white">
                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-card rounded-full flex items-center justify-center font-black text-muted shadow-sm">{m.nome[0].toUpperCase()}</div>
+                                <div className="w-12 h-12 bg-card rounded-full flex items-center justify-center font-black text-fg shadow-sm">{m.nome[0].toUpperCase()}</div>
                                 <div>
                                    <p className="font-bold text-slate-800">{m.nome}</p>
-                                   <p className="text-xs font-bold text-muted">{m.placa || "Sem Placa"} · {m.telefone}</p>
+                                   <p className="text-xs font-bold text-fg">{m.placa || "Sem Placa"} · {m.telefone}</p>
                                 </div>
                              </div>
-                             <span className={`px-3 py-1 rounded-md text-3xs font-bold uppercase tracking-widest ${m.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-muted'}`}>{m.status}</span>
+                             <span className={`px-3 py-1 rounded-md text-3xs font-bold uppercase tracking-widest ${m.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-fg'}`}>{m.status}</span>
                           </div>
                        ))}
                     </div>
@@ -195,7 +195,7 @@ export default function DeliveryKanbanPage() {
   const colEntregue = pedidos.filter(p => p.estagio === "entregue");
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-elevated font-sans overflow-hidden relative">
+    <div className="flex flex-col h-[calc(100vh-80px)] bg-card font-sans overflow-hidden relative">
       {toast && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl font-black text-sm animate-bounce">{toast}</div>}
 
       {/* HEADER OPERACIONAL */}
@@ -206,16 +206,16 @@ export default function DeliveryKanbanPage() {
             </div>
             <div>
                <h1 className="text-2xl font-black text-slate-800 tracking-tight">Expedição Delivery</h1>
-               <p className="text-sm font-bold text-muted">Painel de controle de envios</p>
+               <p className="text-sm font-bold text-fg">Painel de controle de envios</p>
             </div>
          </div>
 
          <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
-               <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-elevated rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
+               <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg" />
+               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-card rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
             </div>
-            <button onClick={() => setAbaConfig(true)} className="px-5 py-3 bg-card border-2 border-line hover:border-slate-300 hover:bg-slate-50 text-slate-600 font-black rounded-xl transition-all shadow-sm flex items-center gap-2">
+            <button onClick={() => setAbaConfig(true)} className="px-5 py-3 bg-card border-2 border-line hover:border-slate-300 hover:bg-white text-slate-900 font-black rounded-xl transition-all shadow-sm flex items-center gap-2">
                <Settings size={18} /> Ajustes
             </button>
          </div>
@@ -228,24 +228,24 @@ export default function DeliveryKanbanPage() {
          <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-fg-soft uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Flame size={18} className="text-slate-600" /> Na Cozinha
+                  <Flame size={18} className="text-slate-900" /> Na Cozinha
                </h2>
-               <span className="bg-slate-200 text-slate-600 font-bold px-3 py-1 rounded-full text-xs">{colCozinha.length}</span>
+               <span className="bg-slate-200 text-slate-900 font-bold px-3 py-1 rounded-full text-xs">{colCozinha.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colCozinha.map(p => (
                  <div key={p.id} className="bg-card p-5 rounded-[20px] shadow-sm border-2 border-line-soft border-l-4 border-l-orange-500 opacity-80 pointer-events-none">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <span className="text-xs font-bold text-muted">{horaStr(p.created_at)}</span>
+                       <span className="text-xs font-bold text-fg">{horaStr(p.created_at)}</span>
                     </div>
-                    <p className="font-bold text-slate-600 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
-                    <div className="bg-slate-50 text-success font-bold text-3xs uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
+                    <p className="font-bold text-slate-900 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
+                    <div className="bg-white text-success font-bold text-3xs uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
                        Aguardando KDS
                     </div>
                  </div>
                ))}
-               {colCozinha.length === 0 && <div className="text-center p-6 border-2 border-dashed border-line rounded-[20px] font-bold text-muted text-sm">Vazio</div>}
+               {colCozinha.length === 0 && <div className="text-center p-6 border-2 border-dashed border-line rounded-[20px] font-bold text-fg text-sm">Vazio</div>}
             </div>
          </div>
 
@@ -262,17 +262,17 @@ export default function DeliveryKanbanPage() {
                  <div key={p.id} className="bg-card p-5 rounded-[20px] shadow-[0_10px_30px_rgba(16,185,129,0.15)] border-2 border-emerald-400 transform hover:-translate-y-1 transition-transform">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800 text-lg">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <span className="text-xs font-bold text-muted">{horaStr(p.created_at)}</span>
+                       <span className="text-xs font-bold text-fg">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-800 text-sm mb-1">👤 {p.cliente || "Cliente Delivery"}</p>
-                    <p className="font-medium text-muted text-xs mb-4 line-clamp-2">📍 {p.observacao || "Endereço não informado"}</p>
+                    <p className="font-medium text-fg text-xs mb-4 line-clamp-2">📍 {p.observacao || "Endereço não informado"}</p>
                     
                     <button onClick={() => setModalDespacho(p)} className="w-full py-3 bg-emerald-500 hover:bg-accent text-accent-fg font-black uppercase tracking-widest rounded-xl text-sm shadow-md transition-colors flex items-center justify-center gap-2">
                        <Bike size={16} /> Despachar
                     </button>
                  </div>
                ))}
-               {colRampa.length === 0 && <div className="text-center p-6 border-2 border-dashed border-line rounded-[20px] font-bold text-muted text-sm">Rampa Livre</div>}
+               {colRampa.length === 0 && <div className="text-center p-6 border-2 border-dashed border-line rounded-[20px] font-bold text-fg text-sm">Rampa Livre</div>}
             </div>
          </div>
 
@@ -280,47 +280,47 @@ export default function DeliveryKanbanPage() {
          <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-fg-soft uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Route size={18} className="text-slate-600" /> Em Rota
+                  <Route size={18} className="text-slate-900" /> Em Rota
                </h2>
-               <span className="bg-slate-200 text-slate-600 font-bold px-3 py-1 rounded-full text-xs">{colRota.length}</span>
+               <span className="bg-slate-200 text-slate-900 font-bold px-3 py-1 rounded-full text-xs">{colRota.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colRota.map(p => (
                  <div key={p.id} className="bg-card p-5 rounded-[20px] shadow-sm border-2 border-line border-l-4 border-l-blue-500">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <span className="text-xs font-bold text-muted">{horaStr(p.created_at)}</span>
+                       <span className="text-xs font-bold text-fg">{horaStr(p.created_at)}</span>
                     </div>
-                    <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
-                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg text-accent text-xs font-bold uppercase tracking-widest mb-3">
+                    <p className="font-bold text-slate-900 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg text-accent text-xs font-bold uppercase tracking-widest mb-3">
                        <Bike size={14}/> {p.motoboy || "Motoboy"}
                     </div>
                     
-                    <button onClick={() => moverPedido(p.id, "entregue")} className="w-full py-2 bg-elevated hover:bg-slate-200 text-slate-600 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => moverPedido(p.id, "entregue")} className="w-full py-2 bg-card hover:bg-slate-200 text-slate-900 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
                        <Check size={14} /> Marcar Entregue
                     </button>
                  </div>
                ))}
-               {colRota.length === 0 && <div className="text-center p-6 border-2 border-dashed border-line rounded-[20px] font-bold text-muted text-sm">Nenhum motoboy na rua</div>}
+               {colRota.length === 0 && <div className="text-center p-6 border-2 border-dashed border-line rounded-[20px] font-bold text-fg text-sm">Nenhum motoboy na rua</div>}
             </div>
          </div>
 
          {/* COLUNA 4: ENTREGUES */}
          <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
-               <h2 className="font-black text-muted uppercase tracking-widest text-sm flex items-center gap-2">
+               <h2 className="font-black text-fg uppercase tracking-widest text-sm flex items-center gap-2">
                   <PackageCheck size={18} /> Entregues
                </h2>
-               <span className="bg-slate-200 text-muted font-bold px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
+               <span className="bg-slate-200 text-fg font-bold px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colEntregue.map(p => (
                  <div key={p.id} className="bg-slate-200 p-4 rounded-[16px] border border-slate-300 opacity-60">
                     <div className="flex justify-between items-start mb-1">
-                       <span className="font-bold text-muted text-sm">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <Check size={14} className="text-muted" />
+                       <span className="font-bold text-fg text-sm">#{p.id.slice(0,4).toUpperCase()}</span>
+                       <Check size={14} className="text-fg" />
                     </div>
-                    <p className="font-semibold text-muted text-xs">👤 {p.cliente || "Cliente"}</p>
+                    <p className="font-semibold text-fg text-xs">👤 {p.cliente || "Cliente"}</p>
                  </div>
                ))}
             </div>
@@ -331,12 +331,12 @@ export default function DeliveryKanbanPage() {
       {modalDespacho && (
         <div className="fixed inset-0 z-[1000] flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
           <div className="bg-card rounded-2xl sm:rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 my-3 sm:my-0 max-h-[94vh]">
-             <div className="p-4 sm:p-8 border-b border-line-soft flex flex-wrap justify-between items-center gap-3 bg-slate-50">
+             <div className="p-4 sm:p-8 border-b border-line-soft flex flex-wrap justify-between items-center gap-3 bg-white">
                 <div>
-                   <p className="text-sm font-bold text-muted uppercase tracking-widest mb-1">Despachar Pedido</p>
+                   <p className="text-sm font-bold text-fg uppercase tracking-widest mb-1">Despachar Pedido</p>
                    <h2 className="font-black text-3xl text-slate-800 tracking-tight">#{modalDespacho.id.slice(0,4).toUpperCase()}</h2>
                 </div>
-                <button onClick={() => setModalDespacho(null)} className="w-12 h-12 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-slate-800 hover:bg-elevated transition-colors"><X size={20}/></button>
+                <button onClick={() => setModalDespacho(null)} className="w-12 h-12 rounded-full bg-card border border-line flex items-center justify-center text-fg hover:text-slate-800 hover:bg-card transition-colors"><X size={20}/></button>
              </div>
 
              <div className="p-4 sm:p-8 overflow-y-auto">
@@ -344,9 +344,9 @@ export default function DeliveryKanbanPage() {
                 
                 <div className="space-y-3 mb-8 max-h-60 overflow-y-auto hide-scrollbar pr-2">
                    {motoboys.filter(m => m.status === 'online').length === 0 ? (
-                      <div className="p-6 bg-slate-50 border border-line rounded-2xl text-center">
+                      <div className="p-6 bg-white border border-line rounded-2xl text-center">
                          <p className="font-bold text-success mb-1">Nenhum motoboy Online!</p>
-                         <p className="text-xs text-slate-600">Vá em Configurações para ativar os motoboys.</p>
+                         <p className="text-xs text-slate-900">Vá em Configurações para ativar os motoboys.</p>
                       </div>
                    ) : (
                       motoboys.filter(m => m.status === 'online').map(mb => (
@@ -356,15 +356,15 @@ export default function DeliveryKanbanPage() {
                             className="w-full flex items-center justify-between p-4 bg-card border-2 border-line-soft hover:border-emerald-500 rounded-2xl transition-all group"
                          >
                             <div className="flex items-center gap-4">
-                               <div className="w-12 h-12 bg-elevated rounded-full flex items-center justify-center font-black text-muted group-hover:bg-elevated group-hover:text-success transition-colors">
+                               <div className="w-12 h-12 bg-card rounded-full flex items-center justify-center font-black text-fg group-hover:bg-card group-hover:text-success transition-colors">
                                   <Bike size={20} />
                                </div>
                                <div className="text-left">
                                   <p className="font-black text-slate-800 text-lg">{mb.nome}</p>
-                                  <p className="text-xs font-bold text-muted">{mb.placa || "Placa não informada"}</p>
+                                  <p className="text-xs font-bold text-fg">{mb.placa || "Placa não informada"}</p>
                                </div>
                             </div>
-                            <span className="font-bold text-slate-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity">Selecionar</span>
+                            <span className="font-bold text-slate-900 text-sm opacity-0 group-hover:opacity-100 transition-opacity">Selecionar</span>
                          </button>
                       ))
                    )}
@@ -373,7 +373,7 @@ export default function DeliveryKanbanPage() {
                 {/* Opção Rápida: Cliente Retirou */}
                 <button 
                   onClick={() => moverPedido(modalDespacho.id, "entregue", "Retirada Balcão")}
-                  className="w-full py-4 bg-elevated hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-colors text-sm uppercase tracking-widest"
+                  className="w-full py-4 bg-card hover:bg-slate-200 text-slate-900 font-bold rounded-xl transition-colors text-sm uppercase tracking-widest"
                 >
                    Cliente retirou no balcão
                 </button>

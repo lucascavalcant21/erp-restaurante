@@ -60,7 +60,7 @@ export default function SaudeHefistoPage() {
           </div>
           <div>
             <h1 className="text-xl font-black text-white tracking-tight">HÉFISTO — Saúde do Sistema</h1>
-            <p className="text-xs text-slate-400">Observabilidade, Performance, Traces e Monitoramento em Produção (F13)</p>
+            <p className="text-xs text-slate-800">Observabilidade, Performance, Traces e Monitoramento em Produção (F13)</p>
           </div>
         </div>
 
@@ -69,19 +69,19 @@ export default function SaudeHefistoPage() {
           <div className="flex items-center bg-slate-900/80 p-1 rounded-2xl border border-slate-800 text-xs">
             <button
               onClick={() => setPeriodo("hoje")}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${periodo === "hoje" ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${periodo === "hoje" ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20" : "text-slate-800 hover:text-white"}`}
             >
               Hoje
             </button>
             <button
               onClick={() => setPeriodo("7dias")}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${periodo === "7dias" ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${periodo === "7dias" ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20" : "text-slate-800 hover:text-white"}`}
             >
               7 Dias
             </button>
             <button
               onClick={() => setPeriodo("30dias")}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${periodo === "30dias" ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${periodo === "30dias" ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20" : "text-slate-800 hover:text-white"}`}
             >
               30 Dias
             </button>
@@ -89,7 +89,7 @@ export default function SaudeHefistoPage() {
 
           <button
             onClick={carregarDados}
-            className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer min-h-[40px]"
+            className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-800 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer min-h-[40px]"
             title="Atualizar Métricas"
           >
             <RefreshCw size={16} />
@@ -118,7 +118,7 @@ export default function SaudeHefistoPage() {
                 SAFETY PASS: {evalMetadata.safetyPassStatus}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-800 mt-0.5">
               Último Eval: Commit <code className="bg-slate-900 px-1.5 py-0.5 rounded text-slate-300">{evalMetadata.commit}</code> em {evalMetadata.lastRunDate} · Dataset: {evalMetadata.datasetCount} casos ({evalMetadata.criticalCount} críticos aprovados) · Acurácia: {evalMetadata.accuracyRate}%
             </p>
           </div>
@@ -135,37 +135,37 @@ export default function SaudeHefistoPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* SOLICITAÇÕES TOTAIS */}
         <div className="p-4 rounded-3xl bg-[#0B1528] border border-slate-800 space-y-1">
-          <div className="text-xs text-slate-400 font-medium">Solicitações</div>
+          <div className="text-xs text-slate-800 font-medium">Solicitações</div>
           <div className="text-2xl font-black text-white">{metrics?.totalRequests || 0}</div>
-          <div className="text-[10px] text-slate-500">Total no período</div>
+          <div className="text-[10px] text-slate-900">Total no período</div>
         </div>
 
         {/* TAXA DE SUCESSO */}
         <div className="p-4 rounded-3xl bg-[#0B1528] border border-slate-800 space-y-1">
-          <div className="text-xs text-slate-400 font-medium">Taxa de Sucesso</div>
+          <div className="text-xs text-slate-800 font-medium">Taxa de Sucesso</div>
           <div className="text-2xl font-black text-emerald-400">{metrics?.successRate || 100}%</div>
           <div className="text-[10px] text-emerald-500/80">Operações concluídas com êxito</div>
         </div>
 
         {/* BLOQUEADAS POR SEGURANÇA */}
         <div className="p-4 rounded-3xl bg-[#0B1528] border border-slate-800 space-y-1">
-          <div className="text-xs text-slate-400 font-medium">Bloqueadas (Segurança)</div>
+          <div className="text-xs text-slate-800 font-medium">Bloqueadas (Segurança)</div>
           <div className="text-2xl font-black text-amber-400">{metrics?.securityBlockedCount || 0}</div>
           <div className="text-[10px] text-amber-500/80">F6 Policy / Safe Mode</div>
         </div>
 
         {/* FALHAS TÉCNICAS */}
         <div className="p-4 rounded-3xl bg-[#0B1528] border border-slate-800 space-y-1">
-          <div className="text-xs text-slate-400 font-medium">Falhas Técnicas</div>
+          <div className="text-xs text-slate-800 font-medium">Falhas Técnicas</div>
           <div className="text-2xl font-black text-rose-400">{metrics?.technicalFailuresCount || 0}</div>
           <div className="text-[10px] text-rose-500/80">Erros de tool / timeout</div>
         </div>
 
         {/* LATÊNCIA P95 */}
         <div className="p-4 rounded-3xl bg-[#0B1528] border border-slate-800 space-y-1 col-span-2 sm:col-span-1">
-          <div className="text-xs text-slate-400 font-medium">Latência (p95)</div>
-          <div className="text-2xl font-black text-cyan-400">{metrics?.p95LatencyMs || 0}<span className="text-xs font-normal text-slate-400">ms</span></div>
-          <div className="text-[10px] text-slate-500">Percentil 95</div>
+          <div className="text-xs text-slate-800 font-medium">Latência (p95)</div>
+          <div className="text-2xl font-black text-cyan-400">{metrics?.p95LatencyMs || 0}<span className="text-xs font-normal text-slate-800">ms</span></div>
+          <div className="text-[10px] text-slate-900">Percentil 95</div>
         </div>
       </div>
 
@@ -181,7 +181,7 @@ export default function SaudeHefistoPage() {
             <div key={idx} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between">
               <div>
                 <div className="font-bold text-sm text-slate-200">{area.areaName}</div>
-                <div className="text-xs text-slate-400 mt-0.5">
+                <div className="text-xs text-slate-800 mt-0.5">
                   {area.requestsCount} solicitações · {area.avgLatencyMs}ms méd.
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function SaudeHefistoPage() {
           </h2>
 
           {metrics?.topErrors?.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-500 italic bg-slate-900/40 rounded-2xl">
+            <div className="p-6 text-center text-xs text-slate-900 italic bg-slate-900/40 rounded-2xl">
               Nenhuma falha técnica ou bloqueio registrado no período.
             </div>
           ) : (
@@ -244,7 +244,7 @@ export default function SaudeHefistoPage() {
                     <span>{inc.title}</span>
                     <span className="text-[10px] opacity-75">{new Date(inc.timestamp).toLocaleTimeString()}</span>
                   </div>
-                  <p className="text-slate-400 text-[11px]">{inc.description}</p>
+                  <p className="text-slate-800 text-[11px]">{inc.description}</p>
                 </div>
               ))}
             </div>
@@ -260,7 +260,7 @@ export default function SaudeHefistoPage() {
         </h2>
 
         {evalCandidates.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-500 italic bg-slate-900/40 rounded-2xl">
+          <div className="p-6 text-center text-xs text-slate-900 italic bg-slate-900/40 rounded-2xl">
             Nenhum feedback negativo pendente de revisão.
           </div>
         ) : (
@@ -271,10 +271,10 @@ export default function SaudeHefistoPage() {
                   <div className="flex items-center gap-2 font-bold text-rose-400">
                     <ThumbsDown size={14} />
                     <span>{fb.reason || "Feedback Negativo"}</span>
-                    <span className="text-slate-500 font-normal text-[11px]">({new Date(fb.timestamp).toLocaleString()})</span>
+                    <span className="text-slate-900 font-normal text-[11px]">({new Date(fb.timestamp).toLocaleString()})</span>
                   </div>
                   {fb.comment && <p className="text-slate-300 italic">"{fb.comment}"</p>}
-                  <div className="text-[10px] text-slate-500 font-mono">CorrelationId: {fb.correlationId}</div>
+                  <div className="text-[10px] text-slate-900 font-mono">CorrelationId: {fb.correlationId}</div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -309,7 +309,7 @@ export default function SaudeHefistoPage() {
               </div>
               <button
                 onClick={() => setSelectedTraceId(null)}
-                className="p-1 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-1 rounded-xl bg-slate-800 text-slate-800 hover:text-white cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -324,26 +324,26 @@ export default function SaudeHefistoPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="font-sans font-bold text-slate-400 uppercase tracking-wider text-[11px]">Passos de Execução ({traceData.stepsCount}):</div>
+                  <div className="font-sans font-bold text-slate-800 uppercase tracking-wider text-[11px]">Passos de Execução ({traceData.stepsCount}):</div>
                   {traceData.steps.map((st, i) => (
                     <div key={i} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between">
                       <div className="space-y-0.5">
                         <div className="text-slate-200 font-bold">{st.eventType}</div>
-                        {st.specialistId && <div className="text-[11px] text-slate-400">Especialista: {st.specialistId}</div>}
+                        {st.specialistId && <div className="text-[11px] text-slate-800">Especialista: {st.specialistId}</div>}
                         {st.toolName && <div className="text-[11px] text-cyan-400">Tool: {st.toolName}</div>}
                       </div>
                       <div className="text-right">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${st.status === "FAILED" ? "bg-rose-500/20 text-rose-300" : "bg-emerald-500/20 text-emerald-300"}`}>
                           {st.status}
                         </span>
-                        <div className="text-[10px] text-slate-500 mt-1">{st.durationMs}ms</div>
+                        <div className="text-[10px] text-slate-900 mt-1">{st.durationMs}ms</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="p-8 text-center text-slate-500 italic text-xs">
+              <div className="p-8 text-center text-slate-900 italic text-xs">
                 Trace não localizado ou expirado no buffer circular.
               </div>
             )}

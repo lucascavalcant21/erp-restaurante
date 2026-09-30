@@ -66,6 +66,12 @@ export default function HefistoCopilotPanel() {
   }, [sessao, unidadeAtiva]);
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-hefisto-copilot', handleOpen);
+    return () => window.removeEventListener('open-hefisto-copilot', handleOpen);
+  }, []);
+
+  useEffect(() => {
     carregarInboxCount();
   }, [carregarInboxCount, pathname]);
 
@@ -301,23 +307,7 @@ export default function HefistoCopilotPanel() {
     escutaRef.current?.start();
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 z-40 md:bottom-6 md:right-6 flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 shadow-xl rounded-full px-4 py-3 transition-all duration-200 active:scale-95 group"
-        title="Abrir Héfisto Copiloto (Alt+H)"
-      >
-        <Sparkles className="w-5 h-5 text-amber-400 group-hover:rotate-12 transition-transform" />
-        <span className="text-xs font-semibold text-slate-100 hidden sm:inline">Héfisto Copiloto</span>
-        {inboxCount > 0 && (
-          <span className="bg-amber-500 text-slate-950 text-[10px] font-bold rounded-full px-1.5 py-0.5 animate-pulse">
-            {inboxCount}
-          </span>
-        )}
-      </button>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-sm transition-opacity">

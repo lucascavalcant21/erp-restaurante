@@ -393,7 +393,7 @@ export default function FichaTecnicaPage() {
       ) : null}
 
       {podeVerCustos ? (
-        <section className="rounded-2xl border border-line bg-slate-50 p-4">
+        <section className="rounded-2xl border border-line bg-transparent p-4">
           <h2 className="mb-3 text-sm font-black text-fg">Custos (uso interno)</h2>
           <PainelCustosInternos ficha={ficha} fichas={todasFichas} custoPorcao={custoPorcao} preco={preco}
             historico={historico} statusHistorico={histSemTabela ? "sem_tabela" : "ok"} registrando={registrandoCusto}
@@ -468,7 +468,7 @@ export default function FichaTecnicaPage() {
                         <span className="text-xs text-muted">{fmtData(v.created_at)}</span>
                         {v.usuario_nome ? <span className="text-xs text-subtle">· {v.usuario_nome}</span> : null}
                         {anterior ? (
-                          <button onClick={() => setComparando({ a: anterior, b: v })} className="ml-auto rounded-lg border border-line px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                          <button onClick={() => setComparando({ a: anterior, b: v })} className="ml-auto rounded-lg border border-line px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-transparent">
                             Comparar com v{anterior.versao}
                           </button>
                         ) : null}
@@ -489,7 +489,7 @@ export default function FichaTecnicaPage() {
 function AcaoBtn({ icone: Icone, children, onClick, carregando = false }) {
   return (
     <button onClick={onClick} disabled={carregando}
-      className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+      className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-transparent disabled:opacity-50">
       {carregando ? <Loader2 size={15} className="animate-spin" /> : <Icone size={15} />}
       {children}
     </button>

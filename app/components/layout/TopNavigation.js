@@ -107,7 +107,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
           </Link>
 
           {/* NAVEGAÇÃO DESKTOP COM SUBMENUS */}
-          <nav className="hidden xl:flex items-center h-full gap-2 overflow-hidden">
+          <nav className="hidden xl:flex items-center h-full gap-2">
             {modules.map((mod) => {
               const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
               const isHovered = hoveredModule === mod.id;
@@ -129,7 +129,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
                   {/* DROPDOWN SUBMENU */}
                   {isHovered && (
-                    <div className="absolute top-full left-0 mt-0 w-64 bg-zinc-900 border border-zinc-800 rounded-b-2xl rounded-tr-2xl shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-full left-0 mt-0 w-64 bg-zinc-900 border border-zinc-800 rounded-b-2xl rounded-tr-2xl z-[100] shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
                       {mod.submodules.map(sub => (
                         <Link 
                           key={sub.href} 

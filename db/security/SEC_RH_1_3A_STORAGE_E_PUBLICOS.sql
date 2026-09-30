@@ -392,3 +392,94 @@ select 'extras_convites SELECT', has_table_privilege('anon', 'public.extras_conv
      grant insert on table public.candidatos to anon;
    Só se o deploy tiver sido revertido — com o código novo nada usa isso, e
    devolver o grant reabre a exposição. */
+
+
+/* ═══ REGISTRO DE EXECUÇÃO EM PRODUÇÃO — 29 e 30/09/2026 ════════════════════
+   O que efetivamente rodou, na ordem. Mantido aqui para o arquivo refletir o
+   estado real do banco.
+
+   FASE 0 e FASE 1 ... SQL Editor (FASE 1 já sem REVOKE/UPDATE — commit 5b8f46d)
+   FASE 2 ............ contagem 2.0 → conversão 2.1 → recontagem. 2 referências
+                       convertidas (documentos_rh 1, funcionarios 1), 0 não
+                       convertíveis. Checkpoint: 2 de 2 arquivos existentes.
+   FASE 3 ............ scripts/sec_rh_mover_fotos_anexos.mjs: simulação limpa,
+                       --aplicar (1 foto movida para rh-docs), --apagar-originais
+                       (1 original apagado). 1 foto órfã de anexos/fotos (sem
+                       cadastro) apagada por decisão do usuário. anexos/fotos = 0.
+   Correção .......... o checkpoint 2 achou 403 para URL antiga convertida;
+                       corrigido em a0711a3 (arquivoPertence aceita formato novo
+                       OU regra de legado).
+   FASE 4.1 .......... rh-docs → privado, pela API do Storage (updateBucket).
+   FASE 4.2 .......... bloco único abaixo (backup em sec_rh_backup_policies).
+                       Removidas: "Leitura Publica RH", "Upload Publico RH",
+                       "Delete Publico RH" (anon lia, ENVIAVA e APAGAVA no
+                       rh-docs). "Public read", "Public read banners" e
+                       "anexos_read" passaram de public para authenticated.
+   FASE 5 ............ bloco abaixo. EXECUTE da RPC não vinha de PUBLIC. */
+
+/* FASE 4.2 — como executado */
+begin;
+
+create table if not exists public.sec_rh_backup_policies (
+  policyname text primary key, cmd text, roles name[], usando text, com_check text,
+  salvo_em timestamptz not null default now()
+);
+alter table public.sec_rh_backup_policies enable row level security;
+revoke all on table public.sec_rh_backup_policies from anon, authenticated;
+
+insert into public.sec_rh_backup_policies (policyname, cmd, roles, usando, com_check)
+select policyname, cmd, roles, qual, with_check
+  from pg_policies where schemaname = 'storage' and tablename = 'objects'
+on conflict (policyname) do nothing;
+
+do $$
+declare g record;
+begin
+  for g in
+    select case
+             when coalesce(qual, '') || coalesce(with_check, '') ~ 'rh-docs'
+               then format('drop policy %I on storage.objects', policyname)
+             when partes.para_quem = '' and partes.usando = '' and partes.checando = ''
+               then null
+             else format('alter policy %I on storage.objects%s%s%s',
+                         policyname, partes.para_quem, partes.usando, partes.checando)
+           end as comando
+      from pg_policies,
+           lateral (select
+             case when roles && array['anon', 'public']::name[] then ' to authenticated' else '' end as para_quem,
+             case when cmd <> 'INSERT' and coalesce(qual, '') !~ 'bucket_id'
+                  then format(' using ((%s) and bucket_id <> %L)', coalesce(qual, 'true'), 'rh-docs') else '' end as usando,
+             case when cmd in ('INSERT', 'UPDATE', 'ALL') and coalesce(with_check, '') !~ 'bucket_id'
+                   and (cmd = 'INSERT' or with_check is not null)
+                  then format(' with check ((%s) and bucket_id <> %L)', coalesce(with_check, 'true'), 'rh-docs') else '' end as checando
+           ) partes
+     where schemaname = 'storage' and tablename = 'objects'
+  loop
+    if g.comando is not null then execute g.comando; end if;
+  end loop;
+end $$;
+
+commit;
+
+/* ROLLBACK 4.2 — recria cada policy como estava, a partir do backup:
+     select format('drop policy if exists %I on storage.objects; create policy %I on storage.objects for %s to %s%s%s;',
+                   policyname, policyname, cmd, array_to_string(roles, ', '),
+                   case when usando is not null then ' using (' || usando || ')' else '' end,
+                   case when com_check is not null then ' with check (' || com_check || ')' else '' end)
+       from public.sec_rh_backup_policies;
+   (gera os comandos; revise antes de rodar — reabre o rh-docs ao público) */
+
+/* FASE 5 — como executado */
+begin;
+
+do $$
+begin
+  if to_regprocedure('public.extra_cadastro_publico(uuid)') is not null then
+    revoke execute on function public.extra_cadastro_publico(uuid) from anon;
+  end if;
+end $$;
+
+revoke select, insert, update, delete on table public.candidatos from anon;
+revoke all on table public.extras_convites from anon, authenticated;
+
+commit;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useERP } from "../../context/ERPContext";
+import { useERP } from "../context/ERPContext";
 import { useEffect, useState } from "react";
 import { Calendar, Users, DollarSign, Activity, AlertTriangle, TrendingUp } from "lucide-react";
 import Image from "next/image";

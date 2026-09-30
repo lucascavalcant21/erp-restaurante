@@ -34,7 +34,7 @@ export function SecaoEditor({ id, titulo, descricao, destaque = false, acao = nu
         destaque ? "bg-[color:var(--tipo)] text-[color:var(--tipo-fg)]" : "border-b border-line-soft"}`}>
         <div className="min-w-0">
           <h3 className={`text-xs font-black uppercase tracking-[0.14em] ${destaque ? "" : "text-[color:var(--tipo)]"}`}>{titulo}</h3>
-          {descricao ? <p className={`mt-0.5 text-xs font-medium ${destaque ? "opacity-85" : "text-muted"}`}>{descricao}</p> : null}
+          {descricao ? <p className={`mt-0.5 text-xs font-medium ${destaque ? "opacity-85" : "text-fg"}`}>{descricao}</p> : null}
         </div>
         {acao}
       </div>
@@ -44,7 +44,7 @@ export function SecaoEditor({ id, titulo, descricao, destaque = false, acao = nu
 }
 
 function Rotulo({ children, htmlFor }) {
-  return <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">{children}</label>;
+  return <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">{children}</label>;
 }
 
 // ─── Identificação ──────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ export function CampoFoto({ imagem, onChange }) {
   return (
     <div className="relative h-24 w-24 shrink-0 sm:h-28 sm:w-28">
       <button type="button" onClick={() => entrada.current?.click()} title={foto ? "Trocar foto" : "Adicionar foto"}
-        className="group relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-line bg-elevated text-muted hover:border-[color:var(--tipo)]">
+        className="group relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-line bg-card text-fg hover:border-[color:var(--tipo)]">
         {foto ? <img src={foto} alt="" className="h-full w-full object-cover" /> : (
           <span className="flex flex-col items-center gap-1 text-3xs font-bold uppercase tracking-widest">
             {processando ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} />} Foto
@@ -82,7 +82,7 @@ export function CampoFoto({ imagem, onChange }) {
       <input ref={entrada} type="file" accept="image/*" onChange={escolher} className="hidden" />
       {foto ? (
         <button type="button" onClick={() => onChange("")} title="Remover foto" aria-label="Remover foto"
-          className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-card text-muted shadow-sm hover:text-fg">
+          className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-card text-fg shadow-sm hover:text-fg">
           <X size={14} />
         </button>
       ) : null}
@@ -103,7 +103,7 @@ export function SeletorSetor({ valor, onChange }) {
           return (
             <button key={setor.id} type="button" onClick={() => onChange(setor.id)} aria-pressed={ativo}
               className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 px-3 text-sm font-black transition ${
-                ativo ? "border-[color:var(--tipo)] bg-[color:var(--tipo-soft)] text-[color:var(--tipo)]" : "border-line bg-card text-muted hover:text-fg"}`}>
+                ativo ? "border-[color:var(--tipo)] bg-[color:var(--tipo-soft)] text-[color:var(--tipo)]" : "border-line bg-card text-fg hover:text-fg"}`}>
               <Icone size={17} /> {setor.rotulo}
             </button>
           );
@@ -153,7 +153,7 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
   return (
     <div>
       <div className="relative">
-        <div className="flex items-center gap-2 rounded-xl border border-line bg-elevated px-3 focus-within:border-[color:var(--tipo)]">
+        <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-3 focus-within:border-[color:var(--tipo)]">
           <Search size={17} className="shrink-0 text-subtle" />
           <input value={busca} onChange={e => setBusca(e.target.value)} aria-label="Buscar ingrediente"
             placeholder="Digite para adicionar ingrediente ou pré-preparo"
@@ -163,7 +163,7 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
         {busca.trim() ? (
           <div className="mt-2 overflow-hidden rounded-xl border border-line bg-card shadow-sm">
             {sugestoes.length === 0 ? (
-              <p className="p-3 text-sm font-semibold text-muted">Nada encontrado com esse nome.</p>
+              <p className="p-3 text-sm font-semibold text-fg">Nada encontrado com esse nome.</p>
             ) : sugestoes.map(o => {
               const id = o.valor.split(":")[1];
               const repetido = jaNaFicha.has(id);
@@ -183,7 +183,7 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
       </div>
 
       {itens.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-line p-5 text-center text-sm font-semibold text-muted">
+        <p className="mt-4 rounded-xl border border-dashed border-line p-5 text-center text-sm font-semibold text-fg">
           Nenhum ingrediente ainda. Busque acima para adicionar.
         </p>
       ) : (
@@ -215,14 +215,14 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
                       className="h-11 w-[84px] rounded-lg border border-line bg-card px-2 text-right text-[15px] font-black text-fg outline-none focus:border-[color:var(--tipo)]" />
                     {sub ? (
                       <button type="button" onClick={() => onAlternarModo(item.chave)} title="Trocar a unidade de digitação"
-                        className="h-11 w-10 rounded-lg border border-line bg-elevated text-xs font-black text-fg-soft hover:border-[color:var(--tipo)]">{unidade}</button>
+                        className="h-11 w-10 rounded-lg border border-line bg-card text-xs font-black text-fg-soft hover:border-[color:var(--tipo)]">{unidade}</button>
                     ) : (
-                      <span className="w-10 text-center text-xs font-black text-muted">{unidade}</span>
+                      <span className="w-10 text-center text-xs font-black text-fg">{unidade}</span>
                     )}
                   </span>
                   <button type="button" onClick={() => { setSubstituto(""); setAlvo(item); }} title="Remover ou substituir"
                     aria-label={`Remover ${item.nome}`}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-muted hover:text-fg">
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-fg hover:text-fg">
                     <Trash2 size={15} />
                   </button>
                 </li>
@@ -237,9 +237,9 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
           <div className="w-full max-w-md rounded-3xl border border-line bg-card p-5 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
             <div className="mb-1 flex items-start justify-between gap-3">
               <h3 className="text-lg font-black text-fg">Remover “{alvo.nome}”</h3>
-              <button type="button" onClick={() => setAlvo(null)} aria-label="Fechar" className="p-1 text-muted hover:text-fg"><X size={18} /></button>
+              <button type="button" onClick={() => setAlvo(null)} aria-label="Fechar" className="p-1 text-fg hover:text-fg"><X size={18} /></button>
             </div>
-            <p className="mb-4 text-sm font-medium text-muted">Quer trocar por outro ingrediente (mantendo a quantidade) ou só remover?</p>
+            <p className="mb-4 text-sm font-medium text-fg">Quer trocar por outro ingrediente (mantendo a quantidade) ou só remover?</p>
             <Rotulo htmlFor="ficha-substituto">Substituir por (opcional)</Rotulo>
             <select id="ficha-substituto" value={substituto} onChange={e => setSubstituto(e.target.value)} className="erp-input mb-4" style={{ appearance: "auto" }}>
               <option value="">Escolher...</option>
@@ -249,7 +249,7 @@ export function ListaIngredientes({ itens, opcoes, onAdicionar, onQuantidade, on
             </select>
             <div className="flex gap-2">
               <button type="button" onClick={() => { onRemover(alvo.chave); setAlvo(null); }}
-                className="flex-1 rounded-xl bg-elevated py-3 text-sm font-bold text-fg-soft hover:text-fg">Só remover</button>
+                className="flex-1 rounded-xl bg-card py-3 text-sm font-bold text-fg-soft hover:text-fg">Só remover</button>
               <button type="button" disabled={!substituto} onClick={() => { onSubstituir(alvo.chave, substituto); setAlvo(null); }}
                 className="flex-1 rounded-xl bg-[color:var(--tipo)] py-3 text-sm font-black text-[color:var(--tipo-fg)] disabled:opacity-40">Substituir</button>
             </div>
@@ -301,10 +301,10 @@ export function CampoInstrucoes({ id, valor, onChange, placeholder, tipo, nomeRe
     <div>
       <textarea id={id} value={valor} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         className="erp-input min-h-[230px] resize-y py-3 text-[15px] leading-relaxed" />
-      <p className="mt-1.5 text-xs font-medium text-muted">Um passo por linha. A numeração é feita na ficha impressa.</p>
+      <p className="mt-1.5 text-xs font-medium text-fg">Um passo por linha. A numeração é feita na ficha impressa.</p>
 
       {aberto ? (
-        <div className="mt-3 rounded-xl border border-line bg-elevated p-3">
+        <div className="mt-3 rounded-xl border border-line bg-card p-3">
           <label htmlFor={`${id}-ia`} className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[color:var(--tipo)]">
             <Sparkles size={14} /> Explique com suas palavras — a IA organiza em passos
           </label>
@@ -315,13 +315,13 @@ export function CampoInstrucoes({ id, valor, onChange, placeholder, tipo, nomeRe
             className="mt-2 h-24 w-full resize-none rounded-lg border border-line bg-card p-3 text-sm font-medium text-fg outline-none focus:border-[color:var(--tipo)]" />
           {erro ? <p className="mt-1 text-xs font-bold text-[color:var(--danger-strong)]">{erro}</p> : null}
           <div className="mt-2 flex gap-2">
-            <button type="button" onClick={() => { setAberto(false); setErro(""); }} className="rounded-lg px-3 py-2 text-sm font-bold text-muted hover:text-fg">Cancelar</button>
+            <button type="button" onClick={() => { setAberto(false); setErro(""); }} className="rounded-lg px-3 py-2 text-sm font-bold text-fg hover:text-fg">Cancelar</button>
             <button type="button" onClick={organizar} disabled={carregando}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[color:var(--tipo)] py-2 text-sm font-black text-[color:var(--tipo-fg)] disabled:opacity-50">
               {carregando ? <><Loader2 size={15} className="animate-spin" /> Organizando...</> : <><Sparkles size={15} /> Organizar em passos</>}
             </button>
           </div>
-          <p className="mt-1.5 text-3xs font-medium text-muted">O texto organizado substitui o do campo acima; confira antes de salvar.</p>
+          <p className="mt-1.5 text-3xs font-medium text-fg">O texto organizado substitui o do campo acima; confira antes de salvar.</p>
         </div>
       ) : (
         <button type="button" onClick={() => setAberto(true)} className="mt-2 flex items-center gap-1.5 text-sm font-bold text-[color:var(--tipo)] hover:underline">
@@ -347,9 +347,9 @@ export function CampoRendimentoPrato({ form, onChange, itens, ajuda = "" }) {
       <div className="flex items-center gap-2">
         <input id="ficha-rendimento-prato" type="number" inputMode="numeric" min="0" step="1" value={valor} placeholder="Ex.: 420"
           onChange={e => onChange({ peso_final_g: e.target.value })} className="erp-input" />
-        <span className="w-10 text-center text-sm font-black text-muted">g</span>
+        <span className="w-10 text-center text-sm font-black text-fg">g</span>
       </div>
-      {ajuda ? <p className="mt-1 text-xs font-medium text-muted">{ajuda}</p> : null}
+      {ajuda ? <p className="mt-1 text-xs font-medium text-fg">{ajuda}</p> : null}
       {somaG > 0 && somaG !== parseNumero(valor) ? (
         <button type="button" onClick={() => onChange({ peso_final_g: String(somaG) })}
           className="mt-1 text-xs font-bold text-[color:var(--tipo)] hover:underline">
@@ -374,11 +374,11 @@ export function CampoRendimento({ form, onChange, auto, onAuto, itens }) {
     return (
       <div>
         <Rotulo>Rendimento</Rotulo>
-        <div className="flex min-h-[52px] items-center justify-between gap-2 rounded-2xl border border-line bg-elevated px-4">
+        <div className="flex min-h-[52px] items-center justify-between gap-2 rounded-2xl border border-line bg-card px-4">
           <span className="text-lg font-black text-fg">{soma ? `${numero(soma.valor)} ${unidadeSetor}` : "—"}</span>
           <button type="button" onClick={() => onAuto(false)} className="text-xs font-bold text-[color:var(--tipo)] hover:underline">ajustar</button>
         </div>
-        <p className="mt-1 text-xs font-medium text-muted">{soma ? "Soma dos ingredientes." : "Aparece ao adicionar ingredientes com peso."}</p>
+        <p className="mt-1 text-xs font-medium text-fg">{soma ? "Soma dos ingredientes." : "Aparece ao adicionar ingredientes com peso."}</p>
       </div>
     );
   }
@@ -388,14 +388,14 @@ export function CampoRendimento({ form, onChange, auto, onAuto, itens }) {
       <div className="flex items-center gap-2">
         <input id="ficha-rendimento" type="number" inputMode="decimal" min="0" step="any" value={form.rendimento_porcoes}
           onChange={e => onChange({ rendimento_porcoes: e.target.value })} className="erp-input" />
-        <span className="w-10 text-center text-sm font-black text-muted">{unidade}</span>
+        <span className="w-10 text-center text-sm font-black text-fg">{unidade}</span>
       </div>
       {automatizavel ? (
         <button type="button" onClick={() => onAuto(true)} className="mt-1 text-xs font-bold text-[color:var(--tipo)] hover:underline">
           usar a soma dos ingredientes{soma ? ` (${numero(soma.valor)} ${unidadeSetor})` : ""}
         </button>
       ) : (
-        <p className="mt-1 text-xs font-medium text-muted">Mantido em {unidade}: há receitas que usam este pré-preparo nessa unidade.</p>
+        <p className="mt-1 text-xs font-medium text-fg">Mantido em {unidade}: há receitas que usam este pré-preparo nessa unidade.</p>
       )}
     </div>
   );
@@ -411,9 +411,9 @@ export function CampoPesoFinal({ form, onChange }) {
       <div className="flex items-center gap-2">
         <input id="ficha-peso-final" type="number" inputMode="decimal" min="0" step="any" value={valor} placeholder="Opcional"
           onChange={e => onChange({ peso_final_g: e.target.value === "" ? "" : String(parseNumero(e.target.value) * 1000) })} className="erp-input" />
-        <span className="w-10 text-center text-sm font-black text-muted">{unidade}</span>
+        <span className="w-10 text-center text-sm font-black text-fg">{unidade}</span>
       </div>
-      <p className="mt-1 text-xs font-medium text-muted">O que sai pronto, depois de cozinhar ou reduzir.</p>
+      <p className="mt-1 text-xs font-medium text-fg">O que sai pronto, depois de cozinhar ou reduzir.</p>
     </div>
   );
 }
@@ -425,7 +425,7 @@ export function CampoTempoPreparo({ valor, onChange }) {
       <div className="flex items-center gap-2">
         <input id="ficha-tempo" type="number" inputMode="numeric" min="0" step="1" value={valor} placeholder="Opcional"
           onChange={e => onChange(e.target.value)} className="erp-input" />
-        <span className="w-10 text-center text-sm font-black text-muted">min</span>
+        <span className="w-10 text-center text-sm font-black text-fg">min</span>
       </div>
     </div>
   );
@@ -453,7 +453,7 @@ export function CampoArmazenamento({ valor, onChange }) {
           <div className="flex items-center gap-2">
             <input aria-label="Validade em dias" type="number" inputMode="numeric" min="0" step="1" value={valor.validade_dias || ""}
               onChange={e => mudar("validade_dias", e.target.value)} placeholder="Validade" className="erp-input" />
-            <span className="text-sm font-black text-muted">dias</span>
+            <span className="text-sm font-black text-fg">dias</span>
           </div>
         </div>
       </div>
@@ -546,7 +546,7 @@ export function PainelCustos({ itens, form }) {
           Preço por grama suspeito: {suspeitos.map(i => i.nome).join(", ")}. Confira o cadastro do ingrediente — pode ser o preço do pacote.
         </p>
       ) : null}
-      <p className="mt-2 text-xs font-medium text-muted">Os custos vêm do cadastro dos ingredientes e dos pré-preparos usados.</p>
+      <p className="mt-2 text-xs font-medium text-fg">Os custos vêm do cadastro dos ingredientes e dos pré-preparos usados.</p>
     </div>
   );
 }
@@ -588,7 +588,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
     <SecaoEditor id="ficha-custos-precificacao" titulo="Custos e Precificação" destaque>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label htmlFor="ficha-rendimento-porcoes" className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted">Rendimento (porções)</label>
+          <label htmlFor="ficha-rendimento-porcoes" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Rendimento (porções)</label>
           <input
             id="ficha-rendimento-porcoes"
             type="number"
@@ -600,7 +600,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
           />
         </div>
         <div>
-          <label htmlFor="ficha-custo-embalagem" className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted">Embalagem (R$ / porção)</label>
+          <label htmlFor="ficha-custo-embalagem" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Embalagem (R$ / porção)</label>
           <input
             id="ficha-custo-embalagem"
             type="text"
@@ -612,7 +612,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
           />
         </div>
         <div>
-          <label htmlFor="ficha-preco-venda" className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted">Preço de Venda (R$)</label>
+          <label htmlFor="ficha-preco-venda" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Preço de Venda (R$)</label>
           <input
             id="ficha-preco-venda"
             type="text"
@@ -627,7 +627,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
 
       <div className="grid grid-cols-3 gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-line-soft">
         <div>
-          <label htmlFor="ficha-cmv-meta" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-muted">CMV Meta (%)</label>
+          <label htmlFor="ficha-cmv-meta" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-fg">CMV Meta (%)</label>
           <input
             id="ficha-cmv-meta"
             type="number"
@@ -639,7 +639,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
           />
         </div>
         <div>
-          <label htmlFor="ficha-taxa-maquininha" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-muted">Taxa Maquininha (%)</label>
+          <label htmlFor="ficha-taxa-maquininha" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-fg">Taxa Maquininha (%)</label>
           <input
             id="ficha-taxa-maquininha"
             type="text"
@@ -651,7 +651,7 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
           />
         </div>
         <div>
-          <label htmlFor="ficha-imposto-pct" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-muted">Imposto (%)</label>
+          <label htmlFor="ficha-imposto-pct" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-fg">Imposto (%)</label>
           <input
             id="ficha-imposto-pct"
             type="text"
@@ -682,40 +682,40 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         <p className="text-3xs font-black uppercase tracking-widest text-slate-700 mb-2">Resultado da Ficha (Por Porção)</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           <div className="bg-card border border-line rounded-lg p-2 text-center">
-            <p className="text-3xs font-bold text-muted uppercase">Ingredientes</p>
+            <p className="text-3xs font-bold text-fg uppercase">Ingredientes</p>
             <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoIngredientesPorPorcao)}</p>
           </div>
           <div className="bg-card border border-line rounded-lg p-2 text-center">
-            <p className="text-3xs font-bold text-muted uppercase">Embalagem</p>
+            <p className="text-3xs font-bold text-fg uppercase">Embalagem</p>
             <p className="text-xs font-black text-slate-800">{fmtBRL(finModal.custoEmbalagemPorPorcao)}</p>
           </div>
           <div className="bg-card border border-line rounded-lg p-2 text-center">
-            <p className="text-3xs font-bold text-muted uppercase">Maquininha ({finModal.taxaMaquininhaPct}%)</p>
+            <p className="text-3xs font-bold text-fg uppercase">Maquininha ({finModal.taxaMaquininhaPct}%)</p>
             <p className="text-xs font-black text-slate-800">{finModal.precoVenda > 0 ? fmtBRL(finModal.valorMaquininha) : "—"}</p>
           </div>
           <div className="bg-card border border-line rounded-lg p-2 text-center">
-            <p className="text-3xs font-bold text-muted uppercase">Imposto ({finModal.impostoPct}%)</p>
+            <p className="text-3xs font-bold text-fg uppercase">Imposto ({finModal.impostoPct}%)</p>
             <p className="text-xs font-black text-slate-800">{finModal.precoVenda > 0 ? fmtBRL(finModal.valorImposto) : "—"}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="bg-card border border-emerald-200 rounded-lg p-2 text-center">
-            <p className="text-3xs font-bold text-muted uppercase">Custo Total</p>
+            <p className="text-3xs font-bold text-fg uppercase">Custo Total</p>
             <p className="text-sm font-black text-slate-900">{fmtBRL(finModal.custoTotal)}</p>
           </div>
           <div className="bg-card border border-emerald-200 rounded-lg p-2 text-center">
-            <p className="text-3xs font-bold text-muted uppercase">Preço Venda</p>
+            <p className="text-3xs font-bold text-fg uppercase">Preço Venda</p>
             <p className="text-sm font-black text-emerald-700">{finModal.precoVenda > 0 ? fmtBRL(finModal.precoVenda) : "—"}</p>
           </div>
           <div className={`bg-card border rounded-lg p-2 text-center ${finModal.lucroPorPorcao !== null && finModal.lucroPorPorcao < 0 ? 'border-red-300 bg-red-50' : 'border-emerald-200'}`}>
-            <p className="text-3xs font-bold text-muted uppercase">Lucro/porção</p>
+            <p className="text-3xs font-bold text-fg uppercase">Lucro/porção</p>
             <p className={`text-sm font-black ${finModal.lucroPorPorcao !== null && finModal.lucroPorPorcao < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
               {finModal.lucroPorPorcao !== null ? fmtBRL(finModal.lucroPorPorcao) : "—"}
             </p>
           </div>
           <div className={`bg-card border rounded-lg p-2 text-center ${finModal.cmv !== null && finModal.cmv > meta ? 'border-red-300 bg-red-50' : 'border-emerald-200'}`}>
-            <p className="text-3xs font-bold text-muted uppercase">CMV</p>
+            <p className="text-3xs font-bold text-fg uppercase">CMV</p>
             <p className={`text-sm font-black ${finModal.cmv !== null && finModal.cmv > meta ? 'text-red-600' : 'text-emerald-700'}`}>
               {finModal.cmv !== null ? `${finModal.cmv.toFixed(1)}%` : "—"}
             </p>

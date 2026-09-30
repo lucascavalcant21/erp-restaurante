@@ -193,9 +193,9 @@ export default function EditorFicha({
               Ficha de {cfg.id === "prato" ? "prato" : "pré-preparo"} · {form.departamento === "bar" ? "Bar" : "Cozinha"}
             </p>
             <h2 id="editor-ficha-titulo" className="truncate text-xl font-black text-fg sm:text-2xl">{titulo}</h2>
-            <p className="hidden text-xs font-medium text-muted sm:block">{cfg.resumo}</p>
+            <p className="hidden text-xs font-medium text-fg sm:block">{cfg.resumo}</p>
           </div>
-          <button type="button" onClick={fechar} aria-label="Fechar" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-elevated text-muted hover:text-fg">
+          <button type="button" onClick={fechar} aria-label="Fechar" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-fg hover:text-fg">
             <X size={20} />
           </button>
         </header>
@@ -211,11 +211,11 @@ export default function EditorFicha({
               certo depois, e quem já tivesse clicado editava o valor errado. */}
           {carregandoComplementos ? (
             <div role="status" aria-live="polite" className="space-y-3">
-              <p className="flex items-center gap-2 text-sm font-bold text-muted">
+              <p className="flex items-center gap-2 text-sm font-bold text-fg">
                 <Loader2 size={16} className="animate-spin" /> Carregando ficha...
               </p>
               {[180, 120, 260].map((altura, i) => (
-                <div key={i} className="animate-pulse rounded-2xl border border-line bg-elevated" style={{ height: altura }} />
+                <div key={i} className="animate-pulse rounded-2xl border border-line bg-card" style={{ height: altura }} />
               ))}
             </div>
           ) : (

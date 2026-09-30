@@ -301,7 +301,7 @@ export default function FichaTecnicaPage() {
   // ── Telas de carga e erro ────────────────────────────────────────────────
   if (carregando && !ficha) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center gap-2 text-muted">
+      <div className="flex min-h-[60vh] items-center justify-center gap-2 text-fg">
         <Loader2 size={18} className="animate-spin" /> Carregando ficha…
       </div>
     );
@@ -328,7 +328,7 @@ export default function FichaTecnicaPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-4 p-3 pb-28 sm:p-4" style={estiloDoTipo(cfg)}>
       <div className="flex items-center justify-between gap-2">
-        <button onClick={voltarParaLista} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-elevated">
+        <button onClick={voltarParaLista} className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-card">
           <ArrowLeft size={16} /> {cfg.rotuloPlural}
         </button>
         <button onClick={() => setEditorAberto(true)} className="flex items-center gap-2 rounded-xl bg-[color:var(--tipo)] px-4 py-2 text-sm font-black text-[color:var(--tipo-fg)]">
@@ -341,8 +341,8 @@ export default function FichaTecnicaPage() {
           <IconeTipo size={12} /> {cfg.rotulo}
         </span>
         {ficha.codigo ? <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-2xs font-bold text-white">{ficha.codigo}</span> : null}
-        <span className="rounded-lg bg-elevated px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
-        <span className={`rounded-lg px-2 py-0.5 text-2xs font-semibold ${status === "ativa" ? "bg-accent-soft text-accent-strong" : status === "rascunho" ? "bg-amber-50 text-amber-700" : "bg-elevated text-muted"}`}>
+        <span className="rounded-lg bg-card px-2 py-0.5 text-2xs font-semibold text-slate-600">v{ficha.versao || "1.0"}</span>
+        <span className={`rounded-lg px-2 py-0.5 text-2xs font-semibold ${status === "ativa" ? "bg-accent-soft text-accent-strong" : status === "rascunho" ? "bg-amber-50 text-amber-700" : "bg-card text-fg"}`}>
           {STATUS_FICHA.find(s => s.valor === status)?.rotulo || "Ativa"}
         </span>
         <span className="text-2xs text-subtle">
@@ -388,7 +388,7 @@ export default function FichaTecnicaPage() {
                 <li key={f.id}><button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="rounded-lg border border-line px-2.5 py-1 text-sm font-semibold text-fg-soft hover:text-fg">{f.nome_receita}</button></li>
               ))}
             </ul>
-          ) : <p className="text-sm text-muted">Nenhuma receita usa este pré-preparo ainda.</p>}
+          ) : <p className="text-sm text-fg">Nenhuma receita usa este pré-preparo ainda.</p>}
         </section>
       ) : null}
 
@@ -402,11 +402,11 @@ export default function FichaTecnicaPage() {
           {tipo === "prato" ? (
             <div className="mt-4 rounded-2xl border border-line bg-card p-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-fg-soft"><Percent size={14} /> Simulador de CMV</div>
-              <p className="mt-0.5 text-2xs text-muted">Com que preço o prato fecha no CMV desejado. O preço de venda é definido no Cardápio.</p>
+              <p className="mt-0.5 text-2xs text-fg">Com que preço o prato fecha no CMV desejado. O preço de venda é definido no Cardápio.</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {CMV_ATALHOS.map(v => (
                   <button key={v} onClick={() => setCmvSimulado(String(v))}
-                    className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${String(v) === String(cmvSimulado) ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-600 hover:bg-elevated"}`}>
+                    className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${String(v) === String(cmvSimulado) ? "bg-slate-900 text-white" : "border border-line bg-card text-slate-600 hover:bg-card"}`}>
                     {v}%
                   </button>
                 ))}
@@ -414,7 +414,7 @@ export default function FichaTecnicaPage() {
                   onChange={e => setCmvSimulado(e.target.value)} className="erp-input w-28" />
                 {precoAlvo > 0 ? (
                   <div className="ml-auto text-right">
-                    <div className="text-2xs uppercase tracking-wide text-muted">Preço sugerido</div>
+                    <div className="text-2xs uppercase tracking-wide text-fg">Preço sugerido</div>
                     <div className="text-lg font-bold tabular-nums text-[color:var(--tipo)]">{fmtBRL(precoAlvo)}</div>
                   </div>
                 ) : null}
@@ -451,7 +451,7 @@ export default function FichaTecnicaPage() {
           <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-card p-4 sm:rounded-3xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="versoes-titulo">
             <div className="flex items-center justify-between">
               <h2 id="versoes-titulo" className="text-base font-bold text-slate-800">Histórico de versões</h2>
-              <button onClick={() => setModalVersoes(false)} aria-label="Fechar" className="rounded-lg p-1.5 text-subtle hover:bg-elevated"><X size={18} /></button>
+              <button onClick={() => setModalVersoes(false)} aria-label="Fechar" className="rounded-lg p-1.5 text-subtle hover:bg-card"><X size={18} /></button>
             </div>
             {versoes.length === 0 ? (
               <p className="py-8 text-center text-sm text-subtle">Nenhuma versão registrada ainda. Use “Nova versão” para congelar o estado atual da ficha.</p>
@@ -465,7 +465,7 @@ export default function FichaTecnicaPage() {
                     <li key={v.id} className="rounded-2xl border border-line p-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-lg bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">v{v.versao}</span>
-                        <span className="text-xs text-muted">{fmtData(v.created_at)}</span>
+                        <span className="text-xs text-fg">{fmtData(v.created_at)}</span>
                         {v.usuario_nome ? <span className="text-xs text-subtle">· {v.usuario_nome}</span> : null}
                         {anterior ? (
                           <button onClick={() => setComparando({ a: anterior, b: v })} className="ml-auto rounded-lg border border-line px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-transparent">
@@ -522,7 +522,7 @@ function ComparacaoVersoes({ par, onVoltar }) {
   const diferencas = compararVersoes(par.a.snapshot, par.b.snapshot);
   return (
     <div className="mt-3">
-      <button onClick={onVoltar} className="mb-3 flex items-center gap-1 text-sm font-medium text-muted hover:text-fg-soft">
+      <button onClick={onVoltar} className="mb-3 flex items-center gap-1 text-sm font-medium text-fg hover:text-fg-soft">
         <ArrowLeft size={15} /> Voltar ao histórico
       </button>
       <p className="text-sm font-semibold text-fg-soft">v{par.a.versao} <span className="text-subtle">→</span> v{par.b.versao}</p>
@@ -534,8 +534,8 @@ function ComparacaoVersoes({ par, onVoltar }) {
             <li key={d.campo} className="rounded-xl border border-line p-2.5 text-sm">
               <div className="text-xs font-semibold uppercase tracking-wide text-subtle">{ROTULO_CAMPO[d.campo] || d.campo}</div>
               <div className="mt-1 grid gap-1 sm:grid-cols-2">
-                <div className="rounded-lg bg-elevated px-2 py-1 text-fg-soft">
-                  <span className="text-3xs font-bold uppercase text-muted">antes</span>
+                <div className="rounded-lg bg-card px-2 py-1 text-fg-soft">
+                  <span className="text-3xs font-bold uppercase text-fg">antes</span>
                   <div className="whitespace-pre-wrap break-words">{mostrarValor(d.antes)}</div>
                 </div>
                 <div className="rounded-lg bg-accent-soft px-2 py-1 text-accent-strong">

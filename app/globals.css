@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  --surface: #F7F8F7;
+  --surface: #FFFFFF;
   --panel: #FFFFFF;
   --card: #FFFFFF;
   --header-bg: #071521;
@@ -13,7 +13,7 @@
   --border: #E5E9EE;
   --border-light: #F1F5F9;
   --fg: #102031;
-  --fg-muted: #66758A;
+  --fg-muted: #102031;
   --fg-inverse: #FFFFFF;
   --primary: #059669;
   --primary-hover: #047857;

@@ -17,9 +17,9 @@ function Numero({ rotulo, valor, tom = "neutro", nota }) {
   const cor = tom === "ruim" ? "text-[color:var(--danger-strong)]" : tom === "bom" ? "text-[color:var(--tipo)]" : "text-fg";
   return (
     <div className="rounded-xl border border-line bg-card px-3 py-2.5">
-      <p className="text-3xs font-bold uppercase tracking-wider text-muted">{rotulo}</p>
+      <p className="text-3xs font-bold uppercase tracking-wider text-fg">{rotulo}</p>
       <p className={`mt-0.5 text-lg font-black tabular-nums ${cor}`}>{valor}</p>
-      {nota ? <p className="text-3xs font-semibold text-muted">{nota}</p> : null}
+      {nota ? <p className="text-3xs font-semibold text-fg">{nota}</p> : null}
     </div>
   );
 }
@@ -46,7 +46,7 @@ export default function PainelCustosInternos({
 
   return (
     <div className="space-y-4">
-      <p className="rounded-xl border border-line bg-elevated px-3 py-2 text-xs font-semibold text-muted">
+      <p className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-fg">
         Números calculados pelo sistema para gestão. {prePreparo ? "O custo por kg é o que entra nos pratos que usam este pré-preparo." : "Não aparecem na ficha de prato impressa."}
       </p>
 
@@ -82,7 +82,7 @@ export default function PainelCustosInternos({
 
       <section className="rounded-2xl border border-line bg-card p-4">
         <h4 className="text-xs font-black uppercase tracking-wider text-[color:var(--tipo)]">Composição do custo</h4>
-        <p className="mb-3 text-xs font-medium text-muted">Participação de cada item no custo total ({fmtBRL(custoTotal)}).</p>
+        <p className="mb-3 text-xs font-medium text-fg">Participação de cada item no custo total ({fmtBRL(custoTotal)}).</p>
         {composicao.length ? (
           <div className="space-y-2.5">
             {composicao.map((l, i) => {
@@ -90,15 +90,15 @@ export default function PainelCustosInternos({
               return (
                 <div key={i}>
                   <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate font-bold text-fg-soft">{l.nome}{l.prePreparo ? <span className="ml-1.5 text-3xs font-bold uppercase tracking-wider text-muted">pré-preparo</span> : null}</span>
-                    <span className="shrink-0 font-black text-fg">{fmtBRL(l.custo)} <span className="font-bold text-muted">· {pct.toFixed(1)}%</span></span>
+                    <span className="truncate font-bold text-fg-soft">{l.nome}{l.prePreparo ? <span className="ml-1.5 text-3xs font-bold uppercase tracking-wider text-fg">pré-preparo</span> : null}</span>
+                    <span className="shrink-0 font-black text-fg">{fmtBRL(l.custo)} <span className="font-bold text-fg">· {pct.toFixed(1)}%</span></span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-elevated"><div className="h-full rounded-full bg-[color:var(--tipo)]" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-card"><div className="h-full rounded-full bg-[color:var(--tipo)]" style={{ width: `${Math.min(100, pct)}%` }} /></div>
                 </div>
               );
             })}
           </div>
-        ) : <p className="text-sm font-medium text-muted">Sem ingredientes para compor o custo.</p>}
+        ) : <p className="text-sm font-medium text-fg">Sem ingredientes para compor o custo.</p>}
       </section>
 
       <section className="rounded-2xl border border-line bg-card p-4">
@@ -116,9 +116,9 @@ export default function PainelCustosInternos({
             Para guardar a variação de custo, rode a migração db/migracao_ficha_custo_historico.sql no Supabase.
           </p>
         ) : statusHistorico === "carregando" ? (
-          <p className="text-sm font-medium text-muted">Carregando histórico...</p>
+          <p className="text-sm font-medium text-fg">Carregando histórico...</p>
         ) : historico.length === 0 ? (
-          <p className="text-sm font-medium text-muted">Nenhum custo registrado ainda. Ele é gravado quando a ficha é salva, ou pelo botão acima.</p>
+          <p className="text-sm font-medium text-fg">Nenhum custo registrado ainda. Ele é gravado quando a ficha é salva, ou pelo botão acima.</p>
         ) : (
           <ul className="space-y-2">
             {historico.slice(0, 20).map((h, i) => {
@@ -126,12 +126,12 @@ export default function PainelCustosInternos({
               const pct = h.diferenca_pct == null ? null : Number(h.diferenca_pct);
               const origem = h.origem === "edicao_ficha" ? "edição" : h.origem === "variacao_preco" ? "variação de preço" : "manual";
               return (
-                <li key={h.id || i} className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-elevated px-3 py-2.5">
+                <li key={h.id || i} className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-card px-3 py-2.5">
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-fg">{fmtBRL(Number(h.custo_total) || 0)}<span className="ml-1.5 text-2xs font-bold text-muted">total{h.custo_porcao != null ? ` · ${fmtBRL(Number(h.custo_porcao))}/porção` : ""}</span></p>
-                    <p className="text-3xs font-bold text-muted">{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {origem}{h.usuario_nome ? ` · ${h.usuario_nome}` : ""}</p>
+                    <p className="text-sm font-black text-fg">{fmtBRL(Number(h.custo_total) || 0)}<span className="ml-1.5 text-2xs font-bold text-fg">total{h.custo_porcao != null ? ` · ${fmtBRL(Number(h.custo_porcao))}/porção` : ""}</span></p>
+                    <p className="text-3xs font-bold text-fg">{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {origem}{h.usuario_nome ? ` · ${h.usuario_nome}` : ""}</p>
                   </div>
-                  <span className={`shrink-0 text-xs font-bold ${dif == null ? "text-muted" : dif > 0.005 ? "text-[color:var(--danger-strong)]" : dif < -0.005 ? "text-[color:var(--tipo)]" : "text-muted"}`}>
+                  <span className={`shrink-0 text-xs font-bold ${dif == null ? "text-fg" : dif > 0.005 ? "text-[color:var(--danger-strong)]" : dif < -0.005 ? "text-[color:var(--tipo)]" : "text-fg"}`}>
                     {dif == null ? "1º registro" : `${dif > 0.005 ? "subiu" : dif < -0.005 ? "caiu" : "igual"} ${fmtBRL(Math.abs(dif))}${pct != null ? ` (${pct > 0 ? "+" : ""}${pct.toFixed(1)}%)` : ""}`}
                   </span>
                 </li>

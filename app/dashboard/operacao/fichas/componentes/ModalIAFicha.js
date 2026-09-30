@@ -142,20 +142,20 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--tipo)] text-[color:var(--tipo-fg)]"><Icone size={22} /></span>
           <div className="min-w-0 flex-1">
             <h2 id="ia-ficha-titulo" className="text-xl font-black text-fg">Criar {cfg.id === "prato" ? "prato" : "pré-preparo"} com IA</h2>
-            <p className="text-xs font-semibold text-muted">
+            <p className="text-xs font-semibold text-fg">
               {cfg.id === "prato"
                 ? "A IA monta a ficha de prato: ingredientes de um prato e a montagem."
                 : "A IA monta a ficha de produção: ingredientes, modo de preparo, equipamentos e alergênicos."}
             </p>
           </div>
-          <button type="button" onClick={onFechar} aria-label="Fechar" className="flex h-10 w-10 items-center justify-center rounded-full bg-elevated text-muted hover:text-fg"><X size={19} /></button>
+          <button type="button" onClick={onFechar} aria-label="Fechar" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-fg hover:text-fg"><X size={19} /></button>
         </header>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
           {!resultado ? (
             <>
               <div>
-                <label htmlFor="ia-texto" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Colar a receita (opcional se enviar foto)</label>
+                <label htmlFor="ia-texto" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Colar a receita (opcional se enviar foto)</label>
                 <textarea id="ia-texto" value={texto} onChange={e => setTexto(e.target.value)}
                   placeholder={cfg.id === "prato"
                     ? "Ex.: Picanha na brasa: 400 g de picanha, 300 g de arroz branco, farofa e vinagrete. Arroz à esquerda, picanha ao centro..."
@@ -163,19 +163,19 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
                   className="erp-input min-h-[140px] resize-y py-3 text-sm" />
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted">Ou enviar foto (caderno de receitas, print...)</p>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-fg">Ou enviar foto (caderno de receitas, print...)</p>
                 <input ref={entradaFoto} type="file" accept="image/*" onChange={escolherFoto} className="hidden" />
                 {imagem ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-line bg-elevated p-3">
+                  <div className="flex items-center gap-3 rounded-xl border border-line bg-card p-3">
                     <img src={imagem.previa} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-fg">{imagem.nome}</p>
-                      <button type="button" onClick={() => setImagem(null)} className="mt-1 text-xs font-bold text-muted hover:text-fg">Remover foto</button>
+                      <button type="button" onClick={() => setImagem(null)} className="mt-1 text-xs font-bold text-fg hover:text-fg">Remover foto</button>
                     </div>
                   </div>
                 ) : (
                   <button type="button" onClick={() => entradaFoto.current?.click()}
-                    className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-line bg-elevated p-6 text-muted hover:border-[color:var(--tipo)] hover:text-fg">
+                    className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-line bg-card p-6 text-fg hover:border-[color:var(--tipo)] hover:text-fg">
                     <Camera size={24} /><span className="text-sm font-bold">Tirar foto ou escolher da galeria</span>
                   </button>
                 )}
@@ -184,12 +184,12 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
           ) : (
             <>
               <div>
-                <label htmlFor="ia-nome" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Nome</label>
+                <label htmlFor="ia-nome" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Nome</label>
                 <input id="ia-nome" value={resultado.nome_receita} onChange={e => setResultado(r => ({ ...r, nome_receita: e.target.value }))} className="erp-input font-black" />
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Ingredientes identificados</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-fg">Ingredientes identificados</p>
                 <ul className="space-y-2">
                   {resultado.itens.map((it, i) => {
                     const vinculado = it.vinculo !== "novo";
@@ -198,7 +198,7 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
                         <div className="flex flex-wrap items-center gap-2">
                           {vinculado ? <CheckCircle2 size={16} className="shrink-0 text-[color:var(--tipo)]" /> : <AlertTriangle size={16} className="shrink-0 text-[color:var(--warning-strong)]" />}
                           <span className="text-sm font-bold text-fg">{it.nome}</span>
-                          <span className="text-xs font-bold text-muted">{it.quantidade_lida} {it.unidade_lida}</span>
+                          <span className="text-xs font-bold text-fg">{it.quantidade_lida} {it.unidade_lida}</span>
                           <select value={it.vinculo} onChange={e => mudarItem(i, { vinculo: e.target.value })} aria-label={`Vincular ${it.nome}`}
                             className="ml-auto max-w-[60%] rounded-lg border border-line bg-card p-2 text-xs font-bold text-fg outline-none">
                             <option value="novo">Cadastrar novo ingrediente</option>
@@ -228,26 +228,26 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
               </div>
 
               <div>
-                <label htmlFor="ia-instrucoes" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">{cfg.instrucoes.titulo} (editável)</label>
+                <label htmlFor="ia-instrucoes" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">{cfg.instrucoes.titulo} (editável)</label>
                 <textarea id="ia-instrucoes" value={resultado.modo_preparo || ""} onChange={e => setResultado(r => ({ ...r, modo_preparo: e.target.value }))}
                   className="erp-input min-h-[150px] resize-y py-3 text-sm" />
               </div>
 
               {cfg.id === "pre_preparo" ? (
                 <div className="grid gap-3 text-sm sm:grid-cols-2">
-                  <p className="rounded-xl bg-elevated p-3"><b className="text-fg">Tempo de preparo:</b> {resultado.tempo_preparo ? `${resultado.tempo_preparo} min (estimativa da IA)` : "não informado"}</p>
-                  <p className="rounded-xl bg-elevated p-3"><b className="text-fg">Equipamentos:</b> {resultado.equipamentos?.length ? resultado.equipamentos.join(", ") : "nenhum"}</p>
-                  <p className="rounded-xl bg-elevated p-3"><b className="text-fg">Alergênicos:</b> {resultado.alergenicos?.length ? resultado.alergenicos.join(", ") : "nenhum identificado"}</p>
-                  <p className="rounded-xl bg-elevated p-3"><b className="text-fg">Validade:</b> {resultado.armazenamento?.validade_dias ? `${resultado.armazenamento.validade_dias} dias (informada na receita)` : "preencha no editor"}</p>
+                  <p className="rounded-xl bg-card p-3"><b className="text-fg">Tempo de preparo:</b> {resultado.tempo_preparo ? `${resultado.tempo_preparo} min (estimativa da IA)` : "não informado"}</p>
+                  <p className="rounded-xl bg-card p-3"><b className="text-fg">Equipamentos:</b> {resultado.equipamentos?.length ? resultado.equipamentos.join(", ") : "nenhum"}</p>
+                  <p className="rounded-xl bg-card p-3"><b className="text-fg">Alergênicos:</b> {resultado.alergenicos?.length ? resultado.alergenicos.join(", ") : "nenhum identificado"}</p>
+                  <p className="rounded-xl bg-card p-3"><b className="text-fg">Validade:</b> {resultado.armazenamento?.validade_dias ? `${resultado.armazenamento.validade_dias} dias (informada na receita)` : "preencha no editor"}</p>
                 </div>
               ) : (
-                <p className="rounded-xl bg-elevated p-3 text-sm">
+                <p className="rounded-xl bg-card p-3 text-sm">
                   <b className="text-fg">Rendimento:</b>{" "}
                   {resultado.peso_final_g ? `${resultado.peso_final_g} g servidos (estimativa da IA)` : "confira no editor"}
                 </p>
               )}
 
-              <button type="button" onClick={() => setResultado(null)} className="text-xs font-bold text-muted hover:text-fg">Voltar e enviar outra receita</button>
+              <button type="button" onClick={() => setResultado(null)} className="text-xs font-bold text-fg hover:text-fg">Voltar e enviar outra receita</button>
             </>
           )}
           {erro ? <p role="alert" className="rounded-xl border border-[color:var(--danger)] bg-[color:var(--danger-soft)] px-3 py-2 text-sm font-bold text-[color:var(--danger-strong)]">{erro}</p> : null}

@@ -19,7 +19,7 @@ function Linhas({ linhas }) {
     <dl className="divide-y divide-[color:var(--line-soft)]">
       {linhas.map(l => (
         <div key={l.rotulo} className={`grid grid-cols-[42%_1fr] gap-3 px-2 py-2 text-sm ${l.forte ? "font-black text-fg" : ""}`}>
-          <dt className={l.forte ? "" : "font-semibold text-muted"}>{l.rotulo}</dt>
+          <dt className={l.forte ? "" : "font-semibold text-fg"}>{l.rotulo}</dt>
           <dd className="font-bold text-fg">{l.valor}</dd>
         </div>
       ))}
@@ -34,13 +34,13 @@ export function FichaDocumento({ dados }) {
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.18em] text-[color:var(--tipo)]">{dados.config.tituloDocumento}</p>
-          <p className="text-3xs font-bold uppercase tracking-widest text-muted">{dados.setor.rotulo}</p>
+          <p className="text-3xs font-bold uppercase tracking-widest text-fg">{dados.setor.rotulo}</p>
         </div>
         {dados.cabecalho.length ? (
           <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5 text-right text-xs">
             {dados.cabecalho.map(c => (
               <div key={c.rotulo} className="contents">
-                <dt className="text-3xs font-bold uppercase tracking-wider text-muted">{c.rotulo}</dt>
+                <dt className="text-3xs font-bold uppercase tracking-wider text-fg">{c.rotulo}</dt>
                 <dd className="font-black text-fg">{c.valor}</dd>
               </div>
             ))}
@@ -53,7 +53,7 @@ export function FichaDocumento({ dados }) {
         <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
           {dados.identificacao.map(i => (
             <div key={i.rotulo}>
-              <dt className="text-3xs font-bold uppercase tracking-wider text-muted">{i.rotulo}</dt>
+              <dt className="text-3xs font-bold uppercase tracking-wider text-fg">{i.rotulo}</dt>
               <dd className="text-sm font-black text-fg">{i.valor}</dd>
             </div>
           ))}
@@ -66,7 +66,7 @@ export function FichaDocumento({ dados }) {
           {dados.ingredientes.length ? (
             <table className="mt-2 w-full text-[15px]">
               <thead>
-                <tr className="border-b border-line text-left text-3xs font-bold uppercase tracking-wider text-muted">
+                <tr className="border-b border-line text-left text-3xs font-bold uppercase tracking-wider text-fg">
                   <th className="px-2 pb-1.5 font-bold">Ingrediente</th>
                   <th className="px-2 pb-1.5 text-right font-bold">Quantidade</th>
                 </tr>
@@ -83,7 +83,7 @@ export function FichaDocumento({ dados }) {
                 ))}
               </tbody>
             </table>
-          ) : <p className="px-2 py-3 text-sm font-semibold text-muted">Sem ingredientes cadastrados.</p>}
+          ) : <p className="px-2 py-3 text-sm font-semibold text-fg">Sem ingredientes cadastrados.</p>}
         </section>
         {dados.foto ? (
           <img src={dados.foto} alt={dados.nome} className="w-full rounded-xl border border-line object-cover sm:mt-10 sm:w-56" style={{ maxHeight: 260 }} />
@@ -99,12 +99,12 @@ export function FichaDocumento({ dados }) {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--tipo)] text-sm font-black text-[color:var(--tipo-fg)]">{n + 1}</span>
                 <span className="min-w-0 pt-0.5 text-[15px] font-medium leading-relaxed text-fg">
                   {p.texto}
-                  {p.detalhes.length ? <span className="mt-0.5 block text-xs font-semibold text-muted">{p.detalhes.join(" · ")}</span> : null}
+                  {p.detalhes.length ? <span className="mt-0.5 block text-xs font-semibold text-fg">{p.detalhes.join(" · ")}</span> : null}
                 </span>
               </li>
             ))}
           </ol>
-          {dados.instrucoes.notas.length ? <p className="mt-1 text-xs font-semibold text-muted">{dados.instrucoes.notas.join(" · ")}</p> : null}
+          {dados.instrucoes.notas.length ? <p className="mt-1 text-xs font-semibold text-fg">{dados.instrucoes.notas.join(" · ")}</p> : null}
         </section>
       ) : null}
 

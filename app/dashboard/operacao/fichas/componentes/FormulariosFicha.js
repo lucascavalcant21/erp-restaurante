@@ -22,7 +22,7 @@ function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, co
       <div className="flex gap-4">
         <CampoFoto imagem={form.imagem} onChange={imagem => mudar({ imagem })} />
         <div className="min-w-0 flex-1">
-          <label htmlFor="ficha-nome" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
+          <label htmlFor="ficha-nome" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">
             {cfg.id === "prato" ? "Nome do prato" : "Nome do pré-preparo"}
           </label>
           <input id="ficha-nome" value={form.nome_receita} onChange={e => mudar({ nome_receita: e.target.value })} autoComplete="off"
@@ -36,7 +36,7 @@ function Identificacao({ cfg, form, mudar, categorias, onGerenciarCategorias, co
         {campoRendimento}
         {comResponsavel ? (
           <div className="sm:col-span-2">
-            <label htmlFor="ficha-responsavel" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">Responsável</label>
+            <label htmlFor="ficha-responsavel" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Responsável</label>
             <input id="ficha-responsavel" value={form.responsavel} onChange={e => mudar({ responsavel: e.target.value })}
               placeholder="Quem responde por esta receita" className="erp-input" />
           </div>
@@ -87,7 +87,7 @@ export function FormularioPrePreparo(props) {
     podeVerCustos, carregandoComplementos,
   } = props;
   const aguarde = carregandoComplementos
-    ? <p className="text-sm font-semibold text-muted">Carregando...</p>
+    ? <p className="text-sm font-semibold text-fg">Carregando...</p>
     : null;
   return (
     <div className="space-y-4">

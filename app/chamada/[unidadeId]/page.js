@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "../../lib/supabase";
 import { Maximize, MonitorPlay, Clock } from "lucide-react";
 
 export default function PainelChamadaTV() {
@@ -12,62 +11,40 @@ export default function PainelChamadaTV() {
   const containerRef = useRef(null);
   const audioCtxRef = useRef(null);
 
-  // Carregar os pedidos iniciais
+  // SEC-DADOS-2: a TV consulta o servidor a cada 4 s. Antes ela assinava o
+  // tempo real de `pedidos` como anon, e cada atualização trazia a linha
+  // inteira — telefone e endereço do cliente — para quem abrisse esta página.
+  // O servidor devolve só rótulo, status e horário.
+  const statusAnteriorRef = useRef(null);
+
   const carregarPedidos = async () => {
-    const { data } = await supabase.from("pedidos")
-      .select("id, numero_pedido, cliente_nome, status, updated_at, tipo_pedido")
-      .eq("unidade_id", unidadeId)
-      .in("tipo_pedido", ["balcao", "ifood", "delivery", "cardapio"])
-      .in("status", ["preparando", "preparando_delivery", "aberto", "pronto", "pago"])
-      .order("updated_at", { ascending: false });
-    
-    setPedidos(data || []);
+    let lista = null;
+    try {
+      const r = await fetch(`/api/public/chamada/${encodeURIComponent(unidadeId)}`, { cache: "no-store" });
+      if (r.ok) lista = (await r.json()).pedidos || [];
+    } catch { /* rede oscilou: mantém a tela como está e tenta de novo */ }
+    if (!lista) return;
+
+    // Campainha: pedido que passou para "pronto" desde a última consulta.
+    const antes = statusAnteriorRef.current;
+    if (antes) {
+      const chamado = lista.find(p => p.status === "pronto" && antes.get(p.id) !== "pronto");
+      if (chamado) {
+        tocarCampainha();
+        setUltimoChamado(chamado);
+        setTimeout(() => setUltimoChamado(null), 8000); // Exibe por 8 segundos
+      }
+    }
+    statusAnteriorRef.current = new Map(lista.map(p => [p.id, p.status]));
+    setPedidos(lista);
   };
 
   useEffect(() => {
+    statusAnteriorRef.current = null;
     carregarPedidos();
-
-    // Inscrever para atualizações em tempo real
-    const channel = supabase
-      .channel(`tv_chamada_${unidadeId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "pedidos",
-          filter: `unidade_id=eq.${unidadeId}`
-        },
-        (payload) => {
-          const novo = payload.new;
-          
-          setPedidos(prev => {
-            // Remove se não for mais um status ou tipo válido
-            if (!["preparando", "preparando_delivery", "aberto", "pronto", "pago"].includes(novo.status) || !["balcao", "ifood", "delivery", "cardapio"].includes(novo.tipo_pedido)) {
-               return prev.filter(p => p.id !== novo.id);
-            }
-            
-            const existe = prev.find(p => p.id === novo.id);
-            let lista = prev;
-            if (existe) {
-               lista = prev.map(p => p.id === novo.id ? novo : p);
-            } else {
-               lista = [novo, ...prev];
-            }
-            return lista.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
-          });
-
-          // Se mudou para PRONTO, toca som e exibe na tela cheia
-          if (novo.status === 'pronto') {
-             tocarCampainha();
-             setUltimoChamado(novo);
-             setTimeout(() => setUltimoChamado(null), 8000); // Exibe por 8 segundos
-          }
-        }
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
+    const timer = setInterval(carregarPedidos, 4000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidadeId]);
 
   const tocarCampainha = () => {
@@ -100,12 +77,8 @@ export default function PainelChamadaTV() {
      } catch(e) {}
   };
 
-  const formatarNome = (pedido) => {
-     if(pedido.cliente_nome) {
-        return pedido.cliente_nome.split(" ")[0].toUpperCase();
-     }
-     return `#${pedido.numero_pedido || pedido.id.substring(0,4)}`;
-  };
+  // O servidor já manda o rótulo pronto (primeiro nome ou número do pedido).
+  const formatarNome = (pedido) => pedido?.rotulo || "";
 
   const preparando = pedidos.filter(p => p.status !== 'pronto');
   const prontos = pedidos.filter(p => p.status === 'pronto');

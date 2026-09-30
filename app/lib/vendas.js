@@ -629,42 +629,30 @@ export async function atualizarStatusKDS(itemId, novoStatus) {
 // ─── DELIVERY E AUTO-ATENDIMENTO (Pedidos Online) ────────────────────────────
 
 // Usado pelo app/cardapio/[unidadeId] para enviar o pedido
-export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart, autoAprovar = false) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  
-  // 1. Cria o Pedido com status 'novo_online' (ou 'preparando' se autoAprovar)
-  let valorTotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
-  if (dadosCliente.taxa_entrega) {
-     valorTotal += parseFloat(dadosCliente.taxa_entrega);
+// SEC-DADOS-2: o cardápio público não grava mais direto em pedidos e
+// pedidos_itens como anon. O servidor recebe id e quantidade de cada item,
+// busca o preço no banco e calcula o total — o preço que o navegador conhece
+// não entra na conta. Único chamador: /cardapio/[unidadeId].
+export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
+  try {
+    const r = await fetch("/api/public/pedidos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        unidade: String(unidadeId),
+        cliente: {
+          tipo: dadosCliente.tipo, nome: dadosCliente.nome, telefone: dadosCliente.telefone,
+          endereco: dadosCliente.endereco || null, troco: dadosCliente.troco || null,
+        },
+        itens: (itensCart || []).map((it) => ({ id: it.id, quantidade: it.quantidade, observacao: it.observacao || "" })),
+      }),
+    });
+    const json = await r.json().catch(() => ({}));
+    if (!r.ok) return { error: json.erro || "Não foi possível enviar o pedido." };
+    return { error: null };
+  } catch {
+    return { error: "Sem conexão." };
   }
-  
-  // Obs: `pedidos` não possui coluna `taxa_entrega`; incluí-la quebrava o INSERT
-  // e nenhum pedido online era criado. A taxa já está somada em `valor_total`.
-  const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
-     unidade_id: unidadeId,
-     status: autoAprovar ? 'preparando' : 'novo_online',
-     tipo_pedido: dadosCliente.tipo, // 'delivery' ou 'qrcode'
-     cliente_nome: dadosCliente.nome,
-     cliente_telefone: dadosCliente.telefone,
-     endereco_entrega: dadosCliente.endereco || null,
-     troco_para: dadosCliente.troco || null,
-     valor_total: valorTotal
-  }]).select().single();
-
-  if (errPed) return { error: errPed.message };
-
-  // 2. Insere os itens
-  const insertsItens = itensCart.map(it => ({
-     pedido_id: pedido.id,
-     produto_id: it.id,
-     quantidade: it.quantidade,
-     valor_unitario: it.preco_venda,
-     observacao: it.observacao || "",
-     status_kds: autoAprovar ? 'pendente' : 'aguardando_aceite'
-  }));
-
-  const { error: errItens } = await supabase.from("pedidos_itens").insert(insertsItens);
-  return { error: errItens?.message, pedidoId: pedido.id };
 }
 
 // Usado pelo Dashboard do Restaurante para ver os pedidos que chegaram

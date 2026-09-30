@@ -74,7 +74,11 @@ export function ERPProvider({ children }) {
 
   useEffect(() => {
     let vivo = true;
-    Promise.all([fetchUnidades(), lerSessao()]).then(([resUnidades, sessaoObj]) => {
+    // Sem sessão (páginas públicas — cardápio, vagas, rastreio…) não há o que
+    // carregar: o anon não lê unidades, estoque nem etiquetas (SEC-DADOS-2), e
+    // antes este provider buscava estoque e 1000 etiquetas em toda página aberta.
+    lerSessao().then(async (sessaoObj) => {
+      const resUnidades = sessaoObj ? await fetchUnidades() : { data: [], error: null };
       if (!vivo) return;
       const unids = resUnidades.data || [];
       setUnidades(unids);

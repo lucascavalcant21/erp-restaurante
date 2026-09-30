@@ -26,8 +26,13 @@ export default function OrcamentoPublicoPage({ params }) {
 
   useEffect(() => {
     async function loadConfig() {
-      const { data } = await supabase.from("unidades").select("nome, config").eq("id", unidadeStr).single();
-      if (data) setUnidadeInfo(data);
+      // SEC-DADOS-2: nome e logo pelo servidor; o anon não lê mais `unidades`
+      // (a tabela guarda CNPJ, endereço fiscal e o token da NF-e).
+      try {
+        const r = await fetch(`/api/public/unidade/${encodeURIComponent(unidadeStr)}`, { cache: "no-store" });
+        const json = r.ok ? await r.json() : null;
+        if (json?.unidade) setUnidadeInfo({ nome: json.unidade.nome, config: { logo_url: json.unidade.logo_url } });
+      } catch { /* sem conexão: mantém o texto genérico */ }
     }
     loadConfig();
   }, [unidadeStr]);

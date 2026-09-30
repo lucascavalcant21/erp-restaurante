@@ -116,16 +116,21 @@ export async function excluirListaEtiquetas(id) {
 // etiqueta agora carrega saldo, custo, linhagem e produção, e nada disso pode
 // sair para quem só escaneou um QR na rua. A função devolve apenas o que já
 // está impresso no papel.
+//
+// SEC-DADOS-2: a função get_etiqueta_publica nunca foi aplicada em produção e
+// a página caía na leitura direta de `etiquetas` como anon — todas as
+// etiquetas, com custo e saldo, abertas a qualquer um. Agora quem busca é o
+// servidor, e só sai o que está impresso no papel.
 export async function buscarPorCodigo(codigo) {
-  if (!isSupabaseReady() || !codigo) return null;
-  const { data, error } = await supabase.rpc("get_etiqueta_publica", { p_codigo: codigo });
-  if (error) {
-    // Ambiente onde a migração ainda não rodou: o rastreio continua de pé pela
-    // leitura antiga, que segue permitida enquanto a policy anônima existir.
-    const { data: antigo } = await supabase.from("etiquetas").select("*").eq("codigo", codigo).maybeSingle();
-    return antigo || null;
+  if (!codigo) return null;
+  try {
+    const r = await fetch(`/api/public/rastreio/${encodeURIComponent(codigo)}`, { cache: "no-store" });
+    if (!r.ok) return null;
+    const json = await r.json().catch(() => ({}));
+    return json.etiqueta || null;
+  } catch {
+    return null;
   }
-  return (Array.isArray(data) ? data[0] : data) || null;
 }
 
 // Status da etiqueta: 'ativa' | 'baixa' (consumido/usado) | 'perda' (perdido/descartado)

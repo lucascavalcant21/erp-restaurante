@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "../../lib/supabase";
 import { enviarPedidoOnline } from "../../lib/vendas";
 import { UtensilsCrossed, ArrowDown, ShoppingBag, X, CheckCircle, Info, Plus, Minus, Send } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
@@ -37,21 +36,17 @@ export default function CardapioPublicoPage() {
   useEffect(() => {
     async function carregarCardapio() {
        setLoading(true);
-       const { data: uni } = await supabase.from("unidades").select("nome, delivery_aberto, taxa_entrega_padrao").eq("id", unidadeId).single();
-       if(uni) {
-         setUnidadeNome(uni.nome);
-         setLojaAberta(uni.delivery_aberto !== false);
-         setTaxaEntrega(parseFloat(uni.taxa_entrega_padrao) || 0);
-       }
-
-       const { data: prod } = await supabase.from("produtos")
-          .select("*")
-          .eq("unidade_id", unidadeId)
-          .eq("ativo", true)
-          .order("categoria")
-          .order("nome_produto");
-          
-       if(prod) setProdutos(prod);
+       // SEC-DADOS-2: pelo servidor — o anon não lê mais produtos nem unidades.
+       try {
+         const r = await fetch(`/api/public/cardapio/${encodeURIComponent(unidadeId)}`, { cache: "no-store" });
+         const json = r.ok ? await r.json() : null;
+         if (json?.unidade) {
+           setUnidadeNome(json.unidade.nome);
+           setLojaAberta(json.unidade.aberta !== false);
+           setTaxaEntrega(Number(json.unidade.taxa_entrega) || 0);
+         }
+         if (json?.produtos) setProdutos(json.produtos);
+       } catch { /* sem conexão: cardápio fica vazio, como antes */ }
        setLoading(false);
     }
     carregarCardapio();

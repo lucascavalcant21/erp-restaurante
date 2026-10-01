@@ -25,7 +25,8 @@ import {
   criarContaFinanceira,
   editarContaFinanceira,
   criarTaxa,
-  encerrarTaxa
+  encerrarTaxa,
+  anexarBrutoSemTaxa
 } from "./contas-receber.mjs";
 
 // Fonte única das categorias: contas-pagar.mjs (inclui "manutencao", usada pela
@@ -258,12 +259,20 @@ export async function fetchSaldosContasFinanceiras(unidadeId) {
   return { data: (s.data || []).map((x) => ({ ...x, ativa: ativa.get(x.id) !== false })), error: null };
 }
 
-/** Fluxo de caixa (realizado × previsto) num intervalo de datas. */
+/**
+ * Fluxo de caixa (realizado × previsto) num intervalo de datas. Recebível com
+ * taxa não informada vem com valor nulo; busca o saldo bruto dele à parte para
+ * a tela mostrar o bruto em aberto (o líquido continua não informado).
+ */
 export async function fetchFluxoCaixa(unidadeId, de, ate) {
   if (!isSupabaseReady() || !unidadeValida(unidadeId) || !de || !ate) return { data: [], error: null };
   const { data, error } = await supabase.from("vw_fin_fluxo_caixa").select("*")
     .eq("unidade_id", unidadeId).gte("data", de).lte("data", ate).order("data", { ascending: true });
-  return { data: data || [], error: error?.message || null };
+  const linhas = data || [];
+  const ids = [...new Set(linhas.filter((l) => l.natureza === "previsto" && l.origem === "conta_receber" && l.valor == null).map((l) => l.referencia_id))];
+  if (error || !ids.length) return { data: linhas, error: error?.message || null };
+  const r = await supabase.from("vw_fin_contas_receber").select("id, saldo_bruto").eq("unidade_id", unidadeId).in("id", ids);
+  return { data: r.error ? linhas : anexarBrutoSemTaxa(linhas, r.data), error: null };
 }
 
 export async function salvarContaReceber(conta, opcoes = {}) {

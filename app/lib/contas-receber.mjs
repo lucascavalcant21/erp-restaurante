@@ -430,14 +430,36 @@ export function resumoReceber(contas, recebimentosPeriodo, periodo) {
   };
 }
 
-/** Fluxo: totais de realizado e previsto separados (nunca somados como dinheiro disponível). */
+/**
+ * Recebível em aberto com taxa não informada vem do fluxo com valor nulo (o
+ * líquido não é conhecido). Anexa o saldo BRUTO dele (`bruto_sem_taxa`), para a
+ * tela mostrar quanto está em aberto sem inventar o líquido.
+ */
+export function anexarBrutoSemTaxa(linhas, recebiveis) {
+  const bruto = new Map((recebiveis || []).map((r) => [r.id, Number(r.saldo_bruto)]));
+  return linhas.map((l) => (l.natureza === "previsto" && l.origem === "conta_receber" && l.valor == null && bruto.has(l.referencia_id)
+    ? { ...l, bruto_sem_taxa: bruto.get(l.referencia_id) } : l));
+}
+
+/**
+ * Fluxo: totais de realizado e previsto separados (nunca somados como dinheiro disponível).
+ * Previsto a receber: `entradas` soma só o líquido conhecido; os recebíveis com
+ * taxa não informada ficam fora dela e aparecem à parte pelo bruto
+ * (`brutoSemTaxa`, null se o bruto de algum não pôde ser lido).
+ */
 export function resumoFluxo(linhas) {
   const s = (natureza, direcao) => r2(linhas.filter((l) => l.natureza === natureza && l.direcao === direcao && l.valor != null)
     .reduce((t, l) => t + Number(l.valor), 0));
-  const previstoSemValor = linhas.some((l) => l.natureza === "previsto" && l.valor == null);
+  const previstoEntrada = linhas.filter((l) => l.natureza === "previsto" && l.direcao === "entrada");
+  const semTaxa = previstoEntrada.filter((l) => l.valor == null);
   return {
     realizado: { entradas: s("realizado", "entrada"), saidas: s("realizado", "saida"), saldo: r2(s("realizado", "entrada") - s("realizado", "saida")) },
-    previsto: { entradas: s("previsto", "entrada"), saidas: s("previsto", "saida"), entradasIncompletas: previstoSemValor },
+    previsto: {
+      entradas: s("previsto", "entrada"), saidas: s("previsto", "saida"),
+      entradasIncompletas: semTaxa.length > 0,
+      entradasConhecidas: previstoEntrada.some((l) => l.valor != null),
+      brutoSemTaxa: semTaxa.every((l) => l.bruto_sem_taxa != null) ? r2(semTaxa.reduce((t, l) => t + Number(l.bruto_sem_taxa), 0)) : null,
+    },
     incluiLegado: linhas.some((l) => l.origem === "pagamento_legado"),
   };
 }

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import {
   escolherTaxa, calcularTaxa, montarRecebiveis, validarRecebivel, criarContaReceber, editarContaReceber,
   registrarRecebimento, estornarRecebimento, cancelarContaReceber, criarContaFinanceira, editarContaFinanceira,
-  criarTaxa, encerrarTaxa, resumoReceber, resumoFluxo, podeReceber, podeCancelarReceber,
+  criarTaxa, encerrarTaxa, resumoReceber, resumoFluxo, anexarBrutoSemTaxa, podeReceber, podeCancelarReceber,
 } from "./contas-receber.mjs";
 import { registrarPagamento, criarContaPagar } from "./contas-pagar.mjs";
 import { criarBancoF21, clienteSupabase } from "./teste-banco-f21.mjs";
@@ -124,6 +124,30 @@ const hojeFluxo = (await pg.query(`select natureza, direcao, valor::float valor,
 const rh = resumoFluxo(hojeFluxo);
 conferir("fluxo de hoje (realizado): entradas 400+97+... líquidos, saídas 40", [rh.realizado.saidas, rh.realizado.entradas], [40, 400 + 97]);
 conferir("previsto fica separado do realizado", typeof rf.previsto.entradas === "number" && rf.previsto.entradas !== rf.realizado.entradas, true);
+// taxa não informada: o fluxo não inventa o líquido, mas mostra o BRUTO em aberto
+// (mesmo caminho do fetchFluxoCaixa, pelo cliente com os grants reais)
+{
+  const fl = (await db.from("vw_fin_fluxo_caixa").select("*").eq("unidade_id", U).gte("data", "2026-01-01").lte("data", "2026-12-31")).data;
+  const ids = [...new Set(fl.filter((l) => l.natureza === "previsto" && l.origem === "conta_receber" && l.valor == null).map((l) => l.referencia_id))];
+  const rec = await db.from("vw_fin_contas_receber").select("id, saldo_bruto").eq("unidade_id", U).in("id", ids);
+  const com = resumoFluxo(anexarBrutoSemTaxa(fl, rec.data));
+  const esperado = (await pg.query(`select coalesce(sum(saldo_bruto), 0)::float s from public.vw_fin_contas_receber where unidade_id = $1
+     and situacao in ('previsto','parcial','atrasado') and saldo_bruto > 0 and valor_liquido_previsto is null and data_prevista between '2026-01-01' and '2026-12-31'`, [U])).rows[0].s;
+  conferir("fluxo: lê o bruto dos recebíveis sem taxa pela view (grants reais)", [rec.error, ids.length > 0], [null, true]);
+  conferir("fluxo: bruto sem taxa = soma do saldo bruto em aberto sem taxa", [com.previsto.entradasIncompletas, com.previsto.brutoSemTaxa], [true, esperado]);
+  conferir("fluxo: líquido conhecido continua só com o que tem taxa", [com.previsto.entradas, com.previsto.entradasConhecidas], [rf.previsto.entradas, true]);
+  conferir("fluxo: cada linha sem taxa ganha o bruto; as outras ficam iguais",
+    anexarBrutoSemTaxa(fl, rec.data).filter((l) => l.bruto_sem_taxa != null).length === ids.length && anexarBrutoSemTaxa(fl, rec.data).filter((l) => l.valor != null).every((l) => l.bruto_sem_taxa === undefined), true);
+  conferir("fluxo: sem conseguir ler o bruto → brutoSemTaxa null (tela cai no aviso antigo)", resumoFluxo(fl).previsto.brutoSemTaxa, null);
+}
+{
+  const so = [{ natureza: "previsto", direcao: "entrada", valor: null, origem: "conta_receber", referencia_id: "a", bruto_sem_taxa: 1 }];
+  const r = resumoFluxo(so);
+  conferir("fluxo só com recebível sem taxa (caso de produção): líquido 0 mas NÃO conhecido; bruto 1,00",
+    [r.previsto.entradas, r.previsto.entradasConhecidas, r.previsto.entradasIncompletas, r.previsto.brutoSemTaxa], [0, false, true, 1]);
+  const vazio = resumoFluxo([]).previsto;
+  conferir("fluxo vazio: nada incompleto, bruto sem taxa 0", [vazio.entradasIncompletas, vazio.entradasConhecidas, vazio.brutoSemTaxa], [false, false, 0]);
+}
 
 // ── 9. receita (bruto, competência) ≠ dinheiro (líquido, caixa) ──────────────
 const lista = await listar();

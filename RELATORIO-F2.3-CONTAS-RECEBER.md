@@ -29,6 +29,34 @@ Rodar `db/diagnosticos/F2_3_AUDITORIA_RECEBER.sql` (somente leitura, um resultad
 
 **Se aparecer qualquer policy `USING true` ou sem unidade: PARAR antes do deploy** (a lição de `contas_pagar`).
 
+## ✅ Auditoria rodada em produção (01/10/2026): sem brecha entre unidades
+
+| Item | Produção | Situação |
+|---|---|---|
+| Colunas das 4 tabelas | Idênticas às da F2.1 | ✅ A F2.3 usa exatamente essas |
+| RLS | Ligado nas 4 | ✅ |
+| Policies | Uma por tabela, `*_unidade_f21`, `pode_ver_todas() OR unidade_id = auth_unidade_id()` no USING **e** no CHECK, só para `authenticated` | ✅ Nenhuma `USING true` |
+| Views | `security_invoker=true` nas 3 | ✅ Herdam o RLS de quem consulta |
+| RPCs de receber/estornar | Dono postgres, definer, checam unidade, anon não executa, authenticated executa; recalcular não executável pelo app | ✅ |
+| `fin_recebimentos` | authenticated só SELECT (+ REFERENCES, TRIGGER); sem INSERT/UPDATE/DELETE | ✅ Só as RPCs gravam |
+| Dados | 0 linhas nas 4 tabelas | — |
+| **Divergência 1** | Views com **DELETE, INSERT, UPDATE, TRUNCATE** para authenticated | ⚠ Higiene, sem efeito (testado) |
+| **Divergência 2** | Tabelas com **REFERENCES, TRIGGER** para authenticated | ⚠ Higiene, sem efeito pela API |
+
+**Por que as divergências existem:** o Supabase concede por padrão ALL ao `authenticated` em tabela/view nova. A F2.1 retirou só parte (DELETE/TRUNCATE das tabelas; tudo do anon), e a SEC-DADOS-3 tirou esse padrão só do anon. A simulação local não mostrava isso porque o Postgres local não tem esses padrões.
+
+**Por que não abrem nada (reproduzido no teste, com os privilégios exatos de produção):**
+- INSERT/UPDATE/DELETE em `vw_fin_contas_receber` e TRUNCATE em `vw_fin_fluxo_caixa` falham: as views não são atualizáveis (CTE, junção, UNION).
+- DELETE pela `vw_fin_saldo_contas_financeiras` falha: com `security_invoker`, vale o privilégio do usuário na tabela, e ele não tem DELETE.
+- Outra unidade alterando conta financeira pela view: 0 linhas (RLS).
+- REFERENCES/TRIGGER só servem para DDL (criar FK ou trigger), e o app fala com o banco pela API (PostgREST), que não executa DDL.
+
+**Pendência já conhecida (não é da auditoria, é do desenho):** a própria unidade consegue, pela API, dar UPDATE direto em `fin_contas_financeiras` (inclusive `saldo_inicial`) e em `fin_contas_receber` (valor, status). A tela não permite. O banco permite dentro da unidade. Isso entra na proposta de integridade (§1, item 3).
+
+**Higiene proposta (não criei SQL):** retirar do `authenticated` tudo que não seja SELECT nas 3 views e REFERENCES/TRIGGER nas 4 tabelas. É o mesmo item pendente de `contas_pagar` (DELETE/TRUNCATE/TRIGGER/REFERENCES).
+
+**Conclusão pela regra do item 21:** nenhuma brecha entre unidades. A F2.3 pode ser publicada quando você autorizar.
+
 ## 1. Estrutura encontrada (F2.1, aplicada em produção em 01/10)
 
 A F2.1 foi aplicada pelo arquivo `db/F2_1_FUNDACAO_FINANCEIRA.sql` desta mesma linha. O diagnóstico pós-migration confirmou:
@@ -203,7 +231,7 @@ Ações que vão precisar de permissão própria na fase de autorização financ
 
 ## 9. Testes
 
-`PGLITE=<caminho> node app/lib/contas-receber.test.mjs` → **69/69**. A camada roda contra o SQL real da F2.1 em PGlite, com RLS, `auth.uid()` e papel `authenticated`.
+`PGLITE=<caminho> node app/lib/contas-receber.test.mjs` → **73/73**: os 69 originais + 4 com os privilégios exatos de produção. A camada roda contra o SQL real da F2.1 em PGlite, com RLS, `auth.uid()` e papel `authenticated`.
 
 | Pedido | Resultado |
 |---|---|

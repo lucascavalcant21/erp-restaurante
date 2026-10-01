@@ -194,5 +194,44 @@ conferir("faturamento aparece como NÃO APURADO na Central", /Faturamento[\s\S]{
 const efeitos = (ler("app/dashboard/financeiro/receber/page.js").match(/useEffect\(\(\) => \{[\s\S]*?\}, \[[^\]]*\]\);/g) || []).join("\n");
 conferir("abrir Contas a Receber não grava nada", /salvar|receberConta|cancelar|estornar|criar/i.test(efeitos), false);
 
+// ── 16. privilégios EXATOS de produção (auditoria F2.3 de 01/10/2026) ───────
+// O Supabase dá, por padrão, ALL ao authenticated em tabelas/views novas; a
+// F2.1 só retirou parte. Produção ficou: views com DELETE/INSERT/UPDATE/
+// TRUNCATE e tabelas com REFERENCES/TRIGGER. Reproduz e tenta abusar.
+{
+  await pg.exec(`
+    grant all on public.vw_fin_contas_receber, public.vw_fin_fluxo_caixa, public.vw_fin_saldo_contas_financeiras to authenticated;
+    grant references, trigger on public.fin_contas_receber, public.fin_recebimentos, public.fin_contas_financeiras, public.fin_taxas_meio_pagamento to authenticated;
+  `);
+  const comoSql = async (unidade, sql) => {
+    await pg.exec("reset role");
+    await pg.query(`select set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333333',false), set_config('test.unidade',$1,false), set_config('test.rede','false',false)`, [unidade]);
+    await pg.exec("set role authenticated");
+    try { const r = await pg.query(sql); return { ok: true, linhas: r.affectedRows ?? 0 }; }
+    catch (e) { return { ok: false, erro: e.message }; }
+    finally { await pg.exec("reset role"); }
+  };
+  const contaFin = (await pg.query(`select id from public.fin_contas_financeiras limit 1`)).rows[0].id;
+  const ataques = {
+    "INSERT na view de recebíveis": await comoSql(U, `insert into public.vw_fin_contas_receber (id) values (gen_random_uuid())`),
+    "UPDATE na view de recebíveis": await comoSql(U, `update public.vw_fin_contas_receber set descricao = 'x'`),
+    "DELETE na view de recebíveis": await comoSql(U, `delete from public.vw_fin_contas_receber`),
+    "TRUNCATE na view de fluxo": await comoSql(U, `truncate public.vw_fin_fluxo_caixa`),
+    "DELETE de conta financeira pela view": await comoSql(U, `delete from public.vw_fin_saldo_contas_financeiras`),
+    "outra unidade altera conta financeira pela view": await comoSql("outra", `update public.vw_fin_saldo_contas_financeiras set nome = 'x' where id = '${contaFin}'`),
+  };
+  conferir("privilégios de produção: INSERT/UPDATE/DELETE/TRUNCATE nas views não funcionam",
+    Object.entries(ataques).slice(0, 5).map(([k, r]) => [k, r.ok]), Object.keys(ataques).slice(0, 5).map((k) => [k, false]));
+  conferir("privilégios de produção: outra unidade não altera nada pela view (0 linhas)", ataques["outra unidade altera conta financeira pela view"].linhas, 0);
+  const criarTrigger = await comoSql(U, `create function public.x_trg() returns trigger language plpgsql as $f$ begin return new; end $f$`);
+  // Em produção a proteção real é outra: o app só fala com o banco pela API (PostgREST),
+  // que não executa DDL. Aqui só se confirma que o papel não cria função no schema.
+  conferir("simulado: authenticated não cria função/trigger (a API em produção não executa DDL)", criarTrigger.ok, false);
+  // O que JÁ era possível (e continua): editar a própria conta financeira, inclusive saldo_inicial,
+  // direto na tabela (UPDATE concedido). A tela não deixa; o banco deixa. Registrado como pendência.
+  const saldoDireto = await comoSql(U, `update public.fin_contas_financeiras set saldo_inicial = saldo_inicial where id = '${contaFin}'`);
+  conferir("[pendência conhecida] a própria unidade consegue alterar saldo_inicial direto na tabela", saldoDireto.linhas, 1);
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os testes passaram.");
 process.exit(falhas ? 1 : 0);

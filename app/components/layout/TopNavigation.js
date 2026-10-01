@@ -57,6 +57,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       href: "/dashboard/operacao/estoque",
       submodules: [
         { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?gestao=1" },
+        { label: "Inventários / Contagens", href: "/dashboard/operacao/estoque/contagens" },
         { label: "Cotações e Compras", href: "/dashboard/operacao/compras" },
         { label: "Recebimento de Notas", href: "/dashboard/operacao/notas" },
         { label: "Fornecedores", href: "/dashboard/operacao/fornecedores" },

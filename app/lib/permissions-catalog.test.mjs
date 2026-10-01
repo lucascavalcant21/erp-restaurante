@@ -120,6 +120,15 @@ const gerente = { gerenciado: true, papel: "colaborador", permissions: ["estoque
 conferir("gerente de estoque entra nas duas",
   canAccessRoute(gerente, "/dashboard/operacao/estoque", "") === true
   && canAccessRoute(gerente, "/dashboard/operacao/estoque/tablet", "") === true, "true");
+// Contagem de estoque (F2.4A): quem conta entra sem ganhar a tela com custo;
+// finalizar (valorizar e congelar) é ação separada.
+const contador = { gerenciado: true, papel: "colaborador", permissions: ["estoque.counts.view", "estoque.counts.inventory"] };
+conferir("contador entra na contagem e NAO na tela de estoque com custo",
+  `${canAccessRoute(contador, "/dashboard/operacao/estoque/contagens", "")}|${canAccessRoute(contador, "/dashboard/operacao/estoque", "")}`, "true|false");
+conferir("contador NAO finaliza; gerente de estoque finaliza",
+  `${hasPermission(contador, "estoque.counts.close_inventory")}|${hasPermission(gerente, "estoque.counts.close_inventory")}`, "false|true");
+conferir("quem so tem a visao geral do estoque nao entra na contagem sem a permissao propria",
+  canAccessRoute({ gerenciado: true, papel: "colaborador", permissions: ["estoque.overview.view"] }, "/dashboard/operacao/estoque/contagens", ""), "false");
 
 // ── Portas que não podem se abrir ────────────────────────────────────────
 conferir("sem permissao nenhuma NAO entra na folha", canAccessRoute(semNada, "/dashboard/rh/fechamento", ""), "false");

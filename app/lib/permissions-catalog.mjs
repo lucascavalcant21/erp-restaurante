@@ -60,6 +60,8 @@ export const PERMISSION_MODULES = [
       // Contagem física (inventário, F2.4A): quem conta não precisa ver custo;
       // finalizar (valorizar e congelar) é ação separada.
       { id: "counts", label: "Contagem de estoque (inventário)", route: "/dashboard/operacao/estoque/contagens", actions: ["view", "inventory", "close_inventory"] },
+      // Compras (F2.4B): registro oficial, custo médio e conta a pagar. Vê custo.
+      { id: "purchases", label: "Compras e custo médio", route: "/dashboard/operacao/estoque/compras", actions: ["view", "create", "confirm", "cancel", "view_costs"] },
       { id: "products", label: "Produtos", route: "/dashboard/operacao/ingredientes", actions: [...CRUD, "import", "export", "view_costs"] },
       { id: "entries", label: "Entrada de estoque", route: "/dashboard/operacao/notas", actions: [...CRUD, "confirm", "cancel", "view_costs"] },
       { id: "outputs", label: "Saída de estoque", route: "/dashboard/operacao/estoque", actions: ["view", "create", "confirm", "cancel", "adjust_stock"] },

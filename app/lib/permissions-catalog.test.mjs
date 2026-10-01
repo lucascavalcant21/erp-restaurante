@@ -127,6 +127,9 @@ conferir("contador entra na contagem e NAO na tela de estoque com custo",
   `${canAccessRoute(contador, "/dashboard/operacao/estoque/contagens", "")}|${canAccessRoute(contador, "/dashboard/operacao/estoque", "")}`, "true|false");
 conferir("contador NAO finaliza; gerente de estoque finaliza",
   `${hasPermission(contador, "estoque.counts.close_inventory")}|${hasPermission(gerente, "estoque.counts.close_inventory")}`, "false|true");
+const comprador = { gerenciado: true, papel: "colaborador", permissions: ["estoque.purchases.view", "estoque.purchases.create"] };
+conferir("comprador entra em Compras, nao confirma; contador nao entra em Compras",
+  `${canAccessRoute(comprador, "/dashboard/operacao/estoque/compras", "")}|${hasPermission(comprador, "estoque.purchases.confirm")}|${canAccessRoute(contador, "/dashboard/operacao/estoque/compras", "")}`, "true|false|false");
 conferir("quem so tem a visao geral do estoque nao entra na contagem sem a permissao propria",
   canAccessRoute({ gerenciado: true, papel: "colaborador", permissions: ["estoque.overview.view"] }, "/dashboard/operacao/estoque/contagens", ""), "false");
 

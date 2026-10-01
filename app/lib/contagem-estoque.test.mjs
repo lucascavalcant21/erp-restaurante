@@ -69,8 +69,9 @@ const pg = await criarBancoF21(raiz, `
   alter table public.insumos add column unidade_medida text, add column custo_unitario numeric, add column custo_compra numeric,
     add column tamanho_embalagem numeric, add column categoria text, add column codigo_interno text;
   alter table public.estoques add column slug text, add column tipo text, add column status text default 'ativo';
-`, { secFin2: true });
+`, { secFin2: true, f24b: process.env.F24B === "1" });
 if (!pg) { console.log("\nPGLITE não informado: integração NÃO executada."); process.exit(falhas ? 1 : 2); }
+console.log(`(banco: F2.1 + SEC-FIN-2${process.env.F24B === "1" ? " + F2.4B (gatilho de custo no fechamento)" : ""})`);
 const db = clienteSupabase(pg);
 const outra = clienteSupabase(pg, { unidade: "outra", uid: "44444444-4444-4444-4444-444444444444" });
 const U = "seldeestrela";

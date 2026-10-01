@@ -8,13 +8,14 @@
 // ao authenticated em toda tabela/view nova e EXECUTE de função a anon e
 // authenticated (o anon já não ganha tabelas desde a SEC-DADOS-3). Os revokes
 // da F2.1 rodam por cima, chegando ao estado auditado em 01/10/2026.
-// `secFin2: true` aplica db/security/SEC_FIN_2_MENOR_PRIVILEGIO_F23.sql depois.
+// `secFin2: true` aplica db/security/SEC_FIN_2_MENOR_PRIVILEGIO_F23.sql depois;
+// `f24b: true` aplica db/F2_4B_COMPRAS_CUSTO_MEDIO.sql (compras → custo médio).
 
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export async function criarBancoF21(raiz, extraSql = "", { padraoSupabase = true, secFin2 = false } = {}) {
+export async function criarBancoF21(raiz, extraSql = "", { padraoSupabase = true, secFin2 = false, f24b = false } = {}) {
   if (!process.env.PGLITE) return null;
   const { PGlite } = await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "index.js")).href);
   const pg = new PGlite();
@@ -50,6 +51,7 @@ export async function criarBancoF21(raiz, extraSql = "", { padraoSupabase = true
   }
   await pg.exec(fs.readFileSync(path.join(raiz, "db", "F2_1_FUNDACAO_FINANCEIRA.sql"), "utf8"));
   if (secFin2) await pg.exec(fs.readFileSync(path.join(raiz, "db", "security", "SEC_FIN_2_MENOR_PRIVILEGIO_F23.sql"), "utf8"));
+  if (f24b) await pg.exec(fs.readFileSync(path.join(raiz, "db", "F2_4B_COMPRAS_CUSTO_MEDIO.sql"), "utf8"));
   return pg;
 }
 
@@ -74,6 +76,7 @@ export function clienteSupabase(pg, { uid = "33333333-3333-3333-3333-33333333333
         select(cols = "*") { if (st.op === "select") st.cols = cols; else st.ret = cols; return b; },
         insert(rows) { st.op = "insert"; st.rows = Array.isArray(rows) ? rows : [rows]; return b; },
         update(patch) { st.op = "update"; st.patch = patch; return b; },
+        delete() { st.op = "delete"; return b; },
         eq(c, v) { st.where.push(() => `${c} = ${p(v)}`); return b; },
         in(c, vs) { st.where.push(() => `${c} = any(${p(vs)})`); return b; },
         gte(c, v) { st.where.push(() => `${c} >= ${p(v)}`); return b; },
@@ -89,6 +92,9 @@ export function clienteSupabase(pg, { uid = "33333333-3333-3333-3333-33333333333
               const cols = [...new Set(st.rows.flatMap(Object.keys))];
               const valores = st.rows.map((r) => `(${cols.map((c) => (r[c] === undefined ? "default" : p(r[c]))).join(", ")})`).join(", ");
               sql = `insert into public.${tabela} (${cols.join(", ")}) values ${valores}${st.ret ? ` returning ${st.ret}` : ""}`;
+            } else if (st.op === "delete") {
+              const where = st.where.map((f) => f()).join(" and ");
+              sql = `delete from public.${tabela}${where ? ` where ${where}` : ""}${st.ret ? ` returning ${st.ret}` : ""}`;
             } else if (st.op === "update") {
               const sets = Object.entries(st.patch).map(([c, v]) => `${c} = ${p(v)}`).join(", ");
               const where = st.where.map((f) => f()).join(" and ");

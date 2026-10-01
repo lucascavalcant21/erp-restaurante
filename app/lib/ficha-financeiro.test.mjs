@@ -3,70 +3,17 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { composicaoDoPreco, resumoFinanceiroDaFicha, linhasDeCustoDaFicha, statusDaFicha } from "./ficha-financeiro.mjs";
+import { resumoFinanceiroDaFicha, linhasDeCustoDaFicha, statusDaFicha } from "./ficha-financeiro.mjs";
 import { porcoesParaCusto, custoDeProduzirFicha } from "./ficha-calculos.mjs";
 import { dadosDoPrato } from "./pizza-do-prato.mjs";
 
+// A divisão do preço em si (CMV, variáveis, margem, CMO, operacionais,
+// pró-labore, resultado, meta) é testada em composicao-preco.test.mjs. Aqui:
+// o resumo da ficha alimenta essa conta com os números certos.
 const perto = (a, b, casas = 2) => assert.ok(Math.abs(a - b) < 0.5 * 10 ** -casas, `esperado ${b}, veio ${a}`);
 const somaFecha = (c) => assert.equal(
-  Math.round(c.variaveis.valor * 100) + Math.round(c.fixos.valor * 100) + Math.round(c.lucro.valor * 100),
-  Math.round(c.preco * 100), "variáveis + fixos + lucro tem de dar o preço");
-const pctFecha = (c) => perto(c.variaveis.pct + c.fixos.pct + c.lucro.pct, 100);
-
-test("exemplo do pedido: R$ 62 = 20,67 variáveis + 12,40 fixos + 28,93 lucro", () => {
-  const c = composicaoDoPreco({ preco: 62, custoProduto: 20.67, params: { dias_operacao_mes: 1, pratos_por_dia: 1, custo_aluguel_mes: 12.40 } });
-  assert.equal(c.variaveis.valor, 20.67);
-  assert.equal(c.variaveis.pct, 33.34);
-  assert.equal(c.fixos.valor, 12.40);
-  assert.equal(c.fixos.pct, 20);
-  assert.equal(c.lucro.valor, 28.93);
-  assert.equal(c.lucro.pct, 46.66);
-  somaFecha(c); pctFecha(c);
-});
-
-test("a soma fecha no centavo mesmo com números quebrados", () => {
-  const params = { dias_operacao_mes: 26, pratos_por_dia: 97, custo_aluguel_mes: 6123.33, custo_luz_mes: 1301.07,
-    custo_gas_mes: 701, custo_agua_mes: 399.99, custo_limpeza_mes: 211.1, custo_outros_mes: 77.7, custo_cmo_mes: 16604.41 };
-  for (const [preco, custo, imp, tx] of [[59.9, 17.333, 6.5, 3.19], [12, 4.005, 4, 2.5], [395, 151.2849, 0, 1.99], [8.5, 1.111, 7.3, 0]]) {
-    const c = composicaoDoPreco({ preco, custoProduto: custo, impostoPct: imp, taxaMaquininhaPct: tx, params });
-    somaFecha(c); pctFecha(c);
-    assert.ok(c.fixos.rateado);
-    // As partes também fecham no segmento.
-    assert.equal(Math.round(c.variaveis.partes.reduce((t, p) => t + p.valor, 0) * 100), Math.round(c.variaveis.valor * 100));
-    assert.equal(Math.round(c.fixos.partes.reduce((t, p) => t + p.valor, 0) * 100), Math.round(c.fixos.valor * 100));
-  }
-});
-
-test("imposto e maquininha são custo variável; CMO é custo fixo", () => {
-  const c = composicaoDoPreco({ preco: 100, custoProduto: 30, impostoPct: 4, taxaMaquininhaPct: 2.5,
-    params: { dias_operacao_mes: 10, pratos_por_dia: 10, custo_aluguel_mes: 500, custo_cmo_mes: 1000 } });
-  assert.equal(c.variaveis.valor, 36.5);
-  assert.equal(c.fixos.valor, 15);
-  assert.deepEqual(c.fixos.partes.map(p => p.rotulo), ["Aluguel", "Mão de obra (CMO)"]);
-  assert.equal(c.lucro.valor, 48.5);
-  assert.equal(c.margemContribuicao.valor, 63.5); // preço − variáveis: não é lucro
-});
-
-test("sem rateio configurado: não inventa custo fixo e não chama a sobra de lucro", () => {
-  const semVolume = composicaoDoPreco({ preco: 62, custoProduto: 20.67, params: { custo_aluguel_mes: 6000 } });
-  assert.equal(semVolume.fixos.rateado, false);
-  assert.equal(semVolume.fixos.valor, 0);
-  assert.match(semVolume.fixos.motivo, /ainda não rateado/);
-  assert.equal(semVolume.lucro.rotulo, "Sobra antes dos custos fixos");
-  somaFecha(semVolume); pctFecha(semVolume);
-  const semCustos = composicaoDoPreco({ preco: 62, custoProduto: 20.67, params: { dias_operacao_mes: 26, pratos_por_dia: 100 } });
-  assert.equal(semCustos.fixos.rateado, false);
-  assert.match(semCustos.fixos.motivo, /nenhum custo fixo/);
-});
-
-test("prejuízo: lucro negativo, soma continua fechando, barra divide o custo", () => {
-  const c = composicaoDoPreco({ preco: 20, custoProduto: 18, impostoPct: 4, params: { dias_operacao_mes: 1, pratos_por_dia: 1, custo_aluguel_mes: 5 } });
-  assert.equal(c.lucro.prejuizo, true);
-  assert.equal(c.lucro.valor, -3.8);
-  somaFecha(c);
-  perto(c.barra.reduce((t, s) => t + s.largura, 0), 100);
-  assert.ok(!c.barra.some(s => s.id === "lucro"));
-});
+  c.cmv.centavos + c.variaveis.centavos + c.cmo.centavos + c.operacionais.centavos + c.proLabore.centavos + c.resultado.centavos,
+  Math.round(c.preco * 100), "os grupos têm de somar o preço");
 
 // ─── Porções: a regra única ─────────────────────────────────────────────────
 
@@ -102,7 +49,10 @@ test("resumo do prato: custo, CMV, status e composição saem de uma conta só",
   assert.equal(r.preco, 45);
   assert.equal(r.status.rotulo, "Ativa");          // 26% < meta 30%
   perto(r.precoSugerido, r.cmvValor / 0.3);   // custo ÷ meta, como no editor
-  perto(r.composicao.variaveis.valor, r.cmvValor + 45 * 0.04 + 45 * 0.025, 1); // cada parte em centavos
+  perto(r.composicao.cmv.valor, r.cmvValor);              // o CMV da composição é o do card
+  perto(r.composicao.variaveis.valor, 45 * 0.04 + 45 * 0.025, 1); // padrões da casa: imposto 4%, maquininha 2,5%
+  perto(r.composicao.cmv.partes.reduce((t, p) => t + p.valor, 0), r.composicao.cmv.valor);
+  perto(r.linhas.find(l => l.nome === "Farinha").pctVenda, (0.8 / 45) * 100);
   somaFecha(r.composicao);
 });
 
@@ -111,7 +61,7 @@ test("preço novo do Cardápio muda tudo que depende dele (sem segunda fonte)", 
   const b = resumoFinanceiroDaFicha(prato, { fichas: [prato], produtos: [{ ficha_id: "p1", preco_venda: 65 }] });
   assert.equal(a.preco, 62); assert.equal(b.preco, 65);
   assert.ok(b.cmvPct < a.cmvPct);
-  assert.ok(b.composicao.lucro.valor > a.composicao.lucro.valor);
+  assert.ok(b.composicao.resultado.valor > a.composicao.resultado.valor);
   somaFecha(b.composicao);
 });
 
@@ -164,7 +114,7 @@ test("TESTE 2/3 (lógica): preço salvo entra no estado e o card recalcula sem r
   assert.equal(antes.preco, 62);
   assert.equal(r.preco, 65);                                // card fechado
   assert.ok(r.cmvPct < antes.cmvPct);                       // CMV
-  assert.ok(r.composicao.lucro.valor > antes.composicao.lucro.valor); // lucro do card aberto
+  assert.ok(r.composicao.resultado.valor > antes.composicao.resultado.valor); // lucro do card aberto
   somaFecha(r.composicao);
   assert.equal(depois[0].categoria, "Pratos");              // não perde o resto do produto
   assert.equal(depois[1].preco_venda, 10);                  // nem mexe nos outros

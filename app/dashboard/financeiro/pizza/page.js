@@ -17,22 +17,23 @@ import {
 import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
 import { lacunasDoCusto } from "../../../lib/lacunas-custo.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
+import { DESPESAS_OPERACIONAIS, DESPESAS_VARIAVEIS, pesoNoFaturamento } from "../../../lib/composicao-preco.mjs";
+import { fmtReais, fmtPct, percentualDe } from "../../../lib/valor-percentual.mjs";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 // Os custos do mês que o dono preenche aqui mesmo, sem ir a outra tela.
-const CAMPOS_FIXO = [
-  ["custo_aluguel_mes", "Aluguel"], ["custo_luz_mes", "Luz"], ["custo_gas_mes", "Gás"],
-  ["custo_agua_mes", "Água"], ["custo_limpeza_mes", "Limpeza"], ["custo_outros_mes", "Outros"],
-];
+// Despesas operacionais do mês: a lista única da composição do preço.
+const CAMPOS_FIXO = DESPESAS_OPERACIONAIS;
 const CAMPOS_VARIAVEL = [
-  ["imposto_pct", "Imposto (%)"], ["taxa_cartao_pct", "Maquininha (%)"],
+  ...DESPESAS_VARIAVEIS.map(([chave, rotulo]) => [chave, `${rotulo} (%)`]),
   // Estes dois vieram da tela Ponto de Equilíbrio, absorvida por esta. São
   // estimativas do cardápio inteiro: a pizza de cada prato usa o CMV e a
   // embalagem REAIS da ficha, não estes.
   ["meta_cmv", "Meta de CMV (%)"],
-  // Quanto o dono quer que sobre. É o alvo do preço sugerido.
-  ["margem_alvo_pct", "Margem que quero (%)"],
+  // Meta de lucro: configuração, comparada com o resultado calculado de cada
+  // prato (nunca o substitui). É também o alvo do preço sugerido.
+  ["margem_alvo_pct", "Meta de lucro (%)"],
 ];
 // Embalagem fica fora do grupo de percentuais: uma caixa custa o que custa,
 // não uma fatia do preço. Na conta do equilíbrio ela vira percentual pelo
@@ -67,6 +68,79 @@ function CampoNumero({ rotulo, valor, onChange, step = "0.01", destacado = false
   );
 }
 
+// Como os custos do mês (CMO, despesas, pró-labore) entram em cada produto.
+function PainelRateio({ params, editar, faturamento30 }) {
+  const porFaturamento = Number(params.rateio_por_faturamento) === 1;
+  const fat = Number(params.faturamento_mes_ref) || 0;
+  return (
+    <div className="mt-3 rounded-xl border border-line p-3">
+      <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Rateio na precificação</p>
+      <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Método de rateio">
+        {[[0, "Por prato", "custo do mês ÷ pratos no mês — mesmo valor para todo produto"],
+          [1, "Pelo faturamento", "custo do mês ÷ faturamento — proporcional ao preço"]].map(([v, rotulo, ajuda]) => (
+          <button key={v} type="button" role="radio" aria-checked={(porFaturamento ? 1 : 0) === v}
+            onClick={() => editar("rateio_por_faturamento", v)}
+            className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-left ${(porFaturamento ? 1 : 0) === v ? "border-emerald-500 bg-emerald-50" : "border-line bg-card"}`}>
+            <span className="block text-xs font-black text-fg">{rotulo}</span>
+            <span className="block text-3xs font-semibold text-subtle">{ajuda}</span>
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap items-end gap-3">
+        <div className="w-48">
+          <CampoNumero rotulo="Faturamento mensal de referência (R$)" valor={params.faturamento_mes_ref} onChange={(v) => editar("faturamento_mes_ref", v)} destacado={porFaturamento && !fat} />
+        </div>
+        <p className="min-w-0 flex-1 text-2xs font-bold text-fg">
+          {faturamento30 !== null
+            ? <>Vendas registradas nos últimos 30 dias: <b className="text-slate-800">{fmtReais(faturamento30)}</b> (real).{" "}
+                <button type="button" onClick={() => editar("faturamento_mes_ref", Math.round(faturamento30 * 100) / 100)} className="font-black text-accent underline underline-offset-2">usar este valor</button></>
+            : "Sem vendas registradas nos últimos 30 dias para medir o faturamento — informe uma referência."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Pró-labore dos sócios: categoria própria — não é CMO nem lucro.
+function PainelProLabore({ lista, faturamentoRef, onChange }) {
+  const total = lista.reduce((s, p) => s + (Number(p.valor_mensal) || 0), 0);
+  const mudar = (i, campo, valor) => onChange(lista.map((p, j) => (j === i ? { ...p, [campo]: valor } : p)));
+  return (
+    <div className="mt-3 rounded-xl border border-line p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Pró-labore (por mês)</p>
+        <p className="text-2xs font-bold text-fg">
+          {fmtReais(total)}{faturamentoRef > 0 && total > 0 ? ` · ${fmtPct(percentualDe(total, faturamentoRef))} do faturamento` : ""}
+        </p>
+      </div>
+      <div className="mt-1.5 space-y-2">
+        {lista.map((p, i) => (
+          <div key={p.id || i} className="grid grid-cols-[minmax(0,1fr)_110px_110px_36px] items-end gap-2">
+            <label className="min-w-0">
+              <span className="block truncate text-3xs font-bold text-fg">Sócio</span>
+              <input value={p.socio} onChange={(e) => mudar(i, "socio", e.target.value)} placeholder="Nome"
+                className="mt-0.5 h-10 w-full min-w-0 rounded-lg border border-line bg-card px-2 text-sm font-bold text-slate-800 outline-none focus:border-emerald-500" />
+            </label>
+            <CampoNumero rotulo="Valor mensal" valor={p.valor_mensal} onChange={(v) => mudar(i, "valor_mensal", Number(v) || 0)} />
+            <label className="min-w-0">
+              <span className="block truncate text-3xs font-bold text-fg">A partir de</span>
+              <input type="month" value={p.competencia || ""} onChange={(e) => mudar(i, "competencia", e.target.value)}
+                className="mt-0.5 h-10 w-full min-w-0 rounded-lg border border-line bg-card px-1 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500" />
+            </label>
+            <button type="button" onClick={() => onChange(lista.filter((_, j) => j !== i))} aria-label={`Remover ${p.socio || "sócio"}`}
+              className="grid h-10 w-9 place-items-center rounded-lg border border-line text-subtle hover:text-red-600"><X size={14} /></button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => onChange([...lista, { id: `pl${Date.now()}`, socio: "", valor_mensal: 0, competencia: "" }])}
+        className="mt-2 rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-fg hover:border-emerald-300">
+        + Adicionar sócio
+      </button>
+      <p className="mt-1.5 text-3xs font-semibold text-subtle">Entra no preço por rateio, como o CMO e as despesas. A unidade é a selecionada no topo.</p>
+    </div>
+  );
+}
+
 const ABAS = [
   { id: "todos", rotulo: "Tudo" },
   { id: "cozinha", rotulo: "Cozinha" },
@@ -96,6 +170,9 @@ export default function PizzaDoLucroPage() {
   // dias. Existe para o dono não ter que adivinhar o número que mais pesa
   // na conta.
   const [medido, setMedido] = useState(null);
+  // Faturamento real dos últimos 30 dias (soma das vendas): referência para o
+  // rateio proporcional e para o peso do CMO na operação.
+  const [faturamento30, setFaturamento30] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState("todos");
@@ -146,6 +223,8 @@ export default function PizzaDoLucroPage() {
       setEquipe(resEquipe.data || []);
       setCmo(calcularCMO({ colaboradores: resEquipe.data || [], recibos: resRecibos.data || [] }));
       setMedido(medicao);
+      const vendas30 = resCaixa?.data?.vendas || [];
+      setFaturamento30(vendas30.length ? vendas30.reduce((s, v) => s + (Number(v.total) || 0), 0) : null);
       setLoading(false);
     });
     return () => { ativo = false; };
@@ -154,8 +233,16 @@ export default function PizzaDoLucroPage() {
   // O CMO NÃO é digitado: sai do RH (folha dos contratados) mais as diárias de
   // extras com recibo pago. Digitar de novo um número que o sistema já sabe é
   // pedir para os dois ficarem diferentes.
-  const paramsComCmo = useMemo(
-    () => ({ ...params, custo_cmo_mes: cmo ? cmo.total : 0 }), [params, cmo]);
+  // Encargos e provisões: % configurado sobre a folha dos contratados.
+  const cmoEncargos = cmo ? (cmo.folha * (Number(params.encargos_folha_pct) || 0)) / 100 : 0;
+  const cmoTotal = cmo ? cmo.total + cmoEncargos : 0;
+  const paramsComCmo = useMemo(() => ({
+    ...params,
+    custo_cmo_mes: cmoTotal,
+    cmo_folha_mes: cmo ? cmo.folha : 0,
+    cmo_extras_mes: cmo ? cmo.extras : 0,
+    cmo_encargos_mes: cmoEncargos,
+  }), [params, cmo, cmoTotal, cmoEncargos]);
 
   const editar = (chave, valor) => {
     setSalvo(false);
@@ -171,7 +258,15 @@ export default function PizzaDoLucroPage() {
     // abertura, mas o parâmetro custo_cmo_mes é lido por outras contas do
     // sistema: gravar zero derrubaria o custo fixo delas pelo valor inteiro da
     // folha, sem ninguém perceber. O valor gravado é o retrato para quem lê.
-    const resposta = await salvarParams(unidadeAtiva, { ...params, custo_cmo_mes: cmo ? cmo.total : 0 });
+    // Grava o retrato do CMO aberto (folha, extras, encargos): as fichas
+    // mostram o CMO rateado parte a parte a partir dele.
+    const resposta = await salvarParams(unidadeAtiva, {
+      ...params,
+      custo_cmo_mes: cmoTotal,
+      cmo_folha_mes: cmo ? cmo.folha : 0,
+      cmo_extras_mes: cmo ? cmo.extras : 0,
+      cmo_encargos_mes: cmoEncargos,
+    });
     setSalvando(false);
     if (!resposta?.error) { setSalvo(true); setTimeout(() => setSalvo(false), 2500); }
   };
@@ -181,22 +276,14 @@ export default function PizzaDoLucroPage() {
       .filter((f) => !f.eh_base)
       .map((f) => {
         const entrada = dadosDoPrato(f, { fichas, produtos, params: paramsComCmo });
-        // A abertura do CMO vem do RH: folha dos contratados e diárias de
-        // extras, rateadas pelo mesmo volume que o resto da tela usa.
-        const pratos = (Number(paramsComCmo.dias_operacao_mes) || 0) * (Number(paramsComCmo.pratos_por_dia) || 0);
-        const partesCmo = cmo && pratos > 0
-          ? [
-              { rotulo: "Folha dos contratados", valor: cmo.folha / pratos },
-              { rotulo: "Extras (diárias pagas)", valor: cmo.extras / pratos },
-            ].filter((x) => x.valor > 0)
-          : null;
-        const conta = fatiasDoPrato({ ...entrada, partesCmo });
+        // A abertura do CMO (folha, extras, encargos) vem de paramsComCmo.
+        const conta = fatiasDoPrato(entrada);
         // Os mesmos valores da pizza, prontos para as colunas da lista.
         const porFatia = (id) => conta.fatias.find((x) => x.id === id)?.valor || 0;
         return {
-          ficha: f, entrada, conta, partesCmo,
+          ficha: f, entrada, conta,
           cmv: porFatia("cmv"), cmoUnit: porFatia("cmo"),
-          fixoUnit: porFatia("fixo"), variavelUnit: porFatia("variavel"),
+          fixoUnit: porFatia("fixo"), variavelUnit: porFatia("variavel"), proLaboreUnit: porFatia("prolabore"),
           sugerido: entrada.semCusto
             ? null
             : precoSugerido({ ...entrada, margemAlvoPct: paramsComCmo.margem_alvo_pct, params: paramsComCmo }),
@@ -243,7 +330,9 @@ export default function PizzaDoLucroPage() {
   const dias = Number(params.dias_operacao_mes) || 0;
   const contasDia = useMemo(() => contasPorDia(params, dias), [params, dias]);
   const equipeDia = useMemo(() => equipePorDia(equipe, dias), [equipe, dias]);
-  const cmoDia = dias > 0 && cmo ? cmo.total / dias : 0;
+  // CMO com encargos (o mesmo que entra na composição do preço).
+  const cmoDia = dias > 0 && cmo ? cmoTotal / dias : 0;
+  const proLaboreMes = (params.pro_labore || []).reduce((s, p) => s + (Number(p.valor_mensal) || 0), 0);
   // Preço médio do que se vende de verdade, para converter a embalagem em
   // reais num percentual sobre a venda.
   const precoMedio = useMemo(() => {
@@ -253,12 +342,12 @@ export default function PizzaDoLucroPage() {
   }, [ranking]);
 
   const equilibrio = useMemo(
-    () => equilibrioDoCardapio({ params, cmoMes: cmo ? cmo.total : 0, precoMedio }),
-    [params, cmo, precoMedio]);
+    () => equilibrioDoCardapio({ params, cmoMes: cmoTotal, precoMedio }),
+    [params, cmoTotal, precoMedio]);
   const custoDiaTotal = contasDia.totalDia + cmoDia;
   const pratosNoMes = (Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0);
   const rateioPorPratoTotal = pratosNoMes > 0
-    ? (contasDia.totalMes + (cmo ? cmo.total : 0)) / pratosNoMes : 0;
+    ? (contasDia.totalMes + cmoTotal + proLaboreMes) / pratosNoMes : 0;
 
   // O cardápio montado, com os dados que cada prato já tem na lista.
   const itensMontados = useMemo(() => {
@@ -281,8 +370,8 @@ export default function PizzaDoLucroPage() {
   }, [montado, ranking]);
 
   const cardapio = useMemo(
-    () => simularCardapio({ itens: itensMontados, custoFixoMes: contasDia.totalMes, cmoMes: cmo ? cmo.total : 0 }),
-    [itensMontados, contasDia.totalMes, cmo]);
+    () => simularCardapio({ itens: itensMontados, custoFixoMes: contasDia.totalMes + proLaboreMes, cmoMes: cmoTotal }),
+    [itensMontados, contasDia.totalMes, proLaboreMes, cmoTotal]);
 
   const qtdPratos = itensMontados.filter((x) => x.departamento !== "bar").length;
   const qtdBebidas = itensMontados.filter((x) => x.departamento === "bar").length;
@@ -348,7 +437,7 @@ export default function PizzaDoLucroPage() {
                     abrir só para conferir se está preenchido. */}
                 {!abrirPainel && (
                   <span className="block truncate text-2xs font-bold text-fg">
-                    {fmt(contasDia.totalMes)} de contas + {fmt(cmo ? cmo.total : 0)} de folha · {dias || 0} dias · toque para editar
+                    {fmt(contasDia.totalMes)} de despesas + {fmt(cmoTotal)} de CMO{proLaboreMes > 0 ? ` + ${fmt(proLaboreMes)} de pró-labore` : ""} · {dias || 0} dias · toque para editar
                   </span>
                 )}
               </span>
@@ -397,6 +486,21 @@ export default function PizzaDoLucroPage() {
               {cmo ? `${fmt(cmo.folha)} de folha + ${fmt(cmo.extras)} de extras (${cmo.recibos} recibo(s) pago(s))` : ""}
               {" · vem do RH e dos Extras, não precisa digitar"}
             </p>
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <div className="w-44">
+                <CampoNumero rotulo="Encargos e provisões (% da folha)" valor={params.encargos_folha_pct} onChange={(v) => editar("encargos_folha_pct", v)} step="0.1" />
+              </div>
+              <p className="min-w-0 flex-1 text-3xs font-bold text-emerald-700/80">
+                {cmo ? <>Com encargos: <b className="text-emerald-800">{fmtReais(cmoTotal)}</b> por mês ({fmtReais(cmoEncargos)} de encargos, configurado). </> : null}
+                {(() => {
+                  const fat = Number(params.faturamento_mes_ref) || 0;
+                  const peso = pesoNoFaturamento(cmoTotal, fat);
+                  return peso === null
+                    ? "Informe o faturamento mensal de referência abaixo para ver quanto o CMO pesa na operação."
+                    : <>CMO da operação: <b className="text-emerald-800">{fmtPct(peso)}</b> do faturamento ({fmtReais(cmoTotal)} ÷ {fmtReais(fat)}).</>;
+                })()}
+              </p>
+            </div>
             {cmo && cmo.extrasEmAberto > 0 && (
               <p className="mt-1 text-3xs font-bold text-slate-900">
                 Faltam {fmt(cmo.extrasEmAberto)} em recibos de extra ainda não pagos. Enquanto não forem, não entram no CMO e o lucro abaixo aparece maior do que é.
@@ -404,7 +508,7 @@ export default function PizzaDoLucroPage() {
             )}
           </div>
 
-          <p className="mt-3 text-3xs font-bold uppercase tracking-widest text-subtle">Custo fixo (por mês)</p>
+          <p className="mt-3 text-3xs font-bold uppercase tracking-widest text-subtle">Despesas operacionais (por mês)</p>
           <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {CAMPOS_FIXO.map(([chave, rotulo]) => (
               <CampoNumero key={chave} rotulo={rotulo} valor={params[chave]} onChange={(v) => editar(chave, v)} />
@@ -449,8 +553,10 @@ export default function PizzaDoLucroPage() {
                   por prato, o erro salta. */}
               {!semVolume && (
                 <p className="mt-1.5 text-2xs font-bold text-fg">
-                  Cada prato carrega <b className="text-slate-800">{fmt(rateioPorPratoTotal)}</b> de custo fixo e folha
-                  {" "}({(Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0)} pratos no mês).
+                  {Number(params.rateio_por_faturamento) === 1
+                    ? <>Rateio pelo faturamento: dias e pratos por dia não dividem o custo do prato (servem ao custo por dia).</>
+                    : <>Cada prato carrega <b className="text-slate-800">{fmt(rateioPorPratoTotal)}</b> de despesas, CMO e pró-labore
+                      {" "}({(Number(params.dias_operacao_mes) || 0) * (Number(params.pratos_por_dia) || 0)} pratos no mês).</>}
                 </p>
               )}
               {/* Dentro do painel, ao lado do campo: aqui a medição é conferência
@@ -472,6 +578,10 @@ export default function PizzaDoLucroPage() {
             </div>
           </div>
 
+          <PainelRateio params={params} editar={editar} faturamento30={faturamento30} />
+          <PainelProLabore lista={params.pro_labore || []} faturamentoRef={Number(params.faturamento_mes_ref) || 0}
+            onChange={(lista) => { setSalvo(false); setParams((p) => ({ ...p, pro_labore: lista })); }} />
+
           {semVolume && (
             <p className="mt-2 flex items-start gap-1.5 text-2xs font-bold text-slate-900">
               <AlertTriangle size={13} className="mt-0.5 shrink-0" />
@@ -490,7 +600,7 @@ export default function PizzaDoLucroPage() {
               <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Custo de um dia aberto</p>
               <p className="mt-1 text-3xl font-black text-fg">{fmt(custoDiaTotal)}</p>
               <p className="text-2xs font-bold text-fg">
-                {dias > 0 ? `${fmt(contasDia.totalMes + (cmo ? cmo.total : 0))} por mês ÷ ${dias} dias que a casa abre` : "Preencha os dias de operação acima"}
+                {dias > 0 ? `${fmt(contasDia.totalMes + cmoTotal)} por mês ÷ ${dias} dias que a casa abre` : "Preencha os dias de operação acima"}
               </p>
               <div className="mt-3 space-y-1.5 border-t border-line-soft pt-3 text-xs">
                 <div className="flex items-center gap-2">
@@ -816,9 +926,10 @@ export default function PizzaDoLucroPage() {
                     <tr className="border-b border-line text-3xs font-bold uppercase tracking-widest text-subtle">
                       <th className="py-2 pr-2">Prato</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">CMV</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Variáveis</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">CMO</th>
-                      <th className="whitespace-nowrap py-2 px-2 text-right">Fixo</th>
-                      <th className="whitespace-nowrap py-2 px-2 text-right">Variável</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Operacionais</th>
+                      <th className="whitespace-nowrap py-2 px-2 text-right">Pró-labore</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">Venda</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">Sugerido</th>
                       <th className="whitespace-nowrap py-2 px-2 text-right">Sobra</th>
@@ -842,10 +953,12 @@ export default function PizzaDoLucroPage() {
                               </span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.cmv)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.cmoUnit)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.fixoUnit)}</td>
-                          <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.variavelUnit)}</td>
+                          {[x.cmv, x.variavelUnit, x.cmoUnit, x.fixoUnit, x.proLaboreUnit].map((v, i) => (
+                            <td key={i} className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">
+                              {fmtReais(v)}
+                              <span className="block text-3xs font-semibold text-subtle">{fmtPct(percentualDe(v, x.conta.preco))}</span>
+                            </td>
+                          ))}
                           <td className="whitespace-nowrap py-2 px-2 text-right font-bold text-fg">{fmt(x.conta.preco)}</td>
                           {/* Verde só quando o sugerido é MAIOR que o preço de
                               hoje: é o caso em que há dinheiro na mesa. */}
@@ -858,7 +971,7 @@ export default function PizzaDoLucroPage() {
                           </td>
                           <td className="whitespace-nowrap py-2 pl-2 text-right">
                             <span className={`inline-block whitespace-nowrap rounded-lg px-2 py-0.5 font-black ${x.conta.prejuizo > 0 ? "bg-slate-200 text-fg-soft" : duvidoso ? "bg-card text-fg" : "bg-emerald-100 text-emerald-800"}`}>
-                              {x.conta.prejuizo > 0 ? "prejuízo" : `${pct.toFixed(0)}%`}
+                              {x.conta.prejuizo > 0 ? "prejuízo" : fmtPct(pct)}
                             </span>
                           </td>
                         </tr>
@@ -867,7 +980,7 @@ export default function PizzaDoLucroPage() {
                             cem linhas de distância do prato que explica. */}
                         {ehAtual && (
                           <tr>
-                            <td colSpan={9} className="bg-white px-3 py-4">
+                            <td colSpan={10} className="bg-white px-3 py-4">
                               {(x.entrada.semCusto || x.entrada.semRendimento) && (
                                 <p className="mx-auto mb-3 flex max-w-xl items-start gap-1.5 rounded-lg bg-card px-2.5 py-2 text-3xs font-bold text-slate-900">
                                   <AlertTriangle size={12} className="mt-0.5 shrink-0" />
@@ -877,7 +990,7 @@ export default function PizzaDoLucroPage() {
                                 </p>
                               )}
                               <div className="mx-auto max-w-md">
-                                <PizzaDoPrato {...x.entrada} partesCmo={x.partesCmo} />
+                                <PizzaDoPrato {...x.entrada} />
                               </div>
                             </td>
                           </tr>

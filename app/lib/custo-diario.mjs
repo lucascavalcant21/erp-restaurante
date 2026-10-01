@@ -5,6 +5,8 @@
 // R$ 25 mil não diz nada na hora de decidir abrir a casa numa terça fraca;
 // "R$ 960 por dia, dos quais R$ 640 é gente" diz.
 
+import { DESPESAS_OPERACIONAIS, DESPESAS_VARIAVEIS, proLaboreDoMes } from "./composicao-preco.mjs";
+
 const num = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -27,14 +29,9 @@ const diaLocal = (iso) => {
 const ehExtra = (c) => String(c?.tipo_contrato || "") === "Freelancer";
 const ativo = (c) => (c?.status || "ativo") !== "inativo" && c?.ativo !== false;
 
-export const CONTAS_FIXAS = [
-  ["custo_aluguel_mes", "Aluguel"],
-  ["custo_luz_mes", "Luz"],
-  ["custo_gas_mes", "Gás"],
-  ["custo_agua_mes", "Água"],
-  ["custo_limpeza_mes", "Limpeza"],
-  ["custo_outros_mes", "Outros"],
-];
+// As contas da casa: a MESMA lista do rateio da composição do preço
+// (composicao-preco.mjs), para o custo do dia e o do prato baterem.
+export const CONTAS_FIXAS = DESPESAS_OPERACIONAIS;
 
 /* Cada conta da casa dividida pelos dias em que a casa ABRE.
  *
@@ -150,7 +147,9 @@ export function unidadesParaSobrar({ alvo = 0, contribuicaoUnit = 0, fixoTotal =
  */
 export function equilibrioDoCardapio({ params = {}, cmoMes = 0, precoMedio = 0 } = {}) {
   const dias = Math.max(0, num(params.dias_operacao_mes));
-  const fixoMes = CONTAS_FIXAS.reduce((s, [chave]) => s + num(params[chave]), 0) + Math.max(0, num(cmoMes));
+  // Pró-labore entra no que precisa ser pago no mês: não é lucro.
+  const fixoMes = CONTAS_FIXAS.reduce((s, [chave]) => s + num(params[chave]), 0) + Math.max(0, num(cmoMes))
+    + proLaboreDoMes(params.pro_labore).total;
   const fixoDia = dias > 0 ? fixoMes / dias : 0;
 
   // A embalagem é um valor em REAIS por prato — uma caixa custa o que custa,
@@ -161,8 +160,8 @@ export function equilibrioDoCardapio({ params = {}, cmoMes = 0, precoMedio = 0 }
   const pm = Math.max(0, num(precoMedio));
   const embalagemPct = pm > 0 ? (Math.max(0, num(params.embalagem_valor)) / pm) * 100 : 0;
 
-  const variavelPct = num(params.meta_cmv) + num(params.imposto_pct)
-    + num(params.taxa_cartao_pct) + embalagemPct;
+  const variavelPct = num(params.meta_cmv) + embalagemPct
+    + DESPESAS_VARIAVEIS.reduce((s, [chave]) => s + num(params[chave]), 0);
   const margemPct = 100 - variavelPct;
 
   return {

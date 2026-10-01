@@ -28,10 +28,38 @@ export const PARAMS_PADRAO = {
   taxa_cartao_pct: 0,      // % que a maquininha fica, sobre a venda
   embalagem_pct: 0,        // % de embalagem sobre a venda (antigo; ver embalagem_valor)
   embalagem_valor: 0,      // R$ de embalagem por prato — substitui o percentual
-  margem_alvo_pct: 20,     // % que o dono quer que sobre, usado no preço sugerido
+  margem_alvo_pct: 20,     // META DE LUCRO (%): o que o dono quer que sobre; alvo do preço sugerido
   dias_operacao_mes: 26,   // dias que a loja abre no mês
   pratos_por_dia: 100,     // média de pratos vendidos por dia (rateio dos fixos)
+  // Composição do preço (app/lib/composicao-preco.mjs)
+  custo_internet_mes: 0,
+  custo_contabilidade_mes: 0,
+  custo_sistemas_mes: 0,
+  custo_manutencao_mes: 0,
+  custo_seguros_mes: 0,
+  comissao_pct: 0,         // % de comissão sobre a venda
+  marketplace_pct: 0,      // % de marketplace/iFood sobre a venda
+  outras_variaveis_pct: 0, // outras despesas que acompanham a venda (%)
+  encargos_folha_pct: 0,   // encargos patronais + provisões, % sobre a folha (configurado)
+  cmo_folha_mes: 0,        // retrato do RH gravado pela Pizza do Lucro: salários + benefícios
+  cmo_extras_mes: 0,       //   diárias de extras pagas
+  cmo_encargos_mes: 0,     //   encargos calculados pelo % acima
+  rateio_por_faturamento: 0, // 0 = rateio por prato; 1 = proporcional ao faturamento
+  faturamento_mes_ref: 0,  // faturamento mensal de referência para o rateio proporcional
 };
+
+// Pró-labore dos sócios: lista (não número), no mesmo JSON de parâmetros.
+// [{ id, socio, valor_mensal, competencia: "AAAA-MM" (a partir de, opcional) }]
+export function normalizarProLabore(lista) {
+  return (Array.isArray(lista) ? lista : [])
+    .map((p, i) => ({
+      id: String(p?.id || `pl${i + 1}`),
+      socio: String(p?.socio || "").trim(),
+      valor_mensal: Math.max(0, Number(p?.valor_mensal) || 0),
+      competencia: /^\d{4}-\d{2}$/.test(String(p?.competencia || "")) ? String(p.competencia) : "",
+    }))
+    .filter(p => p.socio || p.valor_mensal > 0);
+}
 
 // Categorias de validade usadas na tela de etiquetas. Ficam dentro do JSON
 // `config_sistema.params`, portanto são compartilhadas por toda a unidade.
@@ -79,25 +107,30 @@ async function tentarMergeAtomico(unidadeId, patch) {
 }
 
 export async function fetchParams(unidadeId) {
-  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: { ...PARAMS_PADRAO } };
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: { ...PARAMS_PADRAO, pro_labore: [] } };
   try {
     const { data, error } = await supabase.from("config_sistema")
       .select("params").eq("unidade_id", unidadeId).limit(1);
-    if (error || !data || !data.length || !data[0].params) return { data: { ...PARAMS_PADRAO } };
+    if (error || !data || !data.length || !data[0].params) return { data: { ...PARAMS_PADRAO, pro_labore: [] } };
     const salvos = data[0].params;
     const merged = { ...PARAMS_PADRAO };
     Object.keys(PARAMS_PADRAO).forEach(k => {
       const v = Number(salvos[k]);
       if (Number.isFinite(v) && v >= 0) merged[k] = v;
     });
+    merged.pro_labore = normalizarProLabore(salvos.pro_labore);
     return { data: merged };
   } catch {
-    return { data: { ...PARAMS_PADRAO } };
+    return { data: { ...PARAMS_PADRAO, pro_labore: [] } };
   }
 }
 
-export async function salvarParams(unidadeId, params) {
+export async function salvarParams(unidadeId, paramsEntrada) {
   if (!isSupabaseReady()) return { error: "Offline" };
+  // O pró-labore é lista: vai normalizado; os demais seguem como vieram.
+  const params = paramsEntrada && "pro_labore" in paramsEntrada
+    ? { ...paramsEntrada, pro_labore: normalizarProLabore(paramsEntrada.pro_labore) }
+    : paramsEntrada;
   const mergeAtomico = await tentarMergeAtomico(unidadeId, params);
   if (mergeAtomico) return { error: undefined };
   const registro = await fetchRegistroConfig(unidadeId);

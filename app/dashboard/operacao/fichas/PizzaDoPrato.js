@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { fatiasDoPrato, setorDonut, centroDoSetor } from "../../../lib/pizza-do-prato.mjs";
+import { fmtPct } from "../../../lib/valor-percentual.mjs";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -21,13 +22,13 @@ const tintaDaFatia = (id) => (id === "lucro" ? "#0F172A" : "#FFFFFF");
  */
 export default function PizzaDoPrato({
   preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params,
-  partesCmv = null, partesCmo = null, compacta = false,
+  partesCmv = null, compacta = false,
 }) {
   const [emFoco, setEmFoco] = useState(null);
   // Qual segmento está aberto. Um por vez: abrir todos de uma vez devolve a
   // parede de números que a rosca existe para evitar.
   const [aberto, setAberto] = useState(null);
-  const dados = fatiasDoPrato({ preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params, partesCmv, partesCmo });
+  const dados = fatiasDoPrato({ preco, custoIngredientes, custoEmbalagem, impostoPct, taxaMaquininhaPct, params, partesCmv });
   const { fatias, prejuizo, lucro, preco: precoVenda, rateavel } = dados;
 
   if (!fatias.length) {
@@ -117,7 +118,7 @@ export default function PizzaDoPrato({
                   )}
                 </span>
                 <span className="shrink-0 font-black text-slate-800">{fmt(f.valor)}</span>
-                <span className="w-11 shrink-0 text-right font-black text-fg">{f.pct.toFixed(1)}%</span>
+                <span className="w-14 shrink-0 text-right font-black text-fg">{fmtPct(f.pct)}</span>
               </button>
               {/* Do que o segmento é feito — só quando a pessoa pede. Aberto
                   sempre, isto vira uma parede de vinte linhas num prato com
@@ -128,7 +129,8 @@ export default function PizzaDoPrato({
                     <li key={x.rotulo} className="flex items-center gap-2 text-3xs">
                       <span className="min-w-0 flex-1 truncate font-bold text-subtle">{x.rotulo}</span>
                       <span className="shrink-0 font-bold text-fg">{fmt(x.valor)}</span>
-                      <span className="w-11 shrink-0 text-right font-bold text-subtle">{x.pctNoSegmento.toFixed(0)}%</span>
+                      {/* % sobre o PREÇO DE VENDA, como todo o resto da composição. */}
+                      <span className="w-14 shrink-0 text-right font-bold text-subtle">{fmtPct(x.pct)}</span>
                     </li>
                   ))}
                 </ul>
@@ -138,12 +140,12 @@ export default function PizzaDoPrato({
         </ul>
         <p className="mt-2 border-t border-line-soft pt-1.5 text-3xs font-bold text-subtle">
           {prejuizo > 0
-            ? `As fatias dividem o custo de ${fmt(dados.custoTotal)}: ele passou da venda de ${fmt(precoVenda)}.`
-            : `As fatias dividem a venda de ${fmt(precoVenda)}. Dentro de cada uma, o % é do próprio segmento.`}
+            ? `As fatias dividem o custo de ${fmt(dados.custoTotal)}: ele passou da venda de ${fmt(precoVenda)}. Os % das partes são sobre o preço de venda.`
+            : `As fatias dividem a venda de ${fmt(precoVenda)}. Todo % — das fatias e das partes — é sobre o preço de venda.`}
         </p>
         {!rateavel && (
           <p className="mt-1 text-3xs font-bold text-subtle">
-            Custo fixo e CMO ficam de fora até preencher dias de operação e pratos por dia no Ponto de Equilíbrio.
+            {dados.composicao?.rateio?.motivo || "CMO, despesas e pró-labore ficam de fora até configurar o rateio."}
           </p>
         )}
       </div>

@@ -9,10 +9,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, UtensilsCrossed } from "lucide-react";
 import { fmtBRL } from "../../../../components/ui";
-
-const fmtPct = (v, casas = 1) => (v === null || v === undefined || !Number.isFinite(v)
-  ? "—"
-  : `${v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}%`);
+import { fmtReais, fmtPct, fmtPP, fmtValorPct, NATUREZA } from "../../../../lib/valor-percentual.mjs";
 
 // 0,2 kg → "200 g"; 1,5 kg → "1,5 kg"; 0,1 L → "100 ml".
 function fmtQtd(q, unidade) {
@@ -155,19 +152,37 @@ export default function CardFicha({
 }
 
 // ─── Card aberto ────────────────────────────────────────────────────────────
+// Todo valor sai como "R$ X · Y%" do preço de venda (valor-percentual.mjs), e
+// cada grupo diz a natureza do número: ficha técnica, configurado, rateado ou
+// estimado. Rateio nunca aparece como custo direto do prato.
 
 function Titulo({ children }) {
   return <h4 className="mb-2 text-3xs font-black uppercase tracking-[0.14em] text-subtle">{children}</h4>;
 }
 
-function Linha({ rotulo, valor, destaque = false, nota = null, tom = "" }) {
+function Natureza({ id }) {
+  const n = NATUREZA[id];
+  if (!n) return null;
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-line-soft py-1.5 last:border-b-0">
-      <span className="min-w-0 text-xs font-semibold text-fg-soft">
-        {rotulo}
-        {nota ? <span className="block text-3xs font-medium text-subtle">{nota}</span> : null}
-      </span>
-      <span className={`shrink-0 text-right tabular-nums ${destaque ? "text-sm font-black" : "text-xs font-bold"} ${tom || "text-fg"}`}>{valor}</span>
+    <span title={n.ajuda} className="ml-1.5 inline-block rounded border border-line px-1 align-middle text-3xs font-bold uppercase tracking-wide text-subtle">
+      {n.rotulo}
+    </span>
+  );
+}
+
+// Uma linha "rótulo ............ R$ 7,83 · 12,63%". No celular, se o rótulo
+// não couber ao lado, o valor desce inteiro para a linha de baixo — o número
+// nunca é partido.
+function Linha({ rotulo, valor, natureza = null, nota = null, destaque = false, tom = "", subtotal = false }) {
+  return (
+    <div className={`py-1.5 ${subtotal ? "border-y border-line bg-surface px-2" : "border-b border-line-soft last:border-b-0"}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+        <span className={`min-w-0 text-xs text-fg-soft ${subtotal ? "font-black" : "font-semibold"}`}>{rotulo}<Natureza id={natureza} /></span>
+        <span className={`ml-auto whitespace-nowrap text-right tabular-nums ${destaque || subtotal ? "text-sm font-black" : "text-xs font-bold"} ${tom || "text-fg"}`}>{valor}</span>
+      </div>
+      {/* A nota fica embaixo, na largura toda: ao lado do rótulo ela empurrava
+          o valor para a linha de baixo. */}
+      {nota ? <p className="mt-0.5 text-3xs font-medium leading-snug text-subtle">{nota}</p> : null}
     </div>
   );
 }
@@ -175,47 +190,36 @@ function Linha({ rotulo, valor, destaque = false, nota = null, tom = "" }) {
 function DetalheFinanceiro({ ficha, resumo, rendimentoTexto, podeVerCustos }) {
   if (!podeVerCustos) return <ComposicaoCusto resumo={resumo} comCusto={false} />;
   const ehPreparo = resumo.tipo === "preparo";
-  const c = resumo.composicao;
+  const preco = resumo.preco;
   const unRend = String(ficha.rendimento_unidade || "un").toLowerCase();
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <div className="min-w-0 space-y-5">
         <section>
           <Titulo>Resumo da ficha</Titulo>
           <Linha rotulo="Rendimento total" valor={rendimentoTexto} />
           {ehPreparo ? (
             <>
-              <Linha rotulo="Custo total do lote" valor={fmtBRL(resumo.custoReceita)} />
-              <Linha rotulo={`Custo por ${unRend}`} valor={fmtBRL(resumo.custoPorcaoReceita)} destaque
+              <Linha rotulo="Custo total do lote" valor={fmtReais(resumo.custoReceita)} natureza="calculado" />
+              <Linha rotulo={`Custo por ${unRend}`} valor={fmtReais(resumo.custoPorcaoReceita)} destaque natureza="calculado"
                 nota="É este valor que entra nos pratos que usam este pré-preparo." />
             </>
           ) : (
             <>
               <Linha rotulo="Porções" valor={resumo.porcoesDefinidas ? resumo.porcoes.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "1"}
                 nota={resumo.porcoesDefinidas ? null : "A ficha do prato é uma porção: o prato montado."} />
-              <Linha rotulo="Custo total da ficha" valor={fmtBRL(resumo.custoReceita)} />
-              <Linha rotulo="Custo por porção (receita)" valor={fmtBRL(resumo.custoPorcaoReceita)} />
-              {resumo.embalagemPorcao > 0 && <Linha rotulo="Embalagem por porção" valor={fmtBRL(resumo.embalagemPorcao)} />}
-              <Linha rotulo="CMV" valor={`${fmtBRL(resumo.cmvValor)} · ${fmtPct(resumo.cmvPct, 2)}`} destaque
-                tom={resumo.status.id === "cmv_alto" ? "text-red-600" : ""} nota={`Meta da ficha: ${fmtPct(resumo.meta, 0)}`} />
-              <Linha rotulo="Preço de venda" valor={resumo.preco > 0 ? fmtBRL(resumo.preco) : "Sem preço"} destaque tom="text-emerald-700" />
-              <Linha rotulo={`Preço sugerido (CMV ${fmtPct(resumo.meta, 0)})`} valor={resumo.precoSugerido ? fmtBRL(resumo.precoSugerido) : "—"} />
-              {c?.temPreco && (
-                <>
-                  <Linha rotulo="Margem de contribuição" valor={`${fmtBRL(c.margemContribuicao.valor)} · ${fmtPct(c.margemContribuicao.pct, 2)}`}
-                    nota="Preço − custos variáveis (CMV, imposto e maquininha)." />
-                  <Linha rotulo={c.fixos.rateado ? "Lucro estimado" : "Sobra antes dos custos fixos"}
-                    valor={`${fmtBRL(c.lucro.valor)} · ${fmtPct(c.lucro.pct, 2)}`} destaque
-                    tom={c.lucro.prejuizo ? "text-red-600" : "text-emerald-700"}
-                    nota={c.fixos.rateado ? "Preço − custos variáveis − custos fixos rateados." : "Os custos fixos ainda não foram rateados — isto ainda não é lucro."} />
-                </>
-              )}
+              <Linha rotulo="Custo total da ficha" valor={fmtValorPct(resumo.custoReceita, preco)} natureza="calculado" />
+              {resumo.embalagemPorcao > 0 && <Linha rotulo="Embalagem por porção" valor={fmtValorPct(resumo.embalagemPorcao, preco)} />}
+              <Linha rotulo="CMV por porção" valor={fmtValorPct(resumo.cmvValor, preco)} destaque natureza="calculado"
+                tom={resumo.status.id === "cmv_alto" ? "text-red-600" : ""} nota={`Meta de CMV da ficha: ${fmtPct(resumo.meta)}`} />
+              <Linha rotulo="Preço de venda" valor={preco > 0 ? `${fmtReais(preco)} · 100,00%` : "Sem preço"} destaque tom="text-emerald-700" />
+              <Linha rotulo={`Preço sugerido (CMV ${fmtPct(resumo.meta)})`} valor={resumo.precoSugerido ? fmtReais(resumo.precoSugerido) : "—"} />
             </>
           )}
         </section>
 
-        {!ehPreparo && <ComposicaoPreco c={c} cmvPct={resumo.cmvPct} />}
+        {!ehPreparo && <ComposicaoPreco c={resumo.composicao} />}
       </div>
 
       <ComposicaoCusto resumo={resumo} comCusto />
@@ -223,13 +227,54 @@ function DetalheFinanceiro({ ficha, resumo, rendimentoTexto, podeVerCustos }) {
   );
 }
 
-const SEGMENTOS = {
-  variaveis: { rotulo: "Custos variáveis", cor: "bg-slate-700" },
-  fixos: { rotulo: "Custos fixos", cor: "bg-slate-400" },
-  lucro: { rotulo: "Lucro", cor: "bg-emerald-500" },
-};
+const SEGMENTOS = [
+  { id: "cmv", rotulo: "CMV", cor: "bg-slate-800" },
+  { id: "variaveis", rotulo: "Desp. variáveis", cor: "bg-slate-600" },
+  { id: "cmo", rotulo: "CMO", cor: "bg-slate-500" },
+  { id: "operacionais", rotulo: "Desp. operacionais", cor: "bg-slate-400" },
+  { id: "proLabore", rotulo: "Pró-labore", cor: "bg-slate-300" },
+  { id: "resultado", rotulo: "Resultado", cor: "bg-emerald-500" },
+];
+const corDe = (id) => SEGMENTOS.find((s) => s.id === id)?.cor || "bg-slate-200";
 
-function ComposicaoPreco({ c, cmvPct }) {
+// Grupo da composição: a linha do total e, ao tocar, as partes — cada uma
+// também em R$ e % do preço de venda.
+function Grupo({ g, aberto, onAlternar }) {
+  const temPartes = (g.partes || []).length > 0;
+  return (
+    <div className="border-b border-line-soft last:border-b-0">
+      <button type="button" onClick={temPartes ? onAlternar : undefined} aria-expanded={temPartes ? aberto : undefined}
+        className={`flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-1.5 text-left ${temPartes ? "" : "cursor-default"}`}>
+        <span className="flex min-w-0 items-baseline text-xs font-bold text-fg-soft">
+          <span className={`mr-1.5 inline-block h-2 w-2 shrink-0 rounded-sm ${corDe(g.id)}`} />
+          {g.rotulo}<Natureza id={g.natureza} />
+          {temPartes && <ChevronDown size={12} className={`ml-1 shrink-0 self-center text-subtle transition-transform ${aberto ? "rotate-180" : ""}`} />}
+        </span>
+        <span className="ml-auto whitespace-nowrap text-right text-xs font-black tabular-nums text-fg">
+          {g.motivo && g.valor === 0 ? "—" : `${fmtReais(g.valor)} · ${fmtPct(g.pct)}`}
+        </span>
+      </button>
+      {g.motivo && g.valor === 0 && <p className="pb-1.5 pl-3.5 text-3xs font-semibold leading-snug text-subtle">{g.motivo}</p>}
+      {aberto && temPartes && (
+        <ul className="mb-1.5 ml-[3px] space-y-0.5 border-l border-line pl-3">
+          {g.partes.map((p, i) => (
+            <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-3 text-2xs">
+              <span className="min-w-0 font-medium text-fg-soft">
+                {p.rotulo}
+                {p.taxaPct ? <span className="text-subtle"> ({fmtPct(p.taxaPct)} da venda)</span> : null}
+                {p.valorMes ? <span className="text-subtle"> · {fmtReais(p.valorMes)}/mês</span> : null}
+              </span>
+              <span className="ml-auto whitespace-nowrap font-bold tabular-nums text-fg">{fmtReais(p.valor)} · {fmtPct(p.pct)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ComposicaoPreco({ c }) {
+  const [abertos, setAbertos] = useState(() => new Set());
   if (!c?.temPreco) {
     return (
       <section>
@@ -238,49 +283,50 @@ function ComposicaoPreco({ c, cmvPct }) {
       </section>
     );
   }
-  const legenda = [
-    { id: "variaveis", ...c.variaveis },
-    { id: "fixos", ...c.fixos },
-    { id: "lucro", ...c.lucro },
-  ];
+  const alternar = (id) => setAbertos((a) => { const n = new Set(a); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const grupo = (g) => <Grupo key={g.id} g={g} aberto={abertos.has(g.id)} onAlternar={() => alternar(g.id)} />;
+  const r = c.resultado;
   return (
     <section>
-      <Titulo>Composição do preço de venda · {fmtBRL(c.preco)}</Titulo>
+      <Titulo>Composição do preço · {fmtReais(c.preco)}</Titulo>
       <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100" role="img"
-        aria-label={`Custos variáveis ${fmtPct(c.variaveis.pct, 2)}, custos fixos ${fmtPct(c.fixos.pct, 2)}, ${c.lucro.rotulo.toLowerCase()} ${fmtPct(c.lucro.pct, 2)}`}>
-        {c.barra.map(s => <div key={s.id} className={`${SEGMENTOS[s.id].cor} h-full`} style={{ width: `${s.largura}%` }} />)}
+        aria-label={SEGMENTOS.map((s) => `${s.rotulo} ${fmtPct((s.id === "resultado" ? r : c[s.id])?.pct)}`).join(", ")}>
+        {c.barra.map((s) => <div key={s.id} className={`${corDe(s.id)} h-full`} style={{ width: `${s.largura}%` }} />)}
       </div>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {legenda.map(s => (
-          <div key={s.id} className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-sm ${SEGMENTOS[s.id].cor}`} />
-              <span className="truncate text-2xs font-bold text-fg-soft">{s.id === "lucro" ? c.lucro.rotulo : SEGMENTOS[s.id].rotulo}</span>
-            </div>
-            {s.id === "fixos" && !c.fixos.rateado ? (
-              <p className="mt-0.5 text-2xs font-semibold leading-snug text-subtle">{c.fixos.motivo}</p>
-            ) : (
+
+      <div className="mt-2">
+        {grupo(c.cmv)}
+        {grupo(c.variaveis)}
+        <Linha rotulo="Margem de contribuição" subtotal valor={`${fmtReais(c.margemContribuicao.valor)} · ${fmtPct(c.margemContribuicao.pct)}`}
+          nota="Preço − CMV − despesas variáveis. Não é lucro: ainda paga CMO, despesas e pró-labore." />
+        {grupo(c.cmo)}
+        {grupo(c.operacionais)}
+        {grupo(c.proLabore)}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-t-2 border-line pt-2">
+          <span className="flex min-w-0 items-baseline text-xs font-black uppercase tracking-wide text-fg">
+            <span className={`mr-1.5 inline-block h-2 w-2 shrink-0 rounded-sm ${corDe("resultado")}`} />
+            {r.rotulo}<Natureza id={r.natureza} />
+          </span>
+          <span className={`ml-auto whitespace-nowrap text-right text-sm font-black tabular-nums ${r.prejuizo ? "text-red-600" : "text-emerald-700"}`}>
+            {fmtReais(r.valor)} · {fmtPct(r.pct)}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <span className="min-w-0 text-xs font-semibold text-fg-soft">Meta de lucro<Natureza id="configurado" /></span>
+          <span className="ml-auto whitespace-nowrap text-right text-xs font-bold tabular-nums text-fg">
+            {c.meta.pct === null ? "Não configurada" : (
               <>
-                <p className={`mt-0.5 text-sm font-black tabular-nums ${s.id === "lucro" && c.lucro.prejuizo ? "text-red-600" : "text-fg"}`}>{fmtBRL(s.valor)}</p>
-                <p className="text-2xs font-bold tabular-nums text-subtle">{fmtPct(s.pct, 2)}</p>
-                {(s.partes || []).length > 0 && (
-                  <ul className="mt-1 space-y-0.5">
-                    {s.partes.map(p => (
-                      <li key={p.rotulo} className="flex justify-between gap-2 text-3xs font-medium leading-tight text-subtle">
-                        <span className="min-w-0">{p.rotulo}</span><span className="shrink-0 tabular-nums">{fmtBRL(p.valor)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {fmtPct(c.meta.pct)}
+                <span className={c.meta.diferencaPP >= 0 ? "text-emerald-700" : "text-red-600"}> · {fmtPP(c.meta.diferencaPP)}</span>
               </>
             )}
-          </div>
-        ))}
+          </span>
+        </div>
       </div>
-      <p className="mt-3 text-2xs font-medium leading-snug text-subtle">
-        {c.lucro.prejuizo
-          ? `Prejuízo de ${fmtBRL(-c.lucro.valor)} por porção: os custos passam do preço de venda.`
-          : `CMV de ${fmtPct(cmvPct)} não quer dizer ${fmtPct(cmvPct === null ? null : 100 - cmvPct)} de lucro: imposto, maquininha${c.fixos.rateado ? ", custos fixos e mão de obra" : " e, quando rateados, os custos fixos"} também saem do preço.`}
+
+      <p className="mt-2 text-2xs font-medium leading-snug text-subtle">
+        {r.prejuizo ? `Prejuízo de ${fmtReais(-r.valor)} por unidade vendida. ` : ""}
+        {c.rateio.ok ? `CMO, despesas operacionais e pró-labore entram por rateio ${c.rateio.descricao} — estimativa, não custo direto deste prato.` : c.rateio.motivo}
       </p>
     </section>
   );
@@ -288,6 +334,7 @@ function ComposicaoPreco({ c, cmvPct }) {
 
 function ComposicaoCusto({ resumo, comCusto }) {
   const linhas = resumo.linhas;
+  const preco = resumo.preco;
   return (
     <section className="min-w-0">
       <Titulo>Composição do custo da ficha</Titulo>
@@ -295,13 +342,13 @@ function ComposicaoCusto({ resumo, comCusto }) {
         <p className="rounded-xl border border-line px-3 py-3 text-xs font-semibold text-fg-soft">Ficha sem ingredientes.</p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-line">
-          <div className="hidden grid-cols-[minmax(0,1fr)_88px_96px_84px] gap-2 bg-surface px-3 py-2 text-3xs font-bold uppercase tracking-wider text-subtle sm:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_80px_92px_118px] gap-2 bg-surface px-3 py-2 text-3xs font-bold uppercase tracking-wider text-subtle sm:grid">
             <span>Ingrediente</span><span className="text-right">Quantidade</span>
-            {comCusto ? <><span className="text-right">Custo unit.</span><span className="text-right">Na ficha</span></> : <><span /><span /></>}
+            {comCusto ? <><span className="text-right">Custo unit.</span><span className="text-right">Na ficha · % venda</span></> : <><span /><span /></>}
           </div>
           <ul className="divide-y divide-[color:var(--line-soft)]">
             {linhas.map((l, i) => (
-              <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_88px_96px_84px] sm:items-baseline">
+              <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_80px_92px_118px] sm:items-baseline">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-fg">
                     {l.nome}
@@ -309,15 +356,15 @@ function ComposicaoCusto({ resumo, comCusto }) {
                   </p>
                   {comCusto && l.perdaPct > 0 && (
                     <p className="text-3xs font-medium text-subtle">
-                      Perda {fmtPct(l.perdaPct)} · compra {fmtBRL(l.custoCompra)}/{l.unidadeBase} → efetivo {fmtBRL(l.custoUnitario)}/{l.unidadeBase} · bruto {fmtQtd(l.quantidadeBruta, l.unidade)}
+                      Perda {fmtPct(l.perdaPct, 1)} · compra {fmtReais(l.custoCompra)}/{l.unidadeBase} → efetivo {fmtReais(l.custoUnitario)}/{l.unidadeBase} · bruto {fmtQtd(l.quantidadeBruta, l.unidade)}
                     </p>
                   )}
                   {comCusto && l.fatorFicha > 0 && (
-                    <p className="text-3xs font-medium text-subtle">Fator de correção da ficha +{fmtPct(l.fatorFicha)} · bruto {fmtQtd(l.quantidadeBruta, l.unidade)}</p>
+                    <p className="text-3xs font-medium text-subtle">Fator de correção da ficha +{fmtPct(l.fatorFicha, 1)} · bruto {fmtQtd(l.quantidadeBruta, l.unidade)}</p>
                   )}
                   {comCusto && l.empanado && <p className="text-3xs font-medium text-subtle">Empanado: custo por kg do produto pronto</p>}
                 </div>
-                <span className="text-right text-xs font-semibold tabular-nums text-fg-soft sm:order-none">
+                <span className="text-right text-xs font-semibold tabular-nums text-fg-soft">
                   {l.tipo === "embalagem" ? "—" : fmtQtd(l.quantidade, l.unidade)}
                 </span>
                 {comCusto ? (
@@ -325,19 +372,24 @@ function ComposicaoCusto({ resumo, comCusto }) {
                     <span className="text-2xs font-medium tabular-nums text-subtle sm:text-right sm:text-xs">
                       {l.tipo === "embalagem" ? "" : `${fmtBRL(l.custoUnitario, l.custoUnitario < 0.1 ? 4 : 2)}/${l.unidadeBase === "l" ? "L" : l.unidadeBase}`}
                     </span>
-                    <span className="text-right text-xs font-black tabular-nums text-fg">{fmtBRL(l.custo)}</span>
+                    <span className="whitespace-nowrap text-right text-xs font-black tabular-nums text-fg">
+                      {fmtReais(l.custo)}{preco > 0 && l.pctVenda !== null ? <span className="font-bold text-subtle"> · {fmtPct(l.pctVenda)}</span> : null}
+                    </span>
                   </>
                 ) : null}
               </li>
             ))}
           </ul>
           {comCusto && (
-            <div className="flex items-baseline justify-between bg-surface px-3 py-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 bg-surface px-3 py-2">
               <span className="text-2xs font-black uppercase tracking-wider text-fg-soft">Total da ficha</span>
-              <span className="text-sm font-black tabular-nums text-fg">{fmtBRL(resumo.custoReceita)}</span>
+              <span className="ml-auto whitespace-nowrap text-sm font-black tabular-nums text-fg">{fmtValorPct(resumo.custoReceita, preco)}</span>
             </div>
           )}
         </div>
+      )}
+      {comCusto && preco > 0 && resumo.porcoes !== 1 && (
+        <p className="mt-1.5 text-3xs font-medium text-subtle">Percentual de cada linha: custo por porção (custo ÷ {resumo.porcoes.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porções) sobre o preço de venda.</p>
       )}
     </section>
   );

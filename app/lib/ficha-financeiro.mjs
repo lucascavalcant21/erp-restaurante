@@ -8,89 +8,25 @@
 //   preço, taxa, imposto,
 //   embalagem, meta de CMV ... entradasFinanceirasDaFicha (ficha-calculos)
 //   perda do ingrediente ..... custo-rendimento.mjs
-//   rateio do custo fixo ..... rateioPorPrato (pizza-do-prato), com os
-//                              parâmetros de Financeiro → Pizza do prato
+//   composição do preço ...... composicaoDoPreco (composicao-preco.mjs), com
+//                              os parâmetros de Financeiro → Pizza do Lucro
 //
 //   CMV R$  = custo da receita ÷ porções + embalagem por porção
 //   CMV %   = CMV R$ ÷ preço × 100
-//   custos variáveis = CMV R$ + imposto + maquininha   (variam com a venda)
-//   margem de contribuição = preço − custos variáveis
-//   custos fixos     = aluguel, luz, gás, água, limpeza, outros + CMO, rateados
-//   lucro            = preço − custos variáveis − custos fixos
+//   (o resto da hierarquia — variáveis, margem de contribuição, CMO,
+//    operacionais, pró-labore, resultado e meta — está em composicao-preco.mjs)
 
 import {
   parseNumero, custoDeProduzirFicha, porcoesParaCusto, produtoDaFicha,
   entradasFinanceirasDaFicha, tipoDaFicha,
 } from "./ficha-calculos.mjs";
 import { custoDoInsumo, fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
-import { rateioPorPrato } from "./pizza-do-prato.mjs";
+import { composicaoDoPreco } from "./composicao-preco.mjs";
+import { percentualDe } from "./valor-percentual.mjs";
 
-const centavos = (v) => Math.round((Number(v) || 0) * 100);
-const reais = (c) => c / 100;
-
-// ─── Composição do preço: variáveis + fixos + lucro = preço ─────────────────
-
-// Os valores são arredondados em CENTAVOS antes de somar, e o lucro é o que
-// sobra do preço em centavos — por isso a soma exibida fecha exatamente no
-// preço. Os percentuais seguem a mesma regra (o do lucro fecha em 100,00%).
-//
-// Custo fixo só entra quando há rateio de verdade (dias de operação × pratos
-// por dia, e algum custo cadastrado). Sem isso, `fixos.rateado` é false, o
-// fixo fica fora e o que sobra é "antes dos custos fixos" — não lucro.
-export function composicaoDoPreco({
-  preco = 0, custoProduto = 0, impostoPct = 0, taxaMaquininhaPct = 0, params = {},
-} = {}) {
-  const precoC = centavos(Math.max(0, parseNumero(preco)));
-  const cmvC = centavos(Math.max(0, parseNumero(custoProduto)));
-  const impostoC = centavos(reais(precoC) * Math.max(0, parseNumero(impostoPct)) / 100);
-  const maquininhaC = centavos(reais(precoC) * Math.max(0, parseNumero(taxaMaquininhaPct)) / 100);
-
-  const partesVariaveis = [
-    { rotulo: "CMV (ingredientes e embalagem)", centavos: cmvC },
-    { rotulo: `Imposto (${parseNumero(impostoPct).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)`, centavos: impostoC },
-    { rotulo: `Maquininha (${parseNumero(taxaMaquininhaPct).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)`, centavos: maquininhaC },
-  ];
-  const variaveisC = cmvC + impostoC + maquininhaC;
-
-  const rateio = rateioPorPrato(params || {});
-  const partesFixos = rateio.rateavel
-    ? [...rateio.itensFixo.map(i => ({ rotulo: i.rotulo, centavos: centavos(i.valor) })),
-       { rotulo: "Mão de obra (CMO)", centavos: centavos(rateio.cmo) }].filter(p => p.centavos > 0)
-    : [];
-  const fixosC = partesFixos.reduce((t, p) => t + p.centavos, 0);
-  const motivoSemFixo = !rateio.rateavel
-    ? "Custo fixo ainda não rateado para este produto: falta informar dias de operação e pratos por dia em Financeiro → Pizza do prato."
-    : (fixosC === 0 ? "Custo fixo ainda não rateado para este produto: nenhum custo fixo nem folha cadastrados em Financeiro → Pizza do prato." : null);
-  const rateado = !motivoSemFixo;
-
-  const lucroC = precoC - variaveisC - (rateado ? fixosC : 0);
-  const pct = (c) => (precoC > 0 ? Math.round((c / precoC) * 10000) / 100 : 0);
-  const variaveisPct = pct(variaveisC);
-  const fixosPct = rateado ? pct(fixosC) : 0;
-  const lucroPct = precoC > 0 ? Math.round((100 - variaveisPct - fixosPct) * 100) / 100 : 0;
-
-  const comValor = (lista) => lista.map(p => ({ rotulo: p.rotulo, valor: reais(p.centavos), pct: pct(p.centavos) }));
-  return {
-    preco: reais(precoC),
-    temPreco: precoC > 0,
-    variaveis: { valor: reais(variaveisC), pct: variaveisPct, partes: comValor(partesVariaveis) },
-    fixos: { valor: rateado ? reais(fixosC) : 0, pct: fixosPct, rateado, motivo: motivoSemFixo, partes: rateado ? comValor(partesFixos) : [] },
-    lucro: { valor: reais(lucroC), pct: lucroPct, prejuizo: lucroC < 0, rotulo: rateado ? "Lucro" : "Sobra antes dos custos fixos" },
-    margemContribuicao: { valor: reais(precoC - variaveisC), pct: precoC > 0 ? Math.round((100 - variaveisPct) * 100) / 100 : 0 },
-    // Larguras da barra (0–100). Com prejuízo o todo é o custo, não o preço:
-    // barra não tem fatia negativa.
-    barra: (() => {
-      const fix = rateado ? fixosC : 0;
-      const todo = lucroC < 0 ? variaveisC + fix : precoC;
-      if (todo <= 0) return [];
-      return [
-        { id: "variaveis", largura: (variaveisC / todo) * 100 },
-        { id: "fixos", largura: (fix / todo) * 100 },
-        { id: "lucro", largura: lucroC > 0 ? (lucroC / todo) * 100 : 0 },
-      ].filter(s => s.largura > 0);
-    })(),
-  };
-}
+// A composição do preço (CMV, despesas variáveis, margem de contribuição, CMO,
+// despesas operacionais, pró-labore e resultado) mora em composicao-preco.mjs.
+export { composicaoDoPreco } from "./composicao-preco.mjs";
 
 // ─── Composição do custo da ficha (linha a linha) ───────────────────────────
 
@@ -180,7 +116,20 @@ export function resumoFinanceiroDaFicha(ficha = {}, { fichas = [], produtos = []
   const cmvValor = custoPorcaoReceita + embalagemPorcao;
   const preco = tipo === "preparo" ? 0 : ent.precoVenda;
   const meta = ent.cmvMeta;
-  const cmvPct = preco > 0 && cmvValor > 0 ? (cmvValor / preco) * 100 : null;
+  const linhas = linhasDeCustoDaFicha(ficha, fichas);
+
+  // O CMV da composição é a receita linha a linha (por porção) mais a
+  // embalagem por porção — a mesma soma de cmvValor, aberta.
+  const cmvItens = tipo === "preparo" ? [] : [
+    ...linhas.map(l => ({ rotulo: l.nome, valor: l.custo / porcoes,
+      detalhe: l.tipo === "embalagem" ? null : { quantidade: l.quantidade, unidade: l.unidade, perdaPct: l.perdaPct || 0 } })),
+    ...(embalagemPorcao > 0 ? [{ rotulo: "Embalagem (por porção)", valor: embalagemPorcao }] : []),
+  ];
+  const composicao = tipo === "preparo" ? null : composicaoDoPreco({
+    preco, cmvItens, impostoPct: ent.impostoPct, taxaMaquininhaPct: ent.taxaMaquininhaPct, params,
+  });
+  // CMV % sempre valor ÷ preço, com o mesmo arredondamento da composição.
+  const cmvPct = composicao?.temPreco && cmvValor > 0 ? composicao.cmv.pct : (preco > 0 && cmvValor > 0 ? percentualDe(cmvValor, preco) : null);
 
   return {
     tipo,
@@ -197,10 +146,9 @@ export function resumoFinanceiroDaFicha(ficha = {}, { fichas = [], produtos = []
     precoSugerido: cmvValor > 0 && meta > 0 && meta < 100 ? cmvValor / (meta / 100) : null,
     impostoPct: ent.impostoPct,
     taxaMaquininhaPct: ent.taxaMaquininhaPct,
-    composicao: tipo === "preparo" ? null : composicaoDoPreco({
-      preco, custoProduto: cmvValor, impostoPct: ent.impostoPct, taxaMaquininhaPct: ent.taxaMaquininhaPct, params,
-    }),
+    composicao,
     status: statusDaFicha(ficha, cmvPct, meta),
-    linhas: linhasDeCustoDaFicha(ficha, fichas),
+    // Cada linha também em % do preço de venda (custo por porção ÷ preço).
+    linhas: linhas.map(l => ({ ...l, pctVenda: preco > 0 ? percentualDe(l.custo / porcoes, preco) : null })),
   };
 }

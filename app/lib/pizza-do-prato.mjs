@@ -23,7 +23,7 @@ export const COR_LUCRO = "#10B981";
 // É sequencial de propósito: as fatias estão ordenadas por tamanho típico, e
 // uma rampa se lê como rampa. O verde do lucro foi escolhido por separação
 // medida contra todos estes degraus (ΔE mínimo 15,6).
-export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B"];
+export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B", "#94A3B8"];
 
 import {
   custoDeProduzirFicha, custoIngrediente, custoSubreceita,
@@ -36,6 +36,9 @@ import {
 // cada ingrediente por mil, e a abertura do CMV contradiz o próprio total.
 import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
 import { fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
+import {
+  composicaoDoPreco, baseDoRateio, cmoDoMes, despesasOperacionaisDoMes, proLaboreDoMes, DESPESAS_VARIAVEIS,
+} from "./composicao-preco.mjs";
 // O peso total e as porções vêm de porcoesParaCusto (ficha-calculos): regra única.
 
 const num = (v) => {
@@ -51,103 +54,76 @@ export function pratosNoMes(params = {}) {
   return dias * porDia;
 }
 
-// Custo fixo e mão de obra que cabem a UM prato. `itensFixo` guarda a conta
-// aberta para a tela poder mostrar o que forma o custo fixo por dentro.
+// Despesas operacionais e mão de obra que cabem a UM prato, no rateio por
+// prato. Mantida para quem ainda a chama; a lista de despesas é a única de
+// composicao-preco.mjs (DESPESAS_OPERACIONAIS).
 export function rateioPorPrato(params = {}) {
   const pratos = pratosNoMes(params);
-  const linhas = [
-    { rotulo: "Aluguel", mes: num(params.custo_aluguel_mes) },
-    { rotulo: "Luz", mes: num(params.custo_luz_mes) },
-    { rotulo: "Gás", mes: num(params.custo_gas_mes) },
-    { rotulo: "Água", mes: num(params.custo_agua_mes) },
-    { rotulo: "Limpeza", mes: num(params.custo_limpeza_mes) },
-    { rotulo: "Outros", mes: num(params.custo_outros_mes) },
-  ];
   if (pratos <= 0) return { fixo: 0, cmo: 0, itensFixo: [], rateavel: false };
-  const itensFixo = linhas.filter((l) => l.mes > 0).map((l) => ({ rotulo: l.rotulo, valor: l.mes / pratos }));
+  const itensFixo = despesasOperacionaisDoMes(params).partes.map((l) => ({ rotulo: l.rotulo, valor: l.valor / pratos }));
   return {
     fixo: itensFixo.reduce((t, l) => t + l.valor, 0),
-    cmo: num(params.custo_cmo_mes) / pratos,
+    cmo: cmoDoMes(params).total / pratos,
     itensFixo,
     rateavel: true,
   };
 }
 
-/* Monta as fatias de um prato.
+/* As fatias da pizza de um prato. Saem de composicaoDoPreco — a mesma conta
+ * do card das Fichas —, só traduzidas para o formato da rosca.
  *
- * Devolve { fatias, preco, custoTotal, lucro, prejuizo, rateavel }.
- * Cada fatia: { id, rotulo, valor, pct, cor }.
- *
- * Duas situações que a tela precisa tratar e por isso saem marcadas:
- *  - preco <= 0: prato sem preço de venda. Não há pizza (retorna fatias: []).
- *  - custo > preco: prejuízo. Não existe fatia negativa, então o lucro sai
- *    zerado, prejuizo vem com o valor faltante e as fatias passam a dividir o
- *    CUSTO — desenhar o contrário daria uma pizza mentindo que fecha.
+ * Devolve { fatias, preco, custoTotal, lucro, prejuizo, rateavel, composicao }.
+ * Cada fatia: { id, rotulo, valor, pct, cor, partes }, com `pct` sobre o PREÇO
+ * DE VENDA (fatia e partes) e `pctNoSegmento` como leitura auxiliar.
+ * Com prejuízo não há fatia de lucro e as fatias dividem o custo.
  */
 export function fatiasDoPrato({
   preco = 0, custoIngredientes = 0, custoEmbalagem = 0,
-  impostoPct = 0, taxaMaquininhaPct = 0, params = {},
-  // Aberturas vindas da ficha e do RH. Sem elas, cada segmento cai na
-  // separação genérica e nada quebra.
-  partesCmv = null, partesCmo = null,
+  impostoPct = null, taxaMaquininhaPct = null, params = {},
+  partesCmv = null,
 } = {}) {
-  const precoVenda = Math.max(0, num(preco));
-  const { fixo, cmo, itensFixo, rateavel } = rateioPorPrato(params);
-
   const ingredientes = Math.max(0, num(custoIngredientes));
   const embalagem = Math.max(0, num(custoEmbalagem));
-  const imposto = precoVenda * (Math.max(0, num(impostoPct)) / 100);
-  const maquininha = precoVenda * (Math.max(0, num(taxaMaquininhaPct)) / 100);
-
-  const segmentos = [
-    // Com a lista de ingredientes, o CMV abre item a item; sem ela, fica a
-    // separação grossa entre ingrediente e embalagem.
-    { id: "cmv",      rotulo: "CMV",            valor: ingredientes + embalagem,
-      partes: (Array.isArray(partesCmv) && partesCmv.length)
-        ? [...partesCmv, { rotulo: "Embalagem", valor: embalagem }]
-        : [{ rotulo: "Ingredientes", valor: ingredientes }, { rotulo: "Embalagem", valor: embalagem }] },
-    { id: "cmo",      rotulo: "CMO",            valor: cmo,
-      partes: (Array.isArray(partesCmo) && partesCmo.length)
-        ? partesCmo
-        : [{ rotulo: "Mão de obra rateada", valor: cmo }] },
-    { id: "fixo",     rotulo: "Custo fixo",     valor: fixo, partes: itensFixo },
-    { id: "variavel", rotulo: "Custo variável", valor: imposto + maquininha,
-      partes: [{ rotulo: "Imposto", valor: imposto }, { rotulo: "Maquininha", valor: maquininha }] },
-  ].map((c, i) => ({ ...c, cor: CORES_CUSTO[i] }));
-
-  const custoTotal = segmentos.reduce((t, c) => t + c.valor, 0);
-
-  if (precoVenda <= 0) {
-    return { fatias: [], preco: 0, custoTotal, lucro: 0, prejuizo: 0, rateavel };
+  const cmvItens = [];
+  if (Array.isArray(partesCmv) && partesCmv.length) {
+    cmvItens.push(...partesCmv.map((x) => ({ rotulo: x.rotulo, valor: Math.max(0, num(x.valor)) })));
+    const resto = ingredientes - cmvItens.reduce((t, x) => t + x.valor, 0);
+    if (resto > 0.004) cmvItens.push({ rotulo: "Embalagens do produto", valor: resto });
+  } else if (ingredientes > 0) {
+    cmvItens.push({ rotulo: "Ingredientes", valor: ingredientes });
   }
+  if (embalagem > 0) cmvItens.push({ rotulo: "Embalagem", valor: embalagem });
 
-  const lucro = precoVenda - custoTotal;
+  const c = composicaoDoPreco({ preco, cmvItens, impostoPct, taxaMaquininhaPct, params });
+  const segmentos = [
+    { id: "cmv", rotulo: "CMV", g: c.cmv },
+    { id: "variavel", rotulo: "Despesas variáveis", g: c.variaveis },
+    { id: "cmo", rotulo: "CMO rateado", g: c.cmo },
+    { id: "fixo", rotulo: "Despesas operacionais", g: c.operacionais },
+    { id: "prolabore", rotulo: "Pró-labore rateado", g: c.proLabore },
+  ].map((x, i) => ({ ...x, cor: CORES_CUSTO[i] }));
+
+  const custoTotal = segmentos.reduce((t, x) => t + x.g.valor, 0);
+  if (!c.temPreco) return { fatias: [], preco: 0, custoTotal, lucro: 0, prejuizo: 0, rateavel: c.rateio.ok, composicao: c };
+
+  const lucro = c.resultado.valor;
   const prejuizo = lucro < 0 ? -lucro : 0;
-  // Com prejuízo não há fatia de lucro: o todo passa a ser o custo.
-  const todo = prejuizo > 0 ? custoTotal : precoVenda;
-
-  // `pct` é a fatia sobre o todo; `pctNoSegmento` é quanto a parte pesa DENTRO
-  // do seu segmento. São leituras diferentes: "imposto é 4% da venda" e
-  // "imposto é 61% do meu custo variável".
-  const comPartes = (seg) => ({
-    ...seg,
-    pct: (seg.valor / todo) * 100,
-    partes: (seg.partes || []).filter((x) => x.valor > 0).map((x) => ({
-      ...x,
-      pct: (x.valor / todo) * 100,
-      pctNoSegmento: seg.valor > 0 ? (x.valor / seg.valor) * 100 : 0,
+  const todo = prejuizo > 0 ? custoTotal : c.preco;
+  const pctDoTodo = (v) => (todo > 0 ? (v / todo) * 100 : 0);
+  const fatias = segmentos.filter((x) => x.g.valor > 0).map((x) => ({
+    id: x.id, rotulo: x.rotulo, cor: x.cor, valor: x.g.valor, natureza: x.g.natureza,
+    pct: pctDoTodo(x.g.valor),
+    partes: x.g.partes.filter((q) => q.valor > 0).map((q) => ({
+      rotulo: q.rotulo, valor: q.valor, pct: q.pct ?? 0, pctNoSegmento: x.g.valor > 0 ? (q.valor / x.g.valor) * 100 : 0,
     })),
-  });
-
-  const fatias = segmentos.filter((c) => c.valor > 0).map(comPartes);
+  }));
   if (prejuizo === 0 && lucro > 0) {
     fatias.push({
-      id: "lucro", rotulo: "Lucro", valor: lucro, pct: (lucro / todo) * 100, cor: COR_LUCRO,
-      partes: [{ rotulo: "O que sobra para você", valor: lucro, pct: (lucro / todo) * 100, pctNoSegmento: 100 }],
+      id: "lucro", rotulo: c.resultado.rotulo, valor: lucro, pct: pctDoTodo(lucro), cor: COR_LUCRO, natureza: c.resultado.natureza,
+      partes: [{ rotulo: "O que sobra para você", valor: lucro, pct: c.resultado.pct ?? 0, pctNoSegmento: 100 }],
     });
   }
-
-  return { fatias, preco: precoVenda, custoTotal, lucro: Math.max(0, lucro), prejuizo, rateavel };
+  return { fatias, preco: c.preco, custoTotal, lucro: Math.max(0, lucro), prejuizo, rateavel: c.rateio.ok, composicao: c };
 }
 
 // Ponto no meio da faixa da rosca, onde cabe o rótulo de porcentagem.
@@ -271,12 +247,23 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
  * devolve null, em vez de um número gigante ou negativo.
  */
 export function precoSugerido({
-  custoIngredientes = 0, custoEmbalagem = 0, impostoPct = 0, taxaMaquininhaPct = 0,
+  custoIngredientes = 0, custoEmbalagem = 0, impostoPct = null, taxaMaquininhaPct = null,
   margemAlvoPct = 0, params = {},
 } = {}) {
-  const { fixo, cmo } = rateioPorPrato(params);
-  const custoDireto = Math.max(0, num(custoIngredientes)) + Math.max(0, num(custoEmbalagem)) + fixo + cmo;
-  const sobraPct = 100 - Math.max(0, num(impostoPct)) - Math.max(0, num(taxaMaquininhaPct)) - Math.max(0, num(margemAlvoPct));
+  const cmv = Math.max(0, num(custoIngredientes)) + Math.max(0, num(custoEmbalagem));
+  // Despesas variáveis: as da ficha (imposto, maquininha) e as da casa.
+  const taxas = { ...Object.fromEntries(DESPESAS_VARIAVEIS.map(([k]) => [k, Math.max(0, num(params?.[k]))])) };
+  if (impostoPct !== null && impostoPct !== undefined) taxas.imposto_pct = Math.max(0, num(impostoPct));
+  if (taxaMaquininhaPct !== null && taxaMaquininhaPct !== undefined) taxas.taxa_cartao_pct = Math.max(0, num(taxaMaquininhaPct));
+  const variavelPct = Object.values(taxas).reduce((t, v) => t + v, 0);
+  const base = baseDoRateio(params);
+  const mensais = cmoDoMes(params).total + despesasOperacionaisDoMes(params).total + proLaboreDoMes(params?.pro_labore).total;
+  // Por prato, o rateio é um valor fixo por unidade (custo direto); por
+  // faturamento, é um percentual do preço (entra no denominador).
+  const rateadoFixo = base.ok && base.metodo === "prato" ? mensais / base.pratos : 0;
+  const rateadoPct = base.ok && base.metodo === "faturamento" ? (mensais / base.faturamento) * 100 : 0;
+  const custoDireto = cmv + rateadoFixo;
+  const sobraPct = 100 - variavelPct - rateadoPct - Math.max(0, num(margemAlvoPct));
   if (sobraPct <= 0 || custoDireto <= 0) return null;
   return custoDireto / (sobraPct / 100);
 }

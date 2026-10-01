@@ -35,29 +35,31 @@ const bom = fatiasDoPrato({
   impostoPct: 4, taxaMaquininhaPct: 2.5, params: PARAMS,
 });
 conferir("cinco segmentos", bom.fatias.length, 5);
-conferir("na ordem certa", bom.fatias.map(f => f.id).join(","), "cmv,cmo,fixo,variavel,lucro");
+conferir("na ordem certa", bom.fatias.map(f => f.id).join(","), "cmv,variavel,cmo,fixo,lucro");
 conferir("o lucro e o ultimo", bom.fatias[bom.fatias.length - 1].id, "lucro");
 conferir("lucro fica verde", bom.fatias[bom.fatias.length - 1].cor, COR_LUCRO);
 
 const seg = (id) => bom.fatias.find(f => f.id === id);
 // Custo variavel = imposto + maquininha. 1,80 + 1,125 = 2,925
 conferir("custo variavel soma imposto e maquininha", r2(seg("variavel").valor), 2.93);
-conferir("imposto dentro do variavel", r2(seg("variavel").partes.find(x => x.rotulo === "Imposto").valor), 1.8);
+conferir("imposto dentro do variavel", r2(seg("variavel").partes.find(x => x.rotulo === "Impostos").valor), 1.8);
 conferir("maquininha dentro do variavel", r2(seg("variavel").partes.find(x => x.rotulo === "Maquininha").valor), 1.13);
 // O peso DENTRO do segmento e outra leitura: imposto e 61,5% do custo variavel.
-conferir("imposto pesa 62% do variavel", Math.round(seg("variavel").partes.find(x => x.rotulo === "Imposto").pctNoSegmento), 62);
+// (1,80 de 2,93 em centavos = 61,4%)
+conferir("imposto pesa 61% do variavel", Math.round(seg("variavel").partes.find(x => x.rotulo === "Impostos").pctNoSegmento), 61);
 conferir("partes do variavel fecham 100% do segmento",
   Math.round(seg("variavel").partes.reduce((t, x) => t + x.pctNoSegmento, 0)), 100);
 
 // O custo fixo abre nas contas da casa.
-conferir("custo fixo abre em contas", seg("fixo").partes.map(x => x.rotulo).join(","), "Aluguel,Luz,Gás,Água,Limpeza");
+conferir("custo fixo abre em contas", seg("fixo").partes.map(x => x.rotulo).join(","), "Aluguel,Energia,Gás,Água,Limpeza");
 conferir("aluguel pesa 70% do custo fixo", Math.round(seg("fixo").partes[0].pctNoSegmento), 70);
 conferir("partes do fixo fecham 100% do segmento",
   Math.round(seg("fixo").partes.reduce((t, x) => t + x.pctNoSegmento, 0)), 100);
 
-// 11,24 + 6,3862 + 3,3077 + 2,925 = 23,8589  ->  lucro 21,14
-conferir("custo total", r2(bom.custoTotal), 23.86);
-conferir("lucro", r2(bom.lucro), 21.14);
+// Cada grupo arredondado em centavos (composicao-preco.mjs): 11,24 + 2,93 +
+// 6,39 + 3,31 = 23,87 -> lucro 21,13, e as parcelas exibidas fecham R$ 45,00.
+conferir("custo total", r2(bom.custoTotal), 23.87);
+conferir("lucro", r2(bom.lucro), 21.13);
 conferir("sem prejuizo", bom.prejuizo, 0);
 // O ponto da pizza: os segmentos TEM que fechar 100% do preco de venda.
 conferir("segmentos somam 100%", Math.round(bom.fatias.reduce((s, f) => s + f.pct, 0)), 100);

@@ -47,7 +47,7 @@ import {
   unidadesIngredientePorDepartamento,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
-import { custoDoInsumo } from "../../../lib/custo-rendimento.mjs";
+import { custoDoInsumo, empanamentoDaComposicao, unidadesDaComposicao } from "../../../lib/custo-rendimento.mjs";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 
@@ -86,6 +86,8 @@ function novoFormulario(departamento = "cozinha") {
     empanado: false,
     ganho_pct: "",
     custo_empanado_kg: "",
+    empanamento_itens: [],
+    empanamento_peso_g: "",
   };
 }
 
@@ -134,10 +136,17 @@ function LinhaCusto({ rotulo, valor, forte = false }) {
   );
 }
 
-// A conta inteira à vista, com os números que a ficha técnica vai usar.
-// Tudo sai de custoDoInsumo (custo-rendimento.mjs) — nenhuma conta aqui.
-function PainelCustoEfetivo({ form }) {
-  const insumo = {
+// Composição do formulário no formato gravado: só linhas completas.
+function composicaoParaGravar(form) {
+  const itens = (form.empanamento_itens || [])
+    .map(it => ({ insumo_id: it.insumo_id, quantidade: parseNumeroBR(it.quantidade), unidade: it.unidade }))
+    .filter(it => it.insumo_id && Number.isFinite(it.quantidade) && it.quantidade > 0);
+  return itens.length ? itens : null;
+}
+
+function insumoDoFormulario(form, composicao = null) {
+  return {
+    id: form.id || null,
     preco_normalizado: calcularPrecoNormalizado(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida, parseNumeroBR(form.valor_embalagem)),
     unidade_medida: form.unidade_medida,
     peso_bruto_padrao: form.peso_bruto_g,
@@ -145,11 +154,81 @@ function PainelCustoEfetivo({ form }) {
     empanado: form.empanado,
     ganho_pct: form.ganho_pct,
     custo_empanado_kg: form.custo_empanado_kg,
+    empanamento_itens: composicao,
+    empanamento_peso_g: form.empanamento_peso_g,
   };
+}
+
+// Ingredientes do empanamento: cada um com quantidade e unidade para o lote
+// do peso bruto acima. O custo de cada um é o atual do cadastro dele.
+function EditorComposicao({ form, setForm, insumos }) {
+  const itens = form.empanamento_itens || [];
+  const opcoes = useMemo(() => (insumos || [])
+    .filter(i => i.id !== form.id)
+    .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")), [insumos, form.id]);
+  const porId = useMemo(() => new Map(opcoes.map(i => [i.id, i])), [opcoes]);
+  const mudar = (idx, campo, valor) => {
+    const novos = itens.map((it, i) => {
+      if (i !== idx) return it;
+      const atualizado = { ...it, [campo]: valor };
+      if (campo === "insumo_id") {
+        const permitidas = unidadesDaComposicao(porId.get(valor));
+        if (!permitidas.includes(atualizado.unidade)) atualizado.unidade = permitidas[0];
+      }
+      return atualizado;
+    });
+    setForm({ ...form, empanamento_itens: novos });
+  };
+  const campo = "h-10 rounded-xl border border-line bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500";
+  return (
+    <div className="mt-3 rounded-xl border border-line p-3">
+      <p className="text-xs font-bold text-slate-900">Composição do empanamento</p>
+      <p className="mt-0.5 text-2xs font-medium text-subtle">Quantidades para o lote de {form.peso_bruto_g ? `${form.peso_bruto_g} g` : "peso bruto informado acima"}. O custo de cada item vem do cadastro dele, sempre atualizado.</p>
+      <div className="mt-2 space-y-2">
+        {itens.map((it, idx) => {
+          const comp = porId.get(it.insumo_id);
+          return (
+            <div key={idx} className="grid grid-cols-[1fr_84px_68px_36px] items-center gap-2">
+              <select aria-label="Ingrediente do empanamento" value={it.insumo_id || ""} onChange={e => mudar(idx, "insumo_id", e.target.value)} className={campo}>
+                <option value="">Escolher ingrediente…</option>
+                {opcoes.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
+              </select>
+              <input aria-label="Quantidade" inputMode="decimal" value={it.quantidade} placeholder="0" onChange={e => !e.target.value.startsWith("-") && mudar(idx, "quantidade", e.target.value)} className={`${campo} text-right`} />
+              <select aria-label="Unidade" value={it.unidade} onChange={e => mudar(idx, "unidade", e.target.value)} className={campo}>
+                {unidadesDaComposicao(comp).map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+              <button type="button" aria-label="Remover item" title="Remover" onClick={() => setForm({ ...form, empanamento_itens: itens.filter((_, i) => i !== idx) })} className="flex h-10 w-9 items-center justify-center rounded-xl border border-line text-fg hover:text-red-600">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <button type="button" onClick={() => setForm({ ...form, empanamento_itens: [...itens, { insumo_id: "", quantidade: "", unidade: "g" }] })} className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-bold text-fg hover:border-emerald-300">
+        <Plus size={14} /> Adicionar ingrediente
+      </button>
+      {itens.length > 0 && (
+        <label className="mt-3 block">
+          <span className="text-xs font-bold text-slate-900">Peso ganho pelo produto no lote (g) — opcional</span>
+          <input inputMode="decimal" value={form.empanamento_peso_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, empanamento_peso_g: e.target.value })} placeholder="Vazio = soma do peso da composição" className="mt-1.5 h-10 w-full rounded-xl border border-line bg-white px-3 text-xs outline-none focus:border-emerald-500" />
+          <span className="mt-1 block text-2xs font-medium text-subtle">Pese o lote pronto se puder: nem toda farinha usada gruda no produto.</span>
+        </label>
+      )}
+    </div>
+  );
+}
+
+// A conta inteira à vista, com os números que a ficha técnica vai usar.
+// Tudo sai de custoDoInsumo (custo-rendimento.mjs) — nenhuma conta aqui.
+function PainelCustoEfetivo({ form, componentes = [] }) {
+  const composicao = form.empanado ? composicaoParaGravar(form) : null;
+  let insumo = insumoDoFormulario(form, composicao);
+  const comp = composicao ? empanamentoDaComposicao(insumo, componentes) : null;
+  if (comp && !comp.erro) insumo = { ...insumo, ganho_pct: comp.ganho_pct, custo_empanado_kg: comp.custo_empanado_kg };
   const c = custoDoInsumo(insumo);
   if (!(c.custoCompra > 0)) return null;
-  if (c.erro) {
-    return <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">{c.erro}</p>;
+  if (c.erro || comp?.erro) {
+    return <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">{c.erro || `Empanamento: ${comp.erro}`}</p>;
   }
   if (!c.perdaConfigurada && !form.empanado) return null;
   const un = c.unidadeBase;
@@ -174,6 +253,12 @@ function PainelCustoEfetivo({ form }) {
           <LinhaCusto rotulo="Peso final" valor={fmtG(e.pesoFinalG)} />
           <LinhaCusto rotulo="Custo da matéria-prima" valor={fmtBRL(e.custoMateriaPrima)} />
           <LinhaCusto rotulo="Custo do empanamento" valor={fmtBRL(e.custoEmpanamento)} />
+          {comp?.detalhe?.itens?.map((it, i) => (
+            <div key={i} className="flex items-baseline justify-between gap-3 pl-3 text-2xs text-fg">
+              <span>{it.nome} · {Number(it.quantidade).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {it.unidade}</span>
+              <span className="font-bold">{fmtBRL(it.custo)}</span>
+            </div>
+          ))}
           <LinhaCusto rotulo="Custo total" valor={fmtBRL(e.custoTotal)} />
           <LinhaCusto rotulo="Custo final" valor={`${fmtBRL(e.custoPorKgFinal)}/kg`} forte />
         </div>
@@ -582,6 +667,9 @@ function IngredientesRunner() {
       empanado: !!insumo.empanado,
       ganho_pct: insumo.ganho_pct != null ? String(insumo.ganho_pct) : "",
       custo_empanado_kg: insumo.custo_empanado_kg != null ? String(insumo.custo_empanado_kg) : "",
+      empanamento_itens: (Array.isArray(insumo.empanamento_itens) ? insumo.empanamento_itens : [])
+        .map(it => ({ insumo_id: it.insumo_id, quantidade: it.quantidade != null ? String(it.quantidade) : "", unidade: it.unidade || "g" })),
+      empanamento_peso_g: insumo.empanamento_peso_g != null ? String(insumo.empanamento_peso_g) : "",
     });
     setPrecosForn([]); setPrecoFornMsg("");
     fetchPrecosDoInsumo(insumo.id).then(r => {
@@ -660,6 +748,15 @@ function IngredientesRunner() {
       return alert("A perda precisa ser menor que o peso bruto.");
     }
     const perdaPct = (Number.isFinite(pesoBruto) && pesoBruto > 0 && Number.isFinite(perdaG)) ? (perdaG / pesoBruto) * 100 : null;
+    const composicao = form.empanado ? composicaoParaGravar(form) : null;
+    let ganhoPct = form.empanado && form.ganho_pct ? parseNumeroBR(form.ganho_pct) : null;
+    let custoEmpanadoKg = form.empanado && form.custo_empanado_kg ? parseNumeroBR(form.custo_empanado_kg) : null;
+    if (composicao) {
+      const r = empanamentoDaComposicao(insumoDoFormulario(form, composicao), insumos);
+      if (r?.erro) return alert(`Empanamento: ${r.erro}`);
+      ganhoPct = Math.round(r.ganho_pct * 1000) / 1000;
+      custoEmpanadoKg = Math.round(r.custo_empanado_kg * 10000) / 10000;
+    }
     setSalvando(true);
     const resultado = await salvarInsumo({
       id: form.id,
@@ -685,14 +782,21 @@ function IngredientesRunner() {
       peso_peca_g: form.peso_peca_g ? parseNumeroBR(form.peso_peca_g) : null,
       pecas_por_kg: form.pecas_por_kg ? parseNumeroBR(form.pecas_por_kg) : null,
       empanado: !!form.empanado,
-      ganho_pct: form.empanado && form.ganho_pct ? parseNumeroBR(form.ganho_pct) : null,
-      custo_empanado_kg: form.empanado && form.custo_empanado_kg ? parseNumeroBR(form.custo_empanado_kg) : null,
+      ganho_pct: ganhoPct,
+      custo_empanado_kg: custoEmpanadoKg,
+      empanamento_itens: composicao,
+      empanamento_peso_g: composicao && form.empanamento_peso_g !== "" && Number.isFinite(parseNumeroBR(form.empanamento_peso_g)) ? parseNumeroBR(form.empanamento_peso_g) : null,
     }, { origem: form.id ? "Edição manual do ingrediente" : "Cadastro manual do ingrediente" });
     setSalvando(false);
 
     if (resultado.error) return alert(`Erro ao salvar ingrediente: ${resultado.error}`);
     if (resultado.colunasIgnoradas?.length) {
-      alert(`Salvo, mas estes campos NÃO foram gravados porque o banco ainda não tem a coluna: ${resultado.colunasIgnoradas.join(", ")}. Peça ao administrador para aplicar db/migracao_insumos_porcionamento.sql.`);
+      const ignoradas = resultado.colunasIgnoradas;
+      const arquivos = [
+        ignoradas.some(c => c.startsWith("empanamento_")) && "db/migracao_insumo_empanamento.sql",
+        ignoradas.some(c => !c.startsWith("empanamento_")) && "db/migracao_insumos_porcionamento.sql",
+      ].filter(Boolean).join(" e ");
+      alert(`Salvo, mas estes campos NÃO foram gravados porque o banco ainda não tem a coluna: ${ignoradas.join(", ")}. Peça ao administrador para aplicar ${arquivos}.${ignoradas.some(c => c.startsWith("empanamento_")) ? " O custo do empanamento calculado pela composição foi gravado; a lista de ingredientes dela, não." : ""}`);
     }
 
     // Preço por fornecedor: grava o do fornecedor ativo (= valor principal) e os
@@ -717,7 +821,8 @@ function IngredientesRunner() {
 
     setModalCadastro(false);
     await carregar();
-    const fichasTxt = resultado.fichasAtualizadas > 0 ? ` Perda aplicada em ${resultado.fichasAtualizadas} linha(s) de ficha técnica.` : "";
+    const fichasTxt = (resultado.fichasAtualizadas > 0 ? ` Perda aplicada em ${resultado.fichasAtualizadas} linha(s) de ficha técnica.` : "")
+      + (resultado.empanadosAtualizados > 0 ? ` Custo recalculado em ${resultado.empanadosAtualizados} empanado(s) que usam este ingrediente.` : "");
     mostrarToast((form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`) + fichasTxt);
   };
 
@@ -1253,12 +1358,15 @@ function IngredientesRunner() {
                       </div>
                     </div>
                   </div>
-                  <PainelCustoEfetivo form={form} />
+                  <PainelCustoEfetivo form={form} componentes={insumos} />
                   <label className="mt-4 flex items-center gap-2">
                     <input type="checkbox" checked={form.empanado} onChange={e => setForm({ ...form, empanado: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
                     <span className="text-xs font-bold text-slate-900">Produto empanado (ganha peso e tem custo do empanamento)</span>
                   </label>
                   {form.empanado && (
+                    <EditorComposicao form={form} setForm={setForm} insumos={insumos} />
+                  )}
+                  {form.empanado && !composicaoParaGravar(form) && (
                     <div className="mt-3 grid grid-cols-2 gap-4">
                       <label>
                         <span className="text-xs font-bold text-slate-900">Peso ganho no empanamento (% sobre o peso limpo)</span>

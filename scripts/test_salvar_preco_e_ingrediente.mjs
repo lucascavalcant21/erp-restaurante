@@ -35,7 +35,7 @@ function bancoFalso({ rlsBloqueiaUpdate = new Set() } = {}) {
   };
 
   function construtor(tabela) {
-    const st = { op: "select", filtros: [], valor: null, retorno: false, unico: false };
+    const st = { op: "select", filtros: [], preds: [], valor: null, retorno: false, unico: false };
     const b = {
       select() { if (st.op === "select") st.op = "select"; else st.retorno = true; return b; },
       insert(v) { st.op = "insert"; st.valor = Array.isArray(v) ? v : [v]; return b; },
@@ -43,12 +43,21 @@ function bancoFalso({ rlsBloqueiaUpdate = new Set() } = {}) {
       upsert(v) { st.op = "upsert"; st.valor = Array.isArray(v) ? v : [v]; return b; },
       delete() { st.op = "delete"; return b; },
       eq(k, v) { st.filtros.push([k, v]); return b; },
-      ilike() { return b; }, gte() { return b; }, in() { return b; }, order() { return b; }, limit() { return b; },
+      ilike() { return b; }, gte() { return b; }, order() { return b; }, limit() { return b; },
+      in(k, lista) { st.preds.push((l) => lista.includes(l[k])); return b; },
+      filter(k, op, v) {
+        if (op !== "cs") throw new Error("filtro não suportado no banco falso: " + op);
+        if (!COLUNAS[tabela]?.has(k)) { st.erro = { message: `column ${tabela}.${k} does not exist`, code: "42703" }; return b; }
+        const alvo = JSON.parse(v);
+        st.preds.push((l) => Array.isArray(l[k]) && alvo.every((o) => l[k].some((x) => Object.entries(o).every(([kk, vv]) => x?.[kk] === vv))));
+        return b;
+      },
       single() { st.unico = true; return b; }, maybeSingle() { st.unico = true; return b; },
       then(ok, falha) { return Promise.resolve().then(executar).then(ok, falha); },
     };
-    const casa = (l) => st.filtros.every(([k, v]) => l[k] === v);
+    const casa = (l) => st.filtros.every(([k, v]) => l[k] === v) && st.preds.every((p) => p(l));
     function executar() {
+      if (st.erro) return { data: null, error: st.erro };
       const tab = (linhas[tabela] ||= []);
       if (st.op === "select") {
         const r = tab.filter(casa);
@@ -211,6 +220,37 @@ test("ingrediente sem perda não reescreve o FC digitado nas fichas", async () =
   const r = await salvarInsumo({ id: "i1", ...INSUMO, custo_compra: 22 });
   assert.equal(r.fichasAtualizadas, 0);
   assert.equal(b.linhas.fichas_ingredientes[0].fator_correcao, 25);
+});
+
+test("preço da farinha muda → empanado que a usa recalcula o custo do empanamento", async () => {
+  COLUNAS.insumos.add("empanamento_itens"); COLUNAS.insumos.add("empanamento_peso_g");
+  try {
+    const b = usar(bancoFalso());
+    const base = Object.fromEntries(Object.entries(INSUMO).filter(([k]) => COLUNAS.insumos.has(k)));
+    b.linhas.insumos.push(
+      { ...base, id: "farinha", nome: "Farinha", preco_normalizado: 6, custo_compra: 6 },
+      { ...base, id: "ovo", nome: "Ovo", preco_normalizado: 25.6, custo_compra: 25.6 },
+      { ...base, id: "frango", nome: "Frango empanado", preco_normalizado: 30, custo_compra: 30,
+        peso_bruto_padrao: 1000, perda_g: 100, perda_pct: 10, empanado: true, ganho_pct: 0, custo_empanado_kg: 0,
+        empanamento_itens: [{ insumo_id: "farinha", quantidade: 150, unidade: "g" }, { insumo_id: "ovo", quantidade: 50, unidade: "g" }] },
+    );
+    // Farinha passa de R$ 6 para R$ 12/kg: empanamento = 0,15×12 + 0,05×25,6 = R$ 3,08 no lote de 1,1 kg.
+    const r = await salvarInsumo({ id: "farinha", ...INSUMO, nome: "Farinha", custo_compra: 12, custo_unitario: 12, preco_normalizado: 12 });
+    assert.equal(r.error, undefined);
+    assert.equal(r.empanadosAtualizados, 1);
+    const frango = b.linhas.insumos.find((i) => i.id === "frango");
+    assert.ok(Math.abs(frango.custo_empanado_kg - 3.08 / 1.1) < 0.0001, `custo_empanado_kg ${frango.custo_empanado_kg}`);
+    assert.ok(Math.abs(frango.ganho_pct - 22.222) < 0.001, `ganho ${frango.ganho_pct}`);
+  } finally { COLUNAS.insumos.delete("empanamento_itens"); COLUNAS.insumos.delete("empanamento_peso_g"); }
+});
+
+test("sem a coluna empanamento_itens no banco, salvar segue normal", async () => {
+  const b = usar(bancoFalso());
+  const base = Object.fromEntries(Object.entries(INSUMO).filter(([k]) => COLUNAS.insumos.has(k)));
+  b.linhas.insumos.push({ ...base, id: "farinha" });
+  const r = await salvarInsumo({ id: "farinha", ...INSUMO, custo_compra: 9 });
+  assert.equal(r.error, undefined);
+  assert.equal(r.empanadosAtualizados, 0);
 });
 
 // ── TRAVA: nenhuma consulta do supabase-js encadeada em .catch() ─────────────

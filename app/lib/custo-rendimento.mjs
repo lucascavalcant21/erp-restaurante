@@ -51,6 +51,10 @@ export function rendimentoDoInsumo(insumo = {}) {
       perdaPct: pct, rendimento: 1 - pct / 100, erro: null,
     };
   }
+  // Peso bruto sem perda informada: lote sem perda (o empanamento precisa do lote).
+  if (bruto > 0) {
+    return { configurada: true, pesoBrutoG: bruto, perdaG: 0, pesoLiquidoG: bruto, perdaPct: 0, rendimento: 1, erro: null };
+  }
   return semPerda(null);
 }
 
@@ -131,6 +135,63 @@ export function calcularEmpanamento({
     custoMateriaPrima, custoEmpanamento: custoDoEmpanamento, custoTotal,
     custoPorKgFinal: pesoFinalG > 0 ? custoTotal / (pesoFinalG / 1000) : 0,
     itens: linhas,
+  };
+}
+
+// ─── Composição do empanamento (insumos.empanamento_itens) ──────────────────
+
+// Em que unidade cada componente pode entrar, pela base do cadastro dele:
+// o custo do componente é por kg, L ou un, e a quantidade tem de casar.
+export function unidadesDaComposicao(componente) {
+  const base = unidadeNormalizada(componente?.unidade_medida) || "un";
+  if (base === "kg") return ["g", "kg"];
+  if (base === "l") return ["ml", "l"];
+  return ["un"];
+}
+
+// Calcula o empanamento a partir da composição gravada no cadastro, com o
+// custo ATUAL de cada componente (custo efetivo dele — ovo com casca também
+// tem perda). As quantidades são para o lote de `peso_bruto_padrao`.
+//
+// Devolve também `ganho_pct` e `custo_empanado_kg`, os dois números que a
+// ficha técnica e a produção leem: gravados junto com a composição, eles
+// reproduzem exatamente este cálculo em custoDoInsumo. Composição vazia → null.
+export function empanamentoDaComposicao(insumo, componentes = []) {
+  const itens = (Array.isArray(insumo?.empanamento_itens) ? insumo.empanamento_itens : [])
+    .filter((it) => it?.insumo_id);
+  if (!itens.length) return null;
+  const porId = componentes instanceof Map
+    ? componentes : new Map((componentes || []).map((c) => [c.id, c]));
+
+  const perda = rendimentoDoInsumo(insumo);
+  if (perda.erro) return { erro: perda.erro };
+  const bruto = perda.pesoBrutoG;
+  if (!(bruto > 0)) return { erro: "Informe o peso bruto do lote: as quantidades da composição são para ele." };
+
+  const faltando = [];
+  const linhas = [];
+  for (const it of itens) {
+    const comp = porId.get(it.insumo_id);
+    if (!comp) { faltando.push(it.nome || it.insumo_id); continue; }
+    if (comp.id === insumo?.id) return { erro: "O produto não pode entrar na própria composição." };
+    const unidade = String(it.unidade || "").toLowerCase();
+    if (!unidadesDaComposicao(comp).includes(unidade)) {
+      return { erro: `${comp.nome}: use ${unidadesDaComposicao(comp).join(" ou ")} (o custo dele é por ${unidadeNormalizada(comp.unidade_medida) || "un"}).` };
+    }
+    linhas.push({ nome: comp.nome, quantidade: it.quantidade, unidade, custoPorBase: custoDoInsumo(comp).custoEfetivo });
+  }
+  if (faltando.length) return { erro: `Ingrediente da composição não encontrado: ${faltando.join(", ")}.`, faltando };
+
+  const detalhe = calcularEmpanamento({
+    pesoBrutoG: bruto, perdaG: bruto * (1 - perda.rendimento), custoCompraKg: custoDoInsumo({ ...insumo, empanado: false }).custoCompra,
+    itens: linhas, pesoAdicionadoG: insumo?.empanamento_peso_g,
+  });
+  if (detalhe.erro) return { erro: detalhe.erro };
+  return {
+    erro: null,
+    detalhe,
+    ganho_pct: detalhe.pesoLiquidoG > 0 ? (detalhe.pesoAdicionadoG / detalhe.pesoLiquidoG) * 100 : 0,
+    custo_empanado_kg: detalhe.pesoFinalG > 0 ? detalhe.custoEmpanamento / (detalhe.pesoFinalG / 1000) : 0,
   };
 }
 

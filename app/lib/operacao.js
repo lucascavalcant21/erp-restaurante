@@ -1,6 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { calcularPrecoNormalizado, ehInsumoPrePreparo } from "./ingredientes-utils.mjs";
-import { fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
+import { empanamentoDaComposicao, fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
@@ -206,9 +206,10 @@ export async function salvarInsumo(insumo, opcoes = {}) {
     }, campos);
     if (!error) await sincronizarFornecedores(id, fornecedorIds);
     const fichasAtualizadas = error ? 0 : await sincronizarFatorNasFichas(id, atual, campos);
+    const empanadosAtualizados = error ? 0 : await recalcularEmpanadosQueUsam(id);
     // Coluna que o banco não tem sai do envio para o resto gravar — mas quem
     // editou precisa saber que aquele campo NÃO foi salvo.
-    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)), fichasAtualizadas };
+    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)), fichasAtualizadas, empanadosAtualizados };
   } else {
     // Trava de duplicidade: não permite dois ingredientes com o mesmo nome no
     // mesmo setor/unidade. Para outro preço, edite o existente e adicione um
@@ -324,6 +325,33 @@ async function sincronizarFatorNasFichas(insumoId, atual, campos) {
       .select("id");
     if (error) { console.warn("Fator das fichas não sincronizado:", error.message); return 0; }
     return data?.length || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Mudou o preço (ou a perda) de um componente do empanamento — farinha, ovo,
+// panko: os empanados que o usam recalculam o custo com o valor atual. Grava
+// só ganho_pct e custo_empanado_kg, que são o resultado da composição.
+// Sem a coluna empanamento_itens no banco, a consulta falha e nada acontece.
+async function recalcularEmpanadosQueUsam(insumoId) {
+  try {
+    const { data: dependentes, error } = await supabase.from("insumos").select("*")
+      .filter("empanamento_itens", "cs", JSON.stringify([{ insumo_id: insumoId }]));
+    if (error || !dependentes?.length) return 0;
+    const ids = [...new Set(dependentes.flatMap(d => (d.empanamento_itens || []).map(it => it?.insumo_id)).filter(Boolean))];
+    const { data: componentes } = await supabase.from("insumos").select("*").in("id", ids);
+    let n = 0;
+    for (const dep of dependentes) {
+      const r = empanamentoDaComposicao(dep, componentes || []);
+      if (!r || r.erro) continue;
+      const { error: e } = await supabase.from("insumos").update({
+        ganho_pct: Math.round(r.ganho_pct * 1000) / 1000,
+        custo_empanado_kg: Math.round(r.custo_empanado_kg * 10000) / 10000,
+      }).eq("id", dep.id);
+      if (!e) n++;
+    }
+    return n;
   } catch {
     return 0;
   }

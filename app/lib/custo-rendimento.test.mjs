@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   rendimentoDoInsumo, custoEfetivoPorRendimento, fatorDaPerda, calcularEmpanamento,
-  custoDoInsumo, fatorCorrecaoDoItem, custoUnitarioParaFicha,
+  custoDoInsumo, fatorCorrecaoDoItem, custoUnitarioParaFicha, empanamentoDaComposicao, unidadesDaComposicao,
 } from "./custo-rendimento.mjs";
 import { custoDeProduzirFicha } from "./ficha-calculos.mjs";
 import { itemDeIngrediente, custoDoItem } from "./ficha-editor.mjs";
@@ -142,4 +142,57 @@ test("produção: baixa o BRUTO (200 g limpos = 235,3 g brutos) e custeia igual"
   assert.deepEqual(r.erros, []);
   perto(r.itens[0].quantidade, 0.2353, 4);
   perto(r.custoEstimado, 9.39);
+});
+
+// ─── Composição do empanamento gravada no cadastro ──────────────────────────
+
+const farinha = { id: "farinha", nome: "Farinha de trigo", unidade_medida: "kg", preco_normalizado: 6 };
+const panko = { id: "panko", nome: "Farinha panko", unidade_medida: "kg", preco_normalizado: 32 };
+const ovo = { id: "ovo", nome: "Ovo", unidade_medida: "kg", preco_normalizado: 25.6 };
+const frangoEmpanado = {
+  id: "frango", nome: "Frango empanado", unidade_medida: "kg", preco_normalizado: 30,
+  peso_bruto_padrao: 1000, perda_g: 100, empanado: true,
+  empanamento_itens: [
+    { insumo_id: "farinha", quantidade: 80, unidade: "g" },
+    { insumo_id: "panko", quantidade: 70, unidade: "g" },
+    { insumo_id: "ovo", quantidade: 50, unidade: "g" },
+  ],
+};
+
+test("TESTE D pelo cadastro: composição → custo por kg final com preço atual dos componentes", () => {
+  const r = empanamentoDaComposicao(frangoEmpanado, [farinha, panko, ovo]);
+  assert.equal(r.erro, null);
+  assert.equal(r.detalhe.pesoLiquidoG, 900);
+  assert.equal(r.detalhe.pesoAdicionadoG, 200);
+  assert.equal(r.detalhe.pesoFinalG, 1100);
+  perto(r.detalhe.custoMateriaPrima, 30);
+  perto(r.detalhe.custoEmpanamento, 4);
+  perto(r.detalhe.custoTotal, 34);
+  perto(r.detalhe.custoPorKgFinal, 30.91);
+  // Os números gravados reproduzem a mesma conta na ficha técnica.
+  const gravado = { ...frangoEmpanado, ganho_pct: r.ganho_pct, custo_empanado_kg: r.custo_empanado_kg };
+  perto(custoDoInsumo(gravado).custoEfetivo, 30.91);
+  perto(custoUnitarioParaFicha(gravado), 30.91);
+  // Farinha subiu para R$ 12/kg: +0,48 no lote.
+  const r2 = empanamentoDaComposicao(frangoEmpanado, [{ ...farinha, preco_normalizado: 12 }, panko, ovo]);
+  perto(r2.detalhe.custoTotal, 34.48);
+});
+
+test("composição: peso medido, unidade errada, sem peso bruto, componente sumido", () => {
+  const medido = empanamentoDaComposicao({ ...frangoEmpanado, empanamento_peso_g: 120 }, [farinha, panko, ovo]);
+  assert.equal(medido.detalhe.pesoFinalG, 1020);
+  assert.match(empanamentoDaComposicao({ ...frangoEmpanado, empanamento_itens: [{ insumo_id: "ovo", quantidade: 2, unidade: "un" }] }, [ovo]).erro, /use g ou kg/);
+  assert.match(empanamentoDaComposicao({ ...frangoEmpanado, peso_bruto_padrao: null, perda_g: null }, [farinha, panko, ovo]).erro, /peso bruto/);
+  assert.match(empanamentoDaComposicao(frangoEmpanado, [farinha]).erro, /não encontrado/);
+  assert.match(empanamentoDaComposicao({ ...frangoEmpanado, empanamento_itens: [{ insumo_id: "frango", quantidade: 10, unidade: "g" }] }, [frangoEmpanado]).erro, /própria composição/);
+  assert.equal(empanamentoDaComposicao({ ...frangoEmpanado, empanamento_itens: [] }, []), null);
+  assert.deepEqual(unidadesDaComposicao({ unidade_medida: "L" }), ["ml", "l"]);
+  assert.deepEqual(unidadesDaComposicao({ unidade_medida: "un" }), ["un"]);
+});
+
+test("peso bruto sem perda: lote sem perda, empanamento funciona", () => {
+  const r = empanamentoDaComposicao({ ...frangoEmpanado, perda_g: "" }, [farinha, panko, ovo]);
+  assert.equal(r.erro, null);
+  assert.equal(r.detalhe.pesoLiquidoG, 1000);
+  assert.equal(fatorCorrecaoDoItem({ peso_bruto_padrao: 1000 }, 20), 20);
 });

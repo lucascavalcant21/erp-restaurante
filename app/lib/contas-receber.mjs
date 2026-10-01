@@ -271,6 +271,63 @@ export async function editarContaReceber(db, { id, unidade_id, contaAtual, ...d 
 }
 
 /** Recebimento pela RPC: bruto baixado (receita quitada) × líquido creditado (dinheiro). */
+// ─── Baixa de um recebimento: bruto quitado × líquido que entrou ─────────────
+// A diferença (bruto − líquido) é gravada pelo banco como TAXA EFETIVA. Por
+// isso taxa só pode nascer de algo explícito: a taxa prevista do recebível
+// (cadastro/aplicada) ou a confirmação do usuário. Nunca de "o que faltou
+// receber": receber 0,40 de 1,00 sem taxa é BAIXA PARCIAL de 0,40, não taxa
+// de 0,60.
+
+const fmtCampo = (n) => (Number.isFinite(n) ? r2(n).toFixed(2).replace(".", ",") : "");
+/** Taxa conhecida = o recebível tem taxa prevista e líquido previsto > 0. */
+const taxaConhecida = (conta) => conta?.valor_liquido_previsto != null && Number(conta.valor_liquido_previsto) > 0 && Number(conta.valor_bruto) > 0;
+
+/** Campos iniciais do modal: com taxa conhecida sugere o saldo inteiro; sem taxa, o usuário informa o que entrou. */
+export function sugerirBaixa(conta) {
+  const saldo = Number(conta?.saldo_bruto) || 0;
+  if (!taxaConhecida(conta)) return { valor_bruto_baixado: "", valor_liquido_recebido: "", bruto_editado: false };
+  return {
+    valor_bruto_baixado: fmtCampo(saldo),
+    valor_liquido_recebido: fmtCampo(saldo * Number(conta.valor_liquido_previsto) / Number(conta.valor_bruto)),
+    bruto_editado: false,
+  };
+}
+
+/**
+ * Mudança de um campo do modal. Enquanto o usuário não mexer no bruto, ele
+ * ACOMPANHA o líquido: sem taxa, bruto = líquido (nada vira taxa); com taxa
+ * prevista, bruto = líquido na proporção bruto/líquido previstos. Sempre
+ * limitado ao saldo.
+ */
+export function ajustarBaixa(conta, atual, campo, valor) {
+  if (campo === "valor_bruto_baixado") return { ...atual, valor_bruto_baixado: valor, bruto_editado: true };
+  const novo = { ...atual, [campo]: valor };
+  if (campo !== "valor_liquido_recebido" || atual.bruto_editado) return novo;
+  const liq = lerValor(valor);
+  if (!Number.isFinite(liq) || liq < 0) return novo;
+  const saldo = Number(conta?.saldo_bruto) || 0;
+  const bruto = taxaConhecida(conta) ? liq * Number(conta.valor_bruto) / Number(conta.valor_liquido_previsto) : liq;
+  return { ...novo, valor_bruto_baixado: fmtCampo(Math.min(saldo, bruto)) };
+}
+
+/**
+ * Resultado da baixa antes de gravar: taxa efetiva, taxa prevista para esse
+ * bruto (nula se não informada), saldo depois e se a taxa precisa de
+ * confirmação explícita (sem taxa prevista, ou diferente da prevista).
+ */
+export function avaliarBaixa(conta, campos) {
+  const saldo = Number(conta?.saldo_bruto) || 0;
+  const bruto = r2(lerValor(campos?.valor_bruto_baixado));
+  const liquido = r2(lerValor(campos?.valor_liquido_recebido));
+  const ok = Number.isFinite(bruto) && Number.isFinite(liquido);
+  const taxa = ok ? r2(bruto - liquido) : null;
+  const taxaPrevista = ok && conta?.valor_taxa_previsto != null && Number(conta.valor_bruto) > 0
+    ? r2(bruto * Number(conta.valor_taxa_previsto) / Number(conta.valor_bruto)) : null;
+  const precisaConfirmarTaxa = taxa != null && taxa > 0.004 && (taxaPrevista == null || Math.abs(taxa - taxaPrevista) > 0.01);
+  const restante = Number.isFinite(bruto) ? r2(Math.max(saldo - bruto, 0)) : saldo;
+  return { bruto: ok ? bruto : null, liquido: ok ? liquido : null, taxa, taxaPrevista, precisaConfirmarTaxa, restante, quita: Number.isFinite(bruto) && restante <= 0.004 };
+}
+
 export async function registrarRecebimento(db, p, { hoje = hojeLocal() } = {}) {
   if (!db) return falha("Banco indisponível.");
   const dia = String(p?.recebido_em ?? "").slice(0, 10);
@@ -280,11 +337,15 @@ export async function registrarRecebimento(db, p, { hoje = hojeLocal() } = {}) {
   if (!p?.chave) return falha("Chave de idempotência ausente.");
   if (!dataValida(dia)) return falha("Informe a data real do recebimento.");
   if (dia > hoje) return falha("A data do recebimento não pode ser futura.");
-  if (bruto != null && (!Number.isFinite(bruto) || bruto <= 0)) return falha("O valor bruto baixado precisa ser maior que zero.");
-  if (p.saldo_bruto != null && bruto != null && bruto > Number(p.saldo_bruto) + 0.004) return falha(`Valor maior que o saldo (saldo bruto: ${Number(p.saldo_bruto).toFixed(2)}).`);
+  // bruto sempre explícito: o banco, sem bruto, quitaria o saldo inteiro e a falta viraria taxa
+  if (bruto == null) return falha("Informe o bruto baixado (quanto da venda este recebimento quita).");
+  if (!Number.isFinite(bruto) || bruto <= 0) return falha("O valor bruto baixado precisa ser maior que zero.");
+  if (p.saldo_bruto != null && bruto > Number(p.saldo_bruto) + 0.004) return falha(`Valor maior que o saldo (saldo bruto: ${Number(p.saldo_bruto).toFixed(2)}).`);
   if (!Number.isFinite(liquido) || liquido < 0) return falha("Informe o valor líquido que entrou.");
-  const baseBruto = bruto ?? (p.saldo_bruto != null ? Number(p.saldo_bruto) : null);
-  if (baseBruto != null && liquido > baseBruto + 0.004) return falha("O líquido não pode ser maior que o bruto baixado (acréscimos ainda não são suportados).");
+  if (liquido > bruto + 0.004) return falha("O líquido não pode ser maior que o bruto baixado (acréscimos ainda não são suportados).");
+  if (bruto - liquido > 0.004 && !p.taxa_confirmada) {
+    return falha(`A diferença de R$ ${(bruto - liquido).toFixed(2).replace(".", ",")} entre o bruto baixado e o líquido seria registrada como TAXA. Confirme a taxa ou baixe só o valor que entrou.`);
+  }
   const { data, error } = await db.rpc("fin_registrar_recebimento", {
     p_conta_receber_id: p.conta_receber_id,
     p_recebido_em: dia,
@@ -407,7 +468,10 @@ export function podeCancelarReceber(c) { return ["previsto", "atrasado"].include
  * Resumo do topo de Contas a Receber.
  * - aReceberBruto / aReceberLiquido: saldo em aberto (líquido nulo se alguma taxa não foi informada);
  * - atrasado: bruto em aberto com previsão vencida;
- * - recebido no período (caixa): líquido que entrou, bruto baixado e taxas efetivas, por data do recebimento;
+ * - recebido no período (caixa): líquido que entrou, bruto baixado e taxas efetivas, por data do recebimento,
+ *   SÓ de recebimentos ativos (estornado fica no histórico, fora das contas);
+ * - taxasNaoInformadas: há recebimento ativo de recebível sem taxa e sem taxa explícita na baixa
+ *   (a tela mostra "não informada", não R$ 0,00 como se fosse taxa zero);
  * - receita (competência): bruto das contas com data da venda no período, exceto canceladas.
  */
 export function resumoReceber(contas, recebimentosPeriodo, periodo) {
@@ -417,6 +481,7 @@ export function resumoReceber(contas, recebimentosPeriodo, periodo) {
     ? null
     : soma(abertas, (c) => Number(c.saldo_bruto) * Number(c.valor_liquido_previsto) / Number(c.valor_bruto));
   const ativos = recebimentosPeriodo.filter((r) => !r.estornado_em);
+  const semTaxa = new Set(contas.filter((c) => c.taxa_nao_informada).map((c) => c.id));
   return {
     aReceberBruto: soma(abertas, (c) => c.saldo_bruto),
     aReceberLiquido: liquidoAberto,
@@ -424,6 +489,7 @@ export function resumoReceber(contas, recebimentosPeriodo, periodo) {
     recebidoLiquido: periodo ? soma(ativos, (r) => r.valor_liquido_recebido) : null,
     recebidoBruto: periodo ? soma(ativos, (r) => r.valor_bruto_baixado) : null,
     taxasEfetivas: periodo ? soma(ativos, (r) => r.valor_taxa_efetiva) : null,
+    taxasNaoInformadas: periodo ? ativos.some((r) => semTaxa.has(r.conta_receber_id) && !(Number(r.valor_taxa_efetiva) > 0.004)) : false,
     receitaCompetencia: periodo
       ? soma(contas.filter((c) => c.situacao !== "cancelado" && c.data_venda >= periodo.de && c.data_venda <= periodo.ate), (c) => c.valor_bruto)
       : null,

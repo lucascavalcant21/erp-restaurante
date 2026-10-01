@@ -189,7 +189,9 @@ export default function ContasAReceberPage() {
               nota: resumo.aReceberLiquido == null ? "Líquido: há taxa não informada" : `Líquido previsto ${fmtBRL(resumo.aReceberLiquido)}` },
             { r: "Atrasado", v: resumo.atrasado, I: AlertTriangle, c: "text-red-400", nota: "Previsão já passou" },
             { r: "Recebido no período (líquido)", v: resumo.recebidoLiquido, I: Wallet, c: "text-emerald-400",
-              nota: periodo ? `Bruto baixado ${fmtBRL(resumo.recebidoBruto)} · taxas ${fmtBRL(resumo.taxasEfetivas)}` : "Escolha um período" },
+              nota: periodo ? `Bruto baixado ${fmtBRL(resumo.recebidoBruto)} · taxas ${resumo.taxasNaoInformadas
+                ? (resumo.taxasEfetivas > 0.004 ? `${fmtBRL(resumo.taxasEfetivas)} + não informadas` : "não informadas")
+                : fmtBRL(resumo.taxasEfetivas)}` : "Escolha um período" },
             { r: "Receita lançada no período", v: resumo.receitaCompetencia, I: Receipt, c: "text-amber-300",
               nota: "Bruto pela data da venda · só o que foi lançado aqui (não é faturamento total)" },
           ].map(({ r, v, I, c, nota }) => (
@@ -420,7 +422,7 @@ export default function ContasAReceberPage() {
                         <div className="flex justify-between gap-2">
                           <div>
                             <b className={r.estornado_em ? "line-through" : ""}>{fmtBRL(r.valor_liquido_recebido)} entrou</b> em {fmtData(r.recebido_em)}
-                            <span className="block text-fg">Bruto baixado {fmtBRL(r.valor_bruto_baixado)} · taxa {fmtBRL(r.valor_taxa_efetiva)}{nomeConta(r.conta_financeira_id) ? ` · ${nomeConta(r.conta_financeira_id)}` : ""}</span>
+                            <span className="block text-fg">Bruto baixado {fmtBRL(r.valor_bruto_baixado)} · taxa {c.taxa_nao_informada && !(Number(r.valor_taxa_efetiva) > 0.004) ? "não informada" : fmtBRL(r.valor_taxa_efetiva)}{nomeConta(r.conta_financeira_id) ? ` · ${nomeConta(r.conta_financeira_id)}` : ""}</span>
                             <span className="block text-fg">Registrado {fmtHora(r.created_at)} · {quem(r.criado_por)}</span>
                             {r.conciliacao_referencia && <span className="block">Ref.: {r.conciliacao_referencia}</span>}
                             {r.observacao && <span className="block">{r.observacao}</span>}

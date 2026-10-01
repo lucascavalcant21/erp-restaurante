@@ -9,6 +9,7 @@ import {
   escolherTaxa, calcularTaxa, montarRecebiveis, validarRecebivel, criarContaReceber, editarContaReceber,
   registrarRecebimento, estornarRecebimento, cancelarContaReceber, criarContaFinanceira, editarContaFinanceira,
   criarTaxa, encerrarTaxa, resumoReceber, resumoFluxo, anexarBrutoSemTaxa, podeReceber, podeCancelarReceber,
+  sugerirBaixa, ajustarBaixa, avaliarBaixa,
 } from "./contas-receber.mjs";
 import { registrarPagamento, criarContaPagar } from "./contas-pagar.mjs";
 import { criarBancoF21, clienteSupabase } from "./teste-banco-f21.mjs";
@@ -72,6 +73,97 @@ conferir("histórico: os 2 recebimentos visíveis; o 2º estornado com motivo e 
   [[400, false, null, null, "33333333-3333-3333-3333-333333333333"], [600, true, "PIX devolvido", "33333333-3333-3333-3333-333333333333", "33333333-3333-3333-3333-333333333333"]]);
 conferir("recebimento estornado não é apagado nem estornado de novo", !!(await estornarRecebimento(db, { recebimento_id: r2.data.recebimento_id, motivo: "x" })).error, true);
 
+// ── 3b. CORREÇÃO 01/10: estorno não vira taxa nem quita (cenário de produção) ─
+// Em produção o modal vinha com "bruto baixado" = saldo inteiro; digitando só o
+// líquido (0,40), o banco gravou bruto 1,00 / líquido 0,40 → "taxa" 0,60 e
+// conta RECEBIDA. Aqui o fluxo passa pelas MESMAS funções do modal.
+{
+  // unidade própria: não mexe nos totais "de hoje" que as seções seguintes conferem
+  const UC = "correcao";
+  await pg.query("insert into public.unidades values ($1, $2)", [UC, "Correção"]);
+  const dbc = clienteSupabase(pg, { unidade: UC });
+  const fluxoRealizado = async (contaId) => (await pg.query(`select coalesce(sum(f.valor), 0)::float s from public.vw_fin_fluxo_caixa f
+     join public.fin_recebimentos r on r.id = f.referencia_id where f.origem = 'recebimento' and r.conta_receber_id = $1`, [contaId])).rows[0].s;
+  const recs = async (contaId) => (await pg.query(`select id, conta_receber_id, recebido_em::text recebido_em, valor_bruto_baixado::float valor_bruto_baixado,
+     valor_liquido_recebido::float valor_liquido_recebido, valor_taxa_efetiva::float valor_taxa_efetiva, estornado_em
+     from public.fin_recebimentos where conta_receber_id = $1 order by created_at`, [contaId])).rows;
+  // o que o modal manda: abre, digita só o líquido, confirma
+  const pelaTela = async (contaId, liquido, chave) => {
+    const conta = await ver(contaId);
+    const campos = ajustarBaixa(conta, sugerirBaixa(conta), "valor_liquido_recebido", liquido);
+    const b = avaliarBaixa(conta, campos);
+    const r = await registrarRecebimento(dbc, { ...campos, conta_receber_id: contaId, recebido_em: HOJE, saldo_bruto: conta.saldo_bruto, chave, taxa_confirmada: !b.precisaConfirmarTaxa });
+    return { r, campos, b };
+  };
+  const nova = async (chave, extra = {}) => (await criarContaReceber(dbc, { unidade_id: UC, descricao: `Correção ${chave}`, meio: "pix", valor_bruto: "1,00", data_venda: HOJE, data_prevista: HOJE, ...extra }, { chave })).data[0];
+  const estado = async (id) => { const v = await ver(id); return [v.situacao, Number(v.bruto_baixado), Number(v.liquido_recebido), Number(v.saldo_bruto)]; };
+
+  const k = await nova("cx-prod");
+  const t1 = await pelaTela(k, "0,40", "cx-r1");
+  conferir("modal sem taxa: abre com bruto e líquido vazios (nada pré-quitado)", [sugerirBaixa(await ver(k)).valor_bruto_baixado, sugerirBaixa(await ver(k)).valor_liquido_recebido], ["", ""]);
+  conferir("modal sem taxa: digitar 0,40 → bruto acompanha 0,40, taxa 0, sem confirmação, conta ficará PARCIAL",
+    [t1.campos.valor_bruto_baixado, t1.b.taxa, t1.b.precisaConfirmarTaxa, t1.b.quita], ["0,40", 0, false, false]);
+  conferir("recebe 0,40 → PARCIAL, saldo 0,60", [t1.r.error, ...(await estado(k))], [null, "parcial", 0.4, 0.4, 0.6]);
+  const t2 = await pelaTela(k, "0,60", "cx-r2");
+  conferir("recebe 0,60 → RECEBIDO, saldo 0", [t2.r.error, ...(await estado(k))], [null, "recebido", 1, 1, 0]);
+  const e = await estornarRecebimento(dbc, { recebimento_id: t2.r.data.recebimento_id, motivo: "teste de estorno" });
+  conferir("estorna 0,60 → PARCIAL, recebido ativo 0,40, saldo 0,60", [e.error, ...(await estado(k))], [null, "parcial", 0.4, 0.4, 0.6]);
+  conferir("estorno: fluxo realizado da conta = 0,40", await fluxoRealizado(k), 0.4);
+  const h = await recs(k);
+  conferir("estorno: o de 0,60 continua no histórico como ESTORNADO; nenhuma taxa gravada",
+    h.map((r) => [r.valor_bruto_baixado, r.valor_liquido_recebido, r.valor_taxa_efetiva, r.estornado_em != null]), [[0.4, 0.4, 0, false], [0.6, 0.6, 0, true]]);
+  const card = resumoReceber([await ver(k)], h, { de: HOJE, ate: HOJE });
+  conferir("card: recebido 0,40, bruto baixado 0,40, taxas NÃO INFORMADAS (não R$ 0,60, não 'R$ 0,00 de taxa')",
+    [card.recebidoLiquido, card.recebidoBruto, card.taxasEfetivas, card.taxasNaoInformadas], [0.4, 0.4, 0, true]);
+  const v = await ver(k);
+  conferir("conta: taxa prevista continua NÃO INFORMADA", [v.taxa_nao_informada, v.valor_taxa_previsto, v.valor_liquido_previsto], [true, null, null]);
+
+  // o que causou o erro não passa mais: bruto = saldo com líquido menor, sem confirmar
+  const k2 = await nova("cx-antigo");
+  const antigo = await registrarRecebimento(dbc, { conta_receber_id: k2, recebido_em: HOJE, valor_bruto_baixado: "1,00", valor_liquido_recebido: "0,40", saldo_bruto: 1, chave: "cx-a1" });
+  conferir("bruto 1,00 / líquido 0,40 sem confirmar taxa → RECUSADO (0,60 não vira taxa)", [/seria registrada como TAXA/.test(antigo.error || ""), ...(await estado(k2))], [true, "previsto", 0, 0, 1]);
+  conferir("sem bruto baixado → RECUSADO (o banco quitaria o saldo inteiro)", /Informe o bruto baixado/.test((await registrarRecebimento(dbc, { conta_receber_id: k2, recebido_em: HOJE, valor_liquido_recebido: "0,40", saldo_bruto: 1, chave: "cx-a2" })).error || ""), true);
+  conferir("modal: bruto editado para 1,00 com líquido 0,97 em conta sem taxa → pede confirmação",
+    avaliarBaixa(await ver(k2), ajustarBaixa(await ver(k2), ajustarBaixa(await ver(k2), sugerirBaixa(await ver(k2)), "valor_liquido_recebido", "0,97"), "valor_bruto_baixado", "1,00")).precisaConfirmarTaxa, true);
+  const explicita = await registrarRecebimento(dbc, { conta_receber_id: k2, recebido_em: HOJE, valor_bruto_baixado: "1,00", valor_liquido_recebido: "0,97", saldo_bruto: 1, chave: "cx-a3", taxa_confirmada: true });
+  conferir("taxa EXPLÍCITA confirmada pelo usuário (0,03) → aceita, RECEBIDO", [explicita.error, ...(await estado(k2)), (await recs(k2))[0].valor_taxa_efetiva], [null, "recebido", 1, 0.97, 0, 0.03]);
+
+  // estornar o PRIMEIRO
+  const k3 = await nova("cx-primeiro");
+  const p1 = await pelaTela(k3, "0,40", "cx-p1"); await pelaTela(k3, "0,60", "cx-p2");
+  await estornarRecebimento(dbc, { recebimento_id: p1.r.data.recebimento_id, motivo: "primeiro errado" });
+  conferir("estornar o PRIMEIRO (0,40) → PARCIAL, ativo 0,60, saldo 0,40, fluxo 0,60", [...(await estado(k3)), await fluxoRealizado(k3)], ["parcial", 0.6, 0.6, 0.4, 0.6]);
+
+  // estornar TODOS
+  const k4 = await nova("cx-todos");
+  const q1 = await pelaTela(k4, "0,40", "cx-q1"); const q2 = await pelaTela(k4, "0,60", "cx-q2");
+  await estornarRecebimento(dbc, { recebimento_id: q1.r.data.recebimento_id, motivo: "x" });
+  await estornarRecebimento(dbc, { recebimento_id: q2.r.data.recebimento_id, motivo: "x" });
+  const c4 = resumoReceber([await ver(k4)], await recs(k4), { de: HOJE, ate: HOJE });
+  conferir("estornar TODOS → PREVISTO, nada baixado, saldo 1,00, fluxo 0, card 0 recebido / sem taxa",
+    [...(await estado(k4)), await fluxoRealizado(k4), c4.recebidoLiquido, c4.recebidoBruto, c4.taxasEfetivas, c4.taxasNaoInformadas, (await recs(k4)).length], ["previsto", 0, 0, 1, 0, 0, 0, 0, false, 2]);
+  conferir("depois de estornar tudo, recebe de novo normalmente", (await pelaTela(k4, "1,00", "cx-q3")).r.error, null);
+
+  // MÚLTIPLOS recebimentos, estorno do meio
+  const k5 = await nova("cx-multi");
+  await pelaTela(k5, "0,30", "cx-m1"); const m2 = await pelaTela(k5, "0,30", "cx-m2"); await pelaTela(k5, "0,40", "cx-m3");
+  conferir("múltiplos: 0,30 + 0,30 + 0,40 → RECEBIDO", await estado(k5), ["recebido", 1, 1, 0]);
+  await estornarRecebimento(dbc, { recebimento_id: m2.r.data.recebimento_id, motivo: "x" });
+  conferir("múltiplos: estorna o do meio → PARCIAL, ativo 0,70, saldo 0,30, fluxo 0,70", [...(await estado(k5)), await fluxoRealizado(k5)], ["parcial", 0.7, 0.7, 0.3, 0.7]);
+
+  // taxa REAL (cadastrada): baixa parcial pela tela — bruto acompanha na proporção da taxa
+  const kc = (await criarContaReceber(dbc, { unidade_id: UC, descricao: "Correção cartão", meio: "credito", valor_bruto: 100, data_venda: HOJE, data_prevista: HOJE, modo_taxa: "informada", valor_taxa: "3" }, { chave: "cx-card" })).data[0];
+  const pc = await pelaTela(kc, "48,50", "cx-c1");
+  conferir("taxa real: digitar 48,50 líquido → bruto 50,00, taxa 1,50 (= prevista), sem confirmação",
+    [pc.campos.valor_bruto_baixado, pc.b.taxa, pc.b.taxaPrevista, pc.b.precisaConfirmarTaxa, pc.r.error], ["50,00", 1.5, 1.5, false, null]);
+  conferir("taxa real: PARCIAL, saldo 50, taxa efetiva 1,50 gravada", [...(await estado(kc)), (await recs(kc))[0].valor_taxa_efetiva], ["parcial", 50, 48.5, 50, 1.5]);
+  const pc2 = await pelaTela(kc, "48,50", "cx-c2");
+  await estornarRecebimento(dbc, { recebimento_id: pc2.r.data.recebimento_id, motivo: "x" });
+  const cc = resumoReceber([await ver(kc)], await recs(kc), { de: HOJE, ate: HOJE });
+  conferir("taxa real: estorno da 2ª baixa → PARCIAL, saldo 50; card só conta a taxa da baixa ativa (1,50), taxa informada",
+    [...(await estado(kc)), cc.taxasEfetivas, cc.taxasNaoInformadas], ["parcial", 50, 48.5, 50, 1.5, false]);
+}
+
 // ── 4. cartão: bruto ≠ líquido ───────────────────────────────────────────────
 const t1 = await criarTaxa(db, { unidade_id: U, meio: "credito", adquirente: "Stone", bandeira: "Visa", modalidade: "a_vista", parcelas_min: 1, parcelas_max: 1, taxa_percentual: "3", dias_para_recebimento: 30, vigente_desde: "2026-01-01" });
 conferir("cadastrar taxa Stone crédito Visa 1x 3% D+30", t1.error, null);
@@ -83,7 +175,10 @@ conferir("venda 100 crédito Visa/Stone: taxa 3, líquido previsto 97, previsão
 conferir("taxa pelo cadastro sem regra para débito → recusado (não inventa)",
   /Nenhuma taxa cadastrada/.test((await criarContaReceber(db, { unidade_id: U, descricao: "x", meio: "debito", valor_bruto: 50, data_venda: HOJE, data_prevista: HOJE, modo_taxa: "regra" }, { chave: "rec-d", regras: regrasDb })).error), true);
 const banco = await criarContaFinanceira(db, { unidade_id: U, nome: "Banco X", tipo: "banco", saldo_inicial: "0,00", saldo_inicial_em: "2026-01-01" });
-const rc = await registrarRecebimento(db, { conta_receber_id: venda.data[0], recebido_em: HOJE, valor_bruto_baixado: 100, valor_liquido_recebido: 97, conta_financeira_id: banco.data.id, chave: "rcb-card" });
+const vcBaixa = avaliarBaixa(vc, sugerirBaixa(vc));
+conferir("modal com taxa cadastrada: sugere bruto 100 / líquido 97, taxa = prevista, sem pedir confirmação",
+  [sugerirBaixa(vc).valor_bruto_baixado, sugerirBaixa(vc).valor_liquido_recebido, vcBaixa.taxa, vcBaixa.taxaPrevista, vcBaixa.precisaConfirmarTaxa], ["100,00", "97,00", 3, 3, false]);
+const rc = await registrarRecebimento(db, { conta_receber_id: venda.data[0], recebido_em: HOJE, valor_bruto_baixado: 100, valor_liquido_recebido: 97, conta_financeira_id: banco.data.id, chave: "rcb-card", taxa_confirmada: !vcBaixa.precisaConfirmarTaxa });
 const tx = (await pg.query(`select valor_bruto_baixado::float b, valor_liquido_recebido::float l, valor_taxa_efetiva::float t, recebido_em::text d from public.fin_recebimentos where id = $1`, [rc.data.recebimento_id])).rows[0];
 conferir("recebimento real: bruto 100, líquido 97, taxa efetiva 3, data efetiva", [rc.error, tx.b, tx.l, tx.t, tx.d], [null, 100, 97, 3, HOJE]);
 conferir("líquido maior que o bruto → recusado", !!(await registrarRecebimento(db, { conta_receber_id: c1.data[0], recebido_em: HOJE, valor_bruto_baixado: 10, valor_liquido_recebido: 11, chave: "rcb-x" })).error, true);

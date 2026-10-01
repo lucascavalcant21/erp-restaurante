@@ -906,14 +906,17 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
     descricao: `Salário ${mesStr}/${anoStr} - ${p.nome}`,
     valor: Number(p.valor_liquido),
     data_vencimento: dataVencimento,
-    categoria: 'cmo'
+    competencia: mesAno,
+    categoria_codigo: 'pessoal_salarios',
+    // chave por colaborador e mês: refazer o fechamento não duplica
+    chave_idempotencia: `folha:${unidadeId}:${mesAno}:${p.func_id || p.nome}`,
   }));
 
   // Camada única de contas a pagar: valida tudo e grava numa só operação
   // (nasce 'pendente'). Valor zerado ou inválido bloqueia o lote inteiro com
   // o nome de quem está errado — nada é descartado em silêncio.
   if (contasParaInserir.length > 0) {
-    const { error } = await criarContasPagarEmLote(supabase, contasParaInserir);
+    const { error } = await criarContasPagarEmLote(supabase, contasParaInserir, { chave: `folha:${unidadeId}:${mesAno}`, origem_tipo: "FOLHA" });
     if (error) return { error };
   }
 

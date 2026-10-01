@@ -28,7 +28,7 @@ import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
-import { hojeLocal } from "../../lib/contas-pagar.mjs";
+import { hojeLocal, novaChave } from "../../lib/contas-pagar.mjs";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
 import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
@@ -788,14 +788,16 @@ export default function RHPage() {
     for (const x of folha) {
       const descricao = `Folha ${mesKey}: ${x.f.nome} - ${x.f.cargo || "—"}`;
       if (jaLancadas.has(descricao)) { pulados++; continue; }
-      // Conta nasce pendente (contrato de contas-pagar.mjs); o pagamento é registrado em Contas a Pagar.
+      // Conta nasce pendente (contas-pagar.mjs); o pagamento é registrado em Contas a Pagar.
+      // Chave por colaborador e mês: relançar a folha não duplica.
       const { error } = await salvarConta({
         unidade_id: unidadeAtiva,
         descricao,
         valor: Math.round(x.total * 100) / 100,
         data_vencimento: venc,
-        categoria: "cmo",
-      });
+        competencia: `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`,
+        categoria_codigo: "pessoal_salarios",
+      }, { chave: `folha-rh:${unidadeAtiva}:${mesKey}:${x.f.id}`, origem_tipo: "FOLHA" });
       if (error) falhas.push(`${x.f.nome}: ${error}`); else ok++;
     }
     alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}${falhas.length ? `\n\n${falhas.length} NÃO foram lançadas:\n${falhas.join("\n")}` : ""}.`);
@@ -1849,8 +1851,9 @@ export default function RHPage() {
              descricao: `${labelLabel}: ${f.nome} - ${f.cargo}`,
              valor: f.salario,
              data_vencimento: hojeLocal(),
-             categoria: 'cmo',
-          });
+             competencia: hojeLocal().slice(0, 7),
+             categoria_codigo: 'pessoal_salarios',
+          }, { chave: novaChave(), origem_tipo: 'RH' });
           if (error) alert("Não foi possível lançar no Financeiro: " + error);
           else alert("Lançado em Contas a Pagar como PENDENTE. Registre o pagamento lá, com a data real.");
        }
@@ -1891,6 +1894,8 @@ export default function RHPage() {
      
      let sucessos = 0;
      const falhas = [];
+     const chaveLote = novaChave();
+     const CATEGORIA_ITEM = { "Diária Base": "pessoal_extras", "INSS": "pessoal_encargos", "FGTS": "pessoal_encargos", "Taxa de Serviço": "pessoal_taxa_servico" };
      for (let item of l) {
         if (item.val && item.val > 0) {
            // Conta nasce pendente; o pagamento é registrado em Contas a Pagar com a data real.
@@ -1899,8 +1904,9 @@ export default function RHPage() {
               descricao: `${item.label} (Extra): ${f.nome} - ${f.cargo}`,
               valor: item.val,
               data_vencimento: hoje,
-              categoria: 'cmo',
-           });
+              competencia: hoje.slice(0, 7),
+              categoria_codigo: CATEGORIA_ITEM[item.label] || 'pessoal_extras',
+           }, { chave: `${chaveLote}:${item.label}`, origem_tipo: 'RH' });
            if (error) falhas.push(`${item.label}: ${error}`); else sucessos++;
         }
      }

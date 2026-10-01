@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import {
-  CATEGORIAS_CUSTO, fetchEntradasEstoqueFinanceiro, fetchPainelCaixa, pagarConta, removerConta, salvarConta,
+  CATEGORIAS_CUSTO, fetchEntradasEstoqueFinanceiro, fetchPainelCaixa, pagarConta, cancelarContaPagar, fetchContaPagar, fetchReferenciasContas,
   obterParametrosPontoEquilibrio, salvarParametrosPontoEquilibrio, registrarVendaManual,
 } from "../../lib/financeiro";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
@@ -19,7 +19,6 @@ import { folhaDoMes } from "../../lib/cmo.mjs";
 import { valorDaCompra } from "../../lib/compras.mjs";
 import { fmtBRL } from "../../components/ui";
 import ModalPagamentoConta from "../../components/ModalPagamentoConta";
-import { statusPersistido, CATEGORIAS_NOVA_CONTA } from "../../lib/contas-pagar.mjs";
 
 const PERIODOS = [
   { id: "dia", label: "Hoje" },
@@ -29,8 +28,6 @@ const PERIODOS = [
 ];
 
 const CATEGORIAS_PAINEL = ["custo_fixo", "custo_variavel", "impostos", "cmo", "cmv", "frete"];
-// Conta nova manual: nunca "cmv" (compra de mercadoria terá módulo de Compras).
-const CATEGORIAS_FORM_DESPESA = CATEGORIAS_PAINEL.filter(id => CATEGORIAS_NOVA_CONTA.some(c => c.id === id));
 
 const PAGAMENTOS = {
   dinheiro: "Dinheiro", pix: "PIX", credito: "Cartão de crédito",
@@ -69,13 +66,13 @@ export default function FinanceiroPage() {
   const [fichas, setFichas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
-  const [modal, setModal] = useState(false);
   const [modalPE, setModalPE] = useState(false);
   const [modalVenda, setModalVenda] = useState(false);
   const [salvandoVenda, setSalvandoVenda] = useState(false);
   const [formVenda, setFormVenda] = useState({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
   const [salvando, setSalvando] = useState(false);
   const [contaPagar, setContaPagar] = useState(null);
+  const [contasFinanceiras, setContasFinanceiras] = useState([]);
   // Trava contra clique duplo (o estado só desabilita após o re-render).
   const emAndamento = useRef(false);
   const executar = async fn => {
@@ -84,7 +81,6 @@ export default function FinanceiroPage() {
     setSalvando(true);
     try { await fn(); } finally { emAndamento.current = false; setSalvando(false); }
   };
-  const [form, setForm] = useState({ descricao: "", valor: "", categoria: "custo_fixo", data_vencimento: new Date().toISOString().slice(0, 10), status: "pendente" });
 
   const salvarVendaManual = async e => {
     e.preventDefault();
@@ -224,7 +220,7 @@ export default function FinanceiroPage() {
     const vendas = dados.vendas.filter(v => dentro(v.created_at));
     const despesas = dados.despesas.filter(c => {
       const data = dataConta(c);
-      return !["cmo", "cmv"].includes(c.categoria) && !Number.isNaN(data.getTime()) && data >= inicio && data < fim;
+      return c.status !== "cancelado" && !["cmo", "cmv"].includes(c.categoria) && !Number.isNaN(data.getTime()) && data >= inicio && data < fim;
     });
     const faturamento = vendas.reduce((s, v) => s + Number(v.total || 0), 0);
     const entradasEstoque = (dados.entradasEstoque || []).filter(movimento => {
@@ -286,37 +282,33 @@ export default function FinanceiroPage() {
     return [p.id, total];
   })), [dados.vendas]);
 
-  const abrirDespesa = categoria => {
-    setForm({ descricao: "", valor: "", categoria, data_vencimento: new Date().toISOString().slice(0, 10), status: "pendente" });
-    setModal(true);
-  };
+  // Contas a pagar: uma implementação só (Contas a Pagar / contas-pagar.mjs).
+  // Nova conta abre o formulário completo; pagar usa a RPC; não se apaga
+  // conta: cancela com motivo.
+  const abrirDespesa = () => router.push("/dashboard/financeiro/contas?nova=1");
 
-  const salvarDespesa = e => {
-    e.preventDefault();
+  const cancelarDespesa = conta => {
+    const motivo = window.prompt(`Cancelar a conta “${conta.descricao}”?
+Ela não é apagada: fica no histórico como cancelada.
+
+Motivo do cancelamento:`);
+    if (motivo === null) return;
+    if (!motivo.trim()) return alert("Informe o motivo do cancelamento.");
     executar(async () => {
-      const resposta = await salvarConta({
-        unidade_id: unidadeAtiva,
-        descricao: form.descricao,
-        valor: form.valor,
-        data_vencimento: form.data_vencimento,
-        categoria: form.categoria,
-      });
-      if (resposta.error) return alert("Não foi possível salvar: " + resposta.error);
-      setModal(false);
+      const resposta = await cancelarContaPagar(conta.id, motivo);
+      if (resposta.error) return alert("Não foi possível cancelar: " + resposta.error);
       await carregar();
     });
   };
 
-  const excluirDespesa = async conta => {
-    if (!confirm(`Excluir a despesa “${conta.descricao}”?`)) return;
-    const resposta = await removerConta(conta.id);
-    if (resposta.error) return alert("Não foi possível excluir: " + resposta.error);
-    carregar();
-  };
-
-  const marcarPaga = conta => setContaPagar(conta);
-  const confirmarPagamento = dataPagamento => executar(async () => {
-    const resposta = await pagarConta(contaPagar.id, { unidade_id: unidadeAtiva, data_pagamento: dataPagamento });
+  const marcarPaga = conta => executar(async () => {
+    const [c, r] = await Promise.all([fetchContaPagar(conta.id), fetchReferenciasContas(unidadeAtiva)]);
+    if (c.error) return alert("Não foi possível abrir a conta: " + c.error);
+    setContasFinanceiras(r.data?.contasFinanceiras || []);
+    setContaPagar(c.data);
+  });
+  const confirmarPagamento = dados => executar(async () => {
+    const resposta = await pagarConta(dados);
     if (resposta.error) return alert("Não foi possível registrar o pagamento: " + resposta.error);
     setContaPagar(null);
     await carregar();
@@ -617,10 +609,10 @@ export default function FinanceiroPage() {
                 {id === "cmv" && <>{!resumo.automaticos.entradasEstoque.length ? <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma entrada de estoque neste período.</p> : resumo.automaticos.entradasEstoque.slice(0, 30).map(movimento => <div key={movimento.id} className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{movimento.insumo?.nome || "Entrada de estoque"}</p><p className="text-xs font-semibold text-fg">{new Date(movimento.data_movimento).toLocaleDateString("pt-BR")} · {Number(movimento.quantidade || 0).toLocaleString("pt-BR")}</p></div><b className="shrink-0">{fmtBRL(valorDaCompra(movimento))}</b></div>)}</>}
                 {!automatico && !contas.length && <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma despesa neste período.</p>}
                 {contas.map(conta => <div key={conta.id} className="flex items-center gap-3 p-4">
-                  <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-800">{conta.descricao}</p><p className="text-xs font-semibold text-fg">{dataConta(conta).toLocaleDateString("pt-BR")} · {statusPersistido(conta) === "pago" ? "Pago" : "Pendente"}</p></div>
+                  <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-800">{conta.descricao}</p><p className="text-xs font-semibold text-fg">{dataConta(conta).toLocaleDateString("pt-BR")} · {({ pago: "Pago", parcial: "Parcial", cancelado: "Cancelado" })[String(conta.status).toLowerCase()] || "Pendente"}</p></div>
                   <b className="shrink-0 text-fg">{fmtBRL(conta.valor)}</b>
-                  {statusPersistido(conta) === "pendente" && <button title="Marcar como paga" disabled={salvando} onClick={() => marcarPaga(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><CheckCircle2 size={19} /></button>}
-                  <button title="Excluir despesa" onClick={() => excluirDespesa(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700"><Trash2 size={18} /></button>
+                  {["pendente", "parcial"].includes(String(conta.status).toLowerCase()) && <button title="Registrar pagamento" disabled={salvando} onClick={() => marcarPaga(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><CheckCircle2 size={19} /></button>}
+                  {String(conta.status).toLowerCase() === "pendente" && <button title="Cancelar conta (fica no histórico)" disabled={salvando} onClick={() => cancelarDespesa(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700"><Trash2 size={18} /></button>}
                 </div>)}
               </div>
             </div>
@@ -765,23 +757,7 @@ export default function FinanceiroPage() {
         </div>
       )}
 
-      {/* MODAL DE ADICIONAR DESPESA */}
-      {modal && <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-3 pt-8 backdrop-blur-sm sm:items-center sm:pt-3">
-        <form onSubmit={salvarDespesa} className="w-full max-w-lg overflow-hidden rounded-3xl bg-card shadow-2xl">
-          <div className="flex items-center justify-between bg-slate-900 p-5 text-white"><div><p className="text-xs font-bold uppercase tracking-widest text-subtle">Financeiro</p><h2 className="text-xl font-black">Nova despesa</h2></div><button type="button" onClick={() => setModal(false)} className="grid h-11 w-11 place-items-center rounded-xl bg-white/10"><X /></button></div>
-          <div className="space-y-4 p-5">
-            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Descrição</span><input required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500" placeholder="Ex.: energia elétrica" /></label>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Valor</span><input required min="0.01" step="0.01" type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-black outline-none focus:border-emerald-500" placeholder="0,00" /></label>
-              <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500" /></label>
-            </div>
-            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_FORM_DESPESA.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
-            <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-card font-black text-slate-900">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-accent font-black text-accent-fg disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
-          </div>
-        </form>
-      </div>}
-
-      {contaPagar && <ModalPagamentoConta conta={contaPagar} processando={salvando} onConfirmar={confirmarPagamento} onFechar={() => setContaPagar(null)} />}
+      {contaPagar && <ModalPagamentoConta conta={contaPagar} contasFinanceiras={contasFinanceiras} processando={salvando} onConfirmar={confirmarPagamento} onFechar={() => setContaPagar(null)} />}
 
       {/* MODAL LANÇAR VENDA MANUAL DO DIA */}
       {modalVenda && (

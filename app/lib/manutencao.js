@@ -57,8 +57,14 @@ export async function finalizarServicoManutencao(servico, { recibo_texto }) {
       descricao: `Manutenção: ${servico.servico}${servico.prestador ? ` - ${servico.prestador}` : ""}`,
       valor: servico.valor,
       data_vencimento: dataServico,
-      categoria: "manutencao",
-    }, { pagaEm: declaradoPago ? dataServico : null });
+      competencia: dataServico,
+      categoria_codigo: "manutencao",
+    }, {
+      // chave pelo serviço: finalizar de novo não lança a conta duas vezes
+      chave: `manutencao:${servico.id}`, origem_tipo: "MANUTENCAO",
+      origem_id: /^[0-9a-f-]{36}$/i.test(String(servico.id)) ? servico.id : null,
+      pagaEm: declaradoPago ? dataServico : null,
+    });
     if (r.error) erroConta = r.error;
     else {
       patch.conta_lancada = true;

@@ -8,10 +8,13 @@ import {
   CATEGORIAS_CONTA,
   unidadeValida,
   criarContaPagar,
+  criarContasPagarEmLote,
   editarContaPagar,
-  pagarContaPagar,
-  estornarContaPagar,
-  lancarContaPagar
+  registrarPagamento,
+  estornarPagamento as estornarPagamentoCP,
+  cancelarConta,
+  lancarContaPagar,
+  gerarRecorrentes
 } from "./contas-pagar.mjs";
 
 // Fonte única das categorias: contas-pagar.mjs (inclui "manutencao", usada pela
@@ -81,60 +84,116 @@ export async function fetchContas(unidadeId) {
   return { data: formatado, error: null };
 }
 
-// ─── ESCRITA: tudo passa por contas-pagar.mjs (HOTFIX FIN-CP-1) ─────────────
-// Contrato mínimo com o schema real de contas_pagar. Fornecedor, documento,
-// parcelas, competência, juros/multa/desconto e forma de pagamento NÃO são
-// gravados: as colunas não existem. Voltam na F2.
+// ─── CONTAS A PAGAR F2.2 (arquitetura F2.1; escrita em contas-pagar.mjs) ────
+// Leitura pela view vw_fin_contas_pagar (saldo, situação, pagamento antigo).
+// Fornecedor é buscado à parte e cruzado no app: a view não tem relação para
+// embed e o embed antigo derrubava a consulta.
 
-/** Cria (sem id) ou edita (com id) uma conta. Edição nunca muda status/data_pagamento. */
-export async function salvarConta(conta) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const r = conta?.id
-    ? await editarContaPagar(supabase, conta)
-    : await criarContaPagar(supabase, conta);
-  return { data: r.data, error: r.error };
+export async function fetchContasPagar(unidadeId) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: [], error: "Selecione uma unidade." };
+  const { data, error } = await supabase
+    .from("vw_fin_contas_pagar")
+    .select("*")
+    .eq("unidade_id", unidadeId)
+    .order("data_vencimento", { ascending: true });
+  return { data: data || [], error: error?.message || null };
 }
 
-/** Lança conta de outro módulo (RH, Manutenção). `pagaEm` = data declarada de pagamento. */
+export async function fetchContaPagar(id) {
+  if (!isSupabaseReady() || !id) return { data: null, error: "Conta não informada." };
+  const { data, error } = await supabase.from("vw_fin_contas_pagar").select("*").eq("id", id).maybeSingle();
+  return { data, error: error?.message || (data ? null : "Conta não encontrada.") };
+}
+
+/** Categorias, centros de custo, fornecedores e contas financeiras da unidade. */
+export async function fetchReferenciasContas(unidadeId) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: null, error: "Selecione uma unidade." };
+  const [cat, cc, forn, cf] = await Promise.all([
+    supabase.from("fin_categorias").select("*").order("ordem"),
+    supabase.from("fin_centros_custo").select("*").eq("ativo", true).order("ordem"),
+    supabase.from("fornecedores").select("id, nome").eq("unidade_id", unidadeId).order("nome"),
+    supabase.from("fin_contas_financeiras").select("id, nome, tipo").eq("unidade_id", unidadeId).eq("ativa", true).order("nome"),
+  ]);
+  const erro = cat.error || cc.error;
+  return {
+    data: {
+      categorias: cat.data || [],
+      centros: cc.data || [],
+      fornecedores: forn.data || [],
+      contasFinanceiras: cf.data || [],
+    },
+    // fornecedores/contas financeiras vazios não impedem lançar (são opcionais)
+    error: erro ? erro.message : null,
+    avisos: [forn.error && "Não foi possível carregar os fornecedores.", cf.error && "Não foi possível carregar as contas financeiras."].filter(Boolean),
+  };
+}
+
+export async function fetchPagamentosDaConta(contaId) {
+  if (!isSupabaseReady() || !contaId) return { data: [], error: null };
+  const { data, error } = await supabase.from("fin_pagamentos").select("*")
+    .eq("conta_pagar_id", contaId).order("created_at", { ascending: true });
+  return { data: data || [], error: error?.message || null };
+}
+export const fetchHistoricoPagamentos = fetchPagamentosDaConta;
+
+/** Pagamentos (caixa) de um período, por data de pagamento. */
+export async function fetchPagamentosPeriodo(unidadeId, de, ate) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId) || !de || !ate) return { data: [], error: null };
+  const { data, error } = await supabase.from("fin_pagamentos")
+    .select("id, conta_pagar_id, pago_em, valor_total, estornado_em")
+    .eq("unidade_id", unidadeId).gte("pago_em", de).lte("pago_em", ate);
+  return { data: data || [], error: error?.message || null };
+}
+
+export async function usuarioAtualId() {
+  if (!isSupabaseReady()) return null;
+  const { data } = await supabase.auth.getUser();
+  return data?.user?.id || null;
+}
+
+/** Cria (sem id) ou edita (com id + contaAtual). `chave` obrigatória na criação. */
+export async function salvarConta(conta, { chave, categorias = null, origem_tipo = "MANUAL", origem_id = null } = {}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const r = conta?.id
+    ? await editarContaPagar(supabase, conta, { categorias })
+    : await criarContaPagar(supabase, conta, { chave, categorias, origem_tipo, origem_id });
+  return { data: r.data, error: r.error, idempotente: r.idempotente };
+}
+
+/** Conta vinda de outro módulo (RH, Manutenção); `pagaEm` = pagamento declarado. */
 export async function lancarConta(conta, opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   return lancarContaPagar(supabase, conta, opcoes);
 }
 
-// Recorrência automática DESATIVADA no hotfix: abrir a tela é só leitura. A
-// versão anterior tentava inserir contas a cada abertura (e falhava por
-// colunas inexistentes). Sem chave de recorrência no banco, recriar no
-// cliente pode duplicar contas. Volta na F2 com idempotência no banco.
-export const RECORRENCIA_AUTOMATICA_DISPONIVEL = false;
-export async function gerarContasRecorrentes() {
-  return { criadas: 0, indisponivel: true };
-}
-
-/** Marca como paga na data real informada (pagamento integral). */
-export async function pagarConta(contaId, { unidade_id, data_pagamento } = {}) {
+/** Lote tudo-ou-nada (fechamento de folha). */
+export async function lancarContasEmLote(lista, opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const r = await pagarContaPagar(supabase, { id: contaId, unidade_id, data_pagamento });
-  return r.error ? { error: r.error } : { success: true, data: r.data };
+  return criarContasPagarEmLote(supabase, lista, opcoes);
 }
 
-/** Estorno temporário: volta para pendente, data de pagamento nula. Não apaga a conta. */
-export async function estornarPagamento(contaId, unidadeId) {
+/** Pagamento parcial/integral pela RPC fin_registrar_pagamento. */
+export async function pagarConta(pagamento) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const r = await estornarContaPagar(supabase, { id: contaId, unidade_id: unidadeId });
-  return r.error ? { error: r.error } : { success: true, data: r.data };
+  return registrarPagamento(supabase, pagamento);
 }
 
-// Não existe histórico de pagamentos no schema atual (uma conta = um
-// pagamento integral, registrado em status + data_pagamento).
-export async function fetchHistoricoPagamentos() {
-  return { data: [], error: null };
-}
-
-export async function removerConta(contaId) {
+/** Estorno pela RPC fin_estornar_pagamento (motivo obrigatório; nada é apagado). */
+export async function estornarPagamento(pagamentoId, motivo) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { data, error } = await supabase.from("contas_pagar").delete().eq("id", contaId).select("id");
-  if (error) return { error: error.message };
-  return data?.length ? { error: null } : { error: "Conta não encontrada (nada foi excluído)." };
+  return estornarPagamentoCP(supabase, { pagamento_id: pagamentoId, motivo });
+}
+
+/** Cancelamento pela RPC fin_cancelar_conta_pagar (motivo obrigatório; nada é apagado). */
+export async function cancelarContaPagar(contaId, motivo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return cancelarConta(supabase, { conta_pagar_id: contaId, motivo });
+}
+
+// Recorrência: só quando o usuário pede (botão), nunca ao abrir a tela.
+export async function gerarContasRecorrentes(unidadeId, contas, competenciaAlvo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return gerarRecorrentes(supabase, { unidade_id: unidadeId, contas, competenciaAlvo });
 }
 
 // ─── DRE E FLUXO DE CAIXA DE ALTA PERFORMANCE ──────────────────────────────

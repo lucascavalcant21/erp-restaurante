@@ -34,6 +34,7 @@ import {
 // usada no cálculo de custo — mora aqui. Pegar a errada multiplica o custo de
 // cada ingrediente por mil, e a abertura do CMV contradiz o próprio total.
 import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
+import { fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 // O peso total da ficha era calculado aqui tambem, identico ao que a tela de
 // fichas fazia. Tres copias da mesma conta; agora uma so, com teste.
 import { pesoTotalDaFicha } from "./ficha-calculos.mjs";
@@ -303,7 +304,7 @@ export function ingredientesDaFicha(ficha, todasFichas = [], porcoes = 1) {
         valor: custoIngrediente({
           custoUnitario: custoUnitarioEfetivoInsumo(fi.insumos),
           quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.insumos.unidade_medida, unBase),
-          fatorCorrecao: fi.fator_correcao,
+          fatorCorrecao: fatorCorrecaoDoItem(fi.insumos, fi.fator_correcao),
         }) / divisor,
       });
     } else if (fi.subficha_id) {

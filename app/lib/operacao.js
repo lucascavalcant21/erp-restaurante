@@ -1,5 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { calcularPrecoNormalizado, ehInsumoPrePreparo } from "./ingredientes-utils.mjs";
+import { fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
@@ -175,9 +176,10 @@ export async function salvarInsumo(insumo, opcoes = {}) {
   const usuario = authData?.user || null;
 
   if (id) {
+    let atual = null;
     // Preço mudou? Grava no histórico e carimba a data da atualização.
     try {
-      const { data: atual } = await supabase.from("insumos").select("*").eq("id", id).single();
+      ({ data: atual } = await supabase.from("insumos").select("*").eq("id", id).single());
       const valorAntigo = Number(atual?.custo_compra ?? atual?.custo_unitario) || 0;
       const valorNovo = Number(campos.custo_compra ?? campos.custo_unitario) || 0;
       const embalagemMudou = Number(atual?.tamanho_embalagem || 1) !== Number(campos.tamanho_embalagem ?? atual?.tamanho_embalagem ?? 1)
@@ -203,9 +205,10 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       const r = await supabase.from("insumos").update(campos).eq("id", id); return r.error;
     }, campos);
     if (!error) await sincronizarFornecedores(id, fornecedorIds);
+    const fichasAtualizadas = error ? 0 : await sincronizarFatorNasFichas(id, atual, campos);
     // Coluna que o banco não tem sai do envio para o resto gravar — mas quem
     // editou precisa saber que aquele campo NÃO foi salvo.
-    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)) };
+    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)), fichasAtualizadas };
   } else {
     // Trava de duplicidade: não permite dois ingredientes com o mesmo nome no
     // mesmo setor/unidade. Para outro preço, edite o existente e adicione um
@@ -301,6 +304,28 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       }
     }
     return { id: data?.id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)) };
+  }
+}
+
+// A perda do cadastro vira o fator de correção gravado em cada linha de ficha
+// que usa o ingrediente. As telas já calculam ao vivo pelo cadastro; isto é
+// para o banco (produção integrada) baixar o bruto certo e custear igual.
+// Só mexe em fator — nunca em quantidade nem em estoque. Ingrediente sem perda
+// cadastrada (antes e depois) não toca nas fichas: o FC digitado nelas vale.
+async function sincronizarFatorNasFichas(insumoId, atual, campos) {
+  try {
+    const depois = { ...(atual || {}), ...campos };
+    const fatorAntes = atual ? fatorCorrecaoDoItem(atual, 0) : 0;
+    const fatorDepois = fatorCorrecaoDoItem(depois, 0);
+    if (fatorAntes === 0 && fatorDepois === 0) return 0;
+    const { data, error } = await supabase.from("fichas_ingredientes")
+      .update({ fator_correcao: Math.round(fatorDepois * 10000) / 10000 })
+      .eq("insumo_id", insumoId)
+      .select("id");
+    if (error) { console.warn("Fator das fichas não sincronizado:", error.message); return 0; }
+    return data?.length || 0;
+  } catch {
+    return 0;
   }
 }
 

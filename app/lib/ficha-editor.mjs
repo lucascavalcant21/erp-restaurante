@@ -10,6 +10,7 @@ import {
   entradasFinanceirasParaEditor,
 } from "./ficha-calculos.mjs";
 import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
+import { fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 import {
   tipoFichaDe, setorId, armazenamentoParaEditar, textoDeInstrucoes, validadePrincipal,
 } from "./ficha-modelo.mjs";
@@ -52,8 +53,9 @@ export function itemDeIngrediente(fi, todasFichas = []) {
     unidade, unidade_insumo: insumo.unidade_medida || unidade,
     custo_unitario: custoUnitarioEfetivoInsumo(insumo),
     quantidade: converterParaBaseDoInsumo(fi.quantidade || 0, insumo.unidade_medida, unidade),
-    // Perda vem do cadastro do ingrediente; cai no fator antigo da ficha se não houver.
-    fator: insumo.empanado ? 0 : (parseNumero(insumo.perda_pct) || parseNumero(fi.fator_correcao)),
+    // Perda vem do cadastro do ingrediente (convertida para o fator da ficha);
+    // cai no fator antigo da ficha se não houver. Regra em custo-rendimento.mjs.
+    fator: fatorCorrecaoDoItem(insumo, fi.fator_correcao),
     peso_medio_g: insumo.peso_medio_g || null,
     modo: subUnidade(unidade) ? "sub" : "base",
   };

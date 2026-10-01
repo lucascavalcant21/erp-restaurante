@@ -178,6 +178,41 @@ test("ingrediente novo é vinculado à área de estoque do setor (o .catch() imp
   assert.equal(b.linhas.estoque_itens[0].estoque_id, "e-coz");
 });
 
+// ── PERDA: salvar é configuração de custo, não movimento de estoque ─────────
+
+test("salvar perda atualiza o fator das fichas e NÃO movimenta estoque", async () => {
+  const b = usar(bancoFalso());
+  const campos = Object.fromEntries(Object.entries(INSUMO).filter(([k]) => COLUNAS.insumos.has(k)));
+  b.linhas.insumos.push({ id: "i1", ...campos });
+  b.linhas.estoque_atual.push({ unidade_id: "u1", insumo_id: "i1", quantidade_atual: 7 });
+  // Linha gravada pela versão antiga: 15 lido como "+15%".
+  b.linhas.fichas_ingredientes = [
+    { id: "fi1", ficha_id: "f1", insumo_id: "i1", quantidade: 0.2, fator_correcao: 15 },
+    { id: "fi2", ficha_id: "f2", insumo_id: "outro", quantidade: 1, fator_correcao: 20 },
+  ];
+  const r = await salvarInsumo({ id: "i1", ...INSUMO, peso_bruto_padrao: 1000, perda_g: 150, perda_pct: 15 });
+  assert.equal(r.error, undefined);
+  assert.equal(r.fichasAtualizadas, 1);
+  const [fi1, fi2] = b.linhas.fichas_ingredientes;
+  assert.ok(Math.abs(fi1.fator_correcao - 17.6471) < 0.0001, `fator ${fi1.fator_correcao}`);
+  assert.equal(fi1.quantidade, 0.2, "a quantidade da receita não muda");
+  assert.equal(fi2.fator_correcao, 20, "ficha de outro ingrediente intocada");
+  assert.equal(b.linhas.estoque_atual.length, 1);
+  assert.equal(b.linhas.estoque_atual[0].quantidade_atual, 7, "saldo intocado");
+  assert.equal((b.linhas.estoque_movimentacoes || []).length, 0);
+  assert.equal((b.linhas.estoque_movimentacoes_multi || []).length, 0);
+});
+
+test("ingrediente sem perda não reescreve o FC digitado nas fichas", async () => {
+  const b = usar(bancoFalso());
+  const campos = Object.fromEntries(Object.entries(INSUMO).filter(([k]) => COLUNAS.insumos.has(k)));
+  b.linhas.insumos.push({ id: "i1", ...campos });
+  b.linhas.fichas_ingredientes = [{ id: "fi1", ficha_id: "f1", insumo_id: "i1", quantidade: 1, fator_correcao: 25 }];
+  const r = await salvarInsumo({ id: "i1", ...INSUMO, custo_compra: 22 });
+  assert.equal(r.fichasAtualizadas, 0);
+  assert.equal(b.linhas.fichas_ingredientes[0].fator_correcao, 25);
+});
+
 // ── TRAVA: nenhuma consulta do supabase-js encadeada em .catch() ─────────────
 
 test("nenhuma consulta do supabase encadeada direto em .catch()", () => {

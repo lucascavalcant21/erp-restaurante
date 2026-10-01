@@ -47,6 +47,7 @@ import {
   unidadesIngredientePorDepartamento,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
+import { custoDoInsumo } from "../../../lib/custo-rendimento.mjs";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 
@@ -109,11 +110,87 @@ function nomeFornecedorAtual(insumo) {
   return atual?.nome || insumo.fornecedor || insumo.fornecedores_vinculados?.[0]?.nome || "Não informado";
 }
 
+// Custo efetivo na lista: só aparece quando a perda ou o empanamento mudam o
+// custo — o de compra continua visível na linha de cima.
+function CustoEfetivoLinha({ insumo }) {
+  const c = custoDoInsumo(insumo);
+  if (!(c.custoEfetivo > 0) || Math.abs(c.custoEfetivo - c.custoCompra) < 0.00001) return null;
+  return (
+    <p className="mt-0.5 text-2xs font-black text-accent-strong" title={insumo.empanado ? "Custo por kg do produto empanado pronto" : `Compra ÷ rendimento de ${(c.rendimento * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}>
+      Efetivo {fmtBRL(c.custoEfetivo)}/{c.unidadeBase}
+    </p>
+  );
+}
+
+const fmtG = (g) => `${Number(g || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} g`;
+const fmtPct = (p) => `${Number(p || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+
+function LinhaCusto({ rotulo, valor, forte = false }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1">
+      <span className="text-xs font-semibold text-fg">{rotulo}</span>
+      <span className={forte ? "text-sm font-black text-accent-strong" : "text-xs font-bold text-slate-900"}>{valor}</span>
+    </div>
+  );
+}
+
+// A conta inteira à vista, com os números que a ficha técnica vai usar.
+// Tudo sai de custoDoInsumo (custo-rendimento.mjs) — nenhuma conta aqui.
+function PainelCustoEfetivo({ form }) {
+  const insumo = {
+    preco_normalizado: calcularPrecoNormalizado(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida, parseNumeroBR(form.valor_embalagem)),
+    unidade_medida: form.unidade_medida,
+    peso_bruto_padrao: form.peso_bruto_g,
+    perda_g: form.perda_g,
+    empanado: form.empanado,
+    ganho_pct: form.ganho_pct,
+    custo_empanado_kg: form.custo_empanado_kg,
+  };
+  const c = custoDoInsumo(insumo);
+  if (!(c.custoCompra > 0)) return null;
+  if (c.erro) {
+    return <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">{c.erro}</p>;
+  }
+  if (!c.perdaConfigurada && !form.empanado) return null;
+  const un = c.unidadeBase;
+  const e = c.empanado;
+  return (
+    <div className="mt-3 rounded-xl border border-line bg-card p-3">
+      <LinhaCusto rotulo="Custo de compra" valor={`${fmtBRL(c.custoCompra)}/${un}`} />
+      {c.pesoBrutoG != null && <LinhaCusto rotulo="Peso bruto" valor={fmtG(c.pesoBrutoG)} />}
+      {c.perdaG != null && <LinhaCusto rotulo="Perda" valor={fmtG(c.perdaG)} />}
+      <LinhaCusto rotulo="Perda (%)" valor={fmtPct(c.perdaPct)} />
+      <LinhaCusto rotulo="Rendimento" valor={fmtPct(c.rendimento * 100)} />
+      {c.pesoLiquidoG != null && <LinhaCusto rotulo="Peso aproveitável" valor={fmtG(c.pesoLiquidoG)} />}
+      <LinhaCusto rotulo="Custo efetivo após rendimento" valor={`${fmtBRL(c.custoLimpo)}/${un}`} forte={!e} />
+      {!e && c.custoLimpo > c.custoCompra && (
+        <p className="mt-1 text-2xs font-medium text-subtle">{fmtBRL(c.custoCompra)} ÷ {fmtPct(c.rendimento * 100)}: aumento efetivo de {fmtPct((c.custoLimpo / c.custoCompra - 1) * 100)} no custo. É este valor que a ficha técnica usa.</p>
+      )}
+      {e && !e.erro && (
+        <div className="mt-2 border-t border-line pt-2">
+          <p className="mb-1 text-2xs font-bold uppercase tracking-wider text-subtle">Empanamento (lote de {fmtG(e.pesoBrutoG)} bruto)</p>
+          <LinhaCusto rotulo="Peso líquido antes do empanamento" valor={fmtG(e.pesoLiquidoG)} />
+          <LinhaCusto rotulo="Peso adicionado pelo empanamento" valor={fmtG(e.pesoAdicionadoG)} />
+          <LinhaCusto rotulo="Peso final" valor={fmtG(e.pesoFinalG)} />
+          <LinhaCusto rotulo="Custo da matéria-prima" valor={fmtBRL(e.custoMateriaPrima)} />
+          <LinhaCusto rotulo="Custo do empanamento" valor={fmtBRL(e.custoEmpanamento)} />
+          <LinhaCusto rotulo="Custo total" valor={fmtBRL(e.custoTotal)} />
+          <LinhaCusto rotulo="Custo final" valor={`${fmtBRL(e.custoPorKgFinal)}/kg`} forte />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CalculadoraRapida({ insumo, estado, onChange }) {
   const unidadeInicial = insumo.unidade_medida || "kg";
   const quantidade = estado?.quantidade ?? "";
   const unidade = estado?.unidade || unidadeInicial;
-  const resultado = calcularCustoSolicitado(insumo, quantidade, unidade);
+  // Quem pergunta "quanto custam 200 g" está pensando no produto limpo: a
+  // conta usa o custo efetivo (compra ÷ rendimento), o mesmo da ficha técnica.
+  const custo = custoDoInsumo(insumo);
+  const comPerda = custo.custoEfetivo > 0 && Math.abs(custo.custoEfetivo - custo.custoCompra) > 0.00001;
+  const resultado = calcularCustoSolicitado({ ...insumo, preco_normalizado: custo.custoEfetivo || insumo.preco_normalizado }, quantidade, unidade);
   const unidadesDisponiveis = unidadesIngredientePorDepartamento(insumo.departamento);
 
   return (
@@ -157,7 +234,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
         <p className="mt-1 max-w-[190px] text-3xs font-semibold leading-tight text-amber-700">{resultado.erro}</p>
       ) : (
         <p className="mt-0.5 text-2xs font-bold text-fg">
-          {resultado.valor === null ? "Informe uma quantidade" : `= ${fmtBRL(resultado.valor)}`}
+          {resultado.valor === null ? "Informe uma quantidade" : `= ${fmtBRL(resultado.valor)}${comPerda ? (insumo.empanado ? " (pronto)" : " (limpo)") : ""}`}
         </p>
       )}
     </div>
@@ -576,6 +653,12 @@ function IngredientesRunner() {
     const precoNormalizado = calcularPrecoNormalizado(quantidade, form.unidade_medida, valor);
     const pesoBruto = form.peso_bruto_g ? parseNumeroBR(form.peso_bruto_g) : null;
     const perdaG = form.perda_g ? parseNumeroBR(form.perda_g) : null;
+    if (Number.isFinite(perdaG) && perdaG > 0 && !(Number.isFinite(pesoBruto) && pesoBruto > 0)) {
+      return alert("Informe o peso bruto para calcular a perda (ex.: 1000 g bruto, 150 g de perda).");
+    }
+    if (Number.isFinite(pesoBruto) && Number.isFinite(perdaG) && perdaG >= pesoBruto) {
+      return alert("A perda precisa ser menor que o peso bruto.");
+    }
     const perdaPct = (Number.isFinite(pesoBruto) && pesoBruto > 0 && Number.isFinite(perdaG)) ? (perdaG / pesoBruto) * 100 : null;
     setSalvando(true);
     const resultado = await salvarInsumo({
@@ -634,7 +717,8 @@ function IngredientesRunner() {
 
     setModalCadastro(false);
     await carregar();
-    mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
+    const fichasTxt = resultado.fichasAtualizadas > 0 ? ` Perda aplicada em ${resultado.fichasAtualizadas} linha(s) de ficha técnica.` : "";
+    mostrarToast((form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`) + fichasTxt);
   };
 
   const handleRemover = async insumo => {
@@ -822,6 +906,7 @@ function IngredientesRunner() {
                       <p className="mt-0.5 text-2xs font-medium text-fg">
                         {fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}
                       </p>
+                      <CustoEfetivoLinha insumo={insumo} />
                       {(() => {
                         const pG = Number(insumo.peso_peca_g);
                         const pK = Number(insumo.pecas_por_kg);
@@ -903,6 +988,7 @@ function IngredientesRunner() {
                     <p className="text-3xs font-bold uppercase tracking-wide text-subtle">Valor atual</p>
                     <p className="mt-1 font-black">{fmtBRL(insumo.custo_compra ?? 0)}</p>
                     <p className="text-xs text-fg">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
+                    <CustoEfetivoLinha insumo={insumo} />
                     {(() => {
                       const pG = Number(insumo.peso_peca_g);
                       const pK = Number(insumo.pecas_por_kg);
@@ -1167,6 +1253,7 @@ function IngredientesRunner() {
                       </div>
                     </div>
                   </div>
+                  <PainelCustoEfetivo form={form} />
                   <label className="mt-4 flex items-center gap-2">
                     <input type="checkbox" checked={form.empanado} onChange={e => setForm({ ...form, empanado: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
                     <span className="text-xs font-bold text-slate-900">Produto empanado (ganha peso e tem custo do empanamento)</span>
@@ -1174,16 +1261,16 @@ function IngredientesRunner() {
                   {form.empanado && (
                     <div className="mt-3 grid grid-cols-2 gap-4">
                       <label>
-                        <span className="text-xs font-bold text-slate-900">Ganho de peso (%)</span>
+                        <span className="text-xs font-bold text-slate-900">Peso ganho no empanamento (% sobre o peso limpo)</span>
                         <input inputMode="decimal" value={form.ganho_pct} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, ganho_pct: e.target.value })} placeholder="Ex.: 30" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 outline-none focus:border-emerald-500" />
                       </label>
                       <label>
-                        <span className="text-xs font-bold text-slate-900">Custo do empanado (R$/kg final)</span>
+                        <span className="text-xs font-bold text-slate-900">Custo do empanamento (R$ por kg final)</span>
                         <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 outline-none focus:border-emerald-500" />
                       </label>
                     </div>
                   )}
-                  <p className="mt-2 text-2xs font-medium text-subtle">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
+                  <p className="mt-2 text-2xs font-medium text-subtle">Salvar a perda não mexe no estoque: é só configuração de custo. A baixa do peso bruto acontece quando a produção é registrada. Empanado: primeiro sai a perda, depois entra o empanamento — no peso e no custo.</p>
                 </section>
               )}
 

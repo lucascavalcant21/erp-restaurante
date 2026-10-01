@@ -11,8 +11,8 @@
 //   markup          = preço de venda / custo por porção
 //   preço sugerido  = custo por porção / (CMV desejado / 100)
 
-import { precoNormalizadoDoInsumo, unidadeNormalizada as unidadeBaseDoInsumo }
-  from "./ingredientes-utils.mjs";
+import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
+import { custoUnitarioParaFicha, fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 
 // ─── Números e unidades ─────────────────────────────────────────────────────
 
@@ -210,24 +210,12 @@ export function converterParaBaseDoInsumo(quantidade, unidadeLida, unidadeBase) 
   return q; // unidades incompatíveis — usa como veio, revisável na tela
 }
 
-// Custo por unidade-base do insumo (R$/kg, R$/L).
-//
-// Mesma conta de `custoUnitEfetivo` em dashboard/operacao/fichas/page.js,
-// inclusive a ordem dos fallbacks: as duas telas precisam mostrar o mesmo
-// custo para a mesma receita. Se a listagem mudar, isto muda junto.
+// Custo por unidade-base do insumo (R$/kg, R$/L) que a ficha multiplica pela
+// quantidade. A conta mora em custo-rendimento.mjs (fonte única): custo de
+// compra para ingrediente comum — a perda entra pelo fator da linha — e custo
+// por kg final para empanado.
 export function custoUnitarioEfetivoInsumo(insumo) {
-  const base = precoNormalizadoDoInsumo(insumo)
-    || parseNumero(insumo?.custo_unitario)
-    || parseNumero(insumo?.custo_compra)
-    || 0;
-  if (!insumo?.empanado) return base;
-  const ganho = 1 + parseNumero(insumo.ganho_pct) / 100;
-  const empKg = parseNumero(insumo.custo_empanado_kg);
-  // `base` agora vem normalizado por unidade-base (R$/kg), então o custo do
-  // empanamento entra direto em R$/kg. Converter para grama aqui o dividia por
-  // mil e o empanamento praticamente sumia da conta.
-  const empNaUnidade = unidadeBaseDoInsumo(insumo.unidade_medida) === "kg" ? empKg : 0;
-  return (ganho > 0 ? base / ganho : base) + empNaUnidade;
+  return custoUnitarioParaFicha(insumo);
 }
 
 // Custo de produzir uma ficha inteira, resolvendo subfichas em cascata.
@@ -244,6 +232,8 @@ export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set())
   for (const fi of ficha.fichas_ingredientes || []) {
     const fc = fi.fator_correcao;
     if (fi.insumos) {
+      // A perda do cadastro do ingrediente manda (ao vivo); o FC gravado na
+      // linha só vale para ingrediente sem perda cadastrada.
       // O custo do insumo é por unidade-base (R$/kg, R$/L), então a quantidade
       // da receita precisa vir para a mesma base antes de multiplicar.
       const unBase = unidadeBaseDoInsumo(fi.insumos.unidade_medida)
@@ -251,7 +241,7 @@ export function custoDeProduzirFicha(ficha, todasFichas = [], guard = new Set())
       total += custoIngrediente({
         custoUnitario: custoUnitarioEfetivoInsumo(fi.insumos),
         quantidade: converterParaBaseDoInsumo(fi.quantidade, fi.unidade || fi.insumos.unidade_medida, unBase),
-        fatorCorrecao: fc,
+        fatorCorrecao: fatorCorrecaoDoItem(fi.insumos, fc),
       });
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);

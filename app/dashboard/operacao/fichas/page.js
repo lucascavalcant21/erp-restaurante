@@ -81,6 +81,7 @@ import {
   rendimentoPelosIngredientes,
   calculateFichaFinanceiro,
 } from "../../../lib/ficha-calculos.mjs";
+import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rendimento.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -1003,7 +1004,9 @@ function FichasRunner() {
           nome: fi.insumos.nome, unidade: unBase,
           custo_unitario: custoNorm, quantidade: qtdBase,
           // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
-          fator: fi.insumos.empanado ? 0 : (Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0),
+          // 15% de perda vira fator +17,65% (custo ÷ 0,85), não +15%.
+          fator: fatorCorrecaoDoItem(fi.insumos, fi.fator_correcao),
+          perda_pct: fi.insumos.empanado ? 0 : rendimentoDoInsumo(fi.insumos).perdaPct,
           empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
           modo: getSub(unBase) ? "sub" : "base",
@@ -1154,8 +1157,10 @@ function FichasRunner() {
        nome: insumoDb.nome, unidade: unBase,
        custo_unitario: custoNorm, quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
-       // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
-       fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
+       // Perda vem do cadastro do ingrediente (regra em custo-rendimento.mjs).
+       // Empanado: fator 0, o custo por kg final já tem perda e empanamento.
+       fator: fatorCorrecaoDoItem(insumoDb, 0),
+       perda_pct: insumoDb.empanado ? 0 : rendimentoDoInsumo(insumoDb).perdaPct,
        empanado: !!insumoDb.empanado,
        modo: getSub(unBase) ? "sub" : "base",
     };
@@ -3098,7 +3103,7 @@ function FichasRunner() {
             const nome = fi.insumos?.nome || base?.nome_receita || "Item";
             const un = (fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
             const liquida = Number(fi.quantidade) || 0;
-            const fc = Number(fi.fator_correcao) || 0;
+            const fc = fi.insumos ? fatorCorrecaoDoItem(fi.insumos, fi.fator_correcao) : (Number(fi.fator_correcao) || 0);
             const bruta = liquida * (1 + fc / 100);
             const custoUnit = fi.insumos?.custo_unitario != null ? Number(fi.insumos.custo_unitario) : (base ? custoUnitBase(base, fichas) : 0);
             return { nome, un, liquida, fc, bruta, custoUnit, custoTot: custoUnit * bruta, base: !!base };
@@ -3702,12 +3707,12 @@ function FichasRunner() {
                                        {ing.nome}
                                        {ing.tipo === "base" && <span className="text-3xs font-bold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                     </p>
-                                    <p className="text-3xs font-bold text-success uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-subtle normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
-                                    {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
+                                    <p className="text-3xs font-bold text-success uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-subtle normal-case">· {fmtBRL(ing.custo_unitario * (1 + (Number(ing.fator) || 0) / 100))}/{String(ing.unidade).toUpperCase()}{Number(ing.fator) > 0 ? ` efetivo (compra ${fmtBRL(ing.custo_unitario)})` : ""}</span></p>
+                                    {/* Perda vem do cadastro do ingrediente. Custo efetivo = compra ÷ rendimento; a qtd bruta = líquida × (1 + fator). */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (
                                        <div className="flex items-center gap-1.5 mt-1">
-                                          <span className="text-3xs font-bold uppercase tracking-wider text-subtle">Perda do ingrediente</span>
-                                          <span className="text-3xs font-bold text-accent">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
+                                          <span className="text-3xs font-bold uppercase tracking-wider text-subtle">{Number(ing.perda_pct) > 0 ? "Perda do ingrediente" : "Fator de correção"}</span>
+                                          <span className="text-3xs font-bold text-accent">{Number(ing.perda_pct) > 0 ? `${Number(ing.perda_pct).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% · rende ${(100 - Number(ing.perda_pct)).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : `+${Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}</span>
                                           {ing.quantidade > 0 && (
                                              <span className="text-3xs font-bold text-subtle">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
                                           )}

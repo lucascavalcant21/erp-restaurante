@@ -1,4 +1,5 @@
 import { converterUnidade, custoDeProduzirFicha, fatorDeCorrecaoNormalizado } from './ficha-calculos.mjs';
+import { fatorCorrecaoDoItem } from './custo-rendimento.mjs';
 
 export const ehEstoqueavel = ficha => ficha?.estoqueavel ?? Boolean(ficha?.eh_base);
 export const unidadeProducao = ficha => ficha?.rendimento_unidade || 'un';
@@ -34,7 +35,9 @@ export function calcularConsumoProducao(ficha, quantidade, todasFichas = []) {
     const caminho = new Set(trilha).add(atual.id);
     if (!atual.fichas_ingredientes?.length) erros.push(`${atual.nome_receita}: ficha sem ingredientes.`);
     for (const item of atual.fichas_ingredientes || []) {
-      const q = Number(item.quantidade) * fator * fatorDeCorrecaoNormalizado(item.fator_correcao);
+      // Bruto a consumir: a perda do cadastro do ingrediente manda (mesma regra do custo).
+      const fc = item.insumos ? fatorCorrecaoDoItem(item.insumos, item.fator_correcao) : item.fator_correcao;
+      const q = Number(item.quantidade) * fator * fatorDeCorrecaoNormalizado(fc);
       if (!Number.isFinite(q) || q <= 0) { erros.push(`${atual.nome_receita}: quantidade de ingrediente inválida.`); continue; }
       const baseId = item.subficha_id || item.insumos?.ficha_tecnica_id;
       if (baseId) {

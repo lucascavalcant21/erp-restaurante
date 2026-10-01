@@ -175,7 +175,7 @@ export async function getHefistoInbox({
           primaryAction: {
             label: "Ver Contas",
             type: "NAVIGATE",
-            route: "/dashboard/financeiro/contas"
+            route: "/dashboard/financeiro/contas?situacao=vencido"
           },
           fingerprint: fp,
           permission: "financeiro.cashflow.view"

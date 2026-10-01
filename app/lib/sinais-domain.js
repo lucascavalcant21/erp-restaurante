@@ -203,7 +203,7 @@ export function avaliarSinaisFinanceiros(contasPagar = [], contasReceber = []) {
       descricao: `Total acumulado em atraso: R$ ${arredondar2(totalVencido).toFixed(2)}.`,
       entidade_tipo: 'conta_pagar',
       acao_rotulo: 'Cuidar das Contas',
-      acao_url: '/dashboard/financeiro/contas?status=VENCIDA',
+      acao_url: '/dashboard/financeiro/contas?situacao=vencido',
       dados_json: { qtdVencidas, totalVencido: arredondar2(totalVencido) }
     });
   }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   DollarSign, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2,
   Calendar, Clock, FileText, ArrowRight, ShoppingCart, RefreshCw,
-  PieChart, ShieldCheck, CreditCard, ChevronRight, Layers, Lock, Filter
+  PieChart, ShieldCheck, CreditCard, ChevronRight, Layers, Lock, Filter, Wallet
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { fetchContas, fetchLancamentos, fetchEntradasEstoqueFinanceiro } from "../../lib/financeiro";
@@ -229,15 +229,24 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
             </div>
           }
           primaryActionButton={
-            podeVerDRE && onAbrirDRE ? (
+            <>
               <HubActionButton
-                onClick={onAbrirDRE}
+                onClick={() => router.push("/dashboard/financeiro/contas")}
                 variant="primary"
-                icon={FileText}
+                icon={Wallet}
               >
-                Abrir DRE Gerencial
+                Contas a Pagar
               </HubActionButton>
-            ) : null
+              {podeVerDRE && onAbrirDRE ? (
+                <HubActionButton
+                  onClick={onAbrirDRE}
+                  variant="secondary"
+                  icon={FileText}
+                >
+                  Abrir DRE Gerencial
+                </HubActionButton>
+              ) : null}
+            </>
           }
         />
 
@@ -279,7 +288,7 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
                       subtitle={fmtBRL(valorTotalVencidas)}
                       actionButton={
                         <HubActionButton
-                          onClick={() => router.push("/dashboard/financeiro/contas")}
+                          onClick={() => router.push("/dashboard/financeiro/contas?situacao=vencido")}
                           variant="danger"
                         >
                           Resolver
@@ -296,7 +305,7 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
                       subtitle={fmtBRL(valorTotalVencemHoje)}
                       actionButton={
                         <HubActionButton
-                          onClick={() => router.push("/dashboard/financeiro/contas")}
+                          onClick={() => router.push("/dashboard/financeiro/contas?periodo=hoje")}
                           variant="secondary"
                         >
                           Ver

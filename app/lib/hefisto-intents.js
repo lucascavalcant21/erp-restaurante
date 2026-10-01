@@ -688,7 +688,7 @@ export async function executeReadOnlyQuery(intentId, session, unitId) {
         intent: intentId,
         source: "financeiro",
         responseText: `${vencidas.length} conta(s) estão vencidas, totalizando R$ ${totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`,
-        suggestedAction: { label: "Resolver Contas Vencidas", route: "/dashboard/financeiro/contas" }
+        suggestedAction: { label: "Resolver Contas Vencidas", route: "/dashboard/financeiro/contas?situacao=vencido" }
       };
     } catch (e) {
       return { success: false, responseText: "Não consegui consultar os vencimentos financeiros agora." };

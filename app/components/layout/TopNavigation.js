@@ -86,8 +86,10 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       label: "Financeiro",
       href: "/dashboard/financeiro",
       submodules: [
-        { label: "Visão Geral DRE", href: "/dashboard/financeiro" },
-        { label: "Vendas e Recebimentos", href: "/dashboard/vendas" }
+        { label: "Visão Geral", href: "/dashboard/financeiro" },
+        { label: "Contas a Pagar", href: "/dashboard/financeiro/contas" },
+        { label: "Vendas e Recebimentos", href: "/dashboard/vendas" },
+        { label: "DRE Gerencial", href: "/dashboard/financeiro/dre" }
       ]
     }
   ];

@@ -307,5 +307,22 @@ conferir("nenhum delete em contas_pagar no fluxo", /from\("contas_pagar"\)[^;]*\
 conferir("pagamento não grava mais status='pago' direto", /status:\s*["']pago["']/.test(appSrc), false);
 conferir("sem UUID falso de unidade", appSrc.includes("00000000-0000-0000-0000-000000000001"), false);
 
+// ── 15. navegação: uma rota só, alcançável pelo menu e pela Central ──────────
+{
+  const ler = (f) => fs.readFileSync(path.join(raiz, f), "utf8");
+  const menu = ler("app/components/layout/TopNavigation.js");
+  const central = ler("app/components/navigation/FinanceiroHub.js");
+  const menuFin = menu.slice(menu.indexOf('id: "financeiro"'));
+  conferir("menu Financeiro: Visão Geral, Contas a Pagar, Vendas e Recebimentos, DRE Gerencial",
+    [...menuFin.matchAll(/label: "([^"]+)", href: "([^"]+)"/g)].slice(0, 4).map((m) => [m[1], m[2]]),
+    [["Visão Geral", "/dashboard/financeiro"], ["Contas a Pagar", "/dashboard/financeiro/contas"],
+     ["Vendas e Recebimentos", "/dashboard/vendas"], ["DRE Gerencial", "/dashboard/financeiro/dre"]]);
+  conferir("Central: botão direto 'Contas a Pagar' no topo", /push\("\/dashboard\/financeiro\/contas"\)[\s\S]{0,120}Contas a Pagar/.test(central), true);
+  conferir("Central: 'Resolver' abre Contas a Pagar filtrado em vencidas", (() => { const i = central.indexOf("Resolver"); const trecho = central.slice(Math.max(0, i - 250), i); return i > 0 && trecho.includes('"/dashboard/financeiro/contas?situacao=vencido"'); })(), true);
+  conferir("tela lê o filtro da URL (recarregar mantém)", /params\?\.get\("situacao"\)/.test(pagina) && /params\?\.get\("periodo"\)/.test(pagina), true);
+  const outrasTelas = fs.readdirSync(path.join(raiz, "app/dashboard"), { recursive: true }).filter((f) => /contas-?a-?pagar|contas_pagar/i.test(String(f)));
+  conferir("não existe segunda tela de contas a pagar", outrasTelas, []);
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os testes passaram.");
 process.exit(falhas ? 1 : 0);

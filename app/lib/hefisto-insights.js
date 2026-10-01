@@ -328,7 +328,7 @@ export async function detectOverdueAccounts(unitId) {
             `• Status: Exige atenção da gestão financeira`
           ],
           period: "Vencidos",
-          actionRoute: "/dashboard/financeiro/contas",
+          actionRoute: "/dashboard/financeiro/contas?situacao=vencido",
           actionText: "Ver contas",
           analyticsQuery: "Por que meu resultado caiu?",
           permission: "financeiro.cashflow.view"

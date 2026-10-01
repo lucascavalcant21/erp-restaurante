@@ -48,11 +48,14 @@ export default function ContasAPagarPage() {
   const [avisos, setAvisos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // filtros
-  const [periodoTipo, setPeriodoTipo] = useState("todos");
+  // filtros (podem vir da URL: ?situacao=vencido, ?periodo=hoje — links da
+  // Central Financeira; recarregar a página mantém o filtro)
+  const SITUACOES_URL = ["pendente", "parcial", "pago", "vencido", "cancelado"];
+  const PERIODOS_URL = ["hoje", "semana", "mes"];
+  const [periodoTipo, setPeriodoTipo] = useState(() => (PERIODOS_URL.includes(params?.get("periodo")) ? params.get("periodo") : "todos"));
   const [dataRef, setDataRef] = useState("vencimento");
   const [custom, setCustom] = useState({ de: "", ate: "" });
-  const [fSituacao, setFSituacao] = useState("");
+  const [fSituacao, setFSituacao] = useState(() => (SITUACOES_URL.includes(params?.get("situacao")) ? params.get("situacao") : ""));
   const [fCategoria, setFCategoria] = useState("");
   const [fCentro, setFCentro] = useState("");
   const [fFornecedor, setFFornecedor] = useState("");
@@ -111,7 +114,9 @@ export default function ContasAPagarPage() {
         if (comp < `${periodo.de.slice(0, 7)}-01` || comp > periodo.ate) return false;
       }
     }
-    if (fSituacao && c.situacao !== fSituacao) return false;
+    // "vencido" = qualquer conta em aberto com vencimento passado (inclui parcial
+    // vencida), o mesmo critério do card "Vencido"
+    if (fSituacao === "vencido" ? !c.vencida : fSituacao && c.situacao !== fSituacao) return false;
     if (fCategoria && c.categoria_codigo !== fCategoria) return false;
     if (fCentro && c.centro_custo_codigo !== fCentro) return false;
     if (fFornecedor && c.fornecedor_id !== fFornecedor) return false;

@@ -1,25 +1,22 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
 import {
-  dividirParcelasExatas,
   calcularStatusConta,
-  calcularValoresPagamento,
   montarDREGerencial,
   montarFluxoCaixaPrevistoERealizado
 } from "./financeiro-domain.js";
+import {
+  CATEGORIAS_CONTA,
+  unidadeValida,
+  criarContaPagar,
+  editarContaPagar,
+  pagarContaPagar,
+  estornarContaPagar,
+  lancarContaPagar
+} from "./contas-pagar.mjs";
 
-export const CATEGORIAS_CUSTO = [
-  { id: 'cmv', label: 'CMV (Custo de Mercadoria Vendida)', cor: 'bg-orange-500' },
-  { id: 'cmo', label: 'CMO (Custo de Mão de Obra)', cor: 'bg-blue-500' },
-  { id: 'custo_fixo', label: 'Custo Fixo (Aluguel, Luz, etc)', cor: 'bg-slate-600' },
-  { id: 'custo_variavel', label: 'Custos Variáveis', cor: 'bg-violet-500' },
-  { id: 'frete', label: 'Fretes e Entregas', cor: 'bg-teal-500' },
-  { id: 'limpeza', label: 'Materiais de Limpeza', cor: 'bg-cyan-500' },
-  { id: 'marketing', label: 'Custo Marketing', cor: 'bg-pink-500' },
-  { id: 'investimento', label: 'Investimentos', cor: 'bg-emerald-500' },
-  { id: 'inventarios', label: 'Inventários / Quebras', cor: 'bg-red-500' },
-  { id: 'impostos', label: 'Impostos e Taxas', cor: 'bg-amber-500' },
-  { id: 'retirada_socio', label: 'Retirada de Sócios (Lucro)', cor: 'bg-indigo-500' }
-];
+// Fonte única das categorias: contas-pagar.mjs (inclui "manutencao", usada pela
+// Manutenção e antes ausente da lista).
+export const CATEGORIAS_CUSTO = CATEGORIAS_CONTA;
 
 // ─── CONTAS FINANCEIRAS (BANCOS E CAIXAS) ──────────────────────────────────
 
@@ -63,11 +60,14 @@ export async function salvarContaFinanceira(contaFinanceira, unidadeId) {
 
 // ─── CONTAS A PAGAR ──────────────────────────────────────────────────────────
 
+// Leitura só com colunas reais. Antes havia "fornecedor:fornecedores(...)":
+// sem a coluna fornecedor_id não existe relação e o PostgREST recusava a
+// consulta inteira — a lista vinha vazia.
 export async function fetchContas(unidadeId) {
-  if (!isSupabaseReady() || !unidadeId) return { data: [], error: "Offline" };
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: [], error: "Selecione uma unidade." };
   const { data, error } = await supabase
     .from("contas_pagar")
-    .select("*, fornecedor:fornecedores(id, nome, telefone)")
+    .select("*")
     .eq("unidade_id", unidadeId)
     .order("data_vencimento", { ascending: true });
 
@@ -81,217 +81,60 @@ export async function fetchContas(unidadeId) {
   return { data: formatado, error: null };
 }
 
+// ─── ESCRITA: tudo passa por contas-pagar.mjs (HOTFIX FIN-CP-1) ─────────────
+// Contrato mínimo com o schema real de contas_pagar. Fornecedor, documento,
+// parcelas, competência, juros/multa/desconto e forma de pagamento NÃO são
+// gravados: as colunas não existem. Voltam na F2.
+
+/** Cria (sem id) ou edita (com id) uma conta. Edição nunca muda status/data_pagamento. */
 export async function salvarConta(conta) {
   if (!isSupabaseReady()) return { error: "Offline" };
-
-  const valOrig = Number(conta.valor_original ?? conta.valor) || 0;
-  const numParcelas = Math.max(1, parseInt(conta.total_parcelas) || 1);
-
-  // Se for uma alteração de conta existente
-  if (conta.id) {
-    const patch = {
-      descricao: conta.descricao,
-      fornecedor_id: conta.fornecedor_id || null,
-      categoria: conta.categoria || "custo_fixo",
-      centro_custo: conta.centro_custo || "geral",
-      numero_documento: conta.numero_documento || null,
-      valor: valOrig,
-      valor_original: valOrig,
-      data_vencimento: conta.data_vencimento,
-      competencia: conta.competencia || conta.data_vencimento,
-      forma_pagamento: conta.forma_pagamento || "pix",
-      conta_financeira_id: conta.conta_financeira_id || null,
-      observacao: conta.observacao || null,
-      anexo_url: conta.anexo_url || null,
-      recorrente: !!conta.recorrente
-    };
-    const { error } = await supabase.from("contas_pagar").update(patch).eq("id", conta.id);
-    return { error: error?.message || null };
-  }
-
-  // Se for um novo lançamento com parcelamento
-  if (numParcelas > 1) {
-    const grupoId = crypto.randomUUID();
-    const parcelas = dividirParcelasExatas(valOrig, numParcelas, conta.data_vencimento);
-
-    const registros = parcelas.map(p => ({
-      unidade_id: conta.unidade_id,
-      documento_grupo_id: grupoId,
-      descricao: `${conta.descricao} (${p.parcela_numero}/${p.total_parcelas})`,
-      fornecedor_id: conta.fornecedor_id || null,
-      categoria: conta.categoria || "custo_fixo",
-      centro_custo: conta.centro_custo || "geral",
-      numero_documento: conta.numero_documento || null,
-      valor: p.valor,
-      valor_original: p.valor,
-      valor_pago: 0,
-      saldo: p.valor,
-      data_vencimento: p.data_vencimento,
-      competencia: conta.competencia || conta.data_vencimento,
-      forma_pagamento: conta.forma_pagamento || "pix",
-      conta_financeira_id: conta.conta_financeira_id || null,
-      status: "PENDENTE",
-      parcela_numero: p.parcela_numero,
-      total_parcelas: p.total_parcelas,
-      origem_tipo: conta.origem_tipo || "MANUAL",
-      origem_id: conta.origem_id || null,
-      observacao: conta.observacao || null,
-      anexo_url: conta.anexo_url || null,
-      recorrente: false
-    }));
-
-    const { error } = await supabase.from("contas_pagar").insert(registros);
-    return { error: error?.message || null };
-  }
-
-  // Lançamento único (1 parcela)
-  const registroUnico = {
-    unidade_id: conta.unidade_id,
-    descricao: conta.descricao,
-    fornecedor_id: conta.fornecedor_id || null,
-    categoria: conta.categoria || "custo_fixo",
-    centro_custo: conta.centro_custo || "geral",
-    numero_documento: conta.numero_documento || null,
-    valor: valOrig,
-    valor_original: valOrig,
-    valor_pago: 0,
-    saldo: valOrig,
-    data_vencimento: conta.data_vencimento,
-    competencia: conta.competencia || conta.data_vencimento,
-    forma_pagamento: conta.forma_pagamento || "pix",
-    conta_financeira_id: conta.conta_financeira_id || null,
-    status: "PENDENTE",
-    parcela_numero: 1,
-    total_parcelas: 1,
-    origem_tipo: conta.origem_tipo || "MANUAL",
-    origem_id: conta.origem_id || null,
-    observacao: conta.observacao || null,
-    anexo_url: conta.anexo_url || null,
-    recorrente: !!conta.recorrente
-  };
-
-  const { error } = await supabase.from("contas_pagar").insert([registroUnico]);
-  return { error: error?.message || null };
+  const r = conta?.id
+    ? await editarContaPagar(supabase, conta)
+    : await criarContaPagar(supabase, conta);
+  return { data: r.data, error: r.error };
 }
 
-export async function gerarContasRecorrentes(unidadeId) {
-  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { criadas: 0 };
-  const { data: recorrentes, error } = await supabase.from("contas_pagar")
-    .select("*")
-    .eq("unidade_id", unidadeId)
-    .eq("recorrente", true)
-    .order("data_vencimento", { ascending: false });
-
-  if (error || !recorrentes?.length) return { criadas: 0, error: error?.message };
-
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const porDesc = {};
-  recorrentes.forEach(c => { if (!porDesc[c.descricao]) porDesc[c.descricao] = c; });
-
-  let criadas = 0;
-  for (const c of Object.values(porDesc)) {
-    const mesConta = String(c.data_vencimento || "").slice(0, 7);
-    if (mesConta >= mesAtual) continue;
-    const [ano, mes] = mesAtual.split("-").map(Number);
-    const ultimoDia = new Date(ano, mes, 0).getDate();
-    const dia = Math.min(Number(String(c.data_vencimento || "").slice(8, 10)) || 5, ultimoDia);
-    const dataVenc = `${mesAtual}-${String(dia).padStart(2, "0")}`;
-
-    const { error: errIns } = await supabase.from("contas_pagar").insert([{
-      unidade_id: unidadeId,
-      descricao: c.descricao,
-      fornecedor_id: c.fornecedor_id || null,
-      valor: c.valor,
-      valor_original: c.valor,
-      valor_pago: 0,
-      saldo: c.valor,
-      data_vencimento: dataVenc,
-      competencia: dataVenc,
-      categoria: c.categoria,
-      centro_custo: c.centro_custo || "geral",
-      status: "PENDENTE",
-      origem_tipo: "RECORRENTE",
-      recorrente: true,
-    }]);
-    if (!errIns) criadas++;
-  }
-  return { criadas };
-}
-
-// ─── PAGAMENTOS E LIQUIDAÇÕES (ATÔMICA COM RPC) ──────────────────────────────
-
-export async function pagarConta(contaId, opcoes = {}) {
+/** Lança conta de outro módulo (RH, Manutenção). `pagaEm` = data declarada de pagamento. */
+export async function lancarConta(conta, opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
-
-  // Se opcoes for apenas o ID da unidade ou objeto completo
-  const conta = typeof opcoes === "object" ? opcoes : { id: contaId };
-  const unidadeId = conta.unidade_id || opcoes.unidadeId;
-  const valorPago = Number(conta.valor_pago_agora ?? conta.valor_pago ?? conta.valor) || 0;
-  const juros = Number(conta.juros) || 0;
-  const multa = Number(conta.multa) || 0;
-  const desconto = Number(conta.desconto) || 0;
-  const forma = conta.forma_pagamento || "pix";
-  const contaFinId = conta.conta_financeira_id || null;
-  const obs = conta.observacao || null;
-  const user = conta.usuario_nome || "Operador ERP";
-
-  // Tenta via RPC atômica
-  const { data, error } = await supabase.rpc("registrar_pagamento_conta", {
-    p_conta_pagar_id: contaId,
-    p_unidade_id: unidadeId,
-    p_valor_pago: valorPago,
-    p_juros: juros,
-    p_multa: multa,
-    p_desconto: desconto,
-    p_data_pagamento: conta.data_pagamento ? new Date(conta.data_pagamento).toISOString() : new Date().toISOString(),
-    p_forma_pagamento: forma,
-    p_conta_financeira_id: contaFinId,
-    p_observacao: obs,
-    p_usuario_nome: user,
-    p_chave_idempotencia: conta.chave_idempotencia || null
-  });
-
-  if (error) {
-    // Fallback caso a RPC ainda não esteja instalada no Supabase remoto
-    console.warn("RPC registrar_pagamento_conta ausente/falhou, executando fallback JS:", error.message);
-    const dataHoje = new Date().toISOString().split('T')[0];
-    const { error: errUpd } = await supabase.from("contas_pagar").update({ status: 'PAGA', valor_pago: valorPago, saldo: 0, data_pagamento: dataHoje }).eq("id", contaId);
-    return { error: errUpd?.message || null };
-  }
-
-  return { success: true, data };
+  return lancarContaPagar(supabase, conta, opcoes);
 }
 
-export async function estornarPagamento(pagamentoId, unidadeId, motivo = "Estorno manual") {
+// Recorrência automática DESATIVADA no hotfix: abrir a tela é só leitura. A
+// versão anterior tentava inserir contas a cada abertura (e falhava por
+// colunas inexistentes). Sem chave de recorrência no banco, recriar no
+// cliente pode duplicar contas. Volta na F2 com idempotência no banco.
+export const RECORRENCIA_AUTOMATICA_DISPONIVEL = false;
+export async function gerarContasRecorrentes() {
+  return { criadas: 0, indisponivel: true };
+}
+
+/** Marca como paga na data real informada (pagamento integral). */
+export async function pagarConta(contaId, { unidade_id, data_pagamento } = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
-
-  const { data, error } = await supabase.rpc("estornar_pagamento_conta", {
-    p_pagamento_id: pagamentoId,
-    p_unidade_id: unidadeId,
-    p_motivo: motivo,
-    p_usuario_nome: "Operador ERP"
-  });
-
-  if (error) return { error: error.message };
-  return { success: true, data };
+  const r = await pagarContaPagar(supabase, { id: contaId, unidade_id, data_pagamento });
+  return r.error ? { error: r.error } : { success: true, data: r.data };
 }
 
-export async function fetchHistoricoPagamentos(contaId) {
-  if (!isSupabaseReady() || !contaId) return { data: [], error: null };
-  const { data, error } = await supabase
-    .from("contas_pagar_pagamentos")
-    .select("*, conta_financeira:contas_financeiras(id, nome)")
-    .eq("conta_pagar_id", contaId)
-    .order("created_at", { ascending: false });
+/** Estorno temporário: volta para pendente, data de pagamento nula. Não apaga a conta. */
+export async function estornarPagamento(contaId, unidadeId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const r = await estornarContaPagar(supabase, { id: contaId, unidade_id: unidadeId });
+  return r.error ? { error: r.error } : { success: true, data: r.data };
+}
 
-  if (error && error.code === "42P01") return { data: [], error: null };
-  return { data: data || [], error: error?.message || null };
+// Não existe histórico de pagamentos no schema atual (uma conta = um
+// pagamento integral, registrado em status + data_pagamento).
+export async function fetchHistoricoPagamentos() {
+  return { data: [], error: null };
 }
 
 export async function removerConta(contaId) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("contas_pagar").delete().eq("id", contaId);
-  return { error: error?.message || null };
+  const { data, error } = await supabase.from("contas_pagar").delete().eq("id", contaId).select("id");
+  if (error) return { error: error.message };
+  return data?.length ? { error: null } : { error: "Conta não encontrada (nada foi excluído)." };
 }
 
 // ─── DRE E FLUXO DE CAIXA DE ALTA PERFORMANCE ──────────────────────────────

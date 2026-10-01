@@ -28,6 +28,7 @@ import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
+import { hojeLocal } from "../../lib/contas-pagar.mjs";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
 import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
@@ -783,20 +784,21 @@ export default function RHPage() {
     const { data: contasExistentes } = await fetchContas(unidadeAtiva, "");
     const jaLancadas = new Set((contasExistentes || []).map(c => c.descricao));
     let ok = 0, pulados = 0;
+    const falhas = [];
     for (const x of folha) {
       const descricao = `Folha ${mesKey}: ${x.f.nome} - ${x.f.cargo || "—"}`;
       if (jaLancadas.has(descricao)) { pulados++; continue; }
+      // Conta nasce pendente (contrato de contas-pagar.mjs); o pagamento é registrado em Contas a Pagar.
       const { error } = await salvarConta({
         unidade_id: unidadeAtiva,
         descricao,
         valor: Math.round(x.total * 100) / 100,
         data_vencimento: venc,
         categoria: "cmo",
-        status: "pendente",
       });
-      if (!error) ok++;
+      if (error) falhas.push(`${x.f.nome}: ${error}`); else ok++;
     }
-    alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}.`);
+    alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}${falhas.length ? `\n\n${falhas.length} NÃO foram lançadas:\n${falhas.join("\n")}` : ""}.`);
   };
 
   // --- Funções de Consumo ---
@@ -1841,17 +1843,16 @@ export default function RHPage() {
     } else {
        const labelLabel = "Salário";
        if(confirm(`Deseja lançar R$ ${f.salario} no Financeiro como ${labelLabel} para o funcionário ${f.nome}?`)) {
-          const hoje = new Date().toISOString().split('T')[0];
-          await salvarConta({
+          // Conta nasce pendente: o pagamento é registrado em Contas a Pagar com a data real.
+          const { error } = await salvarConta({
              unidade_id: unidadeAtiva,
              descricao: `${labelLabel}: ${f.nome} - ${f.cargo}`,
              valor: f.salario,
-             data_vencimento: hoje,
+             data_vencimento: hojeLocal(),
              categoria: 'cmo',
-             status: 'pago',
-             data_pagamento: hoje
           });
-          alert("Lançado com sucesso em Contas a Pagar (Financeiro)!");
+          if (error) alert("Não foi possível lançar no Financeiro: " + error);
+          else alert("Lançado em Contas a Pagar como PENDENTE. Registre o pagamento lá, com a data real.");
        }
     }
   };
@@ -1879,7 +1880,7 @@ export default function RHPage() {
   const salvarLancamentoFinanceiro = async () => {
      if(!funcParaLancamento) return;
      const f = funcParaLancamento;
-     const hoje = new Date().toISOString().split('T')[0];
+     const hoje = hojeLocal();
      
      const l = [
        { label: "Diária Base", val: parseFloat(formLancamento.fixo) },
@@ -1889,21 +1890,21 @@ export default function RHPage() {
      ];
      
      let sucessos = 0;
+     const falhas = [];
      for (let item of l) {
         if (item.val && item.val > 0) {
+           // Conta nasce pendente; o pagamento é registrado em Contas a Pagar com a data real.
            const { error } = await salvarConta({
               unidade_id: unidadeAtiva,
               descricao: `${item.label} (Extra): ${f.nome} - ${f.cargo}`,
               valor: item.val,
               data_vencimento: hoje,
               categoria: 'cmo',
-              status: 'pago',
-              data_pagamento: hoje
            });
-           if(!error) sucessos++;
+           if (error) falhas.push(`${item.label}: ${error}`); else sucessos++;
         }
      }
-     alert(`Desmembramento lançado! ${sucessos} contas criadas no Financeiro.`);
+     alert(`${sucessos} conta(s) lançada(s) como PENDENTE em Contas a Pagar.${falhas.length ? `\n\n${falhas.length} NÃO foram lançadas:\n${falhas.join("\n")}` : ""}`);
      setModalLancamento(false);
   };
 

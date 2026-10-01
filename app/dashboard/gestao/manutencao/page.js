@@ -85,9 +85,11 @@ export default function ManutencaoPage() {
   };
   const confirmarFinalizacao = async () => {
     setFinalizando(true);
-    const { error, contaLancada } = await finalizarServicoManutencao(modalFinal, { recibo_texto: reciboTexto });
+    const { error, contaLancada, erroConta, erroPagamento } = await finalizarServicoManutencao(modalFinal, { recibo_texto: reciboTexto });
     setFinalizando(false);
     if (error) return alert("Erro: " + error);
+    if (erroConta) alert("Serviço concluído, mas a conta NÃO foi lançada no Financeiro: " + erroConta);
+    else if (erroPagamento) alert("Conta lançada como pendente, mas o pagamento NÃO foi registrado: " + erroPagamento + " Registre-o em Contas a Pagar.");
     notificar(contaLancada ? "Serviço concluído e lançado nos custos!" : "Serviço concluído!");
     setModalFinal(null);
     carregar();

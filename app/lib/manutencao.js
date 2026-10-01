@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { salvarConta } from "./financeiro";
+import { lancarConta } from "./financeiro";
 
 // ─── SERVIÇOS DE MANUTENÇÃO (prestadores de serviço) ─────────────────────────
 // Cada serviço tem um status; ao FINALIZAR, gera recibo e lança no financeiro.
@@ -44,19 +44,28 @@ export async function finalizarServicoManutencao(servico, { recibo_texto }) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const patch = { status: "concluido", recibo_texto: recibo_texto || servico.recibo_texto || null };
 
-  // Lança no financeiro só uma vez
+  // Lança no financeiro só uma vez, pela camada única de contas a pagar
+  // (contas-pagar.mjs): a conta nasce pendente e, se o serviço declara que
+  // já foi pago (forma de pagamento diferente de "A pagar"), o pagamento é
+  // registrado na data do serviço, numa segunda operação verificada.
+  let erroConta = null, erroPagamento = null;
   if (!servico.conta_lancada) {
-    const { error: errConta } = await salvarConta({
+    const declaradoPago = !!servico.forma_pagamento && servico.forma_pagamento !== "A pagar";
+    const dataServico = String(servico.data || "").slice(0, 10) || null;
+    const r = await lancarConta({
       unidade_id: servico.unidade_id,
       descricao: `Manutenção: ${servico.servico}${servico.prestador ? ` - ${servico.prestador}` : ""}`,
-      valor: Number(servico.valor) || 0,
-      data_vencimento: servico.data || new Date().toISOString().split("T")[0],
+      valor: servico.valor,
+      data_vencimento: dataServico,
       categoria: "manutencao",
-      status: (servico.forma_pagamento && servico.forma_pagamento !== "A pagar") ? "pago" : "pendente",
-    });
-    if (!errConta) patch.conta_lancada = true;
+    }, { pagaEm: declaradoPago ? dataServico : null });
+    if (r.error) erroConta = r.error;
+    else {
+      patch.conta_lancada = true;
+      erroPagamento = r.erroPagamento || null;
+    }
   }
 
   const { error } = await supabase.from("manutencao_servicos").update(patch).eq("id", servico.id);
-  return { error: error?.message, contaLancada: patch.conta_lancada };
+  return { error: error?.message, contaLancada: patch.conta_lancada, erroConta, erroPagamento };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FinanceiroHub from "../../components/navigation/FinanceiroHub";
 import {
@@ -18,6 +18,8 @@ import { fetchFichas } from "../../lib/operacao";
 import { folhaDoMes } from "../../lib/cmo.mjs";
 import { valorDaCompra } from "../../lib/compras.mjs";
 import { fmtBRL } from "../../components/ui";
+import ModalPagamentoConta from "../../components/ModalPagamentoConta";
+import { statusPersistido, CATEGORIAS_NOVA_CONTA } from "../../lib/contas-pagar.mjs";
 
 const PERIODOS = [
   { id: "dia", label: "Hoje" },
@@ -27,6 +29,8 @@ const PERIODOS = [
 ];
 
 const CATEGORIAS_PAINEL = ["custo_fixo", "custo_variavel", "impostos", "cmo", "cmv", "frete"];
+// Conta nova manual: nunca "cmv" (compra de mercadoria terá módulo de Compras).
+const CATEGORIAS_FORM_DESPESA = CATEGORIAS_PAINEL.filter(id => CATEGORIAS_NOVA_CONTA.some(c => c.id === id));
 
 const PAGAMENTOS = {
   dinheiro: "Dinheiro", pix: "PIX", credito: "Cartão de crédito",
@@ -71,6 +75,15 @@ export default function FinanceiroPage() {
   const [salvandoVenda, setSalvandoVenda] = useState(false);
   const [formVenda, setFormVenda] = useState({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
   const [salvando, setSalvando] = useState(false);
+  const [contaPagar, setContaPagar] = useState(null);
+  // Trava contra clique duplo (o estado só desabilita após o re-render).
+  const emAndamento = useRef(false);
+  const executar = async fn => {
+    if (emAndamento.current) return;
+    emAndamento.current = true;
+    setSalvando(true);
+    try { await fn(); } finally { emAndamento.current = false; setSalvando(false); }
+  };
   const [form, setForm] = useState({ descricao: "", valor: "", categoria: "custo_fixo", data_vencimento: new Date().toISOString().slice(0, 10), status: "pendente" });
 
   const salvarVendaManual = async e => {
@@ -278,14 +291,20 @@ export default function FinanceiroPage() {
     setModal(true);
   };
 
-  const salvarDespesa = async e => {
+  const salvarDespesa = e => {
     e.preventDefault();
-    setSalvando(true);
-    const resposta = await salvarConta({ ...form, unidade_id: unidadeAtiva, valor: Number(form.valor) });
-    setSalvando(false);
-    if (resposta.error) return alert("Não foi possível salvar: " + resposta.error);
-    setModal(false);
-    await carregar();
+    executar(async () => {
+      const resposta = await salvarConta({
+        unidade_id: unidadeAtiva,
+        descricao: form.descricao,
+        valor: form.valor,
+        data_vencimento: form.data_vencimento,
+        categoria: form.categoria,
+      });
+      if (resposta.error) return alert("Não foi possível salvar: " + resposta.error);
+      setModal(false);
+      await carregar();
+    });
   };
 
   const excluirDespesa = async conta => {
@@ -295,12 +314,13 @@ export default function FinanceiroPage() {
     carregar();
   };
 
-  const marcarPaga = async conta => {
-    if (!confirm(`Confirmar o pagamento de “${conta.descricao}”?`)) return;
-    const resposta = await pagarConta(conta.id);
+  const marcarPaga = conta => setContaPagar(conta);
+  const confirmarPagamento = dataPagamento => executar(async () => {
+    const resposta = await pagarConta(contaPagar.id, { unidade_id: unidadeAtiva, data_pagamento: dataPagamento });
     if (resposta.error) return alert("Não foi possível registrar o pagamento: " + resposta.error);
-    carregar();
-  };
+    setContaPagar(null);
+    await carregar();
+  });
 
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="p-8 text-center font-bold text-fg">Selecione uma unidade para abrir o caixa.</div>;
   if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-fg"><Loader2 className="animate-spin text-success" size={42} /><b>Carregando o caixa...</b></div>;
@@ -597,9 +617,9 @@ export default function FinanceiroPage() {
                 {id === "cmv" && <>{!resumo.automaticos.entradasEstoque.length ? <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma entrada de estoque neste período.</p> : resumo.automaticos.entradasEstoque.slice(0, 30).map(movimento => <div key={movimento.id} className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="truncate font-bold text-slate-800">{movimento.insumo?.nome || "Entrada de estoque"}</p><p className="text-xs font-semibold text-fg">{new Date(movimento.data_movimento).toLocaleDateString("pt-BR")} · {Number(movimento.quantidade || 0).toLocaleString("pt-BR")}</p></div><b className="shrink-0">{fmtBRL(valorDaCompra(movimento))}</b></div>)}</>}
                 {!automatico && !contas.length && <p className="p-6 text-center text-sm font-semibold text-subtle">Nenhuma despesa neste período.</p>}
                 {contas.map(conta => <div key={conta.id} className="flex items-center gap-3 p-4">
-                  <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-800">{conta.descricao}</p><p className="text-xs font-semibold text-fg">{dataConta(conta).toLocaleDateString("pt-BR")} · {conta.status === "pago" ? "Pago" : "Pendente"}</p></div>
+                  <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-800">{conta.descricao}</p><p className="text-xs font-semibold text-fg">{dataConta(conta).toLocaleDateString("pt-BR")} · {statusPersistido(conta) === "pago" ? "Pago" : "Pendente"}</p></div>
                   <b className="shrink-0 text-fg">{fmtBRL(conta.valor)}</b>
-                  {conta.status !== "pago" && <button title="Marcar como paga" onClick={() => marcarPaga(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><CheckCircle2 size={19} /></button>}
+                  {statusPersistido(conta) === "pendente" && <button title="Marcar como paga" disabled={salvando} onClick={() => marcarPaga(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><CheckCircle2 size={19} /></button>}
                   <button title="Excluir despesa" onClick={() => excluirDespesa(conta)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700"><Trash2 size={18} /></button>
                 </div>)}
               </div>
@@ -755,11 +775,13 @@ export default function FinanceiroPage() {
               <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Valor</span><input required min="0.01" step="0.01" type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-black outline-none focus:border-emerald-500" placeholder="0,00" /></label>
               <label><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Data</span><input required type="date" value={form.data_vencimento} onChange={e => setForm({ ...form, data_vencimento: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500" /></label>
             </div>
-            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_PAINEL.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
+            <label className="block"><span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-fg">Categoria</span><select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} className="min-h-12 w-full rounded-xl border border-line bg-white px-4 font-bold outline-none focus:border-emerald-500">{CATEGORIAS_FORM_DESPESA.map(id => <option key={id} value={id}>{CATEGORIAS_CUSTO.find(c => c.id === id)?.label}</option>)}</select></label>
             <div className="flex gap-3 pt-2"><button type="button" onClick={() => setModal(false)} className="min-h-12 flex-1 rounded-xl bg-card font-black text-slate-900">Cancelar</button><button disabled={salvando} className="min-h-12 flex-1 rounded-xl bg-accent font-black text-accent-fg disabled:opacity-50">{salvando ? "Salvando..." : "Salvar despesa"}</button></div>
           </div>
         </form>
       </div>}
+
+      {contaPagar && <ModalPagamentoConta conta={contaPagar} processando={salvando} onConfirmar={confirmarPagamento} onFechar={() => setContaPagar(null)} />}
 
       {/* MODAL LANÇAR VENDA MANUAL DO DIA */}
       {modalVenda && (

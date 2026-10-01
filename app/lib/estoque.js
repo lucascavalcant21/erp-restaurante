@@ -149,36 +149,15 @@ export async function preverProducao(unidadeId, fichaId, quantidade) {
 }
 
 // ─── COMPRAS (Integração Estoque -> Financeiro) ──────────────────────────────
-export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departamento, quantidadeComprada, valorPago, fornecedorNome = "") {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  
-  // 1. Aumenta o Estoque
-  const { data: estoqueDB } = await supabase.from("estoque_atual")
-     .select("quantidade_atual")
-     .eq("unidade_id", unidadeId)
-     .eq("insumo_id", insumoId)
-     .maybeSingle();
-
-  const saldoAnterior = estoqueDB ? estoqueDB.quantidade_atual : 0;
-  const { error: errEstoque } = await ajustarEstoque(unidadeId, insumoId, saldoAnterior + quantidadeComprada);
-  if (errEstoque) return { error: errEstoque };
-
-  // 2. Lança no Contas a Pagar (Financeiro)
-  const categoria = 'cmv'; // Unificado conforme solicitado
-  const hoje = new Date().toISOString().split('T')[0];
-  const descForn = fornecedorNome ? ` (Fornecedor: ${fornecedorNome})` : "";
-
-  const { error } = await supabase.from("contas_pagar").insert([{
-     unidade_id: unidadeId,
-     descricao: `Compra: ${quantidadeComprada}x ${nomeInsumo}${descForn}`,
-     valor: valorPago,
-     data_vencimento: hoje,
-     categoria: categoria,
-     status: 'pendente'
-  }]);
-  if (error) return { error: error.message };
-
-  return { success: true };
+// INDISPONÍVEL até o módulo de Compras (F2) — HOTFIX FIN-CP-1.
+// A versão antiga somava o saldo legado (estoque_atual, sem movimento nem
+// lote) e lançava a compra em contas_pagar com categoria "cmv"; a versão da
+// F1 passou a gravar colunas que não existem. Compra não é CMV e precisa de
+// compra + itens + entrada no razão de estoque + conta a pagar ligada — nada
+// disso cabe no schema atual. A função não tem chamador; fica explícita e sem
+// gravar nada para ninguém a religar por engano.
+export async function registrarCompra() {
+  return { error: "Registro de compra indisponível: será tratado pelo módulo de Compras (F2). Nada foi gravado." };
 }
 
 // Total de reposição (compras) lançado no mês — soma dos valores das entradas.

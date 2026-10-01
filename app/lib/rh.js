@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
+import { criarContasPagarEmLote } from "./contas-pagar.mjs";
 import { enviarArquivoRH, removerArquivoRH } from "./rh-arquivos.js";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 export { horarioDoDia } from "./jornada-semana.mjs";
@@ -905,13 +906,15 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
     descricao: `Salário ${mesStr}/${anoStr} - ${p.nome}`,
     valor: Number(p.valor_liquido),
     data_vencimento: dataVencimento,
-    categoria: 'cmo',
-    status: 'pendente'
+    categoria: 'cmo'
   }));
 
+  // Camada única de contas a pagar: valida tudo e grava numa só operação
+  // (nasce 'pendente'). Valor zerado ou inválido bloqueia o lote inteiro com
+  // o nome de quem está errado — nada é descartado em silêncio.
   if (contasParaInserir.length > 0) {
-    const { error } = await supabase.from("contas_pagar").insert(contasParaInserir);
-    if (error) return { error: error.message };
+    const { error } = await criarContasPagarEmLote(supabase, contasParaInserir);
+    if (error) return { error };
   }
 
   const { data: holeritesExistentes, error: erroConsultaHolerites } = await supabase

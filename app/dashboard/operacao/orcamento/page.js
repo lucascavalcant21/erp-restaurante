@@ -8,6 +8,8 @@ import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento }
 import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
+import { custoDeProduzirFicha as custoTotalDaFicha } from "../../../lib/ficha-calculos.mjs";
+import { fatorCorrecaoDoItem } from "../../../lib/custo-rendimento.mjs";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
 // como se o ingrediente fosse in natura (sem empanar). Ex.: peixe que rende 1,36x
@@ -30,22 +32,9 @@ function fatorInNaturaDaFicha(f, todasFichas, mapaFatores, guard = new Set()) {
   return maior;
 }
 
-// Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
-function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
-  let total = 0;
-  (f.fichas_ingredientes || []).forEach(fi => {
-    if (fi.insumos) {
-      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
-    } else if (fi.subficha_id) {
-      const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
-      total += custoBaseUnit * (fi.quantidade || 0);
-    }
-  });
-  return total;
-}
+// Custo de produzir a ficha: custoDeProduzirFicha (ficha-calculos.mjs), a
+// mesma conta das fichas e do CMV. A cópia que havia aqui ignorava a perda do
+// ingrediente e o orçamento saía mais barato que o custo real.
 
 // Acumula os insumos CRUS necessários para produzir `porcoes` porções de uma ficha,
 // descendo recursivamente nas bases/sub-receitas até chegar nos ingredientes brutos.
@@ -54,7 +43,10 @@ function acumularInsumos(ficha, porcoes, todasFichas, acc, guard = new Set()) {
   guard.add(ficha.id);
   const rend = ficha.rendimento_porcoes || 1;
   (ficha.fichas_ingredientes || []).forEach(fi => {
-    const qtdTotal = ((fi.quantidade || 0) / rend) * porcoes;
+    // Quantidade BRUTA a comprar: a receita pede o peso limpo; a perda do
+    // cadastro (ou o FC da ficha) diz quanto comprar para chegar nele.
+    const fc = fi.insumos ? fatorCorrecaoDoItem(fi.insumos, fi.fator_correcao) : (Number(fi.fator_correcao) || 0);
+    const qtdTotal = ((fi.quantidade || 0) / rend) * porcoes * (1 + fc / 100);
     if (fi.insumos) {
       const key = fi.insumos.id;
       if (!acc[key]) acc[key] = { nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida, custo_unitario: fi.insumos.custo_unitario || 0, qtd: 0 };

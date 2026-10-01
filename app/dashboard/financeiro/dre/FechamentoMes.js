@@ -7,22 +7,13 @@ import { fetchColaboradores } from "../../../lib/rh";
 import { fetchContas } from "../../../lib/financeiro";
 import { fetchFichas } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
+// Custo da ficha: a mesma função da tela de CMV e das fichas. A cópia que
+// morava aqui lia o custo cru do cadastro (sem converter g/kg, sem perda do
+// ingrediente, sem empanamento nem embalagem) e o CMV do fechamento saía
+// diferente do CMV da tela.
+import { custoDeProduzirFicha as custoFicha } from "../../../lib/ficha-calculos.mjs";
 
-// Custo recursivo da ficha (mesma regra do CMV) — cópia compacta
-function custoFicha(f, todas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
-  let t = 0;
-  (f.fichas_ingredientes || []).forEach(fi => {
-    const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
-    if (fi.insumos) t += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0) * fc;
-    else if (fi.subficha_id) {
-      const b = todas.find(x => x.id === fi.subficha_id);
-      t += (b ? custoFicha(b, todas, guard) / (b.rendimento_porcoes || 1) : 0) * (fi.quantidade || 0) * fc;
-    }
-  });
-  return t;
-}
+// Porções da ficha — igual a porcoesDaFicha de financeiro/cmv/page.js.
 function porcoesF(f) {
   const r = Number(f?.rendimento_porcoes) || 1;
   const un = String(f?.rendimento_unidade || "porcao").toLowerCase();

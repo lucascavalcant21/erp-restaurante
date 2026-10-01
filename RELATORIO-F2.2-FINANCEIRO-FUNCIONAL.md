@@ -12,7 +12,20 @@ Data: 2026-10-01 · Branch `fase-f2-2/financeiro-funcional`
 
 Esta branch **não foi enviada** ao GitHub. A única branch enviada nesta etapa foi a `hotfix/fin-cp-1`, antes da mensagem da F2.2 (§10).
 
-## ⚠ Resultado de segurança: PARAR ANTES DO DEPLOY
+## Atualização 01/10/2026: SEC-FIN-1 aplicada, bloqueio de segurança resolvido
+
+- **Auditoria:** as 3 policies antigas de `contas_pagar` liberavam acesso entre unidades (`USING true` / `auth.role() = authenticated`).
+- **Correção:** aplicada pelo dono com `db/security/SEC_FIN_1_CONTAS_PAGAR_POR_UNIDADE.sql` (branch `sec/fin-1-contas-pagar-rls`).
+  - Antes, a prévia mostrou que 0 dos 16 usuários perderiam acesso.
+  - Hoje existe só `contas_pagar_unidade` (`pode_ver_todas() OR unidade_id = auth_unidade_id()`, no USING e no CHECK).
+  - As 3 antigas ficaram guardadas em `sec_backup_policies_contas_pagar`.
+  - 7 contas visíveis.
+- **Ainda pendente:**
+  - retirar DELETE/TRUNCATE do `authenticated` (depois da F2.2 no ar);
+  - controle por cargo;
+  - revisar cerca de 12 usuários ativos com cara de conta de teste.
+
+## Resultado de segurança (auditoria original, antes da SEC-FIN-1)
 
 A auditoria pedida no item 15 precisa do texto real das policies. **Isso só sai do banco.** Deixei a consulta pronta e somente leitura: `db/diagnosticos/F2_2_AUDITORIA_POLICIES_CONTAS_PAGAR.sql`. Ela devolve `USING`, `WITH CHECK`, papéis, tipo e comando de cada policy.
 

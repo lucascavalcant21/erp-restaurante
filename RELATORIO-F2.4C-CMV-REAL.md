@@ -123,7 +123,16 @@ Nenhum arquivo da F2.4A ou da F2.4B foi alterado.
   - faturamento (se habilitado);
   - "Como o CMV é calculado".
 
-**Testes:** `app/lib/cmv-real.test.mjs` → **44/44**.
+**Entradas e saídas por produto (pedido do dono durante a fase):**
+- **Seção nova na tela**, com média por dia, por semana (×7) e por mês (×30).
+- **Entrada** = compras confirmadas.
+- **Saída** = inicial + entradas − final, a saída física apurada entre contagens.
+- **Grupos:** inclui **embalagens e limpeza**, com filtro por grupo.
+- **Média:** ponderada pelos dias, só nos períodos apurados.
+- **"Estoque cobre N dias":** último estoque final ÷ saída média diária.
+- **A contagem não registra entrada e saída item a item.** Ela é a foto do estoque. As entradas vêm de Compras e a saída é apurada entre duas fotos.
+
+**Testes:** `app/lib/cmv-real.test.mjs` → **48/48**.
 
 | Caso | Resultado |
 |---|---|

@@ -12,6 +12,7 @@ import { carregarDadosCmv, salvarFaturamentoDia } from "../../../../lib/cmv-dado
 import {
   CONFIG_CMV, ROTULO_GRUPO, periodosEntreContagens, periodoPorDatas, contagensValidas, apurarPeriodo, analiseCompras, maisConsumidos,
   porCategoria, variacoesPreco, comparacaoPeriodos, mediasHistoricas, alertas, estoqueParado, exibirQtd, rotuloBase, somarDiasIso,
+  entradasSaidasPorProduto,
 } from "../../../../lib/cmv-real.mjs";
 import { rotuloTipo } from "../../../../lib/contagem-estoque.mjs";
 import { intervaloPeriodo, unidadeValida, hojeLocal } from "../../../../lib/contas-pagar.mjs";
@@ -152,6 +153,7 @@ function Cmv() {
             </Secao>
             <Compras ap={ap} dados={dados} />
             <Consumidos ap={ap} />
+            <EntradasSaidas apurados={apurados} />
             <Precos varPreco={varPreco} dados={dados} />
             <Categorias ap={ap} />
             <Secao titulo={`Alertas (${listaAlertas.length})`}>
@@ -325,6 +327,33 @@ function Consumidos({ ap }) {
         <div><p className="font-black">Por quantidade</p>{["g", "ml", "un"].map((b) => m.porQuantidade[b].length > 0 && <div key={b}><p className="text-fg mt-1">em {rotuloBase(b)}</p>{m.porQuantidade[b].slice(0, 5).map((p) => <p key={p.insumo_id} className="border-t border-line py-0.5">{p.nome} · <b>{qtd(p.consumo_q, b)}</b></p>)}</div>)}</div>
       </div>
       {m.negativos.length > 0 && <p className="text-xs text-amber-800 mt-2">Consumo negativo (contou mais no fim do que havia + comprou): {m.negativos.map((p) => p.nome).join(", ")}. Indica erro de contagem ou entrada sem registro.</p>}
+    </Secao>
+  );
+}
+
+function EntradasSaidas({ apurados }) {
+  const [grupo, setGrupo] = useState("todos");
+  const todos = entradasSaidasPorProduto(apurados);
+  const lista = todos.filter((x) => grupo === "todos" || x.grupo === grupo);
+  const nPer = apurados.filter((a) => a.status === "apurado").length;
+  return (
+    <Secao titulo="Entradas e saídas por produto (médias por dia, semana e mês)">
+      <p className="text-3xs text-fg">Entrada = compras confirmadas. Saída = inicial + entradas − final (saída física apurada entre contagens; inclui venda, produção, perda e desperdício). Média ponderada pelos dias dos períodos apurados ({nPer}); semana = ×7 e mês = ×30 dias. Inclui embalagens e limpeza.</p>
+      <div className="flex flex-wrap gap-1 my-2">{[["todos", "Todos"], ["mercadoria", "Mercadoria"], ["embalagem", "Embalagens"], ["operacional", "Limpeza / operacional"]].map(([g, r]) => (
+        <button key={g} onClick={() => setGrupo(g)} className={`px-3 py-1 rounded-lg text-xs font-bold border ${grupo === g ? "bg-slate-900 text-white" : "bg-white border-line"}`}>{r}</button>))}</div>
+      {!nPer ? <p className="text-xs font-bold">Ainda não há período apurado: as médias aparecem depois de dois inventários fechados.</p> : !lista.length ? <p className="text-xs text-fg">Nenhum produto neste grupo.</p> : (
+        <div className="overflow-x-auto"><table className="w-full text-xs">
+          <thead><tr className="text-left text-fg"><th className="py-1">Produto</th><th className="text-right">Entrada/dia</th><th className="text-right">Saída/dia</th><th className="text-right">Saída/semana</th><th className="text-right">Saída/mês</th><th className="text-right">Entrada/mês</th><th className="text-right">Estoque cobre</th><th className="text-right">Base</th></tr></thead>
+          <tbody>{lista.slice(0, 60).map((x) => (
+            <tr key={`${x.insumo_id}${x.unidade_base}`} className="border-t border-line">
+              <td className="py-1 font-bold">{x.nome}<span className="block text-3xs text-fg font-normal">{ROTULO_GRUPO[x.grupo]}</span></td>
+              <td className="text-right">{qtd(x.entradaDia, x.unidade_base)}</td><td className="text-right font-black">{qtd(x.saidaDia, x.unidade_base)}</td>
+              <td className="text-right">{qtd(x.saidaSemana, x.unidade_base)}</td><td className="text-right">{qtd(x.saidaMes, x.unidade_base)}</td><td className="text-right">{qtd(x.entradaMes, x.unidade_base)}</td>
+              <td className="text-right">{x.coberturaDias == null ? "—" : `${x.coberturaDias.toLocaleString("pt-BR")} dia(s)`}</td>
+              <td className="text-right text-fg">{x.periodos} per. · {x.dias} dias</td>
+            </tr>))}</tbody>
+        </table></div>
+      )}
     </Secao>
   );
 }

@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CONFIG_CMV, periodosEntreContagens, periodoPorDatas, contagensValidas, apurarPeriodo, faturamentoDaJanela, analiseCompras,
-  maisConsumidos, porCategoria, variacoesPreco, comparacaoPeriodos, mediasHistoricas, alertas, estoqueParado, cmvRealPeriodo, somarDiasIso,
+  maisConsumidos, porCategoria, variacoesPreco, comparacaoPeriodos, mediasHistoricas, alertas, estoqueParado, cmvRealPeriodo, somarDiasIso, entradasSaidasPorProduto,
 } from "./cmv-real.mjs";
 import { carregarDadosCmv, salvarFaturamentoDia, MOTIVO_SEM_FATURAMENTO } from "./cmv-dados.mjs";
 import { criarContagem, salvarItemContagem, fecharContagem } from "./contagem-estoque.mjs";
@@ -120,6 +120,16 @@ conferir("estoque parado: cerveja sem consumo no período, R$ 120 parados", para
 const al = alertas({ apurados: [], variacoes: variacoesPreco([compra("V1", "confirmada", "2026-09-01", 400), compra("V2", "confirmada", "2026-09-10", 400), compra("V3", "confirmada", "2026-10-03", 480)],
   [citem("V1", "p", 10000, 400), citem("V2", "p", 10000, 400), citem("V3", "p", 10000, 480)]), insumoPorId: ins });
 conferir("alerta de preço: +20% sobre a média das 2 compras anteriores, com média, base, fonte e limite", al.map((a) => [a.tipo, a.diferencaPct, a.media, a.base, a.limite]), [["preco", 20, 40, "2 compras anteriores", `${CONFIG_CMV.alertas.variacaoPrecoPct}%`]]);
+// entradas e saídas por produto, com médias (inclui embalagens e limpeza)
+const es = entradasSaidasPorProduto([ap1, ap2]);
+const picES = es.find((x) => x.insumo_id === "p");
+conferir("entradas/saídas da picanha em 2 períodos (14 dias): entrada 11 kg, saída (10+5−8)+(8+6−7) = 14 kg → 1 kg/dia, 7 kg/semana, 30 kg/mês; entrada 0,786 kg/dia (em g)",
+  [picES.entrada_q, picES.saida_q, picES.dias, picES.periodos, picES.saidaDia, picES.saidaSemana, picES.saidaMes, picES.entradaDia], [11000, 14000, 14, 2, 1000, 7000, 30000, 785.714]);
+conferir("cobertura: estoque final (7 kg) ÷ saída média de 1 kg/dia = 7 dias", picES.coberturaDias, 7);
+const esI = entradasSaidasPorProduto([I]);
+conferir("embalagens e limpeza também têm entrada/saída e média (grupo à parte)",
+  esI.map((x) => [x.nome, x.grupo, x.saidaDia]).sort(), [["Detergente", "operacional", 0.429], ["Picanha", "mercadoria", 1000], ["Pote delivery", "embalagem", 8.571]]);
+conferir("período não apurado não entra na média (nada estimado)", entradasSaidasPorProduto([Cc, cov]).length, 0);
 conferir("resultado para o DRE futuro (cmv_real_periodo)", cmvRealPeriodo(B), { de: "2026-10-01", ate: "2026-10-07", status: "apurado", estoque_inicial: 1000, compras: 500, estoque_final: 800, cmv_real: 700, faturamento: 2000, cmv_pct: 35, motivos: [] });
 
 // ── 2. integração: banco com F2.1 + SEC-FIN-2 + F2.4B ──────────────────────

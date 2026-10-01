@@ -429,6 +429,38 @@ export function estoqueParado(ap, { compras = [], itens = [] } = {}, cfg = CONFI
     .sort((a, b) => (b.valorParado || 0) - (a.valorParado || 0));
 }
 
+/**
+ * ENTRADAS E SAÍDAS por produto, com médias por dia / semana (×7) / mês (×30).
+ *   entrada = compras confirmadas; saída = consumo aparente (inicial + entradas − final).
+ * Todos os grupos: mercadoria, embalagens e limpeza (consumo operacional).
+ * Média ponderada pelos dias, só nos períodos APURADOS em que o produto aparece
+ * (contado ou comprado) com contagem nas duas pontas — nada estimado.
+ */
+export function entradasSaidasPorProduto(apurados) {
+  const ok = (apurados || []).filter((a) => a.status === "apurado");
+  const acc = new Map();
+  for (const a of ok) {
+    for (const p of a.produtos) {
+      if (p.consumo_q == null) continue;
+      const k = `${p.insumo_id}|${p.unidade_base}`;
+      const x = acc.get(k) || { insumo_id: p.insumo_id, nome: p.nome, grupo: p.grupo, categoria: p.categoria, unidade_base: p.unidade_base, entrada_q: 0, saida_q: 0, saida_v: 0, dias: 0, periodos: 0, ultimo_ef_q: null };
+      x.entrada_q += p.compras_q; x.saida_q += p.consumo_q; x.saida_v += p.consumo_v; x.dias += a.periodo.dias; x.periodos += 1; x.ultimo_ef_q = p.ef_q;
+      acc.set(k, x);
+    }
+  }
+  return [...acc.values()].map((x) => {
+    const dia = (q) => (x.dias > 0 ? q / x.dias : null);
+    return {
+      ...x, entrada_q: r3(x.entrada_q), saida_q: r3(x.saida_q), saida_v: r2(x.saida_v),
+      entradaDia: dia(x.entrada_q) == null ? null : r3(dia(x.entrada_q)), saidaDia: dia(x.saida_q) == null ? null : r3(dia(x.saida_q)),
+      entradaSemana: dia(x.entrada_q) == null ? null : r3(dia(x.entrada_q) * 7), saidaSemana: dia(x.saida_q) == null ? null : r3(dia(x.saida_q) * 7),
+      entradaMes: dia(x.entrada_q) == null ? null : r3(dia(x.entrada_q) * 30), saidaMes: dia(x.saida_q) == null ? null : r3(dia(x.saida_q) * 30),
+      // quantos dias o último estoque final cobre na saída média (só informação)
+      coberturaDias: x.ultimo_ef_q != null && dia(x.saida_q) > 0 ? Math.round((x.ultimo_ef_q / dia(x.saida_q)) * 10) / 10 : null,
+    };
+  }).sort((a, b) => b.saida_v - a.saida_v);
+}
+
 /** Resultado consolidado para o DRE futuro (só números apurados; o resto é null com motivo). */
 export function cmvRealPeriodo(ap) {
   return {

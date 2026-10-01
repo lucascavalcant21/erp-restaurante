@@ -8,7 +8,7 @@ import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento }
 import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
-import { custoDeProduzirFicha as custoTotalDaFicha } from "../../../lib/ficha-calculos.mjs";
+import { custoDeProduzirFicha as custoTotalDaFicha, porcoesParaCusto } from "../../../lib/ficha-calculos.mjs";
 import { fatorCorrecaoDoItem } from "../../../lib/custo-rendimento.mjs";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
@@ -41,7 +41,9 @@ function fatorInNaturaDaFicha(f, todasFichas, mapaFatores, guard = new Set()) {
 function acumularInsumos(ficha, porcoes, todasFichas, acc, guard = new Set()) {
   if (!ficha || guard.has(ficha.id)) return;
   guard.add(ficha.id);
-  const rend = ficha.rendimento_porcoes || 1;
+  // Mesmo divisor do custo por porção (porcoesDaFicha): a lista de compras e
+  // o custo do orçamento precisam falar das mesmas porções.
+  const rend = porcoesDaFicha(ficha) || 1;
   (ficha.fichas_ingredientes || []).forEach(fi => {
     // Quantidade BRUTA a comprar: a receita pede o peso limpo; a perda do
     // cadastro (ou o FC da ficha) diz quanto comprar para chegar nele.
@@ -61,13 +63,10 @@ function acumularInsumos(ficha, porcoes, todasFichas, acc, guard = new Set()) {
 
 // Nº real de porções: direto (porções/un) ou derivado do peso total quando
 // o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
+// Regra única de porções (ficha-calculos.mjs). Prato que rende em peso é
+// uma porção: dividir pela soma dos pesos dava custo por kg.
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return porcoesParaCusto(f).porcoes;
 }
 
 // Formata quantidade de compra: kg/l pequenos viram g/ml; un arredonda pra cima

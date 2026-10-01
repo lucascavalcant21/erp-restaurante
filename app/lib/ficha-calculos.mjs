@@ -476,6 +476,35 @@ export function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
   return peso > 0 ? rend * peso : 0; // porções ou unidades
 }
 
+// Em quantas porções o custo da ficha se divide. REGRA ÚNICA — card, editor,
+// pizza do prato, CMV, produtos e orçamento leem daqui.
+//
+//   rendimento em porções/unidades ........ o próprio rendimento
+//   rendimento em peso + peso da porção ... peso total ÷ peso da porção
+//   PRÉ-PREPARO sem peso da porção ........ o rendimento (custo por kg/L/un
+//                                            do lote, que é o que entra nos pratos)
+//   PRATO sem peso da porção .............. 1 — a receita inteira é a porção
+//
+// O último caso é o que as telas divergiam: no prato, `rendimento_porcoes` é
+// a SOMA DO PESO dos ingredientes (1,34 kg de um açaí), não porções. Dividir
+// por ele dava "custo por kg" com nome de custo por porção — e num hambúrguer
+// de 350 g triplicava o custo. `definidas` = false avisa a tela que o número
+// depende de a ficha dizer o peso da porção.
+export function porcoesParaCusto(ficha = {}) {
+  const rend = parseNumero(ficha?.rendimento_porcoes);
+  const un = String(ficha?.rendimento_unidade || "porcao").toLowerCase();
+  const pesoPorcao = parseNumero(ficha?.peso_porcao_g);
+  if (un === "porcao" || un === "un") {
+    return rend > 0 ? { porcoes: rend, definidas: true } : { porcoes: 1, definidas: false };
+  }
+  const pesoTotal = pesoTotalDaFicha(rend, un, pesoPorcao);
+  if (pesoPorcao > 0 && pesoTotal > 0) return { porcoes: pesoTotal / pesoPorcao, definidas: true };
+  if (ficha?.eh_base || ficha?.tipo_base === "pre") {
+    return rend > 0 ? { porcoes: rend, definidas: true } : { porcoes: 1, definidas: false };
+  }
+  return { porcoes: 1, definidas: false };
+}
+
 // A cozinha pensa em quilo, o bar em litro. É só isso.
 export function unidadePadraoDepartamento(departamento) {
   return String(departamento || "").toLowerCase() === "bar" ? "l" : "kg";
@@ -580,6 +609,15 @@ export function calculateFichaFinanceiro({
 //
 // Preço: o Cardápio manda (é onde a venda é definida); a coluna da ficha é o
 // espelho, usada quando o produto ainda não existe.
+// O produto do Cardápio de uma ficha: pelo vínculo (ficha_id) ou, nos
+// produtos antigos sem vínculo, pelo nome.
+export function produtoDaFicha(ficha = {}, produtos = []) {
+  const nome = String(ficha?.nome_receita || "").toLowerCase();
+  return (produtos || []).find(p => p.ficha_id === ficha?.id)
+    || (nome ? (produtos || []).find(p => String(p.nome_produto || "").toLowerCase() === nome) : null)
+    || null;
+}
+
 export function precoVendaEfetivo(ficha = {}, produto = null) {
   const doProduto = parseNumero(produto?.preco_venda);
   if (doProduto > 0) return doProduto;
@@ -598,8 +636,11 @@ export function entradasFinanceirasDaFicha(ficha = {}, { produto = null, params 
     : (Array.isArray(ficha?.embalagens) ? ficha.embalagens : []).reduce(
       (total, item) => total + (parseNumero(item?.custo) || parseNumero(item?.preco_unitario)) * (parseNumero(item?.qtd) || 1), 0);
 
+  // Em Financeiro → Pizza do prato a taxa da casa é gravada como
+  // `taxa_cartao_pct`; os nomes antigos ficam para quem ainda os passa.
+  // Sem esse nome a taxa configurada era ignorada e valia sempre 2,5%.
   const taxa = primeiroDefinido(ficha?.taxa_maquininha, produto?.taxa_cartao,
-    params?.taxaMaquininha, params?.taxa_maquininha, 2.5);
+    params?.taxaMaquininha, params?.taxa_maquininha, params?.taxa_cartao_pct, 2.5);
   const imposto = primeiroDefinido(ficha?.imposto_pct, produto?.aliquota_imposto,
     params?.impostoPct, params?.imposto_pct, 4.0);
 

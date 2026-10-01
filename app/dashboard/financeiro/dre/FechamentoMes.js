@@ -11,16 +11,13 @@ import { fetchProdutos } from "../../../lib/vendas";
 // morava aqui lia o custo cru do cadastro (sem converter g/kg, sem perda do
 // ingrediente, sem empanamento nem embalagem) e o CMV do fechamento saía
 // diferente do CMV da tela.
-import { custoDeProduzirFicha as custoFicha } from "../../../lib/ficha-calculos.mjs";
+import { custoDeProduzirFicha as custoFicha, porcoesParaCusto } from "../../../lib/ficha-calculos.mjs";
 
 // Porções da ficha — igual a porcoesDaFicha de financeiro/cmv/page.js.
+// Regra única de porções (ficha-calculos.mjs). Prato que rende em peso é
+// uma porção: dividir pela soma dos pesos dava custo por kg.
 function porcoesF(f) {
-  const r = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return r;
-  const pg = Number(f?.peso_porcao_g) || 0;
-  const tot = (un === "kg" || un === "l") ? r * 1000 : r;
-  return pg > 0 ? tot / pg : r;
+  return porcoesParaCusto(f).porcoes;
 }
 
 // Fechamento do mês: você digita o faturamento e a taxa de serviço; o sistema

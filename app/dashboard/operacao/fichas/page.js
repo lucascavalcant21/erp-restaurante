@@ -48,6 +48,8 @@ import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { fetchCategoriasFichas, salvarCategoriasFichas, fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import PizzaDoPrato from "./PizzaDoPrato";
+import CardFicha from "./componentes/CardFicha";
+import { resumoFinanceiroDaFicha, produtosComPrecoSalvo } from "../../../lib/ficha-financeiro.mjs";
 import { METODOS_BAR, metodoBar, fetchComplementosDeFichas } from "../../../lib/ficha-tecnica";
 import { hasPermission, permissionKey } from "../../../lib/permissions-catalog.mjs";
 import {
@@ -80,6 +82,7 @@ import {
   rendimentoPadronizado,
   rendimentoPelosIngredientes,
   calculateFichaFinanceiro,
+  porcoesParaCusto,
 } from "../../../lib/ficha-calculos.mjs";
 import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rendimento.mjs";
 
@@ -357,6 +360,13 @@ function FichasRunner() {
 
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
+  // Cards abertos na lista. Vários ao mesmo tempo, para comparar.
+  const [cardsAbertos, setCardsAbertos] = useState(() => new Set());
+  const alternarCard = (id) => setCardsAbertos(atual => {
+    const novo = new Set(atual);
+    if (novo.has(id)) novo.delete(id); else novo.add(id);
+    return novo;
+  });
   // Pizza do prato: vale para a grade inteira, nao por cartao. O gestor quer
   // comparar a fatia de lucro de um prato com a do outro lado a lado.
   const [verPizza, setVerPizza] = useState(false);
@@ -650,8 +660,11 @@ function FichasRunner() {
     }
   };
 
-  const carregar = async () => {
-    setLoading(true);
+  // `silencioso`: recarrega sem trocar a lista por "Buscando receitas..." —
+  // usado depois de salvar, para o card não piscar nem perder o que está aberto.
+  const carregar = async ({ silencioso = false } = {}) => {
+    if (!silencioso) setLoading(true);
+    ultimaCarga.current = Date.now();
     const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens, resEstoqueEmbalagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, deptUrl, { excluirPrePreparos: true }),
@@ -683,6 +696,24 @@ function FichasRunner() {
 
   useEffect(() => {
     if (unidadeAtiva) carregar();
+  }, [unidadeAtiva, deptUrl]);
+
+  // Voltou para a aba depois de mexer em ingrediente/preço em outra tela ou
+  // aba: relê os dados (sem piscar), no máximo a cada 20 s.
+  const ultimaCarga = useRef(0);
+  useEffect(() => {
+    if (!unidadeAtiva) return;
+    const aoVoltar = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - ultimaCarga.current < 20000) return;
+      carregar({ silencioso: true });
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    window.addEventListener("focus", aoVoltar);
+    return () => {
+      document.removeEventListener("visibilitychange", aoVoltar);
+      window.removeEventListener("focus", aoVoltar);
+    };
   }, [unidadeAtiva, deptUrl]);
 
   useEffect(() => {
@@ -1327,6 +1358,57 @@ function FichasRunner() {
 
       const fichaIdSalva = form.id || erro?.id;
 
+      // PREÇO DE VENDA sincroniza com o produto do cardápio interno.
+      //
+      // Tem de acontecer ANTES de recarregar a lista. O card mostra o preço do
+      // produto do Cardápio; antes esta gravação vinha DEPOIS do carregar(), a
+      // lista era relida com o preço antigo e o novo só aparecia com F5.
+      if (!form.eh_base && fichaIdSalva) {
+        try {
+          const nome = form.nome_receita.trim();
+          const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
+          const prodExistente = (prodsAtu || []).find(p =>
+            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+          );
+          let resultadoCardapio;
+          if (prodExistente) {
+            resultadoCardapio = await salvarProduto({
+               id: prodExistente.id, 
+               ficha_id: fichaIdSalva, 
+               preco_venda: precoVendaNum, 
+               embalagens: fichaEmbalagens,
+               taxa_cartao: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
+               aliquota_imposto: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null
+            });
+          } else {
+            const ehBarDept = form.departamento === "bar";
+            resultadoCardapio = await salvarProduto({
+              unidade_id: unidadeAtiva,
+              ficha_id: fichaIdSalva,
+              nome_produto: nome,
+              preco_venda: precoVendaNum,
+              embalagens: fichaEmbalagens,
+              taxa_cartao: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
+              aliquota_imposto: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null,
+              categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
+              departamento: form.departamento,
+              observacoes: "Criado automaticamente pela Ficha Técnica.",
+            }, unidadeAtiva);
+          }
+          // O preço que a tela mostra é o do Cardápio: se ele não gravou, a
+          // pessoa precisa saber — senão parece que o salvar "não pegou".
+          if (resultadoCardapio?.error) {
+            alert(`A ficha foi salva, mas o preço de venda não chegou ao Cardápio: ${resultadoCardapio.error}`);
+          } else {
+            // Gravou: o card já mostra o preço novo, antes mesmo da releitura.
+            setProdutos(lista => produtosComPrecoSalvo(lista, {
+              produtoId: prodExistente?.id || resultadoCardapio?.id || null,
+              fichaId: fichaIdSalva, nome, preco: precoVendaNum,
+            }));
+          }
+        } catch { /* sincronização de preço não bloqueia o salvar */ }
+      }
+
       if (form.eh_base && fichaIdSalva) {
         const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
         const estoquePreparo = await garantirFichaNoEstoquePreparo({
@@ -1378,7 +1460,9 @@ function FichasRunner() {
           return existe ? fichasAntigas.map(f => f.id === fichaIdSalva ? { ...f, ...novaFichaObjeto } : f) : [novaFichaObjeto, ...fichasAntigas];
         });
       }
-      await carregar();
+      // Relê fichas, ingredientes e produtos do banco (sem piscar a lista):
+      // é o que garante que o card mostra o que ficou gravado.
+      await carregar({ silencioso: true });
 
       // As embalagens usadas na receita entram no estoque de Embalagens do setor.
       if (fichaIdSalva) {
@@ -1416,46 +1500,6 @@ function FichasRunner() {
         }).catch(() => {});
       }
 
-      // PREÇO DE VENDA sincroniza com o produto do cardápio interno
-      if (!form.eh_base && fichaIdSalva) {
-        try {
-          const nome = form.nome_receita.trim();
-          const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
-          const prodExistente = (prodsAtu || []).find(p =>
-            p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
-          );
-          let resultadoCardapio;
-          if (prodExistente) {
-            resultadoCardapio = await salvarProduto({
-               id: prodExistente.id, 
-               ficha_id: fichaIdSalva, 
-               preco_venda: precoVendaNum, 
-               embalagens: fichaEmbalagens,
-               taxa_cartao: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
-               aliquota_imposto: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null
-            });
-          } else {
-            const ehBarDept = form.departamento === "bar";
-            resultadoCardapio = await salvarProduto({
-              unidade_id: unidadeAtiva,
-              ficha_id: fichaIdSalva,
-              nome_produto: nome,
-              preco_venda: precoVendaNum,
-              embalagens: fichaEmbalagens,
-              taxa_cartao: form.taxa_maquininha != null && form.taxa_maquininha !== "" ? Number(String(form.taxa_maquininha).replace(",", ".")) : null,
-              aliquota_imposto: form.imposto_pct != null && form.imposto_pct !== "" ? Number(String(form.imposto_pct).replace(",", ".")) : null,
-              categoria: ehBarDept ? (form.produto_pronto ? (form.categoria || "Outros produtos prontos") : "Drinks") : "Pratos Principais",
-              departamento: form.departamento,
-              observacoes: "Criado automaticamente pela Ficha Técnica.",
-            }, unidadeAtiva);
-          }
-          // O preço que a tela mostra é o do Cardápio: se ele não gravou, a
-          // pessoa precisa saber — senão parece que o salvar "não pegou".
-          if (resultadoCardapio?.error) {
-            alert(`A ficha foi salva, mas o preço de venda não chegou ao Cardápio: ${resultadoCardapio.error}`);
-          }
-        } catch { /* sincronização de preço não bloqueia o salvar */ }
-      }
     } catch (errGlobal) {
       console.error("[handleSalvar] Erro ao salvar ficha:", errGlobal);
     } finally {
@@ -2724,137 +2768,55 @@ function FichasRunner() {
          ) : (
             <div className="flex flex-col gap-3">
                {fichasPagina.map(f => {
-                  const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  
+                  // Todos os números do card (fechado e aberto) saem daqui:
+                  // resumoFinanceiroDaFicha, a mesma conta da pizza do prato.
+                  const resumo = resumoFinanceiroDaFicha(f, { fichas, produtos, params: paramsSis });
                   return (
-                     <div
+                     <CardFicha
                        key={f.id}
+                       ficha={f}
+                       resumo={resumo}
+                       rendimentoTexto={textoRendimentoPadronizado(f)}
+                       podeVerCustos={podeVerCustos}
+                       selecionada={selecionadas.includes(f.id)}
+                       onSelecionar={() => toggleSelecionar(f.id)}
+                       aberto={cardsAbertos.has(f.id)}
+                       onAlternar={() => alternarCard(f.id)}
+                       imagemSrc={f.imagem ? (f.imagem.startsWith('data:') ? f.imagem : `data:image/jpeg;base64,${f.imagem}`) : null}
+                       arrastando={dragId === f.id}
                        onDragOver={e => { if (dragId) e.preventDefault(); }}
                        onDrop={() => reordenar(dragId, f.id)}
-                       className={`erp-fichas-card bg-card rounded-2xl border p-3 sm:p-4 shadow-sm hover:shadow-md transition-all relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-line'}`}
-                     >
-                       <div className="flex items-center gap-4 min-w-0 sm:w-[35%]">
-                          <label className="grid h-6 w-6 shrink-0 place-items-center rounded border border-line bg-transparent cursor-pointer">
-                             <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="h-4 w-4 cursor-pointer rounded accent-emerald-600"/>
-                          </label>
-                          <div className="w-14 h-14 rounded-xl bg-white border border-line overflow-hidden shrink-0 flex items-center justify-center cursor-pointer" onClick={() => abrirFicha(f)}>
-                             {f.imagem ? <img src={f.imagem.startsWith('data:') ? f.imagem : `data:image/jpeg;base64,${f.imagem}`} className="w-full h-full object-cover" /> : <UtensilsCrossed size={20} className="text-slate-300"/>}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                             <div className="flex items-center gap-2 mb-0.5">
-                                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${f.eh_base ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                                   {f.eh_base ? "PREPARO" : "PRATO"}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider truncate">
-                                   {f.categoria || "SEM CATEGORIA"}
-                                </span>
+                       acoes={(
+                         <>
+                           <button
+                             onClick={() => abrirEditar(f)}
+                             className="h-9 px-4 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors flex items-center"
+                           >
+                             Editar
+                           </button>
+                           <button
+                             onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
+                             title="Mais opções"
+                             className="h-9 w-9 rounded-xl border border-line bg-transparent text-slate-900 hover:text-fg flex items-center justify-center hover:bg-white"
+                           >
+                             <MoreVertical size={16} />
+                           </button>
+                           
+                           {acoesCardAberto === f.id && (
+                             <div className="absolute right-0 top-11 z-[60] w-48 bg-card border border-line rounded-2xl shadow-xl p-1.5 flex flex-col gap-1">
+                               <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><BookOpen size={14}/> Ver Ficha</button>
+                               <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><LayoutList size={14}/> Engenharia</button>
+                               {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><CheckSquare2 size={14}/> Montagem</button>}
+                               <button onClick={() => abrirSimulacao(f)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Calculator size={14}/> Simular Custos</button>
+                               <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Printer size={14}/> Imprimir Ficha</button>
+                               <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><FileDown size={14}/> Baixar PDF</button>
+                               <div className="h-px w-full bg-line-soft my-0.5"></div>
+                               <button onClick={() => excluirImediatamente([f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs text-left flex items-center gap-2"><Trash2 size={14}/> Excluir Receita</button>
                              </div>
-                             <h3
-                               onClick={() => abrirFicha(f)}
-                               className="text-base font-black text-fg truncate cursor-pointer hover:text-emerald-600 transition-colors"
-                               title={f.nome_receita}
-                             >
-                               {f.nome_receita}
-                             </h3>
-                          </div>
-                       </div>
-
-                       {(() => {
-                            const custoTotalIng = custoTotalDaFicha(f, fichas);
-                            const rend = Number(f.rendimento_porcoes) || 1;
-                            const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-                            const precoPorcao = (prod && Number(prod.preco_venda) > 0) ? Number(prod.preco_venda) : (Number(f.preco_venda) > 0 ? Number(f.preco_venda) : 0);
-                            const meta = Number(f.cmv_meta) || 30;
-                            const composicaoCount = (f.fichas_ingredientes || []).length;
-                            const rendimentoTexto = textoRendimentoPadronizado(f);
-
-                            const custoEmb = Number(f.custo_embalagem) >= 0 && f.custo_embalagem !== null && f.custo_embalagem !== undefined
-                              ? Number(f.custo_embalagem)
-                              : (f.embalagens || []).reduce((acc, emb) => acc + (Number(emb.custo) || Number(emb.preco_unitario) || 0) * (Number(emb.qtd) || 1), 0);
-
-                            const taxaMaqPct = Number(f.taxa_maquininha ?? prod?.taxa_cartao ?? paramsSis?.taxaMaquininha ?? paramsSis?.taxa_maquininha ?? 2.5);
-                            const impostoPct = Number(f.imposto_pct ?? prod?.aliquota_imposto ?? paramsSis?.impostoPct ?? paramsSis?.imposto_pct ?? 4.0);
-
-                            const finCard = calculateFichaFinanceiro({
-                              custoTotalIngredientes: custoTotalIng,
-                              rendimentoPorcoes: rend,
-                              custoEmbalagemPorPorcao: custoEmb,
-                              precoVenda: precoPorcao,
-                              taxaMaquininhaPct: f.eh_base ? 0 : taxaMaqPct,
-                              impostoPct: f.eh_base ? 0 : impostoPct,
-                            });
-
-                            const custoIngred = finCard.custoIngredientesPorPorcao;
-                            const cmv = finCard.cmv;
-
-                           return (
-                             <div className="flex flex-1 items-center justify-between sm:justify-around gap-4 min-w-0">
-                                <div className="flex flex-col min-w-0">
-                                   <span className="text-3xs font-bold text-slate-800 uppercase tracking-wider mb-0.5">Rendimento</span>
-                                   <span className="text-sm font-black text-slate-900 truncate">{rendimentoTexto}</span>
-                                </div>
-                                {podeVerCustos ? (
-                                   <>
-                                     <div className="flex flex-col min-w-0">
-                                        <span className="text-3xs font-bold text-slate-800 uppercase tracking-wider mb-0.5">Custo/Porção</span>
-                                        <span className="text-sm font-black text-fg truncate">{fmtBRL(custoIngred)}</span>
-                                     </div>
-                                     <div className="flex flex-col min-w-0">
-                                        <span className="text-3xs font-bold text-slate-800 uppercase tracking-wider mb-0.5">Preço Sugerido</span>
-                                        <span className="text-sm font-black text-emerald-700 truncate">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
-                                     </div>
-                                   </>
-                                ) : (
-                                   <div className="flex flex-col min-w-0">
-                                      <span className="text-3xs font-bold text-slate-800 uppercase tracking-wider mb-0.5">Composição</span>
-                                      <span className="text-sm font-black text-slate-900 truncate">{composicaoCount} itens</span>
-                                   </div>
-                                )}
-                                <div className="hidden lg:flex flex-col min-w-0">
-                                   <span className="text-3xs font-bold text-slate-800 uppercase tracking-wider mb-0.5">Status</span>
-                                   {statusDaFicha(f) === "inativa" ? (
-                                     <span className="text-xs font-bold text-slate-900">Inativa</span>
-                                   ) : statusDaFicha(f) === "rascunho" ? (
-                                     <span className="text-xs font-bold text-amber-600">Rascunho</span>
-                                   ) : (podeVerCustos && cmv !== null && cmv > meta) ? (
-                                     <span className="text-xs font-bold text-red-500">CMV Alto</span>
-                                   ) : (
-                                     <span className="text-xs font-bold text-emerald-600">Ativa</span>
-                                   )}
-                                </div>
-                             </div>
-                           );
-                       })()}
-
-                       <div className="flex items-center gap-1.5 shrink-0 mt-2 sm:mt-0 relative">
-                         <button
-                           onClick={() => abrirEditar(f)}
-                           className="h-9 px-4 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors hidden sm:flex items-center"
-                         >
-                           Editar
-                         </button>
-                         <button
-                           onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)}
-                           title="Mais opções"
-                           className="h-9 w-9 rounded-xl border border-line bg-transparent text-slate-900 hover:text-fg flex items-center justify-center hover:bg-white"
-                         >
-                           <MoreVertical size={16} />
-                         </button>
-                         
-                         {acoesCardAberto === f.id && (
-                           <div className="absolute right-0 top-11 z-[60] w-48 bg-card border border-line rounded-2xl shadow-xl p-1.5 flex flex-col gap-1">
-                             <button onClick={() => { setAcoesCardAberto(""); abrirFicha(f); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><BookOpen size={14}/> Ver Ficha</button>
-                             <button onClick={() => router.push(`/dashboard/operacao/fichas/${f.id}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><LayoutList size={14}/> Engenharia</button>
-                             {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><CheckSquare2 size={14}/> Montagem</button>}
-                             <button onClick={() => abrirSimulacao(f)} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Calculator size={14}/> Simular Custos</button>
-                             <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><Printer size={14}/> Imprimir Ficha</button>
-                             <button onClick={() => { setAcoesCardAberto(""); baixarPdfFichas([f]); }} className="w-full px-3 py-2.5 rounded-xl hover:bg-white text-fg font-bold text-xs text-left flex items-center gap-2"><FileDown size={14}/> Baixar PDF</button>
-                             <div className="h-px w-full bg-line-soft my-0.5"></div>
-                             <button onClick={() => excluirImediatamente([f])} className="w-full px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs text-left flex items-center gap-2"><Trash2 size={14}/> Excluir Receita</button>
-                           </div>
-                         )}
-                       </div>
-                     </div>
+                           )}
+                         </>
+                       )}
+                     />
                   );
                })}
             </div>
@@ -4064,7 +4026,8 @@ function FichasRunner() {
 
                      {(() => {
                         const custoTotalForm = custoTotalFormulario(ingFicha);
-                        const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 1;
+                        // Porções: a regra única (porcoesParaCusto) — a mesma do card.
+                        const { porcoes: rendForm } = porcoesParaCusto({ ...form, rendimento_porcoes: String(form.rendimento_porcoes).replace(",", ".") });
                         const embForm = Number(String(form.custo_embalagem || "").replace(",", ".")) || 0;
                         const precoForm = Number(String(form.preco_venda || "").replace(",", ".")) || 0;
                         const taxaMaqForm = form.taxa_maquininha !== "" && form.taxa_maquininha != null
@@ -4075,8 +4038,8 @@ function FichasRunner() {
                           : Number(paramsSis?.impostoPct ?? paramsSis?.imposto_pct ?? 4.0);
 
                         const finModal = calculateFichaFinanceiro({
-                          custoTotalIngredientes: custoTotalForm,
-                          rendimentoPorcoes: rendForm,
+                          custoTotalIngredientes: custoTotalForm / rendForm,
+                          rendimentoPorcoes: 1,
                           custoEmbalagemPorPorcao: embForm,
                           precoVenda: precoForm,
                           taxaMaquininhaPct: form.eh_base ? 0 : taxaMaqForm,
@@ -4099,8 +4062,9 @@ function FichasRunner() {
                               {/* Entradas Editáveis da Ficha */}
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                                  <div>
-                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Rendimento (porções)</label>
-                                    <input type="number" min="1" step="1" value={form.rendimento_porcoes} onChange={e => setForm({ ...form, rendimento_porcoes: e.target.value })} className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
+                                    <span className="text-3xs font-bold text-fg uppercase tracking-widest">Porções</span>
+                                    <p className="w-full p-2.5 mt-1 border border-line rounded-xl font-bold text-sm">{rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</p>
+                                    <span className="mt-1 block text-3xs font-medium text-fg">{form.eh_base ? "Pré-preparo: custo por unidade do rendimento." : (String(form.rendimento_unidade || "").toLowerCase() === "porcao" || String(form.rendimento_unidade || "").toLowerCase() === "un") ? "Do rendimento informado acima." : "Prato em peso: a ficha é uma porção."}</span>
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Embalagem (R$ / porção)</label>

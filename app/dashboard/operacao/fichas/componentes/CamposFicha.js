@@ -21,7 +21,7 @@ import {
 import {
   subUnidade, buscarOpcoes, custoDosItens, precoSuspeito, rendimentoSomado, rendimentoEhAutomatizavel,
 } from "../../../../lib/ficha-editor.mjs";
-import { parseNumero, calculateFichaFinanceiro } from "../../../../lib/ficha-calculos.mjs";
+import { parseNumero, calculateFichaFinanceiro, porcoesParaCusto } from "../../../../lib/ficha-calculos.mjs";
 
 const numero = (n, casas = 3) => (Number(n) || 0).toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
@@ -562,7 +562,8 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
   const taxaHerdada = parseNumero(padroes?.taxaMaquininhaPct ?? 2.5);
   const impostoHerdado = parseNumero(padroes?.impostoPct ?? 4.0);
   const custoTotalForm = custoDosItens(itens);
-  const rendForm = Math.max(1, parseNumero(form.rendimento_porcoes) || 1);
+  // Porções: a regra única (porcoesParaCusto) — a mesma do card da lista.
+  const { porcoes: rendForm } = porcoesParaCusto(form);
   const embForm = parseNumero(form.custo_embalagem);
   const precoForm = parseNumero(form.preco_venda);
   const taxaMaqForm = form.taxa_maquininha !== "" && form.taxa_maquininha != null
@@ -573,8 +574,8 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
     : impostoHerdado;
 
   const finModal = calculateFichaFinanceiro({
-    custoTotalIngredientes: custoTotalForm,
-    rendimentoPorcoes: rendForm,
+    custoTotalIngredientes: custoTotalForm / rendForm,
+    rendimentoPorcoes: 1,
     custoEmbalagemPorPorcao: embForm,
     precoVenda: precoForm,
     taxaMaquininhaPct: form.eh_base ? 0 : taxaMaqForm,
@@ -588,16 +589,9 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
     <SecaoEditor id="ficha-custos-precificacao" titulo="Custos e Precificação" destaque>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label htmlFor="ficha-rendimento-porcoes" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Rendimento (porções)</label>
-          <input
-            id="ficha-rendimento-porcoes"
-            type="number"
-            min="1"
-            step="1"
-            value={form.rendimento_porcoes || "1"}
-            onChange={e => mudar({ rendimento_porcoes: e.target.value })}
-            className="erp-input text-sm font-bold"
-          />
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Porções</span>
+          <p className="erp-input flex items-center text-sm font-bold">{rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</p>
+          <span className="mt-1 block text-3xs font-medium text-fg">{["porcao", "un"].includes(String(form.rendimento_unidade || "").toLowerCase()) ? "Do rendimento da ficha." : "A ficha do prato é uma porção: o custo por porção é o da receita."}</span>
         </div>
         <div>
           <label htmlFor="ficha-custo-embalagem" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Embalagem (R$ / porção)</label>

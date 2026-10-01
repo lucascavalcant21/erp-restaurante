@@ -28,6 +28,7 @@ export const CORES_CUSTO = ["#1E293B", "#334155", "#475569", "#64748B"];
 import {
   custoDeProduzirFicha, custoIngrediente, custoSubreceita,
   converterParaBaseDoInsumo, custoUnitarioEfetivoInsumo,
+  porcoesParaCusto, produtoDaFicha, entradasFinanceirasDaFicha,
 } from "./ficha-calculos.mjs";
 // ATENÇÃO: existem DUAS `unidadeNormalizada` no projeto. A de ficha-calculos
 // só arruma maiúsculas e ponto final; a que converte "g" em "kg" — que é a
@@ -35,9 +36,7 @@ import {
 // cada ingrediente por mil, e a abertura do CMV contradiz o próprio total.
 import { unidadeNormalizada as unidadeBaseDoInsumo } from "./ingredientes-utils.mjs";
 import { fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
-// O peso total da ficha era calculado aqui tambem, identico ao que a tela de
-// fichas fazia. Tres copias da mesma conta; agora uma so, com teste.
-import { pesoTotalDaFicha } from "./ficha-calculos.mjs";
+// O peso total e as porções vêm de porcoesParaCusto (ficha-calculos): regra única.
 
 const num = (v) => {
   const n = Number(v);
@@ -193,13 +192,11 @@ export function ehCustoDesprezivel(custo, preco) {
 
 // Quantas porções a ficha rende: direto, quando o rendimento já é em porções
 // ou unidades; pelo peso, quando é em kg/l/g/ml.
+// Regra única em porcoesParaCusto (ficha-calculos). Aqui devolve 0 quando a
+// ficha não diz as porções, para a tela poder avisar.
 export function porcoesDaFicha(ficha = {}) {
-  const rendimento = num(ficha.rendimento_porcoes) || 0;
-  const pesoPorcao = num(ficha.peso_porcao_g) || 0;
-  const un = String(ficha.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rendimento;
-  const total = pesoTotalDaFicha(rendimento, un, pesoPorcao);
-  return pesoPorcao > 0 && total > 0 ? total / pesoPorcao : 0;
+  const { porcoes, definidas } = porcoesParaCusto(ficha);
+  return definidas ? porcoes : 0;
 }
 
 export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = {} } = {}) {
@@ -218,16 +215,16 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
   const semRendimento = !(porcoes > 0);
   const custoPorcao = semRendimento ? custoTotal : custoTotal / porcoes;
 
-  // O preço mandado é o do produto de venda; a ficha só responde quando não há
-  // produto ligado a ela.
-  const prod = produtos.find((x) => x.ficha_id === ficha.id
-    || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
-  const preco = (prod && num(prod.preco_venda) > 0) ? num(prod.preco_venda) : num(ficha.preco_venda);
-
-  const custoEmbalagem = (ficha.embalagens || []).reduce(
-    (acc, e) => acc + (num(e.custo) || num(e.preco_unitario)) * (num(e.qtd) || 1), 0);
-
-  const custoIngredientes = Math.max(0, custoPorcao - custoEmbalagem);
+  // Preço, embalagem, imposto e maquininha: as mesmas regras do card de
+  // Fichas (entradasFinanceirasDaFicha), para a pizza e o card nunca
+  // mostrarem números diferentes para o mesmo prato.
+  const prod = produtoDaFicha(ficha, produtos);
+  const ent = entradasFinanceirasDaFicha(ficha, { produto: prod, params });
+  const preco = ent.precoVenda;
+  // A embalagem por porção é parcela À PARTE do custo da receita (o card soma
+  // as duas). Antes ela era subtraída do custo como se já estivesse dentro.
+  const custoEmbalagem = ficha.eh_base ? 0 : ent.custoEmbalagemPorPorcao;
+  const custoIngredientes = Math.max(0, custoPorcao);
 
   // Abertura do CMV: cada ingrediente da ficha, já por porção. Quando não dá
   // para saber as porções, o rendimento inteiro conta como uma — o mesmo
@@ -253,8 +250,8 @@ export function dadosDoPrato(ficha = {}, { fichas = [], produtos = [], params = 
     semCusto: !semRendimento && ehCustoDesprezivel(custoIngredientes + custoEmbalagem, preco),
     departamento: String(ficha.departamento || ficha.tipo_base || "").toLowerCase(),
     // Base (pré-preparo) não se vende, então imposto e maquininha não incidem.
-    impostoPct: ficha.eh_base ? 0 : num(ficha.imposto_pct ?? prod?.aliquota_imposto ?? 4),
-    taxaMaquininhaPct: ficha.eh_base ? 0 : num(ficha.taxa_maquininha ?? prod?.taxa_cartao ?? 2.5),
+    impostoPct: ent.impostoPct,
+    taxaMaquininhaPct: ent.taxaMaquininhaPct,
     params,
   };
 }

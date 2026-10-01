@@ -1,5 +1,5 @@
 "use client";
-import { custoDeProduzirFicha as custoTotalDaFicha } from "../../../lib/ficha-calculos.mjs";
+import { custoDeProduzirFicha as custoTotalDaFicha, porcoesParaCusto } from "../../../lib/ficha-calculos.mjs";
 
 import { useState, useEffect, useMemo } from "react";
 import { Percent, AlertCircle, Crown, History, X, TrendingUp, TrendingDown } from "lucide-react";
@@ -33,13 +33,10 @@ const META_CMV = 30; // % alvo máximo de CMV (acima disso = atenção)
 
 // Nº real de porções: direto (porções/un) ou derivado do peso total quando
 // o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
+// Regra única de porções (ficha-calculos.mjs). Prato que rende em peso é
+// uma porção: dividir pela soma dos pesos dava custo por kg.
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return porcoesParaCusto(f).porcoes;
 }
 
 export default function CmvPage() {

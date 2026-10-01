@@ -8,6 +8,11 @@
    Ingrediente comum não muda: a perda dele entra pelo fator da linha da
    ficha (fichas_ingredientes.fator_correcao), corrigido em 01/10/2026.
 
+   QUANDO RODAR: só num banco que JÁ TEM a produção integrada instalada com a
+   versão antiga. Sem a função, não faz nada. Desde 01/10/2026 a própria
+   migracao_operacao_integrada.sql já cria a função corrigida — quem instalar
+   a partir dela NÃO precisa deste arquivo.
+
    Só substitui a função se ela existir; guarda a definição atual antes.
    Lê as colunas novas por to_jsonb, para não quebrar se alguma faltar. */
 

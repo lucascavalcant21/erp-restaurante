@@ -45,20 +45,35 @@ begin
   raise exception 'Unidades incompatíveis: % → %', de, para;
 end $$;
 
+-- Empanado: compra / rendimento / (1 + ganho) + empanamento por kg final —
+-- a perda de limpeza sai ANTES do empanamento, igual a custo-rendimento.mjs
+-- (corrigido em 01/10/2026; db/correcao_custo_insumo_empanado.sql traz a mesma
+-- função para bancos que já tinham a versão antiga).
 create or replace function public.operacao_custo_insumo(p_insumo uuid)
 returns numeric language plpgsql stable security invoker set search_path = public as $$
-declare i public.insumos%rowtype; base numeric; tamanho numeric; un text;
+declare i public.insumos%rowtype; j jsonb; base numeric; tamanho numeric; un text;
+  bruto numeric; perda_g numeric; perda_pct numeric; rend numeric := 1;
 begin
   select * into strict i from public.insumos where id = p_insumo;
+  j := to_jsonb(i);
   un := lower(i.unidade_medida);
   tamanho := coalesce(nullif(i.tamanho_embalagem,0),1);
   -- Preço normalizado está em kg/L. Retorno está na unidade física do insumo.
   base := coalesce(nullif(i.preco_normalizado,0),
     coalesce(nullif(i.custo_compra,0),i.custo_unitario*tamanho,0)
       / tamanho * case when un in ('g','ml') then 1000 else 1 end,0);
-  if coalesce(i.empanado,false) then
-    base := base / greatest(1 + coalesce(i.ganho_pct,0)/100,0.000001)
-      + case when un in ('kg','g') then coalesce(i.custo_empanado_kg,0) else 0 end;
+  if coalesce((j->>'empanado')::boolean,false) then
+    -- Rendimento: mesma regra de rendimentoDoInsumo (custo-rendimento.mjs).
+    bruto := nullif(j->>'peso_bruto_padrao','')::numeric;
+    perda_g := nullif(j->>'perda_g','')::numeric;
+    perda_pct := nullif(j->>'perda_pct','')::numeric;
+    if bruto > 0 and perda_g is not null then
+      if perda_g >= 0 and perda_g < bruto then rend := (bruto - perda_g) / bruto; end if;
+    elsif perda_pct is not null and perda_pct >= 0 and perda_pct < 100 then
+      rend := 1 - perda_pct / 100;
+    end if;
+    base := base / rend / greatest(1 + greatest(coalesce((j->>'ganho_pct')::numeric,0),0)/100, 0.000001)
+      + case when un in ('kg','g') then coalesce((j->>'custo_empanado_kg')::numeric,0) else 0 end;
   end if;
   return base / case when un in ('g','ml') then 1000 else 1 end;
 end $$;

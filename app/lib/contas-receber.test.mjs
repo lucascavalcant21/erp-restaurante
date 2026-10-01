@@ -39,7 +39,10 @@ conferir("3 recebíveis: bruto 100 cada, taxa 3 cada, mês a mês", m3.map((l) =
 conferir("validação: previsão antes da venda recusada", validarRecebivel({ descricao: "x", valor_bruto: 10, data_venda: "2026-10-10", data_prevista: "2026-10-01", meio: "pix" }).ok, false);
 
 // ── 2. banco simulado ────────────────────────────────────────────────────────
-const pg = await criarBancoF21(raiz);
+// SEC_FIN_2=1 roda a suíte inteira com a correção de menor privilégio aplicada
+const SEC_FIN_2 = process.env.SEC_FIN_2 === "1";
+console.log(`(privilégios: padrão Supabase + F2.1${SEC_FIN_2 ? " + SEC-FIN-2" : " — estado de produção em 01/10"})`);
+const pg = await criarBancoF21(raiz, "", { secFin2: SEC_FIN_2 });
 if (!pg) { console.log("\nPGLITE não informado: integração NÃO executada."); process.exit(2); }
 const db = clienteSupabase(pg);
 const U = "seldeestrela";
@@ -146,6 +149,17 @@ conferir("regras de botão: parcial pode receber e não pode cancelar", [podeRec
 const ed = await editarContaReceber(db, { id: c1.data[0], unidade_id: U, contaAtual: vparc, descricao: "Evento — casamento (sinal)", valor_bruto: 1000 });
 conferir("editar: grava só o que mudou", ed.data?.alterados, ["descricao"]);
 conferir("editar bruto depois de recebimento → recusado", /não pode mudar/.test((await editarContaReceber(db, { id: c1.data[0], unidade_id: U, contaAtual: vparc, descricao: "x", valor_bruto: 2000 })).error), true);
+// edição completa (todos os campos que a tela altera) numa conta sem recebimento:
+// prova que o UPDATE por coluna da SEC-FIN-2 cobre tudo o que a F2.3 grava
+const semRecebimento = (await listar()).find((c) => c.descricao === "Teste credito");
+const extra = (await pg.query(`select nsu, autorizacao, observacao, conta_financeira_prevista_id from public.fin_contas_receber where id = $1`, [semRecebimento.id])).rows[0];
+const edTudo = await editarContaReceber(db, { id: semRecebimento.id, unidade_id: U, contaAtual: { ...semRecebimento, ...extra },
+  descricao: "Teste crédito (editado)", valor_bruto: "12,50", valor_taxa_previsto: "0,50", data_venda: "2026-09-01", data_prevista: "2026-09-15",
+  adquirente: "Cielo", bandeira: "Master", nsu: "123", autorizacao: "AB1", observacao: "conferido", conta_financeira_prevista_id: banco.data.id });
+conferir("edição completa (bruto, taxa, datas, cartão, NSU, conta prevista, obs) grava",
+  [edTudo.error, (edTudo.data?.alterados || []).sort()],
+  [null, ["adquirente", "autorizacao", "bandeira", "conta_financeira_prevista_id", "data_prevista", "data_venda", "descricao", "nsu", "observacao", "taxa_fixa_prevista", "taxa_percentual_prevista", "taxa_regra_id", "valor_bruto", "valor_taxa_previsto"]]);
+conferir("renomear conta financeira grava", (await editarContaFinanceira(db, { id: banco.data.id, unidade_id: U, nome: "Banco X (principal)" })).error, null);
 
 // ── 12. idempotência, duplo clique, erro de banco ────────────────────────────
 conferir("retry da criação (mesma chave) → idempotente", (await criarContaReceber(db, { unidade_id: U, descricao: "Evento — casamento", meio: "pix", valor_bruto: 1000, data_venda: HOJE, data_prevista: HOJE }, { chave: "rec-1" })).idempotente, true);
@@ -199,10 +213,7 @@ conferir("abrir Contas a Receber não grava nada", /salvar|receberConta|cancelar
 // F2.1 só retirou parte. Produção ficou: views com DELETE/INSERT/UPDATE/
 // TRUNCATE e tabelas com REFERENCES/TRIGGER. Reproduz e tenta abusar.
 {
-  await pg.exec(`
-    grant all on public.vw_fin_contas_receber, public.vw_fin_fluxo_caixa, public.vw_fin_saldo_contas_financeiras to authenticated;
-    grant references, trigger on public.fin_contas_receber, public.fin_recebimentos, public.fin_contas_financeiras, public.fin_taxas_meio_pagamento to authenticated;
-  `);
+  // (os privilégios vêm do padrão Supabase reproduzido em teste-banco-f21.mjs)
   const comoSql = async (unidade, sql) => {
     await pg.exec("reset role");
     await pg.query(`select set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333333',false), set_config('test.unidade',$1,false), set_config('test.rede','false',false)`, [unidade]);
@@ -222,7 +233,8 @@ conferir("abrir Contas a Receber não grava nada", /salvar|receberConta|cancelar
   };
   conferir("privilégios de produção: INSERT/UPDATE/DELETE/TRUNCATE nas views não funcionam",
     Object.entries(ataques).slice(0, 5).map(([k, r]) => [k, r.ok]), Object.keys(ataques).slice(0, 5).map((k) => [k, false]));
-  conferir("privilégios de produção: outra unidade não altera nada pela view (0 linhas)", ataques["outra unidade altera conta financeira pela view"].linhas, 0);
+  const viaView = ataques["outra unidade altera conta financeira pela view"];
+  conferir("privilégios de produção: outra unidade não altera nada pela view", !viaView.ok || viaView.linhas === 0, true);
   const criarTrigger = await comoSql(U, `create function public.x_trg() returns trigger language plpgsql as $f$ begin return new; end $f$`);
   // Em produção a proteção real é outra: o app só fala com o banco pela API (PostgREST),
   // que não executa DDL. Aqui só se confirma que o papel não cria função no schema.
@@ -230,7 +242,8 @@ conferir("abrir Contas a Receber não grava nada", /salvar|receberConta|cancelar
   // O que JÁ era possível (e continua): editar a própria conta financeira, inclusive saldo_inicial,
   // direto na tabela (UPDATE concedido). A tela não deixa; o banco deixa. Registrado como pendência.
   const saldoDireto = await comoSql(U, `update public.fin_contas_financeiras set saldo_inicial = saldo_inicial where id = '${contaFin}'`);
-  conferir("[pendência conhecida] a própria unidade consegue alterar saldo_inicial direto na tabela", saldoDireto.linhas, 1);
+  if (SEC_FIN_2) conferir("SEC-FIN-2: saldo_inicial não é mais alterável pela API", [saldoDireto.ok, /permission denied/.test(saldoDireto.erro || "")], [false, true]);
+  else conferir("[pendência conhecida] a própria unidade consegue alterar saldo_inicial direto na tabela", saldoDireto.linhas, 1);
 }
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os testes passaram.");

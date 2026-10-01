@@ -57,6 +57,8 @@ Rodar `db/diagnosticos/F2_3_AUDITORIA_RECEBER.sql` (somente leitura, um resultad
 
 **Conclusão pela regra do item 21:** nenhuma brecha entre unidades. A F2.3 pode ser publicada quando você autorizar.
 
+**Atualização — SEC-FIN-2:** a pedido, preparei a correção de menor privilégio para estes objetos (views só SELECT; `fin_recebimentos` só SELECT; UPDATE por coluna nas 3 tabelas). Ela está em `RELATORIO-SEC-FIN-2-MENOR-PRIVILEGIO.md`, NÃO foi executada e aguarda aprovação antes do deploy da F2.3.
+
 ## 1. Estrutura encontrada (F2.1, aplicada em produção em 01/10)
 
 A F2.1 foi aplicada pelo arquivo `db/F2_1_FUNDACAO_FINANCEIRA.sql` desta mesma linha. O diagnóstico pós-migration confirmou:

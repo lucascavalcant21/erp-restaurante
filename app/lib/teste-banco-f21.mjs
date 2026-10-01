@@ -3,12 +3,18 @@
 // (from/select/insert/update/eq/in/gte/lte/order/single + rpc), rodando com
 // papel `authenticated`, auth.uid() e RLS por unidade — como em produção.
 // Nada aqui toca o banco de produção.
+//
+// Privilégios: por padrão reproduz o MECANISMO do Supabase em produção — ALL
+// ao authenticated em toda tabela/view nova e EXECUTE de função a anon e
+// authenticated (o anon já não ganha tabelas desde a SEC-DADOS-3). Os revokes
+// da F2.1 rodam por cima, chegando ao estado auditado em 01/10/2026.
+// `secFin2: true` aplica db/security/SEC_FIN_2_MENOR_PRIVILEGIO_F23.sql depois.
 
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export async function criarBancoF21(raiz, extraSql = "") {
+export async function criarBancoF21(raiz, extraSql = "", { padraoSupabase = true, secFin2 = false } = {}) {
   if (!process.env.PGLITE) return null;
   const { PGlite } = await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "index.js")).href);
   const pg = new PGlite();
@@ -36,7 +42,14 @@ export async function criarBancoF21(raiz, extraSql = "") {
     insert into public.unidades values ('seldeestrela','Unidade'), ('outra','Outra');
     ${extraSql}
   `);
+  if (padraoSupabase) {
+    await pg.exec(`
+      alter default privileges in schema public grant all on tables to authenticated;
+      alter default privileges in schema public grant all on functions to anon, authenticated;
+    `);
+  }
   await pg.exec(fs.readFileSync(path.join(raiz, "db", "F2_1_FUNDACAO_FINANCEIRA.sql"), "utf8"));
+  if (secFin2) await pg.exec(fs.readFileSync(path.join(raiz, "db", "security", "SEC_FIN_2_MENOR_PRIVILEGIO_F23.sql"), "utf8"));
   return pg;
 }
 

@@ -132,12 +132,12 @@ export default function CaixaEContasPage() {
               <div className="bg-card rounded-3xl border border-line p-4">
                 <p className="text-3xs font-black uppercase text-sky-700">Previsto (contas em aberto no período — ainda não é dinheiro)</p>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                  <div><p className="text-fg font-bold">A receber (líquido)</p><p className="font-black">{resumo.previsto.entradasIncompletas && !resumo.previsto.entradasConhecidas ? "Não apurado" : fmtBRL(resumo.previsto.entradas)}</p></div>
+                  <div><p className="text-fg font-bold">A receber (líquido)</p><p className="font-black">{resumo.previsto.entradasIncompletas ? "NÃO APURADO" : fmtBRL(resumo.previsto.entradas)}</p></div>
                   <div><p className="text-fg font-bold">A pagar</p><p className="font-black">{fmtBRL(resumo.previsto.saidas)}</p></div>
                 </div>
                 {resumo.previsto.entradasIncompletas && <p className="text-3xs text-amber-700 mt-2">{resumo.previsto.brutoSemTaxa == null
-                  ? "Há recebíveis com taxa não informada: o líquido previsto deles não entra na soma."
-                  : `${resumo.previsto.entradasConhecidas ? "Fora da soma: " : ""}${fmtBRL(resumo.previsto.brutoSemTaxa)} bruto em recebíveis com taxa não informada. O líquido depende da taxa (cadastre em "Taxas de cartão/plataforma").`}</p>}
+                  ? "Há recebíveis com taxa não informada: o líquido previsto não pode ser apurado."
+                  : `${fmtBRL(resumo.previsto.brutoSemTaxa)} bruto em recebíveis com taxa não informada.${resumo.previsto.entradasConhecidas ? ` Líquido previsto dos demais: ${fmtBRL(resumo.previsto.entradas)}.` : ""} O líquido depende da taxa (cadastre em "Taxas de cartão/plataforma").`}</p>}
               </div>
             </div>
             <p className="text-3xs text-fg">Fluxo pela data do movimento financeiro (não competência). Lançamentos do extrato antigo (PDV/lançamentos manuais) ainda não entram aqui: o realizado mostra só pagamentos e recebimentos registrados no financeiro novo.</p>

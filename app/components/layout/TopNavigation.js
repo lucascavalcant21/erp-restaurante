@@ -59,6 +59,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?gestao=1" },
         { label: "Inventários / Contagens", href: "/dashboard/operacao/estoque/contagens" },
         { label: "Compras e Custo Médio", href: "/dashboard/operacao/estoque/compras" },
+        { label: "CMV Real", href: "/dashboard/operacao/estoque/cmv" },
         { label: "Cotações e Compras", href: "/dashboard/operacao/compras" },
         { label: "Recebimento de Notas", href: "/dashboard/operacao/notas" },
         { label: "Fornecedores", href: "/dashboard/operacao/fornecedores" },

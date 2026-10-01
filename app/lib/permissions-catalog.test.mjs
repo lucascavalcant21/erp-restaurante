@@ -130,6 +130,8 @@ conferir("contador NAO finaliza; gerente de estoque finaliza",
 const comprador = { gerenciado: true, papel: "colaborador", permissions: ["estoque.purchases.view", "estoque.purchases.create"] };
 conferir("comprador entra em Compras, nao confirma; contador nao entra em Compras",
   `${canAccessRoute(comprador, "/dashboard/operacao/estoque/compras", "")}|${hasPermission(comprador, "estoque.purchases.confirm")}|${canAccessRoute(contador, "/dashboard/operacao/estoque/compras", "")}`, "true|false|false");
+conferir("CMV real tem permissao propria (comprador e contador nao entram sem ela)",
+  `${canAccessRoute({ gerenciado: true, papel: "colaborador", permissions: ["estoque.cmv.view"] }, "/dashboard/operacao/estoque/cmv", "")}|${canAccessRoute(comprador, "/dashboard/operacao/estoque/cmv", "")}`, "true|false");
 conferir("quem so tem a visao geral do estoque nao entra na contagem sem a permissao propria",
   canAccessRoute({ gerenciado: true, papel: "colaborador", permissions: ["estoque.overview.view"] }, "/dashboard/operacao/estoque/contagens", ""), "false");
 

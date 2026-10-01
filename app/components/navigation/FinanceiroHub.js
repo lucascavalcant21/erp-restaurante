@@ -14,6 +14,7 @@ import { fetchEstoque } from "../../lib/estoque";
 import { calcularCMO } from "../../lib/cmo.mjs";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
 import { fmtBRL, fmtPct } from "../../components/ui";
+import PosicaoFinanceira from "./PosicaoFinanceira";
 import {
   HubHeader,
   HubAttentionCard,
@@ -260,6 +261,9 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
         {/* ─── VISÃO COMPLETA FINANCEIRA (USUÁRIO AUTORIZADO) ─── */}
         {podeVerFinanceiroTotal ? (
           <>
+            {/* Posição real (F2.3): contas a pagar/receber, caixa e saldo gerencial */}
+            <PosicaoFinanceira unidadeId={unidadeAtiva} />
+            <p className="text-3xs text-slate-400">Faturamento: NÃO APURADO — não há fonte completa de vendas conectada. O bloco "Movimento do extrato" abaixo soma só lançamentos registrados no extrato antigo.</p>
             {/* SEÇÃO 1: "PRECISA DA SUA ATENÇÃO" */}
             <div className="space-y-3">
               <HubSectionHeader
@@ -377,23 +381,23 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
               <div className="lg:col-span-2 space-y-3">
                 <HubSectionHeader
                   icon={DollarSign}
-                  title="Resultado do Período"
-                  badgeText={`Margem: ${fmtPct(margemLiquidaPct)}`}
-                  badgeVariant={margemLiquidaPct >= 0 ? "green" : "red"}
+                  title="Movimento do extrato no período"
+                  badgeText="Parcial — não é DRE"
+                  badgeVariant="amber"
                 />
 
                 <HubCardContainer className="space-y-4 flex flex-col justify-between">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
                     <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Receita Bruta</p>
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Entradas no extrato</p>
                       <p className="text-xl font-black text-white mt-1">{fmtBRL(receitaBrutaPeriodo)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Despesas / Custos</p>
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Saídas no extrato</p>
                       <p className="text-xl font-black text-slate-300 mt-1">{fmtBRL(despesasPeriodo)}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Resultado Líquido</p>
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Saldo do extrato</p>
                       <p className={`text-2xl font-black mt-1 ${resultadoLiquido >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         {resultadoLiquido >= 0 ? `+ ${fmtBRL(resultadoLiquido)}` : `- ${fmtBRL(Math.abs(resultadoLiquido))}`}
                       </p>
@@ -467,7 +471,7 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase">Variação de Receita</p>
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase">Variação das entradas do extrato</p>
                   <p className={`text-xl font-black mt-1 ${varReceitaPct === null ? "text-slate-400" : varReceitaPct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                     {varReceitaPct === null ? "Sem base de comparação" : `${varReceitaPct >= 0 ? "↑" : "↓"} ${Math.abs(varReceitaPct).toFixed(1)}%`}
                   </p>
@@ -538,7 +542,7 @@ export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard/financeiro/fluxo")}
+                  onClick={() => router.push("/dashboard/financeiro/caixa")}
                   className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
                   <DollarSign size={18} className="text-emerald-400 shrink-0" />

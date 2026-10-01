@@ -16,6 +16,17 @@ import {
   lancarContaPagar,
   gerarRecorrentes
 } from "./contas-pagar.mjs";
+import {
+  criarContaReceber,
+  editarContaReceber,
+  registrarRecebimento,
+  estornarRecebimento,
+  cancelarContaReceber,
+  criarContaFinanceira,
+  editarContaFinanceira,
+  criarTaxa,
+  encerrarTaxa
+} from "./contas-receber.mjs";
 
 // Fonte única das categorias: contas-pagar.mjs (inclui "manutencao", usada pela
 // Manutenção e antes ausente da lista).
@@ -194,6 +205,95 @@ export async function cancelarContaPagar(contaId, motivo) {
 export async function gerarContasRecorrentes(unidadeId, contas, competenciaAlvo) {
   if (!isSupabaseReady()) return { error: "Offline" };
   return gerarRecorrentes(supabase, { unidade_id: unidadeId, contas, competenciaAlvo });
+}
+
+// ─── CONTAS A RECEBER / CAIXA F2.3 (arquitetura F2.1; escrita em contas-receber.mjs) ──
+
+/** Recebíveis: view (saldo, situação) + campos de detalhe da tabela base. */
+export async function fetchContasReceber(unidadeId) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: [], error: "Selecione uma unidade." };
+  const [v, b] = await Promise.all([
+    supabase.from("vw_fin_contas_receber").select("*").eq("unidade_id", unidadeId).order("data_prevista", { ascending: true }),
+    supabase.from("fin_contas_receber")
+      .select("id, nsu, autorizacao, observacao, conta_financeira_prevista_id, taxa_percentual_prevista, taxa_fixa_prevista, taxa_regra_id, cancelado_em, motivo_cancelamento, updated_at, atualizado_por")
+      .eq("unidade_id", unidadeId),
+  ]);
+  if (v.error || b.error) return { data: [], error: (v.error || b.error).message };
+  const extra = new Map((b.data || []).map((x) => [x.id, x]));
+  return { data: (v.data || []).map((c) => ({ ...extra.get(c.id), ...c })), error: null };
+}
+
+export async function fetchRecebimentosDaConta(contaId) {
+  if (!isSupabaseReady() || !contaId) return { data: [], error: null };
+  const { data, error } = await supabase.from("fin_recebimentos").select("*")
+    .eq("conta_receber_id", contaId).order("created_at", { ascending: true });
+  return { data: data || [], error: error?.message || null };
+}
+
+/** Recebimentos (caixa) de um período, por data do recebimento. */
+export async function fetchRecebimentosPeriodo(unidadeId, de, ate) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId) || !de || !ate) return { data: [], error: null };
+  const { data, error } = await supabase.from("fin_recebimentos")
+    .select("id, conta_receber_id, recebido_em, valor_bruto_baixado, valor_liquido_recebido, valor_taxa_efetiva, estornado_em")
+    .eq("unidade_id", unidadeId).gte("recebido_em", de).lte("recebido_em", ate);
+  return { data: data || [], error: error?.message || null };
+}
+
+export async function fetchTaxasMeioPagamento(unidadeId) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: [], error: null };
+  const { data, error } = await supabase.from("fin_taxas_meio_pagamento").select("*")
+    .eq("unidade_id", unidadeId).order("meio").order("vigente_desde", { ascending: false });
+  return { data: data || [], error: error?.message || null };
+}
+
+/** Contas financeiras com saldo GERENCIAL (saldo inicial + recebimentos − pagamentos). */
+export async function fetchSaldosContasFinanceiras(unidadeId) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: [], error: null };
+  const [s, c] = await Promise.all([
+    supabase.from("vw_fin_saldo_contas_financeiras").select("*").eq("unidade_id", unidadeId).order("nome"),
+    supabase.from("fin_contas_financeiras").select("id, ativa").eq("unidade_id", unidadeId),
+  ]);
+  if (s.error) return { data: [], error: s.error.message };
+  const ativa = new Map((c.data || []).map((x) => [x.id, x.ativa]));
+  return { data: (s.data || []).map((x) => ({ ...x, ativa: ativa.get(x.id) !== false })), error: null };
+}
+
+/** Fluxo de caixa (realizado × previsto) num intervalo de datas. */
+export async function fetchFluxoCaixa(unidadeId, de, ate) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId) || !de || !ate) return { data: [], error: null };
+  const { data, error } = await supabase.from("vw_fin_fluxo_caixa").select("*")
+    .eq("unidade_id", unidadeId).gte("data", de).lte("data", ate).order("data", { ascending: true });
+  return { data: data || [], error: error?.message || null };
+}
+
+export async function salvarContaReceber(conta, opcoes = {}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const r = conta?.id ? await editarContaReceber(supabase, conta) : await criarContaReceber(supabase, conta, opcoes);
+  return { data: r.data, error: r.error, idempotente: r.idempotente };
+}
+export async function receberConta(p) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return registrarRecebimento(supabase, p);
+}
+export async function estornarRecebimentoConta(recebimentoId, motivo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return estornarRecebimento(supabase, { recebimento_id: recebimentoId, motivo });
+}
+export async function cancelarRecebivel(id, unidadeId, motivo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return cancelarContaReceber(supabase, { id, unidade_id: unidadeId, motivo });
+}
+export async function salvarContaFinanceiraF23(conta) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return conta?.id ? editarContaFinanceira(supabase, conta) : criarContaFinanceira(supabase, conta);
+}
+export async function cadastrarTaxa(taxa) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return criarTaxa(supabase, taxa);
+}
+export async function encerrarTaxaMeio(id, unidadeId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  return encerrarTaxa(supabase, { id, unidade_id: unidadeId });
 }
 
 // ─── DRE E FLUXO DE CAIXA DE ALTA PERFORMANCE ──────────────────────────────

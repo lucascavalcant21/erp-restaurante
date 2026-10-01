@@ -313,10 +313,11 @@ conferir("sem UUID falso de unidade", appSrc.includes("00000000-0000-0000-0000-0
   const menu = ler("app/components/layout/TopNavigation.js");
   const central = ler("app/components/navigation/FinanceiroHub.js");
   const menuFin = menu.slice(menu.indexOf('id: "financeiro"'));
-  conferir("menu Financeiro: Visão Geral, Contas a Pagar, Vendas e Recebimentos, DRE Gerencial",
-    [...menuFin.matchAll(/label: "([^"]+)", href: "([^"]+)"/g)].slice(0, 4).map((m) => [m[1], m[2]]),
+  conferir("menu Financeiro: Visão Geral, Contas a Pagar, Contas a Receber, Caixa e Contas, DRE Gerencial",
+    [...menuFin.matchAll(/label: "([^"]+)", href: "([^"]+)"/g)].slice(0, 5).map((m) => [m[1], m[2]]),
     [["Visão Geral", "/dashboard/financeiro"], ["Contas a Pagar", "/dashboard/financeiro/contas"],
-     ["Vendas e Recebimentos", "/dashboard/vendas"], ["DRE Gerencial", "/dashboard/financeiro/dre"]]);
+     ["Contas a Receber", "/dashboard/financeiro/receber"], ["Caixa e Contas", "/dashboard/financeiro/caixa"],
+     ["DRE Gerencial", "/dashboard/financeiro/dre"]]);
   conferir("Central: botão direto 'Contas a Pagar' no topo", /push\("\/dashboard\/financeiro\/contas"\)[\s\S]{0,120}Contas a Pagar/.test(central), true);
   conferir("Central: 'Resolver' abre Contas a Pagar filtrado em vencidas", (() => { const i = central.indexOf("Resolver"); const trecho = central.slice(Math.max(0, i - 250), i); return i > 0 && trecho.includes('"/dashboard/financeiro/contas?situacao=vencido"'); })(), true);
   conferir("tela lê o filtro da URL (recarregar mantém)", /params\?\.get\("situacao"\)/.test(pagina) && /params\?\.get\("periodo"\)/.test(pagina), true);

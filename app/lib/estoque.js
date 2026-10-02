@@ -125,7 +125,36 @@ export async function fetchProducaoDeHoje(unidadeId, { colaboradorId = null, dep
   return { data: lista, error: null };
 }
 
+// Registro simples: grava a produção em producao_diaria sem a produção
+// integrada (RPC) e sem travar por saldo. Colunas que o banco não tem saem
+// do envio (o básico — unidade, ficha, quem, quanto — sempre vai).
+const COLUNAS_ESSENCIAIS_PRODUCAO = new Set(["unidade_id", "ficha_id", "quantidade_produzida"]);
+export async function registrarProducaoSimples(registro) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const campos = Object.fromEntries(Object.entries(registro).filter(([, v]) => v !== undefined));
+  const ignoradas = [];
+  for (let tentativa = 0; tentativa < 12; tentativa++) {
+    const { data, error } = await supabase.from("producao_diaria").insert(campos).select("id").single();
+    if (!error) {
+      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("hefisto:mudou", { detail: { tabela: "producao_diaria" } }));
+      return { success: true, data, colunasIgnoradas: ignoradas };
+    }
+    const m = /column "?([a-z_]+)"? of relation "?producao_diaria"? does not exist|Could not find the '([a-z_]+)' column/i.exec(error.message || "");
+    const col = m && (m[1] || m[2]);
+    if (!col || !(col in campos) || COLUNAS_ESSENCIAIS_PRODUCAO.has(col)) {
+      if (/relation .*producao_diaria.* does not exist|Could not find the table/i.test(error.message || "")) {
+        return { error: "A tabela de produção (producao_diaria) não existe neste banco. Rode db/migracao_producao_salao.sql no SQL Editor." };
+      }
+      return { error: error.message };
+    }
+    delete campos[col];
+    ignoradas.push(col);
+  }
+  return { error: "Não foi possível gravar a produção." };
+}
+
 // O banco relê ficha, custos e saldos e confirma tudo na mesma transação.
+// (Produção integrada: exige db/migracao_operacao_integrada.sql instalada.)
 export async function registrarProducao(unidadeId, ficha, quantidade, colaboradorId, todasFichas = [], opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   if (!unidadeId || !ficha?.id || !Number.isFinite(Number(quantidade)) || Number(quantidade) <= 0) return { error: "Produção inválida." };

@@ -84,3 +84,49 @@ export function totaisPorUnidade(producoes) {
     return acc;
   }, {});
 }
+
+// ─── Registro simples de produção ───────────────────────────────────────────
+// A produção integrada (baixa de estoque com trava de saldo, no banco) não
+// está instalada, e com o estoque ainda sem contagem ela recusaria toda
+// produção. O registro simples grava O QUE foi produzido, QUANTO, POR QUEM e
+// a que CUSTO (pela ficha, com perda) — sem travar por saldo e sem mexer no
+// estoque. O consumo aparece como previsão, para conferência.
+
+const n = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(x) ? x : NaN; };
+const nomeDoItem = (item) => item.subficha_id ? (item.insumo?.nome || "Pré-preparo") : (item.insumo?.nome || "Ingrediente");
+
+export function previaProducaoSimples(ficha, quantidade, todasFichas = []) {
+  const qtd = n(quantidade);
+  if (!ficha) return { erros: ["Escolha a ficha."], itens: [] };
+  if (!(qtd > 0)) return { erros: ["Informe uma quantidade maior que zero."], itens: [] };
+  const calc = calcularConsumoProducao(ficha, qtd, todasFichas);
+  return {
+    erros: calc.erros,
+    rendimento: Number(ficha.rendimento_porcoes) || null,
+    unidade: unidadeProducao(ficha),
+    receitas: calc.receitas,
+    custo_estimado: calc.custoEstimado,
+    itens: calc.itens.map((i) => ({
+      chave: i.chave, insumo_id: i.insumo?.id || null, subficha_id: i.subficha_id || null,
+      nome: nomeDoItem(i), necessario: Math.round(i.quantidade * 1000) / 1000, unidade: i.insumo?.unidade_medida || "un",
+    })),
+  };
+}
+
+// A linha gravada em producao_diaria. Campos além do básico (custo, receita,
+// unidade, chave) só entram se a coluna existir — quem grava descarta os que
+// o banco recusar.
+export function registroDeProducao({ unidadeId, ficha, quantidade, colaboradorId, previa, departamento, localArmazenamento, chave }) {
+  return {
+    unidade_id: unidadeId,
+    ficha_id: ficha.id,
+    colaborador_id: colaboradorId || null,
+    quantidade_produzida: Math.round(n(quantidade) * 1000) / 1000,
+    departamento: departamento || ficha.departamento || null,
+    local_armazenamento: localArmazenamento || null,
+    unidade_medida: unidadeProducao(ficha),
+    custo_total: previa?.custo_estimado != null ? Math.round(previa.custo_estimado * 100) / 100 : null,
+    receita_snapshot: previa ? { ficha: ficha.nome_receita, rendimento: previa.rendimento, unidade: previa.unidade, itens: previa.itens } : null,
+    chave_operacao: chave || null,
+  };
+}

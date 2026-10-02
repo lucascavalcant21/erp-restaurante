@@ -7,13 +7,13 @@ import { useTempoReal } from "../../../lib/realtime";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
-import { calcularConsumoProducao, fetchProducoesPeriodo, registrarProducao, preverProducao } from "../../../lib/estoque";
+import { fetchProducoesPeriodo, registrarProducaoSimples } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchEstoques, fetchItensEstoque } from "../../../lib/estoques-multiplos";
 import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList, Boxes, History, Search, CheckCircle2 } from "lucide-react";
-import { dataOperacional, ehEstoqueavel, unidadeProducao, totaisPorUnidade } from "../../../lib/producao-calculos.mjs";
+import { dataOperacional, ehEstoqueavel, unidadeProducao, totaisPorUnidade, previaProducaoSimples, registroDeProducao } from "../../../lib/producao-calculos.mjs";
 import { salvarPlanoProducao } from "../../../lib/memorandos";
 import { fmtBRL } from "../../../components/ui";
 
@@ -70,6 +70,7 @@ function ProducaoRunner() {
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [erroCarga, setErroCarga] = useState("");
   const [incluirPratos, setIncluirPratos] = useState(false);
+  const [aviso, setAviso] = useState("");
   const chaveProducao = useRef(null);
   const travaConfirmacao = useRef(false);
   const chavePlano = `producao_plano_${unidadeAtiva || ""}_${deptUrl}_${dataPlano}`;
@@ -262,30 +263,31 @@ function ProducaoRunner() {
     setModalProduzir(true);
   };
 
+  // Prévia do consumo calculada aqui, pela mesma conta das fichas (perda do
+  // ingrediente, subfichas). É conferência: não trava por saldo de estoque.
   useEffect(() => {
-    if (!modalProduzir || !fichaAtual || !(Number(qtdProd) > 0)) { setPrevia(null); return; }
-    let vigente = true;
-    setCarregandoPrevia(true); setPrevia(null); setErroPrevia("");
-    const timer = setTimeout(async () => {
-      const res = await preverProducao(unidadeAtiva, fichaAtual.id, qtdProd).catch(e => ({ error: e.message }));
-      if (!vigente) return;
-      setPrevia(res.data || null); setErroPrevia(res.error || ""); setCarregandoPrevia(false);
-    }, 250);
-    return () => { vigente = false; clearTimeout(timer); };
-  }, [modalProduzir, fichaAtual, qtdProd, unidadeAtiva]);
+    if (!modalProduzir || !fichaAtual || !(Number(String(qtdProd).replace(",", ".")) > 0)) { setPrevia(null); setErroPrevia(""); return; }
+    const p = previaProducaoSimples(fichaAtual, qtdProd, fichas);
+    setPrevia(p.erros.length ? null : p);
+    setErroPrevia(p.erros.join(" "));
+    setCarregandoPrevia(false);
+  }, [modalProduzir, fichaAtual, qtdProd, fichas]);
 
   const handleConfirmar = async () => {
     if (travaConfirmacao.current) return;
     if (!colabSelecionado) return alert("Selecione quem está produzindo.");
-    const numQtd = Number(qtdProd);
-    if (!Number.isFinite(numQtd) || numQtd <= 0 || !previa) return alert("Confira a previsão antes de confirmar.");
-    if (previa.itens.some(i => i.faltante > 0)) return alert("Corrija o estoque ou reduza a quantidade.");
+    const numQtd = Number(String(qtdProd).replace(",", "."));
+    if (!Number.isFinite(numQtd) || numQtd <= 0) return alert("Informe uma quantidade maior que zero.");
+    if (!previa) return alert(erroPrevia || "A ficha tem um problema que impede calcular a produção.");
     travaConfirmacao.current = true; setSalvando(true);
     try {
-      const res = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado, fichas, {
-        departamento: deptUrl, localArmazenamento, chave: chaveProducao.current,
-      });
-      if (res.error) return alert("Produção não confirmada: " + res.error);
+      const res = await registrarProducaoSimples(registroDeProducao({
+        unidadeId: unidadeAtiva, ficha: fichaAtual, quantidade: numQtd, colaboradorId: colabSelecionado,
+        previa, departamento: deptUrl, localArmazenamento, chave: chaveProducao.current,
+      }));
+      if (res.error) return alert("Produção não registrada: " + res.error);
+      setAviso(`Produção registrada: ${numQtd.toLocaleString("pt-BR")} ${unidadeProducao(fichaAtual)} de ${fichaAtual.nome_receita}${previa.custo_estimado != null ? ` · custo ${fmtBRL(previa.custo_estimado)}` : ""}.`);
+      setTimeout(() => setAviso(""), 6000);
       try { localStorage.setItem(`producao_responsavel_${unidadeAtiva}`, String(colabSelecionado)); } catch {}
       setModalProduzir(false);
       await carregar(true);
@@ -318,6 +320,7 @@ function ProducaoRunner() {
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-white">
       
       {erroCarga && <p role="alert" className="m-4 rounded-xl bg-red-50 p-4 text-red-700">Falha ao carregar: {erroCarga}</p>}
+      {aviso && <p role="status" className="fixed bottom-4 left-1/2 z-[95] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg">{aviso}</p>}
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-4 pt-4">
         <label>Dia do planejamento <input type="date" value={dataPlano} onChange={e => setDataPlano(e.target.value)} className="rounded border p-2" /></label>
         <label><input type="checkbox" checked={incluirPratos} onChange={e => setIncluirPratos(e.target.checked)} /> Incluir pratos para consumo imediato</label>
@@ -634,21 +637,31 @@ function ProducaoRunner() {
 
                   <div className="space-y-2 text-sm" aria-live="polite">
                     <a href={`/dashboard/operacao/fichas/${fichaAtual.id}`} className="font-bold text-emerald-700 underline">Ver ficha técnica</a>
-                    {carregandoPrevia && <p className="font-bold text-fg">Conferindo ingredientes e saldos…</p>}
                     {erroPrevia && <p role="alert" className="text-red-700 font-bold">{erroPrevia}</p>}
-                    {previa && <p className="font-bold text-slate-900">Rendimento: {previa.rendimento} {previa.unidade} · {Number(previa.receitas).toLocaleString("pt-BR")} receitas · Custo estimado: {fmtBRL(previa.custo_estimado)}</p>}
-                    {previa?.itens.map(item => <div key={item.insumo_id} className={`rounded-lg border p-3 ${item.faltante > 0 ? "border-red-300 bg-red-50" : "border-line"}`}>
-                      <b>{item.nome}</b><p>Necessário {Number(item.necessario).toLocaleString("pt-BR")} {item.unidade} · Disponível {Number(item.disponivel).toLocaleString("pt-BR")} {item.unidade}</p>
-                      <p className={`font-bold ${item.faltante > 0 ? "text-red-600" : "text-emerald-600"}`}>{item.faltante > 0 ? `Faltam ${Number(item.faltante).toLocaleString("pt-BR")} ${item.unidade}` : "✓ Suficiente"}</p>
-                    </div>)}
-                    {previa?.itens.some(i => i.faltante > 0) && <a className="block text-xs font-bold text-red-700 underline" href={estoqueHref}>Corrigir estoque no módulo de Estoque</a>}
+                    {previa && (
+                      <div className="rounded-xl border border-line">
+                        <p className="border-b border-line px-3 py-2 text-xs font-bold text-slate-900">
+                          {Number(previa.receitas).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} receita(s) · custo estimado <b>{previa.custo_estimado != null ? fmtBRL(previa.custo_estimado) : "—"}</b>
+                        </p>
+                        <p className="px-3 pt-2 text-3xs font-bold uppercase tracking-wider text-subtle">Vai consumir (peso bruto, com a perda)</p>
+                        <ul className="divide-y divide-[color:var(--line-soft)] px-3 pb-1">
+                          {previa.itens.map(item => (
+                            <li key={item.chave} className="flex flex-wrap items-baseline justify-between gap-x-3 py-1.5 text-xs">
+                              <span className="font-bold text-fg-soft">{item.nome}</span>
+                              <span className="ml-auto whitespace-nowrap font-black tabular-nums text-fg">{Number(item.necessario).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {item.unidade}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-3xs font-semibold text-subtle">O registro guarda o que foi produzido, por quem e o custo. O estoque não é baixado automaticamente: o CMV real vem da contagem de estoque.</p>
                   </div>
 
                   <div className="flex gap-3 pt-4 border-t border-line">
                      <button type="button" onClick={() => setModalProduzir(false)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 rounded-2xl font-bold text-slate-900 transition-colors">
                         Cancelar
                      </button>
-                     <button type="button" onClick={handleConfirmar} disabled={salvando || carregandoPrevia || (previa?.itens.some(i => i.faltante > 0))} className="flex-1 py-4 bg-accent hover:bg-accent text-accent-fg rounded-2xl font-black transition-colors disabled:opacity-50">
+                     <button type="button" onClick={handleConfirmar} disabled={salvando || !previa} className="flex-1 py-4 bg-accent hover:bg-accent text-accent-fg rounded-2xl font-black transition-colors disabled:opacity-50">
                         {salvando ? "Confirmando..." : "Confirmar Produção"}
                      </button>
                   </div>

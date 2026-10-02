@@ -22,6 +22,7 @@ import {
 } from "./ficha-calculos.mjs";
 import { custoDoInsumo, fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 import { composicaoDoPreco } from "./composicao-preco.mjs";
+import { precoSugerido as precoParaMetaDeLucro } from "./pizza-do-prato.mjs";
 import { percentualDe } from "./valor-percentual.mjs";
 
 // A composição do preço (CMV, despesas variáveis, margem de contribuição, CMO,
@@ -143,7 +144,16 @@ export function resumoFinanceiroDaFicha(ficha = {}, { fichas = [], produtos = []
     cmvPct,
     meta,
     preco,
-    precoSugerido: cmvValor > 0 && meta > 0 && meta < 100 ? cmvValor / (meta / 100) : null,
+    // Preço sugerido = o preço em que o RESULTADO bate a meta de lucro, já
+    // pagando CMV, despesas variáveis, CMO, despesas operacionais e
+    // pró-labore (mesma conta da Pizza do Lucro). O preço pela meta de CMV
+    // (custo ÷ meta) continua disponível como referência.
+    precoSugerido: tipo === "preparo" || !(cmvValor > 0) ? null : precoParaMetaDeLucro({
+      custoIngredientes: cmvValor, custoEmbalagem: 0, impostoPct: ent.impostoPct, taxaMaquininhaPct: ent.taxaMaquininhaPct,
+      margemAlvoPct: Number(params?.margem_alvo_pct) || 0, params,
+    }),
+    metaLucro: Number(params?.margem_alvo_pct) || null,
+    precoPelaMetaCmv: cmvValor > 0 && meta > 0 && meta < 100 ? cmvValor / (meta / 100) : null,
     impostoPct: ent.impostoPct,
     taxaMaquininhaPct: ent.taxaMaquininhaPct,
     composicao,

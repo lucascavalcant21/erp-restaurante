@@ -48,7 +48,7 @@ test("resumo do prato: custo, CMV, status e composição saem de uma conta só",
   perto(r.cmvPct, (11.69 / 45) * 100, 1);
   assert.equal(r.preco, 45);
   assert.equal(r.status.rotulo, "Ativa");          // 26% < meta 30%
-  perto(r.precoSugerido, r.cmvValor / 0.3);   // custo ÷ meta, como no editor
+  perto(r.precoPelaMetaCmv, r.cmvValor / 0.3);   // custo ÷ meta de CMV, como no editor
   perto(r.composicao.cmv.valor, r.cmvValor);              // o CMV da composição é o do card
   perto(r.composicao.variaveis.valor, 45 * 0.04 + 45 * 0.025, 1); // padrões da casa: imposto 4%, maquininha 2,5%
   perto(r.composicao.cmv.partes.reduce((t, p) => t + p.valor, 0), r.composicao.cmv.valor);
@@ -121,4 +121,21 @@ test("TESTE 2/3 (lógica): preço salvo entra no estado e o card recalcula sem r
   // produto novo (não existia na lista): entra na hora
   const novo = produtosComPrecoSalvo([], { produtoId: "n1", fichaId: "p1", nome: "Prato", preco: 30 });
   assert.equal(resumoFinanceiroDaFicha(prato, { fichas: [prato], produtos: novo }).preco, 30);
+});
+
+// ─── Preço sugerido pela meta de lucro ──────────────────────────────────────
+import { composicaoDoPreco as compor } from "./composicao-preco.mjs";
+
+test("preço sugerido: o resultado da composição nesse preço bate a meta de lucro", () => {
+  const acai = { id: "a1", nome_receita: "Açaí", rendimento_porcoes: 1, rendimento_unidade: "porcao", imposto_pct: 9, taxa_maquininha: 0,
+    fichas_ingredientes: [{ insumo_id: "x", insumos: { id: "x", nome: "Açaí", unidade_medida: "kg", preco_normalizado: 27.7 }, quantidade: 1, fator_correcao: 0 }] };
+  const params = { dias_operacao_mes: 25, pratos_por_dia: 40, custo_cmo_mes: 7830, custo_aluguel_mes: 1920, custo_luz_mes: 1920,
+    custo_gas_mes: 1540, custo_agua_mes: 580, custo_limpeza_mes: 190, margem_alvo_pct: 15, cmv_meta: 30 };
+  const r = resumoFinanceiroDaFicha(acai, { fichas: [acai], produtos: [{ ficha_id: "a1", preco_venda: 62 }], params });
+  // (27,70 + 13,98 rateado) / (1 − 9% − 15%) = 54,84
+  perto(r.precoSugerido, 41.68 / 0.76);
+  const c = compor({ preco: r.precoSugerido, cmvItens: [{ rotulo: "Açaí", valor: 27.7 }], impostoPct: 9, taxaMaquininhaPct: 0, params });
+  perto(c.resultado.pct, 15, 1);
+  perto(r.precoPelaMetaCmv, 27.7 / 0.3);
+  assert.equal(r.metaLucro, 15);
 });

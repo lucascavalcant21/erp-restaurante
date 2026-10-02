@@ -589,9 +589,14 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
     <SecaoEditor id="ficha-custos-precificacao" titulo="Custos e Precificação" destaque>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Porções</span>
-          <p className="erp-input flex items-center text-sm font-bold">{rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</p>
-          <span className="mt-1 block text-3xs font-medium text-fg">{["porcao", "un"].includes(String(form.rendimento_unidade || "").toLowerCase()) ? "Do rendimento da ficha." : "A ficha do prato é uma porção: o custo por porção é o da receita."}</span>
+          <label htmlFor="ficha-peso-porcao" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Peso da porção (g)</label>
+          <input id="ficha-peso-porcao" type="text" inputMode="decimal" placeholder="Receita inteira" value={form.peso_porcao_g ?? ""}
+            onChange={e => mudar({ peso_porcao_g: e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".") })}
+            className="erp-input text-sm font-bold" />
+          <span className="mt-1 block text-3xs font-medium text-fg">
+            = {rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {rendForm === 1 ? "porção" : "porções"}
+            {parseNumero(form.peso_porcao_g) > 0 ? " (rendimento ÷ peso da porção)" : " — vazio: a receita inteira é uma porção"}
+          </span>
         </div>
         <div>
           <label htmlFor="ficha-custo-embalagem" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Embalagem (R$ / porção)</label>

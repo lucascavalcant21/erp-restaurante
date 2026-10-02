@@ -376,3 +376,12 @@ test("permissão de custo e receituário", () => {
   assert.deepEqual(g.prato.map(f => f.id), ["f-prato", "f-drink"]);
   assert.deepEqual(g.pre_preparo.map(f => f.id), ["f-arroz"]);
 });
+
+test("peso da porção é gravado pelo editor (prato novo e edição)", () => {
+  const novo = camposParaGravar("prato", { nome_receita: "X", departamento: "cozinha", rendimento_porcoes: "1,2", peso_porcao_g: "300" }, { novo: true, unidadeId: "u1" });
+  assert.equal(novo.peso_porcao_g, 300);
+  const semPeso = camposParaGravar("prato", { nome_receita: "X", departamento: "cozinha", peso_porcao_g: "" }, { novo: true, unidadeId: "u1" });
+  assert.equal(semPeso.peso_porcao_g, null);
+  const edicao = camposParaGravar("prato", { nome_receita: "X", departamento: "cozinha", peso_porcao_g: "250" });
+  assert.equal(edicao.peso_porcao_g, 250);
+});

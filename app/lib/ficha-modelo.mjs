@@ -661,6 +661,9 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
 
   // Rendimento do prato: o peso final servido, digitado em gramas.
   if (tipo === "prato") campos.peso_final_g = numeroOuNulo(form.peso_final_g);
+  // Peso da porção: divide o rendimento em porções para o custo por porção
+  // (porcoesParaCusto). Vazio = a receita inteira é uma porção.
+  if (form.peso_porcao_g !== undefined) campos.peso_porcao_g = numeroOuNulo(form.peso_porcao_g);
   if (parseNumero(form.custo_embalagem) > 0) {
     campos.custo_embalagem = parseNumero(form.custo_embalagem);
     campos.custo_embalagens_total = parseNumero(form.custo_embalagem) * (parseNumero(form.rendimento_porcoes) || 1);
@@ -695,7 +698,7 @@ export function camposParaGravar(tipo, form = {}, { novo = false, unidadeId = nu
     campos.unidade_id = unidadeId;
     campos.versao = "1.0";
     if (campos.cmv_meta == null) campos.cmv_meta = 30;
-    campos.peso_porcao_g = null;
+    if (campos.peso_porcao_g === undefined) campos.peso_porcao_g = null;
   }
   return campos;
 }

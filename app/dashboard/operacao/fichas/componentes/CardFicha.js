@@ -214,7 +214,14 @@ function DetalheFinanceiro({ ficha, resumo, rendimentoTexto, podeVerCustos }) {
               <Linha rotulo="CMV por porção" valor={fmtValorPct(resumo.cmvValor, preco)} destaque natureza="calculado"
                 tom={resumo.status.id === "cmv_alto" ? "text-red-600" : ""} nota={`Meta de CMV da ficha: ${fmtPct(resumo.meta)}`} />
               <Linha rotulo="Preço de venda" valor={preco > 0 ? `${fmtReais(preco)} · 100,00%` : "Sem preço"} destaque tom="text-emerald-700" />
-              <Linha rotulo={`Preço sugerido (CMV ${fmtPct(resumo.meta)})`} valor={resumo.precoSugerido ? fmtReais(resumo.precoSugerido) : "—"} />
+              <Linha rotulo={`Preço sugerido (meta de lucro ${resumo.metaLucro ? fmtPct(resumo.metaLucro) : "—"})`} destaque
+                valor={resumo.precoSugerido ? fmtReais(resumo.precoSugerido) : "—"}
+                nota={resumo.precoSugerido
+                  ? (resumo.composicao?.rateio?.ok
+                      ? "Preço em que o resultado bate a meta, pagando CMV, despesas variáveis, CMO, despesas operacionais e pró-labore."
+                      : "Sem rateio configurado: cobre CMV e despesas variáveis, mas ainda não CMO, despesas e pró-labore.")
+                  : "Com essas despesas variáveis e essa meta não existe preço que feche a conta."} />
+              <Linha rotulo={`Preço pela meta de CMV (${fmtPct(resumo.meta)})`} valor={resumo.precoPelaMetaCmv ? fmtReais(resumo.precoPelaMetaCmv) : "—"} />
             </>
           )}
         </section>

@@ -830,7 +830,9 @@ function FichasRunner() {
     if (form && autoSoma && ingFicha.length > 0) {
       const est = rendimentoPelosIngredientes(ingFicha, form.departamento || deptUrl);
       if (est && est.totalG > 0) {
-         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade, peso_porcao_g: "" }));
+         // Mantém o peso da porção: antes ele era zerado aqui a cada mudança de
+         // ingrediente — inclusive ao abrir a ficha —, e nunca ficava gravado.
+         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }));
       }
     }
   }, [ingFicha, autoSoma, form.departamento, deptUrl]);
@@ -4062,9 +4064,14 @@ function FichasRunner() {
                               {/* Entradas Editáveis da Ficha */}
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                                  <div>
-                                    <span className="text-3xs font-bold text-fg uppercase tracking-widest">Porções</span>
-                                    <p className="w-full p-2.5 mt-1 border border-line rounded-xl font-bold text-sm">{rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</p>
-                                    <span className="mt-1 block text-3xs font-medium text-fg">{form.eh_base ? "Pré-preparo: custo por unidade do rendimento." : (String(form.rendimento_unidade || "").toLowerCase() === "porcao" || String(form.rendimento_unidade || "").toLowerCase() === "un") ? "Do rendimento informado acima." : "Prato em peso: a ficha é uma porção."}</span>
+                                    <label className="text-3xs font-bold text-fg uppercase tracking-widest">Peso da porção (g)</label>
+                                    <input type="text" inputMode="decimal" placeholder="Receita inteira" value={form.peso_porcao_g ?? ""}
+                                      onChange={e => setForm({ ...form, peso_porcao_g: e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".") })}
+                                      className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
+                                    <span className="mt-1 block text-3xs font-medium text-fg">
+                                      = {rendForm.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {rendForm === 1 ? "porção" : "porções"}
+                                      {Number(form.peso_porcao_g) > 0 ? " (rendimento ÷ peso da porção)" : form.eh_base ? " (custo por unidade do rendimento)" : " — vazio: a receita inteira é uma porção"}
+                                    </span>
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Embalagem (R$ / porção)</label>

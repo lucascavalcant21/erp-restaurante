@@ -120,7 +120,7 @@ function Cmv() {
         {!validas.length && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
             <p className="font-black">Nenhum inventário fechado ainda.</p>
-            <p>O CMV real começa a existir quando houver dois inventários fechados: o primeiro é o estoque inicial (ex.: 01/10) e o seguinte fecha o período (ex.: 08/10). Faça a contagem em Operacional → Inventários / Contagens.</p>
+            <p>O CMV real começa a existir quando houver dois inventários fechados: o primeiro é o estoque inicial (ex.: 01/10) e o seguinte fecha o período (ex.: 08/10). Faça a contagem em Operacional → Estoque → Contagem (inventário).</p>
           </div>
         )}
         {ap ? <Resumo ap={ap} onAbrir={setDrawer} /> : modo === "par" && <p className="text-sm text-fg">Escolha duas contagens fechadas, a inicial antes da final.</p>}

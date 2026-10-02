@@ -38,7 +38,10 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
   const podeVerCustos = !sessao?.gerenciado || hasPermission(sessao, "estoque.products.view_costs") || hasPermission(sessao, "estoque.overview.view_values");
   const podeMovimentar = !sessao?.gerenciado || hasPermission(sessao, "estoque.operation.adjust_stock") || canAccessRoute(sessao, "/dashboard/operacao/estoque/tablet");
   const podeVerCompras = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/compras");
-  const podeVerInventario = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/gestao/inventario");
+  // Contar estoque = o inventário (que, ao fechar, vira o saldo). Antes este
+  // botão abria /dashboard/gestao/inventario, que é o inventário de BENS e
+  // equipamentos — outra coisa com o mesmo nome.
+  const podeVerInventario = !sessao?.gerenciado || canAccessRoute(sessao, "/dashboard/operacao/estoque/contagens");
 
   // Data formatada
   const agora = new Date();
@@ -337,14 +340,14 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                 {podeVerInventario && (
                   <button
                     type="button"
-                    onClick={() => router.push("/dashboard/gestao/inventario")}
+                    onClick={() => router.push("/dashboard/operacao/estoque/contagens")}
                     className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
                     <div className="w-9 h-9 rounded-lg bg-slate-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <ClipboardCheck size={20} />
                     </div>
-                    <span className="text-xs font-bold leading-tight">📋 Inventário Físico</span>
-                    <span className="text-[10px] text-slate-500">Contagem de Estoque</span>
+                    <span className="text-xs font-bold leading-tight">📋 Contar estoque</span>
+                    <span className="text-[10px] text-slate-500">Inventário · vira o saldo</span>
                   </button>
                 )}
 

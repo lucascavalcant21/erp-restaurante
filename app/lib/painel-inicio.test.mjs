@@ -3,7 +3,7 @@
 // comparação injusta com o dia inteiro de ontem, item sem mínimo virando
 // "estoque crítico".
 import {
-  saudacao, primeiroNome, resumirVendas, variacao, janelaSeteDias, resumirEquipe,
+  saudacao, primeiroNome, resumirFaturamentoDiario, seteDiasAte, variacao, resumirEquipe,
   reservasDoDia, proximosEventos, resumirContas, estoqueAbaixoDoMinimo, resumirMesas, dataLocalISO,
 } from "./painel-inicio.mjs";
 
@@ -24,31 +24,25 @@ conferir("05:00 é bom dia", saudacao(em(2026, 10, 2, 5, 0)), "Bom dia");
 conferir("primeiro nome", primeiroNome("lucas cavalcante"), "Lucas");
 conferir("nome vazio", primeiroNome(""), "");
 
-// Vendas: 7 dias terminando hoje, no fuso do aparelho.
+// Faturamento diário informado: 7 dias terminando hoje, no fuso do aparelho.
 const agora = em(2026, 10, 2, 14, 0);
-const vendas = [
-  { total: 100, created_at: em(2026, 10, 2, 9, 0).toISOString() },
-  { total: 50.5, created_at: em(2026, 10, 2, 13, 59).toISOString() },
-  { total: 999, created_at: em(2026, 10, 2, 10, 0).toISOString(), status: "cancelada" },
-  { total: 80, created_at: em(2026, 10, 1, 13, 0).toISOString() },   // ontem antes das 14h
-  { total: 300, created_at: em(2026, 10, 1, 22, 30).toISOString() }, // ontem à noite: não entra no "até agora"
-  { total: 40, created_at: em(2026, 9, 26, 12, 0).toISOString() },   // 6 dias atrás: entra
-  { total: 70, created_at: em(2026, 9, 25, 12, 0).toISOString() },   // 7 dias atrás: fora
-  { total: 10, created_at: "data-invalida" },
-];
-const rv = resumirVendas(vendas, agora);
-conferir("hoje soma sem a cancelada", rv.hoje, 150.5);
-conferir("vendas de hoje", rv.qtdHoje, 2);
-conferir("ontem até a mesma hora", rv.ontemAteAgora, 80);
-conferir("ontem inteiro no gráfico", rv.dias[5].total, 380);
-conferir("7 dias, último é hoje", [rv.dias.length, rv.dias[6].sigla, rv.dias[6].iso], [7, "hoje", "2026-10-02"]);
-conferir("primeiro dia é 26/09", rv.dias[0].iso, "2026-09-26");
-conferir("total da semana", rv.totalSemana, 570.5);
-conferir("venda das 22h fica no dia dela", resumirVendas([{ total: 5, created_at: em(2026, 10, 1, 22, 0).toISOString() }], agora).dias[5].total, 5);
-
-const j = janelaSeteDias(agora);
-conferir("janela começa 26/09 00:00", [dataLocalISO(j.inicio), j.inicio.getHours()], ["2026-09-26", 0]);
-conferir("janela termina 03/10 00:00", [dataLocalISO(j.fim), j.fim.getHours()], ["2026-10-03", 0]);
+conferir("janela de 7 dias", seteDiasAte(agora), { de: "2026-09-26", ate: "2026-10-02" });
+const fd = resumirFaturamentoDiario([
+  { data: "2026-09-26", receita: 3000 },
+  { data: "2026-09-27", receita: 5000 },
+  { data: "2026-09-29", receita: 0 },          // fechado: zero de verdade
+  { data: "2026-09-30", receita: 4000.5 },
+  { data: "2026-10-01", receita: 6000 },
+  { data: "2026-09-20", receita: 999 },        // fora da janela
+], agora);
+conferir("dias da janela", fd.dias.map((d) => d.total), [3000, 5000, null, 0, 4000.5, 6000, null]);
+conferir("último lançado é ontem", [fd.ultimo.iso, fd.ultimo.rotulo, fd.ultimo.total], ["2026-10-01", "Ontem", 6000]);
+conferir("média dos outros dias lançados", fd.mediaOutros, 3000.13);
+conferir("total e contagem", [fd.totalLancado, fd.diasLancados], [18000.5, 5]);
+conferir("hoje ainda sem lançamento não conta como falta", fd.diasSemLancamento, 1);
+conferir("sem nenhum lançamento", resumirFaturamentoDiario([], agora).ultimo, null);
+conferir("hoje lançado vira 'Hoje'", resumirFaturamentoDiario([{ data: "2026-10-02", receita: 10 }], agora).ultimo.rotulo, "Hoje");
+conferir("dia antigo tem sigla", resumirFaturamentoDiario([{ data: "2026-09-27", receita: 10 }], agora).ultimo.rotulo, "dom 27");
 
 conferir("variação +50%", variacao(150, 100), 0.5);
 conferir("sem base não compara", variacao(150, 0), null);

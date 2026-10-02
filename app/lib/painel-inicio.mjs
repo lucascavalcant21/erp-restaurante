@@ -31,58 +31,34 @@ export function primeiroNome(nome) {
 
 // ─── Faturamento ─────────────────────────────────────────────────────────────
 
-// Janela da consulta: da meia-noite de 6 dias atrás até a meia-noite de amanhã,
-// no fuso do aparelho. toISOString() puro cortaria o dia em UTC e jogaria as
-// vendas depois das 21h no dia seguinte.
-export function janelaSeteDias(agora = new Date()) {
-  const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 6);
-  const fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1);
-  return { inicio, fim };
+// A receita oficial é o faturamento diário informado (fin_faturamento_diario:
+// vendas − cancelamentos − descontos), o mesmo do CMV % e do DRE. A tabela
+// vendas (PDV interno) está vazia: as vendas da casa estão no Saipos.
+export function seteDiasAte(agora = new Date()) {
+  const de = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 6);
+  return { de: dataLocalISO(de), ate: dataLocalISO(agora) };
 }
 
-const vendaValida = (v) => !/cancel|estorn/i.test(String(v?.status || ""));
-
-// Soma igual à do Financeiro: Number(v.total), sem as canceladas.
-// "ontemAteAgora" compara hoje com ontem até a MESMA hora: às 11h, comparar
-// com o dia inteiro de ontem sempre daria queda.
-export function resumirVendas(vendas, agora = new Date()) {
+// Dia sem lançamento fica null — nunca zero: zero é "a casa não vendeu".
+export function resumirFaturamentoDiario(registros, agora = new Date()) {
+  const porDia = new Map((registros || []).map((r) => [String(r.data).slice(0, 10), Number(r.receita)]));
   const dias = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - i);
-    dias.push({
-      iso: dataLocalISO(d),
-      sigla: i === 0 ? "hoje" : SIGLAS[d.getDay()],
-      dia: d.getDate(),
-      total: 0,
-      qtd: 0,
-      hoje: i === 0,
-    });
+    const iso = dataLocalISO(d);
+    const v = porDia.get(iso);
+    dias.push({ iso, sigla: i === 0 ? "hoje" : SIGLAS[d.getDay()], dia: d.getDate(), total: Number.isFinite(v) ? r2(v) : null, hoje: i === 0, ontem: i === 1 });
   }
-  const porIso = new Map(dias.map((d) => [d.iso, d]));
-  const minutoDoDia = (d) => d.getHours() * 60 + d.getMinutes();
-  const agoraMin = minutoDoDia(agora);
-  const ontemIso = dias[5].iso;
-  let ontemAteAgora = 0;
-
-  for (const v of vendas || []) {
-    if (!vendaValida(v)) continue;
-    const quando = new Date(v.created_at);
-    if (Number.isNaN(quando.getTime())) continue;
-    const alvo = porIso.get(dataLocalISO(quando));
-    if (!alvo) continue;
-    const valor = Number(v.total || 0);
-    alvo.total += valor;
-    alvo.qtd += 1;
-    if (alvo.iso === ontemIso && minutoDoDia(quando) <= agoraMin) ontemAteAgora += valor;
-  }
-  for (const d of dias) d.total = r2(d.total);
-
+  const lancados = dias.filter((d) => d.total !== null);
+  const ultimo = lancados[lancados.length - 1] || null;
+  const outros = lancados.filter((d) => d !== ultimo);
   return {
     dias,
-    hoje: dias[6].total,
-    qtdHoje: dias[6].qtd,
-    ontemAteAgora: r2(ontemAteAgora),
-    totalSemana: r2(dias.reduce((s, d) => s + d.total, 0)),
+    ultimo: ultimo && { ...ultimo, rotulo: ultimo.hoje ? "Hoje" : ultimo.ontem ? "Ontem" : `${ultimo.sigla} ${String(ultimo.dia).padStart(2, "0")}` },
+    mediaOutros: outros.length ? r2(outros.reduce((s, d) => s + d.total, 0) / outros.length) : null,
+    totalLancado: r2(lancados.reduce((s, d) => s + d.total, 0)),
+    diasLancados: lancados.length,
+    diasSemLancamento: dias.filter((d) => d.total === null && !d.hoje).length,
   };
 }
 

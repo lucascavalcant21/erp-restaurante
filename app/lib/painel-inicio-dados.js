@@ -10,26 +10,33 @@ import { fetchPontoHoje } from "./ponto";
 import { fetchEventos } from "./eventos";
 import { fetchContasPagar } from "./financeiro";
 import { fetchMesasEComandas } from "./mesas";
+import { MOTIVO_SEM_FATURAMENTO } from "./cmv-dados.mjs";
 import {
-  dataLocalISO, janelaSeteDias, resumirVendas, resumirEquipe, reservasDoDia,
+  dataLocalISO, seteDiasAte, resumirFaturamentoDiario, resumirEquipe, reservasDoDia,
   proximosEventos, resumirContas, estoqueAbaixoDoMinimo, resumirMesas,
 } from "./painel-inicio.mjs";
 
 const falhou = (erro) => ({ ok: false, erro: String(erro?.message || erro || "Falha ao carregar") });
 const deu = (dados) => ({ ok: true, dados });
 
-async function vendasDaSemana(unidadeId, agora) {
-  const { inicio, fim } = janelaSeteDias(agora);
-  // Mesmo filtro do Financeiro (fetchPainelCaixa), para os totais baterem.
+const tabelaAusente = (e) => /does not exist|não existe|schema cache|could not find/i.test(String(e?.message || e || ""));
+
+// Faturamento diário informado — a mesma fonte do CMV % e do DRE. A tabela é
+// opcional (db/F2_4C_FATURAMENTO_DIARIO_OPCIONAL.sql): sem ela, o cartão diz
+// que não há fonte, em vez de mostrar R$ 0,00.
+async function faturamentoDaSemana(unidadeId, agora) {
+  const { de, ate } = seteDiasAte(agora);
   const { data, error } = await supabase
-    .from("vendas")
-    .select("total, status, created_at")
+    .from("fin_faturamento_diario")
+    .select("data, receita")
     .eq("unidade_id", unidadeId)
-    .neq("status", "cancelada")
-    .gte("created_at", inicio.toISOString())
-    .lt("created_at", fim.toISOString());
-  if (error) throw error;
-  return resumirVendas(data || [], agora);
+    .gte("data", de)
+    .lte("data", ate);
+  if (error) {
+    if (tabelaAusente(error)) return { disponivel: false, motivo: MOTIVO_SEM_FATURAMENTO };
+    throw error;
+  }
+  return { disponivel: true, ...resumirFaturamentoDiario(data || [], agora) };
 }
 
 async function reservasDeHoje(unidadeId, hojeIso) {
@@ -69,8 +76,8 @@ export async function carregarPainelInicio(unidadeId, pode, agora = new Date()) 
   const hojeIso = dataLocalISO(agora);
   const nada = Promise.resolve(null);
 
-  const [vendas, contas, equipe, reservas, eventos, estoque, mesas] = await Promise.all([
-    pode.financeiro ? comErro(() => vendasDaSemana(unidadeId, agora)) : nada,
+  const [faturamento, contas, equipe, reservas, eventos, estoque, mesas] = await Promise.all([
+    pode.financeiro ? comErro(() => faturamentoDaSemana(unidadeId, agora)) : nada,
     pode.contas ? comErro(async () => {
       const r = await fetchContasPagar(unidadeId);
       if (r.error) throw new Error(r.error);
@@ -91,5 +98,5 @@ export async function carregarPainelInicio(unidadeId, pode, agora = new Date()) 
     }) : nada,
   ]);
 
-  return { hojeIso, vendas, contas, equipe, reservas, eventos, estoque, mesas, em: agora };
+  return { hojeIso, faturamento, contas, equipe, reservas, eventos, estoque, mesas, em: agora };
 }

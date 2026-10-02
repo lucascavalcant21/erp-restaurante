@@ -21,6 +21,8 @@ import { fmtBRL } from "../components/ui";
 
 const ROTAS = {
   financeiro: "/dashboard/financeiro",
+  dre: "/dashboard/financeiro/dre",
+  lancarFaturamento: "/dashboard/operacao/estoque/cmv",
   contas: "/dashboard/financeiro/contas",
   rh: "/dashboard/rh",
   eventos: "/dashboard/reservas-eventos",
@@ -36,7 +38,8 @@ const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "o
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 
 // Cores das barras validadas no checador de paleta (contraste >= 3:1 no fundo
-// branco e separação para daltonismo): dias anteriores em cinza, hoje em verde.
+// branco e separação para daltonismo): dias anteriores em cinza, o último dia
+// lançado em verde.
 const COR_BARRA = { passado: "#7c8aa0", hoje: "#047857" };
 
 const TONS = {
@@ -82,9 +85,9 @@ function Indicador({ href, icone: Icone, rotulo, bloco, tom = "neutro", children
 const Valor = ({ children }) => <p className="text-[22px] font-black leading-none tracking-tight text-slate-900 sm:text-[28px]">{children}</p>;
 const Detalhe = ({ children }) => <p className="mt-2 text-[13px] font-semibold text-slate-500 sm:text-sm">{children}</p>;
 
-function Delta({ atual, anterior }) {
+function Delta({ atual, anterior, rotulo }) {
   const v = variacao(atual, anterior);
-  if (v === null) return <span>sem base de comparação com ontem</span>;
+  if (v === null) return <span className="font-semibold text-slate-500">sem outros dias para comparar</span>;
   const sobe = v >= 0;
   const Seta = sobe ? ArrowUpRight : ArrowDownRight;
   return (
@@ -92,7 +95,7 @@ function Delta({ atual, anterior }) {
       <span className={`whitespace-nowrap font-bold ${sobe ? "text-emerald-700" : "text-rose-700"}`}>
         <Seta size={14} aria-hidden className="-mt-0.5 inline" /> {pctComSinal.format(v)}
       </span>{" "}
-      <span className="font-semibold text-slate-500">vs ontem até agora</span>
+      <span className="font-semibold text-slate-500">{rotulo}</span>
     </>
   );
 }
@@ -120,19 +123,21 @@ function Vazio({ children }) {
   return <p className="grid flex-1 place-items-center rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-semibold text-slate-500">{children}</p>;
 }
 
-// Uma série só: o título diz o que é, sem legenda. Rótulo direto só em hoje e
-// no maior dia; o valor de cada dia aparece no mouse/teclado e é o nome
-// acessível da barra.
-function GraficoSemana({ dias }) {
-  const max = Math.max(0, ...dias.map((d) => d.total));
+// Uma série só: o título diz o que é, sem legenda. Rótulo direto só no último
+// dia lançado e no maior dia; o valor de cada dia aparece no mouse/teclado e é
+// o nome acessível da barra. Dia sem lançamento não tem barra: zero seria
+// "não vendeu", e não é isso que se sabe.
+function GraficoSemana({ dias, destaque }) {
+  const max = Math.max(0, ...dias.map((d) => d.total || 0));
   return (
     <div className="flex flex-1 flex-col">
       <ol aria-label="Faturamento por dia" className="relative flex min-h-48 flex-1 items-end gap-1.5 border-b border-slate-200 sm:gap-3">
         {dias.map((d, i) => {
-          const altura = max > 0 ? (d.total / max) * 82 : 0; // 18% livre para o rótulo do maior dia
-          const rotular = d.total > 0 && (d.hoje || d.total === max);
+          const altura = max > 0 && d.total ? (d.total / max) * 82 : 0; // 18% livre para o rótulo do maior dia
+          const emDestaque = d.iso === destaque;
+          const rotular = d.total > 0 && (emDestaque || d.total === max);
           const lado = i === 0 ? "left-0" : i === dias.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2";
-          const texto = `${d.hoje ? "Hoje" : `${d.sigla} ${ddmm(d.iso)}`} · ${fmtBRL(d.total)} · ${plural(d.qtd, "venda", "vendas")}`;
+          const texto = `${d.hoje ? "Hoje" : `${d.sigla} ${ddmm(d.iso)}`} · ${d.total === null ? (d.hoje ? "ainda não lançado" : "sem lançamento") : fmtBRL(d.total)}`;
           return (
             <li key={d.iso} tabIndex={0} aria-label={texto}
               className="group relative flex h-full flex-1 cursor-default flex-col items-center justify-end rounded-t-md outline-none hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500">
@@ -140,7 +145,8 @@ function GraficoSemana({ dias }) {
                 <span aria-hidden className="mb-1 whitespace-nowrap text-xs font-bold text-slate-700">{brlCompacto.format(d.total)}</span>
               )}
               <span aria-hidden className="block w-full max-w-[24px] rounded-t-[4px]"
-                style={{ height: `${d.total > 0 ? Math.max(altura, 1.5) : 0}%`, background: d.hoje ? COR_BARRA.hoje : COR_BARRA.passado }} />
+                style={{ height: `${d.total > 0 ? Math.max(altura, 1.5) : 0}%`, background: emDestaque ? COR_BARRA.hoje : COR_BARRA.passado }} />
+              {d.total === null && <span aria-hidden className="mb-1 text-xs font-bold text-slate-300">—</span>}
               {/* Logo acima da barra (e do rótulo dela), não no topo do painel. */}
               <span aria-hidden style={{ bottom: `calc(${altura}% + ${rotular ? 26 : 8}px)` }}
                 className={`pointer-events-none absolute z-10 hidden whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white shadow-lg group-hover:block group-focus-visible:block ${lado}`}>
@@ -152,7 +158,7 @@ function GraficoSemana({ dias }) {
       </ol>
       <ol className="mt-2 flex gap-1.5 sm:gap-3" aria-hidden>
         {dias.map((d) => (
-          <li key={d.iso} className={`flex-1 text-center text-xs font-semibold ${d.hoje ? "text-slate-900" : "text-slate-500"}`}>
+          <li key={d.iso} className={`flex-1 text-center text-xs font-semibold ${d.iso === destaque ? "text-slate-900" : "text-slate-500"}`}>
             {d.hoje ? "Hoje" : <><span className="hidden capitalize sm:inline">{d.sigla} </span>{d.dia}</>}
           </li>
         ))}
@@ -202,12 +208,12 @@ export default function Inicio() {
     const t = setInterval(carregar, 120000);
     return () => clearInterval(t);
   }, [carregar]);
-  useTempoReal(["vendas", "registro_ponto", "reservas", "eventos", "estoque_itens", "contas_pagar", "comandas", "mesas"], carregar);
+  useTempoReal(["fin_faturamento_diario", "registro_ponto", "reservas", "eventos", "estoque_itens", "contas_pagar", "comandas", "mesas"], carregar);
 
   const nome = primeiroNome(sessao?.nome);
   const semUnidade = !unidadeAtiva || unidadeAtiva === "todas";
   const bloco = (k) => (dados === undefined ? undefined : dados?.[k] ?? { ok: false });
-  const v = dados?.vendas?.ok ? dados.vendas.dados : null;
+  const f = dados?.faturamento?.ok ? dados.faturamento.dados : null;
   const mesas = dados?.mesas?.ok ? dados.mesas.dados : null;
   // Sete cartões em três colunas deixavam um sozinho na última linha.
   const nCartoes = pode ? [pode.financeiro, pode.contas, pode.rh, pode.eventos, pode.eventos, pode.estoque, pode.mesas && mesas?.total > 0].filter(Boolean).length : 0;
@@ -245,12 +251,25 @@ export default function Inicio() {
           {/* Indicadores: cada um abre o módulo dele */}
           <section className={`grid grid-cols-2 gap-3 sm:gap-4 ${colunas}`}>
             {pode.financeiro && (
-              <Indicador href={ROTAS.financeiro} icone={Banknote} rotulo="Faturamento hoje" bloco={bloco("vendas")} tom="verde">
-                <div>
-                  <Valor>{fmtBRL(v?.hoje)}</Valor>
-                  <Detalhe>{plural(v?.qtdHoje || 0, "venda", "vendas")}</Detalhe>
-                  <p className="mt-0.5 text-[13px] sm:text-sm"><Delta atual={v?.hoje} anterior={v?.ontemAteAgora} /></p>
-                </div>
+              <Indicador href={f && !f.disponivel ? ROTAS.lancarFaturamento : ROTAS.dre} icone={Banknote} rotulo="Faturamento"
+                bloco={bloco("faturamento")} tom={f?.disponivel ? "verde" : "neutro"}>
+                {!f?.disponivel ? (
+                  <div>
+                    <Valor>sem dado</Valor>
+                    <Detalhe>Vendas no Saipos: lance o faturamento do dia para aparecer aqui</Detalhe>
+                  </div>
+                ) : !f.ultimo ? (
+                  <div>
+                    <Valor>—</Valor>
+                    <Detalhe>Nenhum dia lançado nos últimos 7 dias</Detalhe>
+                  </div>
+                ) : (
+                  <div>
+                    <Valor>{fmtBRL(f.ultimo.total)}</Valor>
+                    <Detalhe>{f.ultimo.rotulo}</Detalhe>
+                    <p className="mt-0.5 text-[13px] sm:text-sm"><Delta atual={f.ultimo.total} anterior={f.mediaOutros} rotulo="vs média dos outros dias" /></p>
+                  </div>
+                )}
               </Indicador>
             )}
 
@@ -350,16 +369,25 @@ export default function Inicio() {
           {/* Painéis */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {pode.financeiro && (
-              <Painel className="lg:col-span-2" titulo="Faturamento dos últimos 7 dias" href={ROTAS.financeiro} acao="Financeiro"
-                subtitulo={v ? `Total ${fmtBRL(v.totalSemana)} · média de ${fmtBRL(v.totalSemana / 7)} por dia` : " "}>
+              <Painel className="lg:col-span-2" titulo="Faturamento dos últimos 7 dias" href={ROTAS.dre} acao="DRE"
+                subtitulo={f?.disponivel && f.diasLancados
+                  ? `${fmtBRL(f.totalLancado)} em ${plural(f.diasLancados, "dia lançado", "dias lançados")}${f.diasSemLancamento ? ` · ${plural(f.diasSemLancamento, "dia", "dias")} sem lançamento` : ""}`
+                  : "\u00a0"}>
                 {dados === undefined ? (
                   <div className="h-56 animate-pulse rounded-xl bg-slate-50" aria-hidden />
-                ) : !v ? (
-                  <Vazio>Não consegui carregar as vendas agora.</Vazio>
-                ) : v.totalSemana === 0 ? (
-                  <Vazio>Nenhuma venda registrada nos últimos 7 dias.</Vazio>
+                ) : !dados?.faturamento?.ok ? (
+                  <Vazio>Não consegui carregar o faturamento agora.</Vazio>
+                ) : !f.disponivel ? (
+                  <Vazio>
+                    <span>
+                      {f.motivo}{" "}
+                      <Link href={ROTAS.lancarFaturamento} className="font-bold text-emerald-700 hover:underline">Lançar o faturamento do dia</Link>
+                    </span>
+                  </Vazio>
+                ) : !f.diasLancados ? (
+                  <Vazio>Nenhum faturamento lançado nos últimos 7 dias.</Vazio>
                 ) : (
-                  <GraficoSemana dias={v.dias} />
+                  <GraficoSemana dias={f.dias} destaque={f.ultimo?.iso} />
                 )}
               </Painel>
             )}

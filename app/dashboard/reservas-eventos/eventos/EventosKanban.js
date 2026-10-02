@@ -5,22 +5,11 @@ import { Plus, Search, Calendar, Users, Building2, ChevronRight, LayoutGrid, Lis
 import Link from "next/link";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
+import { FUNIL_ETAPAS, normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
+import { fmtReais } from "../../../lib/valor-percentual.mjs";
 
-const FUNIL_ETAPAS = [
-  "NOVO CONTATO",
-  "INFORMACOES RECEBIDAS",
-  "MONTANDO PROPOSTA",
-  "PROPOSTA ENVIADA",
-  "NEGOCIACAO",
-  "APROVADO",
-  "AGUARDANDO SINAL",
-  "SINAL PAGO",
-  "CONFIRMADO",
-  "PREPARACAO",
-  "EM PRODUCAO",
-  "EVENTO",
-  "FINALIZADO"
-];
+// As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
+// dentro do evento): antes eram duas listas e o evento sumia do funil.
 
 export default function EventosKanbanPage() {
   const { unidadeAtiva, user } = useERP();
@@ -28,6 +17,7 @@ export default function EventosKanbanPage() {
   const [carregando, setCarregando] = useState(true);
   const [modoVisao, setModoVisao] = useState("kanban"); // "kanban" | "lista"
   const [modalAberto, setModalAberto] = useState(false);
+  const [busca, setBusca] = useState("");
 
   async function carregarEventos() {
     if (!unidadeAtiva) return;
@@ -49,9 +39,13 @@ export default function EventosKanbanPage() {
 
   if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
 
-  const getEventosPorEtapa = (etapa) => {
-    return eventos.filter(e => (e.funil_status || "NOVO CONTATO") === etapa);
-  };
+  // Busca por nome do evento, cliente, telefone ou data (dd/mm).
+  const termo = busca.trim().toLowerCase();
+  const visiveis = !termo ? eventos : eventos.filter(e => {
+    const data = e.data_evento ? new Date(e.data_evento).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "";
+    return [e.nome, e.cliente_nome, e.cliente_telefone, data].some(v => String(v || "").toLowerCase().includes(termo));
+  });
+  const getEventosPorEtapa = (etapa) => visiveis.filter(e => normalizarEtapa(e.funil_status) === etapa);
 
   return (
     <div className="flex flex-col w-full h-[600px] overflow-hidden bg-white border border-slate-200 rounded-3xl p-4">
@@ -75,7 +69,7 @@ export default function EventosKanbanPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800" size={18} />
         <input 
           type="text" 
-          placeholder="Buscar por cliente, data..." 
+          placeholder="Buscar por evento, cliente, telefone ou data..." value={busca} onChange={e => setBusca(e.target.value)} 
           className="w-full pl-10 pr-4 h-11 rounded-xl border border-slate-300 focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none font-medium"
         />
       </div>
@@ -90,7 +84,7 @@ export default function EventosKanbanPage() {
             return (
               <div key={etapa} className="w-80 min-w-[320px] bg-white border border-slate-200 rounded-3xl flex flex-col shrink-0 snap-start">
                 <header className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-100/50 rounded-t-3xl">
-                  <h3 className="font-bold text-slate-800 text-sm tracking-wide">{etapa}</h3>
+                  <h3 className="font-bold text-slate-800 text-sm tracking-wide">{rotuloEtapa(etapa)}</h3>
                   <span className="bg-slate-200 text-slate-900 text-xs font-black px-2 py-0.5 rounded-full">{cards.length}</span>
                 </header>
                 
@@ -119,6 +113,9 @@ export default function EventosKanbanPage() {
                           <Users size={12} className="text-slate-800" /> 
                           {evt.capacidade || 0}
                         </span>
+                        {Number(evt.valor_contratado) > 0 && (
+                          <span className="ml-auto whitespace-nowrap rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800">{fmtReais(evt.valor_contratado)}</span>
+                        )}
                       </div>
                     </Link>
                   ))}
@@ -146,7 +143,7 @@ export default function EventosKanbanPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {eventos.map(evt => (
+              {visiveis.map(evt => (
                 <tr key={evt.id} className="hover:bg-white transition-colors cursor-pointer" onClick={() => window.location.href = `/dashboard/reservas-eventos/eventos/${evt.id}`}>
                   <td className="py-4 px-6">
                     <strong className="block text-slate-900 font-bold">{evt.nome || evt.cliente_nome}</strong>
@@ -162,7 +159,7 @@ export default function EventosKanbanPage() {
                   </td>
                   <td className="py-4 px-6">
                     <span className="inline-flex px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs uppercase tracking-wider">
-                      {evt.funil_status || "NOVO CONTATO"}
+                      {rotuloEtapa(normalizarEtapa(evt.funil_status))}
                     </span>
                   </td>
                 </tr>

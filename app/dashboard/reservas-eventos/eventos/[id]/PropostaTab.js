@@ -1,14 +1,32 @@
 "use client";
 
 import { FileText, Download, CheckCircle, Send, ChefHat, Wine, MapPin, Calendar, Clock, Users, ArrowRight } from "lucide-react";
+import { fmtReais } from "../../../../lib/valor-percentual.mjs";
 
-export default function PropostaTab({ evento }) {
+export default function PropostaTab({ evento, resumo = null }) {
   
   const handleGerarPDF = () => {
     window.print();
   };
 
   const valorCobrado = Number(evento?.valor_contratado || 0);
+  const convidados = Math.max(Number(evento?.capacidade) || 0, 0);
+
+  // WhatsApp: abre a conversa com o resumo da proposta. Quem envia é a pessoa,
+  // no próprio WhatsApp — o sistema só monta o texto.
+  const enviarWhatsApp = () => {
+    const nomes = (evento?.cardapio_itens || []).map((i) => `• ${i.nome}`).join("\n");
+    const texto = [
+      `Olá${evento?.cliente_nome ? `, ${evento.cliente_nome}` : ""}! Segue a proposta do seu evento:`,
+      `Data: ${evento?.data_evento ? new Date(evento.data_evento).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "a definir"}`,
+      convidados ? `Convidados: ${convidados}` : null,
+      nomes ? `Cardápio:\n${nomes}` : null,
+      valorCobrado > 0 ? `Investimento: ${fmtReais(valorCobrado)}${convidados ? ` (${fmtReais(valorCobrado / convidados)} por convidado)` : ""}` : null,
+    ].filter(Boolean).join("\n\n");
+    const fone = String(evento?.cliente_telefone || "").replace(/\D/g, "");
+    const numero = fone && fone.length <= 11 ? `55${fone}` : fone;
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+  };
   const dataEvento = evento?.data_evento ? new Date(evento.data_evento).toLocaleDateString('pt-BR') : 'A definir';
   
   // Agrupar pratos por departamento para exibir bonitinho
@@ -28,7 +46,7 @@ export default function PropostaTab({ evento }) {
             <button onClick={handleGerarPDF} className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors">
               <Download size={18}/> Salvar PDF (Imprimir)
             </button>
-            <button className="w-full h-12 flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20b858] transition-colors">
+            <button onClick={enviarWhatsApp} className="w-full h-12 flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20b858] transition-colors">
               <Send size={18}/> Enviar por WhatsApp
             </button>
           </div>
@@ -141,7 +159,7 @@ export default function PropostaTab({ evento }) {
               <div className="flex justify-between items-center mb-6">
                 <span className="text-slate-900 font-medium">Valor por Convidado ({evento?.capacidade || 0} pax)</span>
                 <span className="text-lg font-bold text-slate-900">
-                  R$ {(valorCobrado / Math.max((evento?.capacidade || 1), 1)).toFixed(2)}
+                  {fmtReais(valorCobrado / Math.max(convidados, 1))}
                 </span>
               </div>
               
@@ -150,7 +168,7 @@ export default function PropostaTab({ evento }) {
               <div className="flex justify-between items-center">
                 <span className="text-xl font-black text-slate-900">Total do Evento</span>
                 <span className="text-3xl font-black text-emerald-600 tracking-tighter">
-                  R$ {valorCobrado.toFixed(2)}
+                  {fmtReais(valorCobrado)}
                 </span>
               </div>
 

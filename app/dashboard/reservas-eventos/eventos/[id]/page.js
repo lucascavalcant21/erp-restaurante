@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   ArrowLeft, Calendar, Clock, MapPin, Users, DollarSign, 
@@ -14,6 +14,10 @@ import PropostaTab from "./PropostaTab";
 import FinanceiroTab from "./FinanceiroTab";
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
+import { fetchFichas } from "../../../../lib/operacao";
+import { fetchParams, PARAMS_PADRAO } from "../../../../lib/parametros";
+import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa, resumoDoEvento, pendenciasDoEvento } from "../../../../lib/evento-financeiro.mjs";
+import { fmtReais, fmtPct, NATUREZA } from "../../../../lib/valor-percentual.mjs";
 
 // Abas do Hub
 const TABS = [
@@ -35,22 +39,30 @@ export default function EventoHubPage() {
   const [evento, setEvento] = useState(null);
   const [activeTab, setActiveTab] = useState("resumo");
   const [carregando, setCarregando] = useState(true);
+  // Fichas e parâmetros: o custo do evento sai da mesma conta das fichas.
+  const [fichas, setFichas] = useState([]);
+  const [params, setParams] = useState(PARAMS_PADRAO);
 
   useEffect(() => {
     async function carregarEvento() {
       if (!unidadeAtiva || !id) return;
       setCarregando(true);
-      const { data, error } = await supabase
-        .from("eventos")
-        .select("*")
-        .eq("id", id)
-        .single();
-        
+      const [{ data, error }, resFichas, resParams] = await Promise.all([
+        supabase.from("eventos").select("*").eq("id", id).single(),
+        fetchFichas(unidadeAtiva),
+        fetchParams(unidadeAtiva),
+      ]);
       if (!error && data) setEvento(data);
+      setFichas(resFichas.data || []);
+      setParams({ ...PARAMS_PADRAO, ...(resParams.data || {}) });
       setCarregando(false);
     }
     carregarEvento();
   }, [unidadeAtiva, id]);
+
+  const resumo = useMemo(() => (evento ? resumoDoEvento(evento, fichas, params) : null), [evento, fichas, params]);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const pendencias = useMemo(() => (evento && resumo ? pendenciasDoEvento(evento, resumo, hoje) : []), [evento, resumo, hoje]);
 
   if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
   if (carregando) return <div className="p-8 text-center text-slate-900 font-bold">Carregando Hub do Evento...</div>;
@@ -61,7 +73,7 @@ export default function EventoHubPage() {
       {/* HEADER PRINCIPAL */}
       <header className="bg-white border-b border-slate-200 px-8 py-6 shrink-0">
         <div className="max-w-7xl mx-auto flex flex-col gap-6">
-          <Link href="/dashboard/reservas-eventos/eventos" className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-slate-900 transition-colors w-max">
+          <Link href="/dashboard/reservas-eventos" className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-slate-900 transition-colors w-max">
             <ArrowLeft size={16} /> Voltar para o Funil
           </Link>
           
@@ -70,7 +82,7 @@ export default function EventoHubPage() {
               <div className="flex items-center gap-3 mb-2">
                 
                 <select 
-                  value={evento.funil_status || "NOVO CONTATO"}
+                  value={normalizarEtapa(evento.funil_status)}
                   onChange={async (e) => {
                     const novoStatus = e.target.value;
                     setEvento({...evento, funil_status: novoStatus});
@@ -78,13 +90,7 @@ export default function EventoHubPage() {
                   }}
                   className="bg-slate-900 text-white text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-widest outline-none cursor-pointer appearance-none text-center"
                 >
-                  <option value="NOVO CONTATO">NOVO CONTATO</option>
-                  <option value="PROPOSTA ENVIADA">PROPOSTA ENVIADA</option>
-                  <option value="NEGOCIAÇÃO">NEGOCIAÇÃO</option>
-                  <option value="APROVADO">APROVADO</option>
-                  <option value="AGUARDANDO SINAL">AGUARDANDO SINAL</option>
-                  <option value="CONFIRMADO">CONFIRMADO</option>
-                  <option value="CANCELADO">CANCELADO</option>
+                  {FUNIL_ETAPAS.map((e) => <option key={e} value={e}>{rotuloEtapa(e).toUpperCase()}</option>)}
                 </select>
 
                 <span className="bg-slate-100 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-lg">
@@ -189,12 +195,20 @@ export default function EventoHubPage() {
                 })()}
               </section>
 
+              {resumo && <CustoEPreco resumo={resumo} />}
+
             </div>
             
             <div className="space-y-6">
-              <section className="bg-red-50 border border-red-100 rounded-3xl p-6">
-                <h2 className="text-sm font-extrabold text-red-700 uppercase tracking-widest mb-4">Precisa de Atenção</h2>
-                <p className="text-sm text-red-600 font-medium">Nenhum alerta crítico para este evento no momento.</p>
+              <section className={`rounded-3xl border p-6 ${pendencias.length ? "border-amber-200 bg-amber-50" : "border-emerald-100 bg-emerald-50"}`}>
+                <h2 className={`text-sm font-extrabold uppercase tracking-widest mb-4 ${pendencias.length ? "text-amber-800" : "text-emerald-700"}`}>Precisa de atenção</h2>
+                {pendencias.length ? (
+                  <ul className="space-y-2">
+                    {pendencias.map((p) => <li key={p} className="text-sm font-semibold text-amber-900">• {p}</li>)}
+                  </ul>
+                ) : (
+                  <p className="text-sm font-medium text-emerald-700">Nada pendente nos dados deste evento.</p>
+                )}
               </section>
             </div>
           </div>
@@ -210,6 +224,7 @@ export default function EventoHubPage() {
                 {activeTab === "financeiro" && (
           <FinanceiroTab 
             evento={evento} 
+            resumo={resumo}
             onUpdate={(novosDados) => setEvento({...evento, ...novosDados})} 
           />
         )}
@@ -217,11 +232,11 @@ export default function EventoHubPage() {
 
         
         {activeTab === "compras" && (
-          <ComprasTab evento={evento} unidadeAtiva={unidadeAtiva} />
+          <ComprasTab evento={evento} fichas={fichas} />
         )}
         
         {activeTab === "proposta" && (
-          <PropostaTab evento={evento} />
+          <PropostaTab evento={evento} resumo={resumo} />
         )}
 
         {activeTab !== "resumo" && activeTab !== "cardapio" && activeTab !== "equipe" && activeTab !== "financeiro" && activeTab !== "compras" && activeTab !== "proposta" && (
@@ -235,5 +250,53 @@ export default function EventoHubPage() {
 
       </div>
     </main>
+  );
+}
+
+
+// Custo e preço do evento: tudo de resumoDoEvento (evento-financeiro.mjs), em
+// R$ e % do valor do evento.
+function Chip({ id }) {
+  const n = NATUREZA[id];
+  return n ? <span title={n.ajuda} className="ml-1.5 rounded border border-slate-200 px-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{n.rotulo}</span> : null;
+}
+
+function CustoEPreco({ resumo: r }) {
+  const vp = (v, pct) => `${fmtReais(v)}${pct !== null && pct !== undefined ? ` · ${fmtPct(pct)}` : ""}`;
+  return (
+    <section className="bg-white border border-slate-200 rounded-3xl p-6">
+      <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-4">Custo e preço</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[["Valor do evento", r.receita > 0 ? fmtReais(r.receita) : "—"],
+          ["Por convidado", r.receitaPorConvidado ? fmtReais(r.receitaPorConvidado) : "—"],
+          ["Custo por convidado", r.custoPorConvidado ? fmtReais(r.custoPorConvidado) : "—"],
+          ["Resultado", r.receita > 0 ? vp(r.resultado.valor, r.resultado.pct) : "—"]].map(([rot, val]) => (
+          <div key={rot} className="rounded-2xl border border-slate-200 px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{rot}</p>
+            <p className={`text-sm font-black tabular-nums ${rot === "Resultado" && r.resultado.prejuizo ? "text-red-600" : "text-slate-900"}`}>{val}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 divide-y divide-slate-100">
+        {r.linhas.map((l) => (
+          <div key={l.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
+            <span className="text-sm font-semibold text-slate-700">{l.rotulo}<Chip id={l.natureza} /></span>
+            <span className="ml-auto whitespace-nowrap text-sm font-bold tabular-nums text-slate-900">{vp(l.valor, l.pct)}</span>
+          </div>
+        ))}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 pt-2">
+          <span className="text-sm font-black uppercase text-slate-900">Resultado estimado<Chip id="estimado" /></span>
+          <span className={`ml-auto whitespace-nowrap text-base font-black tabular-nums ${r.resultado.prejuizo ? "text-red-600" : "text-emerald-700"}`}>{r.receita > 0 ? vp(r.resultado.valor, r.resultado.pct) : "Defina o valor do evento"}</span>
+        </div>
+      </div>
+      <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Preço sugerido {r.meta.pct ? `(meta de lucro ${fmtPct(r.meta.pct)})` : "(sem meta de lucro configurada)"}</p>
+        <p className="text-lg font-black text-slate-900">
+          {r.precoSugerido ? fmtReais(r.precoSugerido) : "—"}
+          {r.precoSugeridoPorConvidado ? <span className="ml-2 text-sm font-bold text-slate-600">{fmtReais(r.precoSugeridoPorConvidado)} por convidado</span> : null}
+        </p>
+        <p className="text-xs font-medium text-slate-600">Cobre CMV, equipe, espaço e extras, imposto e maquininha, e ainda sobra a meta. A meta é a mesma da Pizza do Lucro.</p>
+      </div>
+    </section>
   );
 }

@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { supabase } from "../../../../lib/supabase";
 import { Plus, Trash2, Wallet, DollarSign, Loader2, CheckCircle2 } from "lucide-react";
+import { percentualDe, fmtPct } from "../../../../lib/valor-percentual.mjs";
 
-export default function FinanceiroTab({ evento, onUpdate }) {
+export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
   const [salvando, setSalvando] = useState(false);
   const [novoPagamento, setNovoPagamento] = useState({ valor: "", data: new Date().toISOString().split("T")[0], metodo: "PIX", obs: "Sinal 50%" });
 
   // Valores base
-  const custoInsumos = evento?.total_custo_insumos || 0;
+  // CMV do cardápio AO VIVO pela ficha técnica (resumoDoEvento). O valor
+  // gravado no evento só vale enquanto o resumo não carregou.
+  const custoInsumos = resumo ? resumo.cmv : (Number(evento?.total_custo_insumos) || 0);
   const custoEquipe = evento?.total_custo_equipe || 0;
   
   // Parâmetros editáveis
@@ -28,6 +31,10 @@ export default function FinanceiroTab({ evento, onUpdate }) {
   
   const lucroLiquido = valorCobrado - totalCustosFisicos - totalDeducoes;
   const margemLiquida = valorCobrado > 0 ? (lucroLiquido / valorCobrado) * 100 : 0;
+  // "% do valor do evento" ao lado de cada custo.
+  const pv = (v) => (valorCobrado > 0 ? ` · ${fmtPct(percentualDe(v, valorCobrado))}` : "");
+  const meta = resumo?.meta?.pct ?? null;
+  const tom = meta === null ? (lucroLiquido >= 0 ? "ok" : "ruim") : (margemLiquida >= meta ? "ok" : margemLiquida >= 0 ? "atencao" : "ruim");
 
   // Cálculos Recebimento
   const totalRecebido = pagamentos.reduce((acc, p) => acc + Number(p.valor), 0);
@@ -92,9 +99,9 @@ export default function FinanceiroTab({ evento, onUpdate }) {
             <div className="flex justify-between items-center p-4 border border-slate-200 rounded-2xl bg-white">
               <div>
                 <strong className="block text-slate-800">Custo de Insumos (Cardápio e Bar)</strong>
-                <span className="text-sm text-slate-900">Calculado automaticamente</span>
+                <span className="text-sm text-slate-900">Pela ficha técnica de cada prato (perda e porções), ao vivo</span>
               </div>
-              <span className="text-lg font-black text-red-600">- R$ {custoInsumos.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span className="text-lg font-black text-red-600">- R$ {custoInsumos.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}{pv(custoInsumos)}</span>
             </div>
             
             <div className="flex justify-between items-center p-4 border border-slate-200 rounded-2xl bg-white">
@@ -102,7 +109,7 @@ export default function FinanceiroTab({ evento, onUpdate }) {
                 <strong className="block text-slate-800">Custo de Equipe (Diárias)</strong>
                 <span className="text-sm text-slate-900">Soma da aba Equipe</span>
               </div>
-              <span className="text-lg font-black text-red-600">- R$ {custoEquipe.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span className="text-lg font-black text-red-600">- R$ {custoEquipe.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}{pv(custoEquipe)}</span>
             </div>
 
             <div className="flex justify-between items-center p-4 border border-slate-200 rounded-2xl bg-white">
@@ -255,11 +262,11 @@ export default function FinanceiroTab({ evento, onUpdate }) {
           <div className="space-y-4 mb-6">
             <div className="flex justify-between items-center">
               <span className="text-slate-300">Total de Custos Físicos</span>
-              <strong className="text-red-400">R$ {totalCustosFisicos.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+              <strong className="text-red-400">R$ {totalCustosFisicos.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}{pv(totalCustosFisicos)}</strong>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-300">Impostos e Taxas</span>
-              <strong className="text-red-400">R$ {totalDeducoes.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+              <strong className="text-red-400">R$ {totalDeducoes.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}{pv(totalDeducoes)}</strong>
             </div>
             <div className="h-px bg-slate-800 w-full my-4"></div>
             <div className="flex justify-between items-center">
@@ -268,11 +275,11 @@ export default function FinanceiroTab({ evento, onUpdate }) {
             </div>
           </div>
 
-          <div className={`border rounded-2xl p-4 mt-8 ${margemLiquida >= 20 ? 'bg-emerald-500/20 border-emerald-500/30' : margemLiquida >= 0 ? 'bg-yellow-500/20 border-yellow-500/30' : 'bg-red-500/20 border-red-500/30'}`}>
-            <span className={`block text-sm font-bold mb-1 ${margemLiquida >= 20 ? 'text-emerald-400' : margemLiquida >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>Lucro Líquido Real</span>
+          <div className={`border rounded-2xl p-4 mt-8 ${tom === "ok" ? 'bg-emerald-500/20 border-emerald-500/30' : tom === "atencao" ? 'bg-yellow-500/20 border-yellow-500/30' : 'bg-red-500/20 border-red-500/30'}`}>
+            <span className={`block text-sm font-bold mb-1 ${tom === "ok" ? 'text-emerald-400' : tom === "atencao" ? 'text-yellow-400' : 'text-red-400'}`}>Resultado estimado{meta !== null ? ` · meta ${fmtPct(meta)}` : ""}</span>
             <div className="flex justify-between items-end">
-              <strong className={`text-3xl font-black ${margemLiquida >= 20 ? 'text-emerald-400' : margemLiquida >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>R$ {lucroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
-              <span className={`font-bold px-2 py-1 rounded-lg text-sm ${margemLiquida >= 20 ? 'text-emerald-400 bg-emerald-900' : margemLiquida >= 0 ? 'text-yellow-400 bg-yellow-900' : 'text-red-400 bg-red-900'}`}>{margemLiquida.toFixed(1)}%</span>
+              <strong className={`text-3xl font-black ${tom === "ok" ? 'text-emerald-400' : tom === "atencao" ? 'text-yellow-400' : 'text-red-400'}`}>R$ {lucroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+              <span className={`font-bold px-2 py-1 rounded-lg text-sm ${tom === "ok" ? 'text-emerald-400 bg-emerald-900' : tom === "atencao" ? 'text-yellow-400 bg-yellow-900' : 'text-red-400 bg-red-900'}`}>{fmtPct(margemLiquida)}</span>
             </div>
           </div>
         </section>

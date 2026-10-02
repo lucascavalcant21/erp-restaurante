@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabase";
 import { fetchFichas } from "../../../../lib/operacao";
 import { ChefHat, Users, Clock, Search, Plus, Trash2, CheckSquare, Loader2, Wine, LayoutTemplate, MapPin, Check } from "lucide-react";
+import { custoPorcaoDaFicha } from "../../../../lib/evento-financeiro.mjs";
+import { fmtReais } from "../../../../lib/valor-percentual.mjs";
 
 export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpdate }) {
   const [fichas, setFichas] = useState([]);
@@ -38,17 +40,14 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
     loadEquipe();
   }, [evento.id, departamento]);
 
-  const calcularCustoFicha = (ficha) => {
-    let custoTotal = 0;
-    if (ficha.fichas_ingredientes && ficha.fichas_ingredientes.length > 0) {
-      ficha.fichas_ingredientes.forEach(ing => {
-        if (ing.insumos) {
-          const custoPorGram = ing.insumos.custo_unit / (ing.insumos.peso_unit || 1);
-          custoTotal += custoPorGram * ing.quantidade;
-        }
-      });
-    }
-    return custoTotal || ficha.custo_unitario || 0;
+  // Custo de UMA porção pela ficha técnica (perda, porções, subfichas) — a
+  // mesma conta das Fichas. A fórmula antiga lia custo_unit/peso_unit, que não
+  // existem no cadastro de ingredientes, e o custo saía zero.
+  const calcularCustoFicha = (ficha) => custoPorcaoDaFicha(ficha, fichas) || 0;
+  // Custo atual do item do cardápio (o gravado só vale se a ficha sumiu).
+  const custoAtualDoItem = (item) => {
+    const f = fichas.find(x => x.id === item.ficha_id);
+    return f ? calcularCustoFicha(f) : Number(item.custo_porcao) || 0;
   };
 
   // CARDÁPIO / ITENS
@@ -263,9 +262,9 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
                             <button onClick={() => removerPrato(item.id)} className="text-slate-900 hover:text-red-400 shrink-0"><Trash2 size={16}/></button>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">Custo: R$ {Number(item.custo_porcao).toFixed(2)}</span>
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Custo/porção: {fmtReais(custoAtualDoItem(item))}</span>
                             <div className="flex items-center gap-2 bg-slate-900 rounded-xl p-1 border border-slate-700">
-                              <span className="text-[10px] font-bold text-slate-900 uppercase ml-2">Qtd</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase ml-2">Porções</span>
                               <input 
                                 type="number" 
                                 value={item.quantidade_servida} 
@@ -293,7 +292,7 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
                             <div key={ficha.id} className="flex justify-between items-center p-4 border border-slate-800 rounded-2xl hover:bg-slate-800 transition-colors cursor-pointer group" onClick={() => adicionarPrato(ficha)}>
                               <div className="min-w-0 pr-4">
                                 <strong className="block text-slate-200 text-sm truncate">{ficha.nome_receita || ficha.nome}</strong>
-                                <span className="text-[10px] text-slate-900 font-bold uppercase tracking-widest">Base: R$ {Number(calcularCustoFicha(ficha)).toFixed(2)}</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Custo/porção: {fmtReais(calcularCustoFicha(ficha))}</span>
                               </div>
                               <button className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
                                 <Plus size={16}/>

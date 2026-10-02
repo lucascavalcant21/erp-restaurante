@@ -64,6 +64,12 @@ export const PERMISSION_MODULES = [
       { id: "purchases", label: "Compras e custo médio", route: "/dashboard/operacao/estoque/compras", actions: ["view", "create", "confirm", "cancel", "view_costs"] },
       // CMV real (F2.4C): leitura; "edit" = lançar o faturamento diário (se habilitado).
       { id: "cmv", label: "CMV real", route: "/dashboard/operacao/estoque/cmv", actions: ["view", "edit"] },
+      // EST-MOV-1: lançar ENTRADA/RETIRADA (o banco confere esta chave). Sem
+      // editar nem apagar: correção é estorno, e estorno é da página abaixo.
+      { id: "movements", label: "Entrada e retirada de estoque", route: "/dashboard/operacao/estoque", actions: ["view", "create"] },
+      // Segurança da contagem: approve = estornar/ajustar com o PIN do
+      // administrador; settings = trocar o PIN e ligar/desligar contagem cega.
+      { id: "security", label: "Segurança do estoque (PIN, estorno e ajuste)", route: "/dashboard/operacao/estoque/contagens", actions: ["view", "approve", "settings"] },
       { id: "products", label: "Produtos", route: "/dashboard/operacao/ingredientes", actions: [...CRUD, "import", "export", "view_costs"] },
       { id: "entries", label: "Entrada de estoque", route: "/dashboard/operacao/notas", actions: [...CRUD, "confirm", "cancel", "view_costs"] },
       { id: "outputs", label: "Saída de estoque", route: "/dashboard/operacao/estoque", actions: ["view", "create", "confirm", "cancel", "adjust_stock"] },

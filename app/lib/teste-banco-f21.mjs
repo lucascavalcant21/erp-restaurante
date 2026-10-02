@@ -10,15 +10,19 @@
 // da F2.1 rodam por cima, chegando ao estado auditado em 01/10/2026.
 // `secFin2: true` aplica db/security/SEC_FIN_2_MENOR_PRIVILEGIO_F23.sql depois;
 // `f24b: true` aplica db/F2_4B_COMPRAS_CUSTO_MEDIO.sql (compras → custo médio).
+// `pgcrypto: true` carrega a extensão no schema extensions, como no Supabase.
 
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export async function criarBancoF21(raiz, extraSql = "", { padraoSupabase = true, secFin2 = false, f24b = false } = {}) {
+export async function criarBancoF21(raiz, extraSql = "", { padraoSupabase = true, secFin2 = false, f24b = false, pgcrypto = false } = {}) {
   if (!process.env.PGLITE) return null;
   const { PGlite } = await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "index.js")).href);
-  const pg = new PGlite();
+  const extensoes = {};
+  if (pgcrypto) extensoes.pgcrypto = (await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "contrib", "pgcrypto.js")).href)).pgcrypto;
+  const pg = new PGlite({ extensions: extensoes });
+  if (pgcrypto) await pg.exec("create schema extensions; create extension pgcrypto schema extensions;");
   await pg.exec(`
     create role anon nologin; create role authenticated nologin;
     create schema auth;

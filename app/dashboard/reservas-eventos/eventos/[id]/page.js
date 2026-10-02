@@ -41,7 +41,7 @@ export default function EventoHubPage() {
   const [carregando, setCarregando] = useState(true);
   // Fichas e parâmetros: o custo do evento sai da mesma conta das fichas.
   const [fichas, setFichas] = useState([]);
-  const [params, setParams] = useState(PARAMS_PADRAO);
+  const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);
 
   useEffect(() => {
     async function carregarEvento() {
@@ -54,13 +54,13 @@ export default function EventoHubPage() {
       ]);
       if (!error && data) setEvento(data);
       setFichas(resFichas.data || []);
-      setParams({ ...PARAMS_PADRAO, ...(resParams.data || {}) });
+      setParamsSis({ ...PARAMS_PADRAO, ...(resParams.data || {}) });
       setCarregando(false);
     }
     carregarEvento();
   }, [unidadeAtiva, id]);
 
-  const resumo = useMemo(() => (evento ? resumoDoEvento(evento, fichas, params) : null), [evento, fichas, params]);
+  const resumo = useMemo(() => (evento ? resumoDoEvento(evento, fichas, paramsSis) : null), [evento, fichas, paramsSis]);
   const hoje = new Date().toISOString().slice(0, 10);
   const pendencias = useMemo(() => (evento && resumo ? pendenciasDoEvento(evento, resumo, hoje) : []), [evento, resumo, hoje]);
 

@@ -16,7 +16,7 @@
    22/09: saída às 23:50.
 
  EDUARDA DE LIMA OLIVEIRA
-   13/09: saída à meia-noite.
+   13/09: saída às 19:20.
 
  Por que existe: pela tela de Corrigir batida seriam vinte e três correções feitas
  uma a uma. Aqui sai tudo de uma vez, com o mesmo efeito - inclusive o
@@ -93,7 +93,7 @@ begin
       ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_saida',             'saida_trabalho',    '2026-09-13 17:20:00-03'),
       ('WELLIGTON FURQUIM%', '2026-09-22', 'hora_saida',             'saida_trabalho',    '2026-09-22 23:50:00-03'),
 
-      ('EDUARDA DE LIMA%', '2026-09-13', 'hora_saida',             'saida_trabalho',    '2026-09-14 00:00:00-03')
+      ('EDUARDA DE LIMA%', '2026-09-13', 'hora_saida',             'saida_trabalho',    '2026-09-13 19:20:00-03')
     ) as t(pessoa, dia, campo, tipo, hora)
 /*
  Ordem da jornada: a entrada de um dia sem registro tem que rodar antes do
@@ -192,7 +192,7 @@ end $$;
           e saída 23:45.
  Welligton: 02/09 15:40 / 16:40 / 17:00 / 23:50; 04/09 saída 00:00;
           13/09 09:00 / 15:00 / 16:00 / 17:20; 22/09 saída 23:50.
- Eduarda: 13/09 saída 00:00.
+ Eduarda: 13/09 saída 19:20.
 */
 select c.nome,
        to_char(p.data_referencia, 'DD/MM')                                  as dia,

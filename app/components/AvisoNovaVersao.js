@@ -75,7 +75,7 @@ export default function AvisoNovaVersao() {
   if (!shaPublicado || dispensado) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-20 z-[100] flex justify-center px-3 sm:bottom-6">
+    <div className="fixed inset-x-0 bottom-20 z-[100] flex justify-center px-3 sm:bottom-6 print:hidden">
       <div className="flex max-w-[calc(100vw-1.5rem)] items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 py-2.5 pl-4 pr-2.5 shadow-2xl">
         <span className="min-w-0 text-sm font-bold text-white">
           Nova versão disponível

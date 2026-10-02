@@ -100,7 +100,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   return (
     <>
-      <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-sm shrink-0 w-full relative" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
         <div className="flex items-center gap-4 lg:gap-6 h-full">
           {/* HAMBURGER MOBILE */}
@@ -123,6 +123,9 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             {modules.map((mod) => {
               const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
               const isHovered = hoveredModule === mod.id;
+              // Eventos é uma tela só, sem submenu. Ler mod.submodules nele
+              // derrubava o app inteiro só de passar o mouse no menu.
+              const temSubmenu = mod.submodules?.length > 0;
 
               return (
                 <div 
@@ -136,11 +139,11 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                     className={`h-full px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap rounded-lg transition-colors border-b-2 mt-[2px] ${isActive ? 'text-white border-emerald-500' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
                   >
                     {mod.label}
-                    <ChevronDown size={12} className={`opacity-50 transition-transform ${isHovered ? 'rotate-180' : ''}`} />
+                    {temSubmenu && <ChevronDown size={12} className={`opacity-50 transition-transform ${isHovered ? 'rotate-180' : ''}`} />}
                   </Link>
 
                   {/* DROPDOWN SUBMENU */}
-                  {isHovered && (
+                  {isHovered && temSubmenu && (
                     <div className="absolute top-full left-0 mt-0 w-64 bg-slate-900 border border-slate-800 rounded-b-2xl rounded-tr-2xl z-[100] shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
                       {mod.submodules.map(sub => (
                         <Link 
@@ -218,7 +221,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
       {/* MOBILE MENU DRAWER */}
       {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-[100] flex xl:hidden">
+        <div className="fixed inset-0 z-[100] flex xl:hidden print:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)}></div>
           <div className="relative w-80 max-w-[80vw] h-full bg-slate-900 flex flex-col shadow-2xl animate-in slide-in-from-left">
             <div className="flex items-center justify-between p-4 border-b border-slate-800" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
@@ -238,6 +241,17 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                 const isExpanded = expandedMobileModule === mod.id;
                 const isActive = pathname.startsWith(mod.href) || (mod.id === "rh" && pathname.includes("/rh"));
                 
+                // Sem submenu não há o que expandir: o botão vira o próprio
+                // link. Antes ele expandia uma lista inexistente e quebrava.
+                if (!(mod.submodules?.length > 0)) {
+                  return (
+                    <Link key={mod.id} href={mod.href}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-emerald-500/10 text-emerald-400' : 'text-zinc-300 hover:bg-slate-800 hover:text-white'}`}>
+                      {mod.label}
+                    </Link>
+                  );
+                }
+
                 return (
                   <div key={mod.id} className="flex flex-col">
                     <button 

@@ -68,7 +68,7 @@ export default function InstallPrompt() {
   return (
     <div
       style={{ position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 9998 }}
-      className="mx-auto max-w-md animate-in slide-in-from-bottom-4 fade-in"
+      className="mx-auto max-w-md animate-in slide-in-from-bottom-4 fade-in print:hidden"
     >
       <div
         className="flex items-center gap-3 p-3 rounded-2xl shadow-2xl border"

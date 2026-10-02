@@ -1,5 +1,5 @@
 /*
- CORREÇÕES DE SETEMBRO/2026 - JOSEPH E LARISSA
+ CORREÇÕES DE SETEMBRO/2026 - JOSEPH, LARISSA E WELLIGTON
 
  JOSEPH ANDREY GOMES DA SILVA
    19/09: saída às 23:30.
@@ -9,7 +9,13 @@
    04/09, 16/09, 17/09, 19/09 e 26/09: saída à meia-noite.
    20/09: intervalo das 17:00 às 18:00 e saída às 23:45.
 
- Por que existe: pela tela de Corrigir batida seriam treze correções feitas
+ WELLIGTON FURQUIM SILVERO
+   02/09: entrada 15:40, intervalo das 16:40 às 17:00 e saída às 23:50.
+   04/09: saída à meia-noite.
+   13/09: entrada 09:00, intervalo das 15:00 às 16:00 e saída às 17:20.
+   22/09: saída às 23:50.
+
+ Por que existe: pela tela de Corrigir batida seriam vinte e duas correções feitas
  uma a uma. Aqui sai tudo de uma vez, com o mesmo efeito - inclusive o
  registro no livro legal, que é o que a tela faz e um UPDATE solto não faria.
  COMO A CORREÇÃO É GRAVADA
@@ -23,10 +29,11 @@
  O "-03" no horário é obrigatório: a coluna é timestamptz e a sessão do
  Supabase roda em UTC. Sem o fuso, o banco guardaria 23:30 UTC e a tela
  mostraria 20:30.
- DIA SEM REGISTRO: só foram pedidas saída e intervalo, nenhuma entrada. Se
- algum dos dias não tiver linha nenhuma, a correção daquele dia é pulada
- e sai um aviso - criar um dia só com saída deixaria o espelho com uma
- jornada sem começo.
+ DIA SEM REGISTRO: quando a correção traz a ENTRADA, ela cria o dia. Quando
+ traz só intervalo ou saída e o dia não tem linha nenhuma, a correção daquele
+ dia é pulada e sai um aviso "PULEI" - criar um dia só com saída deixaria o
+ espelho com uma jornada sem começo. As linhas rodam na ordem da jornada
+ (entrada, intervalo, volta, saída), então a entrada sempre vem primeiro.
  Rodar de novo não duplica nada: o ajuste só entra se ainda não existir um
  igual, e o resumo é reescrito com o mesmo valor.
  Como rodar: cole no SQL Editor do Supabase e execute.
@@ -70,8 +77,26 @@ begin
       ('LARISSA DA SILVA UHE%', '2026-09-20', 'hora_saida_intervalo',   'saida_intervalo',   '2026-09-20 17:00:00-03'),
       ('LARISSA DA SILVA UHE%', '2026-09-20', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-09-20 18:00:00-03'),
       ('LARISSA DA SILVA UHE%', '2026-09-20', 'hora_saida',             'saida_trabalho',    '2026-09-20 23:45:00-03'),
-      ('LARISSA DA SILVA UHE%', '2026-09-26', 'hora_saida',             'saida_trabalho',    '2026-09-27 00:00:00-03')
+      ('LARISSA DA SILVA UHE%', '2026-09-26', 'hora_saida',             'saida_trabalho',    '2026-09-27 00:00:00-03'),
+
+      ('WELLIGTON FURQUIM%', '2026-09-02', 'hora_entrada',           'entrada',           '2026-09-02 15:40:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-02', 'hora_saida_intervalo',   'saida_intervalo',   '2026-09-02 16:40:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-02', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-09-02 17:00:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-02', 'hora_saida',             'saida_trabalho',    '2026-09-02 23:50:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-04', 'hora_saida',             'saida_trabalho',    '2026-09-05 00:00:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_entrada',           'entrada',           '2026-09-13 09:00:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_saida_intervalo',   'saida_intervalo',   '2026-09-13 15:00:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-09-13 16:00:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_saida',             'saida_trabalho',    '2026-09-13 17:20:00-03'),
+      ('WELLIGTON FURQUIM%', '2026-09-22', 'hora_saida',             'saida_trabalho',    '2026-09-22 23:50:00-03')
     ) as t(pessoa, dia, campo, tipo, hora)
+/*
+ Ordem da jornada: a entrada de um dia sem registro tem que rodar antes do
+ intervalo e da saída daquele dia, senão eles seriam pulados.
+*/
+    order by pessoa, dia,
+             case tipo when 'entrada' then 1 when 'saida_intervalo' then 2
+                       when 'retorno_intervalo' then 3 else 4 end
   loop
     v_data  := r.dia::date;
     v_campo := r.campo;
@@ -97,7 +122,7 @@ begin
       into v_reg, v_antes
       using v_colab, v_data;
 
-    if v_reg is null then
+    if v_reg is null and v_tipo <> 'entrada' then
       raise notice 'PULEI % % em %: o dia não tem registro (falta a entrada). Lance a entrada pela tela Corrigir batida e rode de novo.',
         r.pessoa, v_campo, to_char(v_data, 'DD/MM');
       continue;
@@ -134,9 +159,19 @@ begin
                   when 'entrada' then 1 when 'saida_intervalo' then 2
                   when 'retorno_intervalo' then 3 else 4 end;
 
-    execute format(
-      'update public.registro_ponto set %I = $1, status_jornada = greatest(coalesce(status_jornada, 1), $2) where id = $3', v_campo)
-      using v_nova, v_status, v_reg;
+    if v_reg is null then
+/*
+ Dia sem registro nenhum e a correção é a entrada: ela cria o dia.
+*/
+      execute format(
+        'insert into public.registro_ponto (colaborador_id, unidade_id, data_referencia, %I, status_jornada, origem_batida)
+         values ($1, $2, $3, $4, $5, ''manual'')', v_campo)
+        using v_colab, v_unidade, v_data, v_nova, v_status;
+    else
+      execute format(
+        'update public.registro_ponto set %I = $1, status_jornada = greatest(coalesce(status_jornada, 1), $2) where id = $3', v_campo)
+        using v_nova, v_status, v_reg;
+    end if;
 
     raise notice '% % -> % (antes: %)', r.pessoa, v_campo,
       to_char(v_nova at time zone 'America/Sao_Paulo', 'DD/MM HH24:MI'),
@@ -150,6 +185,8 @@ end $$;
  Joseph:  19/09 saída 23:30; 26/09 intervalo 17:00 / 18:00 e saída 00:00.
  Larissa: 04, 16, 17, 19 e 26/09 saída 00:00; 20/09 intervalo 17:00 / 18:00
           e saída 23:45.
+ Welligton: 02/09 15:40 / 16:40 / 17:00 / 23:50; 04/09 saída 00:00;
+          13/09 09:00 / 15:00 / 16:00 / 17:20; 22/09 saída 23:50.
 */
 select c.nome,
        to_char(p.data_referencia, 'DD/MM')                                  as dia,
@@ -165,5 +202,7 @@ select c.nome,
          and p.data_referencia in ('2026-09-19', '2026-09-26'))
      or (upper(c.nome) like 'LARISSA DA SILVA UHE%'
          and p.data_referencia in ('2026-09-04', '2026-09-16', '2026-09-17',
-                                   '2026-09-19', '2026-09-20', '2026-09-26')))
+                                   '2026-09-19', '2026-09-20', '2026-09-26'))
+     or (upper(c.nome) like 'WELLIGTON FURQUIM%'
+         and p.data_referencia in ('2026-09-02', '2026-09-04', '2026-09-13', '2026-09-22')))
  order by c.nome, p.data_referencia;

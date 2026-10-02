@@ -1,5 +1,5 @@
 /*
- CORREÇÕES DE SETEMBRO/2026 - JOSEPH, LARISSA E WELLIGTON
+ CORREÇÕES DE SETEMBRO/2026 - JOSEPH, LARISSA, WELLIGTON E EDUARDA
 
  JOSEPH ANDREY GOMES DA SILVA
    19/09: saída às 23:30.
@@ -15,7 +15,10 @@
    13/09: entrada 09:00, intervalo das 15:00 às 16:00 e saída às 17:20.
    22/09: saída às 23:50.
 
- Por que existe: pela tela de Corrigir batida seriam vinte e duas correções feitas
+ EDUARDA DE LIMA OLIVEIRA
+   13/09: saída à meia-noite.
+
+ Por que existe: pela tela de Corrigir batida seriam vinte e três correções feitas
  uma a uma. Aqui sai tudo de uma vez, com o mesmo efeito - inclusive o
  registro no livro legal, que é o que a tela faz e um UPDATE solto não faria.
  COMO A CORREÇÃO É GRAVADA
@@ -88,7 +91,9 @@ begin
       ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_saida_intervalo',   'saida_intervalo',   '2026-09-13 15:00:00-03'),
       ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-09-13 16:00:00-03'),
       ('WELLIGTON FURQUIM%', '2026-09-13', 'hora_saida',             'saida_trabalho',    '2026-09-13 17:20:00-03'),
-      ('WELLIGTON FURQUIM%', '2026-09-22', 'hora_saida',             'saida_trabalho',    '2026-09-22 23:50:00-03')
+      ('WELLIGTON FURQUIM%', '2026-09-22', 'hora_saida',             'saida_trabalho',    '2026-09-22 23:50:00-03'),
+
+      ('EDUARDA DE LIMA%', '2026-09-13', 'hora_saida',             'saida_trabalho',    '2026-09-14 00:00:00-03')
     ) as t(pessoa, dia, campo, tipo, hora)
 /*
  Ordem da jornada: a entrada de um dia sem registro tem que rodar antes do
@@ -187,6 +192,7 @@ end $$;
           e saída 23:45.
  Welligton: 02/09 15:40 / 16:40 / 17:00 / 23:50; 04/09 saída 00:00;
           13/09 09:00 / 15:00 / 16:00 / 17:20; 22/09 saída 23:50.
+ Eduarda: 13/09 saída 00:00.
 */
 select c.nome,
        to_char(p.data_referencia, 'DD/MM')                                  as dia,
@@ -204,5 +210,7 @@ select c.nome,
          and p.data_referencia in ('2026-09-04', '2026-09-16', '2026-09-17',
                                    '2026-09-19', '2026-09-20', '2026-09-26'))
      or (upper(c.nome) like 'WELLIGTON FURQUIM%'
-         and p.data_referencia in ('2026-09-02', '2026-09-04', '2026-09-13', '2026-09-22')))
+         and p.data_referencia in ('2026-09-02', '2026-09-04', '2026-09-13', '2026-09-22'))
+     or (upper(c.nome) like 'EDUARDA DE LIMA%'
+         and p.data_referencia = '2026-09-13'))
  order by c.nome, p.data_referencia;

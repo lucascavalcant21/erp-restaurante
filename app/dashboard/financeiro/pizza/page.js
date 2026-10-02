@@ -17,6 +17,7 @@ import {
 import { dadosDoPrato, fatiasDoPrato, precoSugerido } from "../../../lib/pizza-do-prato.mjs";
 import { lacunasDoCusto } from "../../../lib/lacunas-custo.mjs";
 import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
+import VisaoPeriodo from "./VisaoPeriodo";
 import { DESPESAS_OPERACIONAIS, DESPESAS_VARIAVEIS, pesoNoFaturamento } from "../../../lib/composicao-preco.mjs";
 import { fmtReais, fmtPct, percentualDe } from "../../../lib/valor-percentual.mjs";
 
@@ -161,7 +162,7 @@ export default function PizzaDoLucroPage() {
   const [visao, setVisao] = useState(() => {
     if (typeof window === "undefined") return "pratos";
     const ver = new URLSearchParams(window.location.search).get("ver");
-    return ["pratos", "dia", "simulacao", "conferir"].includes(ver) ? ver : "pratos";
+    return ["pratos", "periodo", "dia", "simulacao", "conferir"].includes(ver) ? ver : "pratos";
   }); // pratos | dia | simulacao | conferir
   // Cardápio montado: { fichaId: quantidade no mês }.
   const [montado, setMontado] = useState({});
@@ -416,7 +417,7 @@ export default function PizzaDoLucroPage() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {[["pratos", "Pizza dos pratos"], ["dia", "Custo por dia"], ["simulacao", "Simulação"], ["conferir", "O que falta"]].map(([id, rotulo]) => (
+          {[["pratos", "Pizza dos pratos"], ["periodo", "Visão do período"], ["dia", "Custo por dia"], ["simulacao", "Simulação"], ["conferir", "O que falta"]].map(([id, rotulo]) => (
             <button key={id} onClick={() => setVisao(id)}
               className={`rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${visao === id ? "bg-accent text-accent-fg" : "border border-line bg-card text-fg hover:bg-white"}`}>
               {rotulo}
@@ -593,6 +594,8 @@ export default function PizzaDoLucroPage() {
 
         {loading ? (
           <div className="grid min-h-[40vh] place-items-center"><Loader2 className="animate-spin text-success" size={32} /></div>
+        ) : visao === "periodo" ? (
+          <VisaoPeriodo unidadeAtiva={unidadeAtiva} params={paramsComCmo} />
         ) : visao === "dia" ? (
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {/* Quanto sai do bolso antes de vender o primeiro prato. */}

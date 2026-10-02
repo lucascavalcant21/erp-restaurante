@@ -270,3 +270,76 @@ export function resultadoGerencialDoMes({
     linha("resultado", "(=) Resultado", resultado, NATUREZA.estimado.id),
   ];
 }
+
+// ─── Visão gerencial de um período (entre inventários) ──────────────────────
+
+const diasNoMesDe = (iso) => {
+  const [a, m] = String(iso).split("-").map(Number);
+  return a && m ? new Date(a, m, 0).getDate() : 30;
+};
+
+/* Liga a DRE gerencial ao CMV REAL (cmv-real.mjs → apurarPeriodo):
+ *   faturamento .... o do período, da fonte oficial (null se não houver)
+ *   CMV ............ estoque inicial + compras − estoque final (null se não apurado)
+ *   variáveis ...... faturamento × % configurados
+ *   CMO, despesas,
+ *   pró-labore ..... valor do mês × dias do período ÷ dias do mês
+ * Linha sem fonte sai null, com o motivo — nunca zero.
+ */
+export function visaoGerencialDoPeriodo(ap, params = {}) {
+  if (!ap) return null;
+  const dias = ap.periodo.dias;
+  const diasMes = diasNoMesDe(ap.periodo.de);
+  const fator = diasMes > 0 ? dias / diasMes : 0;
+  const fat = ap.faturamento?.valor ?? null;
+  const cmv = ap.cmv?.valor ?? null;
+  const varPct = DESPESAS_VARIAVEIS.reduce((s, [k]) => s + pos(params[k]), 0);
+  const prop = (v) => Math.round(pos(v) * fator * 100) / 100;
+  const linhas = resultadoGerencialDoMes({
+    faturamento: fat,
+    cmvReal: cmv,
+    despesasVariaveis: fat === null ? null : Math.round(fat * varPct) / 100,
+    cmo: prop(cmoDoMes(params).total),
+    operacionais: prop(despesasOperacionaisDoMes(params).total),
+    proLabore: prop(proLaboreDoMes(params.pro_labore).total),
+  });
+  const notaProp = `proporcional a ${dias} dia(s) de ${diasMes}`;
+  const notas = {
+    faturamento: fat === null ? (ap.faturamento?.motivo || "Sem fonte de faturamento.") : ap.faturamento?.fonte,
+    cmv: cmv === null ? (ap.motivos || []).join(" ") || "CMV real não apurado." : "estoque inicial + compras confirmadas − estoque final",
+    variaveis: fat === null ? "Depende do faturamento." : `${varPct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% configurados sobre o faturamento`,
+    cmo: `CMO do mês (RH + encargos), ${notaProp}`,
+    operacionais: `despesas do mês cadastradas, ${notaProp}`,
+    pro_labore: `pró-labore do mês, ${notaProp}`,
+  };
+  return {
+    periodo: ap.periodo, status: ap.status, fator,
+    linhas: linhas.map((l) => ({ ...l, nota: notas[l.id] || null })),
+  };
+}
+
+/* Estrutura de custos do mês, sem depender de inventário: o que a casa gasta
+ * por mês em CMO, despesas e pró-labore, e quanto isso pesa sobre o
+ * faturamento de REFERÊNCIA (configurado — não é faturamento medido).
+ */
+export function estruturaDeCustosDoMes(params = {}) {
+  const ref = pos(params.faturamento_mes_ref);
+  const linha = (id, rotulo, valor, natureza, partes = []) => ({
+    id, rotulo, valor, natureza, pct: ref > 0 ? percentualDe(valor, ref) : null,
+    partes: partes.map((p) => ({ ...p, pct: ref > 0 ? percentualDe(p.valor, ref) : null })),
+  });
+  const cmo = cmoDoMes(params);
+  const op = despesasOperacionaisDoMes(params);
+  const pl = proLaboreDoMes(params.pro_labore);
+  const total = cmo.total + op.total + pl.total;
+  return {
+    faturamentoReferencia: ref > 0 ? ref : null,
+    variaveisPct: DESPESAS_VARIAVEIS.map(([k, rotulo]) => ({ rotulo, pct: pos(params[k]) })).filter((x) => x.pct > 0),
+    linhas: [
+      linha("cmo", "CMO", cmo.total, NATUREZA.real.id, cmo.partes),
+      linha("operacionais", "Despesas operacionais", op.total, NATUREZA.real.id, op.partes),
+      linha("pro_labore", "Pró-labore", pl.total, NATUREZA.configurado.id, pl.partes),
+    ],
+    total: linha("total", "Custos do mês (sem CMV e variáveis)", total, NATUREZA.real.id),
+  };
+}

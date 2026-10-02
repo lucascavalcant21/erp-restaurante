@@ -182,3 +182,46 @@ test("visão gerencial do mês: % do faturamento e sem número inventado", () =>
   assert.equal(parcial.cmv.valor, null);       // sem fonte: sem dado, não zero
   assert.equal(parcial.resultado.valor, null);
 });
+
+// ─── Visão do período (CMV real) ────────────────────────────────────────────
+import { visaoGerencialDoPeriodo, estruturaDeCustosDoMes } from "./composicao-preco.mjs";
+
+const AP = (over = {}) => ({
+  periodo: { de: "2026-09-01", ate: "2026-09-30", dias: 30 }, status: "apurado", motivos: [],
+  faturamento: { valor: 100000, fonte: "faturamento diário informado" }, cmv: { valor: 32000 }, ...over,
+});
+const PARAMS_MES = { custo_cmo_mes: 25000, custo_aluguel_mes: 9000, custo_luz_mes: 3000, imposto_pct: 6, taxa_cartao_pct: 3,
+  pro_labore: [{ socio: "A", valor_mensal: 8000 }], faturamento_mes_ref: 100000 };
+
+test("visão do período: CMV real + custos do mês proporcionais aos dias", () => {
+  const v = visaoGerencialDoPeriodo(AP(), PARAMS_MES);
+  const l = Object.fromEntries(v.linhas.map((x) => [x.id, x]));
+  assert.deepEqual([l.cmv.valor, l.cmv.pct], [32000, 32]);
+  assert.equal(l.variaveis.valor, 9000);           // 9% de 100 mil
+  assert.equal(l.cmo.valor, 25000);                // mês inteiro (30 de 30 dias)
+  assert.equal(l.operacionais.valor, 12000);
+  assert.equal(l.pro_labore.valor, 8000);
+  assert.deepEqual([l.resultado.valor, l.resultado.pct], [14000, 14]);
+  // período de 7 dias num mês de 30: custos do mês × 7/30
+  const sem = visaoGerencialDoPeriodo(AP({ periodo: { de: "2026-09-01", ate: "2026-09-07", dias: 7 } }), PARAMS_MES);
+  assert.equal(Object.fromEntries(sem.linhas.map((x) => [x.id, x])).cmo.valor, 5833.33);
+});
+
+test("visão do período sem faturamento ou sem CMV: sem dado, com motivo, nunca zero", () => {
+  const v = visaoGerencialDoPeriodo(AP({ faturamento: { valor: null, motivo: "Sem fonte" }, cmv: { valor: null }, motivos: ["Inventário final ainda não realizado."] }), PARAMS_MES);
+  const l = Object.fromEntries(v.linhas.map((x) => [x.id, x]));
+  assert.equal(l.faturamento.valor, null);
+  assert.equal(l.cmv.valor, null);
+  assert.match(l.cmv.nota, /Inventário final/);
+  assert.equal(l.resultado.valor, null);
+  assert.equal(l.cmo.valor, 25000);               // o que tem fonte continua aparecendo
+  assert.equal(visaoGerencialDoPeriodo(null, PARAMS_MES), null);
+});
+
+test("estrutura de custos do mês sobre o faturamento de referência", () => {
+  const e = estruturaDeCustosDoMes(PARAMS_MES);
+  assert.equal(e.total.valor, 45000);
+  assert.equal(e.total.pct, 45);
+  assert.equal(e.linhas.find((x) => x.id === "cmo").pct, 25);
+  assert.equal(estruturaDeCustosDoMes({ custo_cmo_mes: 100 }).linhas[0].pct, null); // sem referência, sem %
+});

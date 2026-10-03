@@ -1,302 +1,301 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { 
-  ArrowLeft, Calendar, Clock, MapPin, Users, DollarSign, 
-  FileText, ChefHat, GlassWater, ShoppingCart, Activity, Briefcase 
-, Wine, LayoutTemplate, CheckCircle2 } from "lucide-react";
-import OperacaoTab from "./OperacaoTab";
+// Evento: orçamento em etapas, na ordem em que o dono monta um evento:
+// tipo → cardápio → equipe → aluguel e extras → cliente → custos e preço →
+// DRE → orçamento para o cliente → pagamentos → compras.
+// Contas em evento-orcamento.mjs. O orçamento grava sozinho (com uma pausa
+// depois da última alteração) em eventos.operacao_detalhes.orcamento, e as
+// colunas que o funil, a agenda e a tela inicial leem são atualizadas junto.
+
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import CardapioTab from "./CardapioTab";
+import { ArrowLeft, ArrowRight, Calendar, Users, Check, Loader2, CloudOff, AlertTriangle } from "lucide-react";
 import ComprasTab from "./ComprasTab";
-import PropostaTab from "./PropostaTab";
-import FinanceiroTab from "./FinanceiroTab";
+import { EtapaTipo, EtapaCardapio } from "./orcamento/EtapaCardapio";
+import { EtapaEquipe, EtapaExtras, EtapaCliente } from "./orcamento/EtapasCadastro";
+import { EtapaFinanceiro, EtapaDRE, EtapaProposta, EtapaPagamentos } from "./orcamento/EtapasFinanceiras";
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
 import { fetchParams, PARAMS_PADRAO } from "../../../../lib/parametros";
-import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa, resumoDoEvento, pendenciasDoEvento } from "../../../../lib/evento-financeiro.mjs";
-import { fmtReais, fmtPct, NATUREZA } from "../../../../lib/valor-percentual.mjs";
+import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa } from "../../../../lib/evento-financeiro.mjs";
+import {
+  orcamentoDoEvento, resumoDoOrcamento, pendenciasDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, CAMPOS_ESSENCIAIS, tipoDoEvento,
+} from "../../../../lib/evento-orcamento.mjs";
+import { fmtReais, fmtPct } from "../../../../lib/valor-percentual.mjs";
 
-// Abas do Hub
-const TABS = [
-  { id: "resumo", label: "CRM & Resumo", icon: FileText },
-  { id: "cozinha", label: "Cozinha", icon: ChefHat },
-  { id: "bar", label: "Bar", icon: Wine },
-  { id: "salao", label: "Salão", icon: Users },
-  { id: "compras", label: "Logística/Compras", icon: ShoppingCart },
-  { id: "financeiro", label: "Caixa & DRE", icon: DollarSign },
-  { id: "proposta", label: "Proposta", icon: LayoutTemplate }
+const ETAPAS = [
+  { id: "tipo", rotulo: "Tipo" },
+  { id: "cardapio", rotulo: "Cardápio" },
+  { id: "equipe", rotulo: "Equipe" },
+  { id: "extras", rotulo: "Aluguel e extras" },
+  { id: "cliente", rotulo: "Cliente" },
+  { id: "financeiro", rotulo: "Custos e preço" },
+  { id: "dre", rotulo: "DRE do evento" },
+  { id: "proposta", rotulo: "Orçamento" },
+  { id: "pagamentos", rotulo: "Pagamentos" },
+  { id: "compras", rotulo: "Compras" },
 ];
 
-export default function EventoHubPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { unidadeAtiva } = useERP();
-  const { id } = params;
-  
+// Grava descartando coluna que este banco não tenha (o schema não tem fonte
+// canônica); sem as essenciais, não grava.
+async function gravarEvento(id, campos) {
+  const dados = { ...campos };
+  for (let tentativa = 0; tentativa < 15; tentativa++) {
+    const { error } = await supabase.from("eventos").update(dados).eq("id", id);
+    if (!error) return { ok: true, dados };
+    const m = /Could not find the '([a-z_]+)' column|column "?([a-z_]+)"? of relation "?eventos"? does not exist/i.exec(error.message || "");
+    const col = m && (m[1] || m[2]);
+    if (!col || !(col in dados) || CAMPOS_ESSENCIAIS.includes(col)) return { ok: false, erro: error.message };
+    delete dados[col];
+  }
+  return { ok: false, erro: "Não foi possível gravar o evento." };
+}
+
+export default function EventoPage() {
+  const { id } = useParams();
+  const { unidadeAtiva, unidadeInfo } = useERP();
+
   const [evento, setEvento] = useState(null);
-  const [activeTab, setActiveTab] = useState("resumo");
-  const [carregando, setCarregando] = useState(true);
-  // Fichas e parâmetros: o custo do evento sai da mesma conta das fichas.
+  const [orc, setOrc] = useState(null);
   const [fichas, setFichas] = useState([]);
-  const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);
+  const [carregando, setCarregando] = useState(true);
+  const [etapa, setEtapa] = useState("tipo");
+  const [gravacao, setGravacao] = useState({ estado: "salvo", erro: "" });
+  const [salvandoPag, setSalvandoPag] = useState(false);
+  const carregado = useRef(false);
+  const eventoRef = useRef(null);
+  eventoRef.current = evento;
 
   useEffect(() => {
-    async function carregarEvento() {
-      if (!unidadeAtiva || !id) return;
+    if (!unidadeAtiva || !id) return;
+    let ativo = true;
+    carregado.current = false;
+    (async () => {
       setCarregando(true);
       const [{ data, error }, resFichas, resParams] = await Promise.all([
         supabase.from("eventos").select("*").eq("id", id).single(),
         fetchFichas(unidadeAtiva),
         fetchParams(unidadeAtiva),
       ]);
-      if (!error && data) setEvento(data);
+      if (!ativo) return;
+      const params = { ...PARAMS_PADRAO, ...(resParams.data || {}) };
+      let equipeLegada = [];
+      if (!error && data && !data.operacao_detalhes?.orcamento) {
+        // Evento de antes do orçamento em etapas: a equipe estava nesta tabela.
+        const eq = await supabase.from("evento_equipe").select("*").eq("evento_id", id);
+        equipeLegada = eq.error ? [] : eq.data || [];
+      }
+      if (!ativo) return;
       setFichas(resFichas.data || []);
-      setParamsSis({ ...PARAMS_PADRAO, ...(resParams.data || {}) });
+      if (!error && data) {
+        const o = orcamentoDoEvento(data, params, equipeLegada);
+        setEvento(data);
+        setOrc(o);
+        setEtapa(o.cardapio.length ? "dre" : "tipo");
+      }
       setCarregando(false);
-    }
-    carregarEvento();
+    })();
+    return () => { ativo = false; };
   }, [unidadeAtiva, id]);
 
-  const resumo = useMemo(() => (evento ? resumoDoEvento(evento, fichas, paramsSis) : null), [evento, fichas, paramsSis]);
-  const hoje = new Date().toISOString().slice(0, 10);
-  const pendencias = useMemo(() => (evento && resumo ? pendenciasDoEvento(evento, resumo, hoje) : []), [evento, resumo, hoje]);
+  const resumo = useMemo(() => (orc ? resumoDoOrcamento(orc, fichas) : null), [orc, fichas]);
+  const compras = useMemo(() => (orc && etapa === "compras" ? listaDeComprasDoOrcamento(orc, fichas) : null), [orc, fichas, etapa]);
+  const etapaFunil = normalizarEtapa(evento?.funil_status);
+  const pagamentos = Array.isArray(evento?.historico_pagamentos) ? evento.historico_pagamentos : [];
+  const recebido = pagamentos.reduce((t, p) => t + (Number(p.valor) || 0), 0);
+  const pendencias = useMemo(() => (orc && resumo ? pendenciasDoOrcamento(orc, resumo, { hojeIso: new Date().toISOString().slice(0, 10), etapa: etapaFunil, recebido }) : []),
+    [orc, resumo, etapaFunil, recebido]);
+
+  // Gravação automática: 900 ms depois da última alteração.
+  useEffect(() => {
+    if (!orc || !evento) return;
+    if (!carregado.current) { carregado.current = true; return; }
+    setGravacao({ estado: "pendente", erro: "" });
+    const t = setTimeout(async () => {
+      setGravacao({ estado: "salvando", erro: "" });
+      const atual = eventoRef.current;
+      const campos = camposDoEventoParaGravar(orc, resumoDoOrcamento(orc, fichas), atual?.operacao_detalhes);
+      const res = await gravarEvento(atual.id, campos);
+      if (res.ok) {
+        setEvento((e) => ({ ...e, ...res.dados }));
+        setGravacao({ estado: "salvo", erro: "" });
+      } else {
+        setGravacao({ estado: "erro", erro: res.erro });
+      }
+    }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orc]);
+
+  // Avisa antes de sair com alteração ainda não gravada.
+  useEffect(() => {
+    if (gravacao.estado !== "pendente" && gravacao.estado !== "salvando") return;
+    const h = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [gravacao.estado]);
+
+  const mudarFunil = async (novo) => {
+    setEvento((e) => ({ ...e, funil_status: novo }));
+    await supabase.from("eventos").update({ funil_status: novo }).eq("id", evento.id);
+  };
+
+  const salvarPagamentos = useCallback(async (lista) => {
+    setSalvandoPag(true);
+    const { error } = await supabase.from("eventos").update({ historico_pagamentos: lista }).eq("id", evento.id);
+    setSalvandoPag(false);
+    if (error) { setGravacao({ estado: "erro", erro: error.message }); return false; }
+    setEvento((e) => ({ ...e, historico_pagamentos: lista }));
+    return true;
+  }, [evento?.id]);
 
   if (!unidadeAtiva) return <div className="p-8 text-center text-slate-900">Selecione uma loja.</div>;
-  if (carregando) return <div className="p-8 text-center text-slate-900 font-bold">Carregando Hub do Evento...</div>;
-  if (!evento) return <div className="p-8 text-center text-slate-900 font-bold">Evento não encontrado.</div>;
+  if (carregando) return <div className="grid min-h-[50vh] place-items-center"><Loader2 className="animate-spin text-emerald-600" size={28} /></div>;
+  if (!evento || !orc) return <div className="p-8 text-center font-bold text-slate-900">Evento não encontrado.</div>;
+
+  const c = orc.cliente;
+  const idx = ETAPAS.findIndex((e) => e.id === etapa);
+  const feito = {
+    tipo: true,
+    cardapio: resumo.itens.length > 0,
+    equipe: orc.equipe.length > 0,
+    extras: orc.extras.length > 0,
+    cliente: !!(c.cliente_nome && c.data_evento && resumo.convidados > 0),
+    financeiro: resumo.precoPorPessoa > 0,
+    dre: resumo.receita > 0,
+    proposta: false,
+    pagamentos: recebido > 0,
+    compras: false,
+  };
+  const props = { orc, setOrc, resumo, fichas };
 
   return (
-    <main className="min-h-screen bg-white/50 flex flex-col">
-      {/* HEADER PRINCIPAL */}
-      <header className="bg-white border-b border-slate-200 px-8 py-6 shrink-0">
-        <div className="max-w-7xl mx-auto flex flex-col gap-6">
-          <Link href="/dashboard/reservas-eventos" className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-slate-900 transition-colors w-max">
-            <ArrowLeft size={16} /> Voltar para o Funil
-          </Link>
-          
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                
-                <select 
-                  value={normalizarEtapa(evento.funil_status)}
-                  onChange={async (e) => {
-                    const novoStatus = e.target.value;
-                    setEvento({...evento, funil_status: novoStatus});
-                    await supabase.from("eventos").update({funil_status: novoStatus}).eq("id", evento.id);
-                  }}
-                  className="bg-slate-900 text-white text-xs font-black px-2.5 py-1 rounded-lg uppercase tracking-widest outline-none cursor-pointer appearance-none text-center"
-                >
+    <main className="min-h-screen bg-slate-50 pb-24 print:bg-white print:pb-0">
+      <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-8 print:hidden">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/dashboard/reservas-eventos/eventos" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
+              <ArrowLeft size={16} /> Funil de eventos
+            </Link>
+            <EstadoGravacao g={gravacao} />
+          </div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <select value={etapaFunil} onChange={(e) => mudarFunil(e.target.value)} aria-label="Etapa do funil"
+                  className="h-8 cursor-pointer rounded-lg bg-slate-900 px-2.5 text-xs font-black uppercase tracking-widest text-white outline-none">
                   {FUNIL_ETAPAS.map((e) => <option key={e} value={e}>{rotuloEtapa(e).toUpperCase()}</option>)}
                 </select>
-
-                <span className="bg-slate-100 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-lg">
-                  ID: {evento.id.split("-")[0]}
-                </span>
+                <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">{tipoDoEvento(orc.tipo).rotulo}</span>
               </div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">
-                {evento.nome || evento.cliente_nome || "Evento sem Título"}
-              </h1>
-              {evento.cliente_nome && (
-                <p className="text-lg font-medium text-slate-900">{evento.cliente_nome}</p>
-              )}
+              <h1 className="truncate text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-3xl">{c.nome_evento || c.cliente_nome || "Evento sem nome"}</h1>
+              {c.cliente_nome && c.nome_evento && <p className="font-semibold text-slate-600">{c.cliente_nome}</p>}
             </div>
-
-            <div className="flex flex-wrap gap-4 md:justify-end">
-              <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[120px]">
-                <span className="text-xs font-bold text-slate-800 uppercase">Data</span>
-                <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Calendar size={14} className="text-slate-800"/> 
-                  {evento.data_evento ? new Date(evento.data_evento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : "A definir"}
-                </span>
-              </div>
-              <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[120px]">
-                <span className="text-xs font-bold text-slate-800 uppercase">Convidados</span>
-                <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Users size={14} className="text-slate-800"/> 
-                  {evento.capacidade || 0}
-                </span>
-              </div>
-              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 flex flex-col gap-1 min-w-[140px]">
-                <span className="text-xs font-bold text-emerald-600 uppercase">Valor Fechado</span>
-                <span className="text-lg font-black text-emerald-900 flex items-center gap-1">
-                  R$ {(evento.valor_contratado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <Indicador rotulo="Data" valor={<><Calendar size={13} /> {c.data_evento ? new Date(`${c.data_evento}T12:00:00`).toLocaleDateString("pt-BR") : "A definir"}</>} />
+              <Indicador rotulo="Pessoas" valor={<><Users size={13} /> {resumo.convidados || "—"}</>} />
+              <Indicador rotulo="Por pessoa" valor={resumo.precoPorPessoa > 0 ? fmtReais(resumo.precoPorPessoa) : "—"} />
+              <Indicador rotulo="Total" valor={resumo.receita > 0 ? fmtReais(resumo.receita) : "—"} destaque />
             </div>
           </div>
         </div>
       </header>
 
-      {/* NAVEGAÇÃO DE ABAS */}
-      <nav className="bg-white border-b border-slate-200 px-8 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex overflow-x-auto hide-scrollbar">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold text-sm whitespace-nowrap transition-colors ${
-                activeTab === tab.id 
-                  ? 'border-emerald-600 text-emerald-700' 
-                  : 'border-transparent text-slate-900 hover:text-slate-800 hover:border-slate-300'
-              }`}
-            >
-              <tab.icon size={16} /> {tab.label}
-            </button>
-          ))}
-        </div>
+      <nav className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-2 backdrop-blur sm:px-6 print:hidden" aria-label="Etapas do orçamento">
+        <ol className="mx-auto flex max-w-7xl gap-1 overflow-x-auto py-2">
+          {ETAPAS.map((e, i) => {
+            const ativo = e.id === etapa;
+            return (
+              <li key={e.id} className="shrink-0">
+                <button type="button" onClick={() => setEtapa(e.id)} aria-current={ativo ? "step" : undefined}
+                  className={`flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold ${ativo ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${ativo ? "bg-white text-slate-900" : feito[e.id] ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                    {feito[e.id] && !ativo ? <Check size={12} strokeWidth={3} /> : i + 1}
+                  </span>
+                  {e.rotulo}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       </nav>
 
-      {/* CONTEÚDO DAS ABAS */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-8">
-        {activeTab === "resumo" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <section className="bg-white border border-slate-200 rounded-3xl p-6">
-                <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Activity className="text-emerald-600" /> Indicadores de Prontidão
-                </h2>
-                
-                {(() => {
-                  const items = [
-                    { id: 'cardapio', empty: 'Cardápio não definido', done: 'Cardápio montado', isDone: (evento.cardapio_itens && evento.cardapio_itens.length > 0) },
-                    { id: 'equipe', empty: 'Equipe não escalada', done: 'Equipe escalada', isDone: Number(evento.total_custo_equipe) > 0 },
-                    { id: 'sinal', empty: 'Aguardando financeiro', done: 'Sinal/Pagam. recebido', isDone: (evento.historico_pagamentos && evento.historico_pagamentos.length > 0) }
-                  ];
-                  const progresso = Math.round((items.filter(i => i.isDone).length / items.length) * 100);
-                  
-                  return (
-                    <div className="space-y-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-900 uppercase tracking-widest">Status da Organização</span>
-                        <span className="text-sm font-black text-emerald-600">{progresso}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2.5 mb-6">
-                        <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-1000" style={{ width: `${progresso}%` }}></div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {items.map(item => (
-                          <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border ${item.isDone ? 'border-emerald-100 bg-emerald-50' : 'border-slate-100 bg-white'}`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${item.isDone ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
-                              <CheckCircle2 size={14} />
-                            </div>
-                            <span className={`font-bold ${item.isDone ? 'text-emerald-700' : 'text-slate-900'}`}>
-                              {item.isDone ? item.done : item.empty}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </section>
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] print:block print:p-0">
+        <div className="min-w-0">
+          {etapa === "tipo" && <EtapaTipo {...props} />}
+          {etapa === "cardapio" && <EtapaCardapio {...props} />}
+          {etapa === "equipe" && <EtapaEquipe {...props} />}
+          {etapa === "extras" && <EtapaExtras {...props} />}
+          {etapa === "cliente" && <EtapaCliente {...props} />}
+          {etapa === "financeiro" && <EtapaFinanceiro {...props} />}
+          {etapa === "dre" && <EtapaDRE {...props} />}
+          {etapa === "proposta" && <EtapaProposta {...props} casa={unidadeInfo?.nome || ""} />}
+          {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} />}
+          {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} />}
 
-              {resumo && <CustoEPreco resumo={resumo} />}
-
-            </div>
-            
-            <div className="space-y-6">
-              <section className={`rounded-3xl border p-6 ${pendencias.length ? "border-amber-200 bg-amber-50" : "border-emerald-100 bg-emerald-50"}`}>
-                <h2 className={`text-sm font-extrabold uppercase tracking-widest mb-4 ${pendencias.length ? "text-amber-800" : "text-emerald-700"}`}>Precisa de atenção</h2>
-                {pendencias.length ? (
-                  <ul className="space-y-2">
-                    {pendencias.map((p) => <li key={p} className="text-sm font-semibold text-amber-900">• {p}</li>)}
-                  </ul>
-                ) : (
-                  <p className="text-sm font-medium text-emerald-700">Nada pendente nos dados deste evento.</p>
-                )}
-              </section>
-            </div>
+          <div className="mt-6 flex items-center justify-between gap-3 print:hidden">
+            {idx > 0 ? (
+              <button type="button" onClick={() => setEtapa(ETAPAS[idx - 1].id)} className="flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 hover:bg-slate-100">
+                <ArrowLeft size={16} /> {ETAPAS[idx - 1].rotulo}
+              </button>
+            ) : <span />}
+            {idx < ETAPAS.length - 1 && (
+              <button type="button" onClick={() => setEtapa(ETAPAS[idx + 1].id)} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white hover:bg-emerald-700">
+                {ETAPAS[idx + 1].rotulo} <ArrowRight size={16} />
+              </button>
+            )}
           </div>
-        )}
-        
-        {activeTab === "cozinha" && <OperacaoTab evento={evento} unidadeAtiva={unidadeAtiva} departamento="cozinha" onUpdate={(n) => setEvento({...evento, ...n})} />}
-        {activeTab === "bar" && <OperacaoTab evento={evento} unidadeAtiva={unidadeAtiva} departamento="bar" onUpdate={(n) => setEvento({...evento, ...n})} />}
-        {activeTab === "salao" && <OperacaoTab evento={evento} unidadeAtiva={unidadeAtiva} departamento="salao" onUpdate={(n) => setEvento({...evento, ...n})} />}
+        </div>
 
-
-
-        
-                {activeTab === "financeiro" && (
-          <FinanceiroTab 
-            evento={evento} 
-            resumo={resumo}
-            onUpdate={(novosDados) => setEvento({...evento, ...novosDados})} 
-          />
-        )}
-
-
-        
-        {activeTab === "compras" && (
-          <ComprasTab evento={evento} fichas={fichas} />
-        )}
-        
-        {activeTab === "proposta" && (
-          <PropostaTab evento={evento} resumo={resumo} />
-        )}
-
-        {activeTab !== "resumo" && activeTab !== "cardapio" && activeTab !== "equipe" && activeTab !== "financeiro" && activeTab !== "compras" && activeTab !== "proposta" && (
-           <div className="text-center p-12 bg-white border border-slate-200 rounded-3xl">
-           <h2 className="text-xl font-bold text-slate-800 mb-2">Aba {TABS.find(t=>t.id === activeTab)?.label}</h2>
-           <p className="text-slate-900 max-w-md mx-auto">
-             Módulo em construção (Próximas Fases).
-           </p>
-         </div>
-        )}
-
+        <aside className="space-y-4 print:hidden lg:sticky lg:top-20 lg:self-start">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">Resumo do evento</h2>
+            <Linha rotulo="Cardápio por pessoa" valor={fmtReais(resumo.cmvPorPessoa)} />
+            <Linha rotulo="Custo por pessoa" valor={resumo.custoTotalPorPessoa !== null ? fmtReais(resumo.custoTotalPorPessoa) : resumo.custoOperacaoPorPessoa !== null ? fmtReais(resumo.custoOperacaoPorPessoa) : "—"} />
+            <Linha rotulo="Valor por pessoa" valor={resumo.precoPorPessoa > 0 ? fmtReais(resumo.precoPorPessoa) : "—"} />
+            {resumo.precoSugeridoPorPessoa && <Linha rotulo={`Sugerido (meta ${fmtPct(resumo.meta.pct, 0)})`} valor={fmtReais(resumo.precoSugeridoPorPessoa)} suave />}
+            <div className="mt-3 border-t border-slate-100 pt-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Lucro limpo</p>
+              <p className={`text-2xl font-black tabular-nums ${resumo.prejuizo ? "text-red-600" : resumo.receita > 0 && resumo.meta.atingida ? "text-emerald-700" : "text-slate-900"}`}>
+                {resumo.receita > 0 ? fmtReais(resumo.lucro) : "—"}
+              </p>
+              {resumo.receita > 0 && <p className="text-sm font-bold text-slate-600">{fmtPct(resumo.lucroPct)} do evento</p>}
+            </div>
+          </section>
+          <section className={`rounded-3xl border p-5 ${pendencias.length ? "border-amber-200 bg-amber-50" : "border-emerald-100 bg-emerald-50"}`}>
+            <h2 className={`mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-widest ${pendencias.length ? "text-amber-800" : "text-emerald-700"}`}>
+              {pendencias.length ? <AlertTriangle size={14} /> : <Check size={14} />} {pendencias.length ? "Falta" : "Tudo preenchido"}
+            </h2>
+            {pendencias.length > 0 && <ul className="space-y-1">{pendencias.map((p) => <li key={p} className="text-sm font-semibold text-amber-900">• {p}</li>)}</ul>}
+          </section>
+        </aside>
       </div>
     </main>
   );
 }
 
-
-// Custo e preço do evento: tudo de resumoDoEvento (evento-financeiro.mjs), em
-// R$ e % do valor do evento.
-function Chip({ id }) {
-  const n = NATUREZA[id];
-  return n ? <span title={n.ajuda} className="ml-1.5 rounded border border-slate-200 px-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{n.rotulo}</span> : null;
+function Indicador({ rotulo, valor, destaque = false }) {
+  return (
+    <div className={`min-w-[110px] rounded-2xl border px-3 py-2 ${destaque ? "border-emerald-100 bg-emerald-50" : "border-slate-200 bg-white"}`}>
+      <p className={`text-[10px] font-bold uppercase tracking-widest ${destaque ? "text-emerald-700" : "text-slate-500"}`}>{rotulo}</p>
+      <p className={`flex items-center gap-1 whitespace-nowrap text-sm font-black tabular-nums ${destaque ? "text-emerald-900" : "text-slate-900"}`}>{valor}</p>
+    </div>
+  );
 }
 
-function CustoEPreco({ resumo: r }) {
-  const vp = (v, pct) => `${fmtReais(v)}${pct !== null && pct !== undefined ? ` · ${fmtPct(pct)}` : ""}`;
+function Linha({ rotulo, valor, suave = false }) {
   return (
-    <section className="bg-white border border-slate-200 rounded-3xl p-6">
-      <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-widest mb-4">Custo e preço</h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[["Valor do evento", r.receita > 0 ? fmtReais(r.receita) : "—"],
-          ["Por convidado", r.receitaPorConvidado ? fmtReais(r.receitaPorConvidado) : "—"],
-          ["Custo por convidado", r.custoPorConvidado ? fmtReais(r.custoPorConvidado) : "—"],
-          ["Resultado", r.receita > 0 ? vp(r.resultado.valor, r.resultado.pct) : "—"]].map(([rot, val]) => (
-          <div key={rot} className="rounded-2xl border border-slate-200 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{rot}</p>
-            <p className={`text-sm font-black tabular-nums ${rot === "Resultado" && r.resultado.prejuizo ? "text-red-600" : "text-slate-900"}`}>{val}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 divide-y divide-slate-100">
-        {r.linhas.map((l) => (
-          <div key={l.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
-            <span className="text-sm font-semibold text-slate-700">{l.rotulo}<Chip id={l.natureza} /></span>
-            <span className="ml-auto whitespace-nowrap text-sm font-bold tabular-nums text-slate-900">{vp(l.valor, l.pct)}</span>
-          </div>
-        ))}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 pt-2">
-          <span className="text-sm font-black uppercase text-slate-900">Resultado estimado<Chip id="estimado" /></span>
-          <span className={`ml-auto whitespace-nowrap text-base font-black tabular-nums ${r.resultado.prejuizo ? "text-red-600" : "text-emerald-700"}`}>{r.receita > 0 ? vp(r.resultado.valor, r.resultado.pct) : "Defina o valor do evento"}</span>
-        </div>
-      </div>
-      <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Preço sugerido {r.meta.pct ? `(meta de lucro ${fmtPct(r.meta.pct)})` : "(sem meta de lucro configurada)"}</p>
-        <p className="text-lg font-black text-slate-900">
-          {r.precoSugerido ? fmtReais(r.precoSugerido) : "—"}
-          {r.precoSugeridoPorConvidado ? <span className="ml-2 text-sm font-bold text-slate-600">{fmtReais(r.precoSugeridoPorConvidado)} por convidado</span> : null}
-        </p>
-        <p className="text-xs font-medium text-slate-600">Cobre CMV, equipe, espaço e extras, imposto e maquininha, e ainda sobra a meta. A meta é a mesma da Pizza do Lucro.</p>
-      </div>
-    </section>
+    <div className="flex items-baseline justify-between gap-3 py-1">
+      <span className={`text-sm ${suave ? "font-medium text-slate-500" : "font-semibold text-slate-700"}`}>{rotulo}</span>
+      <span className={`whitespace-nowrap text-sm tabular-nums ${suave ? "font-bold text-slate-500" : "font-black text-slate-900"}`}>{valor}</span>
+    </div>
   );
+}
+
+function EstadoGravacao({ g }) {
+  if (g.estado === "erro") return <span className="flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700" title={g.erro}><CloudOff size={14} /> Não gravou: {g.erro}</span>;
+  if (g.estado === "pendente" || g.estado === "salvando") return <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500"><Loader2 size={14} className="animate-spin" /> Salvando…</span>;
+  return <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700"><Check size={14} /> Salvo</span>;
 }

@@ -137,6 +137,15 @@ export function pendenciasDoEvento(evento = {}, resumo, hojeIso) {
  * compra. Ingredientes iguais em pratos diferentes somam numa linha só.
  */
 export function listaDeComprasDoEvento(evento = {}, fichas = []) {
+  return listaDeComprasDeFichas(
+    itensDoEvento(evento, fichas).map((i) => ({ ficha: i.ficha, nome: i.nome, porcoes: i.quantidade })),
+    fichas,
+  );
+}
+
+// Compras de uma lista de { ficha, nome, porcoes } — usada pelo cardápio
+// antigo e pelo orçamento em etapas (evento-orcamento.mjs).
+export function listaDeComprasDeFichas(entradas = [], fichas = []) {
   const porId = new Map((fichas || []).map((f) => [f.id, f]));
   const acc = new Map();
   const avisos = [];
@@ -165,9 +174,9 @@ export function listaDeComprasDoEvento(evento = {}, fichas = []) {
       }
     }
   };
-  for (const item of itensDoEvento(evento, fichas)) {
+  for (const item of entradas) {
     if (!item.ficha) { avisos.push(`${item.nome}: ficha removida, fora da lista.`); continue; }
-    visitar(item.ficha, item.quantidade / porcoesParaCusto(item.ficha).porcoes, new Set());
+    visitar(item.ficha, pos(item.porcoes) / porcoesParaCusto(item.ficha).porcoes, new Set());
   }
   const itens = [...acc.values()]
     .map((x) => ({ ...x, quantidade: Math.round(x.quantidade * 1000) / 1000, custo: r2(x.custo) }))

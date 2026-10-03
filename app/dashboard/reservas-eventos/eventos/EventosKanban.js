@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { FUNIL_ETAPAS, normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
-import { fmtReais } from "../../../lib/valor-percentual.mjs";
+import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
+import { indicadoresDoFunil } from "../../../lib/evento-orcamento.mjs";
 import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 // As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
@@ -19,6 +20,10 @@ export default function EventosKanbanPage() {
   const [modoVisao, setModoVisao] = useState("kanban"); // "kanban" | "lista"
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState("");
+  const [mes, setMes] = useState(""); // "" = todos; "YYYY-MM" = mês da data do evento
+  const [arrastando, setArrastando] = useState(null);
+  const [alvo, setAlvo] = useState(null);
+  const [erroMover, setErroMover] = useState("");
 
   async function carregarEventos() {
     if (!unidadeAtiva) return;
@@ -42,14 +47,27 @@ export default function EventosKanbanPage() {
 
   // Busca por nome do evento, cliente, telefone ou data (dd/mm).
   const termo = busca.trim().toLowerCase();
-  const visiveis = !termo ? eventos : eventos.filter(e => {
+  const doMes = !mes ? eventos : eventos.filter(e => String(e.data_evento || "").slice(0, 7) === mes);
+  const ind = indicadoresDoFunil(eventos, mes);
+  // Meses com evento, do mais recente ao mais antigo, para o filtro.
+  const meses = [...new Set(eventos.map(e => String(e.data_evento || "").slice(0, 7)).filter(Boolean))].sort().reverse();
+  const rotuloMes = (m) => { const [a, mm] = m.split("-"); const t = new Date(Number(a), Number(mm) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); return t.charAt(0).toUpperCase() + t.slice(1); };
+  // Arrastar o card para outra coluna muda a etapa (otimista; desfaz se o banco recusar).
+  const moverPara = async (eventoId, etapa) => {
+    const antes = eventos.find(e => e.id === eventoId);
+    if (!antes || normalizarEtapa(antes.funil_status) === etapa) return;
+    setEventos(l => l.map(e => e.id === eventoId ? { ...e, funil_status: etapa } : e));
+    const { error } = await supabase.from("eventos").update({ funil_status: etapa }).eq("id", eventoId);
+    if (error) { setEventos(l => l.map(e => e.id === eventoId ? antes : e)); setErroMover(`Não mudou a etapa: ${error.message}`); }
+  };
+  const visiveis = !termo ? doMes : doMes.filter(e => {
     const data = e.data_evento ? new Date(e.data_evento).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "";
     return [e.nome, e.cliente_nome, e.cliente_telefone, data].some(v => String(v || "").toLowerCase().includes(termo));
   });
   const getEventosPorEtapa = (etapa) => visiveis.filter(e => normalizarEtapa(e.funil_status) === etapa);
 
   return (
-    <div className="flex flex-col w-full h-[600px] overflow-hidden bg-white border border-slate-200 rounded-3xl p-4">
+    <div className="flex flex-col w-full h-[780px] overflow-hidden bg-white border border-slate-200 rounded-3xl p-4">
       
   <div className="flex justify-between items-center mb-4">
     <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -66,13 +84,31 @@ export default function EventosKanbanPage() {
   </div>
   
 
-      <div className="relative w-full max-w-md mb-6 shrink-0">
+      <div className="mb-4 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-5">
+        {[["Eventos", String(ind.eventos)], ["Fechados", String(ind.fechados)], ["Valor fechado", fmtReais(ind.valor)],
+          ["Lucro previsto", ind.lucro === null ? "—" : `${fmtReais(ind.lucro)}${ind.lucroParcial ? "*" : ""}`], ["Conversão", ind.conversao === null ? "—" : fmtPct(ind.conversao, 0)]].map(([r, v]) => (
+          <div key={r} className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{r}</p>
+            <p className="truncate text-base font-black tabular-nums text-slate-900">{v}</p>
+          </div>
+        ))}
+      </div>
+      {ind.lucroParcial && <p className="-mt-2 mb-3 text-xs font-medium text-slate-500">* Só dos eventos já abertos no orçamento novo.</p>}
+      {erroMover && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{erroMover}</p>}
+      <div className="mb-6 flex shrink-0 flex-wrap items-center gap-2">
+      <select value={mes} onChange={e => setMes(e.target.value)} aria-label="Mês do evento"
+        className="h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-slate-500">
+        <option value="">Todos os meses</option>
+        {meses.map(m => <option key={m} value={m}>{rotuloMes(m)}</option>)}
+      </select>
+      <div className="relative w-full max-w-md shrink-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800" size={18} />
         <input 
           type="text" 
           placeholder="Buscar por evento, cliente, telefone ou data..." value={busca} onChange={e => setBusca(e.target.value)} 
           className="w-full pl-10 pr-4 h-11 rounded-xl border border-slate-300 focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none font-medium"
         />
+      </div>
       </div>
 
       {carregando ? (
@@ -83,7 +119,11 @@ export default function EventosKanbanPage() {
           {FUNIL_ETAPAS.map((etapa) => {
             const cards = getEventosPorEtapa(etapa);
             return (
-              <div key={etapa} className="w-80 min-w-[320px] bg-white border border-slate-200 rounded-3xl flex flex-col shrink-0 snap-start">
+              <div key={etapa}
+                onDragOver={e => { if (arrastando) { e.preventDefault(); setAlvo(etapa); } }}
+                onDragLeave={() => setAlvo(a => (a === etapa ? null : a))}
+                onDrop={e => { e.preventDefault(); const idEv = e.dataTransfer.getData("text/plain") || arrastando; setAlvo(null); setArrastando(null); if (idEv) moverPara(idEv, etapa); }}
+                className={`w-80 min-w-[320px] bg-white border rounded-3xl flex flex-col shrink-0 snap-start transition-colors ${alvo === etapa ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
                 <header className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-100/50 rounded-t-3xl">
                   <h3 className="font-bold text-slate-800 text-sm tracking-wide">{rotuloEtapa(etapa)}</h3>
                   <span className="bg-slate-200 text-slate-900 text-xs font-black px-2 py-0.5 rounded-full">{cards.length}</span>
@@ -91,7 +131,11 @@ export default function EventosKanbanPage() {
                 
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
                   {cards.map(evt => (
-                    <Link key={evt.id} href={`/dashboard/reservas-eventos/eventos/${evt.id}`} className="block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
+                    <Link key={evt.id} href={`/dashboard/reservas-eventos/eventos/${evt.id}`} draggable
+                      onDragStart={e => { e.dataTransfer.setData("text/plain", evt.id); e.dataTransfer.effectAllowed = "move"; setArrastando(evt.id); }}
+                      onDragEnd={() => { setArrastando(null); setAlvo(null); }}
+                      title="Arraste para outra etapa"
+                      className={`block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all cursor-grab group ${arrastando === evt.id ? "opacity-50" : ""}`}>
                       <div className="flex justify-between items-start mb-2">
                         <strong className="text-slate-900 font-bold leading-tight group-hover:text-emerald-700 transition-colors">
                           {evt.nome || evt.cliente_nome || "Evento sem título"}
@@ -118,6 +162,11 @@ export default function EventosKanbanPage() {
                           <span className="ml-auto whitespace-nowrap rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800">{fmtReais(evt.valor_contratado)}</span>
                         )}
                       </div>
+                      {typeof evt.operacao_detalhes?.resumo?.lucro === "number" && Number(evt.valor_contratado) > 0 && (
+                        <div className={`mt-2 text-xs font-bold ${evt.operacao_detalhes.resumo.lucro < 0 ? "text-red-600" : "text-slate-600"}`}>
+                          Lucro limpo: {fmtReais(evt.operacao_detalhes.resumo.lucro)}{evt.operacao_detalhes.resumo.lucro_pct !== null && evt.operacao_detalhes.resumo.lucro_pct !== undefined ? ` · ${fmtPct(evt.operacao_detalhes.resumo.lucro_pct)}` : ""}
+                        </div>
+                      )}
                     </Link>
                   ))}
                   

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { fmtBRL } from "./ui";
 import { hojeLocal, novaChave, sugerirBaixa, ajustarBaixa, avaliarBaixa } from "../lib/contas-receber.mjs";
+import CampoDecimal from "./CampoDecimal";
 
 /**
  * Registrar recebimento (F2.3) — RPC fin_registrar_recebimento.
@@ -60,9 +61,9 @@ export default function ModalRecebimentoConta({ conta, contasFinanceiras = [], p
             <input required type="date" max={hoje} value={f.recebido_em} onChange={set("recebido_em")} className={campo} /></label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Líquido que entrou (R$)</span>
-              <input required inputMode="decimal" value={f.valor_liquido_recebido} onChange={set("valor_liquido_recebido")} className={campo} placeholder="0,00" /></label>
+              <CampoDecimal required value={f.valor_liquido_recebido} onChange={set("valor_liquido_recebido")} className={campo} placeholder="0,00" /></label>
             <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Bruto baixado (R$)</span>
-              <input required inputMode="decimal" value={f.valor_bruto_baixado} onChange={set("valor_bruto_baixado")} className={campo} placeholder="0,00" /></label>
+              <CampoDecimal required value={f.valor_bruto_baixado} onChange={set("valor_bruto_baixado")} className={campo} placeholder="0,00" /></label>
           </div>
           <p className="text-3xs text-fg -mt-1">Bruto baixado = quanto da venda este valor quita. Só fica maior que o líquido se houve taxa descontada.</p>
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Conta financeira (onde entrou)</span>

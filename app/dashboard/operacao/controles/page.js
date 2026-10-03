@@ -19,6 +19,7 @@ import {
   fetchManutencoes, inserirManutencao, registrarExecucaoManutencao, excluirManutencao,
   calcularProximaData, PRESETS_MANUTENCAO
 } from "../../../lib/controles_cozinha";
+import { mascaraCpfCnpj } from "../../../lib/mascaras.mjs";
 
 // Situação de uma limpeza programada a partir da próxima data prevista.
 function statusManutencao(proxima) {
@@ -514,7 +515,7 @@ export default function ControlesCozinha() {
                   <TextInput value={form.fornecedor_nome || ""} onChange={e => setForm({...form, fornecedor_nome: e.target.value})} placeholder="Ex: Atacadão..." />
                 </Field>
                 <Field label="CNPJ (opcional)">
-                  <TextInput value={form.fornecedor_cnpj || ""} onChange={e => setForm({...form, fornecedor_cnpj: e.target.value})} placeholder="00.000.000/0000-00" />
+                  <TextInput inputMode="numeric" value={form.fornecedor_cnpj || ""} onChange={e => setForm({...form, fornecedor_cnpj: mascaraCpfCnpj(e.target.value)})} placeholder="00.000.000/0000-00" />
                 </Field>
               </div>
               <Field label="Diluição (se houver)">

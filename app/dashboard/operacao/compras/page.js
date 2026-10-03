@@ -46,6 +46,8 @@ import {
   RotateCcw
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
+import { mascaraCpfCnpj, mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 export default function ComprasHubPage() {
   const router = useRouter();
@@ -711,9 +713,7 @@ export default function ComprasHubPage() {
 
                           <div>
                             <label className="text-3xs font-bold text-fg uppercase block mb-1">Preço Pago Emb. (R$)</label>
-                            <input
-                              type="number"
-                              step="0.01"
+                            <CampoDecimal
                               value={item.preco_pago}
                               onChange={e => atualizarItemRecebimento(idx, "preco_pago", parseFloat(e.target.value) || 0)}
                               className="w-full p-2.5 bg-white border border-line rounded-xl font-black text-emerald-600 text-sm"
@@ -903,13 +903,13 @@ export default function ComprasHubPage() {
 
               <div>
                 <label className="text-xs font-bold text-fg uppercase block mb-1">CNPJ / CPF</label>
-                <input type="text" value={formFornecedor.cnpj_cpf} onChange={e => setFormFornecedor({ ...formFornecedor, cnpj_cpf: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
+                <input type="text" inputMode="numeric" value={formFornecedor.cnpj_cpf} onChange={e => setFormFornecedor({ ...formFornecedor, cnpj_cpf: mascaraCpfCnpj(e.target.value) })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-fg uppercase block mb-1">Telefone / WhatsApp</label>
-                  <input type="text" value={formFornecedor.telefone} onChange={e => setFormFornecedor({ ...formFornecedor, telefone: e.target.value })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
+                  <input type="text" inputMode="tel" value={formFornecedor.telefone} onChange={e => setFormFornecedor({ ...formFornecedor, telefone: mascaraTelefone(e.target.value) })} className="w-full p-3 bg-white border border-line rounded-xl font-medium text-slate-800 text-sm" />
                 </div>
 
                 <div>

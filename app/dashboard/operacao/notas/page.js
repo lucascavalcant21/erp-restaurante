@@ -14,6 +14,7 @@ import {
 } from "../../../lib/notas";
 import { inserirDocumento } from "../../../lib/financeiro";
 import { inserirSuprimentoCentral, entradaEstoqueCentral } from "../../../lib/suprimentos";
+import { mascaraCpfCnpj } from "../../../lib/mascaras.mjs";
 
 const CONTAS_PAGAMENTO = ["Caixa / Dinheiro", "Conta PJ", "Conta Física", "Cartão de Crédito", "Outra"];
 const FORMAS_PAGAMENTO = ["Pix", "Boleto", "Dinheiro", "Débito", "Crédito", "Transferência"];
@@ -154,7 +155,7 @@ function FormScanner({ onSalvar, onCancelar }) {
           <div className="space-y-3 flex-1">
             <Field label="Fornecedor"><TextInput className="py-1.5 text-sm" value={dadosIA.fornecedor} onChange={e => setDadosIA({...dadosIA, fornecedor: e.target.value})} /></Field>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="CNPJ"><TextInput className="py-1.5 text-sm" value={dadosIA.cnpj} onChange={e => setDadosIA({...dadosIA, cnpj: e.target.value})} /></Field>
+              <Field label="CNPJ"><TextInput className="py-1.5 text-sm" value={dadosIA.cnpj} onChange={e => setDadosIA({...dadosIA, cnpj: mascaraCpfCnpj(e.target.value)})} /></Field>
               <Field label="Categoria"><Select className="py-1.5 text-sm" value={dadosIA.categoria} onChange={e => setDadosIA({...dadosIA, categoria: e.target.value})}>{CATEGORIAS_NOTA.map(c => <option key={c}>{c}</option>)}</Select></Field>
             </div>
             <div className="grid grid-cols-2 gap-2">

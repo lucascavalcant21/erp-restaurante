@@ -20,6 +20,7 @@ import {
 import ModalPagamentoConta from "../../../components/ModalPagamentoConta";
 import { Plus, Search, CalendarDays, Wallet, AlertTriangle, Clock, Pencil, X, RefreshCw, Eye, Ban } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const COR = {
   pago: "bg-emerald-100 text-emerald-800", parcial: "bg-blue-100 text-blue-800", vencido: "bg-red-100 text-red-800",
@@ -366,7 +367,7 @@ export default function ContasAPagarPage() {
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Valor {Number(form.parcelas) > 1 ? "total" : ""} (R$)</span>
-                <input required inputMode="decimal" value={form.valor} disabled={!!form.contaAtual?.pagamento_legado || Number(form.contaAtual?.valor_pago || 0) > 0}
+                <CampoDecimal required value={form.valor} disabled={!!form.contaAtual?.pagamento_legado || Number(form.contaAtual?.valor_pago || 0) > 0}
                   onChange={(e) => setForm({ ...form, valor: e.target.value })} className={campo} placeholder="0,00" /></label>
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Competência (mês)</span>
                 <input required type="month" value={form.competencia} onChange={(e) => setForm({ ...form, competencia: e.target.value })} className={campo} /></label>

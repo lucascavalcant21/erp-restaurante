@@ -13,6 +13,8 @@ import { supabase } from "../../../../lib/supabase";
 import { inserirColaborador, atualizarColaborador, fetchRecibosPrestacao } from "../../../../lib/rh";
 import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../../../lib/contrato-experiencia.mjs";
 import { baixarPdfDeHtml } from "../../../../lib/pdf";
+import CampoDecimal from "../../../../components/CampoDecimal";
+import { mascaraRG } from "../../../../lib/mascaras.mjs";
 
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Transferência"];
 
@@ -260,7 +262,7 @@ export default function CadastroExtraPage() {
             </label>
             <label className="block">
               <span className={rotulo}>RG</span>
-              <input value={form.rg} onChange={e => set("rg", e.target.value)} className={campo} />
+              <input value={form.rg} onChange={e => set("rg", mascaraRG(e.target.value))} className={campo} />
             </label>
           </div>
         </section>
@@ -343,7 +345,7 @@ export default function CadastroExtraPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={rotulo}>Valor da diária (R$)</span>
-              <input type="number" step="0.01" value={form.salario} onChange={e => set("salario", e.target.value)}
+              <CampoDecimal value={form.salario} onChange={e => set("salario", e.target.value)}
                 className="w-full p-4 mt-1.5 bg-white border border-line rounded-xl font-black text-accent outline-none focus:border-emerald-500" />
             </label>
             <label className="block">
@@ -393,7 +395,7 @@ export default function CadastroExtraPage() {
             </label>
             <label className="block">
               <span className={rotulo}>Vale transporte (R$)</span>
-              <input type="number" step="0.01" value={form.vale_transporte_val} onChange={e => set("vale_transporte_val", e.target.value)}
+              <CampoDecimal value={form.vale_transporte_val} onChange={e => set("vale_transporte_val", e.target.value)}
                 placeholder="0,00" className="w-full p-4 mt-1.5 bg-card border border-line rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500" />
             </label>
             <label className="block">

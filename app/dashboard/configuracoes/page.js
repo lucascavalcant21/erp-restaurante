@@ -17,6 +17,7 @@ import {
 import { Lock, SlidersHorizontal, Download, Smartphone, Users, Briefcase, ShieldCheck, Printer } from "lucide-react";
 
 import { fetchCargos, inserirCargo, atualizarCargo, removerCargo } from "../../lib/rh";
+import { mascaraTelefone } from "../../lib/mascaras.mjs";
 
 // Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
 // navegador ofereceu; senão mostra o caminho manual de cada aparelho.
@@ -530,7 +531,7 @@ export default function ConfiguracoesPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setDadosLoja(prev => ({ ...prev, [name]: name === "cnpj" ? mascaraCNPJ(value) : value }));
+    setDadosLoja(prev => ({ ...prev, [name]: name === "cnpj" ? mascaraCNPJ(value) : name === "telefone_contato" ? mascaraTelefone(value) : value }));
   };
 
   // CEP -> preenche endereço automaticamente (ViaCEP)
@@ -620,7 +621,7 @@ export default function ConfiguracoesPage() {
             </div>
             <div>
               <label className={`${labelCls} flex items-center gap-1`}><Phone size={12} /> Telefone / WhatsApp</label>
-              <input type="text" name="telefone_contato" value={dadosLoja.telefone_contato} onChange={handleChange} className={inputCls} placeholder="(00) 00000-0000" />
+              <input type="text" inputMode="tel" name="telefone_contato" value={dadosLoja.telefone_contato} onChange={handleChange} className={inputCls} placeholder="(00) 00000-0000" />
             </div>
             <div>
               <label className={`${labelCls} flex items-center gap-1`}><Clock size={12} /> Horário de Funcionamento</label>

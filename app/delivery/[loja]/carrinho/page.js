@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, CreditCard, CheckCircle2, Flame, AlertCircle } from "lucide-react";
 import { calcularTaxaEntrega, gerarCheckoutPagSeguro, finalizarPedidoDelivery } from "../../../lib/delivery";
+import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 export default function CarrinhoPage({ params }) {
   const lojaSlug = params.loja;
@@ -177,7 +178,7 @@ export default function CarrinhoPage({ params }) {
               <input type="text" placeholder="Nome Completo" className="w-full bg-slate-50 border border-line p-3 rounded-xl outline-none focus:border-slate-400"
                 value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} />
               <input type="tel" placeholder="WhatsApp (DDD) 99999-9999" className="w-full bg-slate-50 border border-line p-3 rounded-xl outline-none focus:border-slate-400"
-                value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} />
+                value={form.telefone} onChange={e => setForm({...form, telefone: mascaraTelefone(e.target.value)})} />
             </div>
 
             {/* Entrega (Integração Google Maps Simulado) */}

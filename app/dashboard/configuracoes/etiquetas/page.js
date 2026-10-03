@@ -7,6 +7,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchPerfisEtiquetas, salvarPerfisEtiquetas } from "../../../lib/parametros";
 import { PRESETS_ETIQUETAS, getDefaultPerfilFisico } from "../../../lib/etiquetasUtils";
 import { imprimirEtiquetaMdk022Usb } from "../../../lib/impressaoMdk022";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 export default function ConfiguracaoEtiquetasPage() {
   const { unidadeAtiva } = useERP();
@@ -161,15 +162,15 @@ export default function ConfiguracaoEtiquetasPage() {
               <div className="grid grid-cols-3 gap-4 border-t border-line-soft pt-4">
                 <div>
                   <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Largura (mm)</label>
-                  <input type="number" step="0.1" name="widthMm" value={perfilAtual.widthMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold outline-none focus:border-emerald-500" />
+                  <CampoDecimal casas={1} name="widthMm" value={perfilAtual.widthMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold outline-none focus:border-emerald-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Altura (mm)</label>
-                  <input type="number" step="0.1" name="heightMm" value={perfilAtual.heightMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold outline-none focus:border-emerald-500" />
+                  <CampoDecimal casas={1} name="heightMm" value={perfilAtual.heightMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold outline-none focus:border-emerald-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-fg mb-1.5 uppercase">GAP (mm)</label>
-                  <input type="number" step="0.1" name="gapMm" value={perfilAtual.gapMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold outline-none focus:border-emerald-500" />
+                  <CampoDecimal casas={1} name="gapMm" value={perfilAtual.gapMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold outline-none focus:border-emerald-500" />
                 </div>
               </div>
             </div>
@@ -182,29 +183,29 @@ export default function ConfiguracaoEtiquetasPage() {
             <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Sup. (mm)</label>
-                <input type="number" step="0.1" name="marginTopMm" value={perfilAtual.marginTopMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
+                <CampoDecimal casas={1} name="marginTopMm" value={perfilAtual.marginTopMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Inf. (mm)</label>
-                <input type="number" step="0.1" name="marginBottomMm" value={perfilAtual.marginBottomMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
+                <CampoDecimal casas={1} name="marginBottomMm" value={perfilAtual.marginBottomMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Esq. (mm)</label>
-                <input type="number" step="0.1" name="marginLeftMm" value={perfilAtual.marginLeftMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
+                <CampoDecimal casas={1} name="marginLeftMm" value={perfilAtual.marginLeftMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Dir. (mm)</label>
-                <input type="number" step="0.1" name="marginRightMm" value={perfilAtual.marginRightMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
+                <CampoDecimal casas={1} name="marginRightMm" value={perfilAtual.marginRightMm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold" />
               </div>
             </div>
             <div className="p-5 border-t border-line-soft grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Offset X (mm)</label>
-                <input type="number" step="0.1" name="offsetXmm" value={perfilAtual.offsetXmm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold bg-amber-50 focus:bg-white" />
+                <CampoDecimal casas={1} negativo name="offsetXmm" value={perfilAtual.offsetXmm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold bg-amber-50 focus:bg-white" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Offset Y (mm)</label>
-                <input type="number" step="0.1" name="offsetYmm" value={perfilAtual.offsetYmm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold bg-amber-50 focus:bg-white" />
+                <CampoDecimal casas={1} negativo name="offsetYmm" value={perfilAtual.offsetYmm} onChange={handleChange} className="w-full p-3 border border-line rounded-xl text-slate-800 font-bold bg-amber-50 focus:bg-white" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-fg mb-1.5 uppercase">Rotação (°)</label>

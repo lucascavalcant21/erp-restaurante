@@ -16,6 +16,8 @@ import { inserirColaborador } from "../../../../lib/rh";
 import {
   fetchBancoExtras, atualizarStatusExtraCadastro, atualizarCadastroExtra, FUNCOES_EXTRA, DIAS_SEMANA,
 } from "../../../../lib/portal-extras";
+import CampoDecimal from "../../../../components/CampoDecimal";
+import { mascaraTelefone } from "../../../../lib/mascaras.mjs";
 
 const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (v) => (v ? new Date(v).toLocaleDateString("pt-BR") : "—");
@@ -245,12 +247,12 @@ export default function BancoDeExtras() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-widest text-fg">Telefone</span>
-                  <input value={editando.telefone || ""} onChange={ev => setEditando(v => ({ ...v, telefone: ev.target.value }))}
+                  <input inputMode="tel" value={editando.telefone || ""} onChange={ev => setEditando(v => ({ ...v, telefone: mascaraTelefone(ev.target.value) }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-widest text-fg">Diária combinada (R$)</span>
-                  <input type="number" step="0.01" value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
+                  <CampoDecimal value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
                     className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-accent outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">

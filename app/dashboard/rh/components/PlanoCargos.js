@@ -9,6 +9,7 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import { comFecharImpressao } from "../../../lib/imprimir";
 import { salvarCargo, removerCargo, atualizarColaborador, registrarPromocaoColaborador } from "../../../lib/rh";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 // ── CERTIFICADO OFICIAL DE PROMOÇÃO (PDF LANDSCAPE) ──────────────────────────
 export const imprimirCertificadoPromocao = (colaboradorNome, cargoAnterior, cargoNovo, remuneralTotal, unidadeInfo) => {
@@ -765,10 +766,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Salário Base (R$)
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <CampoDecimal
                     placeholder="Ex: 2200"
                     value={form.salario_base}
                     onChange={e => setForm({ ...form, salario_base: e.target.value })}
@@ -779,10 +777,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Vale Alim. (R$)
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <CampoDecimal
                     placeholder="Ex: 350"
                     value={form.vale_alimentacao}
                     onChange={e => setForm({ ...form, vale_alimentacao: e.target.value })}
@@ -793,10 +788,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   <label className="text-3xs font-bold text-fg uppercase tracking-widest block mb-1">
                     Taxa Serv. (R$)
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <CampoDecimal
                     placeholder="Ex: 400"
                     value={form.taxa_servico}
                     onChange={e => setForm({ ...form, taxa_servico: e.target.value })}

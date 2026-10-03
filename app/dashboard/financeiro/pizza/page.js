@@ -20,6 +20,7 @@ import PizzaDoPrato from "../../operacao/fichas/PizzaDoPrato";
 import VisaoPeriodo from "./VisaoPeriodo";
 import { DESPESAS_OPERACIONAIS, DESPESAS_VARIAVEIS, pesoNoFaturamento } from "../../../lib/composicao-preco.mjs";
 import { fmtReais, fmtPct, percentualDe } from "../../../lib/valor-percentual.mjs";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const fmt = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -42,27 +43,19 @@ const CAMPOS_VARIAVEL = [
 const CAMPOS_REAIS = [["embalagem_valor", "Embalagem (R$ por prato)"]];
 const CAMPOS_VOLUME = [["dias_operacao_mes", "Dias que abre no mês"], ["pratos_por_dia", "Pratos por dia"]];
 
-// Campo de número dos custos.
-//
-// Valor zero aparece VAZIO, com o zero no placeholder. Mostrar "0" de verdade
-// cria dois problemas: a tela fica coberta de zeros que não são informação, e
-// quem digita 54 num campo que já tem 0 acaba com "054" — o cursor entra
-// depois do zero. Vazio e zero significam a mesma coisa aqui: sem custo.
+// Campo de número dos custos, com vírgula automática (CampoDecimal): só se
+// digitam os números. Valor zero aparece VAZIO, com o zero no placeholder — a
+// tela não fica coberta de zeros que não são informação. Vazio e zero
+// significam a mesma coisa aqui: sem custo.
 function CampoNumero({ rotulo, valor, onChange, step = "0.01", destacado = false }) {
-  // Enquanto se digita, o campo mostra o TEXTO digitado, não o número que o
-  // pai guardou. Sem isso "0,5" é impossível: ao teclar o 0 o campo limparia
-  // (zero aparece vazio) e o ponto seguinte viraria NaN. Ao sair do campo,
-  // volta a mostrar o valor canônico.
-  const [texto, setTexto] = useState(null);
-  const mostrado = texto !== null ? texto : (Number(valor) ? String(valor) : "");
+  const casas = step === "1" ? 0 : step === "0.1" ? 1 : 2;
   return (
     <label className="min-w-0">
       <span className="block truncate text-3xs font-bold text-fg">{rotulo}</span>
-      <input
-        type="number" min="0" step={step} inputMode="decimal" placeholder="0"
-        value={mostrado}
-        onChange={(e) => { setTexto(e.target.value); onChange(e.target.value); }}
-        onBlur={() => setTexto(null)}
+      <CampoDecimal
+        casas={casas} placeholder="0"
+        value={Number(valor) ? valor : ""}
+        onChange={(e) => onChange(e.target.value)}
         className={`mt-0.5 h-10 w-full min-w-0 rounded-lg border px-2 text-sm font-bold text-slate-800 outline-none placeholder:font-medium placeholder:text-dim focus:border-emerald-500 ${destacado ? "border-slate-400 bg-white" : "border-line bg-card"}`}
       />
     </label>

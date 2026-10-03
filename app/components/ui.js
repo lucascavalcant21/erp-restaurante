@@ -9,6 +9,7 @@
 import { useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, X, Plus, Inbox } from "lucide-react";
+import CampoDecimal from "./CampoDecimal";
 
 // ── Formatadores ───────────────────────────────────────────────
 export function fmtBRL(v, dec = 2) {
@@ -243,6 +244,8 @@ export function Field({ label, children }) {
 }
 export function TextInput({ className = "", ...props }) { return <input {...props} className={`erp-input min-w-0 ${className}`} />; }
 export function NumberInput({ className = "", ...props }) { return <input type="number" inputMode="decimal" {...props} className={`erp-input min-w-0 ${className}`} />; }
+// Valor com vírgula automática (R$, %): 1 → 0,01 → 0,19 → 1,93. Ver CampoDecimal.
+export function DecimalInput({ className = "", ...props }) { return <CampoDecimal {...props} className={`erp-input min-w-0 ${className}`} />; }
 export function Select({ children, className = "", ...props }) {
   return (
     <select {...props} className={`erp-input min-w-0 ${className}`} style={{ appearance: "none", ...(props.style || {}) }}>

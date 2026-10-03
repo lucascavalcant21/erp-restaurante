@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Package, Plus, Send, AlertTriangle, Building2, Beaker, Archive } from "lucide-react";
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi,
-  SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL
+  SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, DecimalInput, Select, Btn, Toast, fmtBRL
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
@@ -31,7 +31,7 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
         <Field label="Unidade"><Select value={f.unidade_medida} onChange={(e) => setF({ ...f, unidade_medida: e.target.value })}>{UNIDADES_SUP.map(u => <option key={u}>{u}</option>)}</Select></Field>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Custo Unitário (Global)"><NumberInput value={f.custo_unitario} onChange={(e) => setF({ ...f, custo_unitario: e.target.value })} placeholder="0,00" step="0.01" /></Field>
+        <Field label="Custo Unitário (Global)"><DecimalInput value={f.custo_unitario} onChange={(e) => setF({ ...f, custo_unitario: e.target.value })} placeholder="0,00" step="0.01" /></Field>
         <Field label="Fornecedor Principal"><TextInput value={f.fornecedor} onChange={(e) => setF({ ...f, fornecedor: e.target.value })} placeholder="Distribuidora..." /></Field>
       </div>
       

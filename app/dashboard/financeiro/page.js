@@ -19,6 +19,7 @@ import { folhaDoMes } from "../../lib/cmo.mjs";
 import { valorDaCompra } from "../../lib/compras.mjs";
 import { fmtBRL } from "../../components/ui";
 import ModalPagamentoConta from "../../components/ModalPagamentoConta";
+import CampoDecimal from "../../components/CampoDecimal";
 
 const PERIODOS = [
   { id: "dia", label: "Hoje" },
@@ -668,72 +669,63 @@ Motivo do cancelamento:`);
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-line-soft">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">⚡ Luz / Energia (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.luz}
+                  <CampoDecimal value={paramsPE.luz}
                     onChange={e => setParamsPE({ ...paramsPE, luz: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">💧 Água (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.agua}
+                  <CampoDecimal value={paramsPE.agua}
                     onChange={e => setParamsPE({ ...paramsPE, agua: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🌐 Internet / Telefone (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.internet}
+                  <CampoDecimal value={paramsPE.internet}
                     onChange={e => setParamsPE({ ...paramsPE, internet: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🔥 Gás (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.gas}
+                  <CampoDecimal value={paramsPE.gas}
                     onChange={e => setParamsPE({ ...paramsPE, gas: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🧹 Material de Limpeza (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.limpeza}
+                  <CampoDecimal value={paramsPE.limpeza}
                     onChange={e => setParamsPE({ ...paramsPE, limpeza: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🛠️ Manutenção (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.manutencao}
+                  <CampoDecimal value={paramsPE.manutencao}
                     onChange={e => setParamsPE({ ...paramsPE, manutencao: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">📦 Gastos Extras (R$/mês)</label>
-                  <input
-                    type="number" step="0.01" value={paramsPE.gastosExtras}
+                  <CampoDecimal value={paramsPE.gastosExtras}
                     onChange={e => setParamsPE({ ...paramsPE, gastosExtras: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">🏛️ Imposto Fiscais (%)</label>
-                  <input
-                    type="number" step="0.1" value={paramsPE.impostoPct}
+                  <CampoDecimal casas={1} value={paramsPE.impostoPct}
                     onChange={e => setParamsPE({ ...paramsPE, impostoPct: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">💳 Taxa Maquininha Cartão (%)</label>
-                  <input
-                    type="number" step="0.1" value={paramsPE.taxaCartaoPct}
+                  <CampoDecimal casas={1} value={paramsPE.taxaCartaoPct}
                     onChange={e => setParamsPE({ ...paramsPE, taxaCartaoPct: e.target.value })}
                     className="w-full h-11 rounded-xl border border-line bg-white px-4 font-bold text-fg outline-none focus:border-emerald-500"
                   />
@@ -775,12 +767,9 @@ Motivo do cancelamento:`);
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-1.5">Valor da Venda (R$)</label>
-                <input
+                <CampoDecimal
                   required
                   autoFocus
-                  type="number"
-                  step="0.01"
-                  min="0.01"
                   placeholder="0,00"
                   value={formVenda.valor}
                   onChange={e => setFormVenda({ ...formVenda, valor: e.target.value })}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   ArrowDown,
@@ -50,6 +50,7 @@ import { fmtBRL } from "../../../components/ui";
 import { custoDoInsumo, empanamentoDaComposicao, unidadesDaComposicao } from "../../../lib/custo-rendimento.mjs";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const PAGE_SIZE = 10;
 
@@ -351,6 +352,8 @@ function VariacaoPreco({ insumo }) {
 
 function IngredientesRunner() {
   const searchParams = useSearchParams();
+  // O cartão "Abaixo do mínimo" leva ao estoque; sem isto o clique dava erro.
+  const router = useRouter();
   const deptUrl = searchParams.get("dept");
   const { abrirMenu, unidadeAtiva, sessao } = useERP();
   const ehBar = deptUrl === "bar";
@@ -1262,7 +1265,7 @@ function IngredientesRunner() {
                     <span className="text-xs font-bold text-slate-900">Valor da embalagem *</span>
                     <div className="mt-1.5 flex h-11 items-center rounded-xl border border-line bg-white px-3.5 focus-within:border-emerald-500">
                       <span className="mr-2 text-sm font-bold text-subtle">R$</span>
-                      <input inputMode="decimal" value={form.valor_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, valor_embalagem: event.target.value })} placeholder="0,00" className="min-w-0 flex-1 bg-transparent font-black text-accent outline-none" />
+                      <CampoDecimal value={form.valor_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, valor_embalagem: event.target.value })} placeholder="0,00" className="min-w-0 flex-1 bg-transparent font-black text-accent outline-none" />
                     </div>
                   </label>
                 </div>
@@ -1374,7 +1377,7 @@ function IngredientesRunner() {
                       </label>
                       <label>
                         <span className="text-xs font-bold text-slate-900">Custo do empanamento (R$ por kg final)</span>
-                        <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 outline-none focus:border-emerald-500" />
+                        <CampoDecimal value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 outline-none focus:border-emerald-500" />
                       </label>
                     </div>
                   )}
@@ -1406,7 +1409,7 @@ function IngredientesRunner() {
                             <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-fg-soft">{forn.nome}{atual && <span className="rounded-full bg-accent px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-accent-fg">Em uso</span>}</span>
                             <div className="flex h-9 items-center rounded-lg border border-line bg-white px-2">
                               <span className="mr-1 text-xs font-bold text-subtle">R$</span>
-                              <input inputMode="decimal" value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-accent outline-none" />
+                              <CampoDecimal value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-accent outline-none" />
                             </div>
                             {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-card px-3 text-xs font-bold text-accent-strong hover:bg-accent-soft">Usar</button>}
                             <button type="button" onClick={() => abrirHistorico({ id: form.id, nome: form.nome, fornecedor_id: fid })} className="h-9 rounded-lg border border-line bg-card px-3 text-xs font-bold text-slate-900 hover:bg-white">Histórico</button>
@@ -1691,9 +1694,7 @@ function IngredientesRunner() {
                               </select>
                             </td>
                             <td className="p-2">
-                              <input
-                                type="number"
-                                step="any"
+                              <CampoDecimal
                                 value={item.valor_total}
                                 onChange={e => atualizarItemMigracao(idx, "valor_total", e.target.value)}
                                 className="w-24 rounded-lg border border-line px-2 py-1 text-right font-black text-accent"

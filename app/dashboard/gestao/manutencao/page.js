@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Wrench, Plus, Trash2, Printer, X, CheckCircle2, Loader2, Sparkles, Clock } from "lucide-react";
-import { PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, SkeletonList, fmtBRL } from "../../../components/ui";
+import { PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, DecimalInput, Select, Btn, Toast, SkeletonList, fmtBRL } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchServicosManutencao, salvarServicoManutencao, removerServicoManutencao, finalizarServicoManutencao, CATEGORIAS_MANUTENCAO } from "../../../lib/manutencao";
 
@@ -200,7 +200,7 @@ export default function ManutencaoPage() {
             </div>
             <Field label="Detalhes (opcional)"><TextInput value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Peças trocadas, garantia..." /></Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Valor (R$)"><NumberInput value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} min="0" step="0.01" placeholder="0,00" required /></Field>
+              <Field label="Valor (R$)"><DecimalInput value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} min="0" step="0.01" placeholder="0,00" required /></Field>
               <Field label="Forma de pagamento"><Select value={form.forma_pagamento} onChange={e => setForm({ ...form, forma_pagamento: e.target.value })}>{FORMAS.map(f => <option key={f} value={f}>{f}</option>)}</Select></Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

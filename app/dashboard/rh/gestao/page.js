@@ -13,6 +13,7 @@ import { podeEditarGlobal, getPapel, registrarUsuario, formatarParaEmailFantasma
 // SEC-RH-1.3A: foto de colaborador é dado pessoal — bucket privado, via servidor.
 import { enviarArquivoRH } from "../../../lib/rh-arquivos";
 import { useFotosRH } from "../../../lib/useFotosRH";
+import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 const VAZIO = { 
   nome: "", cargo: "", turno: "", salario: "", admissao: "", 
@@ -153,7 +154,7 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
         <Field label="Admissão"><TextInput type="date" value={f.admissao} onChange={(e) => set("admissao", e.target.value)} /></Field>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Telefone"><TextInput value={f.telefone} onChange={(e) => set("telefone", e.target.value)} placeholder="(11) 9..." /></Field>
+        <Field label="Telefone"><TextInput inputMode="tel" value={f.telefone} onChange={(e) => set("telefone", mascaraTelefone(e.target.value))} placeholder="(11) 9..." /></Field>
         <Field label="Situação"><Select value={f.ativo ? "1" : "0"} onChange={(e) => set("ativo", e.target.value === "1")}><option value="1">Ativo</option><option value="0">Inativo</option></Select></Field>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

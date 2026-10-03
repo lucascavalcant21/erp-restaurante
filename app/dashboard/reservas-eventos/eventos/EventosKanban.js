@@ -7,6 +7,7 @@ import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
 import { FUNIL_ETAPAS, normalizarEtapa, rotuloEtapa } from "../../../lib/evento-financeiro.mjs";
 import { fmtReais } from "../../../lib/valor-percentual.mjs";
+import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 // As etapas do funil vêm de evento-financeiro.mjs (a mesma lista do seletor
 // dentro do evento): antes eram duas listas e o evento sumia do funil.
@@ -198,7 +199,7 @@ function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, user }) {
     status: "ativo"
   });
 
-  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.name === "cliente_telefone" ? mascaraTelefone(e.target.value) : e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -251,7 +252,7 @@ function NovoEventoModal({ onClose, onSuccess, unidadeAtiva, user }) {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-1">Telefone (WhatsApp)</label>
-                  <input type="text" name="cliente_telefone" value={form.cliente_telefone} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="(11) 90000-0000" />
+                  <input type="text" inputMode="tel" name="cliente_telefone" value={form.cliente_telefone} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="(11) 90000-0000" />
                 </div>
               </div>
             </div>

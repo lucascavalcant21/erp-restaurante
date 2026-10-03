@@ -20,6 +20,7 @@ import { intervaloPeriodo, unidadeValida, lerValor } from "../../../lib/contas-p
 import ModalRecebimentoConta from "../../../components/ModalRecebimentoConta";
 import { Plus, Search, X, Ban, Pencil, Eye, Wallet, AlertTriangle, ArrowDownCircle, Receipt } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const COR = {
   previsto: "bg-slate-100 text-slate-900", parcial: "bg-blue-100 text-blue-800", recebido: "bg-emerald-100 text-emerald-800",
@@ -293,7 +294,7 @@ export default function ContasAReceberPage() {
                     {MEIOS.map((m) => <option key={m.codigo} value={m.codigo}>{m.rotulo}</option>)}
                   </select></label>
                 <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Valor bruto (R$)</span>
-                  <input required inputMode="decimal" value={form.valor_bruto} disabled={!!form.id && Number(form.contaAtual?.bruto_baixado || 0) > 0}
+                  <CampoDecimal required value={form.valor_bruto} disabled={!!form.id && Number(form.contaAtual?.bruto_baixado || 0) > 0}
                     onChange={(e) => setForm({ ...form, valor_bruto: e.target.value })} className={campo} placeholder="0,00" /></label>
                 <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Data da venda / origem</span>
                   <input required type="date" value={form.data_venda} onChange={(e) => setForm({ ...form, data_venda: e.target.value })} className={campo} /></label>
@@ -352,7 +353,7 @@ export default function ContasAReceberPage() {
                         {" "}<button type="button" className="underline font-bold" onClick={() => setForm({ ...form, data_prevista: somarDias(form.data_venda, Number(regraForm.dias_para_recebimento)) })}>usar previsão {fmtData(somarDias(form.data_venda, Number(regraForm.dias_para_recebimento)))}</button></p>
                     : <p className="text-xs text-red-700 font-bold">Nenhuma taxa cadastrada para esta combinação. Cadastre em Caixa e Contas → Taxas, ou informe o valor.</p>)}
                   {form.modo_taxa === "informada" && (
-                    <input inputMode="decimal" value={form.valor_taxa} onChange={(e) => setForm({ ...form, valor_taxa: e.target.value })} className={campo} placeholder="Valor da taxa (R$)" />)}
+                    <CampoDecimal value={form.valor_taxa} onChange={(e) => setForm({ ...form, valor_taxa: e.target.value })} className={campo} placeholder="Valor da taxa (R$)" />)}
                   <div className="flex justify-between text-xs pt-1 border-t border-line">
                     <span>Bruto {fmtBRL(Number.isFinite(brutoForm) ? brutoForm : 0)} − taxa {taxaForm == null ? "não informada" : fmtBRL(taxaForm)}</span>
                     <b>Líquido previsto: {taxaForm == null ? "não apurado" : fmtBRL((Number.isFinite(brutoForm) ? brutoForm : 0) - taxaForm)}</b>
@@ -360,7 +361,7 @@ export default function ContasAReceberPage() {
                 </div>
               ) : (
                 <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Taxa prevista (R$, vazio = não informada)</span>
-                  <input inputMode="decimal" value={form.valor_taxa_previsto} disabled={Number(form.contaAtual?.bruto_baixado || 0) > 0}
+                  <CampoDecimal value={form.valor_taxa_previsto} disabled={Number(form.contaAtual?.bruto_baixado || 0) > 0}
                     onChange={(e) => setForm({ ...form, valor_taxa_previsto: e.target.value })} className={campo} /></label>
               )}
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Observação</span>

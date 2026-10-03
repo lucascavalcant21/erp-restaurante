@@ -6,6 +6,7 @@ import { fetchFichas } from "../../../../lib/operacao";
 import { ChefHat, Users, Clock, Search, Plus, Trash2, CheckSquare, Loader2, Wine, LayoutTemplate, MapPin, Check } from "lucide-react";
 import { custoPorcaoDaFicha } from "../../../../lib/evento-financeiro.mjs";
 import { fmtReais } from "../../../../lib/valor-percentual.mjs";
+import CampoDecimal from "../../../../components/CampoDecimal";
 
 export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpdate }) {
   const [fichas, setFichas] = useState([]);
@@ -177,7 +178,7 @@ export default function OperacaoTab({ evento, unidadeAtiva, departamento, onUpda
             <div className="flex gap-2 mb-8 bg-white p-2 rounded-2xl border border-slate-100">
               <input type="text" placeholder="Nome do colaborador" value={novaPessoa.nome} onChange={e => setNovaPessoa({...novaPessoa, nome: e.target.value})} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-slate-400" />
               <input type="text" placeholder="Função" value={novaPessoa.funcao} onChange={e => setNovaPessoa({...novaPessoa, funcao: e.target.value})} className="w-1/3 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-slate-400" />
-              <input type="number" placeholder="Custo R$" value={novaPessoa.custo} onChange={e => setNovaPessoa({...novaPessoa, custo: e.target.value})} className="w-28 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-black outline-none focus:border-slate-400" />
+              <CampoDecimal placeholder="Custo R$" value={novaPessoa.custo} onChange={e => setNovaPessoa({...novaPessoa, custo: e.target.value})} className="w-28 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-black outline-none focus:border-slate-400" />
               <button onClick={addPessoa} disabled={salvandoEquipe} className={`w-12 rounded-xl flex items-center justify-center text-white ${theme.btn} disabled:opacity-50`}><Plus size={20}/></button>
             </div>
 

@@ -5,6 +5,7 @@
 import { AREAS_EQUIPE, CATEGORIAS_EXTRAS, FORMAS_PAGAMENTO, novoId } from "../../../../../lib/evento-orcamento.mjs";
 import { fmtReais } from "../../../../../lib/valor-percentual.mjs";
 import { parseNumero } from "../../../../../lib/ficha-calculos.mjs";
+import { mascaraTelefone } from "../../../../../lib/mascaras.mjs";
 import { Cartao, Campo, Texto, Numero, Selecao, BotaoRemover, BotaoAdicionar, LinhaValor } from "./ui";
 
 const n = (v) => Math.max(0, parseNumero(v));
@@ -97,7 +98,7 @@ export function EtapaCliente({ orc, setOrc }) {
     <Cartao titulo="Dados do cliente e do evento" descricao="Aparecem no orçamento que o cliente recebe.">
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo rotulo="Nome do cliente"><Texto valor={c.cliente_nome} onChange={(v) => mudar({ cliente_nome: v })} placeholder="Maria Souza" autoComplete="off" /></Campo>
-        <Campo rotulo="WhatsApp do cliente" ajuda="Com DDD. É para onde o orçamento vai."><Texto valor={c.cliente_telefone} onChange={(v) => mudar({ cliente_telefone: v })} placeholder="(81) 99999-9999" inputMode="tel" autoComplete="off" /></Campo>
+        <Campo rotulo="WhatsApp do cliente" ajuda="Com DDD. É para onde o orçamento vai."><Texto valor={c.cliente_telefone} onChange={(v) => mudar({ cliente_telefone: mascaraTelefone(v) })} placeholder="(81) 99999-9999" inputMode="tel" autoComplete="off" /></Campo>
         <Campo rotulo="Nome do evento" className="sm:col-span-2"><Texto valor={c.nome_evento} onChange={(v) => mudar({ nome_evento: v })} placeholder="Aniversário de 30 anos" /></Campo>
         <Campo rotulo="Data do evento"><input type="date" value={c.data_evento || ""} onChange={(e) => mudar({ data_evento: e.target.value })}
           className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" /></Campo>

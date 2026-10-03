@@ -16,8 +16,9 @@ import { Cartao, Campo, Texto, Numero, Selecao, BotaoRemover, BotaoAdicionar } f
 
 const ICONE_TIPO = { buffet: Soup, alacarte: UtensilsCrossed, unico: Sparkles };
 
-export function EtapaTipo({ orc, setOrc }) {
+export function EtapaTipo({ orc, setOrc, modelos = [], onAplicarModelo, onRemoverModelo }) {
   return (
+    <div className="space-y-5">
     <Cartao titulo="Que tipo de evento é?" descricao="Isso define como o cardápio é montado e como aparece no orçamento do cliente. Dá para trocar depois.">
       <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Tipo do evento">
         {TIPOS_EVENTO.map((t) => {
@@ -37,6 +38,25 @@ export function EtapaTipo({ orc, setOrc }) {
         })}
       </div>
     </Cartao>
+    <Cartao titulo="Começar de um modelo" descricao="Modelos que você salvou (cardápio, equipe, extras, taxas e preço). Os dados do cliente deste evento continuam.">
+      {modelos.length === 0 ? (
+        <p className="text-sm font-medium text-slate-500">Nenhum modelo ainda. Monte um orçamento e use “Salvar como modelo”, no topo da página.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {modelos.map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center gap-2 py-2">
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate text-sm font-bold text-slate-900">{m.nome}</strong>
+                <span className="text-xs font-medium text-slate-500">{tipoDoEvento(m.orcamento?.tipo).rotulo} · {(m.orcamento?.cardapio || []).length} produto(s) · {(m.orcamento?.equipe || []).length} na equipe</span>
+              </span>
+              <button type="button" onClick={() => onAplicarModelo?.(m)} className="h-10 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700">Usar</button>
+              <BotaoRemover rotulo={`Apagar modelo ${m.nome}`} onClick={() => onRemoverModelo?.(m)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Cartao>
+    </div>
   );
 }
 
@@ -87,6 +107,9 @@ function EditorExclusiva({ item, alterarItem }) {
       <p className="mb-3 text-xs font-semibold text-violet-900">
         Ingredientes para <strong>uma porção</strong> (um prato, um drink). Informe a embalagem como você compra e quanto vai na porção. Estes ingredientes ficam só neste evento.
       </p>
+      <Campo rotulo="Peso da porção pronta (g)" ajuda="Opcional. Necessário para informar o buffet em gramas por pessoa." className="mb-3 max-w-xs">
+        <Numero valor={item.peso_porcao_g} onChange={(v) => alterarItem({ peso_porcao_g: v })} sufixo="g" />
+      </Campo>
       <div className="space-y-3">
         {item.ingredientes.map((g) => {
           const l = porId.get(g.id);
@@ -140,9 +163,19 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
           <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do produto" readOnly={!exclusiva && !!item.ficha}
             className={!exclusiva && item.ficha ? "bg-slate-50" : ""} />
         </div>
-        <Campo rotulo={ehBar ? "Por pessoa (doses)" : "Porções por pessoa"} className="sm:col-span-2">
-          <Numero valor={item.por_pessoa} onChange={(v) => alterarItem({ por_pessoa: v })} />
-        </Campo>
+        <div className="sm:col-span-2">
+          <span className="mb-1 flex items-center justify-between gap-1 text-xs font-bold uppercase tracking-wide text-slate-600">
+            {ehBar ? "Doses/pessoa" : item.emGramas ? "Gramas/pessoa" : "Porções/pessoa"}
+            {!ehBar && (
+              <button type="button" onClick={() => alterarItem({ medida: item.emGramas ? "porcao" : "g" })} className="rounded bg-slate-100 px-1.5 text-[10px] font-black text-slate-700 hover:bg-slate-200"
+                title="Alternar entre porções e gramas por pessoa">{item.emGramas ? "usar porções" : "usar gramas"}</button>
+            )}
+          </span>
+          {item.emGramas
+            ? <Numero valor={item.gramas_por_pessoa} onChange={(v) => alterarItem({ gramas_por_pessoa: v })} sufixo="g" aria-label="Gramas por pessoa" />
+            : <Numero valor={item.por_pessoa} onChange={(v) => alterarItem({ por_pessoa: v })} aria-label={ehBar ? "Doses por pessoa" : "Porções por pessoa"} />}
+          {item.emGramas && item.pesoPorcao > 0 && <span className="mt-1 block text-[11px] font-medium text-slate-500">= {item.porPessoa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção de {item.pesoPorcao} g</span>}
+        </div>
         <div className="sm:col-span-2">
           <span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Custo da porção</span>
           <span className={`block h-11 pt-2.5 text-sm font-bold tabular-nums ${item.semCusto ? "text-amber-700" : "text-slate-900"}`}>{item.semCusto ? "sem custo" : fmtReais(item.custoPorcao)}</span>
@@ -167,7 +200,7 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
       </div>
       {item.problemas.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700">{item.problemas.join(" · ")}</p>}
       {convidados > 0 && item.custoPorPessoa > 0 && (
-        <p className="mt-1 text-xs font-medium text-slate-500">{(Number(item.porPessoa) * convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções no evento · {fmtReais(item.custoPorPessoa * convidados)}</p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{(Number(item.porPessoa) * convidados).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} porções para {convidados} pessoas · {fmtReais(item.custoPorPessoa * convidados)}</p>
       )}
       {exclusiva && aberto && <EditorExclusiva item={item} alterarItem={alterarItem} />}
     </li>
@@ -238,11 +271,16 @@ export function EtapaCardapio({ orc, setOrc, resumo, fichas }) {
             </div>
             {resumo.convidados > 0 && (
               <div className="flex items-baseline justify-between gap-3 pt-1">
-                <span className="text-sm font-semibold text-slate-600">× {resumo.convidados} pessoas</span>
+                <span className="text-sm font-semibold text-slate-600">
+                  × {resumo.pessoasConsumo.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pessoas{resumo.criancas > 0 ? ` (${resumo.criancas} crianças comem menos)` : ""}{resumo.sobraPct > 0 ? ` + ${resumo.sobraPct.toLocaleString("pt-BR")}% de sobra` : ""}
+                </span>
                 <span className="whitespace-nowrap text-sm font-bold tabular-nums text-slate-700">{fmtReais(resumo.cmv)}</span>
               </div>
             )}
           </div>
+          <Campo rotulo="Sobra de segurança" ajuda="Quanto a mais preparar e comprar, além do consumo previsto. Entra no custo e na lista de compras." className="mt-4 max-w-xs">
+            <Numero valor={orc.sobra_pct} onChange={(v) => setOrc((o) => ({ ...o, sobra_pct: v }))} sufixo="%" />
+          </Campo>
         </Cartao>
       )}
     </div>

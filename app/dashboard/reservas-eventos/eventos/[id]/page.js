@@ -8,9 +8,9 @@
 // colunas que o funil, a agenda e a tela inicial leem são atualizadas junto.
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Calendar, Users, Check, Loader2, CloudOff, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Users, Check, Loader2, CloudOff, AlertTriangle, Copy, BookmarkPlus, X } from "lucide-react";
 import ComprasTab from "./ComprasTab";
 import { EtapaTipo, EtapaCardapio } from "./orcamento/EtapaCardapio";
 import { EtapaEquipe, EtapaExtras, EtapaCliente } from "./orcamento/EtapasCadastro";
@@ -18,10 +18,11 @@ import { EtapaFinanceiro, EtapaDRE, EtapaProposta, EtapaPagamentos } from "./orc
 import { supabase } from "../../../../lib/supabase";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
-import { fetchParams, PARAMS_PADRAO } from "../../../../lib/parametros";
+import { fetchParams, PARAMS_PADRAO, fetchModelosEvento, adicionarModeloEvento, removerModeloEvento } from "../../../../lib/parametros";
 import { FUNIL_ETAPAS, rotuloEtapa, normalizarEtapa } from "../../../../lib/evento-financeiro.mjs";
 import {
   orcamentoDoEvento, resumoDoOrcamento, pendenciasDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, CAMPOS_ESSENCIAIS, tipoDoEvento,
+  historicoDoCliente, conflitosDeEquipe, sugestoesDeEquipe, modeloDoOrcamento, aplicarModelo, copiaDoOrcamento, resumoParaFunil,
 } from "../../../../lib/evento-orcamento.mjs";
 import { fmtReais, fmtPct } from "../../../../lib/valor-percentual.mjs";
 
@@ -55,7 +56,13 @@ async function gravarEvento(id, campos) {
 
 export default function EventoPage() {
   const { id } = useParams();
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const router = useRouter();
+  const { unidadeAtiva, unidadeInfo, user } = useERP();
+  const [outrosEventos, setOutrosEventos] = useState([]);
+  const [modelos, setModelos] = useState([]);
+  const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);
+  const [painel, setPainel] = useState(null); // "modelo" | "duplicar"
+  const [aviso, setAviso] = useState("");
 
   const [evento, setEvento] = useState(null);
   const [orc, setOrc] = useState(null);
@@ -74,10 +81,13 @@ export default function EventoPage() {
     carregado.current = false;
     (async () => {
       setCarregando(true);
-      const [{ data, error }, resFichas, resParams] = await Promise.all([
+      const [{ data, error }, resFichas, resParams, resOutros, resModelos] = await Promise.all([
         supabase.from("eventos").select("*").eq("id", id).single(),
         fetchFichas(unidadeAtiva),
         fetchParams(unidadeAtiva),
+        // Outros eventos da loja: histórico do cliente, conflito de equipe e nomes já usados.
+        supabase.from("eventos").select("id, nome, cliente_nome, cliente_telefone, data_evento, valor_contratado, capacidade, funil_status, operacao_detalhes").eq("unidade_id", unidadeAtiva).neq("id", id),
+        fetchModelosEvento(unidadeAtiva),
       ]);
       if (!ativo) return;
       const params = { ...PARAMS_PADRAO, ...(resParams.data || {}) };
@@ -89,6 +99,9 @@ export default function EventoPage() {
       }
       if (!ativo) return;
       setFichas(resFichas.data || []);
+      setOutrosEventos(resOutros.error ? [] : resOutros.data || []);
+      setModelos(resModelos.data || []);
+      setParamsSis(params);
       if (!error && data) {
         const o = orcamentoDoEvento(data, params, equipeLegada);
         setEvento(data);
@@ -137,6 +150,43 @@ export default function EventoPage() {
     return () => window.removeEventListener("beforeunload", h);
   }, [gravacao.estado]);
 
+  const historico = useMemo(() => (orc ? historicoDoCliente(outrosEventos, orc.cliente, id) : []), [outrosEventos, orc, id]);
+  const conflitos = useMemo(() => (orc ? conflitosDeEquipe(orc, outrosEventos) : []), [outrosEventos, orc]);
+  const sugestoesEquipe = useMemo(() => sugestoesDeEquipe(outrosEventos), [outrosEventos]);
+
+  const salvarModelo = async (nome) => {
+    const m = modeloDoOrcamento(orc, nome);
+    const res = await adicionarModeloEvento(unidadeAtiva, m);
+    if (res.error) { setAviso(`Não salvou o modelo: ${res.error}`); return; }
+    setModelos(res.data);
+    setPainel(null);
+    setAviso(`Modelo “${m.nome}” salvo. Use em qualquer evento, na etapa Tipo.`);
+  };
+  const usarModelo = (m) => {
+    if (orc.cardapio.length && !window.confirm(`Trocar o cardápio, a equipe, os extras e o preço deste evento pelos do modelo “${m.nome}”?`)) return;
+    setOrc((o) => aplicarModelo(o, m, paramsSis));
+    setAviso(`Modelo “${m.nome}” aplicado.`);
+  };
+  const apagarModelo = async (m) => {
+    if (!window.confirm(`Apagar o modelo “${m.nome}”? Os eventos que já usaram não mudam.`)) return;
+    const res = await removerModeloEvento(unidadeAtiva, m.id);
+    if (res.error) setAviso(`Não apagou: ${res.error}`); else setModelos(res.data);
+  };
+  // Novo evento com tudo deste, menos data, pagamentos e realizado.
+  const duplicar = async (dataNova) => {
+    const copia = copiaDoOrcamento(orc);
+    copia.cliente.data_evento = dataNova;
+    const r = resumoDoOrcamento(copia, fichas);
+    const { data, error } = await supabase.from("eventos").insert([{
+      nome: copia.cliente.nome_evento, cliente_nome: copia.cliente.cliente_nome || null, cliente_telefone: copia.cliente.cliente_telefone || null,
+      data_evento: dataNova, capacidade: Math.round(Number(r.convidados) || 0), local_evento: copia.cliente.local_evento || null,
+      tipo_evento: "buffet", funil_status: "NOVO CONTATO", status: "ativo", unidade_id: unidadeAtiva, responsavel_id: user?.id || null,
+      valor_contratado: r.receita, operacao_detalhes: { orcamento: copia, resumo: resumoParaFunil(r) },
+    }]).select("id").single();
+    if (error) { setAviso(`Não duplicou: ${error.message}`); return; }
+    router.push(`/dashboard/reservas-eventos/eventos/${data.id}`);
+  };
+
   const mudarFunil = async (novo) => {
     setEvento((e) => ({ ...e, funil_status: novo }));
     await supabase.from("eventos").update({ funil_status: novo }).eq("id", evento.id);
@@ -179,8 +229,18 @@ export default function EventoPage() {
             <Link href="/dashboard/reservas-eventos/eventos" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
               <ArrowLeft size={16} /> Funil de eventos
             </Link>
-            <EstadoGravacao g={gravacao} />
+            <div className="flex flex-wrap items-center gap-2">
+              <EstadoGravacao g={gravacao} />
+              <button type="button" onClick={() => setPainel(painel === "modelo" ? null : "modelo")} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-xs font-bold text-slate-800 hover:bg-slate-100"><BookmarkPlus size={14} /> Salvar como modelo</button>
+              <button type="button" onClick={() => setPainel(painel === "duplicar" ? null : "duplicar")} className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-xs font-bold text-slate-800 hover:bg-slate-100"><Copy size={14} /> Duplicar evento</button>
+            </div>
           </div>
+          {painel && <PainelAcao tipo={painel} onFechar={() => setPainel(null)} onModelo={salvarModelo} onDuplicar={duplicar} nomeSugerido={c.nome_evento || tipoDoEvento(orc.tipo).rotulo} />}
+          {aviso && (
+            <p className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">
+              {aviso}<button type="button" onClick={() => setAviso("")} aria-label="Fechar aviso"><X size={16} /></button>
+            </p>
+          )}
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -224,13 +284,13 @@ export default function EventoPage() {
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] print:block print:p-0">
         <div className="min-w-0">
-          {etapa === "tipo" && <EtapaTipo {...props} />}
+          {etapa === "tipo" && <EtapaTipo {...props} modelos={modelos} onAplicarModelo={usarModelo} onRemoverModelo={apagarModelo} />}
           {etapa === "cardapio" && <EtapaCardapio {...props} />}
-          {etapa === "equipe" && <EtapaEquipe {...props} />}
+          {etapa === "equipe" && <EtapaEquipe {...props} sugestoesEquipe={sugestoesEquipe} conflitos={conflitos} />}
           {etapa === "extras" && <EtapaExtras {...props} />}
-          {etapa === "cliente" && <EtapaCliente {...props} />}
+          {etapa === "cliente" && <EtapaCliente {...props} unidadeAtiva={unidadeAtiva} historico={historico} />}
           {etapa === "financeiro" && <EtapaFinanceiro {...props} />}
-          {etapa === "dre" && <EtapaDRE {...props} />}
+          {etapa === "dre" && <EtapaDRE {...props} recebido={recebido} />}
           {etapa === "proposta" && <EtapaProposta {...props} casa={unidadeInfo?.nome || ""} />}
           {etapa === "pagamentos" && <EtapaPagamentos pagamentos={pagamentos} salvarPagamentos={salvarPagamentos} resumo={resumo} salvando={salvandoPag} />}
           {etapa === "compras" && compras && <ComprasTab lista={compras} valor={resumo.receita} nItens={resumo.itens.length} />}
@@ -273,6 +333,33 @@ export default function EventoPage() {
         </aside>
       </div>
     </main>
+  );
+}
+
+// Formulário curto no topo: nome do modelo, ou data do evento duplicado.
+function PainelAcao({ tipo, onFechar, onModelo, onDuplicar, nomeSugerido }) {
+  const [valor, setValor] = useState(tipo === "modelo" ? nomeSugerido : "");
+  const [enviando, setEnviando] = useState(false);
+  const enviar = async (e) => {
+    e.preventDefault();
+    if (!valor) return;
+    setEnviando(true);
+    await (tipo === "modelo" ? onModelo(valor) : onDuplicar(valor));
+    setEnviando(false);
+  };
+  return (
+    <form onSubmit={enviar} className="flex flex-wrap items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <label className="min-w-[200px] flex-1">
+        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">{tipo === "modelo" ? "Nome do modelo" : "Data do novo evento"}</span>
+        <input autoFocus type={tipo === "modelo" ? "text" : "date"} value={valor} onChange={(e) => setValor(e.target.value)} required
+          className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500" />
+      </label>
+      <button type="submit" disabled={enviando || !valor} className="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
+        {enviando ? "Salvando…" : tipo === "modelo" ? "Salvar modelo" : "Criar cópia"}
+      </button>
+      <button type="button" onClick={onFechar} className="h-11 rounded-xl px-3 text-sm font-bold text-slate-600 hover:text-slate-900">Cancelar</button>
+      <p className="basis-full text-xs font-medium text-slate-500">{tipo === "modelo" ? "Guarda tipo, cardápio, equipe, extras, taxas e preço — sem os dados do cliente." : "O novo evento copia tudo deste (cliente, cardápio, equipe, extras e preço), começa no início do funil e sem pagamentos."}</p>
+    </form>
   );
 }
 

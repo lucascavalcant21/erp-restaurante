@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   orcamentoVazio, orcamentoDoEvento, custoDaFichaExclusiva, itensDoOrcamento, resumoDoOrcamento,
   pendenciasDoOrcamento, cardapioParaCliente, textoDoOrcamento, listaDeComprasDoOrcamento, camposDoEventoParaGravar, secaoDoItem,
+  custoDaPessoa, realizadoDoEvento, historicoDoCliente, conflitosDeEquipe, sugestoesDeEquipe, indicadoresDoFunil, modeloDoOrcamento, aplicarModelo, copiaDoOrcamento,
 } from "./evento-orcamento.mjs";
 import { custoPorcaoDaFicha } from "./evento-financeiro.mjs";
 
@@ -150,4 +151,103 @@ test("pendências e gravação", () => {
   const c2 = camposDoEventoParaGravar(semPreco, resumoDoOrcamento(semPreco, FICHAS), {});
   assert.equal("valor_contratado" in c2, false);
   assert.equal("capacidade" in c2, false);
+});
+
+test("crianças: pagam % do adulto e comem uma fração; desconto sai da receita", () => {
+  const o = orcBase();
+  o.cliente.criancas = 20; // 80 adultos + 20 crianças
+  o.financeiro.preco_crianca = { modo: "pct", valor: 50 };
+  o.financeiro.consumo_crianca_pct = 50;
+  o.financeiro.desconto = { modo: "valor", valor: 200 };
+  const r = resumoDoOrcamento(o, FICHAS);
+  assert.equal(r.adultos, 80);
+  assert.equal(r.pessoasConsumo, 90);
+  assert.equal(r.precoCrianca, 40);
+  assert.equal(r.receitaBruta, 80 * 80 + 20 * 40);
+  assert.equal(r.receita, 7200 - 200);
+  assert.equal(r.cmvBebida, 450); // 5,00 por pessoa × 90 pessoas-equivalentes
+  const l = Object.fromEntries(r.dre.map((x) => [x.id, x]));
+  assert.equal(l.desconto.valor, 200);
+  // Cobrando o sugerido (com crianças e desconto), a meta fecha.
+  o.financeiro.preco_por_pessoa = r.precoSugeridoPorPessoa;
+  const r2 = resumoDoOrcamento(o, FICHAS);
+  assert.ok(r2.lucroPct >= 20 - 0.01, `lucro ${r2.lucroPct}%`);
+  assert.ok(r2.lucroPct < 20.5);
+  assert.ok(Number.isInteger(r.precoSugeridoRedondo) && r.precoSugeridoRedondo >= r.precoSugeridoPorPessoa);
+});
+
+test("sobra de segurança aumenta CMV e compras; gramas por pessoa viram porções", () => {
+  const o = orcBase();
+  o.sobra_pct = 10;
+  const r = resumoDoOrcamento(o, FICHAS);
+  assert.equal(r.cmvBebida, 550);
+  const l = listaDeComprasDoOrcamento(o, FICHAS);
+  assert.equal(l.itens.find((x) => x.nome === "Cachaça").quantidade, 11000);
+  const g = orcBase();
+  g.cardapio[0] = { ...g.cardapio[0], medida: "g", gramas_por_pessoa: 150 };
+  const semPeso = resumoDoOrcamento(g, FICHAS).itens[0];
+  assert.equal(semPeso.porPessoa, 0);
+  assert.match(semPeso.problemas.join(), /peso da porção/);
+  const comPeso = resumoDoOrcamento(g, [{ ...prato, peso_porcao_g: 300 }]).itens[0];
+  assert.equal(comPeso.porPessoa, 0.5);
+});
+
+test("equipe por hora e conflitos de agenda", () => {
+  assert.equal(custoDaPessoa({ quantidade: 2, modo: "hora", horas: 6, valor: 25 }), 300);
+  assert.equal(custoDaPessoa({ quantidade: "", valor: 150 }), 150);
+  const o = orcBase();
+  o.cliente.data_evento = "2026-11-20";
+  const outros = [{ id: "x", nome: "Casamento", data_evento: "2026-11-20", operacao_detalhes: { orcamento: { equipe: [{ nome: "ana " }] } } },
+    { id: "y", nome: "Outro dia", data_evento: "2026-11-21", operacao_detalhes: { orcamento: { equipe: [{ nome: "João" }] } } }];
+  assert.deepEqual(conflitosDeEquipe(o, outros).map((c) => c.nome), ["Ana"]);
+  const sug = sugestoesDeEquipe(outros);
+  assert.deepEqual(sug.map((x) => x.nome), ["ana", "João"]);
+});
+
+test("orçado × realizado: linha lançada substitui o orçado; recebido é só referência", () => {
+  const o = orcBase();
+  const r = resumoDoOrcamento(o, FICHAS);
+  o.realizado = { equipe: "650", cmv_bebida: "420" };
+  const x = realizadoDoEvento(o, r, { recebido: 8000 });
+  const l = Object.fromEntries(x.linhas.map((y) => [y.id, y]));
+  assert.equal(l.equipe.real, 650);
+  assert.equal(l.equipe.diferenca, 150);
+  assert.equal(l.cmv_bebida.diferenca, -80);
+  assert.equal(l.receita.origem, "orcado");
+  assert.equal(x.recebido, 8000);
+  assert.equal(x.lancadas, 2);
+  assert.equal(x.diferencaLucro, -70);
+});
+
+test("cliente: histórico pelo telefone; funil: conversão e lucro previsto", () => {
+  const evs = [
+    { id: "a", nome: "Aniv 29", cliente_telefone: "(81) 99999-1234", data_evento: "2025-11-20", valor_contratado: 5000, funil_status: "FINALIZADO", operacao_detalhes: { resumo: { lucro: 1000 } } },
+    { id: "b", nome: "Atual", cliente_telefone: "81999991234", data_evento: "2026-11-20", valor_contratado: 8000, funil_status: "PROPOSTA ENVIADA" },
+    { id: "c", nome: "Outro", cliente_telefone: "81911112222", data_evento: "2026-11-02", valor_contratado: 3000, funil_status: "CANCELADO" },
+  ];
+  assert.deepEqual(historicoDoCliente(evs, { cliente_telefone: "81 99999-1234" }, "b").map((e) => e.id), ["a"]);
+  const f = indicadoresDoFunil(evs, "2026-11");
+  assert.equal(f.eventos, 1);
+  assert.equal(f.fechados, 0);
+  assert.equal(f.conversao, 0);
+  const todos = indicadoresDoFunil(evs, "");
+  assert.equal(todos.fechados, 1);
+  assert.equal(todos.lucro, 1000);
+  assert.equal(Math.round(todos.conversao), 33);
+});
+
+test("modelos e cópia: sem cliente, ids novos, mantém cardápio e preço", () => {
+  const o = orcBase();
+  o.cliente.cliente_nome = "Maria";
+  const m = modeloDoOrcamento(o, "Buffet 100");
+  assert.equal(m.orcamento.cliente, undefined);
+  assert.notEqual(m.orcamento.cardapio[0].id, o.cardapio[0].id);
+  const novo = aplicarModelo({ ...orcamentoVazio({}), cliente: { ...orcamentoVazio({}).cliente, cliente_nome: "José" } }, m);
+  assert.equal(novo.cliente.cliente_nome, "José");
+  assert.equal(novo.cardapio.length, 2);
+  assert.equal(novo.financeiro.preco_por_pessoa, 80);
+  const c = copiaDoOrcamento({ ...o, cliente: { ...o.cliente, nome_evento: "Aniv", data_evento: "2026-11-20" }, realizado: { equipe: 1 } });
+  assert.equal(c.cliente.data_evento, "");
+  assert.equal(c.cliente.nome_evento, "Cópia de Aniv");
+  assert.deepEqual(c.realizado, {});
 });

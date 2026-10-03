@@ -143,6 +143,39 @@ export async function salvarParams(unidadeId, paramsEntrada) {
   return { error: error?.message };
 }
 
+// Modelos de orçamento de evento ("Buffet casamento"), compartilhados entre os
+// aparelhos da unidade. Lista em params.eventos_modelos; cada alteração relê a
+// lista atual antes de gravar, para não apagar o modelo que outro salvou.
+export async function fetchModelosEvento(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  const lista = registro?.params?.eventos_modelos;
+  return { data: Array.isArray(lista) ? lista : [] };
+}
+
+async function gravarModelosEvento(unidadeId, alterar) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco" };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  const { data: atuais } = await fetchModelosEvento(unidadeId);
+  const lista = alterar(atuais);
+  const patch = { eventos_modelos: lista };
+  const mergeAtomico = await tentarMergeAtomico(unidadeId, patch);
+  if (mergeAtomico) return { data: lista };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const params = { ...(registro?.params || {}), ...patch };
+  const { error } = registro
+    ? await supabase.from("config_sistema").update({ params }).eq("id", registro.id)
+    : await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return error ? { error: error.message } : { data: lista };
+}
+
+export function adicionarModeloEvento(unidadeId, modelo) {
+  return gravarModelosEvento(unidadeId, (l) => [...l.filter((m) => m.id !== modelo.id), modelo]);
+}
+
+export function removerModeloEvento(unidadeId, id) {
+  return gravarModelosEvento(unidadeId, (l) => l.filter((m) => m.id !== id));
+}
+
 // Designer da ficha de montagem. Fica no mesmo JSON de configurações da
 // unidade, mas separado dos parâmetros numéricos para poder guardar opções
 // visuais (fonte, cor, foto, campos exibidos etc.).

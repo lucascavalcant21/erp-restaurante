@@ -11,7 +11,9 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import EstoqueHub from "../../../components/navigation/EstoqueHub";
 import EstoqueAbas from "../../../components/navigation/EstoqueAbas";
-import { ehFracionavel, conteudoDe } from "../../../lib/inventario-saldo.mjs";
+import { ehFracionavel, conteudoDe, cadastroParaSaldo } from "../../../lib/inventario-saldo.mjs";
+import { lancarMovimento } from "../../../lib/estoque-movimento-dados";
+import { novaChave } from "../../../lib/estoque-movimento.mjs";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { fetchPins } from "../../../lib/seguranca";
@@ -20,8 +22,8 @@ import { fetchColaboradores } from "../../../lib/rh";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
-  registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
-  transferirEntreEstoques, vincularItemEstoque, zerarEstoque,
+  realocarItemEstoque, salvarEstoque,
+  transferirEntreEstoques, vincularItemEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
   filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
@@ -30,7 +32,7 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
 import TabletSetor from "../../../components/TabletSetor";
-import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, dividirSaldo } from "../../../lib/estoque-bebidas";
+import { dividirSaldo } from "../../../lib/estoque-bebidas";
 import CampoDecimal from "../../../components/CampoDecimal";
 
 // Item fracionável (garrafa, saco, galão): a regra mora em inventario-saldo.mjs,
@@ -418,7 +420,6 @@ function EstoqueRunner() {
     setNovoProduto(p => (p && p.categoria === nome ? { ...p, categoria: "Sem categoria" } : p));
     avisar(`Categoria "${nome}" excluída.`);
   }
-  const [modalZerar, setModalZerar] = useState(null);
   // Limites e unidade de medida afetam reposição e contagem. Por isso ficam
   // atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
   const [pinGerente, setPinGerente] = useState("1234");
@@ -428,6 +429,7 @@ function EstoqueRunner() {
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
   const [textoImportacao, setTextoImportacao] = useState("");
+  const [pinImportacao, setPinImportacao] = useState("");
 
   const moduloPref = (searchParams.get("dept") || searchParams.get("modulo") || "").toLowerCase();
 
@@ -565,44 +567,6 @@ function EstoqueRunner() {
 
   const atualizarTudo = async () => {
     await Promise.all([carregarArea(), carregarEstoques(estoqueId)]);
-  };
-
-  // Zerar não tem desfazer, então exige digitar ZERAR. Um confirm() se clica
-  // por reflexo; digitar a palavra obriga a ler o que está escrito antes.
-  const confirmarZerar = async () => {
-    if (String(modalZerar?.confirmacao || "").trim().toUpperCase() !== "ZERAR") {
-      avisar("Digite ZERAR para confirmar.", "erro");
-      return;
-    }
-    const alvos = (modalZerar?.alvos || []).length ? modalZerar.alvos : [estoqueAtual?.id];
-    const escolhidos = estoquesVisiveis.filter(e => alvos.includes(e.id));
-    if (!escolhidos.length) { avisar("Escolha pelo menos um estoque.", "erro"); return; }
-    setModalZerar(m => ({ ...m, salvando: true }));
-
-    const resumo = [];
-    for (const estoque of escolhidos) {
-      const resposta = await zerarEstoque({
-        unidadeId: unidadeAtiva,
-        estoqueId: estoque.id,
-        usuarioId: idUsuario(sessao),
-        usuarioNome: nomeUsuario(sessao),
-        motivo: String(modalZerar?.motivo || "").trim(),
-      });
-      resumo.push({ nome: estoque.nome, ...(resposta.data || {}), erro: resposta.error });
-    }
-    setModalZerar(null);
-
-    const comErro = resumo.filter(r => r.erro);
-    if (comErro.length) {
-      avisar(`Não consegui zerar: ${comErro.map(r => `${r.nome} (${r.erro})`).join(" · ")}`, "erro");
-    } else {
-      const comFalha = resumo.filter(r => r.falhas > 0);
-      avisar(`${resumo.map(r => `${r.nome}: ${r.zerados} de ${r.total} com saldo`).join(" · ")}. `
-        + (comFalha.length
-          ? `Atenção: ${comFalha.reduce((s, r) => s + r.falhas, 0)} baixa(s) não entraram no histórico.`
-          : "Cada baixa está no histórico."));
-    }
-    await atualizarTudo();
   };
 
   // Cadastrar sem sair do estoque: o produto nasce no catálogo de ingredientes
@@ -906,6 +870,14 @@ function EstoqueRunner() {
   }, [movimentos, itensDaArea]);
 
   const abrirOperacao = (tipo, item = null) => {
+    // Entrada e retirada: aba "Entrada e retirada" (motivo, embalagens + fração,
+    // histórico sem edição, correção só por estorno). Aqui fica a transferência.
+    if (tipo === "entrada" || tipo === "saida") {
+      const q = new URLSearchParams({ estoque: estoqueId || "", tipo });
+      if (item?.insumo_id) q.set("insumo", item.insumo_id);
+      router.push(`/dashboard/operacao/estoque/movimentar?${q}`);
+      return;
+    }
     const frac = ehFracionavel(item);
     const div = frac ? dividirSaldo(item.quantidade_atual, conteudoDe(item), true) : null;
     const agoraStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -963,54 +935,19 @@ function EstoqueRunner() {
         avisar("Selecione um produto válido.", "erro");
         return;
       }
-      let resposta;
-      const frac = ehFracionavel(item);
-      const conteudoFrac = conteudoDe(item);
-
-      // Conversão automática de unidade se o usuário digitou em g para item cadastrado em kg (ou ml para L)
-      let qtdOperacao = operacao.quantidade;
+      // Entrada e retirada vão pela aba "Entrada e retirada"; aqui só transferência.
+      if (modal?.tipo !== "transferencia") return;
+      // digitado em g/ml num produto em kg/L: converte; garrafa fracionada vai em ml
+      let qtdOperacao = Number(operacao.quantidade) || 0;
       const unBase = String(item?.unidade_medida || "").toLowerCase();
       const unDig = String(operacao.unidade_digitada || unBase).toLowerCase();
-      if (unBase === "kg" && unDig === "g") {
-        qtdOperacao = String((Number(operacao.quantidade) || 0) / 1000);
-      } else if (unBase === "l" && unDig === "ml") {
-        qtdOperacao = String((Number(operacao.quantidade) || 0) / 1000);
-      }
-
-      const bebArgs = {
-        unidadeId, estoqueId, insumoId: item?.insumo_id,
-        usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
-        observacao: operacao.observacao,
-      };
-      const stdMov = (tipo, qtd) => registrarMovimentoMulti({
-        unidadeId, estoqueId, insumoId: item?.insumo_id, tipo,
-        quantidade: qtd, usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
-        observacao: operacao.observacao, dataMovimento: operacao.data || null,
+      if ((unBase === "kg" && unDig === "g") || (unBase === "l" && unDig === "ml")) qtdOperacao /= 1000;
+      const resposta = await transferirEntreEstoques({
+        unidadeId, estoqueOrigem: estoqueAtual,
+        estoqueDestino: estoques.find(i => i.id === operacao.destino_id),
+        item, quantidade: cadastroParaSaldo(qtdOperacao, item),
+        usuarioNome: responsavelNome, observacao: operacao.observacao,
       });
-
-      if (frac && modal?.tipo === "entrada") {
-        resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: qtdOperacao });
-        if (resposta?.error) resposta = await stdMov("entrada", (Number(qtdOperacao) || 0) * conteudoFrac);
-      } else if (frac && modal?.tipo === "saida") {
-        resposta = operacao.modo === "unidade"
-          ? await baixaBebidaUnidades({ ...bebArgs, unidades: qtdOperacao })
-          : await baixaBebidaConteudo({ ...bebArgs, quantidade: qtdOperacao });
-        if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(qtdOperacao) || 0) * conteudoFrac : (Number(qtdOperacao) || 0));
-      } else if (modal?.tipo === "transferencia") {
-        resposta = await transferirEntreEstoques({
-          unidadeId, estoqueOrigem: estoqueAtual,
-          estoqueDestino: estoques.find(i => i.id === operacao.destino_id),
-          item, quantidade: qtdOperacao, usuarioId: usuarioIdFinal,
-          usuarioNome: responsavelNome, observacao: operacao.observacao,
-        });
-      } else {
-        resposta = await registrarMovimentoMulti({
-          unidadeId, estoqueId, insumoId: item?.insumo_id,
-          tipo: modal?.tipo, quantidade: qtdOperacao,
-          usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
-          observacao: operacao.observacao, dataMovimento: operacao.data || null,
-        });
-      }
       if (resposta?.error) return avisar(resposta.error, "erro");
       setModal(null);
       avisar(modal?.tipo === "transferencia" ? "Transferência concluída nos dois estoques." : "Movimentação registrada.");
@@ -1102,12 +1039,18 @@ function EstoqueRunner() {
     await carregarEstoques(resposta.data?.id || estoqueId);
   };
 
+  // Carga inicial: o saldo da lista vira AJUSTE AUTORIZADO (administrador +
+  // PIN), lançando só a diferença para o saldo atual. Nada é sobrescrito sem
+  // registro: cada ajuste fica no histórico com quem autorizou e o motivo.
   const importarLista = async event => {
     event.preventDefault();
     if (!textoImportacao.trim()) return;
+    if (!/^\d{4,8}$/.test(pinImportacao)) { avisar("Digite o PIN do administrador para lançar os saldos da lista.", "erro"); return; }
     setSalvando(true);
     const linhas = textoImportacao.split("\n").map(l => l.trim()).filter(Boolean);
     let importados = 0;
+    let ajustados = 0;
+    const falhas = [];
     for (const linha of linhas) {
       const [nome, saldo = "0", unidade = "un", minimo = "", local = ""] = linha.split(/[;\t]/).map(v => v.trim());
       if (!nome || /^produto|^nome/i.test(nome)) continue;
@@ -1119,26 +1062,43 @@ function EstoqueRunner() {
           tamanho_embalagem: 1, categoria: "Sem categoria",
           custo_unitario: 0, custo_compra: 0, ativo: true,
         }, { origem: `Importação — estoque ${estoqueAtual.nome}` });
-        if (novo.error) continue;
+        if (novo.error) { falhas.push(`${nome}: ${novo.error}`); continue; }
         insumo = { id: novo.id, nome, unidade_medida: unidade || "un" };
       }
       const vinculo = await vincularItemEstoque({
         unidadeId: unidadeAtiva, estoqueId, insumoId: insumo.id,
         minimo, local, custoUnitario: insumo.custo_compra ?? insumo.custo_unitario ?? 0,
       });
-      if (vinculo.error) continue;
-      const contagem = await registrarContagemMulti({
-        unidadeId: unidadeAtiva, estoqueId, insumoId: insumo.id,
-        saldoContado: Number(String(saldo).replace(",", ".")) || 0,
-        usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao),
-        observacao: "Importação de lista",
+      if (vinculo.error) { falhas.push(`${nome}: ${vinculo.error}`); continue; }
+      importados += 1;
+      const qtdLista = Number(String(saldo).replace(",", "."));
+      if (!Number.isFinite(qtdLista) || qtdLista < 0) { falhas.push(`${nome}: saldo inválido`); continue; }
+      const atual = Number(itens.find(i => i.insumo_id === insumo.id)?.quantidade_atual) || 0;
+      const diferenca = Math.round((cadastroParaSaldo(qtdLista, insumo) - atual) * 1000) / 1000;
+      if (Math.abs(diferenca) < 0.0005) continue;
+      const r = await lancarMovimento({
+        unidade_id: unidadeAtiva, estoque_id: estoqueId, insumo_id: insumo.id,
+        tipo: diferenca > 0 ? "entrada" : "saida", motivo: "ajuste_autorizado",
+        lancamento: {
+          quantidade: Math.abs(diferenca), quantidadeSaldo: Math.abs(diferenca),
+          quantidade_informada: qtdLista, unidade_informada: unidade || insumo.unidade_medida,
+          detalhe: { importacao: true, saldo_lista: qtdLista, saldo_antes: atual },
+        },
+        justificativa: "Importação de lista (carga inicial)", pin: pinImportacao, chave: novaChave(),
+        observacao: `Importação de lista: saldo ${qtdLista} ${unidade || insumo.unidade_medida}`,
       });
-      if (!contagem.error) importados += 1;
+      if (r.error) {
+        falhas.push(`${nome}: ${r.error}`);
+        if (r.pin || r.semBanco) break;   // PIN errado ou banco sem EST-MOV: não adianta seguir
+      } else ajustados += 1;
     }
     setSalvando(false);
     setModal(null);
     setTextoImportacao("");
-    avisar(`${importados} item(ns) importado(s) para ${estoqueAtual.nome}.`);
+    setPinImportacao("");
+    avisar(falhas.length
+      ? `${importados} produto(s) importado(s), ${ajustados} saldo(s) ajustado(s). Não foi: ${falhas.slice(0, 3).join(" · ")}${falhas.length > 3 ? "…" : ""}`
+      : `${importados} produto(s) importado(s) para ${estoqueAtual.nome}; ${ajustados} saldo(s) ajustado(s), com registro.`, falhas.length ? "erro" : "sucesso");
     await atualizarTudo();
   };
 
@@ -1319,12 +1279,6 @@ function EstoqueRunner() {
                 <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
                   className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
                   Calendário
-                </button>
-                {/* Recomeço de contagem. Fica discreto de propósito: é a única
-                    ação da tela que não tem desfazer. */}
-                <button onClick={() => setModalZerar({ confirmacao: "", alvos: estoqueAtual?.id ? [estoqueAtual.id] : [], salvando: false })}
-                  className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-subtle hover:text-red-600 sm:py-3.5 sm:text-sm">
-                  Zerar estoque
                 </button>
               </div>
 
@@ -1662,7 +1616,7 @@ function EstoqueRunner() {
                           onClick={() => setOperacao(prev => ({ ...prev, quantidade: "" }))}
                           className="px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs border border-red-200 active:scale-95 transition-all"
                         >
-                          Zerar
+                          Limpar
                         </button>
                       </div>
                     )}
@@ -1852,6 +1806,12 @@ function EstoqueRunner() {
           <form onSubmit={importarLista} className="space-y-4">
             <div className="rounded-xl bg-emerald-50 p-3 font-mono text-xs text-emerald-900">Arroz branco; 12; kg; 5; Despensa seca<br />Detergente; 24; un; 6; Armário 02</div>
             <textarea required value={textoImportacao} onChange={e => setTextoImportacao(e.target.value)} className="min-h-64 w-full rounded-xl border border-line p-3 font-mono text-sm" placeholder="Cole sua lista aqui..." />
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+              <p className="font-bold flex items-center gap-1"><Lock size={14} /> O saldo da lista entra como ajuste autorizado</p>
+              <p className="mt-1">Só a diferença para o saldo atual é lançada, com o seu nome e o motivo “Importação de lista”. Precisa do PIN do administrador.</p>
+              <input type="password" inputMode="numeric" autoComplete="off" value={pinImportacao} onChange={e => setPinImportacao(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="PIN do administrador" className="mt-2 h-11 w-full rounded-xl border border-line bg-white px-3 font-black tracking-widest" />
+            </div>
             <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Importar</BotaoSalvar></div>
           </form>
         </Modal>
@@ -1894,56 +1854,6 @@ function EstoqueRunner() {
             })()}
             <div className="flex justify-end">
               <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-card px-5 font-bold text-fg-soft hover:bg-slate-200">Fechar</button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {modalZerar && (
-        <Modal titulo={`Zerar ${estoqueAtual?.nome}`} descricao="Todos os saldos deste estoque vão a zero. Não tem desfazer." onClose={() => setModalZerar(null)}>
-          <div className="space-y-3 pt-2">
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              Cada baixa fica no histórico com o seu nome, para a contagem poder ser conferida depois. Não tem desfazer.
-            </p>
-            {/* Marcar mais de um é possível, mas exige marcar: zerar bar e
-                cozinha de um clique só seria fácil demais para uma ação sem volta. */}
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-fg">Quais estoques zerar</span>
-              <div className="mt-1.5 max-h-44 space-y-1 overflow-auto rounded-xl border border-line p-2">
-                {estoquesVisiveis.map(e => {
-                  const marcado = (modalZerar.alvos || []).includes(e.id);
-                  return (
-                    <label key={e.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 hover:bg-white">
-                      <input type="checkbox" checked={marcado} className="h-4 w-4 accent-red-600"
-                        onChange={() => setModalZerar(m => ({
-                          ...m,
-                          alvos: marcado
-                            ? (m.alvos || []).filter(id => id !== e.id)
-                            : [...(m.alvos || []), e.id],
-                        }))} />
-                      <span className="text-sm font-bold text-fg-soft">{e.nome}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-            <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-fg">Motivo (opcional)</span>
-              <input value={modalZerar.motivo || ""} onChange={e => setModalZerar(m => ({ ...m, motivo: e.target.value }))}
-                placeholder="Ex.: recontagem geral de agosto"
-                className="mt-1 h-12 w-full rounded-xl border border-line px-3 font-semibold text-slate-800 outline-none focus:border-emerald-600" />
-            </label>
-            <label className="block">
-              <span className="text-xs font-bold uppercase tracking-widest text-fg">Digite ZERAR para confirmar</span>
-              <input autoFocus value={modalZerar.confirmacao} onChange={e => setModalZerar(m => ({ ...m, confirmacao: e.target.value }))}
-                className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-center font-black tracking-widest text-fg outline-none focus:border-red-500" />
-            </label>
-            <div className="flex gap-2">
-              <button onClick={() => setModalZerar(null)} className="h-12 flex-1 rounded-xl border border-line bg-card font-bold text-slate-900">Cancelar</button>
-              <button onClick={confirmarZerar} disabled={modalZerar.salvando}
-                className="h-12 flex-1 rounded-xl bg-red-600 font-black text-white hover:bg-red-700 disabled:opacity-60">
-                {modalZerar.salvando ? "Zerando..." : "Zerar estoque"}
-              </button>
             </div>
           </div>
         </Modal>

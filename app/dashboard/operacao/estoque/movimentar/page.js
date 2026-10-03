@@ -6,7 +6,8 @@
 // é, a permissão, o saldo e não deixa gravar duas vezes). Depois de confirmado
 // não se edita nem se apaga: correção só por ESTORNO do administrador, com PIN.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useERP } from "../../../../context/ERPContext";
 import {
   fetchBaseMovimento, fetchUltimosMovimentos, lancarMovimento, estornarLancamento, lerSeguranca, MSG_BANCO_DESATUALIZADO,
@@ -28,18 +29,26 @@ const CHAVE_LOCAL = "hefisto:movimentar:estoque";
 const FORM_VAZIO = { embalagens: "", fracao: "", unidadeFracao: "", motivo: "", validade: "", observacao: "", responsavel: "", justificativa: "", pin: "" };
 
 export default function MovimentarPage() {
-  const { unidadeAtiva, sessao } = useERP();
-  if (!unidadeValida(unidadeAtiva)) return <p className="p-8 text-center font-bold text-fg">Selecione uma unidade para lançar no estoque.</p>;
-  return <Movimentar key={unidadeAtiva} unidade={unidadeAtiva} sessao={sessao} />;
+  return <Suspense fallback={<p className="p-8 text-center font-bold text-fg">Carregando...</p>}><MovimentarComParametros /></Suspense>;
 }
 
-function Movimentar({ unidade, sessao }) {
+// O Controle de Estoque abre esta aba já no local, no tipo e no produto:
+// ?estoque=<id>&tipo=entrada|saida&insumo=<id>
+function MovimentarComParametros() {
+  const { unidadeAtiva, sessao } = useERP();
+  const params = useSearchParams();
+  if (!unidadeValida(unidadeAtiva)) return <p className="p-8 text-center font-bold text-fg">Selecione uma unidade para lançar no estoque.</p>;
+  const inicial = { estoque: params.get("estoque") || "", tipo: params.get("tipo") === "saida" ? "saida" : "entrada", insumo: params.get("insumo") || "" };
+  return <Movimentar key={`${unidadeAtiva}|${inicial.estoque}|${inicial.tipo}|${inicial.insumo}`} unidade={unidadeAtiva} sessao={sessao} inicial={inicial} />;
+}
+
+function Movimentar({ unidade, sessao, inicial = {} }) {
   const [base, setBase] = useState(null);
   const [seg, setSeg] = useState(null);
   const [segErro, setSegErro] = useState("");
   const [erro, setErro] = useState("");
   const [estoqueId, setEstoqueId] = useState("");
-  const [tipo, setTipo] = useState("entrada");
+  const [tipo, setTipo] = useState(inicial.tipo || "entrada");
   const [busca, setBusca] = useState("");
   const [produto, setProduto] = useState(null);
   const [form, setForm] = useState(FORM_VAZIO);
@@ -57,12 +66,12 @@ function Movimentar({ unidade, sessao }) {
     if (b.data?.estoques?.length) {
       setEstoqueId((atual) => {
         if (atual && b.data.estoques.some((e) => e.id === atual)) return atual;
-        let salvo = "";
-        try { salvo = localStorage.getItem(`${CHAVE_LOCAL}:${unidade}`) || ""; } catch { /* sem armazenamento */ }
+        let salvo = inicial.estoque || "";
+        try { salvo = salvo || localStorage.getItem(`${CHAVE_LOCAL}:${unidade}`) || ""; } catch { /* sem armazenamento */ }
         return b.data.estoques.some((e) => e.id === salvo) ? salvo : b.data.estoques[0].id;
       });
     }
-  }, [unidade]);
+  }, [unidade]); // eslint-disable-line react-hooks/exhaustive-deps
   const carregarUltimos = useCallback(async () => {
     if (!estoqueId) return;
     const r = await fetchUltimosMovimentos(unidade, estoqueId);
@@ -78,6 +87,14 @@ function Movimentar({ unidade, sessao }) {
     if (!estoqueId) return;
     try { localStorage.setItem(`${CHAVE_LOCAL}:${unidade}`, estoqueId); } catch { /* sem armazenamento */ }
   }, [unidade, estoqueId]);
+
+  const insumoInicial = useRef(inicial.insumo || "");
+  useEffect(() => {
+    if (!insumoInicial.current || !base?.insumos) return;
+    const ins = base.insumos.find((i) => i.id === insumoInicial.current);
+    insumoInicial.current = "";
+    if (ins) escolher(ins);
+  }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const estoque = base?.estoques?.find((e) => e.id === estoqueId);
   const saldoAtual = produto ? (Number(base?.itens?.find((i) => i.estoque_id === estoqueId && i.insumo_id === produto.id)?.quantidade_atual) || 0) : 0;

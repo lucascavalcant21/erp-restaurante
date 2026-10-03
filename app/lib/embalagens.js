@@ -35,11 +35,12 @@ export async function sincronizarEmbalagemNoEstoque(unidadeId, embalagem) {
 
   const { data: estoque } = await supabase.from("estoques").select("id").eq("unidade_id", unidadeId).eq("slug", `embalagens-${departamento}`).maybeSingle();
   if (!estoque?.id) return;
+  // Só o vínculo, o mínimo e o custo: o saldo do estoque muda por entrada,
+  // retirada ou ajuste (EST-MOV), nunca copiado daqui por cima.
   await supabase.from("estoque_itens").upsert({
     unidade_id: unidadeId,
     estoque_id: estoque.id,
     insumo_id: insumoId,
-    quantidade_atual: Number(embalagem.quantidade_atual) || 0,
     estoque_minimo: Number(embalagem.quantidade_minima) || 0,
     custo_unitario: Number(embalagem.preco_unitario) || 0,
     updated_at: new Date().toISOString(),

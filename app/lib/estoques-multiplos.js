@@ -1,104 +1,14 @@
 import { supabase, isSupabaseReady } from "./supabase.js";
 import { ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
+import { bancoDesatualizado, novaChave } from "./estoque-movimento.mjs";
 
 const erroMensagem = error => error?.message || null;
 
-// Corrida com timeout: nenhuma chamada ao Supabase pode travar o botão para
-// sempre. Se a promessa não resolver no prazo, devolvemos um erro tratável.
-// Corrida com timeout: nenhuma chamada ao Supabase pode travar o botão para
-// sempre. Se a promessa não resolver em 3s, caímos no fallback instantâneo.
-function comTimeout(promise, ms = 3000) {
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise(resolve => setTimeout(() => resolve({ __timeout: true, error: { message: "__timeout" } }), ms)),
-  ]);
-}
-
-// A RPC nova (registrar_movimento_estoque_multi / estoque_itens) pode não existir
-// no banco ainda. Detecta esse caso pelo texto do erro / timeout para acionar o
-// caminho legado direto na tabela estoque_atual.
-function precisaFallbackLegado(res) {
-  if (res?.__timeout) return true;
-  const m = (res?.error?.message || res?.error || "").toString().toLowerCase();
-  if (!m) return false;
-  return (
-    m.includes("__timeout") ||
-    m.includes("does not exist") ||
-    m.includes("could not find") ||
-    m.includes("schema cache") ||
-    m.includes("invalid input syntax for type uuid") ||
-    (m.includes("function") && m.includes("not")) ||
-    m.includes("relation") ||
-    m.includes("404") ||
-    m.includes("undefined")
-  );
-}
-
-// Movimentação legada/direta: atualiza o saldo em estoque_itens e estoque_atual instantaneamente.
-export async function movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, quantidade, saldoContado, usuarioId, usuarioNome, observacao }) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  if (!unidadeId || !insumoId) return { error: "Item ou unidade inválidos." };
-  let novo;
-  const q = Number(quantidade) || 0;
-
-  // 1. Atualizar em estoque_itens se tiver estoqueId
-  if (estoqueId) {
-    const itemRes = await comTimeout(
-      supabase.from("estoque_itens").select("id, quantidade_atual").eq("estoque_id", estoqueId).eq("insumo_id", insumoId).maybeSingle(),
-      2500,
-    );
-    if (itemRes?.data) {
-      const atual = Number(itemRes.data.quantidade_atual) || 0;
-      novo = tipo === "contagem" ? Math.max(0, Number(saldoContado) || 0) : (tipo === "entrada" ? atual + q : Math.max(0, atual - q));
-      await supabase.from("estoque_itens").update({ quantidade_atual: novo, updated_at: new Date().toISOString() }).eq("id", itemRes.data.id);
-    }
-  }
-
-  // 2. Se não achou em estoque_itens, calcula em estoque_atual
-  if (novo === undefined) {
-    if (tipo === "contagem") {
-      novo = Math.max(0, Number(saldoContado) || 0);
-    } else {
-      if (q <= 0) return { error: "Informe uma quantidade válida." };
-      const atualRes = await comTimeout(
-        supabase.from("estoque_atual").select("quantidade_atual").eq("unidade_id", unidadeId).eq("insumo_id", insumoId).maybeSingle(),
-        2500,
-      );
-      const atual = Number(atualRes?.data?.quantidade_atual) || 0;
-      novo = tipo === "entrada" ? atual + q : Math.max(0, atual - q);
-    }
-  }
-
-  // 3. Atualiza em estoque_atual para manter contabilidade global em dia
-  await comTimeout(
-    supabase.from("estoque_atual").upsert({
-      unidade_id: unidadeId,
-      insumo_id: insumoId,
-      quantidade_atual: novo,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "unidade_id,insumo_id" }),
-    2500,
-  );
-
-  // 4. Registra histórico da movimentação. Falha aqui não desfaz o saldo já
-  // gravado. (Antes havia um .catch() no builder do supabase-js, que não tem
-  // esse método: lançava TypeError depois do saldo gravado e o histórico
-  // nunca era registrado.)
-  try {
-    await supabase.from("estoque_movimentacoes").insert({
-      unidade_id: unidadeId,
-      insumo_id: insumoId,
-      tipo: tipo || "entrada",
-      quantidade: q || Number(saldoContado) || 0,
-      usuario_id: usuarioId || null,
-      usuario_nome: usuarioNome || null,
-      observacao: observacao || null,
-      created_at: new Date().toISOString(),
-    });
-  } catch { /* histórico é acessório; o saldo já está gravado */ }
-
-  return { data: { quantidade_atual: novo }, error: null };
-}
+// Toda escrita de saldo vai pelas funções do banco (EST-MOV): estoque_movimentar
+// e estoque_transferir conferem quem é, a permissão, o saldo e não gravam duas
+// vezes (chave). O antigo "fallback legado" (timeout de 3 s → gravar direto em
+// estoque_itens) foi tirado: ele podia lançar a mesma movimentação duas vezes.
+// Enquanto o banco não recebe a EST-MOV, as funções antigas seguem valendo.
 
 export async function garantirEstoquesPadrao(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: "Unidade inválida." };
@@ -397,55 +307,6 @@ export async function atualizarItemEstoque(estoqueItemId, campos) {
   return { error: erroMensagem(error) };
 }
 
-// Zera o saldo de todos os itens de um estoque. Existe para o recomeço de
-// contagem: quando o saldo do sistema já não tem relação com a prateleira,
-// zerar tudo e recontar é mais honesto que corrigir item por item.
-//
-// Grava uma saída por item que tinha saldo, em vez de apagar o número calado:
-// o histórico precisa mostrar quem zerou, quando e quanto sumiu — é isso que
-// separa um recomeço de contagem de um sumiço de mercadoria.
-export async function zerarEstoque({ unidadeId, estoqueId, usuarioId = null, usuarioNome = "", motivo = "" }) {
-  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
-  if (!unidadeId || !estoqueId) return { error: "Estoque inválido." };
-
-  const { data: itens, error: erroLeitura } = await supabase
-    .from("estoque_itens").select("id, insumo_id, quantidade_atual").eq("estoque_id", estoqueId);
-  if (erroLeitura) return { error: erroMensagem(erroLeitura) };
-
-  const comSaldo = (itens || []).filter(item => Number(item.quantidade_atual) > 0);
-  const observacao = `Zerado para recontagem${motivo ? ` · ${motivo}` : ""}`;
-  let falhas = 0;
-  for (const item of comSaldo) {
-    const resultado = await registrarMovimentoMulti({
-      unidadeId, estoqueId, insumoId: item.insumo_id,
-      tipo: "saida", quantidade: Number(item.quantidade_atual),
-      usuarioId, usuarioNome, observacao,
-    });
-    if (resultado?.error) falhas += 1;
-  }
-
-  // Item sem saldo já está zerado; os que falharam entram aqui como rede de
-  // segurança, para o estoque não ficar zerado pela metade.
-  const { error: erroZerar } = await supabase.from("estoque_itens")
-    .update({ quantidade_atual: 0, updated_at: new Date().toISOString() })
-    .eq("estoque_id", estoqueId);
-  if (erroZerar) return { error: erroMensagem(erroZerar) };
-
-  // Confere lendo de volta. Um UPDATE barrado por RLS não devolve erro: ele
-  // simplesmente não afeta linha nenhuma. Sem esta conferência a tela dizia
-  // "zerado" com o saldo intacto na prateleira — pior que falhar avisando.
-  const { data: depois } = await supabase
-    .from("estoque_itens").select("quantidade_atual").eq("estoque_id", estoqueId);
-  const sobraram = (depois || []).filter(item => Number(item.quantidade_atual) > 0).length;
-  if (sobraram > 0) {
-    return {
-      error: `O banco não aceitou zerar: ${sobraram} item(ns) continuam com saldo. `
-        + "Provável política de RLS na tabela estoque_itens bloqueando o update.",
-    };
-  }
-
-  return { data: { zerados: comSaldo.length, total: (itens || []).length, falhas }, error: null };
-}
 
 async function sincronizarSaldoLegado(unidadeId, insumoId) {
   const { data } = await supabase.from("estoque_itens").select("quantidade_atual").eq("unidade_id", unidadeId).eq("insumo_id", insumoId);
@@ -458,55 +319,61 @@ async function sincronizarSaldoLegado(unidadeId, insumoId) {
   }, { onConflict: "unidade_id,insumo_id" });
 }
 
+/**
+ * Entrada ou retirada pelo banco (estoque_movimentar). quantidade na unidade do
+ * saldo. motivo: compra, recebimento, producao, devolucao, consumo, perda,
+ * vencimento, quebra... (sem motivo: entrada = recebimento, retirada = consumo).
+ * chave: a mesma chave reenviada não grava de novo (rede ruim, toque duplo).
+ * usuarioId é ignorado: quem lançou é o usuário logado, decidido pelo banco.
+ */
 export async function registrarMovimentoMulti({
   unidadeId,
   estoqueId,
   insumoId,
   tipo,
   quantidade,
-  usuarioId = null,
   usuarioNome = "",
   observacao = "",
-  dataMovimento = null,
+  motivo = null,
+  origem = "movimentacao",
+  chave = null,
+  validade = null,
+  detalhe = null,
 }) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const valor = Number(quantidade);
+  const valor = Math.round(Number(quantidade) * 1000) / 1000;
   if (!["entrada", "saida"].includes(tipo) || !Number.isFinite(valor) || valor <= 0) {
     return { error: "Informe uma movimentação válida." };
   }
-  const res = await comTimeout(supabase.rpc("registrar_movimento_estoque_multi", {
-    p_unidade_id: unidadeId,
-    p_estoque_id: estoqueId,
-    p_insumo_id: insumoId,
-    p_tipo: tipo,
-    p_quantidade: valor,
-    p_usuario_id: usuarioId,
-    p_usuario_nome: usuarioNome || null,
-    p_observacao: observacao || null,
-    p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
-  }));
-  if (precisaFallbackLegado(res)) {
-    return movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, quantidade: valor, usuarioId, usuarioNome, observacao });
+  const { data, error } = await supabase.rpc("estoque_movimentar", {
+    p_unidade_id: unidadeId, p_estoque_id: estoqueId, p_insumo_id: insumoId,
+    p_tipo: tipo, p_motivo: motivo || (tipo === "entrada" ? "recebimento" : "consumo"), p_quantidade: valor,
+    p_validade: tipo === "entrada" ? (validade || null) : null,
+    p_detalhe: detalhe || null, p_observacao: observacao || null, p_responsavel_nome: usuarioNome || null,
+    p_chave: chave || novaChave(), p_origem: origem || "movimentacao",
+  });
+  if (error && bancoDesatualizado(error.message)) {
+    // banco ainda sem a EST-MOV: função antiga (some com a EST-MOV-3)
+    const antigo = await supabase.rpc("registrar_movimento_estoque_multi", {
+      p_unidade_id: unidadeId, p_estoque_id: estoqueId, p_insumo_id: insumoId, p_tipo: tipo, p_quantidade: valor,
+      p_usuario_id: null, p_usuario_nome: usuarioNome || null, p_observacao: observacao || null,
+      p_data_movimento: new Date().toISOString(),
+    });
+    if (antigo.error) return { error: erroMensagem(antigo.error) };
+    await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
+    return { data: Array.isArray(antigo.data) ? antigo.data[0] : antigo.data, error: null };
   }
-  const { data, error } = res;
-  if (!error) await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
-  // Carimba o preço do dia no próprio movimento: sem isso, mudar o custo do
-  // ingrediente reescreveria o valor de todas as compras antigas dele.
-  const movimentoId = (Array.isArray(data) ? data[0] : data)?.id;
-  if (!error && movimentoId) {
-    try {
-      const { data: ing } = await supabase.from("insumos").select("custo_compra, custo_unitario").eq("id", insumoId).maybeSingle();
-      const unitario = Number(ing?.custo_compra ?? ing?.custo_unitario) || 0;
-      if (unitario > 0) {
-        await supabase.from("estoque_movimentacoes_multi")
-          .update({ valor_unitario: unitario, valor_total: Number((unitario * valor).toFixed(2)) })
-          .eq("id", movimentoId);
-      }
-    } catch { /* coluna ainda não migrada: o valor segue vindo do custo atual */ }
-  }
-  return { data: Array.isArray(data) ? data[0] : data, error: erroMensagem(error) };
+  if (error) return { error: erroMensagem(error) };
+  if (data?.ok === false) return { error: data.erro || "Não autorizado." };
+  await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
+  return { data: { ...data, id: data?.movimento_id, novo_saldo: data?.saldo_posterior }, error: null };
 }
 
+// Uma única confirmação na interface pode movimentar vários itens. Cada item
+// usa o mesmo motor transacional do estoque e o retorno preserva falhas
+// individuais para não esconder uma movimentação parcial.
+// Cadastra a ficha no estoque correto com saldo zero. A entrada de quantidade
+// continua acontecendo somente quando a producao for efetivamente registrada.
 // Uma única confirmação na interface pode movimentar vários itens. Cada item
 // usa o mesmo motor transacional do estoque e o retorno preserva falhas
 // individuais para não esconder uma movimentação parcial.
@@ -628,13 +495,14 @@ export async function registrarProducaoNoEstoquePreparo({ unidadeId, ficha, depa
 
   const movimento = await registrarMovimentoMulti({
     unidadeId, estoqueId: estoque.id, insumoId: insumo.id, tipo: "entrada", quantidade: qtd,
-    usuarioId, usuarioNome, observacao: `Produção de ${nomeBase} · armazenado em ${localLimpo}`,
+    usuarioNome, observacao: `Produção de ${nomeBase} · armazenado em ${localLimpo}`,
+    motivo: "producao", origem: "producao",
   });
   if (movimento.error) return movimento;
   return { data: { ...movimento.data, nome: nomeBase, local: localLimpo, unidade, quantidadeProduzida: qtd, estoque: estoque.nome }, error: null };
 }
 
-export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usuarioId = null, usuarioNome = "", observacao = "" }) {
+export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usuarioNome = "", observacao = "", motivo = null }) {
   const concluidos = [];
   const erros = [];
 
@@ -645,9 +513,9 @@ export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usu
       insumoId: item.insumoId,
       tipo,
       quantidade: Number(item.quantidade),
-      usuarioId,
       usuarioNome,
       observacao,
+      motivo,
     });
 
     if (resultado?.error) erros.push({ id: item.id, nome: item.nome, error: resultado.error });
@@ -657,6 +525,9 @@ export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usu
   return { success: erros.length === 0, concluidos, erros };
 }
 
+// Acerto antigo (o saldo passa a ser o contado). Só o caminho do inventário
+// sem a EST-MOV usa (aplicar ao saldo, #123); com a EST-MOV, o inventário vai
+// para o saldo pelo ajuste autorizado. Sem gravação direta de reserva.
 export async function registrarContagemMulti({
   unidadeId,
   estoqueId,
@@ -669,7 +540,7 @@ export async function registrarContagemMulti({
   if (!isSupabaseReady()) return { error: "Offline" };
   const saldo = Number(saldoContado);
   if (!Number.isFinite(saldo) || saldo < 0) return { error: "Informe um saldo válido." };
-  const res = await comTimeout(supabase.rpc("registrar_contagem_estoque_multi", {
+  const { data, error } = await supabase.rpc("registrar_contagem_estoque_multi", {
     p_unidade_id: unidadeId,
     p_estoque_id: estoqueId,
     p_insumo_id: insumoId,
@@ -677,11 +548,7 @@ export async function registrarContagemMulti({
     p_usuario_id: usuarioId,
     p_usuario_nome: usuarioNome || null,
     p_observacao: observacao || null,
-  }));
-  if (precisaFallbackLegado(res)) {
-    return movimentoLegado({ unidadeId, insumoId, tipo: "contagem", saldoContado: saldo });
-  }
-  const { data, error } = res;
+  });
   if (!error) await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
   return { data: Array.isArray(data) ? data[0] : data, error: erroMensagem(error) };
 }
@@ -692,29 +559,35 @@ export async function transferirEntreEstoques({
   estoqueDestino,
   item,
   quantidade,
-  usuarioId = null,
   usuarioNome = "",
   observacao = "",
+  chave = null,
 }) {
   if (!isSupabaseReady()) return { error: "Offline" };
   if (!item?.permite_transferencia) return { error: "Este item não permite transferência." };
   if (!tiposCompativeis(estoqueOrigem?.tipo, estoqueDestino?.tipo)) {
     return { error: "Os tipos destes estoques não permitem transferência entre si." };
   }
-  const valor = Number(quantidade);
+  const valor = Math.round(Number(quantidade) * 1000) / 1000;
   if (!Number.isFinite(valor) || valor <= 0) return { error: "Informe uma quantidade válida." };
-  const { data, error } = await supabase.rpc("transferir_item_entre_estoques", {
-    p_unidade_id: unidadeId,
-    p_estoque_origem_id: estoqueOrigem.id,
-    p_estoque_destino_id: estoqueDestino.id,
-    p_insumo_id: item.insumo_id,
-    p_quantidade: valor,
-    p_usuario_id: usuarioId,
-    p_usuario_nome: usuarioNome || null,
-    p_observacao: observacao || null,
+  const { data, error } = await supabase.rpc("estoque_transferir", {
+    p_unidade_id: unidadeId, p_estoque_origem_id: estoqueOrigem.id, p_estoque_destino_id: estoqueDestino.id,
+    p_insumo_id: item.insumo_id, p_quantidade: valor, p_observacao: observacao || null,
+    p_responsavel_nome: usuarioNome || null, p_chave: chave || novaChave(),
   });
-  if (!error) await sincronizarSaldoLegado(unidadeId, item.insumo_id);
-  return { data: Array.isArray(data) ? data[0] : data, error: erroMensagem(error) };
+  if (error && bancoDesatualizado(error.message)) {
+    // banco ainda sem a EST-MOV-3: transferência antiga
+    const antigo = await supabase.rpc("transferir_item_entre_estoques", {
+      p_unidade_id: unidadeId, p_estoque_origem_id: estoqueOrigem.id, p_estoque_destino_id: estoqueDestino.id,
+      p_insumo_id: item.insumo_id, p_quantidade: valor, p_usuario_id: null,
+      p_usuario_nome: usuarioNome || null, p_observacao: observacao || null,
+    });
+    if (!antigo.error) await sincronizarSaldoLegado(unidadeId, item.insumo_id).catch(() => {});
+    return { data: Array.isArray(antigo.data) ? antigo.data[0] : antigo.data, error: erroMensagem(antigo.error) };
+  }
+  if (error) return { error: erroMensagem(error) };
+  await sincronizarSaldoLegado(unidadeId, item.insumo_id).catch(() => {});
+  return { data, error: null };
 }
 
 export async function fetchMovimentosMulti(unidadeId, estoqueId, limite = 500) {

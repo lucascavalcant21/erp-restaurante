@@ -40,7 +40,9 @@ async function acharEstoque(unidadeId, slug) {
 }
 
 // Movimenta o estoque a partir de uma etiqueta. tipo: "entrada" | "saida".
-async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, observacao }) {
+// motivo do histórico: entrada = produção; saída = consumo ou perda. A chave
+// (etiqueta + evento) impede lançar a mesma etiqueta duas vezes.
+async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, observacao, motivo }) {
   if (!isSupabaseReady() || !unidadeId || !etiqueta) return { ok: false, motivo: "sem conexão" };
   const quantidade = quantidadeDaEtiqueta(etiqueta);
   // Etiqueta sem peso é o caso normal (etiqueta de nome, por exemplo): não há
@@ -65,12 +67,15 @@ async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, obser
       }).catch(() => {});
     }
 
+    const idEtiqueta = etiqueta.id || etiqueta.codigo;
     const { error } = await registrarMovimentoMulti({
       unidadeId, estoqueId: estoque.id, insumoId: insumo.id,
       tipo, quantidade,
-      usuarioId: usuario?.id || null,
       usuarioNome: usuario?.nome || etiqueta.responsavel || "",
       observacao: observacao || `Etiqueta ${etiqueta.codigo || ""}`.trim(),
+      motivo, origem: "etiqueta",
+      chave: idEtiqueta ? `etiqueta:${idEtiqueta}:${tipo}` : null,
+      validade: tipo === "entrada" && etiqueta.validade_em ? String(etiqueta.validade_em).slice(0, 10) : null,
     });
     if (error) return { ok: false, motivo: error };
     return { ok: true, estoque: estoque.nome, quantidade, insumo: insumo.nome };
@@ -82,7 +87,7 @@ async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, obser
 // Etiqueta gerada = produção declarada: entra no estoque.
 export function entradaPorEtiqueta({ unidadeId, etiqueta, usuario }) {
   return movimentarPorEtiqueta({
-    unidadeId, etiqueta, tipo: "entrada", usuario,
+    unidadeId, etiqueta, tipo: "entrada", usuario, motivo: "producao",
     observacao: `Etiqueta ${etiqueta?.codigo || ""} — ${Math.max(1, Number(etiqueta?.copias) || 1)} etiqueta(s)`.trim(),
   });
 }
@@ -90,7 +95,7 @@ export function entradaPorEtiqueta({ unidadeId, etiqueta, usuario }) {
 // Baixa (consumido) ou perda (descartado): sai do mesmo estoque em que entrou.
 export function saidaPorEtiqueta({ unidadeId, etiqueta, motivo = "baixa", usuario }) {
   return movimentarPorEtiqueta({
-    unidadeId, etiqueta, tipo: "saida", usuario,
+    unidadeId, etiqueta, tipo: "saida", usuario, motivo: motivo === "perda" ? "perda" : "consumo",
     observacao: motivo === "perda"
       ? `Perda — etiqueta ${etiqueta?.codigo || ""}`.trim()
       : `Consumo — etiqueta ${etiqueta?.codigo || ""}`.trim(),

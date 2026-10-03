@@ -290,11 +290,11 @@ export async function salvarInsumo(insumo, opcoes = {}) {
             if (alvo?.id) {
               // Sem .catch(): o builder do supabase-js não tem esse método, a
               // chamada lançava TypeError e o vínculo nunca era enviado.
+              // sem quantidade: nasce com saldo 0 e, se já existir, o saldo não é tocado
               await supabase.from("estoque_itens").upsert({
                 unidade_id: campos.unidade_id,
                 estoque_id: alvo.id,
                 insumo_id: data.id,
-                quantidade_atual: 0,
                 updated_at: new Date().toISOString(),
               }, { onConflict: "estoque_id,insumo_id" });
             }

@@ -417,5 +417,62 @@ conferir("ajuste do vinho na unidade do saldo: contado 2 garrafas = 1.500 ml, si
 conferir("inventário que o caminho anterior já aplicou ao saldo não é ajustado de novo (sem duplicar)",
   [a3g?.status, (await one(`select quantidade_atual::float q from public.estoque_itens where estoque_id = $1 and insumo_id = $2`, [estBar, gin])).q], ["ja_ajustado", 2000]);
 
+// ── 14. EST-MOV-3: transferência pelo banco e escrita direta fechada ─────────
+const semMov3 = await func.rpc("estoque_transferir", { p_unidade_id: U, p_estoque_origem_id: estCozinha, p_estoque_destino_id: estBar, p_insumo_id: carne, p_quantidade: 1 });
+conferir("antes da EST-MOV-3 a transferência nova ainda não existe", /estoque_transferir/.test(semMov3.error?.message || ""), true);
+const SQL3 = fs.readFileSync(process.env.EST_MOV3_SQL || path.join(raiz, "db", "EST_MOV_3_FECHA_ESCRITA_DIRETA.sql"), "utf8");
+await pg.exec(SQL3);
+let erro3 = null; try { await pg.exec(SQL3); } catch (e) { erro3 = e.message; await pg.exec("rollback"); }
+conferir("EST-MOV-3 roda e pode rodar de novo", erro3, null);
+// estoque de bebidas compatível com alimentos (regra antiga mantida)
+const estDeposito = await id(`insert into public.estoques (unidade_id, nome, slug, tipo) values ($1,'Depósito','deposito','alimentos') returning id`, [U]);
+await registrarMovimento(func, { unidade_id: U, estoque_id: estCozinha, insumo_id: carne, tipo: "entrada", motivo: "compra", validade: "2026-11-01",
+  lancamento: quantidadeDoLancamento({ insumo: { unidade_medida: "kg" }, fracao: "2" }), chave: novaChave() });
+const saldoCarne = await saldo(estCozinha, carne);
+const chaveT = novaChave();
+const tr = await func.rpc("estoque_transferir", { p_unidade_id: U, p_estoque_origem_id: estCozinha, p_estoque_destino_id: estDeposito, p_insumo_id: carne, p_quantidade: 3, p_observacao: "para o depósito", p_chave: chaveT });
+const legs = (await pg.query(`select tipo, motivo, origem, quantidade::float q, estoque_id = $2 origem_ok, registrado_por from public.estoque_movimentacoes_multi where transferencia_id = $1 order by tipo desc`, [tr.data?.transferencia_id, estCozinha])).rows;
+conferir("transferência: sai da cozinha, entra no depósito com as validades (FEFO), dois lançamentos ligados",
+  [tr.error, tr.data?.ok, await saldo(estCozinha, carne), await saldo(estDeposito, carne), await lotes(estDeposito, carne), legs.map((l) => [l.tipo, l.motivo, l.origem, l.q])],
+  [null, true, saldoCarne - 3, 3, ["2026-11-01=2", "-=1"], [["transferencia_saida", "transferencia_enviada", "transferencia", 3], ["transferencia_entrada", "transferencia_recebida", "transferencia", 3]]]);
+const trDup = await func.rpc("estoque_transferir", { p_unidade_id: U, p_estoque_origem_id: estCozinha, p_estoque_destino_id: estDeposito, p_insumo_id: carne, p_quantidade: 3, p_chave: chaveT });
+const trDemais = await func.rpc("estoque_transferir", { p_unidade_id: U, p_estoque_origem_id: estCozinha, p_estoque_destino_id: estDeposito, p_insumo_id: carne, p_quantidade: 999 });
+const trSem = await sem.rpc("estoque_transferir", { p_unidade_id: U, p_estoque_origem_id: estCozinha, p_estoque_destino_id: estDeposito, p_insumo_id: carne, p_quantidade: 1 });
+conferir("transferência: reenvio não duplica; mais que o saldo é recusado; sem permissão não transfere",
+  [trDup.data?.idempotente, /Saldo insuficiente na origem/.test(trDemais.error?.message || ""), /Sem permissão/.test(trSem.error?.message || ""), await saldo(estDeposito, carne)],
+  [true, true, true, 3]);
+const estTr = await estornarMovimento(ger, { movimento_id: (await one(`select id from public.estoque_movimentacoes_multi where transferencia_id = $1 and tipo = 'transferencia_saida'`, [tr.data.transferencia_id])).id, justificativa: "teste", pin: "4321" });
+conferir("transferência não se estorna: faz a transferência de volta", /transferência de volta/.test(estTr.error || ""), true);
+
+const itemCarne2 = (await one(`select id from public.estoque_itens where estoque_id = $1 and insumo_id = $2`, [estCozinha, carne])).id;
+const upSaldo = await func.from("estoque_itens").update({ quantidade_atual: 999 }).eq("id", itemCarne2);
+const upMin = await func.from("estoque_itens").update({ estoque_minimo: 2, local_interno: "Freezer 2" }).eq("id", itemCarne2);
+const insComSaldo = await func.from("estoque_itens").insert({ unidade_id: U, estoque_id: estDeposito, insumo_id: arroz, quantidade_atual: 50 });
+const insSemSaldo = await func.from("estoque_itens").insert({ unidade_id: U, estoque_id: estDeposito, insumo_id: arroz });
+const delComSaldo = await func.from("estoque_itens").delete().eq("id", itemCarne2);
+conferir("pela API: saldo não muda, item com saldo não nasce nem sai; mínimo e local continuam editáveis; vincular sem saldo continua",
+  [/só muda por entrada/.test(upSaldo.error?.message || ""), upMin.error, /só muda por entrada/.test(insComSaldo.error?.message || ""), insSemSaldo.error,
+   /Produto com saldo/.test(delComSaldo.error?.message || ""), await saldo(estCozinha, carne)],
+  [true, null, true, null, true, saldoCarne - 3]);
+const lotePorFora = await func.from("estoque_lotes").update({ quantidade: 999 }).eq("estoque_id", estCozinha);
+const movPorFora = await func.from("estoque_movimentacoes_multi").insert({ unidade_id: U, estoque_id: estCozinha, insumo_id: carne, tipo: "entrada", quantidade: 1 });
+conferir("pela API: lotes e histórico não aceitam escrita direta", [/permission denied/.test(lotePorFora.error?.message || ""), /permission denied/.test(movPorFora.error?.message || "")], [true, true]);
+const antigas = await Promise.all([
+  func.rpc("registrar_movimento_estoque_multi", { p_unidade_id: U, p_estoque_id: estCozinha, p_insumo_id: carne, p_tipo: "entrada", p_quantidade: 1 }),
+  func.rpc("registrar_contagem_estoque_multi", { p_unidade_id: U, p_estoque_id: estCozinha, p_insumo_id: carne, p_saldo_contado: 0 }),
+  ger.rpc("bebida_zerar", { p_unidade_id: U, p_estoque_id: estBar, p_insumo_id: gin, p_motivo: "teste" }),
+  func.rpc("transferir_item_entre_estoques", { p_unidade_id: U, p_estoque_origem_id: estCozinha, p_estoque_destino_id: estDeposito, p_insumo_id: carne, p_quantidade: 1 }),
+]);
+conferir("funções antigas (sobrescrever saldo, zerar bebida, transferir sem regra) fechadas para o app",
+  antigas.map((r) => /permission denied/.test(r.error?.message || "")), [true, true, true, true]);
+const depois3 = await registrarMovimento(func, { unidade_id: U, estoque_id: estCozinha, insumo_id: carne, tipo: "saida", motivo: "consumo", lancamento: quantidadeDoLancamento({ insumo: { unidade_medida: "kg" }, fracao: "1" }), chave: novaChave() });
+const estDepois3 = await estornarMovimento(ger, { movimento_id: depois3.data?.movimento_id, justificativa: "lançado errado", pin: "4321" });
+conferir("depois da trava, entrada/retirada, estorno e saldo seguem funcionando pelas funções",
+  [depois3.error, estDepois3.error, await saldo(estCozinha, carne)], [null, null, saldoCarne - 3]);
+const CONF3 = SQL3.match(/\/\* ── CONFERÊNCIA \(só leitura\)[^\n]*\n([\s\S]*?)\n\s*─+ \*\//)[1];
+const conf3 = Object.fromEntries((await pg.query(CONF3)).rows.map((r) => [r.o_que, r.resultado]));
+conferir("conferência pós EST-MOV-3", [conf3["authenticated no histórico"], conf3["authenticated nos lotes"], conf3["trigger do saldo"], conf3["app executa bebida_zerar"]],
+  ["SELECT", "SELECT", "estoque_itens_saldo_travado", "false"]);
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os testes passaram.");
 process.exit(falhas ? 1 : 0);

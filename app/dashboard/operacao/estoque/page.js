@@ -5,17 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
   ChevronDown, ChevronRight, ChevronUp, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
-  Lock, MapPin, Mic, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
+  Lock, MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
   Settings2, Share2, Tablet, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import EstoqueHub from "../../../components/navigation/EstoqueHub";
+import EstoqueAbas from "../../../components/navigation/EstoqueAbas";
+import { ehFracionavel, conteudoDe } from "../../../lib/inventario-saldo.mjs";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchCategoriasCriadas, salvarCategoriasCriadas, mesclarCategorias, ehEmbutida, contarItensNaCategoria } from "../../../lib/categorias-estoque";
 import { fetchColaboradores } from "../../../lib/rh";
-import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
@@ -29,25 +30,10 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
 import TabletSetor from "../../../components/TabletSetor";
-import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, contagemBebida, dividirSaldo } from "../../../lib/estoque-bebidas";
+import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, dividirSaldo } from "../../../lib/estoque-bebidas";
 
-// Item fracionável = tem conteúdo por embalagem (>1) e permite controle
-// fracionado (garrafa/lata/pacote). Nele a entrada é por unidade comercial e a
-// baixa pode ser por unidade fechada ou por conteúdo (ml/g).
-// Unidades que se CONTAM (não se medem): garrafa, lata, caixa... O sistema já
-// entende que são peças inteiras e não pede conversão em ml/g.
-const UNIDADES_CONTAVEIS = ["un", "unidade", "garrafa", "lata", "barril", "caixa", "cx", "pacote", "fardo", "maco", "maço"];
-const ehUnidadeContavel = (u) => UNIDADES_CONTAVEIS.includes(String(u || "").toLowerCase());
-
-// Fracionável = embalagem com conteúdo que se consome em partes (ml/g).
-// Numa unidade contável isso só vale se a pessoa marcar explicitamente
-// "permite fracionado" no cadastro (ex.: garrafa de whisky servida em doses).
-const ehFracionavel = (item) => {
-  if (!item || !(Number(item.tamanho_embalagem) > 1)) return false;
-  if (ehUnidadeContavel(item.unidade_medida)) return item.permite_fracionado === true;
-  return item.permite_fracionado !== false;
-};
-const conteudoDe = (item) => Number(item?.tamanho_embalagem) || 1;
+// Item fracionável (garrafa, saco, galão): a regra mora em inventario-saldo.mjs,
+// a mesma que a contagem usa — as duas telas não podem discordar.
 const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 // Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.
 const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
@@ -337,7 +323,7 @@ function Campo({ label, children }) {
 
 function BotaoSalvar({ carregando, children = "Salvar" }) {
   return (
-    <button disabled={carregando} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-extrabold text-accent-fg hover:opacity-90 disabled:opacity-50">
+    <button disabled={carregando} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-extrabold text-white hover:opacity-90 disabled:opacity-50">
       {carregando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{children}
     </button>
   );
@@ -918,114 +904,13 @@ function EstoqueRunner() {
     };
   }, [movimentos, itensDaArea]);
 
-  // ── CONTAGEM POR VOZ ────────────────────────────────────────────────────
-  // "banana cinco quilos, tomate três caixas, arroz dez" — a pessoa dita o
-  // inventário inteiro e confere na tela antes de gravar.
-  const [vozAberta, setVozAberta] = useState(false);
-  const [vozOuvindo, setVozOuvindo] = useState(false);
-  const [vozTexto, setVozTexto] = useState("");
-  const [vozLendo, setVozLendo] = useState(false);
-  const [vozItens, setVozItens] = useState([]);      // [{ item, quantidade, nomeFalado }]
-  const [vozNaoAchados, setVozNaoAchados] = useState([]);
-  const [vozErro, setVozErro] = useState("");
-  const [vozSalvando, setVozSalvando] = useState(false);
-  const escutaRef = useRef(null);
-
-  const semAcento = (v) => {
-    const d = String(v || "").normalize("NFD");
-    let out = "";
-    for (const ch of d) { const c = ch.charCodeAt(0); if (c < 0x300 || c > 0x36f) out += ch; }
-    return out.toLowerCase().trim();
-  };
-
-  const acharItemPorNome = (nome) => {
-    const alvo = semAcento(nome);
-    if (!alvo) return null;
-    const lista = itensDaArea || [];
-    return lista.find(i => semAcento(i.nome) === alvo)
-      || lista.find(i => semAcento(i.nome).startsWith(alvo))
-      || lista.find(i => semAcento(i.nome).includes(alvo))
-      || lista.find(i => alvo.includes(semAcento(i.nome)));
-  };
-
-  const interpretarContagemFalada = async (texto) => {
-    setVozLendo(true);
-    setVozErro("");
-    try {
-      const r = await fetch("/api/ia-contagem", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto }),
-      });
-      const dados = await r.json();
-      if (!r.ok || !dados?.itens?.length) {
-        setVozErro(dados?.error || "Não consegui separar os itens. Diga assim: banana cinco quilos, tomate três caixas.");
-        return;
-      }
-      const achados = [];
-      const perdidos = [];
-      dados.itens.forEach(linha => {
-        const item = acharItemPorNome(linha.nome);
-        if (item) achados.push({ item, quantidade: Number(linha.quantidade) || 0, nomeFalado: linha.nome });
-        else perdidos.push(`${linha.nome} (${linha.quantidade})`);
-      });
-      setVozItens(a => [...a, ...achados]);
-      setVozNaoAchados(perdidos);
-      if (!achados.length) setVozErro("Nenhum produto falado existe neste estoque. Cadastre antes de contar.");
-    } catch {
-      setVozErro("Sem conexão para interpretar a contagem.");
-    } finally {
-      setVozLendo(false);
-    }
-  };
-
-  const iniciarContagemVoz = () => {
-    if (!vozDisponivel()) { setVozErro("Este navegador não reconhece voz. Use o Chrome no Android."); return; }
-    if (vozOuvindo) { escutaRef.current?.parar(); return; }
-    setVozErro(""); setVozTexto("");
-    const sessao = criarEscuta({
-      continuo: true,
-      silencioMs: 4000,
-      onParcial: t => setVozTexto(t),
-      onFinal: t => { setVozTexto(t); interpretarContagemFalada(t); },
-      onErro: e => { setVozErro(e); setVozOuvindo(false); },
-      onFim: () => setVozOuvindo(false),
-    });
-    if (!sessao) { setVozErro("Não consegui acessar o microfone."); return; }
-    escutaRef.current = sessao;
-    setVozOuvindo(true);
-    sessao.iniciar();
-  };
-
-  const gravarContagemVoz = async () => {
-    if (!vozItens.length) return;
-    if (!operacao.responsavel_id) { setVozErro("Escolha quem está fazendo a contagem."); return; }
-    const colab = colaboradores.find(c => String(c.id) === String(operacao.responsavel_id));
-    const nomeResp = colab ? `${colab.nome}${colab.cargo ? ` (${colab.cargo})` : ""}` : (nomeUsuario(sessao) || "Usuário do sistema");
-    setVozSalvando(true);
-    let ok = 0, falhas = 0;
-    for (const linha of vozItens) {
-      const r = await registrarContagemMulti({
-        unidadeId: unidadeAtiva, estoqueId, insumoId: linha.item.insumo_id,
-        saldoContado: linha.quantidade, usuarioId: colab?.id || idUsuario(sessao),
-        usuarioNome: nomeResp, observacao: "Contagem ditada por voz",
-      });
-      if (r?.error) falhas += 1; else ok += 1;
-    }
-    setVozSalvando(false);
-    setVozAberta(false);
-    setVozItens([]); setVozTexto(""); setVozNaoAchados([]);
-    avisar(`Contagem gravada: ${ok} item(ns)${falhas ? ` · ${falhas} falhou(aram)` : ""}.`, falhas ? "erro" : "sucesso");
-    await atualizarTudo();
-  };
-
   const abrirOperacao = (tipo, item = null) => {
     const frac = ehFracionavel(item);
     const div = frac ? dividirSaldo(item.quantidade_atual, conteudoDe(item), true) : null;
     const agoraStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setOperacao({
       insumo_id: item?.insumo_id || "",
-      quantidade: tipo === "contagem" && !frac ? String(item?.quantidade_atual ?? "") : "",
+      quantidade: "",
       destino_id: "",
       observacao: "",
       responsavel_id: "",
@@ -1110,15 +995,6 @@ function EstoqueRunner() {
           ? await baixaBebidaUnidades({ ...bebArgs, unidades: qtdOperacao })
           : await baixaBebidaConteudo({ ...bebArgs, quantidade: qtdOperacao });
         if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(qtdOperacao) || 0) * conteudoFrac : (Number(qtdOperacao) || 0));
-      } else if (frac && modal?.tipo === "contagem") {
-        resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
-        if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: usuarioIdFinal, usuarioNome: responsavelNome, observacao: operacao.observacao });
-      } else if (modal?.tipo === "contagem") {
-        resposta = await registrarContagemMulti({
-          unidadeId, estoqueId, insumoId: item?.insumo_id,
-          saldoContado: qtdOperacao, usuarioId: usuarioIdFinal,
-          usuarioNome: responsavelNome, observacao: operacao.observacao,
-        });
       } else if (modal?.tipo === "transferencia") {
         resposta = await transferirEntreEstoques({
           unidadeId, estoqueOrigem: estoqueAtual,
@@ -1269,6 +1145,7 @@ function EstoqueRunner() {
 
   return (
     <div className="min-h-screen bg-white pb-16 text-fg">
+      <EstoqueAbas />
       <header className="border-b border-line bg-card px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -1309,7 +1186,7 @@ function EstoqueRunner() {
                     /dashboard/operacao/estoque, que e ESTA pagina — sobra de
                     copia da tela de tablet, um botao grande que nao fazia nada. */}
                 <button onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 font-bold text-accent-fg shadow-sm hover:opacity-90"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-bold text-white shadow-sm hover:opacity-90"
                   title="Tela simples para dar entrada e baixa no dia a dia">
                   <Tablet size={18} /> Modo operação
                 </button>
@@ -1324,7 +1201,7 @@ function EstoqueRunner() {
 
       <main className="mx-auto max-w-[1500px] space-y-5 px-4 py-5 sm:px-7">
         {(erro || sucesso) && (
-          <div className={`fixed right-4 top-4 z-[150] max-w-sm rounded-2xl px-5 py-4 text-sm font-bold text-accent-fg shadow-xl ${erro ? "bg-red-600" : "bg-accent"}`}>
+          <div className={`fixed right-4 top-4 z-[150] max-w-sm rounded-2xl px-5 py-4 text-sm font-bold text-white shadow-xl ${erro ? "bg-red-600" : "bg-emerald-600"}`}>
             {erro || sucesso}
           </div>
         )}
@@ -1337,7 +1214,7 @@ function EstoqueRunner() {
               <p className="text-xs font-bold uppercase tracking-wider text-fg">Setores de Estoque</p>
               <p className="text-xs text-subtle">Selecione o estoque para visualizar os saldos</p>
             </div>
-            <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-accent hover:underline">
+            <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-emerald-700 hover:underline">
               Editar Área
             </button>
           </div>
@@ -1380,18 +1257,17 @@ function EstoqueRunner() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-extrabold text-accent-fg hover:bg-accent shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
+                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackagePlus size={16} /> Nova entrada
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white hover:bg-slate-800 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
                   <PackageMinus size={16} /> Nova baixa
                 </button>
-                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
-                  <ClipboardCheck size={16} className="text-success" /> Contagem
-                </button>
-                <button disabled={!ativo || !itens.length} onClick={() => { setVozAberta(true); setVozItens([]); setVozTexto(""); setVozErro(""); setVozNaoAchados([]); }}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-card px-3.5 text-xs font-extrabold text-accent-strong hover:bg-accent-soft disabled:opacity-40 transition-all cursor-pointer">
-                  <Mic size={16} /> Contagem por voz
+                {/* Contar estoque é só pelo inventário: ao fechar, o contado vira o
+                    saldo daqui, com histórico. A contagem item a item e a por voz
+                    mudavam o saldo por fora do inventário e os dois não batiam. */}
+                <button onClick={() => router.push("/dashboard/operacao/estoque/contagens")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 transition-all cursor-pointer">
+                  <ClipboardCheck size={16} /> Contar estoque
                 </button>
                 <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
                   <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
@@ -1399,7 +1275,7 @@ function EstoqueRunner() {
                 <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
                 </button>
-                <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-accent-soft px-3.5 text-xs font-extrabold text-accent-strong hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
+                <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
                   <FileText size={16} /> Relatórios / WhatsApp
                 </button>
               </div>
@@ -1436,11 +1312,11 @@ function EstoqueRunner() {
                   ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-accent" : "border-transparent text-fg hover:text-fg-soft"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-bold sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-fg hover:text-fg-soft"}`}>{label}</button>
                 ))}
                 {/* Entradas e saídas em forma de calendário, fora das abas. */}
                 <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
-                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-accent hover:text-emerald-800 sm:py-3.5 sm:text-sm">
+                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-bold text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
                   Calendário
                 </button>
                 {/* Recomeço de contagem. Fica discreto de propósito: é a única
@@ -1461,7 +1337,7 @@ function EstoqueRunner() {
                           <button
                             key={grupo}
                             onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-accent text-accent-fg shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-600 text-white shadow-xs" : "bg-card text-slate-900 hover:bg-slate-200"}`}
                           >
                             {grupo} ({contagemGrupos[grupo] || 0})
                           </button>
@@ -1528,7 +1404,7 @@ function EstoqueRunner() {
                     <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-card px-3 text-xs font-bold text-fg-soft">{locais.map(v => <option key={v}>{v}</option>)}</select>
                     {/* Separar a lista por onde a coisa fica (expositor, balcão, depósito...) */}
                     {(estoqueAtual?.locais_internos || []).length > 0 && (
-                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-accent-soft px-3 text-xs font-bold text-accent-strong">
+                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-bold text-emerald-800">
                         <option value="categoria">Separar por categoria</option>
                         <option value="local">Separar por lugar</option>
                       </select>
@@ -1542,10 +1418,11 @@ function EstoqueRunner() {
                     onSaida={item => abrirOperacao("saida", item)}
                     onEditar={abrirEdicaoItem}
                     onHistorico={item => setModal({ tipo: "historico_item", item })}
+                    onRealocar={realocarItem}
                   />
                 </>
               ) : (
-                <ListaMovimentos movimentos={movimentos} modo={aba} dinheiro={dinheiro} />
+                <ListaMovimentos movimentos={movimentos} modo={aba} dinheiro={dinheiro} itens={itensDaArea} />
               )}
             </section>
           </>
@@ -1553,74 +1430,9 @@ function EstoqueRunner() {
         </>
       </main>
 
-      {/* CONTAGEM POR VOZ: dita o inventário e confere antes de gravar */}
-      {vozAberta && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={() => !vozSalvando && setVozAberta(false)}>
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={e => e.stopPropagation()}>
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-black text-fg">Contagem por voz</h2>
-                <p className="text-sm text-fg">Fale item e quantidade: “banana cinco quilos, tomate três caixas”.</p>
-              </div>
-              <button onClick={() => setVozAberta(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-card text-fg"><X size={18} /></button>
-            </div>
-
-            <button onClick={iniciarContagemVoz} disabled={vozLendo || vozSalvando}
-              className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black transition-all disabled:opacity-60 ${
-                vozOuvindo ? "bg-accent text-accent-fg" : "border-2 border-emerald-200 bg-card text-emerald-700 hover:bg-emerald-50"}`}>
-              {vozOuvindo ? <><span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-card opacity-70" /><span className="relative inline-flex h-3 w-3 rounded-full bg-card" /></span> Ouvindo... toque para parar</>
-                : vozLendo ? <><Loader2 size={19} className="animate-spin" /> Entendendo...</>
-                : <><Mic size={19} /> Falar a contagem</>}
-            </button>
-
-            {vozTexto && <p className="mt-3 rounded-xl bg-white border border-line p-3 text-sm font-medium text-fg-soft">{vozTexto}</p>}
-            {vozErro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{vozErro}</p>}
-            {vozNaoAchados.length > 0 && (
-              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">
-                Não achei no estoque: {vozNaoAchados.join(", ")}. Cadastre o produto e conte de novo.
-              </p>
-            )}
-
-            {vozItens.length > 0 && (
-              <>
-                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-fg">Confira antes de gravar</p>
-                <div className="mt-2 space-y-2">
-                  {vozItens.map((linha, i) => (
-                    <div key={i} className="flex items-center gap-2 rounded-xl border border-line bg-card p-2.5">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[15px] font-black text-slate-800 truncate">{linha.item.nome}</p>
-                        <p className="text-xs font-bold text-subtle">saldo atual {fmtQtd(linha.item.quantidade_atual)} {mostrarUn(linha.item.unidade_medida)}</p>
-                      </div>
-                      <input type="number" step="0.001" min="0" value={linha.quantidade}
-                        onChange={e => setVozItens(a => a.map((x, j) => j === i ? { ...x, quantidade: Number(e.target.value) } : x))}
-                        className="h-11 w-24 rounded-xl border-2 border-emerald-200 px-2 text-center font-black text-accent outline-none focus:border-emerald-500" />
-                      <button onClick={() => setVozItens(a => a.filter((_, j) => j !== i))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line text-rose-600"><X size={16} /></button>
-                    </div>
-                  ))}
-                </div>
-
-                <label className="mt-4 block">
-                  <span className="text-xs font-bold uppercase tracking-widest text-fg">Quem está contando *</span>
-                  <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })}
-                    className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-line bg-white text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
-                    <option value="">Selecione o responsável...</option>
-                    {colaboradoresFiltrados.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
-                  </select>
-                </label>
-
-                <button onClick={gravarContagemVoz} disabled={vozSalvando || !operacao.responsavel_id}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-base font-black text-accent-fg hover:bg-accent disabled:opacity-50">
-                  {vozSalvando ? <><Loader2 size={19} className="animate-spin" /> Gravando...</> : <>Gravar contagem de {vozItens.length} item(ns)</>}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {["entrada", "saida", "contagem", "transferencia"].includes(modal?.tipo) && (
+      {["entrada", "saida", "transferencia"].includes(modal?.tipo) && (
         <Modal
-          titulo={{ entrada: "Nova entrada", saida: "Nova baixa", contagem: "Contagem de estoque", transferencia: "Transferir entre estoques" }[modal.tipo]}
+          titulo={{ entrada: "Nova entrada", saida: "Nova baixa", transferencia: "Transferir entre estoques" }[modal.tipo]}
           descricao={`Movimentação exclusiva do estoque ${estoqueAtual?.nome}.`}
           onClose={() => setModal(null)}
         >
@@ -1635,7 +1447,7 @@ function EstoqueRunner() {
             {/* Produto que ainda não existe: cadastra aqui e já entra no estoque */}
             {modal.tipo === "entrada" && !modal.item && (novoProduto ? (
               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
-                <p className="text-2xs font-bold uppercase tracking-widest text-accent">Cadastrar produto novo</p>
+                <p className="text-2xs font-bold uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
                 <p className="mt-1 text-xs font-semibold text-fg">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_90px_100px_120px]">
                   <label className="flex flex-col gap-1">
@@ -1719,7 +1531,7 @@ function EstoqueRunner() {
                         placeholder="Criar nova categoria..."
                         className="h-11 flex-1 rounded-xl border border-line px-3 font-bold text-fg-soft outline-none focus:border-emerald-600" />
                       <button type="button" onClick={() => criarCategoria(estoqueAtual)} disabled={!novaCategoria.trim()}
-                        className="h-11 shrink-0 rounded-xl border border-emerald-200 bg-accent-soft px-4 text-sm font-black text-accent-strong disabled:opacity-40">
+                        className="h-11 shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-800 disabled:opacity-40">
                         Criar
                       </button>
                     </div>
@@ -1728,14 +1540,14 @@ function EstoqueRunner() {
                 <div className="mt-3 flex gap-2">
                   <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-line bg-card px-4 text-sm font-bold text-slate-900">Cancelar</button>
                   <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
-                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-black text-accent-fg hover:bg-accent disabled:opacity-60">
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
                     {novoProduto.salvando ? "Cadastrando..." : "Cadastrar e usar"}
                   </button>
                 </div>
               </div>
             ) : (
               <button type="button" onClick={() => setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", minimo: "", maximo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false })}
-                className="text-sm font-black text-accent hover:underline">
+                className="text-sm font-black text-emerald-700 hover:underline">
                 Não está na lista? Cadastrar produto novo
               </button>
             ))}
@@ -1759,60 +1571,11 @@ function EstoqueRunner() {
                 return (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-3">
-                      {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug === "bar" || modal.item?.departamento === "bar") && modal.tipo === "contagem" ? (
-                        <div className="col-span-2 space-y-3 rounded-2xl border-2 border-sky-200 bg-sky-50/80 p-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold uppercase tracking-wider text-sky-950 flex items-center gap-1">
-                              🍺 Controle de Estoque do Bar (Estoque Frio vs Quente)
-                            </span>
-                            <span className="text-3xs font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md">Soma Automática</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs font-bold text-sky-900 mb-1">❄️ Estoque Frio (Expositor / Geladeira)</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.001"
-                                placeholder="0"
-                                value={operacao.qtd_frio ?? ""}
-                                onChange={e => {
-                                  const frio = e.target.value;
-                                  const quente = operacao.qtd_quente || "0";
-                                  const tot = (Number(frio) || 0) + (Number(quente) || 0);
-                                  setOperacao({ ...operacao, qtd_frio: frio, quantidade: String(tot) });
-                                }}
-                                className="h-12 w-full rounded-xl border-2 border-sky-300 bg-card text-center font-black text-lg text-sky-950 outline-none focus:border-sky-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-amber-900 mb-1">🔥 Estoque Quente (Depósito / Seco)</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.001"
-                                placeholder="0"
-                                value={operacao.qtd_quente ?? ""}
-                                onChange={e => {
-                                  const quente = e.target.value;
-                                  const frio = operacao.qtd_frio || "0";
-                                  const tot = (Number(frio) || 0) + (Number(quente) || 0);
-                                  setOperacao({ ...operacao, qtd_quente: quente, quantidade: String(tot) });
-                                }}
-                                className="h-12 w-full rounded-xl border-2 border-amber-300 bg-card text-center font-black text-lg text-amber-950 outline-none focus:border-amber-500"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-bold text-fg-soft bg-card p-2.5 rounded-xl border border-sky-200">
-                            <span>📦 Saldo Total do Bar (Frio + Quente):</span>
-                            <span className="text-sm font-black text-success">{fmtQtd(operacao.quantidade)} {mostrarUn(itemMod?.unidade_medida)}</span>
-                          </div>
-                        </div>
-                      ) : (
+                      {(
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
                             <label className="block text-xs font-bold text-fg-soft">
-                              {modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}
+                              Quantidade
                             </label>
                             {itemMod && (
                               <span className="text-3xs font-bold text-fg">
@@ -1880,33 +1643,7 @@ function EstoqueRunner() {
                         <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-line px-3 font-semibold text-slate-800" /></Campo>
                       )}
                     </div>
-                    {modal.tipo === "contagem" && itemMod && (() => {
-                      const custo = Number(itemMod?.preco_normalizado || itemMod?.custo_unitario || itemMod?.insumo?.preco_normalizado || 0);
-                      const saldoSistema = Number(itemMod?.quantidade_atual || 0);
-                      const saldoContado = Number(operacao.quantidade) || 0;
-                      const diff = saldoContado - saldoSistema;
-                      const valorDiff = diff * custo;
-                      const unName = mostrarUn(itemMod?.unidade_medida || itemMod?.unidade_comercial || "un");
-                      return (
-                        <div className="mt-3 rounded-2xl border border-line bg-white p-3.5 space-y-2 text-xs">
-                          <div className="flex justify-between items-center text-slate-900 font-medium">
-                            <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({dinheiro(saldoSistema * custo)})</span>
-                            <span>Custo Un.: <b>{dinheiro(custo)}/{unName}</b></span>
-                          </div>
-                          <div className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold ${
-                            diff < -0.001
-                              ? "bg-red-100 text-red-900 border border-red-200"
-                              : diff > 0.001
-                              ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
-                              : "bg-sky-100 text-sky-900 border border-sky-200"
-                          }`}>
-                            <span>Divergência: {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} {unName}</span>
-                            <span>Impacto no CMV: {diff > 0 ? `+${dinheiro(valorDiff)} (Sobra)` : diff < 0 ? `${dinheiro(valorDiff)} (Quebra/Perda)` : "100% Exato (R$ 0,00)"}</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {modal.tipo !== "contagem" && (
+                    {(
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         <span className="w-full text-2xs font-bold uppercase text-subtle tracking-wider">Atalhos Rápidos de Quantidade:</span>
                         {[1, 2, 5, 10, 20, 50].map(val => (
@@ -1939,7 +1676,7 @@ function EstoqueRunner() {
                     <Campo label={`Quantidade recebida (${unLabel}s)`}>
                       <input required min="0" step="1" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" placeholder={`Ex.: 10 ${unLabel}s`} />
                     </Campo>
-                    <p className="rounded-xl bg-accent-soft p-3 text-sm font-bold text-accent-strong">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
+                    <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
                   </div>
                 );
               }
@@ -1963,7 +1700,7 @@ function EstoqueRunner() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       {[["conteudo", `Por conteúdo (${unConteudo})`], ["unidade", `Por ${unLabel} fechada`]].map(([v, l]) => (
-                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-accent-soft text-accent-strong" : "border-line text-slate-900"}`}>{l}</button>
+                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-emerald-50 text-emerald-800" : "border-line text-slate-900"}`}>{l}</button>
                       ))}
                     </div>
                     <Campo label={operacao.modo === "unidade" ? `Quantidade (${unLabel}s)` : `Quantidade (${unConteudo})`}>
@@ -1973,21 +1710,8 @@ function EstoqueRunner() {
                   </div>
                 );
               }
-              // contagem
-              const total = (Number(operacao.fechadas) || 0) * conteudo + (Number(operacao.aberto) || 0);
-              return (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Campo label={`${unLabel.charAt(0).toUpperCase() + unLabel.slice(1)}s fechadas`}>
-                      <input required min="0" step="1" type="number" value={operacao.fechadas} onChange={e => setOperacao({ ...operacao, fechadas: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
-                    </Campo>
-                    <Campo label={`Aberto (${unConteudo})`}>
-                      <input min="0" step="0.001" type="number" value={operacao.aberto} onChange={e => setOperacao({ ...operacao, aberto: e.target.value })} className="h-12 w-full rounded-xl border border-line px-3" />
-                    </Campo>
-                  </div>
-                  <p className="rounded-xl bg-white p-3 text-sm font-semibold text-fg-soft">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
-                </div>
-              );
+              // Entrada e baixa já retornaram; contar estoque é só pelo inventário.
+              return null;
             })()}
             {modal.tipo === "transferencia" && !destinosCompativeis.length && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Não há outro estoque ativo e compatível com esta área.</p>}
             <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Confirmar</BotaoSalvar></div>
@@ -2045,7 +1769,7 @@ function EstoqueRunner() {
                   <button type="button" onClick={() => { setPinDigitado(""); }}
                     className="flex h-12 w-full items-center justify-between rounded-xl border border-line px-3 text-left">
                     <span className="font-bold text-fg-soft">{String(formItem.unidade_medida || "un").toLowerCase()}</span>
-                    <span className="text-xs font-bold text-accent">Alterar</span>
+                    <span className="text-xs font-bold text-emerald-700">Alterar</span>
                   </button>
                 )}
               </Campo>
@@ -2234,7 +1958,7 @@ function EstoqueRunner() {
               }}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-line p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 group-hover:bg-accent group-hover:text-accent-fg transition-colors">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 group-hover:bg-emerald-700 group-hover:text-white transition-colors">
                 <Printer size={24} />
               </div>
               <div>
@@ -2268,7 +1992,7 @@ function EstoqueRunner() {
               }}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg transition-colors">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white transition-colors">
                 <Share2 size={24} />
               </div>
               <div>
@@ -2331,7 +2055,7 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria", dinheiro = fmtBRL }) {
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, onRealocar, agruparPor = "categoria", dinheiro = fmtBRL }) {
   const [colapsadas, setColapsadas] = useState({});
 
   const toggleColapso = (cat) => {
@@ -2445,7 +2169,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-accent-strong bg-accent-soft px-3 py-1 rounded-lg border border-emerald-200">
+                          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
                             Subtotal: {dinheiro(subtotal)}
                           </span>
                           <span className="text-2xs font-bold text-subtle">
@@ -2486,14 +2210,14 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap font-bold text-fg-soft">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-fg">{dinheiro(item.custo_unitario || 0)}</strong></td>
-                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-accent"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-subtle mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-2xs font-bold text-subtle mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-fg-soft">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-900"}`}>{fmtData(item.validade)}</td>}
                       <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-900">{fmtData(item.ultima_movimentacao_em, true)}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-accent text-accent-fg hover:bg-accent font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
+                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
                         <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
                         <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-white text-fg-soft hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
                         <SimuladorRendimento item={item} variant="icon" />
@@ -2531,15 +2255,15 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <strong className="text-base sm:text-lg font-black text-fg leading-snug block truncate">{item.nome}</strong>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className="rounded-md bg-card px-2 py-0.5 text-xs font-bold text-fg-soft">{item.categoria || "Sem categoria"}</span>
-                        {(estoqueAtual?.locais_internos || []).length > 0 ? (
+                        {(estoque?.locais_internos || []).length > 0 && onRealocar ? (
                           // Realocar é escolher o lugar aqui mesmo: um toque e
                           // o produto muda de grupo na lista.
-                          <select value={item.local_interno || ""} onChange={e => realocarItem(item, e.target.value)}
+                          <select value={item.local_interno || ""} onChange={e => onRealocar(item, e.target.value)}
                             className="rounded-md border border-line bg-white px-2 py-0.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
                             aria-label={`Lugar de ${item.nome}`}>
                             <option value="">Sem lugar</option>
-                            {(estoqueAtual.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
-                            {item.local_interno && !(estoqueAtual.locais_internos || []).includes(item.local_interno) && (
+                            {(estoque.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
+                            {item.local_interno && !(estoque.locais_internos || []).includes(item.local_interno) && (
                               <option value={item.local_interno}>{item.local_interno}</option>
                             )}
                           </select>
@@ -2565,7 +2289,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2.5">
-                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-accent hover:bg-accent text-accent-fg font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
+                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
                       <Plus size={20} /> + ADICIONAR
                     </button>
                     <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
@@ -2591,7 +2315,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
   );
 }
 
-function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
+function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL, itens = [] }) {
   const [busca, setBusca] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [colabFiltro, setColabFiltro] = useState("todos");
@@ -2737,7 +2461,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                     </div>
                     {mov.observacao && <p className="mt-1 text-xs text-fg italic">“{mov.observacao}”</p>}
                     {ehContagem && (() => {
-                      const ins = mov.insumo || itensDaArea.find(i => (i.insumo_id === mov.insumo_id || i.id === mov.insumo_id));
+                      const ins = mov.insumo || itens.find(i => (i.insumo_id === mov.insumo_id || i.id === mov.insumo_id));
                       const custo = Number(ins?.preco_normalizado || ins?.custo_unitario || 0);
                       const anterior = Number(mov.saldo_anterior ?? 0);
                       const posterior = Number(mov.saldo_posterior ?? mov.quantidade ?? 0);
@@ -2763,7 +2487,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <strong className={`text-lg font-black ${ehEntrada ? "text-accent" : ehSaida ? "text-red-600" : "text-fg"}`}>
+                  <strong className={`text-lg font-black ${ehEntrada ? "text-emerald-700" : ehSaida ? "text-red-600" : "text-fg"}`}>
                     {ehEntrada ? "+" : ehSaida ? "−" : ""} {fmtQtd(qtd)} {unMedida}
                   </strong>
                   {mov.destino?.nome && <p className="text-xs font-bold text-fg">Destino: {mov.destino.nome}</p>}
@@ -2778,7 +2502,7 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL }) {
 }
 
 export default function EstoquePage() {
-  return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-accent" /></div>}><EstoqueUnificado /></Suspense>;
+  return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-emerald-700" /></div>}><EstoqueUnificado /></Suspense>;
 }
 
 function EstoqueUnificado() {

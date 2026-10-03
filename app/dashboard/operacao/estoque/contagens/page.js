@@ -5,15 +5,19 @@
 // grava na hora; sem internet, fica numa fila neste aparelho e é enviado
 // quando a conexão volta. FINALIZAR mostra o resumo, valoriza com custo de
 // origem conhecida e fecha: depois disso quantidade e custo ficam congelados.
-// Não mexe no saldo do Controle de Estoque.
+// Ao fechar, o saldo do estoque de cada produto contado passa a ser o contado
+// (lib/inventario-saldo.mjs): é a única forma de contar estoque no sistema.
+// Garrafa, saco e afins são contados em "fechadas + aberta".
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../../context/ERPContext";
 import {
   fetchBaseContagem, fetchContagens, fetchContagem, fetchItensContagem, abrirContagem, gravarItemContagem,
-  registrarPendencia, alterarPendencia, finalizarContagem, descartarContagem,
+  registrarPendencia, alterarPendencia, finalizarContagem, descartarContagem, aplicarInventarioAoSaldo, situacaoNoSaldo,
 } from "../../../../lib/estoque-contagens";
+import { ehFracionavel, ehUnidadeContavel, quantidadeDeEmbalagens, saldoParaCadastro, unidadeDoConteudo, conteudoDe, lerSoma } from "../../../../lib/inventario-saldo.mjs";
+import EstoqueAbas from "../../../../components/navigation/EstoqueAbas";
 import {
   TIPOS_CONTAGEM, STATUS_CONTAGEM, GRUPOS_LOCAL, grupoDoEstoque, unidadeContagem, daBase, fmtQtd, lerQuantidade,
   cicloDoMes, proximaContagem, tituloContagem, lerObs, progressoContagem, resumoFechamento, custoSugerido,
@@ -89,11 +93,12 @@ function Painel({ unidade }) {
 
   return (
     <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
+      <EstoqueAbas />
       <div className="bg-slate-900 px-4 sm:px-8 pt-6 pb-6 text-white">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Inventários / Contagens</h1>
-            <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Contagem física · base do CMV real</p>
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Contagem de estoque</h1>
+            <p className="text-slate-300 font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Inventário · ao fechar, vira o saldo do estoque · base do CMV real</p>
           </div>
           <button onClick={() => setNova({ data: hoje, tipo: sugestaoTipo, nota: "" })} className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 font-black rounded-2xl flex items-center gap-2 text-sm">
             <Plus size={18} /> Nova contagem
@@ -312,7 +317,7 @@ function TelaContagem({ id, unidade, sessao }) {
     const existente = itens.get(key);
     gravarFila(enfileirar(filaRef.current, {
       insumo_id: p.insumo_id, estoque_id: estoqueId || null, nome: p.insumo?.nome, quantidade: String(q.valor),
-      unidade_medida: p.insumo?.unidade_medida, quantidade_sistema: existente ? null : (p.quantidade_atual ?? null), item_id: existente?.id || null,
+      unidade_medida: p.insumo?.unidade_medida, quantidade_sistema: existente ? null : saldoParaCadastro(p.quantidade_atual, p.insumo), item_id: existente?.id || null,
     }));
     setEdit((s) => { const n = { ...s }; delete n[key]; return n; });
     // vai para o próximo da lista
@@ -380,7 +385,7 @@ function TelaContagem({ id, unidade, sessao }) {
             <button onClick={() => setFalhasEnvio([])} className="mt-1 font-bold underline">ok</button>
           </div>
         )}
-        {!aberta && <FechadoResumo contagem={contagem} itens={[...itens.values()]} insumoPorId={insumoPorId} estoquePorId={estoquePorId} obs={obs} unidade={unidade} />}
+        {!aberta && <FechadoResumo contagem={contagem} itens={[...itens.values()]} insumoPorId={insumoPorId} estoquePorId={estoquePorId} obs={obs} unidade={unidade} sessao={sessao} podeAplicar={podeFechar} />}
 
         {aberta && (
           <>
@@ -509,7 +514,7 @@ function TelaContagem({ id, unidade, sessao }) {
       )}
 
       {modal?.tipo === "finalizar" && (
-        <Finalizar id={id} unidade={unidade} itens={[...itens.values()]} produtos={produtos} estoques={estoques} pendencias={obs.pendencias}
+        <Finalizar id={id} unidade={unidade} contagem={contagem} sessao={sessao} itens={[...itens.values()]} produtos={produtos} estoques={estoques} pendencias={obs.pendencias}
           fila={fila} insumoPorId={insumoPorId} custosMedios={base?.custosMedios || {}} etapa={modal.etapa}
           onEtapa={(etapa) => setModal({ ...modal, etapa })} onFechar={() => setModal(null)} onFechado={async () => { setModal(null); await carregar(); }} />
       )}
@@ -517,32 +522,82 @@ function TelaContagem({ id, unidade, sessao }) {
   );
 }
 
+// Garrafa, saco, galão: quem conta vê embalagens, não ml. "3 fechadas + 200 ml"
+// vira a quantidade do cadastro na hora de gravar (inventario-saldo.mjs).
+function emEmbalagens(qtd, insumo) {
+  const c = conteudoDe(insumo);
+  // Garrafa cadastrada em "garrafa": a quantidade vem em garrafas; em ml/g/kg, em conteúdo.
+  const totalConteudo = ehUnidadeContavel(insumo?.unidade_medida) ? Number(qtd) * c : Number(qtd);
+  const fechadas = Math.floor(totalConteudo / c + 1e-9);
+  const aberto = Math.round((totalConteudo - fechadas * c) * 1000) / 1000;
+  return { fechadas, aberto };
+}
+
 function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refInput, mostrarLocal, desabilitado = false }) {
   const um = p.insumo?.unidade_medida;
   const uc = unidadeContagem(um);
+  const frac = ehFracionavel(p.insumo);
   const qtd = contado ? (pendente ? Number(contado.quantidade) : daBase(contado.quantidade_contada, um)) : null;
+  const emb = frac && qtd != null ? emEmbalagens(qtd, p.insumo) : null;
+  const unAberta = frac ? unidadeDoConteudo(p.insumo) : "";
+  const v = frac ? (valor && typeof valor === "object" ? valor : { fechadas: "", aberto: "" }) : (typeof valor === "string" ? valor : "");
+  const vazio = frac ? v.fechadas === "" && v.aberto === "" : v === "";
+  const doBar = grupoDoEstoque(p.estoque) === "bar";
+  const confirmar = () => {
+    if (!frac) {
+      if (!v.includes("+")) return onConfirmar(v);
+      const soma = lerSoma(v);
+      if (!Number.isFinite(soma)) return alert(`${p.insumo?.nome}: soma inválida. Ex.: 6+4`);
+      return onConfirmar(String(soma));
+    }
+    const q = quantidadeDeEmbalagens(v, p.insumo);
+    if (q.erro) return alert(`${p.insumo?.nome}: ${q.erro}`);
+    onConfirmar(String(q.valor));
+  };
+  const enter = (e) => { if (e.key === "Enter" && !vazio) { e.preventDefault(); confirmar(); } };
   return (
     <div className={`rounded-2xl border p-3 ${contado ? "bg-emerald-50 border-emerald-200" : "bg-white border-line"}`}>
       <div className="flex justify-between gap-2">
         <div className="min-w-0">
           <p className="font-black text-base leading-tight">{p.insumo?.nome}</p>
-          <p className="text-xs text-fg truncate">Unidade: <b>{uc.rotulo}</b>{p.insumo?.codigo_interno ? ` · cód. ${p.insumo.codigo_interno}` : ""}{p.insumo?.categoria ? ` · ${p.insumo.categoria}` : ""}{mostrarLocal && p.estoque ? ` · ${p.estoque.nome}` : ""}</p>
+          <p className="text-xs text-slate-600 truncate">
+            {frac ? <>Embalagem de <b>{fmtQtd(conteudoDe(p.insumo))} {unAberta}</b></> : <>Unidade: <b>{uc.rotulo}</b></>}
+            {p.insumo?.codigo_interno ? ` · cód. ${p.insumo.codigo_interno}` : ""}{p.insumo?.categoria ? ` · ${p.insumo.categoria}` : ""}{mostrarLocal && p.estoque ? ` · ${p.estoque.nome}` : ""}
+          </p>
         </div>
-        {contado && <span className="shrink-0 self-start text-xs font-black text-emerald-800 flex items-center gap-1"><Check size={14} />{fmtQtd(qtd)} {uc.rotulo}{pendente ? " ⏳" : ""}</span>}
+        {contado && (
+          <span className="shrink-0 self-start text-right text-xs font-black text-emerald-800">
+            <span className="flex items-center justify-end gap-1"><Check size={14} />{emb ? `${emb.fechadas} fechada(s) + ${fmtQtd(emb.aberto)} ${unAberta}` : `${fmtQtd(qtd)} ${uc.rotulo}`}{pendente ? " ⏳" : ""}</span>
+            {emb && <span className="block font-bold text-emerald-700">= {fmtQtd(qtd)} {uc.rotulo}</span>}
+          </span>
+        )}
       </div>
-      <div className="mt-2 flex gap-2">
-        <input ref={refInput} inputMode="decimal" enterKeyHint="next" disabled={desabilitado} value={valor} onChange={(e) => onValor(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && valor !== "") { e.preventDefault(); onConfirmar(valor); } }}
-          placeholder={contado ? "corrigir" : `quantidade em ${uc.rotulo}`} className="flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg disabled:opacity-50" />
-        <button disabled={desabilitado || valor === ""} onClick={() => onConfirmar(valor)} className="h-12 px-3 sm:px-4 rounded-xl bg-emerald-500 text-white font-black text-sm disabled:opacity-40 flex items-center gap-1"><Check size={16} /> Contado</button>
+      {/* Garrafa/saco: os dois campos ganham a linha inteira no celular, senão a
+          dica some cortada ao lado dos botões. */}
+      <div className="mt-2 flex flex-wrap gap-2">
+        <div className={`flex min-w-0 gap-2 ${frac ? "basis-full sm:basis-0 sm:flex-1" : "flex-1"}`}>
+          {frac ? (
+            <>
+              <input ref={refInput} inputMode="text" enterKeyHint="next" disabled={desabilitado} value={v.fechadas} onChange={(e) => onValor({ ...v, fechadas: e.target.value })} onKeyDown={enter}
+                placeholder="fechadas" aria-label="Embalagens fechadas" className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+              <input inputMode="decimal" enterKeyHint="next" disabled={desabilitado} value={v.aberto} onChange={(e) => onValor({ ...v, aberto: e.target.value })} onKeyDown={enter}
+                placeholder={`aberta (${unAberta})`} aria-label={`Quanto tem na aberta, em ${unAberta}`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+            </>
+          ) : (
+            <input ref={refInput} inputMode={doBar ? "text" : "decimal"} enterKeyHint="next" disabled={desabilitado} value={v} onChange={(e) => onValor(e.target.value)} onKeyDown={enter}
+              placeholder={contado ? "corrigir" : `quantidade (${uc.rotulo})`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+          )}
+        </div>
+        <button disabled={desabilitado || vazio} onClick={confirmar} className={`h-12 px-3 sm:px-4 rounded-xl bg-emerald-600 text-white font-black text-sm disabled:opacity-40 flex items-center justify-center gap-1 ${frac ? "flex-1 sm:flex-none" : ""}`}><Check size={16} /> Contado</button>
         <button disabled={desabilitado} onClick={() => onConfirmar("0")} className="h-12 px-3 rounded-xl bg-slate-200 font-black text-sm disabled:opacity-40">Zero</button>
       </div>
+      {doBar && !contado && <p className="mt-1.5 text-xs font-semibold text-slate-500">Expositor e depósito: conte cada um e some no campo, ex.: 6+4.</p>}
     </div>
   );
 }
 
 // ═══ FINALIZAR: resumo → valorização → fechar ═══════════════════════════════
-function Finalizar({ id, unidade, itens, produtos, estoques, pendencias, fila, insumoPorId, custosMedios, etapa, onEtapa, onFechar, onFechado }) {
+function Finalizar({ id, unidade, contagem, sessao, itens, produtos, estoques, pendencias, fila, insumoPorId, custosMedios, etapa, onEtapa, onFechar, onFechado }) {
   const resumo = resumoFechamento({ produtos, itens, pendencias, estoques });
   const [ciente, setCiente] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
@@ -571,9 +626,21 @@ function Finalizar({ id, unidade, itens, produtos, estoques, pendencias, fila, i
     if (processando) return;
     setProcessando(true);
     const r = await finalizarContagem({ contagem_id: id, itens, unidadesPorInsumo, custos, confirmado: confirmar });
+    if (r.error) { setProcessando(false); return alert(`Não foi possível fechar: ${r.error}`); }
+    // Fechou: o contado vira o saldo do estoque (só o que foi contado).
+    const a = await aplicarInventarioAoSaldo({
+      unidadeId: unidade, contagem: { ...contagem, status: "fechada" }, itens, insumoPorId, daBase,
+      usuarioId: sessao?.id || sessao?.user?.id || null, usuarioNome: nomeUsuario(sessao),
+    });
     setProcessando(false);
-    if (r.error) return alert(`Não foi possível fechar: ${r.error}`);
-    alert("Inventário FECHADO. Quantidades e custos estão congelados.");
+    const linhas = ["Inventário FECHADO. Quantidades e custos estão congelados."];
+    if (a.error) linhas.push(`O saldo do estoque não foi atualizado: ${a.error}. Abra o inventário e toque em "Aplicar ao saldo".`);
+    else {
+      linhas.push(`Saldo do estoque atualizado em ${a.data.aplicados + a.data.jaEstavam} produto(s).`);
+      if (a.data.falhas.length) linhas.push(`${a.data.falhas.length} produto(s) não foram para o saldo (${a.data.falhas.slice(0, 3).map((x) => x.nome).join(", ")}…): abra o inventário e toque em "Aplicar ao saldo".`);
+      if (a.data.semLocal.length) linhas.push(`${a.data.semLocal.length} produto(s) contados sem local ficaram fora do saldo.`);
+    }
+    alert(linhas.join("\n\n"));
     onFechado();
   };
   const BADGE = { ok: ["conferido", "bg-emerald-100 text-emerald-800"], unico: ["sem conferência", "bg-amber-100 text-amber-800"], divergente: ["cadastro divergente", "bg-red-100 text-red-800"], sem_custo: ["sem custo", "bg-stone-200 text-stone-700"] };
@@ -611,6 +678,7 @@ function Finalizar({ id, unidade, itens, produtos, estoques, pendencias, fila, i
           {etapa === 2 && (
             <>
               <p className="text-xs text-fg">O custo de cada produto é congelado no fechamento. Use o custo conferido do cadastro ou informe. Itens contados como zero não precisam de custo.</p>
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-900">Ao fechar, o saldo do estoque de cada produto contado passa a ser a quantidade contada, com histórico (saldo anterior → contado, quem e quando). Produtos não contados não mudam.</p>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => aplicar(["ok"])} className="h-10 px-3 rounded-xl bg-emerald-500 text-white text-xs font-black">Usar custos conferidos</button>
                 <button onClick={() => aplicar(["ok", "unico"])} className="h-10 px-3 rounded-xl bg-amber-100 text-amber-900 text-xs font-black">Usar também custos sem conferência</button>
@@ -663,8 +731,39 @@ function Finalizar({ id, unidade, itens, produtos, estoques, pendencias, fila, i
 }
 
 // ═══ INVENTÁRIO FECHADO: valores congelados + comparação ═══════════════════
-function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidade }) {
+function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidade, sessao, podeAplicar }) {
   const [anteriores, setAnteriores] = useState([]);
+  const [noSaldo, setNoSaldo] = useState(null);
+  const [maisRecente, setMaisRecente] = useState(null);
+  const [aplicando, setAplicando] = useState(false);
+  // itens chega como array novo a cada render: o efeito depende de chaves
+  // estáveis (id, status, quantidade) e lê o resto pela ref, senão consultaria
+  // o banco em laço.
+  const atual = useRef({ contagem, itens, insumoPorId });
+  atual.current = { contagem, itens, insumoPorId };
+  const verSaldo = useCallback(async () => {
+    const { contagem: c, itens: its, insumoPorId: ipi } = atual.current;
+    if (c.status !== "fechada") return;
+    const r = await situacaoNoSaldo({ unidadeId: unidade, contagem: c, itens: its, insumoPorId: ipi, daBase });
+    setNoSaldo(r.error ? { erro: r.error } : r.data);
+  }, [unidade]);
+  useEffect(() => { verSaldo(); }, [verSaldo, contagem.id, contagem.status, itens.length, insumoPorId.size]);
+  useEffect(() => {
+    // Só o inventário fechado mais recente pode mandar no saldo: aplicar um
+    // antigo por cima de um novo voltaria o estoque no tempo.
+    fetchContagens(unidade).then((r) => setMaisRecente((r.data || []).find((c) => c.status === "fechada") || null));
+  }, [unidade]);
+  const ehOMaisRecente = !maisRecente || maisRecente.id === contagem.id;
+  const aplicar = async () => {
+    if (aplicando || !noSaldo?.faltando) return;
+    if (!window.confirm(`O saldo de ${noSaldo.faltando} produto(s) vai passar a ser o contado em ${fmtData(contagem.data_referencia)}. Entradas e baixas lançadas depois dessa data ficam para trás. Continuar?`)) return;
+    setAplicando(true);
+    const r = await aplicarInventarioAoSaldo({ unidadeId: unidade, contagem, itens, insumoPorId, daBase, usuarioId: sessao?.id || sessao?.user?.id || null, usuarioNome: nomeUsuario(sessao) });
+    setAplicando(false);
+    if (r.error) alert(`Não foi possível aplicar: ${r.error}`);
+    else if (r.data.falhas.length) alert(`${r.data.aplicados} produto(s) aplicados; ${r.data.falhas.length} falharam (${r.data.falhas.slice(0, 3).map((x) => `${x.nome}: ${x.erro}`).join("; ")}). Tente de novo.`);
+    await verSaldo();
+  };
   const [compara, setCompara] = useState("");
   const [itensAnt, setItensAnt] = useState([]);
   useEffect(() => {
@@ -684,6 +783,24 @@ function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidad
         </div>
         {obs.nota && <p className="text-xs text-fg max-w-md">{obs.nota}</p>}
       </div>
+      {contagem.status === "fechada" && noSaldo && (
+        <div className={`rounded-2xl border p-4 text-sm ${noSaldo.erro ? "border-red-200 bg-red-50 text-red-800" : noSaldo.faltando ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+          {noSaldo.erro ? <p className="font-bold">Não consegui conferir o saldo do estoque: {noSaldo.erro}</p>
+            : noSaldo.faltando === 0 ? <p className="font-bold">Saldo do estoque: os {noSaldo.total} produto(s) contados já estão no saldo, com o histórico do ajuste.</p>
+            : (
+              <div className="space-y-2">
+                <p className="font-bold">Saldo do estoque: {noSaldo.aplicados} de {noSaldo.total} produto(s) contados estão no saldo.</p>
+                {!ehOMaisRecente ? <p className="text-xs">Há um inventário fechado mais recente ({fmtData(maisRecente?.data_referencia)}): o saldo segue o mais recente.</p>
+                  : podeAplicar ? (
+                    <button onClick={aplicar} disabled={aplicando} className="h-11 px-4 rounded-xl bg-emerald-600 text-white font-black text-sm disabled:opacity-60">
+                      {aplicando ? "Aplicando..." : `Aplicar ao saldo (${noSaldo.faltando})`}
+                    </button>
+                  ) : <p className="text-xs">Quem pode finalizar inventários aplica o contado ao saldo.</p>}
+              </div>
+            )}
+          {noSaldo.semLocal?.length > 0 && <p className="mt-1 text-xs">{noSaldo.semLocal.length} produto(s) contado(s) sem local não entram no saldo.</p>}
+        </div>
+      )}
       <div className="bg-card rounded-2xl border border-line overflow-x-auto">
         <table className="w-full text-xs">
           <thead><tr className="text-left text-fg"><th className="p-2">Produto</th><th>Local</th><th className="text-right">Quantidade</th><th className="text-right">Custo</th><th className="text-right p-2">Valor</th></tr></thead>

@@ -51,6 +51,20 @@ export async function fetchPontoHoje(unidadeId) {
   return { data: Object.values(porColab) };
 }
 
+// Ponto de UM dia da pessoa (jornada pela data de referência) — usado para
+// avisar antes de lançar folga num dia em que ela trabalhou.
+export async function fetchPontoDoDia(colaboradorId, data) {
+  if (!isSupabaseReady() || !colaboradorId || !data) return { data: null };
+  const { data: reg, error } = await supabase
+    .from("registro_ponto")
+    .select("id, hora_entrada, hora_saida")
+    .eq("colaborador_id", colaboradorId)
+    .eq("data_referencia", data)
+    .limit(1)
+    .maybeSingle();
+  return { data: reg || null, error: error?.message };
+}
+
 export async function fetchHistoricoPonto(colaboradorId) {
   if (!isSupabaseReady()) return { data: [] };
   

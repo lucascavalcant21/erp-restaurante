@@ -21,7 +21,8 @@ import {
   salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
   desligarColaborador, registrarAvisoPrevio, cancelarAvisoPrevio
 } from "../../lib/rh";
-import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
+import { domingosParaFolga, folgasDeDomingoNoMes, avisosDaFolga, dataCurta } from "../../lib/folgas-domingo.mjs";
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
 import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
@@ -116,7 +117,7 @@ export default function RHPage() {
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
   const [todasFolgasDaUnidade, setTodasFolgasDaUnidade] = useState([]);
   const [novaFolgaData, setNovaFolgaData] = useState("");
-  const [domingosProximos, setDomingosProximos] = useState([]);
+  const [mesesDeDomingo, setMesesDeDomingo] = useState([]);
 
   // Estados Modal Consumo (Vales)
   // Recibo de prestação de serviço: recebe dados do cadastro e permite completar
@@ -1948,20 +1949,9 @@ export default function RHPage() {
      setModalFolgas(true);
      setNovaFolgaData("");
      
-     // Só os PRÓXIMOS domingos (de hoje em diante, 5 semanas à frente) —
-     // domingo que já passou some da lista e não pode mais ser agendado.
-     const domingos = [];
-     const hoje = new Date();
-     for (let i = 0; i <= 35 && domingos.length < 5; i++) {
-        const d = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + i, 12, 0, 0));
-        if (d.getUTCDay() === 0) {
-           domingos.push({
-              data: d.toISOString().split('T')[0],
-              label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }),
-           });
-        }
-     }
-     setDomingosProximos(domingos);
+     // Domingos do mês passado até 5 semanas à frente: a folga do mês que já
+     // passou também pode ser lançada (pede confirmação ao gravar).
+     setMesesDeDomingo(domingosParaFolga(hojeLocal()));
 
      const res = await fetchFolgasEsporadicas(f.id);
      setFolgasEsporadicas(res.data || []);
@@ -1972,9 +1962,16 @@ export default function RHPage() {
   
   const handleAdicionarFolga = async (dataAdicionar, descricao) => {
      if(!dataAdicionar) return;
-     // Data que já passou não vira folga (o dia já aconteceu)
-     const hojeISO = new Date().toISOString().split("T")[0];
-     if (dataAdicionar < hojeISO) return alert("Essa data já passou — escolha um dia de hoje em diante.");
+     if (folgasEsporadicas.some(f => String(f.data_folga).slice(0, 10) === dataAdicionar)) return alert(`${funcParaFolgas.nome} já tem folga em ${dataCurta(dataAdicionar)}.`);
+     // Data passada vale (folga do mês que passou), mas confirma antes: diz o
+     // que muda no espelho e avisa se a pessoa bateu ponto nesse dia.
+     const hoje = hojeLocal();
+     const { data: pontoDoDia } = dataAdicionar <= hoje ? await fetchPontoDoDia(funcParaFolgas.id, dataAdicionar) : { data: null };
+     const avisos = avisosDaFolga({
+        data: dataAdicionar, hoje, nome: funcParaFolgas.nome, folgas: folgasEsporadicas, pontoDoDia,
+        horaLocal: (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
+     });
+     if (avisos.length && !confirm(`${avisos.join("\n\n")}\n\nLançar a folga de ${dataCurta(dataAdicionar)} mesmo assim?`)) return;
      const { error } = await inserirFolgaEsporadica(unidadeAtiva, funcParaFolgas.id, dataAdicionar, descricao);
      if (error) {
         alert("Erro ao salvar folga: " + error);
@@ -4093,70 +4090,92 @@ export default function RHPage() {
                <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                   {/* Coluna 1: Adicionar Folgas */}
                   <div>
-                     <div className="bg-white p-4 rounded-2xl mb-6 border border-line-soft">
+                     <div className="bg-white p-4 rounded-2xl mb-6 border border-slate-200">
                         <p className="text-xs font-bold text-fg uppercase tracking-widest mb-2">Folgas Fixas (Semanais)</p>
-                        <p className="text-sm font-medium text-fg-soft leading-snug">
+                        <p className="text-sm font-medium text-slate-800 leading-snug">
                            As folgas semanais de <b>{funcParaFolgas.nome}</b> são os dias da semana que NÃO estão marcados na ficha de contratação.
                         </p>
                      </div>
 
                      <div className="mb-6">
-                        <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-2">Folga Dominical (1 ao Mês)</label>
-                        <div className="space-y-2">
-                           {domingosProximos.map(dom => {
-                              // Verifica conflitos com outras pessoas
-                              const folgasNestaData = todasFolgasDaUnidade.filter(f => f.data_folga === dom.data && f.colaborador_id !== funcParaFolgas.id);
-                              const nomesConflito = folgasNestaData.map(f => {
-                                 const colab = funcionarios.find(func => func.id === f.colaborador_id);
-                                 return colab ? colab.nome : "Desconhecido";
-                              }).join(", ");
-                              const hasConflito = folgasNestaData.length > 0;
-                              const jaTemFolgaNesteDia = folgasEsporadicas.some(f => f.data_folga === dom.data);
-
+                        <label className="text-xs font-bold text-indigo-700 uppercase tracking-widest block mb-1">Folga de domingo (1 por mês)</label>
+                        <p className="text-xs font-medium text-slate-500 mb-3">Inclui o mês passado: dá para lançar a folga de um domingo que já foi.</p>
+                        <div className="space-y-4">
+                           {mesesDeDomingo.map(mes => {
+                              const domingosComFolga = folgasDeDomingoNoMes(folgasEsporadicas, mes.anoMes);
                               return (
-                                 <div key={dom.data} className="flex flex-col bg-card border border-line p-3 rounded-xl shadow-sm">
-                                    <div className="flex items-center justify-between mb-1">
-                                       <span className="font-bold text-fg-soft">Dom, {dom.label}</span>
-                                       <button 
-                                          onClick={() => handleAdicionarFolga(dom.data, "Domingo")} 
-                                          disabled={jaTemFolgaNesteDia}
-                                          className="bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                          {jaTemFolgaNesteDia ? "Agendado" : "Agendar"}
-                                       </button>
-                                    </div>
-                                    {hasConflito && (
-                                       <span className="text-3xs font-bold text-rose-500">
-                                          Aviso: {folgasNestaData.length} funcionário(s) de folga ({nomesConflito})
+                                 <div key={mes.anoMes}>
+                                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 mb-1.5">
+                                       <p className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                          {mes.rotulo}{mes.relativo && <span className="ml-1.5 font-bold normal-case tracking-normal text-slate-500">· {mes.relativo}</span>}
+                                       </p>
+                                       <span className={`text-2xs font-bold ${domingosComFolga.length ? "text-emerald-700" : "text-amber-700"}`}>
+                                          {domingosComFolga.length ? `folga em ${domingosComFolga.map(dataCurta).join(", ")}` : "sem folga de domingo"}
                                        </span>
-                                    )}
+                                    </div>
+                                    <div className="space-y-2">
+                                       {mes.domingos.map(dom => {
+                                          // Verifica conflitos com outras pessoas
+                                          const folgasNestaData = todasFolgasDaUnidade.filter(f => String(f.data_folga).slice(0, 10) === dom.data && f.colaborador_id !== funcParaFolgas.id);
+                                          const nomesConflito = folgasNestaData.map(f => {
+                                             const colab = funcionarios.find(func => func.id === f.colaborador_id);
+                                             return colab ? colab.nome : "Desconhecido";
+                                          }).join(", ");
+                                          const hasConflito = folgasNestaData.length > 0;
+                                          const jaTemFolgaNesteDia = folgasEsporadicas.some(f => String(f.data_folga).slice(0, 10) === dom.data);
+
+                                          return (
+                                             <div key={dom.data} className={`flex flex-col border border-slate-200 p-3 rounded-xl shadow-sm ${dom.passou ? "bg-slate-50" : "bg-white"}`}>
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                   <span className="font-bold text-slate-800">
+                                                      Dom, {dom.label}
+                                                      {dom.passou && <span className="ml-2 text-2xs font-bold uppercase tracking-wider text-slate-500">já passou</span>}
+                                                   </span>
+                                                   <button
+                                                      onClick={() => handleAdicionarFolga(dom.data, "Domingo")}
+                                                      disabled={jaTemFolgaNesteDia}
+                                                      className="shrink-0 bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                      {jaTemFolgaNesteDia ? (dom.passou ? "Lançada" : "Agendada") : (dom.passou ? "Lançar folga" : "Agendar")}
+                                                   </button>
+                                                </div>
+                                                {hasConflito && (
+                                                   <span className="text-3xs font-bold text-rose-600">
+                                                      Aviso: {folgasNestaData.length} funcionário(s) de folga ({nomesConflito})
+                                                   </span>
+                                                )}
+                                             </div>
+                                          );
+                                       })}
+                                    </div>
                                  </div>
-                              )
+                              );
                            })}
                         </div>
                      </div>
 
                      <div>
-                        <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest block mb-1">Folga Extra (Feriado ou Outro)</label>
+                        <p className="text-xs font-medium text-slate-500 mb-2">Qualquer data, inclusive uma que já passou (pede confirmação).</p>
                         <div className="flex gap-2">
-                           <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500 text-fg-soft"/>
-                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-accent text-accent-fg px-4 font-bold rounded-xl hover:bg-accent transition-colors">Adicionar</button>
+                           <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 min-w-0 p-3 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
+                           <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
                         </div>
                      </div>
                   </div>
 
                   {/* Coluna 2: Folgas Agendadas */}
-                  <div className="bg-white rounded-2xl border border-line-soft p-4">
-                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-line pb-2">Folgas Extras Agendadas</h3>
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4">
+                     <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2">Folgas lançadas</h3>
                      <div className="space-y-3">
                         {folgasEsporadicas.length === 0 ? (
-                           <p className="text-center text-sm font-bold text-subtle py-4">Nenhuma folga extra agendada.</p>
+                           <p className="text-center text-sm font-bold text-slate-500 py-4">Nenhuma folga lançada.</p>
                         ) : folgasEsporadicas.map(folga => (
-                           <div key={folga.id} className="flex items-center justify-between bg-card p-3 rounded-xl border border-line shadow-sm">
+                           <div key={folga.id} className="flex items-center justify-between bg-card p-3 rounded-xl border border-slate-200 shadow-sm">
                               <div>
-                                 <div className="font-black text-fg-soft">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
+                                 <div className="font-black text-slate-800">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
                                  <div className="text-3xs font-bold text-indigo-500 uppercase">{folga.descricao || "Folga Extra"}</div>
                               </div>
-                              <button onClick={() => handleRemoverFolga(folga.id)} className="text-subtle hover:text-rose-600 transition-colors bg-white p-2 rounded-lg"><Trash2 size={16}/></button>
+                              <button onClick={() => handleRemoverFolga(folga.id)} className="text-slate-500 hover:text-rose-600 transition-colors bg-white p-2 rounded-lg"><Trash2 size={16}/></button>
                            </div>
                         ))}
                      </div>

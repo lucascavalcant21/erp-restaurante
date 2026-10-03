@@ -5,6 +5,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchCupons, salvarCupom, excluirCupom } from "../../../lib/vendas";
 import { Plus, X, Edit, Trash2, Tag, CheckCircle, AlertCircle } from "lucide-react";
 import { fmtBRL, SkeletonList } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 export default function CuponsPage() {
   const { unidadeAtiva } = useERP();
@@ -176,7 +177,7 @@ export default function CuponsPage() {
                 </div>
                 <div>
                    <label className="block text-xs font-bold text-fg uppercase mb-2">Valor ({formTipo === 'percentual' ? '%' : 'R$'})</label>
-                   <input type="number" step="0.01" required value={formValor} onChange={e => setFormValor(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-fg-soft outline-none focus:border-[#4970AF]" placeholder="0.00" />
+                   <CampoDecimal required value={formValor} onChange={e => setFormValor(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-fg-soft outline-none focus:border-[#4970AF]" placeholder="0.00" />
                 </div>
               </div>
 

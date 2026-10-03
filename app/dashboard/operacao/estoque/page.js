@@ -31,6 +31,7 @@ import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
 import TabletSetor from "../../../components/TabletSetor";
 import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, dividirSaldo } from "../../../lib/estoque-bebidas";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 // Item fracionável (garrafa, saco, galão): a regra mora em inventario-saldo.mjs,
 // a mesma que a contagem usa — as duas telas não podem discordar.
@@ -1473,7 +1474,7 @@ function EstoqueRunner() {
                   </label>
                   <label className="flex flex-col gap-1">
                     <span className="text-3xs font-bold uppercase tracking-widest text-fg">Custo</span>
-                    <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
+                    <CampoDecimal value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
                       placeholder="0,00" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                   </label>
                 </div>
@@ -1753,7 +1754,7 @@ function EstoqueRunner() {
               <Campo label="Custo unitário">
                 <div className="relative">
                   <span className="absolute left-3.5 top-3 text-sm font-extrabold text-fg">R$</span>
-                  <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-line pl-10 pr-3 font-semibold" placeholder="0,00" />
+                  <CampoDecimal value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-line pl-10 pr-3 font-semibold" placeholder="0,00" />
                 </div>
               </Campo>
               {/* Unidade de medida: trocar não converte o saldo que já existe,

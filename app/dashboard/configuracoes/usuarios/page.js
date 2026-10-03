@@ -8,6 +8,7 @@ import {
 import PermissionBuilder from "../../../components/access-control/PermissionBuilder";
 import { accessCommand, avatarInitials, fetchAccessBootstrap, formatLastAccess } from "../../../lib/access-control";
 import { allPermissionKeys, permissionMatches } from "../../../lib/permissions-catalog.mjs";
+import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 const EMPTY = {
   nome: "", funcionario_id: "", avatar_url: "", email: "", telefone: "", login: "",
@@ -235,7 +236,7 @@ export default function UsuariosAcessosPage() {
           <div><label className={LABEL}>Funcionário vinculado</label><select value={form.funcionario_id||""} onChange={e=>{const emp=(data?.employees || []).find(x=>x.id===e.target.value);setForm({...form,funcionario_id:e.target.value,cargo:form.cargo||emp?.cargo||""})}} className={INPUT}><option value="">Nenhum</option>{(data?.employees || []).filter(e=>e.ativo!==false).map(e=><option key={e.id} value={e.id}>{e.nome}</option>)}</select></div>
           <div><label className={LABEL}>Foto ou avatar (URL)</label><input value={form.avatar_url||""} onChange={e=>setForm({...form,avatar_url:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>E-mail de contato</label><input type="email" value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})} className={INPUT}/></div>
-          <div><label className={LABEL}>Telefone</label><input value={form.telefone||""} onChange={e=>setForm({...form,telefone:e.target.value})} className={INPUT}/></div>
+          <div><label className={LABEL}>Telefone</label><input inputMode="tel" value={form.telefone||""} onChange={e=>setForm({...form,telefone:mascaraTelefone(e.target.value)})} className={INPUT}/></div>
           <div><label className={LABEL}>Login *</label><input value={form.login} onChange={e=>setForm({...form,login:e.target.value})} className={INPUT}/></div>
           {!form.id&&<><div><label className={LABEL}>Senha temporária *</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className={INPUT}/></div><div><label className={LABEL}>Confirmar senha *</label><input type="password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})} className={INPUT}/></div></>}
           <div><label className={LABEL}>Empresa</label><select value={form.scope_empresa_id||""} onChange={e=>setForm({...form,scope_empresa_id:e.target.value})} className={INPUT}>{data.companies.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>

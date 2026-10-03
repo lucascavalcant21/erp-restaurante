@@ -10,6 +10,7 @@ import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
 import { custoDeProduzirFicha as custoTotalDaFicha, porcoesParaCusto } from "../../../lib/ficha-calculos.mjs";
 import { fatorCorrecaoDoItem } from "../../../lib/custo-rendimento.mjs";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
 // como se o ingrediente fosse in natura (sem empanar). Ex.: peixe que rende 1,36x
@@ -1016,7 +1017,7 @@ export default function OrcamentoEventoPage() {
                   </div>
                   <div>
                      <label className="text-3xs font-bold text-accent uppercase tracking-widest">Cobrar do Cliente (R$ por pessoa)</label>
-                     <input type="number" min="0" step="0.01" placeholder="Ex: 70,00" value={evento.preco_pessoa || ""} onChange={e=>setEvento({...evento, preco_pessoa: e.target.value})} className="w-full p-3.5 mt-1 bg-accent-soft border-2 border-emerald-300 rounded-xl font-black text-accent-strong outline-none focus:border-emerald-500"/>
+                     <CampoDecimal placeholder="Ex: 70,00" value={evento.preco_pessoa || ""} onChange={e=>setEvento({...evento, preco_pessoa: e.target.value})} className="w-full p-3.5 mt-1 bg-accent-soft border-2 border-emerald-300 rounded-xl font-black text-accent-strong outline-none focus:border-emerald-500"/>
                      {precoPessoaDesejado > 0 && convidados > 0 && (
                         <p className="text-3xs font-bold text-fg mt-1.5 leading-relaxed">
                            Cliente paga <span className="text-slate-800">{fmtBRL(vendaEvento)}</span> no total.
@@ -1030,14 +1031,14 @@ export default function OrcamentoEventoPage() {
                   </div>
                   <div>
                      <label className="text-3xs font-bold text-fg uppercase tracking-widest">ou Valor de Venda total (R$)</label>
-                     <input type="number" min="0" step="0.01" placeholder="Ex: 5000" disabled={precoPessoaDesejado > 0 && convidados > 0} value={evento.valor_final_venda || ""} onChange={e=>setEvento({...evento, valor_final_venda: e.target.value})} className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500 disabled:opacity-40"/>
+                     <CampoDecimal placeholder="Ex: 5000" disabled={precoPessoaDesejado > 0 && convidados > 0} value={evento.valor_final_venda || ""} onChange={e=>setEvento({...evento, valor_final_venda: e.target.value})} className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500 disabled:opacity-40"/>
                      {precoPessoaDesejado > 0 && convidados > 0 && (
                         <p className="text-3xs font-medium text-subtle mt-1">Ignorado — o valor por pessoa está mandando.</p>
                      )}
                   </div>
                   <div>
                      <label className="text-3xs font-bold text-fg uppercase tracking-widest">Comissão sobre vendas (%)</label>
-                     <input type="number" min="0" step="0.1" placeholder="Ex: 10" value={evento.comissao_pct} onChange={e=>setEvento({...evento, comissao_pct: e.target.value})} className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"/>
+                     <CampoDecimal casas={1} placeholder="Ex: 10" value={evento.comissao_pct} onChange={e=>setEvento({...evento, comissao_pct: e.target.value})} className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
                      <label className="flex items-center gap-2 cursor-pointer mt-1">
@@ -1174,7 +1175,7 @@ export default function OrcamentoEventoPage() {
                                  {/* Preço por KG — input principal */}
                                  <div>
                                     <label className="text-3xs font-bold text-success uppercase tracking-widest block mb-1">R$ / kg</label>
-                                    <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoKg; return raw === undefined ? (l.precoKgCardapio ? (+l.precoKgCardapio.toFixed(2)) : "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoKg: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoKgEditado ? 'bg-amber-50 border-2 border-amber-400 text-amber-700' : 'bg-accent-soft border-2 border-emerald-300 text-accent-strong'}`}/>
+                                    <CampoDecimal placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoKg; return raw === undefined ? (l.precoKgCardapio ? (+l.precoKgCardapio.toFixed(2)) : "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoKg: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoKgEditado ? 'bg-amber-50 border-2 border-amber-400 text-amber-700' : 'bg-accent-soft border-2 border-emerald-300 text-accent-strong'}`}/>
                                     {l.precoKgEditado && (
                                        <button onClick={() => updateItem(l.produto_id, { precoKg: "" })} className="text-3xs font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
                                           voltar sugestão ({fmtBRL(l.precoKgCardapio)})
@@ -1314,13 +1315,13 @@ export default function OrcamentoEventoPage() {
                               className="flex-1 min-w-[140px] p-2.5 bg-card border border-line rounded-lg font-bold text-sm text-fg-soft outline-none focus:border-emerald-500"/>
                            <div className="text-center">
                               <label className="text-3xs font-bold text-subtle uppercase tracking-widest block">Meu custo</label>
-                              <input type="number" min="0" step="0.01" placeholder="0,00" value={x.custo}
+                              <CampoDecimal placeholder="0,00" value={x.custo}
                                  onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, custo: e.target.value } : i))}
                                  className="w-24 p-2 text-center bg-card border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                            </div>
                            <div className="text-center">
                               <label className="text-3xs font-bold text-success uppercase tracking-widest block">Cobrar do cliente</label>
-                              <input type="number" min="0" step="0.01" placeholder="0,00" value={x.valor_cobrado}
+                              <CampoDecimal placeholder="0,00" value={x.valor_cobrado}
                                  onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, valor_cobrado: e.target.value } : i))}
                                  className="w-28 p-2 text-center bg-accent-soft border-2 border-emerald-200 rounded-lg font-black text-accent-strong outline-none focus:border-emerald-500"/>
                            </div>

@@ -9,6 +9,8 @@ import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, Shopp
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
+import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
 
 export default function SaloesMesasPage() {
   const { unidadeAtiva, usuarioLogado } = useERP();
@@ -827,8 +829,8 @@ export default function SaloesMesasPage() {
              <form onSubmit={handleAbrirCaixa} className="text-left animate-in fade-in">
                 <div className="mb-4">
                    <label className="block text-xs font-bold text-fg uppercase mb-2">Fundo Inicial (Em Gaveta)</label>
-                   <input type="number" step="0.01" required min="0" value={fundoCaixa} onChange={e => setFundoCaixa(e.target.value)}
-                     className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0.00" autoFocus />
+                   <CampoDecimal required value={fundoCaixa} onChange={e => setFundoCaixa(e.target.value)}
+                     className="w-full bg-white border border-line rounded-xl px-4 py-3 font-black text-2xl text-success outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0,00" autoFocus />
                 </div>
                 <div className="flex gap-3 mt-6">
                    <button type="button" onClick={() => setModalAbrir(false)} className="flex-1 py-3 text-fg font-bold hover:bg-card rounded-xl">Voltar</button>
@@ -1300,7 +1302,7 @@ export default function SaloesMesasPage() {
                   <div className="space-y-4 mb-8">
                      <div>
                         <label className="block text-xs font-bold text-fg uppercase mb-1.5">CPF / CNPJ</label>
-                        <input type="text" value={clienteCpf} onChange={e=>setClienteCpf(e.target.value)} placeholder="000.000.000-00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
+                        <input type="text" inputMode="numeric" value={mascaraCPF(clienteCpf)} onChange={e=>setClienteCpf(somenteDigitos(e.target.value).slice(0, 11))} placeholder="000.000.000-00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
                      </div>
                      <div>
                         <label className="block text-xs font-bold text-fg uppercase mb-1.5">Nome Cliente</label>
@@ -1325,12 +1327,12 @@ export default function SaloesMesasPage() {
                         </div>
                         <div>
                            <label className="block text-3xs font-bold text-fg uppercase mb-1">Desc R$</label>
-                           <input type="number" step="0.01" value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-card" disabled={cupomAplicado} />
+                           <CampoDecimal value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0,00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-card" disabled={cupomAplicado} />
                         </div>
                      </div>
                      <div>
                         <label className="block text-3xs font-bold text-fg uppercase mb-1">Taxas Extras (Serviço, Entrega)</label>
-                        <input type="number" step="0.01" value={taxaExtra} onChange={e=>setTaxaExtra(e.target.value)} placeholder="R$ 0.00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
+                        <CampoDecimal value={taxaExtra} onChange={e=>setTaxaExtra(e.target.value)} placeholder="R$ 0,00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-fg-soft"/>
                      </div>
 
                      <div className="pt-2 border-t border-line">
@@ -1414,12 +1416,12 @@ export default function SaloesMesasPage() {
                               </select>
                               <div className="relative w-full sm:w-1/2 flex items-center">
                                  <span className="absolute left-3 text-subtle font-bold">R$</span>
-                                 <input type="number" step="0.01" value={p.valor || ''} onChange={e => {
+                                 <CampoDecimal value={p.valor || ''} onChange={e => {
                                       const n = [...pagamentos];
                                       n.find(x=>x.id===p.id).valor = e.target.value;
                                       setPagamentos(n);
                                  }} onFocus={() => { if(p.valor===0) { const n = [...pagamentos]; n.find(x=>x.id===p.id).valor = restante; setPagamentos(n); } }} 
-                                 className="w-full pl-9 pr-3 py-2 bg-card border border-slate-300 rounded-lg font-black text-slate-800 outline-none" placeholder="0.00"/>
+                                 className="w-full pl-9 pr-3 py-2 bg-card border border-slate-300 rounded-lg font-black text-slate-800 outline-none" placeholder="0,00"/>
                                  {pagamentos.length > 1 && (
                                     <button onClick={() => setPagamentos(pagamentos.filter(x=>x.id!==p.id))} className="absolute -right-8 text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
                                  )}
@@ -1540,7 +1542,7 @@ export default function SaloesMesasPage() {
                <form onSubmit={handleMovimentacao}>
                   <div className="mb-4">
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Valor (R$)</label>
-                     <input type="number" step="0.01" required value={valorMov} onChange={e => setValorMov(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold" autoFocus />
+                     <CampoDecimal required value={valorMov} onChange={e => setValorMov(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold" autoFocus />
                   </div>
                   <div className="mb-6">
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Motivo / Descrição</label>

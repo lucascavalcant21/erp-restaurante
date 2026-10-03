@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
 import { Save, AlertCircle, Building2, FileText, CheckCircle, Shield } from "lucide-react";
+import { mascaraCpfCnpj } from "../../../lib/mascaras.mjs";
 
 export default function ConfiguracoesFiscaisPage() {
   const { unidadeAtiva } = useERP();
@@ -117,7 +118,7 @@ export default function ConfiguracoesFiscaisPage() {
               <input 
                 type="text" 
                 value={dadosLoja.cnpj}
-                onChange={e => setDadosLoja({...dadosLoja, cnpj: e.target.value})}
+                onChange={e => setDadosLoja({...dadosLoja, cnpj: mascaraCpfCnpj(e.target.value)})}
                 placeholder="00.000.000/0001-00"
                 className="w-full bg-white border border-line rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
               />

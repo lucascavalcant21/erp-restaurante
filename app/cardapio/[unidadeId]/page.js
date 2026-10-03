@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { enviarPedidoOnline } from "../../lib/vendas";
 import { UtensilsCrossed, ArrowDown, ShoppingBag, X, CheckCircle, Info, Plus, Minus, Send } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
+import { mascaraTelefone } from "../../lib/mascaras.mjs";
 
 export default function CardapioPublicoPage() {
   const { unidadeId } = useParams();
@@ -260,7 +261,7 @@ export default function CardapioPublicoPage() {
 
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">WhatsApp</label>
-                        <input type="text" placeholder="(DD) 99999-9999" value={form.telefone} onChange={e=>setForm({...form, telefone: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-indigo-500"/>
+                        <input type="text" inputMode="tel" placeholder="(DD) 99999-9999" value={form.telefone} onChange={e=>setForm({...form, telefone: mascaraTelefone(e.target.value)})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-indigo-500"/>
                      </div>
 
                      {form.tipo === 'delivery' && (

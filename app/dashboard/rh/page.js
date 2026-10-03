@@ -46,6 +46,7 @@ import { comFecharImpressao } from "../../lib/imprimir";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import BancoTalentos from "./components/BancoTalentos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
+import CampoDecimal from "../../components/CampoDecimal";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -2800,7 +2801,7 @@ export default function RHPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-fg uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
-                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-black text-success outline-none focus:border-emerald-500"/>
+                        <CampoDecimal value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-black text-success outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
@@ -2834,7 +2835,7 @@ export default function RHPage() {
                            </div>
                            <div>
                               <label className="text-xs font-bold text-fg uppercase tracking-widest">Vale transporte (R$)</label>
-                              <input type="number" step="0.01" value={novoFunc.vale_transporte_val} onChange={e=>setNovoFunc({...novoFunc, vale_transporte_val: e.target.value})}
+                              <CampoDecimal value={novoFunc.vale_transporte_val} onChange={e=>setNovoFunc({...novoFunc, vale_transporte_val: e.target.value})}
                                  placeholder="0,00" className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-500" />
                            </div>
                            <div>
@@ -2857,7 +2858,7 @@ export default function RHPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
                               <label className="text-xs font-bold text-fg uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
-                              <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"/>
+                              <CampoDecimal placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-card border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-500"/>
                            </div>
                            <div>
                               <label className="text-xs font-bold text-fg uppercase tracking-widest">Pontos na taxa de serviço</label>
@@ -3175,13 +3176,13 @@ export default function RHPage() {
                         <input type="text" value={fichaDados.nome} onChange={e => setFichaDados(d => ({...d, nome: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="text-xs font-bold text-slate-900">CPF
-                        <input type="text" value={fichaDados.cpf} onChange={e => setFichaDados(d => ({...d, cpf: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" inputMode="numeric" value={fichaDados.cpf} onChange={e => setFichaDados(d => ({...d, cpf: mascaraCPF(e.target.value)}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="text-xs font-bold text-slate-900">RG
-                        <input type="text" value={fichaDados.rg} onChange={e => setFichaDados(d => ({...d, rg: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" value={fichaDados.rg} onChange={e => setFichaDados(d => ({...d, rg: mascaraRG(e.target.value)}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="text-xs font-bold text-slate-900">Telefone
-                        <input type="text" value={fichaDados.telefone} onChange={e => setFichaDados(d => ({...d, telefone: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                        <input type="text" inputMode="tel" value={fichaDados.telefone} onChange={e => setFichaDados(d => ({...d, telefone: mascaraTelefone(e.target.value)}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </label>
                      <label className="sm:col-span-2 text-xs font-bold text-slate-900">Chave PIX
                         <input type="text" value={fichaDados.chave_pix} onChange={e => setFichaDados(d => ({...d, chave_pix: e.target.value}))} className="mt-1 w-full rounded-xl border border-line bg-card p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
@@ -3247,7 +3248,7 @@ export default function RHPage() {
                {/* Valor pago -> desmembramento automático */}
                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-5">
                   <label className="text-3xs font-bold uppercase tracking-widest text-accent block mb-1">Valor pago da diária (R$)</label>
-                  <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
+                  <CampoDecimal value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
                      className="w-full p-3.5 bg-card border-2 border-emerald-300 rounded-xl font-black text-2xl text-accent outline-none focus:border-emerald-500"/>
 
                   {/* Nº de dias combinados: soma o total (ex.: terça a domingo = 6 dias) */}
@@ -3287,7 +3288,7 @@ export default function RHPage() {
                       ["vale_transporte", "Vale-transporte"], ["adicional", "Adicional / bônus"], ["descontos", "Descontos"],
                     ].map(([campo, label]) => (
                       <label key={campo} className="text-xs font-bold text-slate-900">{label} (R$)
-                        <input type="number" min="0" step="0.01" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} placeholder="0,00" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
+                        <CampoDecimal value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} placeholder="0,00" className="mt-1 w-full rounded-xl border border-line p-3 outline-none focus:border-emerald-500"/>
                       </label>
                     ))}
                     <label className="text-xs font-bold text-slate-900">Forma de pagamento
@@ -4260,7 +4261,7 @@ export default function RHPage() {
                            </div>
                            <div>
                               <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Valor Original (R$)</label>
-                              <input type="number" step="0.01" value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50.00" className="w-full p-4 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-teal-500"/>
+                              <CampoDecimal value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50,00" className="w-full p-4 bg-white border border-line rounded-xl font-black text-fg-soft outline-none focus:border-teal-500"/>
                            </div>
                         </div>
 

@@ -22,6 +22,7 @@ import { intervaloPeriodo, unidadeValida, lerValor } from "../../../../lib/conta
 import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../../../../components/ui";
 import { Plus, Search, X, Trash2, ShoppingCart, AlertTriangle, Loader2, History } from "lucide-react";
+import CampoDecimal from "../../../../components/CampoDecimal";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -265,8 +266,8 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
             : <p className="text-3xs text-fg mt-2">Sem conta: use quando já foi pago e lançado de outra forma.</p>}
           {form.gerar_conta && <span className="text-3xs text-fg">Vencimento da conta</span>}
         </div>
-        <label className="block"><span className="text-xs font-bold uppercase text-fg">Frete (R$)</span><input inputMode="decimal" value={form.valor_frete} onChange={set("valor_frete")} placeholder="0,00" className={`${campo} mt-1`} /></label>
-        <label className="block"><span className="text-xs font-bold uppercase text-fg">Desconto (R$)</span><input inputMode="decimal" value={form.valor_desconto} onChange={set("valor_desconto")} placeholder="0,00" className={`${campo} mt-1`} /></label>
+        <label className="block"><span className="text-xs font-bold uppercase text-fg">Frete (R$)</span><CampoDecimal value={form.valor_frete} onChange={set("valor_frete")} placeholder="0,00" className={`${campo} mt-1`} /></label>
+        <label className="block"><span className="text-xs font-bold uppercase text-fg">Desconto (R$)</span><CampoDecimal value={form.valor_desconto} onChange={set("valor_desconto")} placeholder="0,00" className={`${campo} mt-1`} /></label>
         <label className="block"><span className="text-xs font-bold uppercase text-fg">Observação</span><input value={form.observacao} onChange={set("observacao")} className={`${campo} mt-1`} /></label>
       </div>
 
@@ -304,7 +305,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
                     <input inputMode="decimal" value={it.conteudo} onChange={(e) => setItem(it.k, { conteudo: e.target.value })} placeholder={`${uc.rotulo} cada`} className={campo} />
                   </div>
                 ) : <input inputMode="decimal" value={it.quantidade} onChange={(e) => setItem(it.k, { quantidade: e.target.value })} placeholder={`quantidade recebida (${uc.rotulo})`} className={campo} />}
-                <input inputMode="decimal" value={it.valor_total} onChange={(e) => setItem(it.k, { valor_total: e.target.value })} placeholder="valor total cobrado (R$)" className={campo} />
+                <CampoDecimal value={it.valor_total} onChange={(e) => setItem(it.k, { valor_total: e.target.value })} placeholder="valor total cobrado (R$)" className={campo} />
                 <div className="text-xs">
                   <p>Preço: <b>{m.precoPorUnidade != null ? `${fmtCusto(m.precoPorUnidade)}/${uc.rotulo}` : "—"}</b></p>
                   <p className="text-fg">Custo médio atual: {custoAtual != null ? `${fmtCusto(custoAtual)}/${uc.rotulo}` : "sem histórico"}{varia != null && <b className={varia > 0 ? " text-red-700" : " text-emerald-700"}> ({fmtPctS(varia)})</b>}</p>
@@ -317,7 +318,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
               {it.verPedido && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 items-center">
                   <input inputMode="decimal" value={it.quantidade_pedida} onChange={(e) => setItem(it.k, { quantidade_pedida: e.target.value })} placeholder={it.emEmbalagens ? "embalagens pedidas" : `quantidade pedida (${uc.rotulo})`} className={campo} />
-                  <input inputMode="decimal" value={it.valor_pedido} onChange={(e) => setItem(it.k, { valor_pedido: e.target.value })} placeholder="valor pedido (R$)" className={campo} />
+                  <CampoDecimal value={it.valor_pedido} onChange={(e) => setItem(it.k, { valor_pedido: e.target.value })} placeholder="valor pedido (R$)" className={campo} />
                   {div && <p className="text-xs sm:col-span-2">Pedido {fmtQtd(div.pedida)} × recebido {fmtQtd(div.recebida)} {uc.rotulo}: <b className={div.diferencaQtd < 0 ? "text-red-700" : ""}>{div.diferencaQtd != null ? `${div.diferencaQtd > 0 ? "+" : ""}${fmtQtd(div.diferencaQtd)} ${uc.rotulo}` : "—"}</b>{div.variacaoPrecoPct != null && <> · preço {fmtPctS(div.variacaoPrecoPct)}</>}</p>}
                 </div>
               )}

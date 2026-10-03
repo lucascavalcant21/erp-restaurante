@@ -85,6 +85,7 @@ import {
   porcoesParaCusto,
 } from "../../../lib/ficha-calculos.mjs";
 import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rendimento.mjs";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -4021,7 +4022,7 @@ function FichasRunner() {
                         </div> : <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-transparent p-3 text-center text-xs font-bold text-fg">Nenhuma embalagem cadastrada neste setor.</p>}
                         <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-dashed border-pink-300 bg-pink-50 p-3 sm:grid-cols-[1fr_140px_auto]">
                            <input value={novaEmbalagem.nome} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, nome: e.target.value })} placeholder="Nova embalagem (ex.: Marmita 500 ml)" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
-                           <input value={novaEmbalagem.custo} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, custo: e.target.value.replace(/[^0-9.,]/g, "") })} placeholder="Custo R$" inputMode="decimal" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
+                           <CampoDecimal value={novaEmbalagem.custo} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, custo: e.target.value.replace(/[^0-9.,]/g, "") })} placeholder="Custo R$" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-card px-3 text-sm font-bold outline-none focus:border-pink-500" />
                            <button type="button" disabled={salvandoEmbalagem} onClick={cadastrarEmbalagemDaFicha} className="h-11 rounded-lg bg-pink-600 px-4 text-sm font-black text-white disabled:opacity-50">{salvandoEmbalagem ? "Salvando..." : "Cadastrar e usar"}</button>
                         </div>
                      </div>}
@@ -4075,11 +4076,11 @@ function FichasRunner() {
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Embalagem (R$ / porção)</label>
-                                    <input type="text" inputMode="decimal" placeholder="0,00" value={form.custo_embalagem} onChange={e => setForm({ ...form, custo_embalagem: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
+                                    <CampoDecimal placeholder="0,00" value={form.custo_embalagem} onChange={e => setForm({ ...form, custo_embalagem: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-transparent border border-line rounded-xl font-bold text-sm outline-none focus:border-emerald-500" />
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Preço de venda (R$)</label>
-                                    <input type="text" inputMode="decimal" placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-emerald-50/60 border-2 border-emerald-400/80 rounded-xl font-black text-emerald-900 text-sm outline-none focus:border-emerald-600" />
+                                    <CampoDecimal placeholder={sugerido > 0 ? sugerido.toFixed(2).replace(".", ",") : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2.5 mt-1 bg-emerald-50/60 border-2 border-emerald-400/80 rounded-xl font-black text-emerald-900 text-sm outline-none focus:border-emerald-600" />
                                  </div>
                               </div>
 
@@ -4091,11 +4092,11 @@ function FichasRunner() {
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Taxa Maquininha (%)</label>
-                                    <input type="text" inputMode="decimal" placeholder={String(paramsSis?.taxaMaquininha ?? 2.5)} value={form.taxa_maquininha} onChange={e => setForm({ ...form, taxa_maquininha: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
+                                    <CampoDecimal placeholder={String(paramsSis?.taxaMaquininha ?? 2.5).replace(".", ",")} value={form.taxa_maquininha} onChange={e => setForm({ ...form, taxa_maquininha: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase tracking-widest">Imposto (%)</label>
-                                    <input type="text" inputMode="decimal" placeholder={String(paramsSis?.impostoPct ?? 4.0)} value={form.imposto_pct} onChange={e => setForm({ ...form, imposto_pct: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
+                                    <CampoDecimal placeholder={String(paramsSis?.impostoPct ?? 4.0).replace(".", ",")} value={form.imposto_pct} onChange={e => setForm({ ...form, imposto_pct: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-2 mt-1 bg-card border border-line rounded-lg font-bold text-xs outline-none focus:border-emerald-500" />
                                  </div>
                               </div>
 

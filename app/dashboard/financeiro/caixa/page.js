@@ -16,6 +16,7 @@ import { TIPOS_CONTA_FIN, MEIOS_TAXA, MODALIDADES, rotuloMeio, rotuloModalidade,
 import { intervaloPeriodo, unidadeValida } from "../../../lib/contas-pagar.mjs";
 import { X, Plus } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const ROTULO_ORIGEM = { pagamento: "Pagamento", pagamento_legado: "Pagamento antigo (sem histórico)", recebimento: "Recebimento", conta_pagar: "Conta a pagar", conta_receber: "Conta a receber" };
@@ -224,7 +225,7 @@ export default function CaixaEContasPage() {
               </select></label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Saldo inicial real (R$)</span>
-                <input required inputMode="decimal" value={formConta.saldo_inicial} onChange={(e) => setFormConta({ ...formConta, saldo_inicial: e.target.value })} className={campo} placeholder="ex.: 0,00" /></label>
+                <CampoDecimal negativo required value={formConta.saldo_inicial} onChange={(e) => setFormConta({ ...formConta, saldo_inicial: e.target.value })} className={campo} placeholder="ex.: 0,00" /></label>
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Na data</span>
                 <input required type="date" max={hoje} value={formConta.saldo_inicial_em} onChange={(e) => setFormConta({ ...formConta, saldo_inicial_em: e.target.value })} className={campo} /></label>
             </div>
@@ -256,9 +257,9 @@ export default function CaixaEContasPage() {
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">até</span>
                 <input type="number" min="1" value={formTaxa.parcelas_max} onChange={(e) => setFormTaxa({ ...formTaxa, parcelas_max: e.target.value })} className={campo} /></label>
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Taxa %</span>
-                <input required inputMode="decimal" value={formTaxa.taxa_percentual} onChange={(e) => setFormTaxa({ ...formTaxa, taxa_percentual: e.target.value })} className={campo} /></label>
+                <CampoDecimal required value={formTaxa.taxa_percentual} onChange={(e) => setFormTaxa({ ...formTaxa, taxa_percentual: e.target.value })} className={campo} /></label>
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Taxa fixa (R$)</span>
-                <input inputMode="decimal" value={formTaxa.taxa_fixa} onChange={(e) => setFormTaxa({ ...formTaxa, taxa_fixa: e.target.value })} className={campo} placeholder="0,00" /></label>
+                <CampoDecimal value={formTaxa.taxa_fixa} onChange={(e) => setFormTaxa({ ...formTaxa, taxa_fixa: e.target.value })} className={campo} placeholder="0,00" /></label>
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Cai em (dias)</span>
                 <input required type="number" min="0" value={formTaxa.dias_para_recebimento} onChange={(e) => setFormTaxa({ ...formTaxa, dias_para_recebimento: e.target.value })} className={campo} /></label>
               <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Vale desde</span>

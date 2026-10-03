@@ -19,6 +19,7 @@ import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../../lib/dre-gerencial.mjs";
 import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
 import { lerValor } from "../../../lib/contas-pagar.mjs";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const hojeIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const nomeDoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return new Date(a, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); };
@@ -172,7 +173,7 @@ export default function DreGerencialPage() {
                   </p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-[repeat(2,minmax(0,14rem))]">
                     <label className="text-xs font-bold text-slate-600">Simular com faturamento (R$)
-                      <input inputMode="decimal" value={simFat} onChange={(e) => setSimFat(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00"
+                      <CampoDecimal value={simFat} onChange={(e) => setSimFat(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00"
                         className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm font-bold text-slate-900 outline-none focus:border-violet-500" />
                     </label>
                     {calc.cmv.valor === null && (

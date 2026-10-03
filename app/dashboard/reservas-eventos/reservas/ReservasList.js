@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Search, CalendarDays, Filter, MoreHorizontal, User, Clock, Phone, X, Check } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { supabase } from "../../../lib/supabase";
+import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 export default function ReservasPage() {
   const { unidadeAtiva, user } = useERP();
@@ -152,7 +153,7 @@ function NovaReservaModal({ onClose, onSuccess, unidadeAtiva, user }) {
     status: "nova"
   });
 
-  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.name === "telefone" ? mascaraTelefone(e.target.value) : e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -191,7 +192,7 @@ function NovaReservaModal({ onClose, onSuccess, unidadeAtiva, user }) {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-900 mb-1">Telefone (WhatsApp)</label>
-                <input type="text" name="telefone" value={form.telefone} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="(11) 90000-0000" />
+                <input type="text" inputMode="tel" name="telefone" value={form.telefone} onChange={handleChange} className="w-full h-11 px-4 rounded-xl border border-slate-300 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 outline-none font-medium" placeholder="(11) 90000-0000" />
               </div>
             </div>
 

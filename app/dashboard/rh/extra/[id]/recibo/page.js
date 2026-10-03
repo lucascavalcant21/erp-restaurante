@@ -14,6 +14,7 @@ import {
 import {
   RECIBO_TEXTOS_PADRAO, fetchReciboTextos, imprimirReciboExtra,
 } from "../../../../../lib/recibo-extra";
+import CampoDecimal from "../../../../../components/CampoDecimal";
 
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 const moeda = valor => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -217,7 +218,7 @@ export default function GerarPagamentoExtraPage() {
               <span className="text-2xs font-bold uppercase tracking-wider text-fg">Valor Total a Pagar *</span>
               <div className="mt-1 flex h-12 items-center rounded-xl border-2 border-emerald-400 bg-emerald-50/70 px-3">
                 <span className="mr-2 text-lg font-black text-accent shrink-0 whitespace-nowrap leading-none">R$</span>
-                <input autoFocus type="number" min="0.01" step="0.01" value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-fg outline-none" placeholder="0,00" />
+                <CampoDecimal autoFocus value={form.valor} onChange={e => set("valor", e.target.value)} className="w-full bg-transparent text-xl font-black text-fg outline-none" placeholder="0,00" />
               </div>
             </label>
             <label>
@@ -256,11 +257,11 @@ export default function GerarPagamentoExtraPage() {
             <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 grid gap-3 sm:grid-cols-2 animate-in fade-in">
               <label>
                 <span className="text-2xs font-bold text-emerald-800">Valor no PIX (R$)</span>
-                <input type="number" min="0" step="0.01" value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-card px-3 font-black text-fg outline-none text-sm" />
+                <CampoDecimal value={form.valor_pix} onChange={e => set("valor_pix", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-card px-3 font-black text-fg outline-none text-sm" />
               </label>
               <label>
                 <span className="text-2xs font-bold text-emerald-800">Valor em DINHEIRO (R$)</span>
-                <input type="number" min="0" step="0.01" value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-card px-3 font-black text-fg outline-none text-sm" />
+                <CampoDecimal value={form.valor_dinheiro} onChange={e => set("valor_dinheiro", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-emerald-300 bg-card px-3 font-black text-fg outline-none text-sm" />
               </label>
             </div>
           )}
@@ -281,15 +282,15 @@ export default function GerarPagamentoExtraPage() {
               <div className="mt-3 p-3 rounded-2xl bg-emerald-50/40 border border-emerald-200 grid gap-3 sm:grid-cols-3 animate-in fade-in">
                 <label>
                   <span className="text-2xs font-bold text-fg-soft">Taxa de serviço (10%)</span>
-                  <input type="number" min="0" step="0.01" value={form.taxa_servico} onChange={e => set("taxa_servico", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg outline-none text-sm" />
+                  <CampoDecimal value={form.taxa_servico} onChange={e => set("taxa_servico", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg outline-none text-sm" />
                 </label>
                 <label>
                   <span className="text-2xs font-bold text-fg-soft">INSS calculado (11%)</span>
-                  <input type="number" min="0" step="0.01" value={form.inss} onChange={e => set("inss", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg outline-none text-sm" />
+                  <CampoDecimal value={form.inss} onChange={e => set("inss", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg outline-none text-sm" />
                 </label>
                 <label>
                   <span className="text-2xs font-bold text-fg-soft">FGTS calculado (8%)</span>
-                  <input type="number" min="0" step="0.01" value={form.fgts} onChange={e => set("fgts", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg outline-none text-sm" />
+                  <CampoDecimal value={form.fgts} onChange={e => set("fgts", e.target.value)} placeholder="0,00" className="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-card px-3 font-bold text-fg outline-none text-sm" />
                 </label>
               </div>
             )}

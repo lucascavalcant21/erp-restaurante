@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { fmtBRL } from "./ui";
 import { hojeLocal, lerValor, novaChave } from "../lib/contas-pagar.mjs";
+import CampoDecimal from "./CampoDecimal";
 
 const FORMAS = [
   ["", "Não informada"], ["pix", "PIX"], ["dinheiro", "Dinheiro"], ["boleto", "Boleto"],
@@ -62,15 +63,15 @@ export default function ModalPagamentoConta({ conta, contasFinanceiras = [], pro
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Data do pagamento</span>
             <input required type="date" max={hoje} value={f.pago_em} onChange={set("pago_em")} className={campo} /></label>
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Valor pago (R$)</span>
-            <input required inputMode="decimal" value={f.valor_principal} onChange={set("valor_principal")} className={campo} /></label>
+            <CampoDecimal required value={f.valor_principal} onChange={set("valor_principal")} className={campo} /></label>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Juros</span>
-            <input inputMode="decimal" placeholder="0,00" value={f.juros} onChange={set("juros")} className={campo} /></label>
+            <CampoDecimal placeholder="0,00" value={f.juros} onChange={set("juros")} className={campo} /></label>
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Multa</span>
-            <input inputMode="decimal" placeholder="0,00" value={f.multa} onChange={set("multa")} className={campo} /></label>
+            <CampoDecimal placeholder="0,00" value={f.multa} onChange={set("multa")} className={campo} /></label>
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Desconto</span>
-            <input inputMode="decimal" placeholder="0,00" value={f.desconto} onChange={set("desconto")} className={campo} /></label>
+            <CampoDecimal placeholder="0,00" value={f.desconto} onChange={set("desconto")} className={campo} /></label>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <label className="block"><span className="text-xs font-bold text-fg uppercase block mb-1">Forma</span>

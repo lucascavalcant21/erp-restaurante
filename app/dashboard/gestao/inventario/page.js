@@ -7,7 +7,7 @@ import {
 import ContagemInventarioVoz from "../../../components/ContagemInventarioVoz";
 import { imprimirHtml } from "../../../lib/imprimir";
 import {
-  PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, SearchBar, Chips, SkeletonList, fmtBRL
+  PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, DecimalInput, Select, Btn, Toast, SearchBar, Chips, SkeletonList, fmtBRL
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
@@ -16,6 +16,7 @@ import {
   fetchCategoriasInventario, salvarCategoriasInventario
 } from "../../../lib/inventario";
 import { fetchColaboradores } from "../../../lib/rh";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 const TIPOS_BAIXA = [
   { id: "quebra", label: "Quebra" },
@@ -653,7 +654,7 @@ export default function InventarioPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Valor por unidade (opcional)">
-                <NumberInput value={form.valor_unitario} onChange={e => setForm({ ...form, valor_unitario: e.target.value })} placeholder="Ex: 4,50" min="0" step="0.01" />
+                <DecimalInput value={form.valor_unitario} onChange={e => setForm({ ...form, valor_unitario: e.target.value })} placeholder="Ex: 4,50" min="0" step="0.01" />
               </Field>
               <Field label="Onde fica (opcional)">
                 <TextInput value={form.localizacao} onChange={e => setForm({ ...form, localizacao: e.target.value })} placeholder="Ex: Cozinha, Bar, Depósito" />
@@ -768,7 +769,7 @@ export default function InventarioPage() {
                           <label className="text-3xs font-bold" style={{ color: "var(--dim)" }}>Qtd</label>
                           <input type="number" min="0" value={it.quantidade} onChange={e => atualizarItemIA(idx, { quantidade: e.target.value })} className="w-20 p-2 text-center rounded-lg border font-black text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
                           <label className="text-3xs font-bold ml-1" style={{ color: "var(--dim)" }}>R$/un</label>
-                          <input type="number" min="0" step="0.01" value={it.valor_unitario || ""} onChange={e => atualizarItemIA(idx, { valor_unitario: e.target.value })} placeholder="0,00" className="w-24 p-2 text-center rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--accent-strong)" }} />
+                          <CampoDecimal value={it.valor_unitario || ""} onChange={e => atualizarItemIA(idx, { valor_unitario: e.target.value })} placeholder="0,00" className="w-24 p-2 text-center rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--accent-strong)" }} />
                           <input type="text" value={it.localizacao || ""} onChange={e => atualizarItemIA(idx, { localizacao: e.target.value })} placeholder="Onde fica (opcional)" className="w-full sm:flex-1 sm:min-w-[120px] p-2 rounded-lg border font-medium text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }} />
                         </div>
                       </div>

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { Calendar, Users, MessageSquare, Phone, User, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
 import { use } from "react";
+import { mascaraTelefone } from "../../lib/mascaras.mjs";
 
 export default function OrcamentoPublicoPage({ params }) {
   // O Next 15 pode exigir que params seja desempacotado
@@ -114,7 +115,7 @@ export default function OrcamentoPublicoPage({ params }) {
                 type="tel" 
                 required
                 value={form.telefone}
-                onChange={e => setForm({...form, telefone: e.target.value})}
+                onChange={e => setForm({...form, telefone: mascaraTelefone(e.target.value)})}
                 placeholder="(00) 00000-0000"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium outline-none focus:border-emerald-600 focus:bg-white transition-colors" 
               />

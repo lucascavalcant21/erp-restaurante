@@ -8,6 +8,7 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores, inserirFornecedor, atualizarFornecedor, removerFornecedor } from "../../../lib/fornecedores";
+import { mascaraTelefone } from "../../../lib/mascaras.mjs";
 
 const SEGMENTOS = ["Carnes", "Grãos e Cereais", "Hortifruti", "Laticínios", "Bebidas", "Embalagens", "Limpeza", "Outros"];
 const PAGAMENTOS = ["À Vista", "Boleto 7d", "Boleto 15d", "Boleto 30d", "Pix"];
@@ -37,7 +38,7 @@ function FormFornecedor({ inicial, onSalvar, onCancelar }) {
       </div>
       <Field label="Contato"><TextInput value={f.contato} onChange={(e) => set("contato", e.target.value)} placeholder="Nome do vendedor" /></Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Telefone"><TextInput value={f.telefone} onChange={(e) => set("telefone", e.target.value)} placeholder="(11) 9..." /></Field>
+        <Field label="Telefone"><TextInput inputMode="tel" value={f.telefone} onChange={(e) => set("telefone", mascaraTelefone(e.target.value))} placeholder="(11) 9..." /></Field>
         <Field label="Cidade"><TextInput value={f.cidade} onChange={(e) => set("cidade", e.target.value)} placeholder="Cidade, UF" /></Field>
       </div>
       <Field label="E-mail"><TextInput value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="vendas@fornecedor.com" /></Field>

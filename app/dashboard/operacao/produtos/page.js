@@ -12,6 +12,7 @@ import { supabase } from "../../../lib/supabase";
 import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList, Package, UploadCloud } from "lucide-react";
 import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 
@@ -811,7 +812,7 @@ function CardapioRunner() {
                            </div>
                            <div className="p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-center">
                               <p className="text-3xs font-bold uppercase tracking-widest text-accent">Preço de venda (R$)</p>
-                              <input type="number" step="0.01" placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-success text-xl outline-none"/>
+                              <CampoDecimal placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-success text-xl outline-none"/>
                               <p className="text-3xs font-medium text-emerald-600/70">você define</p>
                            </div>
                            <div className={`p-4 rounded-2xl border text-center ${cmvLive !== null ? `${cores.bg} ${cores.border}` : "border-line bg-white"}`}>

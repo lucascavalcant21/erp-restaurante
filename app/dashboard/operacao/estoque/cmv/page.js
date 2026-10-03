@@ -19,6 +19,7 @@ import { intervaloPeriodo, unidadeValida, hojeLocal } from "../../../../lib/cont
 import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../../../../components/ui";
 import { X, ChevronDown } from "lucide-react";
+import CampoDecimal from "../../../../components/CampoDecimal";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const fmtHora = (d) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
@@ -430,9 +431,9 @@ function Faturamento({ ap, dados, unidade, pode, onSalvo }) {
       {pode && (
         <form onSubmit={salvar} className="grid grid-cols-2 sm:grid-cols-6 gap-2 mt-3 items-end text-xs">
           <label>Data<input type="date" required max={hojeLocal()} value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
-          <label>Vendas brutas<input required inputMode="decimal" value={form.vendas_brutas} onChange={(e) => setForm({ ...form, vendas_brutas: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
-          <label>Cancelamentos<input inputMode="decimal" value={form.cancelamentos} onChange={(e) => setForm({ ...form, cancelamentos: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
-          <label>Descontos<input inputMode="decimal" value={form.descontos} onChange={(e) => setForm({ ...form, descontos: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
+          <label>Vendas brutas<CampoDecimal required value={form.vendas_brutas} onChange={(e) => setForm({ ...form, vendas_brutas: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
+          <label>Cancelamentos<CampoDecimal value={form.cancelamentos} onChange={(e) => setForm({ ...form, cancelamentos: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
+          <label>Descontos<CampoDecimal value={form.descontos} onChange={(e) => setForm({ ...form, descontos: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
           <label className="sm:col-span-1 col-span-2">Fonte<input required value={form.fonte} onChange={(e) => setForm({ ...form, fonte: e.target.value })} className="w-full h-10 px-2 rounded-lg border border-line bg-white font-bold" /></label>
           <button disabled={salvando} className="h-10 rounded-lg bg-emerald-500 text-white font-black disabled:opacity-50">{salvando ? "Salvando..." : "Salvar dia"}</button>
         </form>

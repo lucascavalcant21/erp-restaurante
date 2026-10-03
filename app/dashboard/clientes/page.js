@@ -12,6 +12,7 @@ import { useERP } from "../../context/ERPContext";
 import { 
   fetchClientes, fetchAvaliacoes, fetchCampanhas, inserirCampanha 
 } from "../../lib/clientes";
+import CampoDecimal from "../../components/CampoDecimal";
 
 export default function CRMPage() {
   const router = useRouter();
@@ -446,7 +447,7 @@ export default function CRMPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-fg uppercase tracking-widest">Desconto (R$ ou %)</label>
-                        <input type="number" value={novaCampanha.desconto} onChange={e=>setNovaCampanha({...novaCampanha, desconto: e.target.value})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="10"/>
+                        <CampoDecimal value={novaCampanha.desconto} onChange={e=>setNovaCampanha({...novaCampanha, desconto: e.target.value})} className="w-full p-4 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="10"/>
                      </div>
                   </div>
                </div>

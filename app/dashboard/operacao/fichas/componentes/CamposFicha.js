@@ -22,6 +22,7 @@ import {
   subUnidade, buscarOpcoes, custoDosItens, precoSuspeito, rendimentoSomado, rendimentoEhAutomatizavel,
 } from "../../../../lib/ficha-editor.mjs";
 import { parseNumero, calculateFichaFinanceiro, porcoesParaCusto } from "../../../../lib/ficha-calculos.mjs";
+import CampoDecimal from "../../../../components/CampoDecimal";
 
 const numero = (n, casas = 3) => (Number(n) || 0).toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
@@ -409,7 +410,7 @@ export function CampoPesoFinal({ form, onChange }) {
     <div>
       <Rotulo htmlFor="ficha-peso-final">{form.departamento === "bar" ? "Volume final" : "Peso final"}</Rotulo>
       <div className="flex items-center gap-2">
-        <input id="ficha-peso-final" type="number" inputMode="decimal" min="0" step="any" value={valor} placeholder="Opcional"
+        <CampoDecimal casas={3} id="ficha-peso-final" value={valor} placeholder="Opcional"
           onChange={e => onChange({ peso_final_g: e.target.value === "" ? "" : String(parseNumero(e.target.value) * 1000) })} className="erp-input" />
         <span className="w-10 text-center text-sm font-black text-fg">{unidade}</span>
       </div>
@@ -600,10 +601,8 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         </div>
         <div>
           <label htmlFor="ficha-custo-embalagem" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Embalagem (R$ / porção)</label>
-          <input
+          <CampoDecimal
             id="ficha-custo-embalagem"
-            type="text"
-            inputMode="decimal"
             placeholder="0,00"
             value={form.custo_embalagem || ""}
             onChange={e => mudar({ custo_embalagem: e.target.value.replace(/[^0-9.,]/g, "") })}
@@ -612,11 +611,9 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         </div>
         <div>
           <label htmlFor="ficha-preco-venda" className="mb-1 block text-xs font-bold uppercase tracking-wider text-fg">Preço de Venda (R$)</label>
-          <input
+          <CampoDecimal
             id="ficha-preco-venda"
-            type="text"
-            inputMode="decimal"
-            placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"}
+            placeholder={sugerido > 0 ? sugerido.toFixed(2).replace(".", ",") : "0,00"}
             value={form.preco_venda || ""}
             onChange={e => mudar({ preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })}
             className="erp-input text-sm font-black border-2 border-emerald-400 bg-emerald-50/50 text-emerald-900"
@@ -639,11 +636,9 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         </div>
         <div>
           <label htmlFor="ficha-taxa-maquininha" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-fg">Taxa Maquininha (%)</label>
-          <input
+          <CampoDecimal
             id="ficha-taxa-maquininha"
-            type="text"
-            inputMode="decimal"
-            placeholder={taxaHerdada.toFixed(2)}
+            placeholder={taxaHerdada.toFixed(2).replace(".", ",")}
             value={form.taxa_maquininha || ""}
             onChange={e => mudar({ taxa_maquininha: e.target.value.replace(/[^0-9.,]/g, "") })}
             className="erp-input text-xs font-bold"
@@ -651,11 +646,9 @@ export function PainelCustosPrecificacao({ form, mudar, itens, podeVerCustos = t
         </div>
         <div>
           <label htmlFor="ficha-imposto-pct" className="mb-1 block text-2xs font-bold uppercase tracking-wider text-fg">Imposto (%)</label>
-          <input
+          <CampoDecimal
             id="ficha-imposto-pct"
-            type="text"
-            inputMode="decimal"
-            placeholder={impostoHerdado.toFixed(2)}
+            placeholder={impostoHerdado.toFixed(2).replace(".", ",")}
             value={form.imposto_pct || ""}
             onChange={e => mudar({ imposto_pct: e.target.value.replace(/[^0-9.,]/g, "") })}
             className="erp-input text-xs font-bold"

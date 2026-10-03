@@ -14,6 +14,7 @@ import {
   Trash2, Edit2, AlertTriangle, ArrowLeft, Save, Box, Search
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import CampoDecimal from "../../../components/CampoDecimal";
 
 function EmbalagensContent() {
   const router = useRouter();
@@ -366,7 +367,7 @@ function EmbalagensContent() {
                   </div>
                   <div>
                      <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-2">Custo Unitário (R$)</label>
-                     <input type="number" step="0.01" value={formEmbalagem.preco_unitario} onChange={e=>setFormEmbalagem({...formEmbalagem, preco_unitario: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
+                     <CampoDecimal value={formEmbalagem.preco_unitario} onChange={e=>setFormEmbalagem({...formEmbalagem, preco_unitario: e.target.value})} className="w-full p-4 bg-white border border-line rounded-2xl font-bold text-slate-800 outline-none focus:border-teal-500"/>
                   </div>
                   
                   <div className="flex gap-4 mt-8">

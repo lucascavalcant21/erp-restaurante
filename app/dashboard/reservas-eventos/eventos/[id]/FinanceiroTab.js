@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "../../../../lib/supabase";
 import { Plus, Trash2, Wallet, DollarSign, Loader2, CheckCircle2 } from "lucide-react";
 import { percentualDe, fmtPct } from "../../../../lib/valor-percentual.mjs";
+import CampoDecimal from "../../../../components/CampoDecimal";
 
 export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
   const [salvando, setSalvando] = useState(false);
@@ -119,7 +120,7 @@ export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-800">R$</span>
-                <input type="number" value={custoAluguel} onChange={e => setCustoAluguel(Number(e.target.value))} className="w-24 bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-right outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
+                <CampoDecimal value={custoAluguel} onChange={e => setCustoAluguel(Number(e.target.value))} className="w-24 bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-right outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
               </div>
             </div>
 
@@ -129,7 +130,7 @@ export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
                 <span className="text-sm text-slate-900">Deduzido do valor total bruto</span>
               </div>
               <div className="flex items-center gap-2">
-                <input type="number" value={taxaImpostoPct} onChange={e => setTaxaImpostoPct(Number(e.target.value))} className="w-20 bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-right outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
+                <CampoDecimal value={taxaImpostoPct} onChange={e => setTaxaImpostoPct(Number(e.target.value))} className="w-20 bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-right outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
                 <span className="font-bold text-slate-800">%</span>
               </div>
             </div>
@@ -140,7 +141,7 @@ export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
                 <span className="text-sm text-slate-900">Custo financeiro de recebimento</span>
               </div>
               <div className="flex items-center gap-2">
-                <input type="number" value={taxaMaquininhaPct} onChange={e => setTaxaMaquininhaPct(Number(e.target.value))} className="w-20 bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-right outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
+                <CampoDecimal value={taxaMaquininhaPct} onChange={e => setTaxaMaquininhaPct(Number(e.target.value))} className="w-20 bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-right outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
                 <span className="font-bold text-slate-800">%</span>
               </div>
             </div>
@@ -152,7 +153,7 @@ export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-emerald-700">R$</span>
-                <input type="number" value={valorCobrado} onChange={e => setValorCobrado(Number(e.target.value))} className="w-32 bg-white border-2 border-emerald-300 rounded-xl px-3 py-2 font-black text-right text-emerald-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
+                <CampoDecimal value={valorCobrado} onChange={e => setValorCobrado(Number(e.target.value))} className="w-32 bg-white border-2 border-emerald-300 rounded-xl px-3 py-2 font-black text-right text-emerald-900 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600" />
               </div>
             </div>
           </div>
@@ -166,7 +167,7 @@ export default function FinanceiroTab({ evento, resumo = null, onUpdate }) {
           </header>
 
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <input type="number" placeholder="Valor (R$)" value={novoPagamento.valor} onChange={e => setNovoPagamento({...novoPagamento, valor: e.target.value})} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-bold outline-none focus:border-blue-600 focus:bg-white" />
+            <CampoDecimal placeholder="Valor (R$)" value={novoPagamento.valor} onChange={e => setNovoPagamento({...novoPagamento, valor: e.target.value})} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-bold outline-none focus:border-blue-600 focus:bg-white" />
             <select value={novoPagamento.metodo} onChange={e => setNovoPagamento({...novoPagamento, metodo: e.target.value})} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-bold outline-none focus:border-blue-600 focus:bg-white">
               <option value="PIX">PIX</option>
               <option value="Cartão Crédito">Cartão Crédito</option>

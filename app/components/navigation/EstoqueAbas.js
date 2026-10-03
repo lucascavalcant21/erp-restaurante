@@ -7,10 +7,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, ClipboardCheck } from "lucide-react";
+import { Boxes, ClipboardCheck, ArrowLeftRight } from "lucide-react";
 
 const ABAS = [
   { href: "/dashboard/operacao/estoque?gestao=1", rotulo: "Saldos e movimentos", icone: Boxes, ativa: (p) => p === "/dashboard/operacao/estoque" },
+  // Entrada/retirada pelo banco (EST-MOV): motivo, sem editar nem apagar; correção por estorno.
+  { href: "/dashboard/operacao/estoque/movimentar", rotulo: "Entrada e retirada", icone: ArrowLeftRight, ativa: (p) => p.startsWith("/dashboard/operacao/estoque/movimentar") },
   { href: "/dashboard/operacao/estoque/contagens", rotulo: "Contagem (inventário)", icone: ClipboardCheck, ativa: (p) => p.startsWith("/dashboard/operacao/estoque/contagens") },
 ];
 

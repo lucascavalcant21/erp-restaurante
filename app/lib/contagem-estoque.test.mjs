@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   unidadeContagem, paraBase, daBase, lerQuantidade, cicloDoMes, proximaContagem, grupoDoEstoque, tituloContagem,
   lerObs, escreverObs, progressoContagem, resumoFechamento, custoSugerido, enfileirar, compararContagens, valorContagem,
+  statusItemContagem, impactoDivergencias, MSG_JA_CONTADO,
   criarContagem, salvarItemContagem, adicionarPendencia, marcarPendencia, fecharContagem, cancelarContagem,
 } from "./contagem-estoque.mjs";
 import { criarBancoF21, clienteSupabase } from "./teste-banco-f21.mjs";
@@ -64,6 +65,21 @@ conferir("comparação: diferença física (não é consumo)",
   compararContagens([{ insumo_id: "p", estoque_id: "E1", quantidade_contada: 10000, unidade_base: "g" }], [{ insumo_id: "p", estoque_id: "E1", quantidade_contada: 6500, unidade_base: "g" }]).map((l) => [l.anterior, l.atual, l.diferenca]),
   [[10000, 6500, -3500]]);
 
+conferir("status do produto: não contado / contado / divergência só para quem pode ver / revisão (corrigido)",
+  [statusItemContagem(null), statusItemContagem({ quantidade_contada: 8000, quantidade_sistema: 10000 }),
+   statusItemContagem({ quantidade_contada: 8000, quantidade_sistema: 10000 }, { mostrarDivergencia: true }),
+   statusItemContagem({ quantidade_contada: 10000, quantidade_sistema: 10000 }, { mostrarDivergencia: true }),
+   statusItemContagem({ quantidade_contada: 1, observacao: "Corrigido por Gil: 2 → 1 kg (balança)" }, { mostrarDivergencia: true })],
+  ["nao_contado", "contado", "divergencia", "contado", "revisao"]);
+const imp = impactoDivergencias([
+  { id: "a", quantidade_contada: 8000, quantidade_sistema: 10000, custo_unitario: 0.04 },   // −2 kg × R$ 40/kg
+  { id: "b", quantidade_contada: 1500, quantidade_sistema: 1000, custo_unitario: 0.009 },   // +500 ml × R$ 9/L
+  { id: "c", quantidade_contada: 5, quantidade_sistema: 5, custo_unitario: 5 },
+  { id: "d", quantidade_contada: 3, quantidade_sistema: null, custo_unitario: 5 },
+]);
+conferir("impacto em R$: perda −80, sobra +4,50, líquido −75,50; sem saldo do sistema fica à parte",
+  [imp.perdas, imp.sobras, imp.liquido, imp.comDiferenca, imp.semReferencia], [-80, 4.5, -75.5, 2, 1]);
+
 // ── 2. banco simulado (SQL real da F2.1, papel authenticated, RLS) ──────────
 const pg = await criarBancoF21(raiz, `
   alter table public.insumos add column unidade_medida text, add column custo_unitario numeric, add column custo_compra numeric,
@@ -99,11 +115,15 @@ const s1 = await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_
 conferir("contar Picanha 8,350 kg → grava 8350 g (base), saldo do sistema 10 kg guardado como 10000 g",
   [s1.error, (await itens(C)).map((i) => [i.q, i.unidade_base, i.s])], [null, [[8350, "g", 10000]]]);
 const s1b = await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: picanha, estoque_id: estCozinha, quantidade: "8,400", unidade_medida: "kg", quantidade_sistema: 99, item_id: s1.data.id });
-conferir("corrigir para 8,400 kg → mesma linha; saldo do sistema original preservado", [s1b.error, (await itens(C)).map((i) => [i.q, i.s])], [null, [[8400, 10000]]]);
-const s1c = await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: picanha, estoque_id: estCozinha, quantidade: "8,350", unidade_medida: "kg" });
-conferir("outro celular grava o mesmo produto/local sem saber da linha → corrige a mesma (sem duplicar)",
-  [s1c.error, s1c.data?.novo, (await itens(C)).length, (await itens(C))[0].q], [null, false, 1, 8350]);
-await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: oleo, estoque_id: estCozinha, quantidade: "14", unidade_medida: "L" });
+conferir("produto já contado: funcionário NÃO corrige (só administrador, com PIN); nada muda",
+  [s1b.error, s1b.jaContado, (await itens(C)).map((i) => [i.q, i.s])], [MSG_JA_CONTADO, true, [[8350, 10000]]]);
+const s1c = await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: picanha, estoque_id: estCozinha, quantidade: "8,400", unidade_medida: "kg" });
+conferir("outro celular grava OUTRO número no mesmo produto/local → recusado, não substitui",
+  [s1c.jaContado, (await itens(C)).length, (await itens(C))[0].q], [true, 1, 8350]);
+const s1d = await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: picanha, estoque_id: estCozinha, quantidade: "8,350", unidade_medida: "kg" });
+conferir("reenvio do MESMO número (rede caiu depois de gravar) → ok, sem duplicar",
+  [s1d.error, s1d.data?.novo, (await itens(C)).length], [null, false, 1]);
+await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: oleo, estoque_id: estCozinha, quantidade: "14", unidade_medida: "L", detalhe: "15 garrafa(s) de 0,9 L + 500 ml = 14 L" });
 await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: cerveja, estoque_id: estBar, quantidade: "32", unidade_medida: "un" });
 const z = await salvarItemContagem(db, { contagem_id: C, unidade_id: U, insumo_id: cerveja, estoque_id: estCozinha, quantidade: "0", unidade_medida: "un" });
 conferir("ZERO grava 0 de verdade (linha existe); o mesmo produto em outro local é outra linha",
@@ -140,6 +160,7 @@ const fechados = await itens(C);
 conferir("FECHAR: status fechado; custo congelado por unidade base; valor = quantidade × custo",
   [fx.error, fx.data?.status, fechados.map((i) => [i.c, i.v])], [null, "fechada", [[0.04667, 389.69], [0.009, 126], [5, 160], [0, 0]]]);
 conferir("item zerado fecha sem custo informado (valor 0, origem registrada)", fechados[3].observacao, "custo: quantidade zero: custo não se aplica");
+conferir("o que foi digitado (embalagens + fração) continua na linha depois de fechar", fechados[1].observacao, "15 garrafa(s) de 0,9 L + 500 ml = 14 L · custo: custo unitário do cadastro");
 const fechadaCab = (await pg.query(`select fechada_em is not null f, fechada_por from public.estoque_contagens where id = $1`, [C])).rows[0];
 conferir("fechamento registra quando e quem", [fechadaCab.f, fechadaCab.fechada_por], [true, "33333333-3333-3333-3333-333333333333"]);
 conferir("valor do inventário fechado = 389,69 + 126 + 160 = 675,69", valorContagem(fechados.map((i) => ({ custo_unitario: i.c, valor_total: i.v }))), { valor: 675.69, semCusto: 0 });

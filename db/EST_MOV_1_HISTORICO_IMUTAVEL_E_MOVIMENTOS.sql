@@ -242,6 +242,12 @@ returns numeric language sql immutable set search_path = public as $$
   select case lower(btrim(coalesce(p_unidade_medida, ''))) when 'kg' then 1000 when 'l' then 1000 else 1 end::numeric
 $$;
 
+-- Quantidade para mensagens: 3 casas no máximo, sem zeros à direita, vírgula decimal (6,5 · 6 · 0,35).
+create or replace function public.estoque_fmt_qtd(p_qtd numeric)
+returns text language sql immutable set search_path = public as $$
+  select replace(trim_scale(round(p_qtd, 3))::text, '.', ',')
+$$;
+
 create or replace function public.estoque_unidade_base(p_unidade_medida text)
 returns text language sql immutable set search_path = public as $$
   select case lower(btrim(coalesce(p_unidade_medida, ''))) when 'kg' then 'g' when 'g' then 'g'
@@ -340,6 +346,26 @@ returns boolean language sql stable set search_path = public as $$
       from public.insumos i where i.id = p_insumo_id), false)
 $$;
 
+-- Em que unidade o estoque guarda o saldo. Igual a inventario-saldo.mjs do app:
+-- garrafa marcada como fracionada e cadastrada numa unidade que se CONTA
+-- (garrafa, lata, un...) guarda o saldo em conteúdo (ml); o resto, na unidade
+-- do cadastro. fator = quanto 1 unidade do cadastro vale no saldo.
+create or replace function public._estoque_fator_saldo(p_insumo_id uuid)
+returns numeric language sql stable set search_path = public as $$
+  select coalesce((
+    select case when public._estoque_fracionavel(i.id)
+                 and lower(coalesce(i.unidade_medida, '')) in ('un', 'unidade', 'garrafa', 'lata', 'barril', 'caixa', 'cx', 'pacote', 'fardo', 'maco', 'maço')
+                then greatest(i.tamanho_embalagem, 0.000001) else 1 end
+      from public.insumos i where i.id = p_insumo_id), 1)::numeric
+$$;
+
+create or replace function public._estoque_unidade_saldo(p_insumo_id uuid)
+returns text language sql stable set search_path = public as $$
+  select case when public._estoque_fator_saldo(i.id) <> 1 then coalesce(nullif(btrim(i.unidade_conteudo), ''), 'ml')
+              else i.unidade_medida end
+    from public.insumos i where i.id = p_insumo_id
+$$;
+
 -- Núcleo: trava o item, aplica nos lotes com o FEFO que já existe no banco,
 -- recalcula o saldo e devolve antes/depois e os lotes afetados. Não grava o
 -- histórico (quem chama grava, com todos os campos).
@@ -369,7 +395,7 @@ begin
   select * into v_item from public.estoque_itens
    where estoque_id = p_estoque_id and insumo_id = p_insumo_id for update;
   if v_item.id is null then raise exception 'Este produto não está neste estoque.'; end if;
-  select unidade_medida into v_unidade_medida from public.insumos where id = p_insumo_id;
+  v_unidade_medida := public._estoque_unidade_saldo(p_insumo_id);
 
   o_saldo_anterior := coalesce(v_item.quantidade_atual, 0);
   if o_saldo_anterior < 0 then
@@ -386,8 +412,8 @@ begin
 
   if p_tipo = 'saida' and o_saldo_anterior + 0.0005 < p_quantidade then
     raise exception 'Saldo insuficiente: há % % neste estoque e a retirada é de % %.',
-      trim(to_char(o_saldo_anterior, 'FM999999990.999')), coalesce(v_unidade_medida, ''),
-      trim(to_char(p_quantidade, 'FM999999990.999')), coalesce(v_unidade_medida, '');
+      public.estoque_fmt_qtd(o_saldo_anterior), coalesce(v_unidade_medida, ''),
+      public.estoque_fmt_qtd(p_quantidade), coalesce(v_unidade_medida, '');
   end if;
 
   v_antes := public._estoque_lotes_mapa(p_estoque_id, p_insumo_id);
@@ -459,7 +485,8 @@ end $$;
 /* ── 5. FUNÇÕES PARA O APP ─────────────────────────────────────────────────── */
 
 -- Entrada ou retirada. Funcionário com permissão de estoque; "ajuste_autorizado"
--- só administrador autorizado com PIN. Devolve {ok, movimento_id, saldo_*}.
+-- só administrador autorizado com PIN. p_quantidade na unidade do SALDO (a do
+-- cadastro; garrafa fracionada: o conteúdo). Devolve {ok, movimento_id, saldo_*}.
 create or replace function public.estoque_movimentar(
   p_unidade_id text, p_estoque_id uuid, p_insumo_id uuid, p_tipo text, p_motivo text, p_quantidade numeric,
   p_validade date default null, p_quantidade_informada numeric default null, p_unidade_informada text default null,
@@ -531,7 +558,10 @@ begin
     select * into v_res from public._estoque_aplicar(p_unidade_id, p_estoque_id, p_insumo_id, p_tipo, v_q,
                                                      p_validade, null, (p_detalhe ->> 'embalagens')::numeric);
     select custo_medio_base into v_custo from public.estoque_custos where unidade_id = p_unidade_id and insumo_id = p_insumo_id;
-    if v_custo is not null then v_vu := round(v_custo * public.estoque_fator_base(v_ins.unidade_medida), 6); end if;
+    -- custo médio é por unidade base do cadastro (g/ml/un); o movimento é na unidade do saldo
+    if v_custo is not null then
+      v_vu := round(v_custo * public.estoque_fator_base(v_ins.unidade_medida) / public._estoque_fator_saldo(p_insumo_id), 6);
+    end if;
 
     insert into public.estoque_movimentacoes_multi (
       unidade_id, estoque_id, insumo_id, tipo, quantidade, saldo_anterior, saldo_posterior,
@@ -547,7 +577,7 @@ begin
       case when p_motivo = 'ajuste_autorizado' then v_user.id end,
       case when p_motivo = 'ajuste_autorizado' then v_user.nome end,
       nullif(btrim(coalesce(p_responsavel_nome, '')), ''), auth.uid(),
-      v_ins.unidade_medida, p_quantidade_informada, p_unidade_informada, p_detalhe,
+      public._estoque_unidade_saldo(p_insumo_id), p_quantidade_informada, p_unidade_informada, p_detalhe,
       case when p_tipo = 'entrada' then p_validade end, v_res.o_lotes,
       case when v_vu is not null then 'custo_medio' end, p_chave)
     returning id into v_id;
@@ -563,7 +593,7 @@ begin
 
   return jsonb_build_object('ok', true, 'idempotente', false, 'movimento_id', v_id,
                             'saldo_anterior', v_res.o_saldo_anterior, 'saldo_posterior', v_res.o_saldo_posterior,
-                            'unidade_medida', v_ins.unidade_medida, 'valor_total', case when v_vu is not null then round(v_q * v_vu, 2) end);
+                            'unidade_medida', public._estoque_unidade_saldo(p_insumo_id), 'valor_total', case when v_vu is not null then round(v_q * v_vu, 2) end);
 end $$;
 
 -- Estorno: o original fica; entra o movimento contrário, ligado a ele.
@@ -612,13 +642,13 @@ begin
   if length(btrim(coalesce(p_justificativa, ''))) < 3 then raise exception 'Informe o motivo do estorno.'; end if;
 
   v_tipo := case v_mov.tipo when 'entrada' then 'saida' else 'entrada' end;
-  select unidade_medida into v_unidade_medida from public.insumos where id = v_mov.insumo_id;
+  v_unidade_medida := coalesce(v_mov.unidade_medida, public._estoque_unidade_saldo(v_mov.insumo_id));
   if v_tipo = 'saida' then
     select quantidade_atual into v_atual from public.estoque_itens where estoque_id = v_mov.estoque_id and insumo_id = v_mov.insumo_id;
     if coalesce(v_atual, 0) + 0.0005 < v_mov.quantidade then
       raise exception 'Não dá para estornar a entrada inteira: o saldo atual é % % e a entrada foi de % % (parte já saiu). Use um ajuste autorizado.',
-        trim(to_char(coalesce(v_atual, 0), 'FM999999990.999')), coalesce(v_unidade_medida, ''),
-        trim(to_char(v_mov.quantidade, 'FM999999990.999')), coalesce(v_unidade_medida, '');
+        public.estoque_fmt_qtd(coalesce(v_atual, 0)), coalesce(v_unidade_medida, ''),
+        public.estoque_fmt_qtd(v_mov.quantidade), coalesce(v_unidade_medida, '');
     end if;
   end if;
 
@@ -676,6 +706,8 @@ declare
   v_erro text;
   v_it record;
   v_fator numeric;
+  v_fs numeric;
+  v_us text;
   v_atual numeric;
   v_na_contagem numeric;
   v_contado numeric;
@@ -714,10 +746,17 @@ begin
     v_status := null; v_ajuste := null; v_na_contagem := null; v_contado := null; v_atual := null;
     v_saldo_antes := null; v_saldo_depois := null;
     v_fator := public.estoque_fator_base(v_it.unidade_medida);
+    v_fs := public._estoque_fator_saldo(v_it.insumo_id);
+    v_us := public._estoque_unidade_saldo(v_it.insumo_id);
 
     if v_it.estoque_id is null then
       v_status := 'sem_local';
     elsif exists (select 1 from public.estoque_movimentacoes_multi where inventario_item_id = v_it.id and motivo = 'ajuste_inventario') then
+      v_status := 'ja_ajustado';
+    elsif exists (select 1 from public.estoque_movimentacoes_multi
+                   where estoque_id = v_it.estoque_id and insumo_id = v_it.insumo_id and tipo = 'contagem'
+                     and observacao like '%[inventario:' || v_c.id::text || ']%') then
+      -- já aplicado ao saldo pelo caminho anterior (fechar → registrar_contagem_estoque_multi)
       v_status := 'ja_ajustado';
     elsif v_it.unidade_base <> public.estoque_unidade_base(v_it.unidade_medida) then
       v_status := 'unidade_mudou';
@@ -735,7 +774,7 @@ begin
        where m.estoque_id = v_it.estoque_id and m.insumo_id = v_it.insumo_id and m.created_at > v_it.created_at
        order by m.created_at, m.id limit 1;
       v_na_contagem := coalesce(v_na_contagem, v_atual);
-      v_contado := round(v_it.quantidade_contada / v_fator, 3);
+      v_contado := round(v_it.quantidade_contada / v_fator * v_fs, 3);
       v_ajuste := round(v_contado - v_na_contagem, 3);
 
       if abs(v_ajuste) < 0.0005 then
@@ -747,7 +786,7 @@ begin
           case when v_ajuste > 0 then 'entrada' else 'saida' end, abs(v_ajuste), null, null, 0);
         v_saldo_antes := v_res.o_saldo_anterior;
         v_saldo_depois := v_res.o_saldo_posterior;
-        v_vu := case when v_it.custo_unitario is not null then round(v_it.custo_unitario * v_fator, 6) end;
+        v_vu := case when v_it.custo_unitario is not null then round(v_it.custo_unitario * v_fator / v_fs, 6) end;
         insert into public.estoque_movimentacoes_multi (
           unidade_id, estoque_id, insumo_id, tipo, quantidade, saldo_anterior, saldo_posterior,
           usuario_id, usuario_nome, observacao, data_movimento, valor_unitario, valor_total,
@@ -757,12 +796,12 @@ begin
           v_c.unidade_id, v_it.estoque_id, v_it.insumo_id, case when v_ajuste > 0 then 'entrada' else 'saida' end, abs(v_ajuste),
           v_res.o_saldo_anterior, v_res.o_saldo_posterior, v_user.id, v_user.nome,
           'Ajuste do inventário de ' || to_char(v_c.data_referencia, 'DD/MM/YYYY') || ': contado '
-            || trim(to_char(v_contado, 'FM999999990.999')) || ', sistema na contagem ' || trim(to_char(v_na_contagem, 'FM999999990.999')),
+            || public.estoque_fmt_qtd(v_contado) || ', sistema na contagem ' || public.estoque_fmt_qtd(v_na_contagem),
           now(), v_vu, case when v_vu is not null then round(abs(v_ajuste) * v_vu, 2) end,
           'ajuste_inventario', btrim(p_justificativa), 'inventario', v_user.id, v_user.nome, auth.uid(),
-          v_it.unidade_medida,
+          v_us,
           jsonb_build_object('contado', v_contado, 'sistema_na_contagem', v_na_contagem,
-                             'sistema_registrado_na_contagem', case when v_it.quantidade_sistema is not null then round(v_it.quantidade_sistema / v_fator, 3) end,
+                             'sistema_registrado_na_contagem', case when v_it.quantidade_sistema is not null then round(v_it.quantidade_sistema / v_fator * v_fs, 3) end,
                              'ajuste', v_ajuste),
           v_res.o_lotes, v_c.id, v_it.id, case when v_vu is not null then 'inventario' end);
         v_status := 'ajustado';
@@ -771,7 +810,7 @@ begin
     end if;
 
     v_lista := v_lista || jsonb_build_object('item_id', v_it.id, 'insumo_id', v_it.insumo_id, 'estoque_id', v_it.estoque_id,
-      'nome', v_it.nome, 'unidade_medida', v_it.unidade_medida, 'status', v_status, 'contado', v_contado,
+      'nome', v_it.nome, 'unidade_medida', v_us, 'status', v_status, 'contado', v_contado,
       'sistema_na_contagem', v_na_contagem, 'ajuste', v_ajuste,
       'saldo_anterior', v_saldo_antes, 'saldo_posterior', v_saldo_depois);
   end loop;
@@ -866,10 +905,14 @@ revoke all on function public._estoque_registrar_autorizacao(text, text, uuid, u
 revoke all on function public._estoque_lotes_mapa(uuid, uuid) from public, anon, authenticated;
 revoke all on function public._estoque_lotes_diff(jsonb, jsonb) from public, anon, authenticated;
 revoke all on function public._estoque_fracionavel(uuid) from public, anon, authenticated;
+revoke all on function public._estoque_fator_saldo(uuid) from public, anon, authenticated;
+revoke all on function public._estoque_unidade_saldo(uuid) from public, anon, authenticated;
 revoke all on function public._estoque_aplicar(text, uuid, uuid, text, numeric, date, jsonb, numeric) from public, anon, authenticated;
 revoke all on function public.estoque_historico_imutavel_trg() from public, anon, authenticated;
 revoke all on function public.estoque_fator_base(text) from public, anon;
 revoke all on function public.estoque_unidade_base(text) from public, anon;
+revoke all on function public.estoque_fmt_qtd(numeric) from public, anon;
+grant execute on function public.estoque_fmt_qtd(numeric) to authenticated;
 grant execute on function public.estoque_fator_base(text) to authenticated;
 grant execute on function public.estoque_unidade_base(text) to authenticated;
 

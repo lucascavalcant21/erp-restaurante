@@ -227,42 +227,78 @@ export async function criarContagem(db, { unidade_id, tipo, data_referencia, not
   return { data: { id: data.id, ja_existia: false }, error: null };
 }
 
+export const MSG_JA_CONTADO = "Este produto já foi contado. Correção só pelo administrador, com PIN.";
+
 /**
- * Grava (ou corrige, enquanto EM CONTAGEM) a quantidade de um produto num local.
+ * Grava a quantidade de um produto num local. Depois de gravado, o funcionário
+ * NÃO corrige (nem apaga): correção só pelo administrador, com PIN
+ * (estoque_contagem_corrigir_item, EST-MOV-2).
  * quantidade: na unidade do cadastro (kg, L, un…). quantidade_sistema: saldo do
- * sistema naquele momento (guardado só na primeira gravação, nunca sobrescrito).
+ * sistema naquele momento. detalhe: o que foi digitado ("2 pacotes + 350 g").
  */
 export async function salvarItemContagem(db, p) {
   if (!db) return falha("Banco indisponível.");
   if (!p?.contagem_id || !p?.insumo_id) return falha("Produto ou inventário não informado.");
   if (!unidadeValida(p.unidade_id)) return falha("Selecione uma unidade.");
+  if (p.item_id) return { ...falha(MSG_JA_CONTADO), jaContado: true };
   const q = lerQuantidade(p.quantidade);
   if (q.erro) return falha(q.erro);
   const uc = unidadeContagem(p.unidade_medida);
   const qtdBase = paraBase(q.valor, p.unidade_medida);
   const sistema = p.quantidade_sistema == null || p.quantidade_sistema === "" || !Number.isFinite(Number(p.quantidade_sistema))
     ? null : paraBase(Number(p.quantidade_sistema), p.unidade_medida);
-  const atualizar = async (id) => {
-    const r = await db.from("estoque_contagens_itens").update({ quantidade_contada: qtdBase, unidade_base: uc.base })
-      .eq("id", id).eq("contagem_id", p.contagem_id).select("id");
-    if (r.error) return falha(erroDb(r.error));
-    if (!r.data?.length) return falha("Não foi possível atualizar: o inventário pode ter sido fechado.");
-    return { data: { id, quantidade_contada: qtdBase, unidade_base: uc.base, novo: false }, error: null };
-  };
-  if (p.item_id) return atualizar(p.item_id);
   const ins = await db.from("estoque_contagens_itens").insert({
     unidade_id: p.unidade_id, contagem_id: p.contagem_id, insumo_id: p.insumo_id, estoque_id: p.estoque_id || null,
     quantidade_contada: qtdBase, unidade_base: uc.base, quantidade_sistema: sistema,
+    observacao: p.detalhe ? String(p.detalhe).slice(0, 300) : null,
   }).select("id").single();
   if (!ins.error) return { data: { id: ins.data.id, quantidade_contada: qtdBase, unidade_base: uc.base, novo: true }, error: null };
   if (ins.error.code !== "23505") return falha(erroDb(ins.error));
-  // já contado (outro aparelho/retry): corrige a mesma linha
-  const { data: achados, error } = await db.from("estoque_contagens_itens").select("id, estoque_id")
+  // Já existe: se é o MESMO número (reenvio depois de rede ruim), é sucesso;
+  // se é outro número (outro aparelho contou), não substitui.
+  const { data: achados, error } = await db.from("estoque_contagens_itens").select("id, estoque_id, quantidade_contada")
     .eq("contagem_id", p.contagem_id).eq("insumo_id", p.insumo_id);
   if (error) return falha(erroDb(error));
   const alvo = (achados || []).find((x) => (x.estoque_id || null) === (p.estoque_id || null));
-  if (!alvo) return falha("Item já contado, mas não foi encontrado para corrigir.");
-  return atualizar(alvo.id);
+  if (alvo && Math.abs(Number(alvo.quantidade_contada) - qtdBase) < 0.0005) {
+    return { data: { id: alvo.id, quantidade_contada: qtdBase, unidade_base: uc.base, novo: false }, error: null };
+  }
+  return { ...falha(`${MSG_JA_CONTADO} (contado em outro aparelho)`), jaContado: true, item: alvo || null };
+}
+
+/**
+ * Situação do produto na contagem. A divergência compara com o saldo do
+ * sistema guardado na hora da contagem e só aparece para quem pode ver
+ * (administrador, ou contagem cega desligada).
+ *   "nao_contado" | "contado" | "divergencia" | "revisao" (corrigido pelo administrador)
+ */
+export function statusItemContagem(item, { mostrarDivergencia = false } = {}) {
+  if (!item) return "nao_contado";
+  if (/Corrigido por /.test(String(item.observacao || ""))) return "revisao";
+  if (mostrarDivergencia && item.quantidade_sistema != null && item.quantidade_contada != null
+      && Math.abs(Number(item.quantidade_contada) - Number(item.quantidade_sistema)) >= 0.0005) return "divergencia";
+  return "contado";
+}
+export const ROTULO_STATUS_ITEM = { nao_contado: "Não contado", contado: "Contado", divergencia: "Divergência", revisao: "Revisão" };
+
+/**
+ * Impacto financeiro das divergências de um inventário FECHADO: (contado −
+ * sistema na contagem) × custo congelado. Item sem saldo do sistema guardado
+ * ou sem custo fica fora da conta (contado à parte).
+ */
+export function impactoDivergencias(itens) {
+  let perdas = 0, sobras = 0, comDiferenca = 0, semReferencia = 0;
+  const linhas = [];
+  for (const i of itens || []) {
+    if (i.quantidade_sistema == null || i.custo_unitario == null) { semReferencia++; continue; }
+    const dif = r3(Number(i.quantidade_contada) - Number(i.quantidade_sistema));
+    if (Math.abs(dif) < 0.0005) continue;
+    const valor = r2(dif * Number(i.custo_unitario));
+    comDiferenca++;
+    if (valor < 0) perdas = r2(perdas + valor); else sobras = r2(sobras + valor);
+    linhas.push({ id: i.id, insumo_id: i.insumo_id, estoque_id: i.estoque_id, diferenca: dif, valor });
+  }
+  return { perdas, sobras, liquido: r2(perdas + sobras), comDiferenca, semReferencia, linhas };
 }
 
 /** Lê a contagem e reescreve a observação com controle de concorrência (updated_at). */
@@ -318,6 +354,9 @@ export async function fecharContagem(db, { contagem_id, itens, unidadesPorInsumo
   const temCusto = (c) => c != null && c.porUnidade != null && c.porUnidade !== "" && Number.isFinite(lerValor(c.porUnidade)) && lerValor(c.porUnidade) >= 0;
   const faltando = itens.filter((i) => Number(i.quantidade_contada) > 0 && !temCusto(get(i.id)));
   if (faltando.length) return falha(`${faltando.length} produto(s) contado(s) sem custo. Informe o custo antes de fechar.`);
+  const obsAtual = await db.from("estoque_contagens_itens").select("id, observacao").eq("contagem_id", contagem_id);
+  if (obsAtual.error) return falha(erroDb(obsAtual.error));
+  const obsPorId = new Map((obsAtual.data || []).map((x) => [x.id, x.observacao]));
   for (const i of itens) {
     const c = get(i.id);
     const zero = Number(i.quantidade_contada) === 0;
@@ -325,7 +364,9 @@ export async function fecharContagem(db, { contagem_id, itens, unidadesPorInsumo
     if (!Number.isFinite(porUnidade) || porUnidade < 0) return falha("Custo inválido em um dos produtos.");
     const custoBase = Math.round((porUnidade / unidadeContagem(unidadesPorInsumo?.[i.insumo_id]).fator) * 1e6) / 1e6;
     const origem = zero && !temCusto(c) ? "quantidade zero: custo não se aplica" : (c?.origem || "informado no fechamento");
-    const r = await db.from("estoque_contagens_itens").update({ custo_unitario: custoBase, observacao: `custo: ${origem}` })
+    // mantém o que foi digitado e a correção do administrador; só troca a parte do custo
+    const antes = String(obsPorId.get(i.id) ?? i.observacao ?? "").split(" · ").filter((s) => s && !s.startsWith("custo: "));
+    const r = await db.from("estoque_contagens_itens").update({ custo_unitario: custoBase, observacao: [...antes, `custo: ${origem}`].join(" · ") })
       .eq("id", i.id).eq("contagem_id", contagem_id).select("id");
     if (r.error) return falha(erroDb(r.error));
     if (!r.data?.length) return falha("Um dos produtos não pôde ser valorizado (o inventário pode ter sido fechado por outra pessoa).");

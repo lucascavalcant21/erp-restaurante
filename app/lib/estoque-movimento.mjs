@@ -12,13 +12,15 @@
 //
 // Quantidade: o funcionário informa EMBALAGENS (as do cadastro) e/ou FRAÇÃO
 // (kg/g, L/ml ou a própria unidade do cadastro). Ex.: 2 pacotes de 2 kg + 350 g
-// = 4,35 kg. O banco grava a quantidade convertida (unidade do cadastro) e o
-// que foi digitado, para a auditoria.
+// = 4,35 kg; aceita soma ("6+4"). O banco grava a quantidade na unidade do
+// SALDO (a do cadastro; garrafa fracionada: o conteúdo, regra de
+// inventario-saldo.mjs) e o que foi digitado, para a auditoria.
 //
 // Funções com banco recebem o cliente (`db`) por parâmetro (testáveis).
 
-import { lerValor, novaChave } from "./contas-pagar.mjs";
+import { novaChave } from "./contas-pagar.mjs";
 import { ehGranel } from "./volume-embalagem.mjs";
+import { ehFracionavel, ehUnidadeContavel, lerSoma } from "./inventario-saldo.mjs";
 
 export { novaChave };
 
@@ -63,6 +65,9 @@ export const STATUS_AJUSTE = {
 };
 
 // ─── Quantidade: embalagens + fração ─────────────────────────────────────────
+// Regra de embalagem fracionável é a de inventario-saldo.mjs (uma só no app):
+// garrafa marcada como fracionada e cadastrada em "garrafa" guarda o SALDO em
+// conteúdo (ml); o resto guarda na unidade do cadastro.
 const MASSA = { kg: 1000, g: 1 };
 const VOLUME = { l: 1000, ml: 1 };
 const familia = (u) => {
@@ -71,14 +76,27 @@ const familia = (u) => {
   if (x in VOLUME) return { tabela: VOLUME, unidades: ["L", "ml"] };
   return null;
 };
+const saldoEmConteudo = (insumo) => ehFracionavel(insumo) && ehUnidadeContavel(insumo?.unidade_medida);
+const unidadeDoConteudoSaldo = (insumo) => String(insumo?.unidade_conteudo || "").trim() || "ml";
 
-/** Unidades em que a fração pode ser digitada: kg↔g, L↔ml; o resto, só a do cadastro. */
-export function unidadesDaFracao(unidadeMedida) {
-  const f = familia(unidadeMedida);
-  return f ? f.unidades : [mostrarUn(unidadeMedida)];
+/** Em que unidade o estoque guarda o saldo do produto (a do cadastro; garrafa fracionada: o conteúdo). */
+export function unidadeDoSaldo(insumo) {
+  return mostrarUn(saldoEmConteudo(insumo) ? unidadeDoConteudoSaldo(insumo) : insumo?.unidade_medida);
 }
 
-/** Converte para a unidade do cadastro. Só kg↔g e L↔ml; outra combinação = null. */
+/**
+ * Unidades em que a fração pode ser digitada: kg↔g, L↔ml; o resto, só a do
+ * cadastro. Aceita o produto (garrafa fracionada: a do conteúdo) ou a unidade.
+ */
+export function unidadesDaFracao(insumoOuUnidade) {
+  const u = insumoOuUnidade && typeof insumoOuUnidade === "object"
+    ? (saldoEmConteudo(insumoOuUnidade) ? unidadeDoConteudoSaldo(insumoOuUnidade) : insumoOuUnidade.unidade_medida)
+    : insumoOuUnidade;
+  const f = familia(u);
+  return f ? f.unidades : [mostrarUn(u)];
+}
+
+/** Converte entre kg↔g e L↔ml; mesma unidade passa direto; outra combinação = null. */
 export function paraUnidadeDoCadastro(qtd, unidadeDe, unidadeCadastro) {
   const de = String(unidadeDe || "").trim().toLowerCase();
   const para = String(unidadeCadastro || "").trim().toLowerCase();
@@ -88,27 +106,35 @@ export function paraUnidadeDoCadastro(qtd, unidadeDe, unidadeCadastro) {
   return (Number(qtd) * f.tabela[de]) / f.tabela[para];
 }
 
-/** A embalagem do cadastro ("pacote de 2 kg") ou null se o produto é a granel. */
+/** A embalagem do cadastro ("pacote de 2 kg", "garrafa de 750 ml") ou null se é a granel. */
 export function embalagemDoProduto(insumo) {
   const tamanho = Number(insumo?.tamanho_embalagem);
   if (!Number.isFinite(tamanho) || tamanho <= 0) return null;
   if (ehGranel(insumo)) return null;
+  if (saldoEmConteudo(insumo)) {
+    const nome = String(insumo?.unidade_comercial || insumo?.unidade_medida || "").trim() || "embalagem";
+    return { tamanho, nome, emConteudo: true, texto: `${nome} de ${fmt(tamanho)} ${unidadeDoSaldo(insumo)}` };
+  }
   const nome = String(insumo?.unidade_comercial || "").trim() || "embalagem";
   return { tamanho, nome, texto: `${nome} de ${fmt(tamanho)} ${mostrarUn(insumo?.unidade_medida)}` };
 }
 
 /**
- * Quantidade de um lançamento a partir do que foi digitado.
- * → { quantidade (unidade do cadastro), unidade, texto, detalhe, quantidade_informada, unidade_informada } | { erro }
+ * Quantidade de um lançamento a partir do que foi digitado (aceita soma "6+4").
+ * → { quantidade (unidade do cadastro), quantidadeSaldo (unidade do saldo, a que
+ *     vai para o banco), unidade, unidadeSaldo, texto, detalhe,
+ *     quantidade_informada, unidade_informada } | { erro }
  */
 export function quantidadeDoLancamento({ insumo, embalagens = "", fracao = "", unidadeFracao = null } = {}) {
   const unidade = insumo?.unidade_medida || "un";
+  const emConteudo = saldoEmConteudo(insumo);
+  const unidadeSaldo = unidadeDoSaldo(insumo);
   const temEmb = String(embalagens ?? "").trim() !== "";
   const temFrac = String(fracao ?? "").trim() !== "";
   if (!temEmb && !temFrac) return { erro: "Informe a quantidade." };
 
-  const emb = temEmb ? lerValor(embalagens) : 0;
-  const frac = temFrac ? lerValor(fracao) : 0;
+  const emb = temEmb ? lerSoma(embalagens) : 0;
+  const frac = temFrac ? lerSoma(fracao) : 0;
   if (!Number.isFinite(emb) || !Number.isFinite(frac)) return { erro: "Quantidade inválida." };
   if (emb < 0 || frac < 0) return { erro: "A quantidade não pode ser negativa." };
   if (!Number.isInteger(emb)) return { erro: "Embalagens: use número inteiro (o resto vai na fração)." };
@@ -116,43 +142,82 @@ export function quantidadeDoLancamento({ insumo, embalagens = "", fracao = "", u
   const embalagem = embalagemDoProduto(insumo);
   if (emb > 0 && !embalagem) return { erro: "Este produto não tem embalagem no cadastro: informe só a quantidade." };
 
-  const uFrac = unidadeFracao || unidade;
-  const fracCad = frac > 0 ? paraUnidadeDoCadastro(frac, uFrac, unidade) : 0;
-  if (fracCad == null) return { erro: `A fração em ${mostrarUn(uFrac)} não combina com a unidade do produto (${mostrarUn(unidade)}).` };
+  // a fração é digitada no conteúdo (garrafa fracionada) ou na unidade do cadastro
+  const uBase = emConteudo ? unidadeDoConteudoSaldo(insumo) : unidade;
+  const uFrac = unidadeFracao || mostrarUn(uBase);
+  const fracBase = frac > 0 ? paraUnidadeDoCadastro(frac, uFrac, uBase) : 0;
+  if (fracBase == null) return { erro: `A fração em ${mostrarUn(uFrac)} não combina com a unidade do produto (${mostrarUn(uBase)}).` };
 
-  const bruto = emb * (embalagem?.tamanho || 0) + fracCad;
-  const quantidade = r3(bruto);
-  if (Math.abs(bruto - quantidade) > 1e-9) return { erro: `Precisão máxima: 0,001 ${mostrarUn(unidade)}. Confira a fração.` };
-  if (quantidade <= 0) return { erro: "A quantidade deve ser maior que zero." };
-  if (quantidade >= 1e9) return { erro: "Quantidade grande demais: confira o número." };
+  const tamanho = embalagem?.tamanho || 0;
+  const brutoSaldo = emConteudo ? emb * tamanho + fracBase : emb * tamanho + fracBase;
+  const quantidadeSaldo = r3(brutoSaldo);
+  if (Math.abs(brutoSaldo - quantidadeSaldo) > 1e-9) return { erro: `Precisão máxima: 0,001 ${unidadeSaldo}. Confira a fração.` };
+  if (quantidadeSaldo <= 0) return { erro: "A quantidade deve ser maior que zero." };
+  if (quantidadeSaldo >= 1e9) return { erro: "Quantidade grande demais: confira o número." };
+  const quantidade = emConteudo ? r3(quantidadeSaldo / tamanho) : quantidadeSaldo;
 
   const partes = [];
-  if (emb > 0) partes.push(`${fmt(emb)} ${embalagem.nome}${emb === 1 ? "" : "(s)"} de ${fmt(embalagem.tamanho)} ${mostrarUn(unidade)}`);
+  if (emb > 0) partes.push(emConteudo ? `${fmt(emb)} ${embalagem.nome}${emb === 1 ? "" : "(s)"} fechada${emb === 1 ? "" : "s"}` : `${fmt(emb)} ${embalagem.nome}${emb === 1 ? "" : "(s)"} de ${fmt(tamanho)} ${mostrarUn(unidade)}`);
   if (frac > 0) partes.push(`${fmt(frac)} ${mostrarUn(uFrac)}`);
-  const total = `${fmt(quantidade)} ${mostrarUn(unidade)}`;
-  const texto = partes.length === 1 && frac > 0 && String(uFrac).toLowerCase() === String(unidade).toLowerCase()
+  const total = `${fmt(quantidadeSaldo)} ${unidadeSaldo}`;
+  const texto = partes.length === 1 && frac > 0 && String(uFrac).toLowerCase() === String(unidadeSaldo).toLowerCase()
     ? total : `${partes.join(" + ")} = ${total}`;
 
   const so = emb > 0 && frac === 0 ? "emb" : (frac > 0 && emb === 0 ? "frac" : "misto");
   return {
     quantidade,
+    quantidadeSaldo,
     unidade,
+    unidadeSaldo,
     texto,
     detalhe: {
       embalagens: emb, tamanho_embalagem: embalagem?.tamanho ?? null, unidade_embalagem: embalagem?.nome ?? null,
       fracao: frac, unidade_fracao: frac > 0 ? mostrarUn(uFrac) : null,
     },
-    quantidade_informada: so === "emb" ? emb : (so === "frac" ? frac : quantidade),
-    unidade_informada: so === "emb" ? embalagem.nome : (so === "frac" ? mostrarUn(uFrac) : mostrarUn(unidade)),
+    quantidade_informada: so === "emb" ? emb : (so === "frac" ? frac : quantidadeSaldo),
+    unidade_informada: so === "emb" ? embalagem.nome : (so === "frac" ? mostrarUn(uFrac) : unidadeSaldo),
   };
+}
+
+// ─── Busca do produto e saldo ────────────────────────────────────────────────
+const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/**
+ * Produtos para lançar num local. RETIRADA: só o que está neste local (com
+ * saldo primeiro). ENTRADA: sem busca, os do local; com busca, o cadastro
+ * inteiro (o produto passa a existir no local na primeira entrada).
+ * Busca por nome, nome interno, código, marca ou fornecedor.
+ */
+export function produtosParaLancar({ insumos, itens, estoqueId, tipo, termo = "", limite = 40 }) {
+  const saldoPorInsumo = new Map((itens || []).filter((i) => i.estoque_id === estoqueId).map((i) => [i.insumo_id, Number(i.quantidade_atual) || 0]));
+  const t = normal(String(termo || "").trim());
+  const casa = (i) => !t || [i.nome, i.nome_interno, i.codigo_interno, i.marca, i.fornecedor].some((v) => normal(v).includes(t));
+  let lista = (insumos || []).filter(casa).map((i) => ({ insumo: i, vinculado: saldoPorInsumo.has(i.id), saldo: saldoPorInsumo.get(i.id) ?? 0 }));
+  if (tipo === "saida" || !t) lista = lista.filter((p) => p.vinculado);
+  lista.sort((a, b) => (Number(b.vinculado) - Number(a.vinculado))
+    || (tipo === "saida" ? Number(b.saldo > 0) - Number(a.saldo > 0) : 0)
+    || String(a.insumo.nome || "").localeCompare(String(b.insumo.nome || ""), "pt-BR", { sensitivity: "base" }));
+  return lista.slice(0, limite);
+}
+
+/** Saldo depois do lançamento (na unidade do cadastro). */
+export function saldoDepois(saldo, tipo, quantidade) {
+  const s = Number(saldo) || 0;
+  const q = Number(quantidade) || 0;
+  return r3(tipo === "saida" ? s - q : s + q);
 }
 
 // ─── Banco ───────────────────────────────────────────────────────────────────
 const PIN_VALIDO = /^\d{4,8}$/;
 
 /** Resposta das funções: {ok:false} é PIN errado/bloqueado (a tentativa fica gravada). */
+export const MSG_BANCO_DESATUALIZADO = "O banco ainda não recebeu a atualização do estoque (EST-MOV). Avise o administrador.";
+export const bancoDesatualizado = (msg) => /could not find the function|function .* does not exist|schema cache|PGRST202/i.test(String(msg || ""));
 function lerRpc(r) {
-  if (r?.error) return falha(r.error.message || String(r.error));
+  if (r?.error) {
+    const msg = r.error.message || String(r.error);
+    return bancoDesatualizado(msg) ? falha(MSG_BANCO_DESATUALIZADO, { semBanco: true }) : falha(msg);
+  }
   const d = r?.data;
   if (d && d.ok === false) return falha(d.erro || "Não autorizado.", { pin: !!d.pin });
   return { data: d, error: null };
@@ -178,7 +243,7 @@ export async function registrarMovimento(db, p = {}) {
   }
   const r = await db.rpc("estoque_movimentar", {
     p_unidade_id: p.unidade_id, p_estoque_id: p.estoque_id, p_insumo_id: p.insumo_id,
-    p_tipo: tipo, p_motivo: motivo.codigo, p_quantidade: l.quantidade,
+    p_tipo: tipo, p_motivo: motivo.codigo, p_quantidade: l.quantidadeSaldo ?? l.quantidade,
     p_validade: tipo === "entrada" ? (p.validade || null) : null,
     p_quantidade_informada: l.quantidade_informada ?? null, p_unidade_informada: l.unidade_informada ?? null,
     p_detalhe: l.detalhe || null, p_observacao: p.observacao || null, p_responsavel_nome: p.responsavel_nome || null,
@@ -211,6 +276,23 @@ export async function ajustarInventario(db, { contagem_id, justificativa, pin, i
     p_itens: Array.isArray(itens) && itens.length ? itens : null,
   });
   return lerRpc(r);
+}
+
+/**
+ * Correção de produto já contado (inventário aberto): só administrador + PIN
+ * (EST-MOV-2). `lancamento` = quantidadeDoLancamento(...) na unidade do cadastro;
+ * zero é aceito aqui (corrigir para "não tinha nada").
+ */
+export async function corrigirItemContagem(db, { item_id, quantidade, justificativa, pin } = {}) {
+  if (!db) return falha("Banco indisponível.");
+  if (!item_id) return falha("Escolha o produto.");
+  const q = Number(quantidade);
+  if (!Number.isFinite(q) || q < 0) return falha("Informe a quantidade correta.");
+  if (String(justificativa || "").trim().length < 3) return falha("Informe o motivo da correção.");
+  if (!PIN_VALIDO.test(String(pin || ""))) return falha("Digite o PIN do administrador (4 a 8 números).", { pin: true });
+  return lerRpc(await db.rpc("estoque_contagem_corrigir_item", {
+    p_item_id: item_id, p_quantidade: r3(q), p_justificativa: String(justificativa).trim(), p_pin: String(pin),
+  }));
 }
 
 /** O que a tela pode mostrar/fazer: contagem cega, permissões, PIN padrão (só para administrador). */

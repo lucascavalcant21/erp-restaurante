@@ -433,6 +433,27 @@ function CardImpressoras() {
 }
 
 
+function CardSegurancaEstoque() {
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+      <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
+        <ShieldCheck size={18} className="text-emerald-600" />
+        <div>
+          <h2 className="font-bold text-slate-800">Estoque · Segurança da contagem</h2>
+          <p className="text-2xs font-medium text-fg">PIN do administrador para estorno e ajuste, e contagem cega.</p>
+        </div>
+      </div>
+      <div className="p-5">
+        <a href="/dashboard/configuracoes/estoque" className="group block rounded-xl border border-line p-4 transition hover:border-emerald-300 hover:bg-emerald-50">
+          <Lock size={20} className="mb-3 text-emerald-600" />
+          <p className="font-black text-slate-800">Segurança da contagem</p>
+          <p className="mt-1 text-xs text-fg">Trocar o PIN (guardado só como hash), ligar ou desligar a contagem cega.</p>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function CardSenhas({ unidadeAtiva }) {
   const [pins, setPins] = useState(null);
   const [salvando, setSalvando] = useState(false);
@@ -746,6 +767,9 @@ export default function ConfiguracoesPage() {
 
       {/* Senhas e PINs do sistema */}
       <CardSenhas unidadeAtiva={unidadeAtiva} />
+
+      {/* Estoque: PIN do administrador (hash) e contagem cega */}
+      <CardSegurancaEstoque />
 
       {/* Parâmetros ajustáveis (tolerâncias, metas, descontos) */}
       <CardParametros unidadeAtiva={unidadeAtiva} />

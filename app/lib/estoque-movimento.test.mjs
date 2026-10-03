@@ -9,7 +9,9 @@ import { fileURLToPath } from "node:url";
 import {
   quantidadeDoLancamento, unidadesDaFracao, paraUnidadeDoCadastro, embalagemDoProduto, rotuloMotivo, podeEstornar,
   registrarMovimento, estornarMovimento, ajustarInventario, lerSegurancaEstoque, salvarSegurancaEstoque, novaChave,
+  corrigirItemContagem, MSG_BANCO_DESATUALIZADO, produtosParaLancar, saldoDepois,
 } from "./estoque-movimento.mjs";
+import { criarContagem, salvarItemContagem, fecharContagem, MSG_JA_CONTADO } from "./contagem-estoque.mjs";
 import { criarBancoF21, clienteSupabase } from "./teste-banco-f21.mjs";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -45,6 +47,30 @@ conferir("rótulos de motivo", [rotuloMotivo("transferencia_enviada"), rotuloMot
 conferir("botão estornar: só entrada/retirada, não estorno, não estornado",
   [podeEstornar({ id: "a", tipo: "entrada" }), podeEstornar({ id: "a", tipo: "entrada" }, new Set(["a"])), podeEstornar({ id: "b", tipo: "saida", estorno_de_id: "a" }), podeEstornar({ id: "c", tipo: "transferencia_saida" })],
   [true, false, false, false]);
+
+const cad = [
+  { id: "a", nome: "Arroz", fornecedor: "Atacadão" }, { id: "b", nome: "Batata", codigo_interno: "B12" },
+  { id: "c", nome: "Café", marca: "Pilão" }, { id: "d", nome: "Açúcar" },
+];
+const itensLocal = [{ estoque_id: "E1", insumo_id: "a", quantidade_atual: 0 }, { estoque_id: "E1", insumo_id: "b", quantidade_atual: 3 }, { estoque_id: "E2", insumo_id: "c", quantidade_atual: 9 }];
+const nomes = (l) => l.map((p) => `${p.insumo.nome}${p.vinculado ? "" : "*"}=${p.saldo}`);
+conferir("RETIRADA: só o que está no local, com saldo primeiro", nomes(produtosParaLancar({ insumos: cad, itens: itensLocal, estoqueId: "E1", tipo: "saida" })), ["Batata=3", "Arroz=0"]);
+conferir("ENTRADA sem busca: os do local; com busca: cadastro inteiro (fora do local marcado)",
+  [nomes(produtosParaLancar({ insumos: cad, itens: itensLocal, estoqueId: "E1", tipo: "entrada" })), nomes(produtosParaLancar({ insumos: cad, itens: itensLocal, estoqueId: "E1", tipo: "entrada", termo: "acu" }))],
+  [["Arroz=0", "Batata=3"], ["Açúcar*=0"]]);
+conferir("busca por fornecedor, código e marca (sem acento)",
+  [nomes(produtosParaLancar({ insumos: cad, itens: itensLocal, estoqueId: "E1", tipo: "entrada", termo: "atacadao" })),
+   nomes(produtosParaLancar({ insumos: cad, itens: itensLocal, estoqueId: "E1", tipo: "saida", termo: "b12" })),
+   nomes(produtosParaLancar({ insumos: cad, itens: itensLocal, estoqueId: "E1", tipo: "entrada", termo: "pilao" }))],
+  [["Arroz=0"], ["Batata=3"], ["Café*=0"]]);
+conferir("saldo depois: entrada soma, retirada subtrai (3 casas)", [saldoDepois(3, "entrada", 1.35), saldoDepois(3, "saida", 3.5), saldoDepois(null, "entrada", 2)], [4.35, -0.5, 2]);
+
+const vinhoCad = { unidade_medida: "garrafa", tamanho_embalagem: 750, unidade_conteudo: "ml", unidade_comercial: "garrafa", permite_fracionado: true };
+const qv = quantidadeDoLancamento({ insumo: vinhoCad, embalagens: "2", fracao: "300" });
+conferir("garrafa fracionada (cadastro em garrafa): 2 fechadas + 300 ml → saldo 1.800 ml (= 2,4 garrafas)",
+  [qv.quantidadeSaldo, qv.unidadeSaldo, qv.quantidade, qv.texto, unidadesDaFracao(vinhoCad)], [1800, "ml", 2.4, "2 garrafa(s) fechadas + 300 ml = 1.800 ml", ["L", "ml"]]);
+conferir("soma no campo (expositor + depósito): 6+4 garrafas de água = 10", quantidadeDoLancamento({ insumo: { unidade_medida: "garrafa" }, fracao: "6+4" }).quantidadeSaldo, 10);
+conferir("produto comum: saldo na unidade do cadastro", [q1.quantidadeSaldo, q1.unidadeSaldo], [4.35, "kg"]);
 
 // ── 2. banco: esquema de estoque como em produção ────────────────────────────
 const FIXTURE = `
@@ -321,6 +347,75 @@ const CONF = SQL.match(/\/\* ── CONFERÊNCIA \(só leitura\)[^\n]*\n([\s\S]*
 const conf = Object.fromEntries((await pg.query(CONF)).rows.map((r) => [r.o_que, r.resultado]));
 conferir("conferência pós-migration", [conf["policies"], conf["authenticated no histórico"], conf["anon executa bebida_zerar"], conf["PIN guardado como hash"]],
   ["estoque_mov_ler_unidade, estoque_mov_inserir_simples", "INSERT,SELECT", "false", "outra=true, seldeestrela=true"]);
+
+// ── 12. EST-MOV-2: produto contado não muda sem o administrador ──────────────
+const semMov2 = await corrigirItemContagem(ger, { item_id: itemCarne, quantidade: 1, justificativa: "teste", pin: "4321" });
+conferir("antes da EST-MOV-2 a tela avisa que o banco não foi atualizado", [semMov2.error, semMov2.semBanco], [MSG_BANCO_DESATUALIZADO, true]);
+const SQL2 = fs.readFileSync(path.join(raiz, "db", "EST_MOV_2_CONTAGEM_SEM_EDICAO.sql"), "utf8");
+await pg.exec(SQL2);
+let erro2 = null; try { await pg.exec(SQL2); } catch (e) { erro2 = e.message; await pg.exec("rollback"); }
+conferir("EST-MOV-2 roda e pode rodar de novo", erro2, null);
+const k2 = await criarContagem(func, { unidade_id: U, tipo: "intermediaria", data_referencia: "2026-09-30" });
+const it2 = await salvarItemContagem(func, { contagem_id: k2.data.id, unidade_id: U, insumo_id: arroz, estoque_id: estCozinha, quantidade: "6,5", unidade_medida: "kg", quantidade_sistema: 7, detalhe: "3 pacote(s) de 2 kg + 500 g = 6,5 kg" });
+const linha2 = async () => one(`select quantidade_contada::float q, observacao from public.estoque_contagens_itens where id = $1`, [it2.data.id]);
+conferir("funcionária conta arroz 6,5 kg (com o detalhe do que digitou)", [it2.error, await linha2()], [null, { q: 6500, observacao: "3 pacote(s) de 2 kg + 500 g = 6,5 kg" }]);
+const viaApi = await func.from("estoque_contagens_itens").update({ quantidade_contada: 9000 }).eq("id", it2.data.id);
+const apagar = await func.from("estoque_contagens_itens").delete().eq("id", it2.data.id);
+const gerApi = await ger.from("estoque_contagens_itens").update({ quantidade_contada: 9000 }).eq("id", it2.data.id);
+conferir("pela API ninguém altera nem apaga o produto contado (nem o gerente, sem PIN)",
+  [/já foi contado/.test(viaApi.error?.message || ""), /não pode ser apagado|permission denied/.test(apagar.error?.message || "") || !!(await linha2()), /já foi contado/.test(gerApi.error?.message || ""), (await linha2()).q],
+  [true, true, true, 6500]);
+const corrFunc = await corrigirItemContagem(func, { item_id: it2.data.id, quantidade: 6, justificativa: "errei", pin: "4321" });
+const corrPin = await corrigirItemContagem(ger, { item_id: it2.data.id, quantidade: 6, justificativa: "recontado", pin: "1111" });
+const corr = await corrigirItemContagem(ger, { item_id: it2.data.id, quantidade: 6, justificativa: "recontado na balança", pin: "4321" });
+const depoisCorr = await linha2();
+conferir("correção: funcionária não; PIN errado não; administrador com PIN corrige 6,5 → 6 kg e fica registrado na linha",
+  [/Sem permissão/.test(corrFunc.error || ""), corrPin.pin, corr.error, corr.data?.quantidade_anterior, corr.data?.quantidade, depoisCorr.q, depoisCorr.observacao],
+  [true, true, null, 6.5, 6, 6000, "3 pacote(s) de 2 kg + 500 g = 6,5 kg · Corrigido por Gil (gerente): 6,5 → 6 kg (recontado na balança)"]);
+conferir("a correção também vai para o registro de autorizações",
+  await one(`select resultado, detalhe from public.estoque_autorizacoes where acao = 'correcao_contagem' and resultado = 'autorizado'`),
+  { resultado: "autorizado", detalhe: "de 6,5 para 6 kg: recontado na balança" });
+const fech2 = await fecharContagem(func, { contagem_id: k2.data.id, itens: [{ id: it2.data.id, insumo_id: arroz, quantidade_contada: 6000 }], unidadesPorInsumo: { [arroz]: "kg" }, custos: { [it2.data.id]: { porUnidade: "6", origem: "custo médio" } }, confirmado: true });
+conferir("fechar continua funcionando (grava o custo) e mantém o histórico da linha",
+  [fech2.error, (await linha2()).observacao],
+  [null, "3 pacote(s) de 2 kg + 500 g = 6,5 kg · Corrigido por Gil (gerente): 6,5 → 6 kg (recontado na balança) · custo: custo médio"]);
+const corrFechado = await corrigirItemContagem(ger, { item_id: it2.data.id, quantidade: 5, justificativa: "depois", pin: "4321" });
+conferir("inventário fechado não se corrige: vai pelo ajuste do estoque", corrFechado.error, "Inventário já fechado: a correção agora é pelo ajuste do estoque.");
+conferir("salvar de novo um produto já contado avisa (não substitui)",
+  (await salvarItemContagem(func, { contagem_id: k2.data.id, unidade_id: U, insumo_id: arroz, estoque_id: estCozinha, quantidade: "1", unidade_medida: "kg", item_id: it2.data.id })).error, MSG_JA_CONTADO);
+conferir("anon não executa a correção",
+  /permission denied/.test((await anon.rpc("estoque_contagem_corrigir_item", { p_item_id: it2.data.id, p_quantidade: 1, p_justificativa: "x", p_pin: "4321" })).error?.message || ""), true);
+
+// ── 13. garrafa fracionada (saldo em ml) e inventário já aplicado pelo caminho antigo ──
+const vinho = await id(`insert into public.insumos (unidade_id, nome, unidade_medida, tamanho_embalagem, unidade_comercial, unidade_conteudo, permite_fracionado)
+  values ($1,'Vinho tinto','garrafa',750,'garrafa','ml',true) returning id`, [U]);
+await pg.exec(`insert into public.estoque_custos (unidade_id, insumo_id, custo_medio_base, saldo_referencia, origem_tipo) values ('${U}', '${vinho}', 60, 0, 'COMPRA')`);
+const insVinho = { id: vinho, unidade_medida: "garrafa", tamanho_embalagem: 750, unidade_conteudo: "ml", unidade_comercial: "garrafa", permite_fracionado: true };
+const ev = await registrarMovimento(func, { unidade_id: U, estoque_id: estBar, insumo_id: vinho, tipo: "entrada", motivo: "compra",
+  lancamento: quantidadeDoLancamento({ insumo: insVinho, embalagens: "2", fracao: "300" }), chave: novaChave() });
+const mv = ev.data ? await mov(ev.data.movimento_id) : {};
+const barV = await one(`select quantidade_atual::float q, saldo_fechado::float f, saldo_aberto::float a from public.estoque_itens where estoque_id = $1 and insumo_id = $2`, [estBar, vinho]);
+conferir("vinho: entra 2 garrafas fechadas + 300 ml → saldo 1.800 ml (2 fechadas + 300 aberto), unidade ml, custo R$ 60/garrafa = R$ 0,08/ml",
+  [ev.error, barV, mv.unidade_medida, Number(mv.valor_unitario), Number(mv.valor_total)], [null, { q: 1800, f: 2, a: 300 }, "ml", 0.08, 144]);
+const k3 = await id(`insert into public.estoque_contagens (unidade_id, tipo, data_referencia) values ($1,'final','2026-09-30') returning id`, [U]);
+await new Promise((r) => setTimeout(r, 5));
+const itVinho = await id(`insert into public.estoque_contagens_itens (unidade_id, contagem_id, insumo_id, estoque_id, quantidade_contada, unidade_base, quantidade_sistema, custo_unitario)
+  values ($1,$2,$3,$4,2,'un',2.4,60) returning id`, [U, k3, vinho, estBar]);
+const itGin = await id(`insert into public.estoque_contagens_itens (unidade_id, contagem_id, insumo_id, estoque_id, quantidade_contada, unidade_base, quantidade_sistema, custo_unitario)
+  values ($1,$2,$3,$4,2000,'ml',2700,0.1) returning id`, [U, k3, gin, estBar]);
+// o caminho anterior (fechar → registrar_contagem_estoque_multi) já tinha aplicado o gin deste inventário
+await pg.query(`select public.registrar_contagem_estoque_multi($1,$2,$3,2000,null,'Antigo','Inventário de 30/09/2026 (fechamento) [inventario:' || $4 || ']')`, [U, estBar, gin, k3]);
+await pg.exec(`update public.estoque_contagens set status = 'fechada', fechada_em = now() where id = '${k3}'`);
+const aj3 = await ajustarInventario(ger, { contagem_id: k3, justificativa: "fechamento de setembro", pin: "4321" });
+const a3v = aj3.data?.itens?.find((i) => i.item_id === itVinho);
+const a3g = aj3.data?.itens?.find((i) => i.item_id === itGin);
+conferir("ajuste do vinho na unidade do saldo: contado 2 garrafas = 1.500 ml, sistema 1.800 ml → −300 ml; valor pelo custo congelado (R$ 24)",
+  [aj3.error, a3v?.status, a3v?.contado, a3v?.sistema_na_contagem, a3v?.ajuste, a3v?.unidade_medida,
+   (await one(`select quantidade_atual::float q from public.estoque_itens where estoque_id = $1 and insumo_id = $2`, [estBar, vinho])).q,
+   Number((await one(`select valor_total from public.estoque_movimentacoes_multi where inventario_item_id = $1`, [itVinho])).valor_total)],
+  [null, "ajustado", 1500, 1800, -300, "ml", 1500, 24]);
+conferir("inventário que o caminho anterior já aplicou ao saldo não é ajustado de novo (sem duplicar)",
+  [a3g?.status, (await one(`select quantidade_atual::float q from public.estoque_itens where estoque_id = $1 and insumo_id = $2`, [estBar, gin])).q], ["ja_ajustado", 2000]);
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os testes passaram.");
 process.exit(falhas ? 1 : 0);

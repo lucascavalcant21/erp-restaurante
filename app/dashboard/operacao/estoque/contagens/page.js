@@ -8,6 +8,10 @@
 // Ao fechar, o saldo do estoque de cada produto contado passa a ser o contado
 // (lib/inventario-saldo.mjs): é a única forma de contar estoque no sistema.
 // Garrafa, saco e afins são contados em "fechadas + aberta".
+// EST-MOV: produto contado não se corrige nem se apaga pelo funcionário (só o
+// administrador, com PIN); ZERO exige confirmação; contagem cega configurável;
+// com o banco atualizado, ir para o saldo é o AJUSTE autorizado (PIN) — sem
+// ele, segue o caminho anterior (aplicar ao saldo ao fechar).
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,11 +26,14 @@ import {
   TIPOS_CONTAGEM, STATUS_CONTAGEM, GRUPOS_LOCAL, grupoDoEstoque, unidadeContagem, daBase, fmtQtd, lerQuantidade,
   cicloDoMes, proximaContagem, tituloContagem, lerObs, progressoContagem, resumoFechamento, custoSugerido,
   enfileirar, compararContagens, valorContagem, chaveItem, hojeLocal, UNIDADES_PENDENCIA,
+  statusItemContagem, ROTULO_STATUS_ITEM, impactoDivergencias, paraBase,
 } from "../../../../lib/contagem-estoque.mjs";
+import { quantidadeDoLancamento, embalagemDoProduto, unidadesDaFracao, STATUS_AJUSTE } from "../../../../lib/estoque-movimento.mjs";
+import { lerSeguranca, corrigirProdutoContado, ajustarPeloInventario, fetchAjustesDoInventario } from "../../../../lib/estoque-movimento-dados";
 import { unidadeValida, lerValor } from "../../../../lib/contas-pagar.mjs";
 import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../../../../components/ui";
-import { ArrowLeft, Check, ClipboardList, Plus, Search, X, AlertTriangle, CloudOff, Loader2, Lock } from "lucide-react";
+import { ArrowLeft, Check, ClipboardList, Plus, Search, X, AlertTriangle, CloudOff, Loader2, Lock, EyeOff, Scale } from "lucide-react";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const fmtHora = (d) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
@@ -215,6 +222,9 @@ function TelaContagem({ id, unidade, sessao }) {
   const [processando, setProcessando] = useState(false);
   const enviando = useRef(false);
   const inputs = useRef({});
+  const [seg, setSeg] = useState(null);
+  const [estMov, setEstMov] = useState(false);
+  useEffect(() => { lerSeguranca(unidade).then((r) => { setSeg(r.data || null); setEstMov(!!r.data); }); }, [unidade]);
 
   // ── carga ──
   const carregar = useCallback(async () => {
@@ -250,6 +260,8 @@ function TelaContagem({ id, unidade, sessao }) {
         setItens((m) => new Map(m).set(chaveItem(op.insumo_id, op.estoque_id), {
           ...(m.get(chaveItem(op.insumo_id, op.estoque_id)) || {}), id: r.data.id, insumo_id: op.insumo_id, estoque_id: op.estoque_id || null,
           quantidade_contada: r.data.quantidade_contada, unidade_base: r.data.unidade_base,
+          quantidade_sistema: op.quantidade_sistema == null ? null : paraBase(op.quantidade_sistema, op.unidade_medida),
+          observacao: op.detalhe || null,
         }));
       }
     } finally { enviando.current = false; }
@@ -289,6 +301,10 @@ function TelaContagem({ id, unidade, sessao }) {
   const aberta = contagem?.status === "aberta";
   // contar: quem entra na tela. Finalizar/cancelar: permissão própria (vê custo e congela).
   const podeFechar = !sessao?.gerenciado || hasPermission(sessao, permissionKey("estoque", "counts", "close_inventory"));
+  // contagem cega (padrão ligada): quem conta não vê o saldo do sistema nem a divergência
+  const cega = seg?.contagem_cega !== false;
+  const admin = !!seg?.pode_autorizar;
+  const mostrarDivergencia = admin || !cega;
 
   const estoquesDoGrupo = f.grupo === "todos" ? estoques : estoques.filter((e) => grupoDoEstoque(e) === f.grupo);
   const noFiltroLocal = (estoqueId) => (f.estoqueId ? estoqueId === f.estoqueId : estoquesDoGrupo.some((e) => e.id === estoqueId));
@@ -309,15 +325,16 @@ function TelaContagem({ id, unidade, sessao }) {
   const progLocal = progressoContagem(doLocal, itensLista);
 
   // ── ações ──
-  const registrar = (p, valorTexto, estoqueId = p.estoque_id) => {
+  // valorTexto na unidade do cadastro; detalhe = o que foi digitado ("3 fechadas + 200 ml", "6+4")
+  const registrar = (p, valorTexto, estoqueId = p.estoque_id, detalhe = "") => {
     if (!aberta) return;
     const q = lerQuantidade(valorTexto);
     if (q.erro) return alert(`${p.insumo?.nome}: ${q.erro}`);
     const key = chaveItem(p.insumo_id, estoqueId);
-    const existente = itens.get(key);
+    if (contadoDe(key)) return alert(`${p.insumo?.nome}: este produto já foi contado. Correção só pelo administrador, com PIN.`);
     gravarFila(enfileirar(filaRef.current, {
-      insumo_id: p.insumo_id, estoque_id: estoqueId || null, nome: p.insumo?.nome, quantidade: String(q.valor),
-      unidade_medida: p.insumo?.unidade_medida, quantidade_sistema: existente ? null : saldoParaCadastro(p.quantidade_atual, p.insumo), item_id: existente?.id || null,
+      insumo_id: p.insumo_id, estoque_id: estoqueId || null, nome: p.insumo?.nome, quantidade: String(q.valor), detalhe,
+      unidade_medida: p.insumo?.unidade_medida, quantidade_sistema: saldoParaCadastro(p.quantidade_atual, p.insumo), item_id: null,
     }));
     setEdit((s) => { const n = { ...s }; delete n[key]; return n; });
     // vai para o próximo da lista
@@ -361,7 +378,7 @@ function TelaContagem({ id, unidade, sessao }) {
             <div className="flex-1 min-w-0">
               <p className="text-3xs font-black uppercase tracking-widest text-slate-300">Contagem de estoque</p>
               <h1 className="text-lg sm:text-2xl font-black truncate">{tituloContagem(contagem)}</h1>
-              <p className="text-xs text-slate-300">{fmtData(contagem.data_referencia)} · responsável: {nomeUsuario(sessao)}</p>
+              <p className="text-xs text-slate-300">{fmtData(contagem.data_referencia)} · responsável: {nomeUsuario(sessao)}{cega ? " · " : ""}{cega && <span className="inline-flex items-center gap-1 font-bold"><EyeOff size={12} /> contagem cega</span>}</p>
             </div>
             <span className={`px-2 py-1 rounded-full text-3xs font-black uppercase ${COR_STATUS[contagem.status]}`}>{STATUS_CONTAGEM[contagem.status]}</span>
           </div>
@@ -385,7 +402,7 @@ function TelaContagem({ id, unidade, sessao }) {
             <button onClick={() => setFalhasEnvio([])} className="mt-1 font-bold underline">ok</button>
           </div>
         )}
-        {!aberta && <FechadoResumo contagem={contagem} itens={[...itens.values()]} insumoPorId={insumoPorId} estoquePorId={estoquePorId} obs={obs} unidade={unidade} sessao={sessao} podeAplicar={podeFechar} />}
+        {!aberta && <FechadoResumo contagem={contagem} itens={[...itens.values()]} insumoPorId={insumoPorId} estoquePorId={estoquePorId} obs={obs} unidade={unidade} sessao={sessao} podeAplicar={podeFechar} admin={admin} estMov={estMov} />}
 
         {aberta && (
           <>
@@ -430,7 +447,9 @@ function TelaContagem({ id, unidade, sessao }) {
               {!visiveis.length && !extras.length && <p className="p-6 text-center text-sm font-bold text-fg">Nenhum produto neste filtro.</p>}
               {visiveis.map((p) => (
                 <LinhaProduto key={p.key} p={p} contado={contadoDe(p.key)} pendente={pendentesFila.has(p.key)} valor={edit[p.key] ?? ""}
-                  onValor={(v) => setEdit({ ...edit, [p.key]: v })} onConfirmar={(v) => registrar(p, v)} refInput={(el) => { inputs.current[p.key] = el; }} mostrarLocal={!f.estoqueId} />
+                  onValor={(v) => setEdit({ ...edit, [p.key]: v })} onConfirmar={(v, detalhe) => registrar(p, v, p.estoque_id, detalhe)} refInput={(el) => { inputs.current[p.key] = el; }} mostrarLocal={!f.estoqueId}
+                  onZero={() => setModal({ tipo: "zero", p, estoqueId: p.estoque_id })} onCorrigir={(item) => setModal({ tipo: "corrigir", p, item })}
+                  mostrarSistema={!cega} mostrarDivergencia={mostrarDivergencia} admin={admin} />
               ))}
               {extras.length > 0 && (
                 <div className="pt-2">
@@ -441,7 +460,9 @@ function TelaContagem({ id, unidade, sessao }) {
                       const p = { insumo_id: ins.id, estoque_id: localParaExtra || null, insumo: ins, key: chaveItem(ins.id, localParaExtra || null), estoque: estoquePorId.get(localParaExtra) };
                       return (
                         <LinhaProduto key={`x-${ins.id}`} p={p} contado={localParaExtra ? contadoDe(p.key) : null} pendente={pendentesFila.has(p.key)} valor={edit[p.key] ?? ""} desabilitado={!localParaExtra}
-                          onValor={(v) => setEdit({ ...edit, [p.key]: v })} onConfirmar={(v) => registrar(p, v, localParaExtra)} refInput={() => {}} mostrarLocal />
+                          onValor={(v) => setEdit({ ...edit, [p.key]: v })} onConfirmar={(v, detalhe) => registrar(p, v, localParaExtra, detalhe)} refInput={() => {}} mostrarLocal
+                          onZero={() => setModal({ tipo: "zero", p, estoqueId: localParaExtra })} onCorrigir={(item) => setModal({ tipo: "corrigir", p, item })}
+                          mostrarSistema={false} mostrarDivergencia={mostrarDivergencia} admin={admin} />
                       );
                     })}
                   </div>
@@ -513,8 +534,25 @@ function TelaContagem({ id, unidade, sessao }) {
         </div>
       )}
 
+      {modal?.tipo === "zero" && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center sm:p-4">
+          <div className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3">
+            <div className="flex justify-between"><h3 className="font-black text-lg">Produto zerado?</h3><button type="button" onClick={() => setModal(null)} aria-label="Fechar"><X size={20} /></button></div>
+            <p className="text-sm"><b>{modal.p.insumo?.nome}</b>{estoquePorId.get(modal.estoqueId)?.nome ? <> em <b>{estoquePorId.get(modal.estoqueId).nome}</b></> : null}: não há nenhuma unidade?</p>
+            <p className="text-xs text-fg">Grava ZERO de verdade. Produto que você não olhou NÃO é zero: deixe sem contar. Depois de confirmado, só o administrador corrige.</p>
+            <button onClick={() => { registrar(modal.p, "0", modal.estoqueId, "produto zerado (confirmado)"); setModal(null); }}
+              className="w-full h-14 bg-slate-900 text-white font-black rounded-2xl">CONFIRMAR PRODUTO ZERADO</button>
+            <button onClick={() => setModal(null)} className="w-full h-11 rounded-2xl bg-slate-100 font-bold">Voltar</button>
+          </div>
+        </div>
+      )}
+
+      {modal?.tipo === "corrigir" && (
+        <ModalCorrigir p={modal.p} item={modal.item} onFechar={() => setModal(null)} onFeito={async () => { setModal(null); await carregar(); }} />
+      )}
+
       {modal?.tipo === "finalizar" && (
-        <Finalizar id={id} unidade={unidade} contagem={contagem} sessao={sessao} itens={[...itens.values()]} produtos={produtos} estoques={estoques} pendencias={obs.pendencias}
+        <Finalizar id={id} unidade={unidade} contagem={contagem} sessao={sessao} estMov={estMov} itens={[...itens.values()]} produtos={produtos} estoques={estoques} pendencias={obs.pendencias}
           fila={fila} insumoPorId={insumoPorId} custosMedios={base?.custosMedios || {}} etapa={modal.etapa}
           onEtapa={(etapa) => setModal({ ...modal, etapa })} onFechar={() => setModal(null)} onFechado={async () => { setModal(null); await carregar(); }} />
       )}
@@ -533,7 +571,8 @@ function emEmbalagens(qtd, insumo) {
   return { fechadas, aberto };
 }
 
-function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refInput, mostrarLocal, desabilitado = false }) {
+function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refInput, mostrarLocal, desabilitado = false,
+  onZero, onCorrigir, mostrarSistema = false, mostrarDivergencia = false, admin = false }) {
   const um = p.insumo?.unidade_medida;
   const uc = unidadeContagem(um);
   const frac = ehFracionavel(p.insumo);
@@ -543,18 +582,21 @@ function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refIn
   const v = frac ? (valor && typeof valor === "object" ? valor : { fechadas: "", aberto: "" }) : (typeof valor === "string" ? valor : "");
   const vazio = frac ? v.fechadas === "" && v.aberto === "" : v === "";
   const doBar = grupoDoEstoque(p.estoque) === "bar";
+  const status = contado && !pendente ? statusItemContagem(contado, { mostrarDivergencia }) : (contado ? "contado" : "nao_contado");
+  const sistemaCad = contado?.quantidade_sistema != null ? daBase(contado.quantidade_sistema, um) : null;
   const confirmar = () => {
     if (!frac) {
-      if (!v.includes("+")) return onConfirmar(v);
+      if (!v.includes("+")) return onConfirmar(v, "");
       const soma = lerSoma(v);
       if (!Number.isFinite(soma)) return alert(`${p.insumo?.nome}: soma inválida. Ex.: 6+4`);
-      return onConfirmar(String(soma));
+      return onConfirmar(String(soma), `${v.replace(/\s+/g, "")} = ${fmtQtd(soma)} ${uc.rotulo}`);
     }
     const q = quantidadeDeEmbalagens(v, p.insumo);
     if (q.erro) return alert(`${p.insumo?.nome}: ${q.erro}`);
-    onConfirmar(String(q.valor));
+    onConfirmar(String(q.valor), `${lerSoma(v.fechadas) || 0} fechada(s) + ${fmtQtd(lerSoma(v.aberto) || 0)} ${unAberta}`);
   };
   const enter = (e) => { if (e.key === "Enter" && !vazio) { e.preventDefault(); confirmar(); } };
+  const sistemaVisivel = !contado && mostrarSistema ? saldoParaCadastro(p.quantidade_atual, p.insumo) : null;
   return (
     <div className={`rounded-2xl border p-3 ${contado ? "bg-emerald-50 border-emerald-200" : "bg-white border-line"}`}>
       <div className="flex justify-between gap-2">
@@ -564,40 +606,115 @@ function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refIn
             {frac ? <>Embalagem de <b>{fmtQtd(conteudoDe(p.insumo))} {unAberta}</b></> : <>Unidade: <b>{uc.rotulo}</b></>}
             {p.insumo?.codigo_interno ? ` · cód. ${p.insumo.codigo_interno}` : ""}{p.insumo?.categoria ? ` · ${p.insumo.categoria}` : ""}{mostrarLocal && p.estoque ? ` · ${p.estoque.nome}` : ""}
           </p>
+          {sistemaVisivel != null && <p className="text-3xs font-bold text-slate-500">Sistema: {fmtQtd(sistemaVisivel)} {uc.rotulo}</p>}
         </div>
-        {contado && (
-          <span className="shrink-0 self-start text-right text-xs font-black text-emerald-800">
-            <span className="flex items-center justify-end gap-1"><Check size={14} />{emb ? `${emb.fechadas} fechada(s) + ${fmtQtd(emb.aberto)} ${unAberta}` : `${fmtQtd(qtd)} ${uc.rotulo}`}{pendente ? " ⏳" : ""}</span>
-            {emb && <span className="block font-bold text-emerald-700">= {fmtQtd(qtd)} {uc.rotulo}</span>}
-          </span>
-        )}
+        <span className={`shrink-0 self-start px-2 py-0.5 rounded-full text-3xs font-black uppercase ${COR_STATUS_ITEM[status]}`}>{ROTULO_STATUS_ITEM[status]}</span>
       </div>
-      {/* Garrafa/saco: os dois campos ganham a linha inteira no celular, senão a
-          dica some cortada ao lado dos botões. */}
-      <div className="mt-2 flex flex-wrap gap-2">
-        <div className={`flex min-w-0 gap-2 ${frac ? "basis-full sm:basis-0 sm:flex-1" : "flex-1"}`}>
-          {frac ? (
-            <>
-              <input ref={refInput} inputMode="text" enterKeyHint="next" disabled={desabilitado} value={v.fechadas} onChange={(e) => onValor({ ...v, fechadas: e.target.value })} onKeyDown={enter}
-                placeholder="fechadas" aria-label="Embalagens fechadas" className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
-              <input inputMode="decimal" enterKeyHint="next" disabled={desabilitado} value={v.aberto} onChange={(e) => onValor({ ...v, aberto: e.target.value })} onKeyDown={enter}
-                placeholder={`aberta (${unAberta})`} aria-label={`Quanto tem na aberta, em ${unAberta}`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
-            </>
-          ) : (
-            <input ref={refInput} inputMode={doBar ? "text" : "decimal"} enterKeyHint="next" disabled={desabilitado} value={v} onChange={(e) => onValor(e.target.value)} onKeyDown={enter}
-              placeholder={contado ? "corrigir" : `quantidade (${uc.rotulo})`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+      {contado ? (
+        // Contado: o funcionário não corrige nem apaga. Só o administrador, com PIN.
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm min-w-0">
+            <p className="font-black text-emerald-800 flex items-center gap-1">
+              <Check size={14} />{emb ? `${emb.fechadas} fechada(s) + ${fmtQtd(emb.aberto)} ${unAberta}` : `${fmtQtd(qtd)} ${uc.rotulo}`}{pendente ? " · aguardando envio" : ""}
+            </p>
+            {emb && <p className="text-xs font-bold text-emerald-700">= {fmtQtd(qtd)} {uc.rotulo}</p>}
+            {contado.observacao && <p className="text-3xs text-slate-500">{String(contado.observacao).split(" · ").filter((x) => !x.startsWith("custo: ")).join(" · ")}</p>}
+            {mostrarDivergencia && sistemaCad != null && !pendente && (
+              <p className="text-3xs font-bold">Sistema na contagem: {fmtQtd(sistemaCad)} {uc.rotulo} · diferença {qtd - sistemaCad > 0 ? "+" : ""}{fmtQtd(Math.round((qtd - sistemaCad) * 1000) / 1000)} {uc.rotulo}</p>
+            )}
+          </div>
+          {admin && !pendente && contado.id && (
+            <button onClick={() => onCorrigir?.(contado)} className="h-9 px-3 rounded-xl bg-white border border-line text-xs font-black flex items-center gap-1"><Lock size={12} /> Corrigir</button>
           )}
         </div>
-        <button disabled={desabilitado || vazio} onClick={confirmar} className={`h-12 px-3 sm:px-4 rounded-xl bg-emerald-600 text-white font-black text-sm disabled:opacity-40 flex items-center justify-center gap-1 ${frac ? "flex-1 sm:flex-none" : ""}`}><Check size={16} /> Contado</button>
-        <button disabled={desabilitado} onClick={() => onConfirmar("0")} className="h-12 px-3 rounded-xl bg-slate-200 font-black text-sm disabled:opacity-40">Zero</button>
-      </div>
-      {doBar && !contado && <p className="mt-1.5 text-xs font-semibold text-slate-500">Expositor e depósito: conte cada um e some no campo, ex.: 6+4.</p>}
+      ) : (
+        <>
+          {/* Garrafa/saco: os dois campos ganham a linha inteira no celular, senão a
+              dica some cortada ao lado dos botões. */}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <div className={`flex min-w-0 gap-2 ${frac ? "basis-full sm:basis-0 sm:flex-1" : "flex-1"}`}>
+              {frac ? (
+                <>
+                  <input ref={refInput} inputMode="text" enterKeyHint="next" disabled={desabilitado} value={v.fechadas} onChange={(e) => onValor({ ...v, fechadas: e.target.value })} onKeyDown={enter}
+                    placeholder="fechadas" aria-label="Embalagens fechadas" className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+                  <input inputMode="decimal" enterKeyHint="next" disabled={desabilitado} value={v.aberto} onChange={(e) => onValor({ ...v, aberto: e.target.value })} onKeyDown={enter}
+                    placeholder={`aberta (${unAberta})`} aria-label={`Quanto tem na aberta, em ${unAberta}`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+                </>
+              ) : (
+                <input ref={refInput} inputMode={doBar ? "text" : "decimal"} enterKeyHint="next" disabled={desabilitado} value={v} onChange={(e) => onValor(e.target.value)} onKeyDown={enter}
+                  placeholder={`quantidade (${uc.rotulo})`} className="w-0 flex-1 min-w-0 h-12 px-3 rounded-xl border border-line bg-white font-black text-lg placeholder:text-sm placeholder:font-semibold disabled:opacity-50" />
+              )}
+            </div>
+            <button disabled={desabilitado || vazio} onClick={confirmar} className={`h-12 px-3 sm:px-4 rounded-xl bg-emerald-600 text-white font-black text-sm disabled:opacity-40 flex items-center justify-center gap-1 ${frac ? "flex-1 sm:flex-none" : ""}`}><Check size={16} /> Contado</button>
+            <button disabled={desabilitado} onClick={() => onZero?.()} className="h-12 px-3 rounded-xl bg-slate-200 font-black text-sm disabled:opacity-40">Zero</button>
+          </div>
+          {doBar && <p className="mt-1.5 text-xs font-semibold text-slate-500">Expositor e depósito: conte cada um e some no campo, ex.: 6+4.</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+const COR_STATUS_ITEM = {
+  nao_contado: "bg-stone-100 text-stone-700", contado: "bg-emerald-100 text-emerald-800",
+  divergencia: "bg-amber-100 text-amber-900", revisao: "bg-sky-100 text-sky-900",
+};
+
+// Correção de produto já contado: só administrador, com PIN (o banco confere).
+// Quantidade como na contagem: embalagens + fração (garrafa: fechadas + ml).
+function ModalCorrigir({ p, item, onFechar, onFeito }) {
+  const um = p.insumo?.unidade_medida;
+  const uc = unidadeContagem(um);
+  const emb = embalagemDoProduto(p.insumo);
+  const unidades = unidadesDaFracao(p.insumo);
+  const [v, setV] = useState({ emb: "", frac: "", uf: emb && unidades.length > 1 ? unidades[1] : unidades[0] });
+  const [zero, setZero] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [pin, setPin] = useState("");
+  const [erro, setErro] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const lanc = !zero && (v.emb !== "" || v.frac !== "") ? quantidadeDoLancamento({ insumo: p.insumo, embalagens: v.emb, fracao: v.frac, unidadeFracao: v.uf }) : null;
+  // a contagem é na unidade do cadastro (garrafa fracionada: garrafas)
+  const quantidade = zero ? 0 : (lanc && !lanc.erro ? lanc.quantidade : null);
+  const enviar = async (e) => {
+    e.preventDefault();
+    if (enviando || quantidade == null) return;
+    setEnviando(true); setErro("");
+    const r = await corrigirProdutoContado({ item_id: item.id, quantidade, justificativa: motivo, pin });
+    setEnviando(false);
+    if (r.error) { setErro(r.error); if (r.pin) setPin(""); return; }
+    onFeito();
+  };
+  const campo = "h-12 px-2 rounded-xl border border-line bg-white font-black text-lg disabled:opacity-50";
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center sm:p-4">
+      <form onSubmit={enviar} className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3">
+        <div className="flex justify-between"><h3 className="font-black text-lg flex items-center gap-2"><Lock size={18} /> Corrigir contagem</h3><button type="button" onClick={onFechar} aria-label="Fechar"><X size={20} /></button></div>
+        <p className="text-sm"><b>{p.insumo?.nome}</b> · contado {fmtQtd(daBase(item.quantidade_contada, um))} {uc.rotulo}</p>
+        <div className="flex gap-2">
+          {emb && <input inputMode="text" disabled={zero} value={v.emb} onChange={(e) => setV({ ...v, emb: e.target.value })} placeholder={emb.emConteudo ? "fechadas" : emb.nome} aria-label={`Embalagens (${emb.texto})`} className={`w-24 min-w-0 ${campo}`} />}
+          <input inputMode="decimal" disabled={zero} value={v.frac} onChange={(e) => setV({ ...v, frac: e.target.value })} placeholder={emb ? "+ fração" : "quantidade"} className={`flex-1 min-w-0 ${campo}`} />
+          {unidades.length > 1
+            ? <select disabled={zero} value={v.uf} onChange={(e) => setV({ ...v, uf: e.target.value })} className="h-12 px-1 rounded-xl border border-line bg-white font-black text-sm">{unidades.map((u) => <option key={u} value={u}>{u}</option>)}</select>
+            : <span className="h-12 px-2 rounded-xl bg-slate-100 font-black text-sm flex items-center">{unidades[0]}</span>}
+        </div>
+        <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={zero} onChange={(e) => setZero(e.target.checked)} /> Não tem nenhum (zero)</label>
+        {lanc?.erro && <p className="text-xs font-bold text-red-700">{lanc.erro}</p>}
+        {quantidade != null && <p className="text-sm font-black">Nova quantidade: {fmtQtd(quantidade)} {uc.rotulo}{lanc?.texto ? ` (${lanc.texto})` : ""}</p>}
+        <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo da correção" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-bold" />
+        <input required type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="PIN do administrador" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-black tracking-widest" />
+        {erro && <p className="text-sm font-bold text-red-700">{erro}</p>}
+        <p className="text-3xs text-fg">A correção fica registrada na linha (de quanto para quanto, quem e por quê).</p>
+        <button disabled={enviando || quantidade == null} className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
+          {enviando ? <><Loader2 size={18} className="animate-spin" /> Corrigindo...</> : "Corrigir com PIN"}
+        </button>
+      </form>
     </div>
   );
 }
 
 // ═══ FINALIZAR: resumo → valorização → fechar ═══════════════════════════════
-function Finalizar({ id, unidade, contagem, sessao, itens, produtos, estoques, pendencias, fila, insumoPorId, custosMedios, etapa, onEtapa, onFechar, onFechado }) {
+function Finalizar({ id, unidade, contagem, sessao, estMov = false, itens, produtos, estoques, pendencias, fila, insumoPorId, custosMedios, etapa, onEtapa, onFechar, onFechado }) {
   const resumo = resumoFechamento({ produtos, itens, pendencias, estoques });
   const [ciente, setCiente] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
@@ -627,6 +744,13 @@ function Finalizar({ id, unidade, contagem, sessao, itens, produtos, estoques, p
     setProcessando(true);
     const r = await finalizarContagem({ contagem_id: id, itens, unidadesPorInsumo, custos, confirmado: confirmar });
     if (r.error) { setProcessando(false); return alert(`Não foi possível fechar: ${r.error}`); }
+    if (estMov) {
+      // Banco atualizado (EST-MOV): o saldo muda pelo AJUSTE autorizado, com PIN,
+      // na tela do inventário fechado (contado − sistema na hora da contagem).
+      setProcessando(false);
+      alert("Inventário FECHADO. Quantidades e custos estão congelados.\n\nPara o saldo do estoque: o administrador abre este inventário e confirma o ajuste com o PIN.");
+      return onFechado();
+    }
     // Fechou: o contado vira o saldo do estoque (só o que foi contado).
     const a = await aplicarInventarioAoSaldo({
       unidadeId: unidade, contagem: { ...contagem, status: "fechada" }, itens, insumoPorId, daBase,
@@ -730,8 +854,99 @@ function Finalizar({ id, unidade, contagem, sessao, itens, produtos, estoques, p
   );
 }
 
+// ═══ DIVERGÊNCIAS E AJUSTE DO ESTOQUE (inventário fechado) ═════════════════
+// Inventário ≠ movimentação: aqui se vê sistema × contado × diferença e o
+// impacto em R$. O saldo só muda quando o administrador ajusta, com PIN.
+function AjusteInventario({ contagem, unidade, itens, insumoPorId, estoquePorId, admin }) {
+  const [ajustes, setAjustes] = useState({ data: [], legado: new Set(), desatualizado: false });
+  const [modal, setModal] = useState(null);
+  const [resultado, setResultado] = useState(null);
+  const carregar = useCallback(async () => {
+    const r = await fetchAjustesDoInventario(contagem.id, unidade);
+    setAjustes({ data: r.data || [], legado: r.legado || new Set(), desatualizado: !!r.desatualizado });
+  }, [contagem.id, unidade]);
+  useEffect(() => { carregar(); }, [carregar]);
+  // ajustado pela EST-MOV (ligado ao item) ou já aplicado pelo caminho anterior (fechar → acerto de contagem)
+  const ajustados = new Set([
+    ...ajustes.data.filter((a) => a.inventario_item_id).map((a) => a.inventario_item_id),
+    ...itens.filter((i) => ajustes.legado.has(`${i.estoque_id}|${i.insumo_id}`)).map((i) => i.id),
+  ]);
+  const imp = impactoDivergencias(itens);
+  const linhas = [...imp.linhas].sort((a, b) => a.valor - b.valor);
+  const pendentes = linhas.filter((l) => !ajustados.has(l.id)).length;
+
+  const enviar = async (e) => {
+    e.preventDefault();
+    if (modal.enviando) return;
+    setModal({ ...modal, enviando: true, erro: "" });
+    const r = await ajustarPeloInventario({ contagem_id: contagem.id, justificativa: modal.justificativa, pin: modal.pin });
+    if (r.error) return setModal({ ...modal, enviando: false, erro: r.error, pin: r.pin ? "" : modal.pin });
+    setModal(null); setResultado(r.data); await carregar();
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-line p-3 space-y-2">
+      <p className="font-black text-sm flex items-center gap-2"><Scale size={16} /> Divergências e ajuste do estoque</p>
+      <p className="text-3xs text-fg">Sistema = saldo do Controle de Estoque na hora em que cada produto foi contado. O impacto usa o custo congelado no fechamento. Produto não contado não entra (não vira zero).</p>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[["Faltou (R$)", imp.perdas, "text-red-700"], ["Sobrou (R$)", imp.sobras, "text-emerald-700"], ["Resultado (R$)", imp.liquido, imp.liquido < 0 ? "text-red-700" : "text-emerald-700"]].map(([r, v, cor]) => (
+          <div key={r} className="rounded-xl bg-white border border-line p-2"><p className="text-3xs font-black uppercase text-fg">{r}</p><p className={`font-black ${cor}`}>{fmtBRL(v)}</p></div>
+        ))}
+      </div>
+      <p className="text-3xs text-fg">{imp.comDiferenca} produto(s) com diferença{imp.semReferencia ? ` · ${imp.semReferencia} sem saldo do sistema guardado (fora da conta)` : ""}.</p>
+      {linhas.length > 0 && (
+        <div className="overflow-x-auto"><table className="w-full text-xs">
+          <thead><tr className="text-left text-fg"><th className="py-1">Produto</th><th>Local</th><th className="text-right">Sistema</th><th className="text-right">Contado</th><th className="text-right">Diferença</th><th className="text-right">R$</th><th className="text-right">Estoque</th></tr></thead>
+          <tbody>{linhas.map((l) => {
+            const it = itens.find((i) => i.id === l.id); const um = insumoPorId.get(l.insumo_id)?.unidade_medida; const rot = unidadeContagem(um).rotulo;
+            return (
+              <tr key={l.id} className="border-t border-line">
+                <td className="py-1 font-bold">{insumoPorId.get(l.insumo_id)?.nome || "—"}</td>
+                <td>{estoquePorId.get(l.estoque_id)?.nome || "—"}</td>
+                <td className="text-right">{fmtQtd(daBase(it?.quantidade_sistema, um))} {rot}</td>
+                <td className="text-right">{fmtQtd(daBase(it?.quantidade_contada, um))} {rot}</td>
+                <td className={`text-right font-black ${l.diferenca < 0 ? "text-red-700" : "text-emerald-700"}`}>{l.diferenca > 0 ? "+" : ""}{fmtQtd(daBase(l.diferenca, um))} {rot}</td>
+                <td className={`text-right font-black ${l.valor < 0 ? "text-red-700" : "text-emerald-700"}`}>{fmtBRL(l.valor)}</td>
+                <td className="text-right">{ajustados.has(l.id) ? "ajustado" : "a ajustar"}</td>
+              </tr>);
+          })}</tbody>
+        </table></div>
+      )}
+      {ajustes.desatualizado && <p className="text-xs font-bold text-amber-800">O banco ainda não recebeu a atualização do estoque (EST-MOV): o ajuste fica disponível depois dela.</p>}
+      {admin && !ajustes.desatualizado && contagem.status === "fechada" && (
+        <button onClick={() => setModal({ justificativa: `Inventário de ${fmtData(contagem.data_referencia)}`, pin: "", erro: "", enviando: false })} disabled={!pendentes}
+          className="w-full h-12 rounded-2xl bg-slate-900 text-white font-black disabled:opacity-40 flex items-center justify-center gap-2">
+          <Lock size={16} /> {pendentes ? `Ajustar o estoque pelo inventário (${pendentes})` : "Estoque já ajustado por este inventário"}
+        </button>
+      )}
+      {!admin && pendentes > 0 && <p className="text-3xs text-fg">O ajuste do saldo é feito pelo administrador, com PIN.</p>}
+      {resultado && (
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-2 text-xs space-y-1">
+          <p className="font-black">{resultado.ajustados} produto(s) ajustado(s).</p>
+          {(resultado.itens || []).filter((i) => i.status !== "ajustado" && i.status !== "sem_diferenca").map((i) => <p key={i.item_id}>{i.nome}: {STATUS_AJUSTE[i.status] || i.status}</p>)}
+        </div>
+      )}
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center sm:p-4">
+          <form onSubmit={enviar} className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3">
+            <div className="flex justify-between"><h3 className="font-black text-lg flex items-center gap-2"><Scale size={18} /> Ajustar o estoque</h3><button type="button" onClick={() => setModal(null)} aria-label="Fechar"><X size={20} /></button></div>
+            <p className="text-sm">Lança entrada/retirada de ajuste para cada produto com diferença ({pendentes}). Impacto: <b>{fmtBRL(imp.liquido)}</b>.</p>
+            <p className="text-3xs text-fg">O que entrou ou saiu depois da contagem continua valendo. Nada é apagado: cada ajuste fica no histórico, ligado a este inventário.</p>
+            <input required value={modal.justificativa} onChange={(e) => setModal({ ...modal, justificativa: e.target.value })} placeholder="Motivo" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-bold" />
+            <input required type="password" inputMode="numeric" autoComplete="off" value={modal.pin} onChange={(e) => setModal({ ...modal, pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="PIN do administrador" className="w-full h-12 px-3 rounded-xl border border-line bg-white font-black tracking-widest" />
+            {modal.erro && <p className="text-sm font-bold text-red-700">{modal.erro}</p>}
+            <button disabled={modal.enviando} className="w-full h-12 bg-slate-900 text-white font-black rounded-2xl disabled:opacity-60 flex items-center justify-center gap-2">
+              {modal.enviando ? <><Loader2 size={18} className="animate-spin" /> Ajustando...</> : "Confirmar ajuste com PIN"}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ═══ INVENTÁRIO FECHADO: valores congelados + comparação ═══════════════════
-function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidade, sessao, podeAplicar }) {
+function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidade, sessao, podeAplicar, admin = false, estMov = false }) {
   const [anteriores, setAnteriores] = useState([]);
   const [noSaldo, setNoSaldo] = useState(null);
   const [maisRecente, setMaisRecente] = useState(null);
@@ -783,7 +998,8 @@ function FechadoResumo({ contagem, itens, insumoPorId, estoquePorId, obs, unidad
         </div>
         {obs.nota && <p className="text-xs text-fg max-w-md">{obs.nota}</p>}
       </div>
-      {contagem.status === "fechada" && noSaldo && (
+      {contagem.status === "fechada" && estMov && <AjusteInventario contagem={contagem} unidade={unidade} itens={itens} insumoPorId={insumoPorId} estoquePorId={estoquePorId} admin={admin} />}
+      {contagem.status === "fechada" && !estMov && noSaldo && (
         <div className={`rounded-2xl border p-4 text-sm ${noSaldo.erro ? "border-red-200 bg-red-50 text-red-800" : noSaldo.faltando ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
           {noSaldo.erro ? <p className="font-bold">Não consegui conferir o saldo do estoque: {noSaldo.erro}</p>
             : noSaldo.faltando === 0 ? <p className="font-bold">Saldo do estoque: os {noSaldo.total} produto(s) contados já estão no saldo, com o histórico do ajuste.</p>

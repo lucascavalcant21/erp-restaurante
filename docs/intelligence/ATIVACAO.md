@@ -65,6 +65,8 @@ Rode `db/intelligence/IC_01_PERMISSOES.sql`. Ele mostra contagem por perfil, sem
 
 ## 3. Aplicar a migração (aditiva)
 
+> **Aplicada em produção em 07/10/2026.** As evidências estão em `HI02_EVIDENCIAS.md`. Pelo conector Supabase, `DROP` trava esperando confirmação manual. Num banco ainda sem `intelligence_*`, as linhas `drop … if exists` não fazem nada e podem ser omitidas.
+
 Rode `db/intelligence/IC_01_INTELLIGENCE_CORE.sql` (versão `ic-01.2`). O que ela faz e não faz:
 - Cria **somente** `intelligence_eventos`, `intelligence_acoes`, `intelligence_feedback` e `intelligence_preferencias`, mais uma função de trigger própria.
 - Aborta sem mudar nada se:

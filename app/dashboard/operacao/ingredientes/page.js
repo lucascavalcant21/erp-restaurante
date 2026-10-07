@@ -45,6 +45,10 @@ import {
   textoPesquisavel,
   unidadeNormalizada,
   unidadesIngredientePorDepartamento,
+  setorParaGravar,
+  setorDoFormulario,
+  ehCozinhaEBar,
+  insumoEstaNoSetor,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import { custoDoInsumo, empanamentoDaComposicao, unidadesDaComposicao } from "../../../lib/custo-rendimento.mjs";
@@ -63,6 +67,8 @@ const ORDENACOES = [
 ];
 
 const unidadeLabel = unidade => UNIDADES_INGREDIENTE.find(item => item.value === unidade)?.label || unidade;
+// "ambos" (cozinha e bar) usa as categorias do setor principal
+const setorPrincipal = form => (form.departamento === "ambos" ? (form.departamento_principal || "cozinha") : form.departamento);
 
 function novoFormulario(departamento = "cozinha") {
   const ehBar = departamento === "bar";
@@ -547,7 +553,7 @@ function IngredientesRunner() {
       const categoria = item.categoria || adivinharCategoria(nome, dept, marca) || "Outros";
 
       const existente = insumos.find(i => 
-        (i.departamento || "cozinha") === dept && 
+        insumoEstaNoSetor(i, dept) && 
         i.nome.toLowerCase().trim() === nome.toLowerCase().trim()
       );
 
@@ -645,13 +651,15 @@ function IngredientesRunner() {
   };
 
   const abrirEditar = insumo => {
-    const dep = insumo.departamento || deptUrl || "cozinha";
+    const dep = setorDoFormulario({ ...insumo, departamento: insumo.departamento || deptUrl || "cozinha" });
     const unidadesDisponiveis = unidadesIngredientePorDepartamento(dep);
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
     if (!unidadesDisponiveis.some(item => item.value === un)) un = dep === "bar" ? "ml" : "kg";
     setForm({
       id: insumo.id,
       departamento: dep,
+      departamento_principal: insumo.departamento || "cozinha",
+      departamentos_original: Array.isArray(insumo.departamentos) ? insumo.departamentos : null,
       nome: insumo.nome || "",
       nome_interno: insumo.nome_interno || "",
       marca: insumo.marca || "",
@@ -760,15 +768,19 @@ function IngredientesRunner() {
       ganhoPct = Math.round(r.ganho_pct * 1000) / 1000;
       custoEmpanadoKg = Math.round(r.custo_empanado_kg * 10000) / 10000;
     }
+    // cozinha, bar ou os dois; a coluna departamentos só vai quando é dos dois
+    // ou quando deixa de ser (sem ela no banco, o resto grava igual)
+    const setor = setorParaGravar(form.departamento, form.departamento_principal || (deptUrl === "bar" ? "bar" : "cozinha"));
+    const camposSetor = setor.departamentos || form.departamentos_original ? setor : { departamento: setor.departamento };
     setSalvando(true);
     const resultado = await salvarInsumo({
       id: form.id,
       unidade_id: unidadeAtiva,
-      departamento: form.departamento,
+      ...camposSetor,
       nome,
       nome_interno: form.nome_interno.trim() || null,
       marca: form.marca.trim() || null,
-      categoria: form.categoria || adivinharCategoria(nome, form.departamento, form.marca) || "Outros",
+      categoria: form.categoria || adivinharCategoria(nome, setor.departamento, form.marca) || "Outros",
       codigo_interno: form.codigo_interno.trim() || null,
       tamanho_embalagem: quantidade,
       unidade_medida: form.unidade_medida,
@@ -797,7 +809,8 @@ function IngredientesRunner() {
       const ignoradas = resultado.colunasIgnoradas;
       const arquivos = [
         ignoradas.some(c => c.startsWith("empanamento_")) && "db/migracao_insumo_empanamento.sql",
-        ignoradas.some(c => !c.startsWith("empanamento_")) && "db/migracao_insumos_porcionamento.sql",
+        ignoradas.includes("departamentos") && "db/INSUMOS_COZINHA_E_BAR.sql",
+        ignoradas.some(c => !c.startsWith("empanamento_") && c !== "departamentos") && "db/migracao_insumos_porcionamento.sql",
       ].filter(Boolean).join(" e ");
       alert(`Salvo, mas estes campos NÃO foram gravados porque o banco ainda não tem a coluna: ${ignoradas.join(", ")}. Peça ao administrador para aplicar ${arquivos}.${ignoradas.some(c => c.startsWith("empanamento_")) ? " O custo do empanamento calculado pela composição foi gravado; a lista de ingredientes dela, não." : ""}`);
     }
@@ -827,6 +840,7 @@ function IngredientesRunner() {
     const fichasTxt = (resultado.fichasAtualizadas > 0 ? ` Perda aplicada em ${resultado.fichasAtualizadas} linha(s) de ficha técnica.` : "")
       + (resultado.empanadosAtualizados > 0 ? ` Custo recalculado em ${resultado.empanadosAtualizados} empanado(s) que usam este ingrediente.` : "");
     mostrarToast((form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`) + fichasTxt);
+    if (resultado.aviso) alert(resultado.aviso);
   };
 
   const handleRemover = async insumo => {
@@ -994,7 +1008,7 @@ function IngredientesRunner() {
                 return (
                   <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
                     <td className="px-4 py-2">
-                      <p className="truncate text-sm font-black text-fg">{insumo.nome}</p>
+                      <p className="truncate text-sm font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-sky-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-sky-800">cozinha e bar</span>}</p>
                       <p className="mt-0.5 truncate text-2xs text-fg">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
@@ -1075,7 +1089,7 @@ function IngredientesRunner() {
               <article key={insumo.id} className="rounded-xl border border-line bg-card p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="truncate font-black text-fg">{insumo.nome}</h2>
+                    <h2 className="truncate font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-sky-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-sky-800">cozinha e bar</span>}</h2>
                     <p className="mt-1 truncate text-xs text-fg">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
@@ -1208,7 +1222,7 @@ function IngredientesRunner() {
                           const nova = prompt("Digite o nome da nova categoria:");
                           if (nova && nova.trim()) {
                             const cat = nova.trim();
-                            salvarNovaCategoriaCustom(cat, form.departamento);
+                            salvarNovaCategoriaCustom(cat, setorPrincipal(form));
                             setForm({ ...form, categoria: cat });
                           }
                         }}
@@ -1219,18 +1233,20 @@ function IngredientesRunner() {
                     </div>
                     <select value={form.categoria} onChange={event => setForm({ ...form, categoria: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="">Selecione...</option>
-                      {obterTodasCategoriasInsumo(form.departamento).map(item => <option key={item} value={item}>{item}</option>)}
+                      {obterTodasCategoriasInsumo(setorPrincipal(form)).map(item => <option key={item} value={item}>{item}</option>)}
                     </select>
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-900">Departamento</span>
+                    <span className="text-xs font-bold text-slate-900">Onde é usado</span>
                     <select value={form.departamento} onChange={event => {
                       const departamento = event.target.value;
                       const unidades = unidadesIngredientePorDepartamento(departamento);
                       setForm({
                         ...form,
                         departamento,
-                        categoria: "",
+                        // dos dois: fica principal o setor de onde veio (categoria continua valendo)
+                        departamento_principal: departamento === "ambos" ? (form.departamento === "bar" ? "bar" : form.departamento_principal || "cozinha") : departamento,
+                        categoria: departamento === "ambos" ? form.categoria : "",
                         unidade_medida: unidades.some(item => item.value === form.unidade_medida)
                           ? form.unidade_medida
                           : (departamento === "bar" ? "ml" : "kg"),
@@ -1238,7 +1254,9 @@ function IngredientesRunner() {
                     }} className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="cozinha">Cozinha</option>
                       <option value="bar">Bar</option>
+                      <option value="ambos">Cozinha e bar</option>
                     </select>
+                    {form.departamento === "ambos" && <span className="mt-1 block text-3xs font-semibold text-fg">Um cadastro só, nas listas e fichas da cozinha e do bar. O estoque continua separado por local.</span>}
                   </label>
                 </div>
               </section>

@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { calcularPrecoNormalizado, ehInsumoPrePreparo } from "./ingredientes-utils.mjs";
+import { calcularPrecoNormalizado, ehInsumoPrePreparo, SETORES_COMPARTILHAVEIS, insumoEstaNoSetor, setoresDoInsumo } from "./ingredientes-utils.mjs";
 import { empanamentoDaComposicao, fatorCorrecaoDoItem } from "./custo-rendimento.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
@@ -7,11 +7,17 @@ import { empanamentoDaComposicao, fatorCorrecaoDoItem } from "./custo-rendimento
 export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
-  let query = supabase.from("insumos").select("*");
-  if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
-  if (dept) query = query.eq("departamento", dept);
-
-  const { data, error } = await query;
+  // Cozinha/bar: entra também o ingrediente marcado para os dois setores
+  // (coluna departamentos). Sem a coluna no banco, o filtro antigo.
+  const consultar = (comCompartilhados) => {
+    let query = supabase.from("insumos").select("*");
+    if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
+    if (dept && comCompartilhados && SETORES_COMPARTILHAVEIS.includes(dept)) query = query.or(`departamento.eq.${dept},departamentos.cs.{${dept}}`);
+    else if (dept) query = query.eq("departamento", dept);
+    return query;
+  };
+  let { data, error } = await consultar(true);
+  if (error && /departamentos/.test(error.message || "")) ({ data, error } = await consultar(false));
   if (error || !data?.length) return { data: data || [], error: error?.message };
 
   let dadosFiltrados = data;
@@ -76,6 +82,21 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
 // Se o banco reclamar de uma coluna ainda não criada (ex: categoria, frete,
 // preco_atualizado_em), remove essa coluna do payload e tenta de novo — assim
 // o cadastro nunca quebra por falta de migração.
+// Ao marcar "Cozinha e bar" num cadastro, pode já existir outro com o mesmo
+// nome no outro setor (dois cadastros antigos). Não junta nem apaga nada:
+// só avisa, para a pessoa decidir.
+async function avisoMesmoNomeNoOutroSetor(id, campos) {
+  if (!Array.isArray(campos.departamentos) || campos.departamentos.length < 2 || !campos.nome) return null;
+  try {
+    let q = supabase.from("insumos").select("*").neq("id", id);
+    if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
+    const { data } = await q.ilike("nome", String(campos.nome).trim());
+    const outro = (data || []).find(e => insumoEstaNoSetor(e, "bar") || insumoEstaNoSetor(e, "cozinha"));
+    if (!outro) return null;
+    return `Atenção: ainda existe outro cadastro "${outro.nome}" ${insumoEstaNoSetor(outro, "bar") ? "no bar" : "na cozinha"}. Ele continua separado (as fichas e o estoque dele não mudam); para usar um só, troque nas fichas e deixe de usar o outro.`;
+  } catch { return null; }
+}
+
 async function retrySemColunaAusente(error, tentar, campos, tentativas = 0) {
   const m = error?.message || "";
   const match = m.match(/column "?([a-z_]+)"?(?: of relation "[a-z_]+")? does not exist/i)
@@ -207,9 +228,10 @@ export async function salvarInsumo(insumo, opcoes = {}) {
     if (!error) await sincronizarFornecedores(id, fornecedorIds);
     const fichasAtualizadas = error ? 0 : await sincronizarFatorNasFichas(id, atual, campos);
     const empanadosAtualizados = error ? 0 : await recalcularEmpanadosQueUsam(id);
+    const aviso = error ? null : await avisoMesmoNomeNoOutroSetor(id, campos);
     // Coluna que o banco não tem sai do envio para o resto gravar — mas quem
     // editou precisa saber que aquele campo NÃO foi salvo.
-    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)), fichasAtualizadas, empanadosAtualizados };
+    return { id, error: error?.message, colunasIgnoradas: enviadas.filter(c => !(c in campos)), fichasAtualizadas, empanadosAtualizados, aviso };
   } else {
     // Trava de duplicidade: não permite dois ingredientes com o mesmo nome no
     // mesmo setor/unidade. Para outro preço, edite o existente e adicione um
@@ -223,12 +245,15 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       };
       const nomeNorm = norm(campos.nome);
       if (nomeNorm) {
-        let q = supabase.from("insumos").select("id, nome, departamento, unidade_id");
+        // select("*"): funciona com ou sem a coluna departamentos no banco
+        let q = supabase.from("insumos").select("*");
         if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
-        if (campos.departamento) q = q.eq("departamento", campos.departamento);
         const { data: existentes } = await q.ilike("nome", String(campos.nome || "").trim());
-        if ((existentes || []).some(e => norm(e.nome) === nomeNorm)) {
-          return { error: "Já existe um ingrediente com esse nome neste setor. Edite o existente para adicionar outro fornecedor ou preço." };
+        const setores = setoresDoInsumo(campos);
+        const repetido = (existentes || []).find(e => norm(e.nome) === nomeNorm
+          && (!campos.departamento || setores.some(s => insumoEstaNoSetor(e, s))));
+        if (repetido) {
+          return { error: `Já existe um ingrediente com esse nome ${insumoEstaNoSetor(repetido, "bar") && !insumoEstaNoSetor(repetido, "cozinha") ? "no bar" : "na cozinha"}. Edite o existente (dá para marcar "Cozinha e bar" nele) para não ter dois cadastros.` };
         }
       }
     } catch { /* falha na checagem não bloqueia o cadastro */ }

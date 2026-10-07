@@ -10,6 +10,7 @@ import {
   precoNormalizadoDoInsumo,
   textoPesquisavel,
   unidadesIngredientePorDepartamento,
+  setoresDoInsumo, insumoEstaNoSetor, ehCozinhaEBar, setorParaGravar, setorDoFormulario, UNIDADES_INGREDIENTE,
 } from "./ingredientes-utils.mjs";
 
 test("normaliza acentos, maiúsculas, espaços e hífens para pesquisa", () => {
@@ -100,4 +101,28 @@ test("normaliza custo de pacote, maço e caixa por unidade", () => {
   assert.equal(calcularPrecoNormalizado(2, "pct", 18), 9);
   assert.equal(calcularPrecoNormalizado(4, "maco", 12), 3);
   assert.equal(calcularPrecoNormalizado(3, "caixa", 45), 15);
+});
+
+test("ingrediente na cozinha, no bar ou nos dois (um cadastro só)", () => {
+  const acucar = { departamento: "cozinha", departamentos: ["cozinha", "bar"] };
+  const sal = { departamento: "cozinha", departamentos: null };
+  const gin = { departamento: "bar" };
+  assert.deepEqual(setoresDoInsumo(acucar), ["cozinha", "bar"]);
+  assert.deepEqual(setoresDoInsumo(sal), ["cozinha"]);
+  assert.deepEqual(setoresDoInsumo({}), ["cozinha"]);
+  assert.equal(insumoEstaNoSetor(acucar, "bar"), true);
+  assert.equal(insumoEstaNoSetor(sal, "bar"), false);
+  assert.equal(insumoEstaNoSetor(gin, "bar"), true);
+  assert.deepEqual([ehCozinhaEBar(acucar), ehCozinhaEBar(sal), ehCozinhaEBar({ departamento: "bar", departamentos: ["cozinha"] })], [true, false, true]);
+  assert.deepEqual(setoresDoInsumo({ departamento: "bar", departamentos: ["limpeza", "BAR"] }), ["bar"]);
+});
+
+test("formulário: escolha ↔ o que grava", () => {
+  assert.deepEqual(setorParaGravar("ambos"), { departamento: "cozinha", departamentos: ["cozinha", "bar"] });
+  assert.deepEqual(setorParaGravar("ambos", "bar"), { departamento: "bar", departamentos: ["cozinha", "bar"] });
+  assert.deepEqual(setorParaGravar("ambos", "embalagens"), { departamento: "cozinha", departamentos: ["cozinha", "bar"] });
+  assert.deepEqual(setorParaGravar("bar"), { departamento: "bar", departamentos: null });
+  assert.deepEqual([setorDoFormulario({ departamento: "bar", departamentos: ["cozinha", "bar"] }), setorDoFormulario({ departamento: "bar" }), setorDoFormulario(null)], ["ambos", "bar", "cozinha"]);
+  assert.equal(unidadesIngredientePorDepartamento("ambos"), UNIDADES_INGREDIENTE);
+  assert.ok(unidadesIngredientePorDepartamento("ambos").some((u) => u.value === "garrafa") && unidadesIngredientePorDepartamento("ambos").some((u) => u.value === "maco"));
 });

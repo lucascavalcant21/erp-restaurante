@@ -43,9 +43,31 @@ export function suprimidos(registros = [], agora = new Date()) {
   return out;
 }
 
-/** Linha a gravar, com tenant vindo do ESCOPO (servidor), nunca do pedido. */
-export function linhaDeFeedback(escopo, f, agora = new Date()) {
+/**
+ * Evidência da pergunta no momento da resposta, tirada do insight RECALCULADO
+ * no servidor (nunca do que o cliente mandou): qual pergunta, sobre qual
+ * entidade e o que a tela mostrava. Fica para análises posteriores.
+ */
+export function estruturaDoInsight(insight) {
+  if (!insight) return null;
+  const contexto = {
+    titulo: String(insight.titulo || "").slice(0, 160),
+    evidencias: (insight.evidencias || []).slice(0, 6).map((e) => ({ rotulo: String(e.rotulo).slice(0, 60), valor: String(e.valor).slice(0, 80) })),
+    periodo: insight.periodo ? { de: insight.periodo.de, ate: insight.periodo.ate } : null,
+    impacto: insight.impacto?.valor != null ? { valor: insight.impacto.valor, natureza: insight.impacto.natureza || null } : null,
+  };
   return {
+    pergunta_id: insight.id,
+    entidade_tipo: insight.entidade?.tipo ? String(insight.entidade.tipo).slice(0, 30) : null,
+    entidade_id: insight.entidade?.id != null ? String(insight.entidade.id).slice(0, 64) : null,
+    contexto: JSON.stringify(contexto).length <= 3500 ? contexto : { titulo: contexto.titulo },
+  };
+}
+
+/** Linha a gravar, com tenant vindo do ESCOPO (servidor), nunca do pedido. */
+export function linhaDeFeedback(escopo, f, agora = new Date(), estrutura = null) {
+  return {
+    ...(estrutura || {}),
     unidade_id: escopo.unidadeId,
     empresa_id: escopo.empresaId,
     auth_user_id: escopo.userId,

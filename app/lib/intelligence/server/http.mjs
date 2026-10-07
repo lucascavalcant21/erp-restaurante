@@ -94,7 +94,9 @@ export async function atenderInteligencia(request, handler, { limitePorMinuto = 
 
   try {
     const provedor = injecao ? (injecao.provedor || null) : await provedorConfigurado();
-    const out = await handler({ ctx, ic, motor, store, persistente, servicoAcoes, corpo, correlationId, nomeUsuario, provedor });
+    // permissão ADICIONAL de uma rota (ex.: configurar metas), confirmada no banco como a porta
+    const autorizar = (permissao, acao = null) => authorizeAction(ctx, permissao, { acao, deps });
+    const out = await handler({ ctx, ic, motor, store, persistente, servicoAcoes, corpo, correlationId, nomeUsuario, provedor, autorizar });
     return responder({ ...out.corpo, auditoriaPersistente: persistente }, out.status || 200);
   } catch (e) {
     if (e instanceof ErroDeIsolamento) {

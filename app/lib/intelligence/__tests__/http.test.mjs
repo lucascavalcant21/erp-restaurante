@@ -96,3 +96,59 @@ test("perfil sem a permissão da Central de Inteligência: 403 antes de qualquer
   assert.equal(r.status, 403);
   assert.equal(consultou, false);
 });
+
+// ── Inteligência > Configurações (metas, alertas, sensibilidade) ─────────────
+const { obterPreferencias, alterarPreferencias } = await import("../server/preferencias.mjs");
+const { feedbackSchema, linhaDeFeedback, estruturaDoInsight } = await import("../memory/feedback.mjs");
+
+test("configurações: quem só vê a Central não altera (403, conferido no banco) e o bloqueio fica auditado", async () => {
+  const store = criarStoreMemoria();
+  const inj = { ...injecao({}, store), deps: depsFalsas({ negar: ["dashboard.intelligence.settings"] }) };
+  const get = await atenderInteligencia(pedido({ metodo: "GET" }), obterPreferencias, { injecao: inj });
+  const g = await get.json();
+  assert.equal(g.podeConfigurar, false);
+  assert.deepEqual([g.preferencias.sensibilidade, g.preferencias.metas.mensal], ["normal", null]);
+  const put = await atenderInteligencia(pedido({ metodo: "PUT", corpo: { metas: { mensal: 120000 } } }), alterarPreferencias, { injecao: inj });
+  assert.equal(put.status, 403);
+  assert.equal(await store.lerPreferencias("loja-a"), null, "nada gravado");
+  assert.ok(store.eventos.some((e) => e.etapa === "bloqueio"));
+});
+
+test("configurações: meta mensal gravada na unidade DA SESSÃO (unidade do corpo ignorada), auditada antes/depois", async () => {
+  const store = criarStoreMemoria();
+  const corpo = { metas: { mensal: 120000, semanal: null, diaria: null }, sensibilidade: "alta", alertas: { estoque: true, financeiro: true, compras: false, rh: true, vendas: true }, unidade_id: "loja-b", empresa_id: "B" };
+  const r = await atenderInteligencia(pedido({ metodo: "PUT", corpo }), alterarPreferencias, { injecao: injecao({}, store) });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.deepEqual([j.preferencias.metas.mensal, j.preferencias.sensibilidade, j.preferencias.alertas.compras, j.podeConfigurar], [120000, "alta", false, true]);
+  assert.equal(j.sugestao.hoje.de, "mensal");
+  assert.equal(await store.lerPreferencias("loja-b"), null, "empresa B intocada");
+  assert.equal((await store.lerPreferencias("loja-a")).meta_faturamento_mensal, 120000);
+  const conf = store.eventos.filter((e) => e.etapa === "configuracao");
+  assert.equal(conf.length, 2);
+  assert.deepEqual([conf[0].antes.metas.mensal, conf[0].depois.metas.mensal, conf[0].unidade_id], [null, 120000, "loja-a"]);
+});
+
+test("configurações: meta inválida é recusada; sem auditoria não grava", async () => {
+  const store = criarStoreMemoria();
+  const r = await atenderInteligencia(pedido({ metodo: "PUT", corpo: { metas: { mensal: -1 } } }), alterarPreferencias, { injecao: injecao({}, store) });
+  assert.equal(r.status, 400);
+  const fora = criarStoreMemoria({ falharAuditoria: true });
+  const r2 = await atenderInteligencia(pedido({ metodo: "PUT", corpo: { metas: { mensal: 1000 } } }), alterarPreferencias, { injecao: injecao({}, fora) });
+  assert.equal(r2.status, 503);
+  assert.equal(await fora.lerPreferencias("loja-a"), null);
+});
+
+test("pergunta respondida vira feedback ESTRUTURADO com a evidência recalculada no servidor", async () => {
+  const store = criarStoreMemoria();
+  const brief = async ({ motor }) => ({ corpo: await generateDailyBrief({ motor, store }) });
+  const b = await (await atenderInteligencia(pedido({ metodo: "GET" }), brief, { injecao: injecao({}, store) })).json();
+  const p = b.perguntasAbertas.find((x) => x.insightTipo === "contagem_falta");
+  const f = feedbackSchema.parse({ insightId: p.insightId, insightTipo: p.insightTipo, resposta: "opcao", opcao: "erro_contagem", comentario: null });
+  assert.equal(f.ok, true);
+  const insight = [...b.critical, ...b.warnings].find((i) => i.id === p.insightId);
+  const linha = linhaDeFeedback({ unidadeId: "loja-a", empresaId: null, userId: UID_A }, f.valor, AGORA, estruturaDoInsight(insight));
+  assert.deepEqual([linha.pergunta_id, linha.entidade_tipo, linha.opcao_id, linha.unidade_id], [p.insightId, "produto", "erro_contagem", "loja-a"]);
+  assert.ok(linha.contexto.evidencias.length > 0);
+  assert.ok(JSON.stringify(linha.contexto).length <= 3500);
+});

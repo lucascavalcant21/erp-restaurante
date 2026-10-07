@@ -40,7 +40,8 @@ export const PERMISSION_MODULES = [
       // Central de Inteligência e "Pergunte ao Héfisto". Só abre a porta: cada
       // número ainda exige a permissão da tela de onde ele vem, conferida no
       // servidor (app/lib/intelligence/permissions/mapa.mjs).
-      { id: "intelligence", label: "Central de Inteligência (Héfisto)", route: "/dashboard/inteligencia", actions: ["view"] },
+      // settings = metas de faturamento, alertas e sensibilidade da unidade (Inteligência > Configurações)
+      { id: "intelligence", label: "Central de Inteligência (Héfisto)", route: "/dashboard/inteligencia", actions: ["view", "settings"] },
     ],
   },
   {

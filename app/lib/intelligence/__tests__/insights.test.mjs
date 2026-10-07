@@ -8,7 +8,10 @@ import { criarVerificador } from "../permissions/mapa.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { compararComBaseline, desvioRelevante, limiares } from "../anomalies/baseline.mjs";
 import { detectarFaturamento } from "../anomalies/detectores.mjs";
-import { montarInsight, ordenarCausas } from "../insights/montar.mjs";
+import { montarInsight, ordenarCausas, ordenarInsights } from "../insights/montar.mjs";
+import { sugerirDistribuicao, pesosPorDiaDaSemana } from "../metrics/metas.mjs";
+import { limiaresDasPreferencias, preferenciasDaLinha, linhaDePreferencias, preferenciasSchema } from "../memory/preferencias.mjs";
+import { somarDias, diaDaSemana } from "../core/periodos.mjs";
 import { criarStoreMemoria } from "../audit/store-memoria.mjs";
 import { linhaDeFeedback, feedbackSchema } from "../memory/feedback.mjs";
 import { bancoFalso, contexto, depsFalsas, AGORA } from "./apoio.mjs";
@@ -75,11 +78,15 @@ test("Daily Brief: indicadores sem base aparecem como DADOS INSUFICIENTES, nunca
   const { b } = await brief();
   const m = Object.fromEntries(b.metrics.map((x) => [x.id, x.metrica]));
   assert.equal(m.faturamento_hoje.valor, 1200);
-  for (const id of ["meta", "cmv", "ticket"]) {
+  for (const id of ["meta", "cmv"]) {
     assert.equal(m[id].status, "insuficiente", id);
     assert.equal(m[id].valor, null);
   }
+  assert.match(m.meta.motivo, /Nenhuma meta de faturamento está configurada/);
   assert.equal(m.cmo.valor, 5480);
+  // resumo: Faturamento, Meta, CMV, CMO; ticket médio segue sem base (lista "Sobre estes dados")
+  assert.deepEqual(b.metrics.map((x) => x.id), ["faturamento_hoje", "meta", "cmv", "cmo"]);
+  assert.equal(b.cobertura.find((x) => x.metrica === "ticket_medio").status, "insuficiente");
 });
 
 test("aprendizado: resposta à pergunta some com o insight e reordena hipóteses do mesmo tipo", async () => {
@@ -122,4 +129,100 @@ test("usuário sem permissão financeira não recebe insight financeiro nem núm
 
 test("ISOLAMENTO: Daily Brief com RLS quebrado falha fechado", async () => {
   await assert.rejects(() => brief({ opcoesBanco: { ignorarFiltros: true } }), ErroDeIsolamento);
+});
+
+
+// ── metas, preferências, ranking e perguntas abertas (IC-1P) ─────────────────
+test("meta mensal configurada: meta de hoje é SUGESTÃO (nunca realizado) e o atingimento usa o faturamento REAL", async () => {
+  const store = criarStoreMemoria();
+  store.definirPreferencias("loja-a", { meta_faturamento_mensal: 31000 });
+  const { b } = await brief({ store });
+  const meta = b.metrics.find((x) => x.id === "meta").metrica;
+  assert.equal(meta.natureza, "SUGESTAO");
+  assert.ok(meta.valor > 0);
+  assert.equal(meta.detalhes.origem, "sugestao_mensal");
+  assert.match(meta.observacoes[0], /^SUGESTÃO a partir da meta mensal de R\$\s?31\.000,00, distribuída .*Não é realizado\.$/);
+  assert.equal(meta.detalhes.atingimento.status, "ok");
+  assert.equal(meta.detalhes.atingimento.pct, Math.round((1200 / meta.valor) * 1000) / 10);
+  assert.equal(meta.detalhes.mes.meta, 31000);
+});
+
+test("meta diária configurada: natureza META; sem faturamento do dia o atingimento é DADOS INSUFICIENTES, não 0%", async () => {
+  const store = criarStoreMemoria();
+  store.definirPreferencias("loja-a", { meta_faturamento_diaria: 1500 });
+  const { b } = await brief({ store });
+  const meta = b.metrics.find((x) => x.id === "meta").metrica;
+  assert.deepEqual([meta.natureza, meta.valor, meta.detalhes.atingimento.pct], ["META", 1500, 80]);
+  const tabelas = tabelasPadrao();
+  tabelas.fin_faturamento_diario = tabelas.fin_faturamento_diario.filter((l) => !(l.unidade_id === "loja-a" && String(l.data).startsWith("2026-10-07")));
+  const { b: b2 } = await brief({ store, tabelas });
+  const meta2 = b2.metrics.find((x) => x.id === "meta").metrica;
+  assert.equal(meta2.detalhes.atingimento.status, "insuficiente");
+  assert.equal(meta2.detalhes.atingimento.pct, undefined);
+});
+
+test("distribuição sugerida: igual sem histórico; pelo histórico do dia da semana quando há amostras; soma o mês", () => {
+  const igual = sugerirDistribuicao({ metas: { mensal: 31000 }, hoje: "2026-10-07" });
+  assert.equal(igual.metodo, "igual");
+  assert.deepEqual([igual.hoje.valor, igual.semana.valor], [1000, 7000]);
+  const historico = [];
+  for (let i = 1; i <= 56; i++) { const d = somarDias("2026-10-06", -i + 1); historico.push({ data: d, receita: diaDaSemana(d) === 5 ? 3000 : 1000 }); }
+  assert.ok(pesosPorDiaDaSemana(historico));
+  const pesada = sugerirDistribuicao({ metas: { mensal: 31000 }, hoje: "2026-10-07", historico });
+  assert.equal(pesada.metodo, "historico_dia_semana");
+  const sexta = pesada.porDiaDaSemana.find((x) => x.dia.startsWith("sex")).valor;
+  const quarta = pesada.porDiaDaSemana.find((x) => x.dia.startsWith("qua")).valor;
+  assert.ok(Math.abs(sexta - 3 * quarta) < 0.05, "sexta pesa 3× a quarta, como no histórico");
+  // outubro/2026: 5 sextas e 26 outros dias → 5×3 + 26 = 41 partes
+  assert.equal(quarta, Math.round((31000 / 41) * 100) / 100);
+  // sem metas: nada sugerido
+  assert.equal(sugerirDistribuicao({ metas: {}, hoje: "2026-10-07" }).hoje, null);
+});
+
+test("preferências: padrão funciona sem configurar; categoria desligada some; sensibilidade muda limiares", async () => {
+  const padrao = preferenciasDaLinha(null);
+  assert.deepEqual([padrao.sensibilidade, Object.values(padrao.alertas).every(Boolean), padrao.metas.mensal], ["normal", true, null]);
+  const alta = limiaresDasPreferencias({ sensibilidade: "alta" });
+  const baixa = limiaresDasPreferencias({ sensibilidade: "baixa" });
+  assert.ok(alta.precoVariacaoPct < limiares().precoVariacaoPct && baixa.precoVariacaoPct > limiares().precoVariacaoPct);
+  assert.ok(alta.vencimentoDias > baixa.vencimentoDias);
+
+  const store = criarStoreMemoria();
+  const { b: antes } = await brief({ store });
+  assert.ok([...antes.critical, ...antes.warnings].some((i) => i.modulo === "estoque"));
+  store.definirPreferencias("loja-a", { alertas: { estoque: false, financeiro: true, compras: true, rh: true, vendas: true } });
+  const { b: depois } = await brief({ store });
+  const todos = [...depois.critical, ...depois.warnings, ...depois.opportunities, ...depois.information];
+  assert.ok(!todos.some((i) => i.modulo === "estoque"));
+  assert.ok(depois.preferencias.alertasDesligadosOcultos > 0);
+
+  // o que a tela manda passa pelo esquema; meta zero/negativa ou campo extra não passa
+  assert.equal(preferenciasSchema.parse({ metas: { mensal: 120000, semanal: null, diaria: null } }).ok, true);
+  assert.equal(preferenciasSchema.parse({ metas: { mensal: -5, semanal: null, diaria: null } }).ok, false);
+  assert.equal(preferenciasSchema.parse({ sensibilidade: "maxima" }).ok, false);
+  assert.equal(preferenciasSchema.parse({ unidade_id: "loja-b" }).ok, false);
+  const linha = linhaDePreferencias("loja-a", padrao, { metas: { mensal: 120000, semanal: null, diaria: null } }, "u1", new Date("2026-10-07T12:00:00Z"));
+  assert.deepEqual([linha.unidade_id, linha.meta_faturamento_mensal, linha.meta_faturamento_diaria, linha.sensibilidade], ["loja-a", 120000, null, "normal"]);
+});
+
+test("ordem dos alertas: criticidade × impacto × confiança", () => {
+  const i = (id, nivel, valor, confianca = "alta") => ({ id, nivel, confianca, impacto: valor == null ? null : { valor } });
+  const ordem = ordenarInsights([
+    i("imp-grande", "importante", 50000), i("crit-pequeno", "critico", 50), i("imp-pequeno", "importante", 100),
+    i("imp-grande-baixa", "importante", 50000, "baixa"), i("oport", "oportunidade", 90000),
+  ]).map((x) => x.id);
+  assert.equal(ordem[0], "crit-pequeno", "crítico sempre na frente");
+  assert.ok(ordem.indexOf("imp-grande") < ordem.indexOf("imp-grande-baixa"), "menos confiança desce");
+  assert.ok(ordem.indexOf("imp-grande") < ordem.indexOf("imp-pequeno"), "mesma confiança: mais impacto sobe");
+  assert.equal(ordem.at(-1), "oport", "oportunidade fica depois dos alertas de atenção");
+});
+
+test("perguntas do Héfisto: diferença de contagem pergunta o que aconteceu, com as opções da operação", async () => {
+  const { b } = await brief();
+  const p = b.perguntasAbertas.find((x) => x.insightTipo === "contagem_falta");
+  assert.ok(p, "pergunta aberta da diferença de contagem");
+  assert.match(p.texto, /^O que ocorreu com aproximadamente .+ de .+\?$/);
+  assert.deepEqual(p.opcoes.map((o) => o.rotulo), ["Perda", "Produção", "Consumo interno", "Evento", "Transferência", "Erro de contagem", "Não sei"]);
+  assert.ok(p.evidencias.length > 0);
+  assert.equal(b.destaques, 3);
 });

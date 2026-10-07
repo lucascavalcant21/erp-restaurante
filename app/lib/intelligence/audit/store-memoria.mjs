@@ -43,6 +43,7 @@ export function criarStoreMemoria({ falharAuditoria = false } = {}) {
       return feedback.filter((f) => f.unidade_id === unidadeId && (!desde || f.created_at >= desde));
     },
     async lerPreferencias(unidadeId) { return preferencias.get(unidadeId) || null; },
+    async salvarPreferencias(linha) { preferencias.set(linha.unidade_id, { ...linha }); return { ...linha }; },
     definirPreferencias(unidadeId, p) { preferencias.set(unidadeId, p); },
   };
 }

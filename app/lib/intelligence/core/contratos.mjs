@@ -13,6 +13,8 @@ export const NATUREZA = Object.freeze({
   ESTIMATIVA: "ESTIMATIVA",   // calculado sobre um parâmetro (ex.: custo médio, % configurado)
   PROJECAO: "PROJECAO",       // extrapolação no tempo
   SIMULACAO: "SIMULACAO",     // "e se" com valores informados — nunca gravado como realizado
+  META: "META",               // alvo digitado por gente (configuração), nunca realizado
+  SUGESTAO: "SUGESTAO",       // alvo DERIVADO de uma meta configurada (ex.: mensal → dia), nunca realizado
 });
 
 export const ROTULO_NATUREZA = Object.freeze({
@@ -20,6 +22,8 @@ export const ROTULO_NATUREZA = Object.freeze({
   ESTIMATIVA: "ESTIMATIVA",
   PROJECAO: "PROJEÇÃO",
   SIMULACAO: "SIMULAÇÃO",
+  META: "META",
+  SUGESTAO: "SUGESTÃO",
 });
 
 export const CONFIANCA = Object.freeze({ ALTA: "alta", MEDIA: "media", BAIXA: "baixa", NENHUMA: "nenhuma" });

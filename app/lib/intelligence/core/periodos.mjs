@@ -60,7 +60,7 @@ export function diasDoPeriodo({ de, ate }) {
   return out;
 }
 
-function ultimoDiaDoMes(ano, mes) {
+export function ultimoDiaDoMes(ano, mes) {
   return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
 }
 

@@ -239,8 +239,25 @@ export function montarInsight(a, { unidadeId, aprendizado = {}, apuradoEm } = {}
   });
 }
 
+// Relevância = CRITICIDADE × IMPACTO × CONFIANÇA. Os pesos da criticidade são
+// afastados de propósito: um crítico de impacto pequeno ainda fica à frente de
+// um importante de impacto grande. Impacto em R$ entra em escala log (R$ 50 e
+// R$ 5.000 não ficam 100× distantes); sem valor, conta como neutro.
+const PESO_NIVEL = Object.freeze({ critico: 10, importante: 3, oportunidade: 1.5, informacao: 1 });
+const PESO_CONFIANCA = Object.freeze({ alta: 1, media: 0.8, baixa: 0.6 });
+
+export function relevancia(i, maiorImpacto = 0) {
+  const v = Math.abs(Number(i.impacto?.valor) || 0);
+  const imp = maiorImpacto > 0 ? Math.log10(1 + v) / Math.log10(1 + maiorImpacto) : 0;
+  return (PESO_NIVEL[i.nivel] ?? 1) * (1 + imp) * (PESO_CONFIANCA[i.confianca] ?? 0.8);
+}
+
 export function ordenarInsights(lista) {
-  return [...lista].sort((x, y) => (ORDEM_NIVEL[x.nivel] - ORDEM_NIVEL[y.nivel]) || ((y.impacto?.valor || 0) - (x.impacto?.valor || 0)));
+  const maior = Math.max(0, ...lista.map((i) => Math.abs(Number(i.impacto?.valor) || 0)));
+  return [...lista]
+    .map((i) => ({ i, r: relevancia(i, maior) }))
+    .sort((a, b) => (b.r - a.r) || (ORDEM_NIVEL[a.i.nivel] - ORDEM_NIVEL[b.i.nivel]))
+    .map((x) => x.i);
 }
 
 export { SEVERIDADE, OPCOES };

@@ -78,8 +78,18 @@ export function criarStoreSupabase(db = null) {
       return data || [];
     },
     async lerPreferencias(unidadeId) {
-      const { data, error } = await banco().from("intelligence_preferencias").select("limiares").eq("unidade_id", unidadeId).maybeSingle();
+      const { data, error } = await banco().from("intelligence_preferencias")
+        .select("limiares, alertas, sensibilidade, meta_faturamento_mensal, meta_faturamento_semanal, meta_faturamento_diaria, updated_at")
+        .eq("unidade_id", unidadeId).maybeSingle();
       if (error) return null;
+      return data || null;
+    },
+    // Configuração da unidade: só pelo servidor, depois de authorizeAction(dashboard.intelligence.settings).
+    async salvarPreferencias(linha) {
+      const { data, error } = await banco().from("intelligence_preferencias").upsert(linha, { onConflict: "unidade_id" })
+        .select("limiares, alertas, sensibilidade, meta_faturamento_mensal, meta_faturamento_semanal, meta_faturamento_diaria, updated_at")
+        .eq("unidade_id", linha.unidade_id).maybeSingle();
+      if (error) falhar("preferências", error);
       return data || null;
     },
     async nomeDoUsuario(authUserId) {
@@ -97,6 +107,7 @@ export const storeIndisponivel = Object.freeze({
   async buscarAcao() { return null; },
   async transicionarAcao() { throw new ErroDeStore("ação: servidor sem SUPABASE_SERVICE_ROLE_KEY"); },
   async registrarFeedback() { throw new ErroDeStore("feedback: servidor sem SUPABASE_SERVICE_ROLE_KEY"); },
+  async salvarPreferencias() { throw new ErroDeStore("preferências: servidor sem SUPABASE_SERVICE_ROLE_KEY"); },
   async listarFeedback() { return []; },
   async lerPreferencias() { return null; },
   async nomeDoUsuario() { return ""; },

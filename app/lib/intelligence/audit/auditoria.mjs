@@ -36,7 +36,7 @@ function limparConsultas(consultas = []) {
 export const ETAPA_AUDITORIA = Object.freeze({
   PEDIDO: "pedido", CONSULTA: "consulta", RECOMENDACAO: "recomendacao", PROPOSTA: "acao_proposta",
   CONFIRMACAO: "acao_confirmada", CANCELAMENTO: "acao_cancelada", EXECUCAO: "acao_executada", FALHA: "acao_falhou",
-  BLOQUEIO: "bloqueio", FEEDBACK: "feedback", BRIEF: "resumo_diario",
+  BLOQUEIO: "bloqueio", FEEDBACK: "feedback", BRIEF: "resumo_diario", CONFIGURACAO: "configuracao",
 });
 
 /**

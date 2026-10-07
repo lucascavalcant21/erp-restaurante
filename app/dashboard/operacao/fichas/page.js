@@ -85,6 +85,9 @@ import {
   porcoesParaCusto,
 } from "../../../lib/ficha-calculos.mjs";
 import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rendimento.mjs";
+// O editor trabalha em kg/L; a ficha grava na unidade do cadastro do insumo
+// (g/ml × 1000). A mesma conversão do editor novo (ficha-salvar.js).
+import { quantidadeParaGravar } from "../../../lib/ficha-modelo.mjs";
 import CampoDecimal from "../../../components/CampoDecimal";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
@@ -597,7 +600,7 @@ function FichasRunner() {
       const quantidade = converterParaBase(it.quantidade_lida, it.unidade_lida, unBase);
       return {
         chave: insumo.id, tipo: "insumo", insumo_id: insumo.id,
-        nome: insumo.nome, unidade: unBase,
+        nome: insumo.nome, unidade: unBase, unidade_insumo: insumo.unidade_medida || unBase,
         custo_unitario: custoUnitEfetivo(insumo), quantidade,
         peso_medio_g: insumo.peso_medio_g || null,
         modo: getSub(unBase) ? "sub" : "base",
@@ -1035,7 +1038,7 @@ function FichasRunner() {
        const qtdBase = converterParaBase(fi.quantidade || 0, fi.insumos.unidade_medida, unBase);
        return {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
-          nome: fi.insumos.nome, unidade: unBase,
+          nome: fi.insumos.nome, unidade: unBase, unidade_insumo: fi.insumos.unidade_medida || unBase,
           custo_unitario: custoNorm, quantidade: qtdBase,
           // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
           // 15% de perda vira fator +17,65% (custo ÷ 0,85), não +15%.
@@ -1188,7 +1191,7 @@ function FichasRunner() {
     const custoNorm = custoUnitEfetivo(insumoDb);
     return {
        chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
-       nome: insumoDb.nome, unidade: unBase,
+       nome: insumoDb.nome, unidade: unBase, unidade_insumo: insumoDb.unidade_medida || unBase,
        custo_unitario: custoNorm, quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
        // Perda vem do cadastro do ingrediente (regra em custo-rendimento.mjs).
@@ -1315,6 +1318,9 @@ function FichasRunner() {
 
     // Filtra ingredientes que estão com qtd = 0
     const ingValidos = ingFicha.filter(i => i.quantidade > 0);
+    // quantidade no editor = kg/L; no banco = unidade do cadastro do insumo (g → ×1000)
+    const unidadeDoInsumo = i => i.unidade_insumo || insumosAtivos.find(x => x.id === i.insumo_id)?.unidade_medida || i.unidade;
+    const qtdParaGravar = i => (i.tipo === "insumo" ? quantidadeParaGravar(i.quantidade, unidadeDoInsumo(i)) : i.quantidade);
     if(ingValidos.length === 0 && !form.produto_pronto) return alert("Adicione pelo menos um ingrediente com quantidade válida.");
 
     setSalvandoFicha(true);
@@ -1352,7 +1358,7 @@ function FichasRunner() {
          ingValidos.map(i => ({
             insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
             subficha_id: i.tipo === "base" ? i.subficha_id : null,
-            quantidade: i.quantidade,
+            quantidade: qtdParaGravar(i),
             fator_correcao: Number(i.fator) || 0
          }))
       );
@@ -1456,7 +1462,7 @@ function FichasRunner() {
                ficha_id: fichaIdSalva,
                insumo_id: i.insumo_id || null,
                subficha_id: i.subficha_id || null,
-               quantidade: i.quantidade,
+               quantidade: qtdParaGravar(i),
                insumos: i.insumo_id ? insumosAtivos.find(x => x.id === i.insumo_id) : null
             })),
           };

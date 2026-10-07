@@ -32,7 +32,10 @@ function falha(msg, extra = {}) { return { data: null, error: msg, ...extra }; }
 // ─── Motivos ─────────────────────────────────────────────────────────────────
 export const MOTIVOS = {
   entrada: [
-    { codigo: "compra", rotulo: "Compra" },
+    // Compra entra no estoque ao CONFIRMAR em Compras (EST-MOV-4), com custo e
+    // conta a pagar juntos. A tela de entrada não oferece "Compra" para a mesma
+    // nota não entrar duas vezes; o banco ainda aceita (telas antigas).
+    { codigo: "compra", rotulo: "Compra", pelaCompra: true },
     { codigo: "recebimento", rotulo: "Recebimento" },
     { codigo: "producao", rotulo: "Produção" },
     { codigo: "devolucao", rotulo: "Devolução" },
@@ -321,5 +324,10 @@ export async function salvarSegurancaEstoque(db, { unidade_id, pin_atual, pin_no
 
 /** Pode aparecer o botão ESTORNAR? (entrada/retirada, não é estorno, não foi estornado). */
 export function podeEstornar(mov, estornados = new Set()) {
-  return !!mov && ["entrada", "saida"].includes(mov.tipo) && !mov.estorno_de_id && !estornados.has(mov.id);
+  return !!mov && ["entrada", "saida"].includes(mov.tipo) && !mov.estorno_de_id && !estornados.has(mov.id) && !ehEntradaDeCompra(mov);
+}
+
+/** Entrada feita ao confirmar uma compra: volta só cancelando a compra (estoque, custo e conta juntos). */
+export function ehEntradaDeCompra(mov) {
+  return !!mov && mov.origem === "compra" && !!mov.detalhe_quantidade?.compra_item_id;
 }

@@ -89,7 +89,22 @@ export function vencimentos(amb, { dias = 3 } = {}) {
     const lotes = await ler(amb.dbe.from("estoque_lotes").select("estoque_id, insumo_id, validade, quantidade").gt("quantidade", 0), "estoque_lotes") || [];
     const comValidade = lotes.filter((l) => l.validade);
     const semValidade = lotes.length - comValidade.length;
-    if (lotes.length && !comValidade.length) {
+
+    // Etiquetas são a outra fonte de validade (cozinha): lidas ANTES de decidir
+    // que faltam dados — lote sem validade não apaga etiqueta vencida.
+    let etiquetas = [];
+    let totalEtiquetas = 0;
+    try {
+      const fim = limitesUtc({ de: amb.hoje, ate: limite, fuso: amb.fuso }).fim;
+      const resp = await amb.dbe.from("etiquetas").select("codigo, produto, validade_em, quantidade, unidade, status", { count: "exact" }).eq("status", "ativa").lt("validade_em", fim).order("validade_em").limit(50);
+      const et = await ler(resp, "etiquetas") || [];
+      etiquetas = et.map((e) => ({ codigo: e.codigo, produto: e.produto, validade: String(e.validade_em).slice(0, 10), vencido: String(e.validade_em).slice(0, 10) < amb.hoje, quantidade: e.quantidade, unidade: e.unidade }));
+      totalEtiquetas = Math.max(Number(resp?.count) || 0, etiquetas.length);
+    } catch (e) {
+      if (!e.ausente) throw e;
+    }
+
+    if (lotes.length && !comValidade.length && !etiquetas.length) {
       return insuficiente({ metrica: "vencimentos", periodo, escopo: amb.escopo, apuradoEm: amb.apuradoEm, consultas: consultas(),
         motivo: `Nenhum dos ${lotes.length} lote(s) com saldo tem validade informada: não há como saber o que vence.`, faltando: ["validade nas entradas de estoque"] });
     }
@@ -109,26 +124,21 @@ export function vencimentos(amb, { dias = 3 } = {}) {
       };
     }).sort((a, b) => a.validade.localeCompare(b.validade) || (b.valorEstimado || 0) - (a.valorEstimado || 0));
 
-    let etiquetas = [];
-    try {
-      const fim = limitesUtc({ de: amb.hoje, ate: limite, fuso: amb.fuso }).fim;
-      const et = await ler(amb.dbe.from("etiquetas").select("codigo, produto, validade_em, quantidade, unidade, status").eq("status", "ativa").lt("validade_em", fim).order("validade_em").limit(50), "etiquetas") || [];
-      etiquetas = et.map((e) => ({ codigo: e.codigo, produto: e.produto, validade: String(e.validade_em).slice(0, 10), vencido: String(e.validade_em).slice(0, 10) < amb.hoje, quantidade: e.quantidade, unidade: e.unidade }));
-    } catch (e) {
-      if (!e.ausente) throw e;
-    }
-
     const completude = lotes.length ? comValidade.length / lotes.length : 1;
     const observacoes = [];
     if (semValidade) observacoes.push(`${semValidade} lote(s) com saldo não têm validade informada e não puderam ser avaliados.`);
     const valorTotal = linhas.every((l) => l.valorEstimado != null) ? r2(soma(linhas, (l) => l.valorEstimado)) : null;
+    // Nenhum lote com validade: só as etiquetas puderam ser avaliadas (uma das duas fontes).
+    const soEtiquetas = lotes.length > 0 && !comValidade.length;
     return metrica({
       metrica: "vencimentos", valor: linhas.length, unidade: "lotes",
       periodo, fontes: [fonte("estoque_lotes", "Lotes com saldo por validade (FEFO)"), fonte("etiquetas", "Etiquetas ativas")],
-      consultas: consultas(), escopo: amb.escopo, completude: completude || 1, confianca: lotes.length ? confiancaPorCompletude(completude, { minimoMedia: 0.7 }) : CONFIANCA.MEDIA,
+      consultas: consultas(), escopo: amb.escopo, completude: soEtiquetas ? 0.5 : completude || 1,
+      confianca: soEtiquetas ? CONFIANCA.BAIXA : lotes.length ? confiancaPorCompletude(completude, { minimoMedia: 0.7 }) : CONFIANCA.MEDIA,
       apuradoEm: amb.apuradoEm, observacoes: completude < 1 ? observacoes : observacoes.concat(lotes.length ? [] : ["Nenhum lote com saldo registrado no estoque."]),
       detalhes: {
-        vencidos: linhas.filter((l) => l.vencido), aVencer: linhas.filter((l) => !l.vencido), etiquetas,
+        vencidos: linhas.filter((l) => l.vencido), aVencer: linhas.filter((l) => !l.vencido), etiquetas, totalEtiquetas,
+        lotesAvaliados: comValidade.length, lotesSemValidade: semValidade,
         valorEstimado: valorTotal != null ? { valor: valorTotal, natureza: NATUREZA.ESTIMATIVA, base: "quantidade × custo médio vigente" } : null,
       },
     });
@@ -171,10 +181,16 @@ export function divergenciasEstoque(amb, { limitePct = 10, maxItens = 10 } = {})
     const somaLotes = new Map();
     for (const l of lotes || []) { const k = `${l.estoque_id}|${l.insumo_id}`; somaLotes.set(k, (somaLotes.get(k) || 0) + (Number(l.quantidade) || 0)); }
     const semLotes = (lotes || []).length === 0;
+    // lote com saldo num local/produto que não tem linha de saldo também é divergência (saldo 0)
+    const comSaldo = new Set((itensSaldo || []).map((i) => `${i.estoque_id}|${i.insumo_id}`));
+    const lotesSemSaldo = [...somaLotes].filter(([k, q]) => !comSaldo.has(k) && Math.abs(q) > 0.0005).map(([k]) => {
+      const [estoque_id, insumo_id] = k.split("|");
+      return { estoque_id, insumo_id, quantidade_atual: 0 };
+    });
     const integridade = semLotes ? [] : (itensSaldo || []).filter((i) => {
       const k = `${i.estoque_id}|${i.insumo_id}`;
       return Math.abs((somaLotes.get(k) || 0) - (Number(i.quantidade_atual) || 0)) > 0.0005;
-    });
+    }).concat(lotesSemSaldo);
     const insInt = await mapaInsumos(amb, integridade.map((i) => i.insumo_id));
     const integridadeLista = integridade.slice(0, maxItens).map((i) => ({
       insumo_id: i.insumo_id, produto: insInt.get(i.insumo_id)?.nome || "(produto)", saldo: r3(Number(i.quantidade_atual)), somaDosLotes: r3(somaLotes.get(`${i.estoque_id}|${i.insumo_id}`) || 0),

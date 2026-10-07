@@ -118,6 +118,40 @@ test("Quais produtos estão próximos do vencimento? — lotes reais + etiquetas
   assert.ok(semArmadilha(m));
 });
 
+// Achado no Supabase real (HI-02): 55 lotes sem validade e 653 etiquetas ativas
+// vencidas — a resposta não pode ser "DADOS INSUFICIENTES" nem "nenhum lote vence".
+test("vencimento: lote sem validade não apaga etiqueta vencida; sem nenhuma das duas, DADOS INSUFICIENTES", async () => {
+  const comEtiqueta = tabelasPadrao();
+  comEtiqueta.estoque_lotes = comEtiqueta.estoque_lotes.map((l) => (l.unidade_id === "loja-a" ? { ...l, validade: null } : l));
+  comEtiqueta.etiquetas.push({ unidade_id: "loja-a", codigo: "ET0", produto: "Tacacá", validade_em: "2026-07-23T15:46:37Z", quantidade: 2300, unidade: "G", status: "ativa" });
+  const { motor } = await montar({ tabelas: comEtiqueta });
+  const m = await motor.getExpiringProducts({ dias: 3 });
+  assert.equal(m.valor, 0);
+  assert.deepEqual([m.detalhes.lotesAvaliados, m.detalhes.lotesSemValidade, m.detalhes.totalEtiquetas], [0, 4, 2]);
+  assert.deepEqual([m.detalhes.etiquetas[0].produto, m.detalhes.etiquetas[0].vencido], ["Tacacá", true]);
+  assert.deepEqual([m.confianca, m.status], ["baixa", "parcial"]);
+  assert.ok(semArmadilha(m));
+
+  const semNada = tabelasPadrao();
+  semNada.estoque_lotes = semNada.estoque_lotes.map((l) => (l.unidade_id === "loja-a" ? { ...l, validade: null } : l));
+  semNada.etiquetas = [];
+  const { motor: m2 } = await montar({ tabelas: semNada });
+  const r = await m2.getExpiringProducts({ dias: 3 });
+  assert.equal(r.valor, null);
+  assert.match(r.motivo, /Nenhum dos 4 lote\(s\) com saldo tem validade informada/);
+});
+
+test("divergência: lote com saldo num local/produto sem linha de saldo entra como saldo 0", async () => {
+  const t = tabelasPadrao();
+  t.estoque_lotes.push({ unidade_id: "loja-a", estoque_id: t.estoques[0].id, insumo_id: "insumo-sem-saldo", validade: null, quantidade: 36000 });
+  const { motor } = await montar({ tabelas: t });
+  const m = await motor.getStockVariance();
+  const orfao = m.detalhes.integridade.find((x) => x.insumo_id === "insumo-sem-saldo");
+  assert.deepEqual([orfao.saldo, orfao.somaDosLotes, orfao.produto], [0, 36000, "(produto)"]);
+  assert.equal(m.detalhes.totalIntegridade, 2); // óleo (9 ≠ 10) + o lote sem saldo
+  assert.ok(semArmadilha(m));
+});
+
 test("Tem alguma diferença estranha no estoque? — contado × esperado e saldo × lotes", async () => {
   const { motor } = await montar();
   const m = await motor.getStockVariance();

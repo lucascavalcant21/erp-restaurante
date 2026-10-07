@@ -79,9 +79,13 @@ export const AgenteEstoque = {
     const m = await motor.getExpiringProducts({ dias });
     if (!temValor(m)) return insuf(m, "Validade");
     const d = m.detalhes;
-    const texto = m.valor
+    const partes = [m.valor
       ? `${d.vencidos.length} lote(s) vencido(s) e ${d.aVencer.length} vencendo até ${ddmm(m.periodo.ate)}.${d.valorEstimado ? ` Valor estimado ao custo médio: ${brl(d.valorEstimado.valor)} (ESTIMATIVA).` : ""}`
-      : `Nenhum lote com saldo vence até ${ddmm(m.periodo.ate)}.`;
+      : d.lotesSemValidade && !d.lotesAvaliados
+        ? `Nenhum dos ${d.lotesSemValidade} lote(s) com saldo tem validade informada.`
+        : `Nenhum lote com saldo vence até ${ddmm(m.periodo.ate)}.`];
+    if (d.totalEtiquetas) partes.push(`${d.totalEtiquetas} etiqueta(s) ativa(s) com validade até ${ddmm(m.periodo.ate)}${d.etiquetas[0]?.vencido ? `; a mais antiga venceu em ${ddmm(d.etiquetas[0].validade)}` : ""}.`);
+    const texto = partes.join(" ");
     const linha = (l) => ({ rotulo: `${l.produto} · ${l.local}`, valor: `${num(l.quantidade)} ${l.unidade}`, detalhe: `${l.vencido ? "venceu" : "vence"} ${ddmm(l.validade)}${l.valorEstimado != null ? ` · ${brl(l.valorEstimado)} (estimativa)` : ""}` });
     const blocos = [blocoMetrica(m, "Lotes vencidos ou vencendo")];
     if (d.vencidos.length) blocos.push(blocoLista("Vencidos com saldo", d.vencidos.map(linha)));
@@ -89,7 +93,7 @@ export const AgenteEstoque = {
     if (d.etiquetas.length) blocos.push(blocoLista("Etiquetas ativas", d.etiquetas.map((e) => ({ rotulo: e.produto, valor: `${e.quantidade ?? ""} ${e.unidade ?? ""}`.trim(), detalhe: `validade ${ddmm(e.validade)}` }))));
     const acoes = [{ rotulo: "Ver validades", rota: "/dashboard/operacao/validade" }];
     if (d.vencidos[0]) acoes.unshift({ rotulo: `Registrar perda de ${d.vencidos[0].produto}`, comando: `Registrar perda de ${num(d.vencidos[0].quantidade)} ${d.vencidos[0].unidade} de ${d.vencidos[0].produto} por vencimento` });
-    return r(texto, blocos, acoes, m.valor ? NIVEL.DETECTAR : NIVEL.OBSERVAR);
+    return r(texto, blocos, acoes, m.valor || d.etiquetas.some((e) => e.vencido) ? NIVEL.DETECTAR : NIVEL.OBSERVAR);
   },
   async "estoque.divergencias"({ motor }) {
     const m = await motor.getStockVariance();

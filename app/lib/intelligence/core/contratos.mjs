@@ -147,7 +147,21 @@ export function insuficiente({ metrica: id, motivo, faltando = [], periodo = nul
   });
 }
 
+/** O usuário não tem a permissão da tela de onde o dado vem: nem consulta. */
+export function semPermissao({ metrica: id, capacidade, apuradoEm }) {
+  return congelarFundo({
+    metrica: id,
+    status: "sem_permissao",
+    cobertura: null,
+    valor: null,
+    motivo: `Você não tem permissão para consultar ${capacidade}.`,
+    confianca: CONFIANCA.NENHUMA,
+    apuradoEm: apuradoEm || new Date().toISOString(),
+  });
+}
+
 export const ehInsuficiente = (m) => m?.status === "insuficiente";
+export const ehSemPermissao = (m) => m?.status === "sem_permissao";
 export const temValor = (m) => m && (m.status === "ok" || m.status === "parcial") && Number.isFinite(m.valor);
 
 /** Confiança a partir da completude (regra única para todas as métricas). */

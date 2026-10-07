@@ -151,10 +151,38 @@ export function periodoAnterior(periodo) {
     const ate = somarDias(periodo.ate, -7);
     return Object.freeze({ tipo: "semana_anterior_equivalente", de, ate, rotulo: `${ddmm(de)} a ${ddmm(ate)}`, dias: diasEntre(de, ate) + 1, fuso: periodo.fuso });
   }
+  // Um dia só ("hoje", "ontem"): o mesmo dia da semana anterior — quarta se
+  // compara com quarta, não com a terça.
+  if (periodo.de === periodo.ate) {
+    const d = somarDias(periodo.de, -7);
+    return Object.freeze({ tipo: "mesmo_dia_semana_anterior", de: d, ate: d, rotulo: `${nomeDiaSemana(d)} anterior (${ddmm(d)})`, dias: 1, fuso: periodo.fuso });
+  }
   const n = diasEntre(periodo.de, periodo.ate) + 1;
   const ate = somarDias(periodo.de, -1);
   const de = somarDias(ate, -(n - 1));
   return Object.freeze({ tipo: "anterior_equivalente", de, ate, rotulo: `${ddmm(de)} a ${ddmm(ate)}`, dias: n, fuso: periodo.fuso });
+}
+
+function deslocamentoMin(instante, tz) {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(instante);
+  const v = (t) => Number(partes.find((x) => x.type === t)?.value);
+  return (Date.UTC(v("year"), v("month") - 1, v("day"), v("hour") % 24, v("minute"), v("second")) - instante.getTime()) / 60000;
+}
+
+/** Instante UTC (ISO) da meia-noite local de `iso` no fuso. */
+export function inicioDoDiaUtc(iso, tz = FUSO_PADRAO) {
+  const fuso = fusoValido(tz) ? tz : FUSO_PADRAO;
+  const [a, m, d] = String(iso).split("-").map(Number);
+  let t = Date.UTC(a, m - 1, d);
+  for (let i = 0; i < 2; i++) t = Date.UTC(a, m - 1, d) - deslocamentoMin(new Date(t), fuso) * 60000;
+  return new Date(t).toISOString();
+}
+
+/** [início, fim) em UTC para filtrar colunas timestamptz pelo período local. */
+export function limitesUtc({ de, ate, fuso = FUSO_PADRAO }) {
+  return { inicio: inicioDoDiaUtc(de, fuso), fim: inicioDoDiaUtc(somarDias(ate, 1), fuso) };
 }
 
 export function saudacaoNoFuso(agora = new Date(), fuso = FUSO_PADRAO) {

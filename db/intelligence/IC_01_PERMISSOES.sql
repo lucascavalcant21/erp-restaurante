@@ -3,9 +3,10 @@
 
    Rode no SQL Editor do Supabase (antes e depois de conceder permissões).
    Um único SELECT. Não mostra nome, e-mail nem login: só a contagem por
-   perfil. Usa as MESMAS funções do banco que o servidor usa
-   (hefisto_user_has_permission = permissão; hefisto_usuario_valido = ativo,
-   dentro da vigência, do dia e do horário permitidos — vale para AGORA).
+   perfil. Usa a MESMA função do banco que o servidor usa
+   (hefisto_user_has_permission: permissão + usuário ativo, sem bloqueio,
+   dentro da vigência, do dia e do horário — vale para AGORA). Funciona com e
+   sem a Fase 1B.
 
    dashboard.intelligence.view      abrir a Central e o "Pergunte ao Héfisto"
    dashboard.intelligence.settings  alterar metas e alertas da inteligência
@@ -23,12 +24,16 @@ select
   tipo_acesso,
   perfil_ativo,
   count(*) as usuarios_ativos,
-  count(*) filter (where public.hefisto_usuario_valido(auth_user_id)) as validos_agora,
+  -- só hefisto_user_has_permission: existe com ou sem a Fase 1B (e confere ativo, bloqueio, vigência, dia e horário)
   count(*) filter (where public.hefisto_user_has_permission(auth_user_id, 'dashboard.intelligence.view')) as ve_central,
   count(*) filter (where public.hefisto_user_has_permission(auth_user_id, 'dashboard.intelligence.settings')) as configura_central,
-  -- mesmas chaves de app/lib/intelligence/permissions/mapa.mjs (registrar_perda)
-  count(*) filter (where public.hefisto_tem_alguma_permissao(auth_user_id, array['estoque.losses.record_loss','estoque.movements.create',
-                      'estoque.outputs.create','estoque.overview.adjust_stock','estoque.operation.adjust_stock','estoque.operation.create'])) as registra_perda,
+  -- mesmas chaves de app/lib/intelligence/permissions/mapa.mjs (registrar_perda) e de _estoque_pode no banco
+  count(*) filter (where public.hefisto_user_has_permission(auth_user_id, 'estoque.losses.record_loss')
+                      or public.hefisto_user_has_permission(auth_user_id, 'estoque.movements.create')
+                      or public.hefisto_user_has_permission(auth_user_id, 'estoque.outputs.create')
+                      or public.hefisto_user_has_permission(auth_user_id, 'estoque.overview.adjust_stock')
+                      or public.hefisto_user_has_permission(auth_user_id, 'estoque.operation.adjust_stock')
+                      or public.hefisto_user_has_permission(auth_user_id, 'estoque.operation.create')) as registra_perda,
   chaves_dashboard_do_perfil
 from (
   select

@@ -27,7 +27,9 @@ funcoes_esperadas(assinatura, essencial, papel_execucao) as (
   values
     ('public.hefisto_user_can(text,text)', true, 'authenticated'),
     ('public.hefisto_user_in_unit(uuid,text)', true, 'authenticated'),
-    ('public.hefisto_contexto_requisicao(text)', true, 'authenticated'),
+    -- sem a 1B, o servidor monta o contexto com hefisto_session_context + hefisto_user_in_unit
+    ('public.hefisto_contexto_requisicao(text)', false, 'authenticated'),
+    ('public.hefisto_session_context()', true, 'authenticated'),
     ('public.hefisto_user_has_permission(uuid,text)', false, 'service_role'),
     ('public.hefisto_tem_alguma_permissao(uuid,text[])', false, 'service_role'),
     ('public.hefisto_usuario_valido(uuid)', false, 'service_role'),
@@ -65,7 +67,7 @@ colisoes as (
 uso(tabela, colunas) as (
   values
     ('fin_faturamento_diario', array['unidade_id','data','vendas_brutas','cancelamentos','descontos','receita','fonte']),
-    ('vw_compras', array['unidade_id','id','data_compra','data_recebimento','status','valor_total','valor_itens','fornecedor_id','confirmada_em','created_at']),
+    ('vw_compras', array['unidade_id','id','data_compra','status','valor_total','valor_itens','fornecedor_id','confirmada_em','created_at']),
     ('compras_itens', array['unidade_id','id','compra_id','insumo_id','descricao_snapshot','quantidade_embalagens','conteudo_por_embalagem','quantidade_base','unidade_base','valor_total']),
     ('insumos', array['unidade_id','id','nome','nome_interno','marca','unidade_medida','categoria','departamento','tamanho_embalagem','unidade_comercial','unidade_conteudo','permite_fracionado']),
     ('estoques', array['unidade_id','id','nome','status']),
@@ -78,7 +80,7 @@ uso(tabela, colunas) as (
     ('etiquetas', array['unidade_id','codigo','produto','validade_em','quantidade','unidade','status']),
     ('vw_fin_contas_pagar', array['unidade_id','id','descricao','fornecedor_id','saldo','valor_original','data_vencimento','situacao','vencida','categoria_codigo']),
     ('fornecedores', array['unidade_id','id','nome']),
-    ('colaboradores', array['unidade_id','id','salario','vale_alimentacao','tipo_contrato','status','ativo']),
+    ('colaboradores', array['unidade_id','id','salario','vale_alimentacao','tipo_contrato','status']),
     ('rh_recibos_prestacao', array['unidade_id','valor_total','data_pagamento','data_trabalho','pagamento_realizado'])
 ),
 fontes as (

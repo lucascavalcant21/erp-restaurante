@@ -116,7 +116,8 @@ export function cmo(amb, { mes = null } = {}) {
   const periodo = { de: janela.de, ate: janela.ate || janela.fimMes, rotulo: `mês ${m.slice(5, 7)}/${m.slice(0, 4)}${janela.emAndamento ? " (em andamento)" : ""}` };
   return medir(amb, { id: "cmo", capacidade: "cmo", periodo }, async (consultas) => {
     const [colaboradores, recibos] = await Promise.all([
-      ler(amb.dbe.from("colaboradores").select("id, salario, vale_alimentacao, tipo_contrato, status, ativo"), "colaboradores"),
+      // sem "ativo": a coluna não existe no banco real (cmo.mjs trata ausente como ativo; vale o status)
+      ler(amb.dbe.from("colaboradores").select("id, salario, vale_alimentacao, tipo_contrato, status"), "colaboradores"),
       ler(amb.dbe.from("rh_recibos_prestacao").select("valor_total, data_pagamento, data_trabalho, pagamento_realizado").gte("data_trabalho", somarDias(janela.de, -31)), "rh_recibos_prestacao").catch((e) => { if (e.ausente) return []; throw e; }),
     ]);
     const [a, mm] = m.split("-").map(Number);

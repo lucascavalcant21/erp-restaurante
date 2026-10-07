@@ -9,7 +9,8 @@ import { ler } from "../context/db-escopado.mjs";
 import { comprasDaJanela, variacoesPreco, rotuloBase } from "../../cmv-real.mjs";
 import { medir, r2, r3, soma, fonte } from "./base.mjs";
 
-const COLUNAS_COMPRA = "id, data_compra, data_recebimento, status, valor_total, valor_itens, fornecedor_id, confirmada_em, created_at";
+// vw_compras no banco real não tem data_recebimento: a data de entrada é a data da compra
+const COLUNAS_COMPRA = "id, data_compra, status, valor_total, valor_itens, fornecedor_id, confirmada_em, created_at";
 const COLUNAS_ITEM = "id, compra_id, insumo_id, descricao_snapshot, quantidade_embalagens, conteudo_por_embalagem, quantidade_base, unidade_base, valor_total";
 const dataEntrada = (c) => String(c.data_recebimento || c.data_compra).slice(0, 10);
 

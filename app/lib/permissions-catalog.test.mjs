@@ -74,6 +74,19 @@ conferir("validade exige permissao de cozinha, nao a da tela inicial",
 conferir("cozinha.* abre a validade", canAccessRoute(soCozinha, "/dashboard/operacao/validade", ""), "true");
 conferir("garcom NAO entra nas mesas do salao", canAccessRoute(garcom, "/dashboard/salao/mesas", ""), "false");
 
+// ── Reservas & Eventos e orçamento de buffet ─────────────────────────────
+// Vieram com os eventos sem entrada no catálogo: qualquer funcionário abria
+// o funil, a agenda e o orçamento com o custo das fichas.
+const soEventos = { gerenciado: true, papel: "colaborador", permissions: ["eventos.*"] };
+const soFunil = { gerenciado: true, papel: "colaborador", permissions: ["eventos.budget.view"] };
+for (const rota of ["/dashboard/reservas-eventos", "/dashboard/reservas-eventos/agenda", "/dashboard/reservas-eventos/contatos", "/dashboard/operacao/orcamento"]) {
+  conferir(`garcom NAO entra em ${rota}`, canAccessRoute(garcom, rota, ""), "false");
+  conferir(`eventos.* entra em ${rota}`, canAccessRoute(soEventos, rota, ""), "true");
+}
+conferir("agenda herda da visão geral de Reservas & Eventos", pageForRoute("/dashboard/reservas-eventos/agenda", "")?.page?.id, "overview");
+conferir("o funil continua com a entrada própria", pageForRoute("/dashboard/reservas-eventos/eventos", "")?.page?.id, "budget");
+conferir("quem só vê o funil NAO abre o orçamento com custo", canAccessRoute(soFunil, "/dashboard/operacao/orcamento", ""), "false");
+
 // ── TRAVA: nenhuma tela pode cair na entrada generica /dashboard ─────────
 // Esta e a regressao que deixou o sistema inteiro aberto. Como /dashboard e
 // prefixo de tudo, uma tela nova sem entrada no catalogo casa com ela e herda

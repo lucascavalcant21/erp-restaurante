@@ -15,7 +15,7 @@ const PADROES = [
   [/\b(sk-ant-[A-Za-z0-9_\-]{6,})/g, "[chave-removida]"],
   [/\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{5,}/g, "[token-removido]"],
   [/\b(bearer)\s+[A-Za-z0-9._\-]{8,}/gi, "$1 [token-removido]"],
-  [/\b(senha|password|pin|token|segredo|secret)\s*[:=]?\s*\S+/gi, "$1 [removido]"],
+  [/\b(senha|password|pin|token|segredo|secret)(?:\s*[:=]\s*|\s+(?:é|eh|e|is|era)\s+|\s+)\S+/gi, "$1 [removido]"],
   [/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, "[cpf-removido]"],
   [/\b(?:\d[ -]?){13,19}\b/g, "[numero-removido]"],
 ];

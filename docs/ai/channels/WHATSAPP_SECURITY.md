@@ -1,10 +1,13 @@
 # Segurança & Proteção do Canal WhatsApp — Héfisto (Fase 3A)
 
 ## 1. Verificação de Assinatura Webhook (HMAC SHA-256)
-Todas as requisições recebidas da Meta Graph API no endpoint `/api/channels/whatsapp/webhook` passam obrigatoriamente por verificação criptográfica:
-- O cabeçalho `X-Hub-Signature-256` é extraído do request.
-- É calculado o HMAC SHA-256 do corpo bruto da requisição utilizando a chave secreta `WHATSAPP_APP_SECRET`.
-- Se a assinatura não for válida ou estiver ausente em ambiente de produção (`NODE_ENV === 'production'`), a requisição é rejeitada imediatamente com HTTP status 401/403.
+Todas as requisições recebidas da Meta Graph API no endpoint `/api/channels/whatsapp/webhook` passam obrigatoriamente por verificação criptográfica, em qualquer ambiente:
+- Sem `WHATSAPP_APP_SECRET` configurado, o webhook fica FECHADO: `POST` responde 503 e nenhum evento é processado.
+- O cabeçalho `X-Hub-Signature-256` (formato `sha256=<hex>`) é extraído do request.
+- É calculado o HMAC SHA-256 do corpo bruto da requisição utilizando a chave secreta `WHATSAPP_APP_SECRET` e comparado em tempo constante (`verificarHmac` em `app/lib/server/integracoes.mjs`, que não lança exceção com tamanhos diferentes).
+- Cabeçalho ausente ou assinatura inválida → 401, antes de qualquer `JSON.parse` ou processamento.
+- O desafio de verificação (`GET`) só aceita o token de `WHATSAPP_VERIFY_TOKEN`; sem ele configurado, responde 403 (não existe token padrão).
+- Teste: `node scripts/test_webhook_whatsapp_assinatura.mjs`.
 
 ## 2. Limitador de Taxa (Rate Limiter Anti-Abuso)
 Para evitar ataques de negação de serviço ou spam de mensagens:

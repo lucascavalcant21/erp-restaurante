@@ -9,7 +9,7 @@ import { resolverPeriodo } from "../core/periodos.mjs";
 import { criarAmbiente, medir } from "./base.mjs";
 import { faturamento, historicoDiario } from "./faturamento.mjs";
 import { compras, variacoesDePreco } from "./compras.mjs";
-import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas } from "./estoque.mjs";
+import { saldoDoProduto, vencimentos, divergenciasEstoque, perdas, abaixoDoMinimo } from "./estoque.mjs";
 import { contasAPagar } from "./financeiro.mjs";
 import { cmv, cmo } from "./custos.mjs";
 
@@ -47,12 +47,14 @@ export function criarMotorDeMetricas(p) {
     ambiente: amb,
     periodo,
     getRevenue: (tipo = "hoje", op) => faturamento(amb, typeof tipo === "string" ? periodo(tipo) : tipo, op),
-    getRevenueHistory: (ate = amb.hoje, semanas = 8) => historicoDiario(amb, ate, semanas),
+    // Linhas cruas para o baseline: mesma permissão do faturamento.
+    getRevenueHistory: async (ate = amb.hoje, semanas = 8) => ((await amb.verificador.pode("faturamento")) ? historicoDiario(amb, ate, semanas) : null),
     getPurchasesTotal: (tipo = "semana", op) => compras(amb, typeof tipo === "string" ? periodo(tipo) : tipo, op),
     getPriceChanges: (op) => variacoesDePreco(amb, op),
     getProductStock: (op) => saldoDoProduto(amb, op),
     getExpiringProducts: (op) => vencimentos(amb, op),
     getStockVariance: (op) => divergenciasEstoque(amb, op),
+    getLowStock: () => abaixoDoMinimo(amb),
     getWaste: (tipo = "semana") => perdas(amb, typeof tipo === "string" ? periodo(tipo) : tipo),
     getAccountsPayable: (op) => contasAPagar(amb, op),
     getCMV: () => cmv(amb),

@@ -201,6 +201,30 @@ export function divergenciasEstoque(amb, { limitePct = 10, maxItens = 10 } = {})
   });
 }
 
+// ─── Abaixo do mínimo ────────────────────────────────────────────────────────
+/** Mesma regra dos cartões do estoque (painel-inicio.mjs): só item com mínimo > 0 e saldo abaixo dele. */
+export function abaixoDoMinimo(amb) {
+  const periodo = { de: amb.hoje, ate: amb.hoje, rotulo: `agora (${ddmm(amb.hoje)})` };
+  return medir(amb, { id: "abaixo_minimo", capacidade: "saldo_estoque", periodo }, async (consultas) => {
+    const itens = await ler(amb.dbe.from("estoque_itens").select("estoque_id, insumo_id, quantidade_atual, estoque_minimo"), "estoque_itens") || [];
+    const estoques = await mapaEstoques(amb);
+    const abaixo = itens.filter((i) => estoques.get(i.estoque_id)?.status !== "inativo" && Number(i.estoque_minimo) > 0 && Number(i.quantidade_atual || 0) < Number(i.estoque_minimo));
+    const insumos = await mapaInsumos(amb, abaixo.map((i) => i.insumo_id));
+    const comMinimo = itens.filter((i) => Number(i.estoque_minimo) > 0).length;
+    return metrica({
+      metrica: "abaixo_minimo", valor: abaixo.length, unidade: "itens", periodo,
+      fontes: [fonte("estoque_itens", "Saldo × estoque mínimo configurado")], consultas: consultas(), escopo: amb.escopo,
+      completude: 1, confianca: comMinimo ? CONFIANCA.ALTA : CONFIANCA.BAIXA, apuradoEm: amb.apuradoEm,
+      observacoes: comMinimo ? [] : ["Nenhum produto tem estoque mínimo configurado: não há como saber o que está acabando."],
+      detalhes: {
+        itensComMinimo: comMinimo,
+        lista: abaixo.map((i) => { const ins = insumos.get(i.insumo_id) || {}; return { insumo_id: i.insumo_id, produto: ins.nome || "(produto)", local: estoques.get(i.estoque_id)?.nome || "Estoque", saldo: r3(Number(i.quantidade_atual) || 0), minimo: Number(i.estoque_minimo), unidade: unidadeDoSaldo(ins) }; })
+          .sort((a, b) => a.saldo / a.minimo - b.saldo / b.minimo).slice(0, 15),
+      },
+    });
+  });
+}
+
 // ─── Perdas ──────────────────────────────────────────────────────────────────
 const MOTIVOS_PERDA = ["perda", "vencimento", "quebra"];
 
@@ -208,10 +232,20 @@ const MOTIVOS_PERDA = ["perda", "vencimento", "quebra"];
 export function perdas(amb, periodo) {
   return medir(amb, { id: "perdas", capacidade: "perdas", periodo }, async (consultas) => {
     const { inicio, fim } = limitesUtc({ ...periodo, fuso: amb.fuso });
-    const movs = await ler(amb.dbe.from("estoque_movimentacoes_multi").select("id, insumo_id, quantidade, valor_total, motivo, data_movimento, unidade_medida").eq("tipo", "saida").in("motivo", MOTIVOS_PERDA).gte("data_movimento", inicio).lt("data_movimento", fim), "estoque_movimentacoes_multi") || [];
-    const estornos = movs.length ? (await ler(amb.dbe.from("estoque_movimentacoes_multi").select("estorno_de_id").in("estorno_de_id", movs.map((m) => m.id)), "estoque_movimentacoes_multi") || []) : [];
+    // lê 4 semanas antes também: baseline próprio das perdas
+    const inicioHist = limitesUtc({ de: somarDias(periodo.de, -28), ate: periodo.ate, fuso: amb.fuso }).inicio;
+    const todos = await ler(amb.dbe.from("estoque_movimentacoes_multi").select("id, insumo_id, quantidade, valor_total, motivo, data_movimento, unidade_medida").eq("tipo", "saida").in("motivo", MOTIVOS_PERDA).gte("data_movimento", inicioHist).lt("data_movimento", fim), "estoque_movimentacoes_multi") || [];
+    const estornos = todos.length ? (await ler(amb.dbe.from("estoque_movimentacoes_multi").select("estorno_de_id").in("estorno_de_id", todos.map((m) => m.id)), "estoque_movimentacoes_multi") || []) : [];
     const estornados = new Set(estornos.map((e) => e.estorno_de_id));
+    const naJanela = (m, a, b) => { const t = Date.parse(m.data_movimento); return t >= Date.parse(a) && t < Date.parse(b); };
+    const movs = todos.filter((m) => naJanela(m, inicio, fim));
     const validos = movs.filter((m) => !estornados.has(m.id));
+    const janelasAnteriores = [1, 2, 3, 4].map((k) => {
+      const de = somarDias(periodo.de, -7 * k); const ate = somarDias(periodo.ate, -7 * k);
+      const l = limitesUtc({ de, ate, fuso: amb.fuso });
+      const xs = todos.filter((m) => !estornados.has(m.id) && naJanela(m, l.inicio, l.fim) && m.valor_total != null);
+      return { de, ate, valor: r2(soma(xs, (m) => m.valor_total)) };
+    });
     const insumos = await mapaInsumos(amb, validos.map((m) => m.insumo_id));
     const comValor = validos.filter((m) => m.valor_total != null);
     const porProduto = new Map();
@@ -238,7 +272,7 @@ export function perdas(amb, periodo) {
       fontes: [fonte("estoque_movimentacoes_multi", "Retiradas com motivo perda/vencimento/quebra, custo do movimento")],
       consultas: consultas(), escopo: amb.escopo, completude: completude || 1,
       confianca: validos.length ? confiancaPorCompletude(completude) : CONFIANCA.MEDIA, apuradoEm: amb.apuradoEm, observacoes,
-      detalhes: { lancamentos: validos.length, estornados: estornados.size, porProduto: lista.slice(0, 10) },
+      detalhes: { lancamentos: validos.length, estornados: movs.length - validos.length, porProduto: lista.slice(0, 10), janelasAnteriores },
     });
   });
 }

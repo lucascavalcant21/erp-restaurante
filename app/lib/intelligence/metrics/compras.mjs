@@ -86,6 +86,14 @@ export function compras(amb, periodo, { comparar = true } = {}) {
       }
     }
 
+    // Baseline próprio: as 4 janelas equivalentes anteriores (mesmos dias da
+    // semana), para o detector comparar "esta semana × semanas anteriores".
+    const janelasAnteriores = [1, 2, 3, 4].map((k) => {
+      const de = somarDias(periodo.de, -7 * k); const ate = somarDias(periodo.ate, -7 * k);
+      const j = comprasDaJanela(todas, itens, de, somarDias(ate, 1));
+      return { de, ate, valor: r2(soma(j.confirmadas, (c) => c.valor_total)) };
+    });
+
     return metrica({
       metrica: "compras", valor: total, unidade: "BRL",
       periodo: { de: periodo.de, ate: periodo.ate, rotulo: periodo.rotulo },
@@ -95,7 +103,7 @@ export function compras(amb, periodo, { comparar = true } = {}) {
       confianca: janela.confirmadas.length ? CONFIANCA.ALTA : CONFIANCA.MEDIA,
       apuradoEm: amb.apuradoEm, observacoes,
       detalhes: {
-        quantidadeCompras: janela.confirmadas.length, rascunhos: janela.rascunhos.length, canceladas: janela.canceladas.length,
+        quantidadeCompras: janela.confirmadas.length, rascunhos: janela.rascunhos.length, canceladas: janela.canceladas.length, janelasAnteriores,
         itens: itensResumo.slice(0, 15), fornecedores: [...porFornecedor.values()].sort((a, b) => b.valor - a.valor).slice(0, 8),
       },
     });

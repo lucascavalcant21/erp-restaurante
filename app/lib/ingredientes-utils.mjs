@@ -43,10 +43,41 @@ export const UNIDADES_INGREDIENTE = [
 ];
 
 export function unidadesIngredientePorDepartamento(departamento) {
-  return String(departamento || "cozinha").toLowerCase() === "bar"
-    ? UNIDADES_INGREDIENTE_BAR
-    : UNIDADES_INGREDIENTE_COZINHA;
+  const dep = String(departamento || "cozinha").toLowerCase();
+  if (dep === "ambos") return UNIDADES_INGREDIENTE;   // cozinha e bar: as duas listas
+  return dep === "bar" ? UNIDADES_INGREDIENTE_BAR : UNIDADES_INGREDIENTE_COZINHA;
 }
+
+// ─── Cozinha, bar ou os dois ─────────────────────────────────────────────────
+// Um ingrediente usado nos dois setores (açúcar, limão...) é UM cadastro só
+// (mesmo preço, mesmo fornecedor) que aparece na lista da cozinha e na do bar.
+// departamento = o setor principal (unidades, categorias); departamentos =
+// ["cozinha", "bar"] quando é dos dois (nulo = só o principal). O estoque
+// continua separado por local (estoque_itens), como já era.
+export const SETORES_COMPARTILHAVEIS = ["cozinha", "bar"];
+
+export function setoresDoInsumo(insumo) {
+  const principal = String(insumo?.departamento || "cozinha").toLowerCase();
+  const extras = Array.isArray(insumo?.departamentos)
+    ? insumo.departamentos.map((d) => String(d).toLowerCase()).filter((d) => SETORES_COMPARTILHAVEIS.includes(d))
+    : [];
+  return [...new Set([principal, ...extras])];
+}
+
+export const insumoEstaNoSetor = (insumo, setor) => setoresDoInsumo(insumo).includes(String(setor || "cozinha").toLowerCase());
+export const ehCozinhaEBar = (insumo) => insumoEstaNoSetor(insumo, "cozinha") && insumoEstaNoSetor(insumo, "bar");
+
+/** Escolha do formulário ("cozinha" | "bar" | "ambos") → colunas a gravar. */
+export function setorParaGravar(escolha, principalPreferido = "cozinha") {
+  if (escolha === "ambos") {
+    const principal = SETORES_COMPARTILHAVEIS.includes(principalPreferido) ? principalPreferido : "cozinha";
+    return { departamento: principal, departamentos: ["cozinha", "bar"] };
+  }
+  return { departamento: escolha || "cozinha", departamentos: null };
+}
+
+/** Cadastro → escolha do formulário. */
+export const setorDoFormulario = (insumo) => (ehCozinhaEBar(insumo) ? "ambos" : String(insumo?.departamento || "cozinha").toLowerCase());
 
 export function ehInsumoPrePreparo(insumo) {
   return normalizarBusca(insumo?.categoria).includes("preparo");

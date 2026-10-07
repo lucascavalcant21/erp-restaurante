@@ -145,7 +145,7 @@ export default function CentralDeInteligencia() {
             {!brief ? <Esqueleto /> : (
               <>
                 <Secao titulo="Resumo de hoje">
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     {brief.metrics.map((x) => <MetricaCartao key={x.id} rotulo={x.rotulo} m={x.metrica} compacto />)}
                   </div>
                 </Secao>

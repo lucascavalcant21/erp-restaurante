@@ -108,7 +108,9 @@ test("preflight é só leitura e não acusa nada numa base compatível", { skip:
   const r = await somenteLeitura(pg, PREFLIGHT);
   const bloqueios = r.rows.filter((x) => x.situacao === "BLOQUEIA");
   // a base de teste não tem as funções do contexto da 1B nem as tabelas do ERP: só isso pode bloquear
-  assert.deepEqual(bloqueios.map((x) => x.item).sort(), ["public.empresas", "public.hefisto_contexto_requisicao(text)", "public.perfil_permissoes", "public.perfis_acesso", "public.usuario_escopos", "public.usuario_permissoes"]);
+  assert.deepEqual(bloqueios.map((x) => x.item).sort(), ["public.empresas", "public.hefisto_session_context()", "public.perfil_permissoes", "public.perfis_acesso", "public.usuario_escopos", "public.usuario_permissoes"]);
+  // sem a 1B o servidor usa hefisto_session_context: a função da 1B vira ATENÇÃO, não BLOQUEIA
+  assert.ok(r.rows.some((x) => x.item === "public.hefisto_contexto_requisicao(text)" && x.situacao === "ATENÇÃO"));
   assert.ok(r.rows.some((x) => x.item === "nomes intelligence_*" && x.situacao === "OK"));
   assert.ok(r.rows.some((x) => x.item === "public.unidades.id é text" && x.situacao === "OK"));
   assert.ok(r.rows.some((x) => x.item === "estoque_movimentar" && x.situacao === "ATENÇÃO"));

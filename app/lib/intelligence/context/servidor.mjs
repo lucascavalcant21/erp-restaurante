@@ -7,6 +7,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { getSupabasePublicConfig } from "../../config/supabase-public.mjs";
+import { contextoLegado, funcaoAusente } from "./contexto-legado.mjs";
 
 if (typeof window !== "undefined") {
   throw new Error("SERVER_ONLY_MODULE: intelligence/context/servidor.mjs é de uso exclusivo do servidor.");
@@ -38,9 +39,14 @@ export function depsDoContexto() {
       return data?.user?.id ? { id: data.user.id } : null;
     },
     async contextoDoBanco(token, unidadeId) {
-      const { data, error } = await clienteDoUsuario(token).rpc("hefisto_contexto_requisicao", { p_unidade_id: unidadeId });
-      if (error) throw new Error("contexto indisponível");
-      return data;
+      const cliente = clienteDoUsuario(token);
+      const { data, error } = await cliente.rpc("hefisto_contexto_requisicao", { p_unidade_id: unidadeId });
+      if (!error) return data;
+      // Banco sem a Fase 1B: mesmo contexto, montado com as funções de acesso que já existem.
+      if (!funcaoAusente(error)) throw new Error("contexto indisponível");
+      const { data: u, error: eu } = await clienteAnonimo().auth.getUser(token);
+      if (eu || !u?.user?.id) throw new Error("contexto indisponível");
+      return contextoLegado(cliente, u.user.id, unidadeId);
     },
     async podeFazer(token, permissao, unidadeId) {
       const { data, error } = await clienteDoUsuario(token).rpc("hefisto_user_can", { p_permission: permissao, p_unidade_id: unidadeId });

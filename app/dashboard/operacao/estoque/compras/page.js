@@ -25,6 +25,7 @@ import { hasPermission, permissionKey } from "../../../../lib/permissions-catalo
 import { fmtBRL } from "../../../../components/ui";
 import { Plus, Search, X, Trash2, ShoppingCart, AlertTriangle, Loader2, History, Lock, Check } from "lucide-react";
 import CampoDecimal from "../../../../components/CampoDecimal";
+import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 const normal = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -76,6 +77,9 @@ function Compras() {
 
   const insumoPorId = useMemo(() => new Map((base?.insumos || []).map((i) => [i.id, i])), [base]);
   const fornecedorPorId = useMemo(() => new Map((base?.fornecedores || []).map((f) => [f.id, f])), [base]);
+  // Héfisto: compra aberta no detalhe vira o contexto da conversa
+  useContextoInteligencia(detalhe ? { modulo: "compras", tipo: "compra", id: detalhe.id,
+    nome: `Compra ${fmtData(detalhe.data_compra)}${fornecedorPorId.get(detalhe.fornecedor_id)?.nome ? ` · ${fornecedorPorId.get(detalhe.fornecedor_id).nome}` : ""}` } : null);
   const executar = async (fn) => { if (processando) return; setProcessando(true); try { await fn(); } finally { setProcessando(false); } };
 
   if (!unidadeValida(unidadeAtiva)) return <p className="p-8 text-center font-bold text-fg">Selecione uma unidade para registrar compras.</p>;

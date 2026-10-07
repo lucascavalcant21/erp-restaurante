@@ -343,3 +343,83 @@ test("store indisponível (sem service role): ações bloqueadas, leitura vazia"
   assert.equal(r.auditado, false);
   assert.match(r.texto, /1\.200,00/);
 });
+
+// ── conversa: o mínimo para considerar o Héfisto ativado ─────────────────────
+// TESTADO EM MOCK (banco em memória com os dados de teste das duas empresas).
+test("conversa: como estamos → tem algo errado → por quê → quanto tenho de picanha → perdi 2 kg", async () => {
+  const { pedir, rpcChamadas } = await montar();
+  const r1 = await pedir("Como estamos hoje?");
+  assert.equal(r1.interpretacao.intencao, "empresa.resumo_dia");
+  assert.match(r1.texto, /Faturamento de hoje/);
+
+  const r2 = await pedir("Tem alguma coisa errada?");
+  assert.equal(r2.interpretacao.intencao, "empresa.problemas");
+  assert.match(r2.texto, /^Encontrei \d+ situações que merecem atenção\. 1\) /);
+  assert.ok(r2.referencia.insights.length >= 1 && r2.referencia.insights.length <= 3);
+
+  const r3 = await pedir("Por que?", { conversa: r2.referencia });
+  assert.equal(r3.interpretacao.intencao, "insight.explicar");
+  assert.equal(r3.interpretacao.deduzidaDe, "conversa.por_que");
+  assert.equal(r3.blocos[0].insight.id, r2.referencia.insights[0], "explica o PRIMEIRO alerta citado");
+  assert.match(r3.texto, /Evidência: /);
+  assert.match(r3.texto, /Possíveis causas \(não confirmadas\)/);
+
+  const r4 = await pedir("Quanto tenho de picanha?", { conversa: r3.referencia });
+  assert.match(r4.texto, /^Picanha: 12,5 kg em estoque/);
+  assert.deepEqual(r4.referencia.produto, { id: PICANHA, nome: "Picanha" });
+
+  const r5 = await pedir("Perdi 2 kg.", { conversa: r4.referencia });
+  assert.equal(r5.tipo, "pergunta");
+  assert.equal(r5.pergunta.campo, "motivo", "entendeu o produto pela conversa e pergunta o MOTIVO");
+  assert.equal(rpcChamadas.length, 0, "nada gravado antes da confirmação");
+});
+
+test("Perdi 2 kg. olhando a Picanha na tela: entende o produto pela tela", async () => {
+  const { pedir, continuar } = await montar({ tela: { rota: "/dashboard/operacao/estoque/movimentar", entidade: { tipo: "produto", id: PICANHA, nome: "Picanha" } } });
+  const r = await pedir("Perdi 2 kg.");
+  assert.equal(r.pergunta.campo, "motivo");
+  const c = await continuar(r.pergunta.acaoId, "motivo", "dano");
+  const linhas = Object.fromEntries(c.confirmacao.linhas.map((l) => [l.rotulo, l.valor]));
+  assert.deepEqual([linhas.Produto, linhas.Quantidade], ["Picanha", "2 kg"]);
+  assert.deepEqual(c.referencia.produto, { id: PICANHA, nome: "Picanha" });
+});
+
+test("sem produto na tela nem na conversa: Perdi 2 kg. pergunta qual produto (não inventa)", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Perdi 2 kg.");
+  assert.equal(r.tipo, "pergunta");
+  assert.equal(r.pergunta.campo, "produto");
+});
+
+test("tela e conversa apontam produtos diferentes: pergunta qual", async () => {
+  const { pedir } = await montar({ tela: { entidade: { tipo: "produto", id: PICANHA, nome: "Picanha" } } });
+  const outro = "a0000000-0000-4000-8000-0000000000aa";
+  const r = await pedir("Perdi 2 kg.", { conversa: { intencao: "estoque.saldo_produto", produto: { id: outro, nome: "Alcatra" } } });
+  assert.equal(r.tipo, "pergunta");
+  assert.equal(r.pergunta.campo, "produto");
+  assert.deepEqual(r.pergunta.opcoes.map((o) => o.comando), ["Perdi 2 kg de Picanha", "Perdi 2 kg de Alcatra"]);
+});
+
+test("Por que? sem contexto nenhum pergunta sobre o quê; com tela não-produto não inventa produto", async () => {
+  const { pedir } = await montar();
+  const r = await pedir("Por que?");
+  assert.equal(r.tipo, "pergunta");
+  assert.match(r.pergunta.texto, /Sobre o que você quer a explicação/);
+  const { pedir: pedir2 } = await montar({ tela: { entidade: { tipo: "compra", id: "c0000000-0000-4000-8000-000000000001", nome: "Compra 06/10" } } });
+  const r2 = await pedir2("Por que aumentou?");
+  assert.equal(r2.tipo, "pergunta");
+  assert.match(r2.pergunta.texto, /Sobre qual produto/);
+});
+
+test("conversa forjada: produto de outra empresa não é encontrado; insight inexistente não vira resposta", async () => {
+  const { pedir } = await montar();
+  const daB = "a0000000-0000-4000-8000-000000000002"; // Picanha da empresa B (fixtures)
+  const r = await pedir("Perdi 2 kg.", { conversa: { produto: { id: daB, nome: "Picanha" } } });
+  assert.match(JSON.stringify(r), /Produto não encontrado nesta unidade/);
+  assert.ok(!JSON.stringify(r).includes("999999"));
+  const r2 = await pedir("Por que?", { conversa: { insights: ["faturamento_queda:deadbeef"] } });
+  assert.match(r2.texto, /não aparece mais nos dados de agora/);
+  // campos de tenant na conversa são recusados pelo esquema do pedido
+  assert.equal(pedidoSchema.parse({ texto: "Por que?", conversa: { unidade_id: "loja-b" } }).ok, false);
+  assert.equal(pedidoSchema.parse({ texto: "Por que?", conversa: { insights: ["'; drop table x;--"] } }).ok, false);
+});

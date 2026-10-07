@@ -49,6 +49,16 @@ export const INTENCOES = Object.freeze([
     frases: [["como foi", "como esta", "como estamos", "resumo", "o que precisa", "merece minha atencao", "situacao"], ["empresa", "restaurante", "loja", "hoje", "dia", "casa", "minha atencao", "operacao"]], peso: 4,
   },
   {
+    id: "empresa.problemas", tipo: "pergunta", agentes: ["operacoes", "vendas", "financeiro", "estoque"],
+    descricao: "O que está errado/fora do padrão agora (ex.: 'tem alguma coisa errada?', 'algum problema?'): só os alertas que merecem atenção.",
+    frases: [["errado", "errada", "errados", "erradas", "problema", "problemas", "anormal", "preocupar", "preocupante", "alerta", "alertas", "fora do normal", "fora do padrao"]], peso: 5,
+  },
+  {
+    id: "conversa.por_que", tipo: "pergunta", agentes: ["operacoes"],
+    descricao: "'Por quê?' sobre o que acabou de ser dito ou sobre o registro aberto na tela (ex.: 'por que?', 'explica', 'por que aumentou?' olhando um produto).",
+    frases: [["por que", "porque", "pq", "por qual motivo", "explica", "explique", "como assim", "qual o motivo", "qual motivo"]], peso: 1,
+  },
+  {
     id: "vendas.faturamento", tipo: "pergunta", agentes: ["vendas"],
     descricao: "Quanto vendeu/faturou em um período (hoje, ontem, semana, mês).",
     frases: [["vendi", "vendemos", "vendeu", "faturei", "faturamos", "faturou", "faturamento", "vendas", "receita"]], peso: 5,
@@ -66,7 +76,9 @@ export const INTENCOES = Object.freeze([
   {
     id: "compras.maior_aumento_preco", tipo: "pergunta", agentes: ["compras"],
     descricao: "Quais produtos tiveram maior aumento (ou queda) de preço de compra.",
-    frases: [["preco", "precos", "mais caro", "mais cara", "encareceu", "encareceram", "mais aumentaram", "que aumentaram"], ["aumento", "aumentaram", "aumentou", "subiu", "subiram", "maior", "mais caro", "mais cara", "encareceu", "encareceram", "variacao"]], peso: 7,
+    frases: [["preco", "precos", "mais caro", "mais cara", "encareceu", "encareceram", "mais aumentaram", "que aumentaram"], ["aumento", "aumentaram", "aumentou", "subiu", "subiram", "maior", "mais caro", "mais cara", "encareceu", "encareceram", "variacao"]],
+    // "por que o preço da picanha subiu?" é explicação de UM produto
+    proibidas: ["por que", "porque", "pq"], peso: 7,
   },
   {
     id: "estoque.vencimentos", tipo: "pergunta", agentes: ["estoque"],

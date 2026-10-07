@@ -47,7 +47,7 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
       tipo: "confirmacao",
       texto: `${rec.preview.titulo}: confira e confirme.`,
       confirmacao: {
-        acaoId: rec.id, acao: def.id, titulo: rec.preview.titulo, linhas: rec.preview.linhas, risco: def.risco,
+        acaoId: rec.id, acao: def.id, titulo: rec.preview.titulo, linhas: rec.preview.linhas, risco: def.risco, entidade: rec.preview.entidade || null,
         confirmacaoExplicita: pol.confirmacaoExplicita, expiraEm: rec.expira_em, rollback: def.rollback,
       },
     };

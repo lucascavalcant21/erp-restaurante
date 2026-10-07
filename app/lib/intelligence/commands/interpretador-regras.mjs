@@ -91,6 +91,11 @@ export function extrairQuantidade(ps) {
   return { quantidade: null, unidade: null, fim: -1 };
 }
 
+const VERBOS_VARIACAO = new Set(["aumentou", "subiu", "diminuiu", "caiu", "mudou"]);
+
+// Palavras que abrem o MOTIVO ("perdi 2 kg porque caiu"): o produto vem antes delas.
+const ABRE_MOTIVO = new Set(["por", "porque", "pq", "pois", "motivo", "devido"]);
+
 /** Produto: palavras depois da quantidade (ou do verbo), pulando "de/da/do", até uma palavra de parada. */
 export function extrairProduto(ps, inicio) {
   let i = inicio;
@@ -98,7 +103,9 @@ export function extrairProduto(ps, inicio) {
   const out = [];
   for (; i < ps.length; i++) {
     if (PARADAS.has(ps[i]) && out.length) break;
+    if (ABRE_MOTIVO.has(ps[i])) break;
     if (PARADAS.has(ps[i])) continue;
+    if (!out.length && (PREPOSICOES.has(ps[i]) || ["o", "a", "os", "as"].includes(ps[i]))) continue;
     if (ehNumero(ps[i]) || UNIDADES[ps[i]]) break;
     out.push(ps[i]);
     if (out.length >= 6) break;
@@ -152,9 +159,18 @@ export function interpretarPorRegras(texto) {
   if (escolhida?.id === "estoque.registrar_perda" || escolhida?.id === "compras.criar") {
     produto = extrairProduto(ps, q.fim >= 0 ? q.fim + 1 : posicaoDoGatilho(ps, escolhida));
   } else if (escolhida?.id === "estoque.saldo_produto" || escolhida?.id === "produto.explicar_variacao" || escolhida?.id === "compras.total") {
-    const ult = ps.reduce((acc, w, i) => (PREPOSICOES.has(w) && i >= posicaoDoGatilho(ps, escolhida) - 1 ? i : acc), -1);
-    produto = ult >= 0 ? extrairProduto(ps, ult) : null;
+    // em "por que ... aumentou", o produto nunca vem depois do verbo
+    const verboVar = escolhida.id === "produto.explicar_variacao" ? ps.findIndex((w) => VERBOS_VARIACAO.has(w)) : -1;
+    const alvo = verboVar > 0 ? ps.slice(0, verboVar) : ps;
+    const ult = alvo.reduce((acc, w, i) => (PREPOSICOES.has(w) && i >= posicaoDoGatilho(alvo, escolhida) - 1 ? i : acc), -1);
+    produto = ult >= 0 ? extrairProduto(alvo, ult) : null;
     if (escolhida.id === "estoque.saldo_produto" && !produto) produto = extrairProduto(ps, posicaoDoGatilho(ps, escolhida));
+    // "por que a picanha aumentou?": o produto fica entre o "por que" e o verbo
+    if (escolhida.id === "produto.explicar_variacao" && !produto) {
+      const verbo = ps.findIndex((w) => VERBOS_VARIACAO.has(w));
+      const ini = posicaoDoGatilho(ps, { frases: [escolhida.frases[0]] });
+      if (verbo > ini) produto = extrairProduto(ps.slice(0, verbo), ini);
+    }
   }
   // "por que aumentou?" só vale com produto (do texto ou da tela, resolvido depois)
   if (escolhida?.requerProduto && !produto) escolhida = candidatas.find((c) => !c.requerProduto) || escolhida;

@@ -21,6 +21,7 @@ import {
 } from "../../../../lib/pessoas";
 import { enviarArquivoRH, abrirArquivoRH } from "../../../../lib/rh-arquivos";
 import { useFotosRH } from "../../../../lib/useFotosRH";
+import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 
 // SEC-RH-1.3A: holerite, documento, curso e ata são arquivos de RH — bucket
 // privado, abertos por URL assinada curta. Cada aba com upload tem sua fonte
@@ -127,6 +128,8 @@ export default function FuncionarioDetalhePage() {
   const { id } = useParams();
   const { unidadeInfo } = useERP();
   const [func, setFunc] = useState(null);
+  // Héfisto: o funcionário aberto vira o contexto da conversa (o servidor reconfere a permissão de RH)
+  useContextoInteligencia(func ? { modulo: "rh", tipo: "colaborador", id: func.id, nome: func.nome } : null);
   const fotoFunc = useFotosRH("foto_funcionario", func ? [func] : []);
   const [abaKey, setAbaKey] = useState("avisos");
   const [itens, setItens] = useState([]);

@@ -5,7 +5,7 @@
 // Cada handler devolve { texto, blocos, acoes, nivel } — o orquestrador junta.
 
 import { NIVEL } from "../core/niveis.mjs";
-import { DADOS_INSUFICIENTES, temValor } from "../core/contratos.mjs";
+import { DADOS_INSUFICIENTES, NATUREZA, temValor } from "../core/contratos.mjs";
 import { normalizar } from "../metrics/produtos.mjs";
 import { generateDailyBrief } from "../insights/daily-brief.mjs";
 import { fraseDaMetrica, blocoMetrica, blocoLista, blocoInsight, blocoTexto, brl, num, ddmm, valorFormatado } from "../commands/resposta.mjs";
@@ -114,9 +114,9 @@ export const AgenteEstoque = {
     return r(`${fraseDaMetrica(m, "Perdas registradas")} ${m.detalhes.lancamentos} lançamento(s).`, blocos, [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], NIVEL.ANALISAR);
   },
   async "estoque.saldo_produto"({ motor, params, ic }) {
-    // Produto da tela: vale pelo id, reconferido no cadastro DA UNIDADE (o nome da tela é só rótulo).
-    const insumoId = params.insumoIdTela || null;
-    const termo = params.produto || (ic.entidade?.tipo === "produto" ? ic.entidade.nome : null);
+    // Produto da tela/conversa: vale pelo id, reconferido no cadastro DA UNIDADE (o nome é só rótulo).
+    const insumoId = params.insumoIdContexto || null;
+    const termo = insumoId ? null : params.produto;
     if (!termo && !insumoId) return { ...r("De qual produto?"), pergunta: { campo: "produto", texto: "De qual produto você quer saber o saldo?", livre: true, comandoBase: "Quanto tenho de {valor}?" } };
     const m = await motor.getProductStock(insumoId ? { insumoId } : { termo });
     if (m.status === "insuficiente" && m.detalhes?.ambiguo) {
@@ -125,7 +125,8 @@ export const AgenteEstoque = {
     if (!temValor(m)) return insuf(m, "Saldo");
     const d = m.detalhes;
     const texto = `${d.produto.nome}: ${valorFormatado(m)} em estoque${d.locais.length > 1 ? ` (${d.locais.map((l) => `${l.local} ${num(l.quantidade)}`).join(", ")})` : d.locais[0] ? ` (${d.locais[0].local})` : ""}.${d.valorAoCustoMedio ? ` Valor ao custo médio: ${brl(d.valorAoCustoMedio.valor)} (ESTIMATIVA).` : ""}`;
-    return r(texto, [blocoMetrica(m, `Saldo de ${d.produto.nome}`), blocoLista("Por local", d.locais.map((l) => ({ rotulo: l.local, valor: `${num(l.quantidade)} ${m.unidade}`, detalhe: l.minimo ? `mínimo ${num(l.minimo)}` : null })))], [{ rotulo: "Abrir estoque", rota: "/dashboard/operacao/estoque?gestao=1" }]);
+    return { ...r(texto, [blocoMetrica(m, `Saldo de ${d.produto.nome}`), blocoLista("Por local", d.locais.map((l) => ({ rotulo: l.local, valor: `${num(l.quantidade)} ${m.unidade}`, detalhe: l.minimo ? `mínimo ${num(l.minimo)}` : null })))], [{ rotulo: "Abrir estoque", rota: "/dashboard/operacao/estoque?gestao=1" }]),
+      referencia: { produto: { id: d.produto.id, nome: d.produto.nome } } };
   },
   async "estoque.abaixo_minimo"({ motor }) {
     const m = await motor.getLowStock();
@@ -134,8 +135,8 @@ export const AgenteEstoque = {
     return r(texto, [blocoMetrica(m, "Abaixo do mínimo"), blocoLista("Itens", m.detalhes.lista.map((i) => ({ rotulo: `${i.produto} · ${i.local}`, valor: `${num(i.saldo)} ${i.unidade}`, detalhe: `mínimo ${num(i.minimo)}` })))], [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], NIVEL.DETECTAR);
   },
   async "produto.explicar_variacao"({ motor, params, ic }) {
-    const insumoId = params.insumoIdTela || null;
-    const termo = params.produto || (ic.entidade?.tipo === "produto" ? ic.entidade.nome : null);
+    const insumoId = params.insumoIdContexto || null;
+    const termo = insumoId ? null : params.produto;
     if (!termo && !insumoId) return { ...r("Sobre qual produto?"), pergunta: { campo: "produto", texto: "Sobre qual produto você quer saber?", livre: true, comandoBase: "Por que {valor} aumentou?" } };
     const [saldo, precos] = await Promise.all([motor.getProductStock(insumoId ? { insumoId } : { termo }), motor.getPriceChanges()]);
     if (saldo.status === "insuficiente" && saldo.detalhes?.ambiguo) {
@@ -155,7 +156,7 @@ export const AgenteEstoque = {
       texto = `Não encontrei variação de preço registrada para ${nome} nas compras confirmadas. Não foi possível determinar com segurança o que mudou. Saldo atual: ${valorFormatado(saldo)}.`;
       blocos.push(blocoTexto(texto, "Não foi possível determinar com segurança"));
     }
-    return r(texto, blocos, [{ rotulo: "Ver compras", rota: "/dashboard/operacao/estoque/compras" }], NIVEL.ANALISAR);
+    return { ...r(texto, blocos, [{ rotulo: "Ver compras", rota: "/dashboard/operacao/estoque/compras" }], NIVEL.ANALISAR), referencia: { produto: { id, nome } } };
   },
 };
 
@@ -234,7 +235,46 @@ export const AgenteOperacoes = {
     const destaques = [...b.critical, ...b.warnings, ...b.opportunities].slice(0, 4);
     const texto = `${b.summary} ${fraseDaMetrica(fat, "Faturamento de hoje")}`;
     const blocos = [blocoMetrica(fat, "Faturamento de hoje"), ...destaques.map(blocoInsight)];
-    return { ...r(texto, blocos, [{ rotulo: "Abrir Central de Inteligência", rota: "/dashboard/inteligencia" }], destaques.length ? NIVEL.RECOMENDAR : NIVEL.ANALISAR), brief: b };
+    return { ...r(texto, blocos, [{ rotulo: "Abrir Central de Inteligência", rota: "/dashboard/inteligencia" }], destaques.length ? NIVEL.RECOMENDAR : NIVEL.ANALISAR), brief: b,
+      referencia: { insights: destaques.map((i) => i.id) } };
+  },
+  // "Tem alguma coisa errada?": só o que merece atenção, mais importante primeiro.
+  async "empresa.problemas"({ motor, store, nomeUsuario }) {
+    const b = await generateDailyBrief({ motor, store, nomeUsuario });
+    const atencao = [...b.critical, ...b.warnings];
+    const semBase = b.cobertura.filter((x) => x.status === "insuficiente").length;
+    const nota = semBase ? ` ${semBase} indicador(es) estão sem dados suficientes para eu analisar.` : "";
+    if (!atencao.length) {
+      return { ...r(`Não encontrei nada fora do padrão nos dados disponíveis.${nota}`, [], [{ rotulo: "Abrir Central de Inteligência", rota: "/dashboard/inteligencia" }], NIVEL.DETECTAR), referencia: { insights: [] } };
+    }
+    const top = atencao.slice(0, 3);
+    const texto = `Encontrei ${atencao.length} situaç${atencao.length === 1 ? "ão" : "ões"} que merece${atencao.length === 1 ? "" : "m"} atenção. ${top.map((i, n) => `${n + 1}) ${i.titulo}`).join(" ")}${atencao.length > 3 ? ` (+${atencao.length - 3} na Central)` : ""}.${nota} Pergunte "por quê?" para eu explicar ${top.length === 1 ? "a situação" : "a primeira"}.`;
+    return { ...r(texto, top.map(blocoInsight), [{ rotulo: "Abrir Central de Inteligência", rota: "/dashboard/inteligencia" }], NIVEL.DETECTAR),
+      referencia: { insights: top.map((i) => i.id) } };
+  },
+  // "Por quê?" depois de um alerta: SITUAÇÃO → EVIDÊNCIA → POSSÍVEIS CAUSAS → IMPACTO → RECOMENDAÇÃO.
+  async "insight.explicar"({ motor, store, nomeUsuario, params }) {
+    const b = await generateDailyBrief({ motor, store, nomeUsuario });
+    const todos = [...b.critical, ...b.warnings, ...b.opportunities, ...b.information];
+    const i = params.insightId ? todos.find((x) => x.id === params.insightId) : todos.find((x) => x.modulo === params.modulo);
+    if (!i) {
+      const texto = params.insightId
+        ? "Esse alerta não aparece mais nos dados de agora (pode ter sido resolvido ou os dados mudaram)."
+        : "Não encontrei nada fora do padrão nesse assunto nos dados disponíveis, então não tenho um porquê para explicar.";
+      return { ...r(texto, [], [{ rotulo: "Abrir Central de Inteligência", rota: "/dashboard/inteligencia" }]), referencia: { insights: [] } };
+    }
+    const evid = (i.evidencias || []).map((e) => `${e.rotulo}: ${e.valor}`).join("; ");
+    const causas = (i.possiveisCausas || []).slice(0, 4).map((c) => c.texto).join("; ");
+    const partes = [
+      i.situacao,
+      evid && `Evidência: ${evid}.`,
+      causas && `Possíveis causas (não confirmadas): ${causas}.`,
+      i.impacto?.texto && `Impacto: ${i.impacto.texto}${i.impacto.natureza && i.impacto.natureza !== NATUREZA.REAL ? ` (${i.impacto.natureza})` : ""}.`,
+      i.recomendacao && `Recomendação: ${i.recomendacao}`,
+    ].filter(Boolean);
+    const out = { ...r(partes.join(" "), [blocoInsight(i)], i.acoes || [], NIVEL.RECOMENDAR), referencia: { insights: [i.id] } };
+    if (i.entidade?.tipo === "produto" && i.entidade.id) out.referencia.produto = { id: i.entidade.id, nome: i.entidade.nome || null };
+    return out;
   },
 };
 

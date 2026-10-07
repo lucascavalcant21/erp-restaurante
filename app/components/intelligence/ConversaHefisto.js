@@ -168,11 +168,15 @@ const ConversaHefisto = forwardRef(function ConversaHefisto({ unidadeId, tela = 
   const [lerEmVoz, setLerEmVoz] = useState(false);
   const [vozOk, setVozOk] = useState(false);
   const escutaRef = useRef(null);
+  // O que a última resposta citou (produto, alertas): volta no próximo pedido
+  // para "Por quê?" e "Perdi 2 kg." — o servidor reconfere tudo.
+  const referenciaRef = useRef(null);
   const fimRef = useRef(null);
   const inputRef = useRef(null);
   const voz = provedorDeVoz();
 
   useEffect(() => { setVozOk(voz.disponivel()); }, [voz]);
+  useEffect(() => { referenciaRef.current = null; }, [unidadeId]);
   useEffect(() => { if (autoFoco) setTimeout(() => inputRef.current?.focus(), 80); }, [autoFoco]);
   useEffect(() => { fimRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [mensagens, ocupado]);
   useEffect(() => () => { escutaRef.current?.parar(); voz.calar(); }, [voz]);
@@ -181,6 +185,7 @@ const ConversaHefisto = forwardRef(function ConversaHefisto({ unidadeId, tela = 
 
   const tratar = useCallback((dados, { canal } = {}) => {
     adicionar({ de: "hefisto", resposta: dados });
+    if (dados?.referencia) referenciaRef.current = dados.referencia;
     if (canal === "voz" && lerEmVoz && dados?.texto) voz.falar(dados.texto);
     if (dados?.tipo === "navegacao" && dados.rota) {
       setTimeout(() => { onNavegar?.(); router.push(dados.rota); }, 350);
@@ -193,7 +198,7 @@ const ConversaHefisto = forwardRef(function ConversaHefisto({ unidadeId, tela = 
     setEntrada("");
     adicionar({ de: "usuario", texto: t, canal });
     setOcupado(true);
-    const r = await perguntarAoHefisto(unidadeId, { texto: t, chave: novaChaveDeEnvio(), canal, tela });
+    const r = await perguntarAoHefisto(unidadeId, { texto: t, chave: novaChaveDeEnvio(), canal, tela, conversa: referenciaRef.current });
     setOcupado(false);
     tratar(r.ok ? r.dados : { tipo: "erro_acao", texto: r.dados?.erro || "Não consegui responder agora." }, { canal });
   }, [ocupado, unidadeId, tela, tratar]);

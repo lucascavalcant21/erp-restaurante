@@ -8,8 +8,9 @@
 //   → resposta tipada + auditoria do pedido (com correlation id)
 
 import { s } from "../schemas/schema.mjs";
-import { intencaoPorId, DESTINOS, INTENCOES } from "./catalogo.mjs";
+import { intencaoPorId, DESTINOS, INTENCOES, IDS_INTENCAO } from "./catalogo.mjs";
 import { interpretar } from "./interpretar.mjs";
+import { palavras } from "./interpretador-regras.mjs";
 import { responderPergunta } from "../agents/orquestrador.mjs";
 import { criarTrilha, NIVEL } from "../core/niveis.mjs";
 import { auditar, ETAPA_AUDITORIA } from "../audit/auditoria.mjs";
@@ -25,6 +26,14 @@ export const pedidoSchema = s.object({
     valorNumero: s.opcional(s.number({ min: 0.001, max: 100000 })),
   })),
   canal: s.opcional(s.enum(["texto", "voz"])),
+  // O que a resposta ANTERIOR desta conversa citou (devolvido pelo servidor em
+  // `referencia`). Não confiável: produto é reconferido no banco da unidade e
+  // insight é procurado entre os recalculados agora — nunca usado como dado.
+  conversa: s.opcional(s.object({
+    intencao: s.opcional(s.enum(IDS_INTENCAO)),
+    produto: s.opcional(s.object({ id: s.uuid(), nome: s.opcional(s.string({ max: 80 })) })),
+    insights: s.opcional(s.array(s.string({ max: 80, padrao: /^[a-z_]+:[0-9a-f]{8}$/ }), { max: 5 })),
+  })),
 });
 
 export const EXEMPLOS = Object.freeze([
@@ -35,6 +44,33 @@ export const EXEMPLOS = Object.freeze([
 ]);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const VERBOS_VARIACAO = new Set(["aumentou", "subiu", "diminuiu", "caiu", "mudou", "aumentaram", "subiram"]);
+const INSIGHT_EXPLICAR = Object.freeze({ id: "insight.explicar", tipo: "pergunta", agentes: ["operacoes"] });
+
+/**
+ * Produto de que a pessoa está falando sem dizer o nome: o da TELA aberta e/ou
+ * o da RESPOSTA ANTERIOR. Os dois iguais (ou só um) → esse. Diferentes →
+ * ambíguo: o Héfisto pergunta, não escolhe.
+ */
+export function produtoDoContexto(ic, conversa) {
+  const tela = ic.entidade?.tipo === "produto" && ic.entidade.id && UUID.test(ic.entidade.id)
+    ? { id: ic.entidade.id, nome: ic.entidade.nome || null, origem: "tela" } : null;
+  const anterior = conversa?.produto?.id ? { id: conversa.produto.id, nome: conversa.produto.nome || null, origem: "conversa" } : null;
+  if (tela && anterior && tela.id !== anterior.id) return { ambiguo: [tela, anterior] };
+  return tela || anterior || null;
+}
+
+/** "Por quê?" sobre o quê: a resposta anterior manda; depois a tela; sem nada, pergunta. */
+export function resolverPorQue({ texto, conversa, produtoCtx }) {
+  const temVerbo = palavras(texto).some((w) => VERBOS_VARIACAO.has(w));
+  const produto = produtoCtx && !produtoCtx.ambiguo ? produtoCtx : null;
+  if (temVerbo && produto) return { intencao: intencaoPorId("produto.explicar_variacao") };
+  if (conversa?.insights?.length) return { intencao: INSIGHT_EXPLICAR, params: { insightId: conversa.insights[0] } };
+  if (["custos.cmv", "custos.por_que_cmv"].includes(conversa?.intencao)) return { intencao: intencaoPorId("custos.por_que_cmv") };
+  if (conversa?.intencao === "vendas.faturamento") return { intencao: INSIGHT_EXPLICAR, params: { modulo: "vendas" } };
+  if (produto || temVerbo) return { intencao: intencaoPorId("produto.explicar_variacao") };
+  return null;
+}
 
 /**
  * @param {object} p
@@ -66,11 +102,29 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
   } else {
     ({ interpretacao: interp, origem, ia } = await interpretar({ texto: pedido.texto, modulo: ic.tela.modulo, provedor }));
     intencao = intencaoPorId(interp.intencao);
-    // "Por que aumentou?" olhando a Picanha: o produto vem da tela (reconferido no banco pelo agente)
     const params = { ...interp };
-    if (!params.produto && ic.entidade?.tipo === "produto" && intencao?.requerProduto) params.produto = ic.entidade.nome || null;
+    const conversa = pedido.conversa || null;
+    const produtoCtx = produtoDoContexto(ic, conversa);
+    let porQue = null;
+    if (intencao?.id === "conversa.por_que") {
+      porQue = resolverPorQue({ texto: pedido.texto, conversa, produtoCtx });
+      if (porQue) { intencao = porQue.intencao; Object.assign(params, porQue.params || {}); }
+    }
+    // Produto não dito ("Perdi 2 kg.", "Quanto tenho?", "Por que aumentou?"):
+    // vem do contexto pelo ID e é reconferido no cadastro DA UNIDADE (o nome é só rótulo).
+    const usaProduto = intencao && (intencao.requerProduto || intencao.acao === "stock.registerLoss" || intencao.id === "estoque.saldo_produto");
+    const semProdutoDito = !interp.produto;
 
-    if (!intencao) {
+    if (intencao?.id === "conversa.por_que") {
+      resposta = { tipo: "pergunta", texto: "Por que o quê?", pergunta: { campo: "assunto", livre: true, texto: "Sobre o que você quer a explicação? Ex.: \"por que o CMV subiu?\", \"por que a picanha aumentou?\" ou \"tem alguma coisa errada?\"" } };
+      trilha.passar("explicacao", NIVEL.OBSERVAR);
+    } else if (usaProduto && semProdutoDito && produtoCtx?.ambiguo) {
+      const base = String(pedido.texto).trim().replace(/[.!?]+$/, "");
+      resposta = {
+        tipo: "pergunta", texto: "De qual produto você está falando?",
+        pergunta: { campo: "produto", texto: "De qual produto você está falando?", opcoes: produtoCtx.ambiguo.map((p) => ({ id: p.id, rotulo: `${p.nome || "produto"} (${p.origem === "tela" ? "tela aberta" : "conversa"})`, comando: `${base} de ${p.nome}` })).filter((o) => !/ de (null|undefined)$/.test(o.comando)) },
+      };
+    } else if (!intencao) {
       resposta = { tipo: "nao_entendi", texto: "Não entendi o pedido. Veja exemplos do que eu sei responder:", sugestoes: EXEMPLOS };
     } else if (intencao.tipo === "navegacao") {
       const d = DESTINOS[interp.destino];
@@ -82,20 +136,33 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
       trilha.passar("acao", NIVEL.OBSERVAR);
     } else if (intencao.tipo === "acao") {
       trilha.passar("recomendacao", NIVEL.RECOMENDAR);
+      if (usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo) params.insumoId = produtoCtx.id;
       resposta = await servicoAcoes.iniciar({ acaoId: intencao.acao, params, comando: pedido.texto, chave: pedido.chave, correlationId });
       trilha.passar("acao", NIVEL.AGIR);
     } else {
-      const ent = ic.entidade?.tipo === "produto" && ic.entidade.id && UUID.test(ic.entidade.id) && !interp.produto ? ic.entidade : null;
-      const out = await responderPergunta({ intencao, params: { ...params, insumoIdTela: ent?.id || null }, ic, motor, store, nomeUsuario, trilha });
+      const insumoIdContexto = usaProduto && semProdutoDito && produtoCtx && !produtoCtx.ambiguo ? produtoCtx.id : null;
+      const out = await responderPergunta({ intencao, params: { ...params, insumoIdContexto }, ic, motor, store, nomeUsuario, trilha });
       resposta = { tipo: out.pergunta ? "pergunta" : "resposta", ...out };
     }
   }
 
   const consultas = motor.ambiente.dbe.consultas;
   const latenciaMs = Date.now() - inicio;
+  // O que esta resposta citou: volta no próximo pedido como `conversa` ("Por quê?", "Perdi 2 kg.")
+  const produtoCitado = resposta.referencia?.produto || resposta.confirmacao?.entidade || null;
+  const referencia = intencao || produtoCitado ? {
+    intencao: intencao && IDS_INTENCAO.includes(intencao.id) ? intencao.id : null,
+    produto: produtoCitado?.id && UUID.test(produtoCitado.id) ? { id: produtoCitado.id, nome: produtoCitado.nome || null } : null,
+    insights: Array.isArray(resposta.referencia?.insights) ? resposta.referencia.insights.slice(0, 5) : null,
+  } : null;
   const final = {
     ...resposta,
-    interpretacao: interp ? { intencao: interp.intencao, origem, confianca: interp.confianca, periodo: interp.periodo, produto: interp.produto } : null,
+    referencia,
+    interpretacao: interp ? {
+      intencao: intencao?.id || interp.intencao, origem, confianca: interp.confianca, periodo: interp.periodo, produto: interp.produto,
+      // "por quê?" resolvido pelo contexto: fica registrado de onde veio
+      ...(intencao && intencao.id !== interp.intencao ? { deduzidaDe: interp.intencao } : {}),
+    } : null,
     agentes: resposta.agentes || (intencao?.agentes || []),
     etapas: trilha.resumo(),
     correlationId,
@@ -105,6 +172,7 @@ export async function processarComando({ pedido, ic, motor, servicoAcoes, store,
   final.auditado = await auditar(store, ic.escopo, {
     correlationId, canal, etapa: ETAPA_AUDITORIA.PEDIDO,
     comando: pedido.texto ?? (pedido.continuar ? `[resposta ${pedido.continuar.campo}]` : null),
+    entidadeTipo: ic.entidade?.tipo || null, entidadeId: ic.entidade?.id || null,
     intencao: final.interpretacao, agentes: final.agentes, consultas,
     recomendacao: resposta.tipo === "resposta" ? resposta.texto : null,
     acaoId: resposta.confirmacao?.acaoId || resposta.pergunta?.acaoId || resposta.resultado?.acaoId || null,

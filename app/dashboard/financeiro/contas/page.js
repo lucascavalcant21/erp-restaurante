@@ -21,6 +21,7 @@ import ModalPagamentoConta from "../../../components/ModalPagamentoConta";
 import { Plus, Search, CalendarDays, Wallet, AlertTriangle, Clock, Pencil, X, RefreshCw, Eye, Ban } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { useContextoInteligencia } from "../../../components/intelligence/useContextoInteligencia";
 
 const COR = {
   pago: "bg-emerald-100 text-emerald-800", parcial: "bg-blue-100 text-blue-800", vencido: "bg-red-100 text-red-800",
@@ -66,6 +67,8 @@ export default function ContasAPagarPage() {
   const [form, setForm] = useState(null);           // { ...campos, chave, contaAtual }
   const [contaPagar, setContaPagar] = useState(null);
   const [detalhe, setDetalhe] = useState(null);     // { conta, pagamentos, erro }
+  // Héfisto: a conta aberta no detalhe vira o contexto da conversa
+  useContextoInteligencia(detalhe?.conta ? { modulo: "financeiro", tipo: "conta_pagar", id: detalhe.conta.id, nome: detalhe.conta.descricao } : null);
   const [motivo, setMotivo] = useState(null);       // { tipo: 'estorno'|'cancelamento', alvo, texto }
   const [recorrencia, setRecorrencia] = useState(null);
 

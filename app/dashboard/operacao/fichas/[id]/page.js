@@ -41,6 +41,7 @@ import { FichaDocumento } from "../componentes/VisualizacaoFicha";
 import PainelCustosInternos from "../componentes/PainelCustosInternos";
 import ModoCozinha from "./ModoCozinha";
 import AssistenteReceita from "./AssistenteReceita";
+import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 
 const CMV_ATALHOS = [25, 30, 35, 40];
 const MARGEM_PDF_MM = 12;
@@ -52,6 +53,8 @@ export default function FichaTecnicaPage() {
   const { unidadeAtiva, unidadeInfo, sessao } = useERP();
 
   const [ficha, setFicha] = useState(null);
+  // Héfisto: a ficha técnica aberta vira o contexto da conversa
+  useContextoInteligencia(ficha ? { modulo: "producao", tipo: "ficha", id: ficha.id ?? fichaId, nome: ficha.nome_receita } : null);
   const [complementos, setComplementos] = useState(null);
   const [todasFichas, setTodasFichas] = useState([]);
   const [produtos, setProdutos] = useState([]);

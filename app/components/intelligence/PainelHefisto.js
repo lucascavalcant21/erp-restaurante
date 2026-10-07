@@ -14,18 +14,31 @@ import { useHefistoPageContext } from "../../context/HefistoPageContext";
 import { hasPermission } from "../../lib/permissions-catalog.mjs";
 import ConversaHefisto from "./ConversaHefisto";
 
-const TIPOS_PRODUTO = new Set(["produto", "insumo", "product", "ingredient", "item_estoque"]);
+// Tipos de entidade das telas (useContextoInteligencia e telas antigas) → tipos do servidor.
+const TIPOS_DA_TELA = {
+  produto: "produto", insumo: "produto", product: "produto", ingredient: "produto", item_estoque: "produto",
+  compra: "compra", purchase: "compra",
+  colaborador: "colaborador", funcionario: "colaborador", employee: "colaborador",
+  conta_pagar: "conta_pagar", conta: "conta_pagar", payable: "conta_pagar",
+  ficha: "ficha", ficha_tecnica: "ficha", recipe: "ficha",
+  fornecedor: "fornecedor", supplier: "fornecedor",
+  evento: "evento",
+};
+const ROTULO_TIPO = { produto: "Produto", compra: "Compra", colaborador: "Funcionário", conta_pagar: "Conta", ficha: "Ficha técnica", fornecedor: "Fornecedor", evento: "Evento" };
 
 export function telaAtual(pathname, search, pageContext) {
   const rota = `${pathname || "/dashboard"}${search ? `?${search}` : ""}`.slice(0, 200);
-  const ehProduto = TIPOS_PRODUTO.has(String(pageContext?.entityType || "").toLowerCase());
+  const tipo = TIPOS_DA_TELA[String(pageContext?.entityType || "").toLowerCase()] || null;
+  const id = pageContext?.entityId != null && /^[A-Za-z0-9_\-]{1,64}$/.test(String(pageContext.entityId)) ? String(pageContext.entityId) : null;
   return {
     rota,
-    entidade: ehProduto && (pageContext.entityId || pageContext.entityName)
-      ? { tipo: "produto", id: pageContext.entityId ? String(pageContext.entityId).slice(0, 64) : null, nome: pageContext.entityName ? String(pageContext.entityName).slice(0, 80) : null }
+    entidade: tipo && (id || pageContext.entityName)
+      ? { tipo, id, nome: pageContext.entityName ? String(pageContext.entityName).slice(0, 80) : null }
       : null,
   };
 }
+
+export const rotuloDaEntidade = (e) => (e ? `${ROTULO_TIPO[e.tipo] || "Registro"}: ${e.nome || e.id}` : null);
 
 export default function PainelHefisto() {
   const pathname = usePathname() || "";
@@ -95,7 +108,7 @@ export default function PainelHefisto() {
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Héfisto</p>
                 <h2 className="text-lg font-black text-slate-900">Pergunte ao Héfisto</h2>
                 <p className="truncate text-[12px] text-slate-500">
-                  Contexto: {tela.entidade?.nome ? `${tela.entidade.nome} · ` : ""}{pathname.replace("/dashboard", "") || "início"}
+                  Contexto: {tela.entidade ? `${rotuloDaEntidade(tela.entidade)} · ` : ""}{pathname.replace("/dashboard", "") || "início"}
                 </p>
               </div>
               <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-500 hover:bg-slate-200">

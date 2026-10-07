@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Sparkles, User, Settings, LogOut, ChevronDown, Menu, X, ChevronRight, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { hasPermission } from "../../lib/permissions-catalog.mjs";
 
 export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const pathname = usePathname();
@@ -27,7 +28,13 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
     setMobileDrawerOpen(false);
   }, [pathname]);
 
+  const podeInteligencia = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
   const modules = [
+    ...(podeInteligencia ? [{
+      id: "inteligencia",
+      label: "Inteligência",
+      href: "/dashboard/inteligencia"
+    }] : []),
     {
       id: "operacao",
       label: "PDV",

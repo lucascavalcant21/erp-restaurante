@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { resolverContexto } from "../../server/contexto.mjs";
+import { authorizeAction } from "../../server/autorizacao.mjs";
 import { dentroDoLimite } from "../../server/limite-por-ip.mjs";
 import { depsDoContexto, clienteDoUsuario } from "../context/servidor.mjs";
 import { montarContextoInteligencia } from "../context/context-engine.mjs";
@@ -28,6 +29,7 @@ import { criarProvedorAnthropic } from "../providers/anthropic.mjs";
 
 registrarFabricaDeProvedor(() => criarProvedorAnthropic());
 
+export const PERMISSAO_INTELIGENCIA = "dashboard.intelligence.view";
 const SEM_CACHE = { "Cache-Control": "no-store" };
 export const responder = (corpo, status = 200) => NextResponse.json(corpo, { status, headers: SEM_CACHE });
 const recusar = (status, codigo, erro) => responder({ erro, codigo }, status);
@@ -61,6 +63,10 @@ export async function atenderInteligencia(request, handler, { limitePorMinuto = 
   const r = await resolverContexto({ token, unidadeSolicitada: unidade, canal: "agente", requestId, deps });
   if (!r.ok) return recusar(r.status, r.codigo, r.mensagem);
   const ctx = r.contexto;
+
+  // Porta da inteligência: a mesma chave que abre a Central (confirmada no banco).
+  const porta = await authorizeAction(ctx, PERMISSAO_INTELIGENCIA, { acao: "inteligencia.usar", deps });
+  if (!porta.ok) return recusar(porta.status, porta.codigo, porta.status === 403 ? "Seu perfil não tem acesso à Central de Inteligência." : porta.mensagem);
 
   if (!dentroDoLimite(`inteligencia:${ctx.userId}`, { maximo: limitePorMinuto, janelaMs: 60_000 })) {
     return recusar(429, "LIMITE", "Muitos pedidos em sequência. Aguarde um minuto.");

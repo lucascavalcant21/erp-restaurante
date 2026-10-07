@@ -84,3 +84,15 @@ test("corpo inválido (não-JSON ou grande demais) é recusado", async () => {
   const grande = pedido({ corpo: { texto: "x".repeat(20000) } });
   assert.equal((await atenderInteligencia(grande, ask, { injecao: injecao() })).status, 400);
 });
+
+test("perfil sem a permissão da Central de Inteligência: 403 antes de qualquer consulta", async () => {
+  const { PERMISSAO_INTELIGENCIA } = await import("../server/http.mjs");
+  const { allPermissionKeys } = await import("../../permissions-catalog.mjs");
+  assert.ok(allPermissionKeys().includes(PERMISSAO_INTELIGENCIA));
+  const inj = injecao();
+  let consultou = false;
+  inj.clienteDoUsuario = () => { consultou = true; return bancoFalso(tabelasPadrao()); };
+  const r = await atenderInteligencia(pedido({ token: "tok-restrito", corpo: { texto: "Quanto vendi hoje?", chave: "chave-http-0009" } }), ask, { injecao: inj });
+  assert.equal(r.status, 403);
+  assert.equal(consultou, false);
+});

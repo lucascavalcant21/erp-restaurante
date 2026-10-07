@@ -95,13 +95,14 @@ export async function generateDailyBrief({ motor, store = null, nomeUsuario = ""
   ];
 
   const blocos = Object.entries(dados).filter(([k]) => k !== "historico").map(([, m]) => resumoDoBloco(m)).filter(Boolean);
-  const insuficientes = blocos.filter((b) => b.status === "insuficiente").length;
+  // conta os indicadores do resumo (os cartões que a pessoa vê)
+  const insuficientes = metrics.filter((x) => x.metrica?.status === "insuficiente").length;
   const nome = primeiroNome(nomeUsuario);
   const saudacao = `${saudacaoNoFuso(amb.agora, amb.fuso)}${nome ? `, ${nome}` : ""}.`;
   const frase = atencao
     ? `Encontrei ${atencao} situaç${atencao === 1 ? "ão" : "ões"} que merece${atencao === 1 ? "" : "m"} sua atenção.`
     : "Não encontrei situações que exijam sua atenção nos dados disponíveis.";
-  const cobertura = insuficientes ? ` ${insuficientes} indicador(es) estão sem dados suficientes.` : "";
+  const cobertura = insuficientes ? ` ${insuficientes} indicador${insuficientes === 1 ? " do resumo está" : "es do resumo estão"} sem dados suficientes.` : "";
 
   return {
     geradoEm: amb.apuradoEm,

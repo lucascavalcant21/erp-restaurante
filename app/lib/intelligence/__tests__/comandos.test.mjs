@@ -311,3 +311,35 @@ test("auditoria mascara segredos e documentos no texto do comando", () => {
   const t = redigir("minha senha é 1234 e o cpf 123.456.789-00, token sk-ant-abc123xyz456");
   assert.ok(!t.includes("1234 ") && !t.includes("123.456.789-00") && !t.includes("sk-ant-abc123xyz456"));
 });
+
+// ── store do Supabase (service role) contra o banco falso ────────────────────
+test("store Supabase: filtra por unidade e usuário, idempotência por unicidade e transição atômica", async () => {
+  const { criarStoreSupabase } = await import("../audit/store-supabase.mjs");
+  const db = bancoFalso({ intelligence_acoes: [], intelligence_eventos: [], intelligence_feedback: [] }, { unicos: { intelligence_acoes: ["auth_user_id", "unidade_id", "chave_idempotencia"] } });
+  const st = criarStoreSupabase(db);
+  const base = { unidade_id: "loja-a", auth_user_id: "u-a", chave_idempotencia: "envio-0001", tipo: "stock.registerLoss", risco: "MEDIUM", status: "proposta", expira_em: new Date(AGORA.getTime() + 60000).toISOString() };
+  const a1 = await st.criarAcao(base);
+  const a2 = await st.criarAcao(base);
+  assert.equal(a1.repetida, false);
+  assert.deepEqual([a2.repetida, a2.id], [true, a1.id]);
+  assert.equal(await st.buscarAcao({ id: a1.id, unidadeId: "loja-b", authUserId: "u-a" }), null);
+  assert.equal(await st.buscarAcao({ id: a1.id, unidadeId: "loja-a", authUserId: "u-b" }), null);
+  const t1 = await st.transicionarAcao({ id: a1.id, unidadeId: "loja-a", authUserId: "u-a", de: ["proposta"], para: "executando", agora: AGORA });
+  const t2 = await st.transicionarAcao({ id: a1.id, unidadeId: "loja-a", authUserId: "u-a", de: ["proposta"], para: "executando", agora: AGORA });
+  assert.equal(t1.status, "executando");
+  assert.equal(t2, null);
+  const upd = db.chamadas.filter((c) => c.op === "update")[0];
+  assert.deepEqual(upd.filtros.map((f) => f[1]), ["id", "unidade_id", "auth_user_id", "status", "expira_em"]);
+  await st.registrarEvento({ unidade_id: "loja-a", etapa: "pedido" });
+  assert.equal(db.dados.intelligence_eventos.length, 1);
+});
+
+test("store indisponível (sem service role): ações bloqueadas, leitura vazia", async () => {
+  const { storeIndisponivel } = await import("../audit/store-supabase.mjs");
+  const { pedir, rpcChamadas } = await montar({ store: storeIndisponivel });
+  await assert.rejects(() => pedir("Perdi 2 kg de picanha por validade"), /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.equal(rpcChamadas.length, 0);
+  const r = await pedir("Quanto vendi hoje?");
+  assert.equal(r.auditado, false);
+  assert.match(r.texto, /1\.200,00/);
+});

@@ -53,13 +53,30 @@ export async function contexto(token = `tok-${UID_A}`, unidade = "loja-a", deps 
 
 const cmp = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a < b ? -1 : 1);
 
-export function bancoFalso(tabelas = {}, { ignorarFiltros = false, erros = {}, rpcs = {} } = {}) {
+export function bancoFalso(tabelas = {}, { ignorarFiltros = false, erros = {}, rpcs = {}, unicos = {} } = {}) {
   const chamadas = [];
   const dados = Object.fromEntries(Object.entries(tabelas).map(([k, v]) => [k, v.map((x) => ({ ...x }))]));
 
   function consulta(tabela) {
-    const st = { filtros: [], ordem: [], limite: null, unico: null, colunas: "*" };
+    const st = { filtros: [], ordem: [], limite: null, unico: null, colunas: "*", op: "select", patch: null, retornar: false };
+    const passa = (l) => st.filtros.every(([op, col, val]) => {
+      const v = l[col];
+      switch (op) {
+        case "eq": return String(v) === String(val);
+        case "in": return val.map(String).includes(String(v));
+        case "gt": return v != null && v > val;
+        default: return true;
+      }
+    });
     const executar = () => {
+      if (st.op === "update") {
+        const alvo = (dados[tabela] || []).filter(passa);
+        for (const l of alvo) Object.assign(l, st.patch);
+        chamadas.push({ tabela, op: "update", filtros: st.filtros.map((f) => [...f]), linhas: alvo.length });
+        const out = alvo.map((l) => ({ ...l }));
+        if (st.unico === "maybe") return { data: out[0] ?? null, error: null };
+        return { data: st.retornar ? out : null, error: null };
+      }
       chamadas.push({ tabela, filtros: st.filtros.map((f) => [...f]), colunas: st.colunas });
       if (erros[tabela]) return { data: null, error: erros[tabela] };
       if (!(tabela in dados)) return { data: null, error: { message: `relation "public.${tabela}" does not exist`, code: "42P01" } };
@@ -89,7 +106,7 @@ export function bancoFalso(tabelas = {}, { ignorarFiltros = false, erros = {}, r
       return { data: linhas, error: null };
     };
     const b = {
-      select(cols = "*") { st.colunas = cols; return b; },
+      select(cols = "*") { if (st.op === "update") st.retornar = true; else st.colunas = cols; return b; },
       eq(c, v) { st.filtros.push(["eq", c, v]); return b; },
       neq(c, v) { st.filtros.push(["neq", c, v]); return b; },
       in(c, v) { st.filtros.push(["in", c, v]); return b; },
@@ -107,12 +124,18 @@ export function bancoFalso(tabelas = {}, { ignorarFiltros = false, erros = {}, r
       single() { st.unico = "single"; return b; },
       maybeSingle() { st.unico = "maybe"; return b; },
       insert(linhas) {
-        const lista = Array.isArray(linhas) ? linhas : [linhas];
-        (dados[tabela] ||= []).push(...lista.map((l) => ({ ...l })));
-        chamadas.push({ tabela, op: "insert", linhas: lista.length });
-        return { select: () => ({ single: async () => ({ data: lista[0], error: null }) }), then: (r) => Promise.resolve({ data: null, error: null }).then(r) };
+        const lista = (Array.isArray(linhas) ? linhas : [linhas]).map((l) => ({ id: l.id || `id-${Math.random().toString(16).slice(2, 10)}`, ...l }));
+        const chaves = unicos[tabela];
+        const dup = chaves && lista.some((l) => (dados[tabela] || []).some((x) => chaves.every((k) => String(x[k]) === String(l[k]))));
+        const res = dup ? { data: null, error: { message: "duplicate key value violates unique constraint", code: "23505" } } : null;
+        if (!dup) (dados[tabela] ||= []).push(...lista.map((l) => ({ ...l })));
+        chamadas.push({ tabela, op: "insert", linhas: lista.length, duplicado: !!dup });
+        return {
+          select: () => ({ single: async () => res || { data: { ...lista[0] }, error: null } }),
+          then: (r) => Promise.resolve(res || { data: null, error: null }).then(r),
+        };
       },
-      update() { throw new Error("update não suportado no banco falso"); },
+      update(campos) { st.op = "update"; st.patch = { ...campos }; return b; },
       then(resolver, rejeitar) { return Promise.resolve().then(executar).then(resolver, rejeitar); },
     };
     return b;

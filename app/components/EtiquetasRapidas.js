@@ -17,6 +17,7 @@ import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
+import { limitarEscala, rotuloEscala, PASSO_ESCALA, ESCALA_MIN, ESCALA_MAX, carregarImagem, layoutNome } from "../lib/etiqueta-centralizada.mjs";
 
 const UNIDADES = ["UN", "UNIDADE", "GARRAFA", "LATA", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const TAMANHOS = {
@@ -29,6 +30,24 @@ const numero = valor => Number(valor) || 0;
 const validadeDe = (momento, dias) => new Date(momento.getTime() + Math.max(0, numero(dias)) * 86400000);
 const dataHora = data => data.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 const dataCurta = data => data.toLocaleDateString("pt-BR");
+// "Apenas imagem" precisa da imagem carregada antes de desenhar no canvas.
+async function comImagensCarregadas(lista) {
+  return Promise.all(lista.map(async (p) => (p.modeloEtiqueta === "logo" && !p.logoImagem ? { ...p, logoImagem: await carregarImagem(p.logoEtiqueta) } : p)));
+}
+
+// Mesmo cálculo da impressora (203 dpi = 8 pontos por mm): a prévia mostra o
+// nome no tamanho e nas linhas em que ele vai sair.
+const PONTOS_MM = 8;
+function layoutNomeDaPrevia(nomes, dim, escala, rodape) {
+  if (typeof document === "undefined") return null;
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return null;
+  const margem = dim.pad + 1;
+  const w = Math.round((dim.w - 2 * margem) * PONTOS_MM);
+  const h = Math.round((dim.h - 2 * margem) * PONTOS_MM);
+  return layoutNome(ctx, w, h, { nomes, escala, rodape });
+}
+
 const chaveListasLocais = (unidadeId, setor) => `hefisto_listas_etiquetas_${unidadeId || "sem-unidade"}_${setor || "todos"}`;
 
 function lerListasLocais(unidadeId, setor) {
@@ -93,17 +112,30 @@ function PreviaNome({ item, tamanho }) {
 
 function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho = "60x40", tipoEtiqueta }) {
   const dim = TAMANHOS[tamanho] || TAMANHOS["60x40"];
+  if (item.modeloEtiqueta === "logo") {
+    const escala = limitarEscala(item.escalaLogo);
+    const lado = `${Math.min(100, 80 * escala)}%`;
+    return <div className="etiqueta-rapida-papel etiqueta-somente-imagem" style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, padding: `${dim.pad + 1}mm`, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxSizing: "border-box" }}>
+      {item.logoEtiqueta
+        ? <img src={item.logoEtiqueta} alt="" style={{ maxWidth: lado, maxHeight: lado, objectFit: "contain" }} />
+        : <span style={{ fontSize: "2.4mm", fontWeight: 800, color: "#64748b", textAlign: "center" }}>Adicione a imagem</span>}
+    </div>;
+  }
   if (item.modeloEtiqueta === "nome") {
     const nomes = [item.nome, item.nome2].map(n => String(n || "").trim()).filter(Boolean);
-    const maior = nomes.reduce((m, n) => Math.max(m, n.length), 0);
-    const base = maior > 32 ? dim.titulo * 1.45 : maior > 20 ? dim.titulo * 1.7 : dim.titulo * 2.15;
-    const escala = Math.min(2, Math.max(0.5, Number(item.escalaNome) || 1));
-    const tamanhoNome = (nomes.length > 1 ? base * 0.62 : base) * escala;
-    return <div className="etiqueta-rapida-papel etiqueta-somente-nome" style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, padding: `${dim.pad + 1}mm`, background: "#fff", color: "#000", fontFamily: "Arial,Helvetica,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: nomes.length > 1 ? "1.2mm" : 0 }}>
-        {nomes.map((nome, i) => (
-          <div key={i} style={{ fontSize: `${tamanhoNome}mm`, lineHeight: 1.05, fontWeight: 950, textAlign: "center", textTransform: "uppercase", overflowWrap: "anywhere" }}>{nome}</div>
-        ))}
+    const rodape = item.informarQuantidade && numero(item.quantidade) > 0 ? `${item.quantidade} ${item.unidade || "UN"}` : "";
+    const lay = layoutNomeDaPrevia(nomes, dim, item.escalaNome, rodape);
+    const mm = (pontos) => `${pontos / PONTOS_MM}mm`;
+    return <div className="etiqueta-rapida-papel etiqueta-somente-nome" style={{ width: `${dim.w}mm`, height: `${dim.h}mm`, padding: `${dim.pad + 1}mm`, background: "#fff", color: "#000", fontFamily: "Arial,Helvetica,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxSizing: "border-box" }}>
+      <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: lay ? mm(lay.espacoEntreNomes) : "1.2mm" }}>
+        {lay
+          ? lay.blocos.map((linhas, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                {linhas.map((linha, j) => <div key={j} style={{ fontSize: mm(lay.fonte), lineHeight: mm(lay.alturaLinha), fontWeight: 900, whiteSpace: "nowrap" }}>{linha}</div>)}
+              </div>
+            ))
+          : nomes.map((nome, i) => <div key={i} style={{ fontSize: `${dim.titulo * 2}mm`, fontWeight: 900, textAlign: "center", textTransform: "uppercase" }}>{nome}</div>)}
+        {lay?.rodape && <div style={{ fontSize: mm(lay.fonteRodape), fontWeight: 800, marginTop: mm(lay.fonteRodape * 0.3) }}>{lay.rodape}</div>}
       </div>
     </div>;
   }
@@ -231,6 +263,11 @@ export default function EtiquetasRapidas() {
   const [aviso, setAviso] = useState(null);
   const [tipoEtiqueta, setTipoEtiqueta] = useState("aberto");
   const [modeloEtiqueta, setModeloEtiqueta] = useState("validade");
+  // Tamanho do nome / da imagem nos formatos "Somente nome" e "Apenas imagem".
+  const [escalaNome, setEscalaNome] = useState(() => { try { return limitarEscala(localStorage.getItem("hefisto_etq_escala_nome") || 1); } catch { return 1; } });
+  const [escalaLogo, setEscalaLogo] = useState(() => { try { return limitarEscala(localStorage.getItem("hefisto_etq_escala_logo") || 1); } catch { return 1; } });
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_escala_nome", String(escalaNome)); } catch {} }, [escalaNome]);
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_escala_logo", String(escalaLogo)); } catch {} }, [escalaLogo]);
   const [vozAberta, setVozAberta] = useState(false);
   const [ouvindoVoz, setOuvindoVoz] = useState(false);
   const [textoVoz, setTextoVoz] = useState("");
@@ -398,7 +435,12 @@ export default function EtiquetasRapidas() {
     if (!item || salvando) return;
     if (numero(item.copias) < 1 || (modeloEtiqueta === "validade" && numero(item.dias) < 0)) return setAviso({ tipo: "erro", texto: "Revise a quantidade de cópias e a validade." });
     if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
-    const pronto = { ...item, modeloEtiqueta, tipoEtiqueta, codigo: item.codigo || gerarCodigo() };
+    const pronto = { ...item, modeloEtiqueta, tipoEtiqueta, escalaNome, escalaLogo,
+      logoEtiqueta: modeloEtiqueta === "logo" || mostrarLogo ? logoEtiqueta : "", codigo: item.codigo || gerarCodigo() };
+    if (modeloEtiqueta === "logo") {
+      if (!logoEtiqueta) return setAviso({ tipo: "erro", texto: "Adicione a imagem (logo) antes de imprimir." });
+      try { pronto.logoImagem = await carregarImagem(logoEtiqueta); } catch (e) { return setAviso({ tipo: "erro", texto: e?.message || "Não consegui ler a imagem." }); }
+    }
     const direta = true;
 
     // FLUXO DE IMPRESSÃO (NÃO ALTERAR LÓGICA)
@@ -425,7 +467,8 @@ export default function EtiquetasRapidas() {
 
   function adicionarFila() {
     if (!item || numero(item.copias) < 1 || (modeloEtiqueta === "validade" && numero(item.dias) < 0)) return setAviso({ tipo: "erro", texto: "Revise os dados." });
-    setFila(atual => [...atual, { ...item, modeloEtiqueta, tipoEtiqueta, logoEtiqueta: mostrarLogo ? logoEtiqueta : "", codigo: item.codigo || gerarCodigo() }]);
+    if (modeloEtiqueta === "logo" && !logoEtiqueta) return setAviso({ tipo: "erro", texto: "Adicione a imagem (logo) antes." });
+    setFila(atual => [...atual, { ...item, modeloEtiqueta, tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: modeloEtiqueta === "logo" || mostrarLogo ? logoEtiqueta : "", codigo: item.codigo || gerarCodigo() }]);
     setItem(null);
     setCriandoLivre(false);
     setNomeLivre("");
@@ -487,7 +530,9 @@ export default function EtiquetasRapidas() {
 
   async function imprimirFila(comandoVoz = "", listaDireta = null) {
     const direta = Array.isArray(listaDireta) && listaDireta.length > 0;
-    const lista = direta ? listaDireta : fila;
+    const listaBase = direta ? listaDireta : fila;
+    let lista;
+    try { lista = await comImagensCarregadas(listaBase); } catch (e) { return setAviso({ tipo: "erro", texto: e?.message || "Não consegui ler a imagem." }); }
     const total = lista.reduce((soma, p) => soma + Math.max(1, Math.floor(numero(p.copias))), 0);
     if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
     if (!lista.length) return setAviso({ tipo: "erro", texto: "Fila vazia." });
@@ -510,7 +555,7 @@ export default function EtiquetasRapidas() {
     if (direta) { setFilaImpressao(lista); await new Promise(r => setTimeout(r, 80)); }
     try {
       if (bluetoothNome) { for (const produto of lista) await imprimirEtiquetasBluetooth({ tamanho, copias: Math.max(1, Math.floor(numero(produto.copias))), larguraImpressora: "58mm", perfilFisico, dados: { ...produto } }); } 
-      else { const f = document.getElementById("etiquetas-rapidas-print"); if (f) imprimirHtml(`<!doctype html><html><head><style>@page{size:60mm 40mm;margin:0}*{box-sizing:border-box}body{margin:0}#etiquetas-rapidas-print{width:60mm}</style></head><body>${f.outerHTML}</body></html>`, { aoFalhar: () => setAviso({tipo:"erro", texto:"Falha"})}); }
+      else { const f = document.getElementById("etiquetas-rapidas-print"); if (f) imprimirHtml(`<!doctype html><html><head><style>@page{size:${(TAMANHOS[tamanho] || TAMANHOS["60x40"]).w}mm ${(TAMANHOS[tamanho] || TAMANHOS["60x40"]).h}mm;margin:0}*{box-sizing:border-box}body{margin:0}#etiquetas-rapidas-print{width:${(TAMANHOS[tamanho] || TAMANHOS["60x40"]).w}mm}</style></head><body>${f.outerHTML}</body></html>`, { aoFalhar: () => setAviso({tipo:"erro", texto:"Falha"})}); }
     } catch (e) { setAviso({ tipo: "erro", texto: e?.message }); }
     setSalvando(false);
     if (!direta) { setFila([]); setFilaAberta(false); }
@@ -719,6 +764,21 @@ export default function EtiquetasRapidas() {
                   </div>
                 </div>
 
+                {(modeloEtiqueta === "nome" || modeloEtiqueta === "logo") && (() => {
+                  const valor = modeloEtiqueta === "logo" ? escalaLogo : escalaNome;
+                  const mudar = modeloEtiqueta === "logo" ? setEscalaLogo : setEscalaNome;
+                  return (
+                    <div className="ux-field">
+                      <label>Tamanho {modeloEtiqueta === "logo" ? "da imagem" : "do nome"} <span className="ux-val-fim">sempre centralizado</span></label>
+                      <div className="ux-segmented">
+                        <button aria-label="Diminuir" disabled={valor <= ESCALA_MIN} onClick={() => mudar(v => limitarEscala(v - PASSO_ESCALA))}>A −</button>
+                        <button className="ativo" title="Voltar ao tamanho padrão" onClick={() => mudar(1)}>{rotuloEscala(valor)}</button>
+                        <button aria-label="Aumentar" disabled={valor >= ESCALA_MAX} onClick={() => mudar(v => limitarEscala(v + PASSO_ESCALA))}>A +</button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="ux-field">
                   <label>Imagem / Logo na etiqueta</label>
                   <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={(e) => { escolherLogo(e.target.files?.[0]); e.target.value = ""; }} />
@@ -773,10 +833,10 @@ export default function EtiquetasRapidas() {
               </div>
               
               <div className="ux-modal-preview">
-                <label>Pré-visualização (60×40)</label>
+                <label>Pré-visualização ({String(tamanho).replace("x", "×")})</label>
                 <div className="ux-preview-box">
                   <div className="ux-preview-scale">
-                    <EtiquetaPapel item={item} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho="60x40" tipoEtiqueta={tipoEtiqueta} />
+                    <EtiquetaPapel item={{ ...item, modeloEtiqueta, escalaNome, escalaLogo, logoEtiqueta: modeloEtiqueta === "logo" || mostrarLogo ? logoEtiqueta : "" }} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho={tamanho} tipoEtiqueta={tipoEtiqueta} />
                   </div>
                 </div>
               </div>
@@ -843,7 +903,7 @@ export default function EtiquetasRapidas() {
         </div>
       )}
 
-      <div id="etiquetas-rapidas-print" aria-hidden="true">{responsavel && (filaImpressao.length ? filaImpressao : fila).flatMap(produto => Array.from({ length: Math.max(1, Math.floor(numero(produto.copias))) }, (_, indice) => <EtiquetaPapel key={`${produto.codigo}-${indice}`} item={produto} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho="60x40" tipoEtiqueta={produto.tipoEtiqueta || "aberto"} />))}</div>
+      <div id="etiquetas-rapidas-print" aria-hidden="true">{responsavel && (filaImpressao.length ? filaImpressao : fila).flatMap(produto => Array.from({ length: Math.max(1, Math.floor(numero(produto.copias))) }, (_, indice) => <EtiquetaPapel key={`${produto.codigo}-${indice}`} item={produto} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho={tamanho} tipoEtiqueta={produto.tipoEtiqueta || "aberto"} />))}</div>
       {aviso && <Aviso aviso={aviso} fechar={() => setAviso(null)} />}
     </div>
   );

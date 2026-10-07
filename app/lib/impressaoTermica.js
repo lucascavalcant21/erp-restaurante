@@ -1,6 +1,7 @@
 "use client";
 
 import { motivoBluetoothIndisponivel } from "./impressaoBluetooth";
+import { desenharNomeCentralizado, desenharImagemCentralizada } from "./etiqueta-centralizada.mjs";
 
 // Perfis medidos fisicamente na EPSON TM-T20 deste computador (203 dpi).
 // O corte fica deliberadamente desligado: a bobina adesiva precisa de uma
@@ -212,28 +213,23 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const direita = x + largura - pad;
   const larguraInterna = direita - esquerda;
 
-  if (dados.modeloEtiqueta === "nome") {
-    // Um ou dois nomes, centralizados; com dois, a letra encolhe para caber.
-    const nomes = [dados.produto, dados.produto2]
-      .map(n => String(n || "").trim().toUpperCase()).filter(Boolean);
-    if (!nomes.length) nomes.push("PRODUTO");
-    const duas = nomes.length > 1;
-
-    const escala = Math.min(2, Math.max(0.5, Number(dados.escalaNome) || 1));
-    let fonte = Math.round((alto ? 64 : 52) * (duas ? 0.62 : 1) * escala);
-    ctx.font = `900 ${fonte}px Arial, sans-serif`;
-    while (fonte > 20 && nomes.some(n => ctx.measureText(n).width > larguraInterna)) {
-      fonte -= 2;
-      ctx.font = `900 ${fonte}px Arial, sans-serif`;
+  // "Somente nome" e "Apenas imagem": área útil inteira, centralizado e com
+  // tamanho ajustável — o mesmo desenho da MDK-022 (etiqueta-centralizada.mjs).
+  if (dados.modeloEtiqueta === "nome" || dados.modeloEtiqueta === "logo") {
+    const alturaArea = alturaDesenho - pad * 2;
+    ctx.save();
+    ctx.translate(esquerda, pad);
+    if (dados.modeloEtiqueta === "logo") {
+      desenharImagemCentralizada(ctx, larguraInterna, alturaArea, dados.logoImagem, dados.escalaLogo);
+    } else {
+      const mostrarQtd = dados.informarQuantidade !== false && Number(dados.quantidade) > 0;
+      desenharNomeCentralizado(ctx, larguraInterna, alturaArea, {
+        nomes: [dados.produto, dados.produto2 || dados.nome2],
+        escala: dados.escalaNome,
+        rodape: mostrarQtd ? `${dados.quantidade} ${dados.unidade || "UN"}` : "",
+      });
     }
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const centro = alturaDesenho / 2;
-    const passo = fonte * 1.25;
-    nomes.forEach((nome, i) => {
-      const y = duas ? centro + (i === 0 ? -passo / 2 : passo / 2) : centro;
-      ctx.fillText(nome, x + (largura / 2), y, larguraInterna);
-    });
+    ctx.restore();
     return canvas;
   }
 
@@ -420,7 +416,7 @@ export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados
   if (!qz.websocket.isActive()) throw new Error("Conecte e autorize a impressora antes de imprimir");
   if (!impressora) throw new Error("Selecione a impressora térmica");
 
-  const qrImagem = dados.modeloEtiqueta === "nome" ? null : await carregarQrDaPrevia(dados.codigo);
+  const qrImagem = (dados.modeloEtiqueta === "nome" || dados.modeloEtiqueta === "logo") ? null : await carregarQrDaPrevia(dados.codigo);
   const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
   const { raster, bytesPorLinha } = canvasParaRaster(canvas);
   const comandos = criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);
@@ -535,7 +531,7 @@ export async function imprimirEtiquetasBluetooth({ tamanho, copias, dados, largu
   const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || 384;
   const perfil = perfilNaLargura(perfilBase, pontos);
   const quantidade = Math.max(1, Math.min(1000, Number(copias) || 1));
-  const qrImagem = dados.modeloEtiqueta === "nome" ? null : await carregarQrDaPrevia(dados.codigo);
+  const qrImagem = (dados.modeloEtiqueta === "nome" || dados.modeloEtiqueta === "logo") ? null : await carregarQrDaPrevia(dados.codigo);
   const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
   const { raster, bytesPorLinha } = canvasParaRaster(canvas);
   const comandos = criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);

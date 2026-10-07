@@ -6,12 +6,14 @@
 // Tudo vem de /api/intelligence/* (dados reais da unidade validada no servidor).
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History } from "lucide-react";
+import Link from "next/link";
+import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { buscarResumoDoDia, responderInsight, buscarHistorico } from "../../lib/intelligence/client/api";
 import { MetricaCartao, SeloCobertura } from "../../components/intelligence/Blocos";
 import InsightCartao from "../../components/intelligence/InsightCartao";
 import ConversaHefisto from "../../components/intelligence/ConversaHefisto";
+import PerguntaCartao from "../../components/intelligence/PerguntaCartao";
 
 const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "");
 
@@ -53,6 +55,7 @@ export default function CentralDeInteligencia() {
   const [ocultos, setOcultos] = useState(() => new Set());
   const [historico, setHistorico] = useState([]);
   const [verInfo, setVerInfo] = useState(false);
+  const [verTodos, setVerTodos] = useState(false);
   const conversa = useRef(null);
   const chatRef = useRef(null);
   const semUnidade = !unidadeAtiva || unidadeAtiva === "todas";
@@ -92,7 +95,16 @@ export default function CentralDeInteligencia() {
   }
 
   const visiveis = (xs) => (xs || []).filter((i) => !ocultos.has(i.id));
+  // já vêm ordenados no servidor por criticidade × impacto × confiança
   const atencao = brief ? [...visiveis(brief.critical), ...visiveis(brief.warnings)] : [];
+  const limite = brief?.destaques || 3;
+  const atencaoVisivel = verTodos ? atencao : atencao.slice(0, limite);
+  const perguntas = brief ? (brief.perguntasAbertas || []).filter((q) => !ocultos.has(q.insightId)) : [];
+  const idsComPergunta = new Set(perguntas.map((q) => q.insightId));
+  async function responderPergunta(q, opcao) {
+    const r = await responderInsight(unidadeAtiva, { insightId: q.insightId, insightTipo: q.insightTipo, resposta: "opcao", opcao });
+    return r.ok;
+  }
   const oportunidades = brief ? visiveis(brief.opportunities) : [];
   const informacoes = brief ? visiveis(brief.information) : [];
 
@@ -103,10 +115,16 @@ export default function CentralDeInteligencia() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Central de Inteligência</h1>
           {!semUnidade && (
-            <button type="button" onClick={carregar} disabled={carregando}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-[13px] font-bold text-slate-700 hover:border-slate-500 disabled:opacity-50">
-              {carregando ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Atualizar
-            </button>
+            <div className="flex gap-2">
+              <Link href="/dashboard/inteligencia/configuracoes" aria-label="Configurações da inteligência"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-[13px] font-bold text-slate-700 hover:border-slate-500">
+                <Settings size={16} /> <span className="hidden sm:inline">Configurações</span>
+              </Link>
+              <button type="button" onClick={carregar} disabled={carregando}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-[13px] font-bold text-slate-700 hover:border-slate-500 disabled:opacity-50">
+                {carregando ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Atualizar
+              </button>
+            </div>
           )}
         </div>
         {brief && (
@@ -127,7 +145,7 @@ export default function CentralDeInteligencia() {
             {!brief ? <Esqueleto /> : (
               <>
                 <Secao titulo="Resumo de hoje">
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
                     {brief.metrics.map((x) => <MetricaCartao key={x.id} rotulo={x.rotulo} m={x.metrica} compacto />)}
                   </div>
                 </Secao>
@@ -135,7 +153,14 @@ export default function CentralDeInteligencia() {
                 <Secao titulo="Precisa da sua atenção" contador={atencao.length}>
                   {atencao.length ? (
                     <div className="space-y-3">
-                      {atencao.map((i) => <InsightCartao key={i.id} insight={i} onComando={perguntar} onResponder={responder} onDispensar={dispensar} />)}
+                      {atencaoVisivel.map((i) => <InsightCartao key={i.id} insight={i} onComando={perguntar} onResponder={responder} onDispensar={dispensar} semPergunta={idsComPergunta.has(i.id)} />)}
+                      {atencao.length > limite && (
+                        <button type="button" onClick={() => setVerTodos((v) => !v)}
+                          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-[13px] font-bold text-slate-700 hover:border-slate-500">
+                          {verTodos ? "Mostrar só os mais importantes" : `Ver todos (${atencao.length})`}
+                          <ChevronDown size={15} className={`transition-transform ${verTodos ? "rotate-180" : ""}`} />
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <p className="flex items-center gap-2 rounded-2xl bg-white p-4 text-[14px] text-slate-600"><ShieldCheck size={18} className="text-emerald-600" /> Nada exige sua atenção nos dados disponíveis.</p>
@@ -144,7 +169,14 @@ export default function CentralDeInteligencia() {
 
                 {oportunidades.length > 0 && (
                   <Secao titulo="Oportunidades" contador={oportunidades.length}>
-                    <div className="space-y-3">{oportunidades.map((i) => <InsightCartao key={i.id} insight={i} onComando={perguntar} onResponder={responder} onDispensar={dispensar} />)}</div>
+                    <div className="space-y-3">{oportunidades.map((i) => <InsightCartao key={i.id} insight={i} onComando={perguntar} onResponder={responder} onDispensar={dispensar} semPergunta={idsComPergunta.has(i.id)} />)}</div>
+                  </Secao>
+                )}
+
+                {perguntas.length > 0 && (
+                  <Secao titulo="Perguntas do Héfisto" contador={perguntas.length}>
+                    <p className="-mt-1 text-[13px] text-slate-600">Só você sabe o que aconteceu. A resposta fica registrada e melhora as próximas análises — nada é alterado no estoque sem a sua confirmação.</p>
+                    <div className="space-y-3">{perguntas.slice(0, limite).map((q) => <PerguntaCartao key={q.id} pergunta={q} onResponder={responderPergunta} onComando={perguntar} />)}</div>
                   </Secao>
                 )}
 
@@ -169,6 +201,7 @@ export default function CentralDeInteligencia() {
                       </li>
                     ))}
                   </ul>
+                  {brief.preferencias?.alertasDesligadosOcultos > 0 && <p className="mt-3 text-[12px] text-slate-500">{brief.preferencias.alertasDesligadosOcultos} alerta(s) não aparecem porque a categoria está desligada em <Link href="/dashboard/inteligencia/configuracoes" className="font-semibold underline">Configurações</Link>.</p>}
                   <p className="mt-3 text-[12px] text-slate-500">Alertas comparam a unidade com o próprio histórico (mesmo dia da semana, semanas anteriores, compras anteriores do produto). Nenhum número é estimado sem o selo ESTIMATIVA.</p>
                 </details>
               </>

@@ -42,3 +42,5 @@ export const confirmarAcao = (unidadeId, acaoId, confirmacaoTexto = null) => cha
 export const cancelarAcao = (unidadeId, acaoId) => chamar("/api/intelligence/actions/cancel", { unidadeId, corpo: { acaoId } });
 export const responderInsight = (unidadeId, f) => chamar("/api/intelligence/feedback", { unidadeId, corpo: f });
 export const buscarHistorico = (unidadeId) => chamar("/api/intelligence/history", { unidadeId, metodo: "GET" });
+export const buscarPreferencias = (unidadeId) => chamar("/api/intelligence/preferences", { unidadeId, metodo: "GET" });
+export const salvarPreferencias = (unidadeId, prefs) => chamar("/api/intelligence/preferences", { unidadeId, metodo: "PUT", corpo: prefs });

@@ -18,7 +18,7 @@ export const NIVEIS = {
 
 const MODULO = { estoque: "Estoque", compras: "Compras", financeiro: "Financeiro", vendas: "Vendas", rh: "RH" };
 
-export default function InsightCartao({ insight, onComando, onResponder, onDispensar, compacto = false }) {
+export default function InsightCartao({ insight, onComando, onResponder, onDispensar, compacto = false, semPergunta = false }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [respondido, setRespondido] = useState(null);
@@ -97,7 +97,7 @@ export default function InsightCartao({ insight, onComando, onResponder, onDispe
           </div>
         )}
 
-        {insight.pergunta && (
+        {insight.pergunta && !semPergunta && (
           <div className="mt-3 rounded-xl bg-slate-50 p-3">
             <p className="text-[13px] font-semibold text-slate-800">{insight.pergunta.texto}</p>
             {respondido ? (

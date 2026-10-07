@@ -106,6 +106,12 @@ export function MetricaCartao({ rotulo, m, compacto = false }) {
               {" "}vs {m.comparacao.periodo?.rotulo}
             </p>
           )}
+          {m.detalhes?.atingimento && (
+            m.detalhes.atingimento.status === "ok"
+              ? <p className="mt-0.5 text-[13px] font-bold text-slate-800">Atingimento: {num(m.detalhes.atingimento.pct, 1)}% <span className="font-normal text-slate-500">(faturamento real ÷ meta)</span></p>
+              : <p className="mt-0.5 text-[12px] text-slate-600"><span className="font-bold">Atingimento:</span> DADOS INSUFICIENTES — {m.detalhes.atingimento.motivo}</p>
+          )}
+          {m.detalhes?.mes?.pct != null && <p className="mt-0.5 text-[12px] text-slate-600">Mês: {num(m.detalhes.mes.pct, 1)}% de {brl(m.detalhes.mes.meta)}{m.detalhes.mes.cobertura === "parciais" ? " (dados parciais)" : ""}</p>}
           {m.periodo?.rotulo && <p className="mt-0.5 text-[12px] text-slate-500">{m.periodo.rotulo} · apurado às {hora(m.apuradoEm)}</p>}
           {(m.observacoes || []).slice(0, compacto ? 1 : 2).map((o, i) => (
             <p key={i} className="mt-1 flex gap-1 text-[12px] leading-snug text-amber-800" title={o}><AlertTriangle size={13} className="mt-0.5 shrink-0" /><span className={compacto ? "line-clamp-3" : ""}>{o}</span></p>

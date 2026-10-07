@@ -318,3 +318,17 @@ test("editar não apaga o que já estava gravado na ficha", () => {
   // Ficha nova sem meta escolhida continua nascendo em 30%.
   assert.equal(camposParaGravar("prato", { nome_receita: "X", departamento: "cozinha" }, { novo: true }).cmv_meta, 30);
 });
+
+// Regressão (07/10/2026): o editor antigo de fichas (fichas/page.js) abria
+// 18 g como 0,018 kg e gravava 0,018 sem converter de volta — a cada
+// salvamento o ingrediente em g/ml ficava 1000× menor. Abrir e gravar tem de
+// devolver o mesmo número na unidade do cadastro.
+test("abrir e gravar devolve a quantidade na unidade do cadastro (g, ml, kg, L, un)", async () => {
+  const { converterParaBaseDoInsumo } = await import("./ficha-calculos.mjs");
+  const { quantidadeParaGravar } = await import("./ficha-modelo.mjs");
+  const base = { g: "kg", ml: "l", kg: "kg", l: "l", un: "un" };
+  for (const [q, u] of [[18, "g"], [30, "g"], [100, "ml"], [0.5, "kg"], [0.37, "l"], [2, "un"]]) {
+    const noEditor = converterParaBaseDoInsumo(q, u, base[u]);
+    assert.equal(Math.round(quantidadeParaGravar(noEditor, u) * 1000) / 1000, q, `${q} ${u}`);
+  }
+});

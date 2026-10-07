@@ -8,6 +8,7 @@ import {
   Grid, Clock, ChevronRight, Star, History
 } from "lucide-react";
 import { searchNavigationRegistry, getAccessibleNavigation } from "../../lib/navigation-registry.mjs";
+import { hasPermission } from "../../lib/permissions-catalog.mjs";
 import { getRecentItems, getFavoriteItems } from "../../lib/user-preferences.js";
 import FavoriteStarButton from "./FavoriteStarButton.js";
 
@@ -32,6 +33,14 @@ export default function CommandCenterModal({
 
   // Executa a busca em tempo real com base no query e nas permissões da sessão
   const results = searchNavigationRegistry(query, sessao, { limit: 12 });
+  // Uma inteligência só: pergunta digitada aqui vai para o "Pergunte ao Héfisto"
+  const podeHefisto = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
+  const perguntarAoHefisto = () => {
+    const texto = query.trim().slice(0, 500);
+    if (!texto) return;
+    onClose();
+    setTimeout(() => window.dispatchEvent(new CustomEvent("hefisto:perguntar", { detail: { texto } })), 60);
+  };
   const accessibleItems = getAccessibleNavigation(sessao);
 
   // Seleciona de 6 a 8 atalhos principais para o Acesso Rápido com base nas permissões
@@ -86,12 +95,15 @@ export default function CommandCenterModal({
       } else if (e.key === "Enter" && results[selectedIndex]) {
         e.preventDefault();
         handleNavigate(results[selectedIndex].route);
+      } else if (e.key === "Enter" && podeHefisto && query.trim()) {
+        e.preventDefault();
+        perguntarAoHefisto();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, results, selectedIndex, onClose]);
+  }, [isOpen, results, selectedIndex, onClose, podeHefisto, query]);
 
   const handleNavigate = (route) => {
     onClose();
@@ -281,6 +293,16 @@ export default function CommandCenterModal({
           )}
 
           {/* Lista de Resultados da Busca */}
+          {query.trim() && podeHefisto && (
+            <button type="button" onClick={perguntarAoHefisto}
+              className="mb-3 flex w-full items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-left text-emerald-100 hover:bg-emerald-500/20 min-h-[52px]">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/20 text-emerald-300"><Sparkles size={18} /></span>
+              <span className="min-w-0">
+                <span className="block text-xs font-bold uppercase tracking-wider text-emerald-300">Perguntar ao Héfisto</span>
+                <span className="block truncate text-sm font-semibold">&ldquo;{query.trim()}&rdquo;</span>
+              </span>
+            </button>
+          )}
           {query.trim() && (
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1 mb-1">

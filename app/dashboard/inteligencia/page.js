@@ -75,6 +75,13 @@ export default function CentralDeInteligencia() {
     conversa.current?.enviar(texto);
   };
 
+  // Pergunta vinda da busca (Ctrl+K) quando já se está na Central: vai para a conversa daqui
+  useEffect(() => {
+    const aoPerguntar = (e) => { const t = e?.detail?.texto; if (t) { chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); conversa.current?.enviar(t); } };
+    window.addEventListener("hefisto:perguntar", aoPerguntar);
+    return () => window.removeEventListener("hefisto:perguntar", aoPerguntar);
+  }, []);
+
   async function responder(insight, opcao) {
     const r = await responderInsight(unidadeAtiva, { insightId: insight.id, insightTipo: insight.tipo, resposta: "opcao", opcao });
     return r.ok;

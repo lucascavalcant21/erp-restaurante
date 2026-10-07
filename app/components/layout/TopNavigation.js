@@ -40,7 +40,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       label: "PDV",
       href: "/dashboard/operacao/inteligente",
       submodules: [
-        { label: "Inteligente", href: "/dashboard/operacao/inteligente" },
+        // é a Central Operacional (checklists/processos), não a inteligência do Héfisto
+        { label: "Central operacional", href: "/dashboard/operacao/inteligente" },
         { label: "Controles & Checklists", href: "/dashboard/operacao/controles" },
         { label: "Limpeza", href: "/dashboard/operacao/limpeza" },
         { label: "Manutenção", href: "/dashboard/operacao/manutencao" }

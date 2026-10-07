@@ -55,6 +55,8 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "saude-hefisto",
+    // telemetria em MEMÓRIA do copilot antigo (hefisto-telemetry): não mede o
+    // Intelligence Core. Fora da busca; a página continua acessível pela URL.
     title: "Saúde do Sistema & Observabilidade do Héfisto",
     shortTitle: "Saúde Héfisto",
     description: "Métricas de produção, latência, erros, traces e eval release gate",
@@ -67,10 +69,12 @@ export const NAVIGATION_REGISTRY = [
     permission: "gestao.operational_center.view",
     mobilePriority: 3,
     adminOnly: true,
-    searchable: true,
+    searchable: false,
   },
   {
     id: "piloto-hefisto",
+    // Governava o copilot ANTIGO (substituído pelo Intelligence Core): sai da busca
+    // para não parecer uma segunda IA. A página continua no ar para o admin (URL).
     title: "Piloto Operacional do Héfisto",
     shortTitle: "Piloto Héfisto",
     description: "Adoção controlada, matriz de capacidades liberadas e sinais de valor do piloto",
@@ -83,11 +87,14 @@ export const NAVIGATION_REGISTRY = [
     permission: "gestao.operational_center.view",
     mobilePriority: 3,
     adminOnly: true,
-    searchable: true,
+    searchable: false,
   },
 
   {
     id: "auditoria-hefisto",
+    // Auditoria em MEMÓRIA e "modo seguro"/"kill switch" do copilot antigo: não
+    // valem para o Intelligence Core (auditoria em intelligence_eventos). Sai da
+    // busca para não induzir o admin a erro; a página continua acessível pela URL.
     title: "Auditoria & Governança do Héfisto",
     shortTitle: "Auditoria Héfisto",
     description: "Rastreabilidade de solicitações, modo seguro e permissões",
@@ -100,7 +107,7 @@ export const NAVIGATION_REGISTRY = [
     permission: "gestao.operational_center.view",
     mobilePriority: 3,
     adminOnly: true,
-    searchable: true,
+    searchable: false,
   },
 
   // --- OPERAÇÃO & COZINHA & BAR ---
@@ -282,6 +289,7 @@ export const NAVIGATION_REGISTRY = [
   },
   {
     id: "hefisto-auditoria",
+    // mesma página da auditoria em memória do copilot antigo: fora da busca (ver auditoria-hefisto)
     title: "Auditoria & Governança do Héfisto",
     shortTitle: "Auditoria Héfisto",
     description: "Trilha de auditoria, eventos de segurança e controle de Modo Seguro",
@@ -294,7 +302,7 @@ export const NAVIGATION_REGISTRY = [
     permission: "hefisto.audit.view",
     mobilePriority: 3,
     adminOnly: true,
-    searchable: true,
+    searchable: false,
   },
   {
     id: "op-validade",

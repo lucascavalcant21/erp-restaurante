@@ -66,6 +66,10 @@ export const ANALYTICS_CATALOG = [
   }
 ];
 
+// Nenhuma das análises deste catálogo tem base real hoje (ver o bloqueio em
+// executeAnalyticsQuery). Entra aqui só a que for refeita sobre dados apurados.
+const ANALISES_COM_BASE_REAL = new Set();
+
 /**
  * Motor Central de Inteligência Analítica (Analytics Engine F4)
  */
@@ -101,6 +105,26 @@ export async function executeAnalyticsQuery({ text = "", session = null, unitId 
       success: false,
       permissionDenied: true,
       responseText: "Você não possui permissão de acesso para consultar esta análise financeira ou operacional."
+    };
+  }
+
+  // As ferramentas abaixo respondiam com números ESCRITOS NO CÓDIGO (CMV
+  // 31,2% → 28,7%, "Camarão R$ 72 → R$ 84", perdas "R$ 450,00", receita
+  // 42.500...) apresentados como fato. Nenhuma resposta quantitativa pode sair
+  // sem fonte, período e consulta: até cada uma ser refeita sobre o Intelligence
+  // Core (app/lib/intelligence), elas dizem que não há base em vez de inventar.
+  if (!ANALISES_COM_BASE_REAL.has(matchedTool.id)) {
+    return {
+      success: true,
+      type: "ANALYTICS_RESULT",
+      intentId: matchedTool.id,
+      title: "DADOS INSUFICIENTES",
+      evidenceLevel: "DADOS_INSUFICIENTES",
+      summaryText: "DADOS INSUFICIENTES: esta análise ainda não está ligada a uma fonte de dados verificável. Use a Central de Inteligência, que responde só com números apurados e mostra a fonte.",
+      evidenceList: [],
+      sources: [],
+      drilldownActions: [{ label: "Abrir Central de Inteligência", route: "/dashboard/inteligencia" }],
+      spokenSummary: "Não possuo informação suficiente para calcular isso por aqui. Use a Central de Inteligência.",
     };
   }
 

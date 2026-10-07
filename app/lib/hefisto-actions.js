@@ -133,24 +133,9 @@ export async function resolveEstoqueProduct(queryText, unitId) {
 
   const normQuery = normalizeText(queryText);
 
-  if (!estoqueList || estoqueList.length === 0) {
-    if (queryText) {
-      const nomeCap = queryText.charAt(0).toUpperCase() + queryText.slice(1);
-      const isLiquid = normQuery.includes("molho") || normQuery.includes("leite") || normQuery.includes("suco") || normQuery.includes("oleo");
-      return {
-        matches: [
-          {
-            id: `insumo-mock-${normQuery.replace(/\s+/g, "-")}`,
-            nome: nomeCap,
-            unidade_medida: isLiquid ? "L" : "kg",
-            quantidade_atual: 50,
-            estoque_minimo: 10
-          }
-        ]
-      };
-    }
-    return { matches: [] };
-  }
+  // Sem cadastro não há produto: antes inventava um "insumo-mock" com saldo 50,
+  // que aparecia como se fosse o estoque real.
+  if (!estoqueList || estoqueList.length === 0) return { matches: [] };
 
   // 1. Match Exato
   const exact = estoqueList.filter(item => normalizeText(item.nome) === normQuery);
@@ -163,21 +148,6 @@ export async function resolveEstoqueProduct(queryText, unitId) {
   });
 
   if (matched.length > 0) return { matches: matched };
-
-  if (queryText) {
-    const nomeCap = queryText.charAt(0).toUpperCase() + queryText.slice(1);
-    return {
-      matches: [
-        {
-          id: `insumo-mock-${normQuery.replace(/\s+/g, "-")}`,
-          nome: nomeCap,
-          unidade_medida: "kg",
-          quantidade_atual: 50,
-          estoque_minimo: 10
-        }
-      ]
-    };
-  }
 
   return { matches: [] };
 }

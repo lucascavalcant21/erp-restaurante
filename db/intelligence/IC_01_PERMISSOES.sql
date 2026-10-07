@@ -28,7 +28,7 @@ select
   count(*) filter (where public.hefisto_user_has_permission(auth_user_id, 'dashboard.intelligence.settings')) as configura_central,
   -- mesmas chaves de app/lib/intelligence/permissions/mapa.mjs (registrar_perda)
   count(*) filter (where public.hefisto_tem_alguma_permissao(auth_user_id, array['estoque.losses.record_loss','estoque.movements.create',
-                      'estoque.outputs.create','estoque.overview.adjust_stock','estoque.operation.adjust_stock'])) as registra_perda,
+                      'estoque.outputs.create','estoque.overview.adjust_stock','estoque.operation.adjust_stock','estoque.operation.create'])) as registra_perda,
   chaves_dashboard_do_perfil
 from (
   select

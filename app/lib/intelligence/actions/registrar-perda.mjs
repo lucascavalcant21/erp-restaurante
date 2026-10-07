@@ -135,7 +135,9 @@ async function executar(ctx, payload, { chave }) {
     return { ok: false, erro: "Ação recusada: a unidade da ação não é a unidade da sessão." };
   }
   // A MESMA função da tela de movimentação (EST-MOV-1), com o cliente do usuário.
-  const r = await registrarMovimento(ctx.dbUsuario, { ...payload, chave, responsavel_nome: ctx.nomeUsuario || null });
+  // Quem lançou o banco grava sozinho (registrado_por = auth.uid(), usuario_nome).
+  // "Responsável" é opcional na tela e é QUEM perdeu, não quem lançou: fica vazio.
+  const r = await registrarMovimento(ctx.dbUsuario, { ...payload, chave, responsavel_nome: null });
   if (r.error) return { ok: false, erro: r.error };
   const d = r.data || {};
   return {

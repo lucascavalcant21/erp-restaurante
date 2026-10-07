@@ -85,6 +85,8 @@ export function clienteSupabase(pg, { uid = "33333333-3333-3333-3333-33333333333
         in(c, vs) { st.where.push(() => `${c} = any(${p(vs)})`); return b; },
         gte(c, v) { st.where.push(() => `${c} >= ${p(v)}`); return b; },
         lte(c, v) { st.where.push(() => `${c} <= ${p(v)}`); return b; },
+        gt(c, v) { st.where.push(() => `${c} > ${p(v)}`); return b; },
+        lt(c, v) { st.where.push(() => `${c} < ${p(v)}`); return b; },
         order(c, o = {}) { st.order.push(`${c} ${o.ascending === false ? "desc" : "asc"}`); return b; },
         maybeSingle() { st.single = true; return b; },
         single() { st.single = true; return b; },

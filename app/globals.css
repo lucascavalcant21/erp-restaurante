@@ -81,3 +81,222 @@ body {
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS DO SISTEMA — restaurados (06/10/2026)
+
+   O tailwind.config.js aponta bg-accent, border-line, bg-elevated,
+   bg-accent-soft… para estas variáveis. A troca de layout de 29/09
+   ("fix paths again") reescreveu este arquivo e elas sumiram: desde
+   então o botão verde ficou branco, as bordas sumiram e os selos
+   perderam a cor. Valores do design system anterior, menos o fundo do
+   app e o texto: aqueles ficam BRANCO e de ALTO CONTRASTE, como foi
+   decidido em 29/09 (--muted, --subtle, --dim e --fg-soft continuam
+   sem valor e herdam a cor escura do texto).
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --elevated:   #F1F5F9; /* hover de linhas, fundo alternativo */
+
+  --line:       #E2E8F0; /* bordas */
+  --line-soft:  #F1F5F9;
+
+  /* Ação: verde da marca */
+  --accent:        #047857;
+  --accent-strong: #036249;
+  --accent-fg:     #FFFFFF;
+  --accent-soft:   rgba(4,120,87,0.14);
+
+  /* Status */
+  --success-strong: #047857;
+  --success-soft:   rgba(5,150,105,0.12);
+  --danger-strong:  #B91C1C;
+  --danger-soft:    rgba(239,68,68,0.10);
+  --warning-strong: #B45309;
+  --warning-soft:   rgba(245,158,11,0.13);
+
+  /* Fichas: prato (verde) e pré-preparo (azul-petróleo) */
+  --ficha-prato:        #047857;
+  --ficha-prato-soft:   rgba(4,120,87,0.10);
+  --ficha-prato-fg:     #FFFFFF;
+  --ficha-preparo:      #164E63;
+  --ficha-preparo-soft: rgba(22,78,99,0.10);
+  --ficha-preparo-fg:   #FFFFFF;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card:  0 8px 26px rgba(15, 23, 42, 0.09), 0 2px 6px rgba(15, 23, 42, 0.05);
+  --shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-float: 0 24px 48px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* ── Componentes (.erp-*) — usados em campos, botões, cartões e selos ── */
+@layer components {
+  .erp-card {
+    background-color: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .erp-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-3px);
+    border-color: rgba(5, 150, 105, 0.25);
+  }
+
+  .glass-panel {
+    background: color-mix(in srgb, var(--panel) 82%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .erp-panel {
+    background-color: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .erp-label {
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .erp-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; height: 48px; padding: 0 24px;
+    border-radius: var(--radius-md); font-size: 15px; font-weight: 800;
+    border: 1px solid transparent; white-space: nowrap;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .erp-btn:active { transform: scale(0.94); }
+
+  .erp-btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: var(--accent-fg);
+    box-shadow: 0 4px 14px rgba(5,150,105,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  .erp-btn-primary:hover {
+    box-shadow: 0 8px 24px rgba(5,150,105,0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+  }
+
+  .erp-btn-ghost {
+    background-color: transparent;
+    border-color: var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .erp-btn-ghost:hover {
+    background-color: var(--elevated);
+    border-color: #94A3B8;
+    transform: translateY(-1px);
+  }
+
+  .erp-btn-danger {
+    background-color: var(--danger-soft); color: var(--danger-strong);
+    border-color: var(--danger-soft);
+  }
+  .erp-btn-danger:hover {
+    background-color: var(--danger);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(239,68,68,0.3);
+  }
+
+  .erp-input {
+    width: 100%; height: 52px; padding: 0 20px;
+    background-color: var(--surface);
+    border: 1px solid #CBD5E1;
+    border-radius: var(--radius-md); color: var(--fg); font-size: 15px; font-weight: 600;
+    outline: none; transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .erp-input::placeholder { color: #64748B; font-weight: 500; }
+  .erp-input:focus {
+    background-color: var(--panel);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-hover);
+  }
+
+  .erp-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+  }
+  .erp-badge-ok     { background: var(--success-soft); color: var(--success-strong); }
+  .erp-badge-warn   { background: var(--warning-soft); color: var(--warning-strong); }
+  .erp-badge-danger { background: var(--danger-soft);  color: var(--danger-strong); }
+
+  .erp-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--elevated);
+    border-radius: var(--radius-sm);
+  }
+  .erp-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--panel) 60%, transparent), transparent);
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 16px) scale(0.97); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.erp-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+  animation: toastIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Telas cheias (ponto, contagem, etiquetas): respiro da barra de status/notch. */
+.erp-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
+}
+
+/* Telas de tablet (estoque, etiquetas): toque longo não abre seleção de texto;
+   campos de digitação continuam selecionáveis. */
+.erp-sem-selecao {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.erp-sem-selecao input,
+.erp-sem-selecao textarea,
+.erp-sem-selecao [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}

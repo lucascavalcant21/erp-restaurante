@@ -2456,18 +2456,20 @@ function FichasRunner() {
               </button>
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-black tracking-tight text-slate-950">Fichas Técnicas</h1>
-                <div className="flex items-center rounded-xl bg-card p-1 border border-slate-200/80">
+                <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200" role="group" aria-label="Setor">
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl !== "bar" ? "bg-card text-accent shadow-sm" : "text-fg hover:text-slate-800"}`}
+                    aria-pressed={deptUrl !== "bar"}
+                    className={`px-3.5 py-1.5 text-sm font-black rounded-lg transition-all ${deptUrl !== "bar" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"}`}
                   >
                     👨‍🍳 Cozinha
                   </button>
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${deptUrl === "bar" ? "bg-card text-accent shadow-sm" : "text-fg hover:text-slate-800"}`}
+                    aria-pressed={deptUrl === "bar"}
+                    className={`px-3.5 py-1.5 text-sm font-black rounded-lg transition-all ${deptUrl === "bar" ? "bg-emerald-700 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-900"}`}
                   >
                     🍹 Bar
                   </button>

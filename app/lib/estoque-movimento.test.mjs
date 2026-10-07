@@ -9,8 +9,9 @@ import { fileURLToPath } from "node:url";
 import {
   quantidadeDoLancamento, unidadesDaFracao, paraUnidadeDoCadastro, embalagemDoProduto, rotuloMotivo, podeEstornar,
   registrarMovimento, estornarMovimento, ajustarInventario, lerSegurancaEstoque, salvarSegurancaEstoque, novaChave,
-  corrigirItemContagem, MSG_BANCO_DESATUALIZADO, produtosParaLancar, saldoDepois,
+  corrigirItemContagem, MSG_BANCO_DESATUALIZADO, produtosParaLancar, saldoDepois, ehEntradaDeCompra, MOTIVOS,
 } from "./estoque-movimento.mjs";
+import { salvarRascunho, confirmarCompra, cancelarCompra, criarFornecedor, entrouNoEstoque } from "./compras-estoque.mjs";
 import { criarContagem, salvarItemContagem, fecharContagem, MSG_JA_CONTADO } from "./contagem-estoque.mjs";
 import { criarBancoF21, clienteSupabase } from "./teste-banco-f21.mjs";
 
@@ -473,6 +474,127 @@ const CONF3 = SQL3.match(/\/\* ── CONFERÊNCIA \(só leitura\)[^\n]*\n([\s\S
 const conf3 = Object.fromEntries((await pg.query(CONF3)).rows.map((r) => [r.o_que, r.resultado]));
 conferir("conferência pós EST-MOV-3", [conf3["authenticated no histórico"], conf3["authenticated nos lotes"], conf3["trigger do saldo"], conf3["app executa bebida_zerar"]],
   ["SELECT", "SELECT", "estoque_itens_saldo_travado", "false"]);
+
+// ── 15. EST-MOV-4: compra confirmada dá entrada no estoque ───────────────────
+await pg.exec(fs.readFileSync(path.join(raiz, "db", "F2_4B_COMPRAS_CUSTO_MEDIO.sql"), "utf8"));
+await pg.exec(`alter table public.fornecedores add column if not exists ativo boolean default true;
+  grant select, insert on public.fornecedores to authenticated;`);
+const P_COMPRAS = "a0000000-0000-0000-0000-000000000004";
+const UID_COMPRAS = "55555555-5555-5555-5555-555555555555";
+await pg.exec(`insert into public.perfil_permissoes (perfil_id, permission_key) values ('${P_COMPRAS}', 'estoque.purchases.*');
+  insert into public.usuarios_erp (auth_user_id, nome, perfil_id, unidade_principal_id) values ('${UID_COMPRAS}', 'Cris (compras)', '${P_COMPRAS}', '${U}');`);
+const comprador = clienteSupabase(pg, { uid: UID_COMPRAS });
+const SQL4 = fs.readFileSync(path.join(raiz, "db", "EST_MOV_4_COMPRA_ENTRA_NO_ESTOQUE.sql"), "utf8");
+await pg.exec(SQL4);
+let erro4 = null; try { await pg.exec(SQL4); } catch (e) { erro4 = e.message; await pg.exec("rollback"); }
+conferir("EST-MOV-4 roda e pode rodar de novo", erro4, null);
+
+const HOJE_SP = (await one(`select public.fin_hoje()::text d`)).d;
+const VENC = (await one(`select (public.fin_hoje() + 10)::text d`)).d;
+const tomate = await id(`insert into public.insumos (unidade_id, nome, unidade_medida, tamanho_embalagem) values ($1,'Tomate','kg',1) returning id`, [U]);
+const vinhoCasa = await id(`insert into public.insumos (unidade_id, nome, unidade_medida, tamanho_embalagem, unidade_conteudo, unidade_comercial, permite_fracionado) values ($1,'Vinho da casa','garrafa',750,'ml','garrafa',true) returning id`, [U]);
+const alface = await id(`insert into public.insumos (unidade_id, nome, unidade_medida, tamanho_embalagem) values ($1,'Alface','kg',1) returning id`, [U]);
+const fornB = await criarFornecedor(comprador, { unidade_id: U, nome: "Hortifruti B" });
+const insT = { id: tomate, nome: "Tomate", unidade_medida: "kg" };
+const insVC = { id: vinhoCasa, nome: "Vinho da casa", unidade_medida: "garrafa" };
+const insG = { id: gin, nome: "Gin", unidade_medida: "ml" };
+const insC = { id: carne, nome: "Carne", unidade_medida: "kg" };
+const nota = (cliente, itens, { nf = null, frete = "" } = {}) => salvarRascunho(cliente, {
+  compra: { unidade_id: U, fornecedor_id: fornB.data?.id, numero_documento: nf, data_compra: HOJE_SP, data_recebimento: HOJE_SP, forma_pagamento: "boleto", valor_frete: frete },
+  itens, chave: novaChave() }, { hoje: HOJE_SP });
+const itemDe = async (compraId, insumo) => one(`select * from public.compras_itens where compra_id = $1 and insumo_id = $2`, [compraId, insumo]);
+const movDaCompra = async (item) => one(`select * from public.estoque_movimentacoes_multi where chave_idempotencia = $1`, ["compra:" + item.id]);
+const bebida = async (estoque, insumo) => one(`select saldo_fechado::float f, saldo_aberto::float a from public.estoque_itens where estoque_id = $1 and insumo_id = $2`, [estoque, insumo]);
+const contaMov = async () => (await one(`select count(*)::int n from public.estoque_movimentacoes_multi`)).n;
+
+const n1 = await nota(comprador, [
+  { insumo: insT, estoque_id: estCozinha, quantidade: "10", valor_total: "50", validade: "2026-11-15", lote: "L77" },
+  { insumo: insVC, estoque_id: estBar, embalagens: "2", conteudo: "6", valor_total: "600" },
+], { nf: "900", frete: "13" });
+const cf = await confirmarCompra(comprador, { compra_id: n1.data?.id, gerar_conta_pagar: true, data_vencimento: VENC });
+const itT = await itemDe(n1.data.id, tomate);
+const itV = await itemDe(n1.data.id, vinhoCasa);
+const mT = await movDaCompra(itT);
+const mV = await movDaCompra(itV);
+conferir("CONFIRMAR a compra dá entrada: tomate 10 kg na Cozinha (lote da validade), vinho 12 garrafas = 9.000 ml no Bar, fechadas",
+  [n1.error, cf.error, cf.data?.entradas_estoque, await saldo(estCozinha, tomate), await lotes(estCozinha, tomate), await saldo(estBar, vinhoCasa), await bebida(estBar, vinhoCasa)],
+  [null, null, 2, 10, ["2026-11-15=10"], 9000, { f: 12, a: 0 }]);
+conferir("o lançamento é COMPRA, com quem confirmou (pelo banco), a nota, o fornecedor e o valor REAL pago (frete rateado: 50 × 663/650 = 51)",
+  [mT.motivo, mT.origem, mT.tipo, Number(mT.quantidade), mT.unidade_medida, mT.registrado_por, mT.usuario_nome, mT.observacao, Number(mT.valor_total), Number(mT.valor_unitario), mT.custo_origem,
+   mT.detalhe_quantidade.lote, mT.detalhe_quantidade.compra_id === n1.data.id, itT.movimento_estoque_id === mT.id, entrouNoEstoque(itT)],
+  ["compra", "compra", "entrada", 10, "kg", UID_COMPRAS, "Cris (compras)", "Compra NF 900 — Hortifruti B", 51, 5.1, "compra", "L77", true, true, true]);
+conferir("vinho: guardado em ml, com o digitado (12 garrafa) e o valor real (612)",
+  [Number(mV.quantidade), mV.unidade_medida, Number(mV.quantidade_informada), mV.unidade_informada, Number(mV.valor_total)], [9000, "ml", 12, "garrafa", 612]);
+const contaN1 = await one(`select valor::float v, status from public.contas_pagar where id = (select conta_pagar_id from public.compras where id = $1)`, [n1.data.id]);
+const custoT = await one(`select custo_medio_base::float c from public.estoque_custos where unidade_id = $1 and insumo_id = $2`, [U, tomate]);
+conferir("na mesma transação: conta a pagar de R$ 663 e custo médio do tomate R$ 5,10/kg", [contaN1, custoT?.c], [{ v: 663, status: "pendente" }, 0.0051]);
+const movsAntes = await contaMov();
+const cf2 = await confirmarCompra(comprador, { compra_id: n1.data.id, gerar_conta_pagar: true, data_vencimento: VENC });
+conferir("confirmar de novo (toque duplo) não dá entrada outra vez", [cf2.data?.idempotente, cf2.data?.entradas_estoque, await saldo(estCozinha, tomate), await contaMov()], [true, 2, 10, movsAntes]);
+
+const n2 = await nota(comprador, [{ insumo: insT, estoque_id: estCozinha, quantidade: "1", valor_total: "5" }], { nf: "901" });
+const semPermConf = await confirmarCompra(func, { compra_id: n2.data.id, gerar_conta_pagar: false });
+conferir("quem não tem 'confirmar compras' não confirma pela função (nada entra)",
+  [semPermConf.error, (await one(`select status from public.compras where id = $1`, [n2.data.id])).status, await saldo(estCozinha, tomate)],
+  ["Sem permissão para confirmar compras nesta unidade.", "rascunho", 10]);
+const carneCoz = await saldo(estCozinha, carne);
+const n3 = await nota(comprador, [{ insumo: insC, estoque_id: "", quantidade: "2", valor_total: "80" }], { nf: "902" });
+const cf3 = await confirmarCompra(comprador, { compra_id: n3.data.id, gerar_conta_pagar: false });
+conferir("sem local e o produto em dois estoques: pede o local e nada é gravado",
+  [cf3.error, (await one(`select status from public.compras where id = $1`, [n3.data.id])).status, await saldo(estCozinha, carne), await saldo(estDeposito, carne)],
+  ["Carne: escolha em qual estoque o produto entra.", "rascunho", carneCoz, 3]);
+const ginAntes = await saldo(estBar, gin);
+const ginBebAntes = await bebida(estBar, gin);
+const n4 = await nota(comprador, [{ insumo: insG, estoque_id: "", embalagens: "2", conteudo: "1000", valor_total: "180" }], { nf: "903" });
+const cf4 = await confirmarCompra(comprador, { compra_id: n4.data.id, gerar_conta_pagar: false });
+const itG = await itemDe(n4.data.id, gin);
+conferir("sem local e o produto em um estoque só: entra nele (gin no Bar, 2 garrafas fechadas a mais)",
+  [cf4.error, itG.estoque_id === estBar, await saldo(estBar, gin), (await bebida(estBar, gin)).f], [null, true, ginAntes + 2000, ginBebAntes.f + 2]);
+const n5 = await nota(comprador, [{ insumo: { id: alface, nome: "Alface", unidade_medida: "kg" }, estoque_id: estCozinha, quantidade: "1", valor_total: "4" }], { nf: "904" });
+await pg.exec(`update public.insumos set unidade_medida = 'un' where id = '${alface}'`);
+const cf5 = await confirmarCompra(comprador, { compra_id: n5.data.id, gerar_conta_pagar: false });
+conferir("cadastro mudou de unidade depois do rascunho: recusa em vez de lançar errado", cf5.error, "Alface: o cadastro está em un e a compra foi lançada em g. Confira o produto e salve a compra de novo.");
+
+const estCompra = await estornarMovimento(ger, { movimento_id: mT.id, justificativa: "teste", pin: "4321" });
+conferir("entrada de compra não se estorna pela tela de entrada (o banco manda cancelar a compra); app esconde o botão",
+  [/cancele a compra em Compras/.test(estCompra.error || ""), await saldo(estCozinha, tomate), podeEstornar(mT), ehEntradaDeCompra(mT), MOTIVOS.entrada.find((m) => m.codigo === "compra").pelaCompra],
+  [true, 10, false, true, true]);
+
+const canComprador = await cancelarCompra(comprador, { compra_id: n1.data.id, motivo: "nota errada", pin: "4321" });
+const canSemPin = await cancelarCompra(ger, { compra_id: n1.data.id, motivo: "nota errada" });
+const canPinErrado = await cancelarCompra(ger, { compra_id: n1.data.id, motivo: "nota errada", pin: "0000" });
+conferir("compra confirmada: comprador não cancela; administrador precisa do PIN; PIN errado não desfaz nada",
+  [/só é cancelada por administrador/.test(canComprador.error || ""), canSemPin.error, canPinErrado.pin, canPinErrado.error,
+   (await one(`select status from public.compras where id = $1`, [n1.data.id])).status, await saldo(estCozinha, tomate)],
+  [true, "Informe o PIN do administrador para cancelar uma compra confirmada.", true, "PIN incorreto. Restam 4 tentativa(s).", "confirmada", 10]);
+const ret = await registrarMovimento(func, { unidade_id: U, estoque_id: estCozinha, insumo_id: tomate, tipo: "saida", motivo: "consumo", lancamento: quantidadeDoLancamento({ insumo: { unidade_medida: "kg" }, fracao: "4" }), chave: novaChave() });
+const canParcial = await cancelarCompra(ger, { compra_id: n1.data.id, motivo: "nota errada", pin: "4321" });
+conferir("parte da compra já saiu: não cancela (diz quanto há e quanto entrou)",
+  [ret.error, canParcial.error], [null, "Não dá para cancelar: parte da compra já saiu do estoque (Tomate em Cozinha: saldo 6 kg, a compra deu entrada de 10 kg). Corrija com um ajuste autorizado."]);
+await estornarMovimento(ger, { movimento_id: ret.data.movimento_id, justificativa: "retirada de teste", pin: "4321" });
+const movsAntesCancel = await contaMov();
+const can = await cancelarCompra(ger, { compra_id: n1.data.id, motivo: "nota errada", pin: "4321" });
+const estT = await one(`select * from public.estoque_movimentacoes_multi where estorno_de_id = $1`, [mT.id]);
+const contaDepois = await one(`select status from public.contas_pagar where id = (select conta_pagar_id from public.compras where id = $1)`, [n1.data.id]);
+conferir("administrador cancela com PIN: estoque, lotes e bebidas voltam; estorno ligado à entrada; original continua; conta cancelada; custo volta",
+  [can.error, can.data?.estornos_estoque, await saldo(estCozinha, tomate), await lotes(estCozinha, tomate), await saldo(estBar, vinhoCasa), await bebida(estBar, vinhoCasa),
+   estT.tipo, estT.motivo, estT.origem, estT.autorizado_por_nome, estT.justificativa, !!(await mov(mT.id)), await contaMov() - movsAntesCancel,
+   contaDepois.status, await one(`select count(*)::int n from public.estoque_custos where unidade_id = $1 and insumo_id = $2`, [U, tomate]),
+   (await one(`select status from public.compras where id = $1`, [n1.data.id])).status],
+  [null, 2, 0, [], 0, { f: 0, a: 0 }, "saida", "estorno", "compra", "Gil (gerente)", "Compra cancelada: nota errada", true, 2, "cancelado", { n: 0 }, "cancelada"]);
+const aut = (await pg.query(`select resultado from public.estoque_autorizacoes where acao = 'cancelar_compra' and alvo_id = $1 order by created_at`, [n1.data.id])).rows.map((r) => r.resultado);
+conferir("cada uso do PIN no cancelamento fica registrado (errado e certo)", aut, ["pin_incorreto", "autorizado"]);
+conferir("cancelar de novo é recusado", (await cancelarCompra(ger, { compra_id: n1.data.id, motivo: "x", pin: "4321" })).error, "Compra já cancelada.");
+const canRasc = await cancelarCompra(comprador, { compra_id: n3.data.id, motivo: "lancei sem local" });
+const canAntigo = await comprador.rpc("compras_cancelar", { p_compra_id: n2.data.id, p_motivo: "chamada da tela antiga" });
+const canAnon = await anon.rpc("compras_cancelar", { p_compra_id: n5.data.id, p_motivo: "x" });
+conferir("rascunho cancela sem PIN (também pela chamada antiga, sem p_pin); sem login não executa",
+  [canRasc.error, canRasc.data?.estornos_estoque, canAntigo.error, /permission denied/.test(canAnon.error?.message || "")], [null, 0, null, true]);
+const CONF4 = SQL4.match(/\/\* ── CONFERÊNCIA \(só leitura\)[^\n]*\n([\s\S]*?)\n\s*─+ \*\//)[1];
+const conf4 = Object.fromEntries((await pg.query(CONF4)).rows.map((r) => [r.o_que, r.resultado]));
+conferir("conferência pós EST-MOV-4",
+  [conf4.trigger, conf4["anon executa compras_cancelar"], conf4["compras confirmadas ANTES (sem entrada automática)"], conf4["compras confirmadas com entrada no estoque"]],
+  ["estoque_estorno_compra", "false", "0", "1"]);
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\nTodos os testes passaram.");
 process.exit(falhas ? 1 : 0);

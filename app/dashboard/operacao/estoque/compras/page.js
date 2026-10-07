@@ -3,8 +3,10 @@
 // COMPRAS → CUSTO MÉDIO → CONTA A PAGAR — F2.4B.
 // Registro oficial da compra (nota): itens recebidos (e o que foi pedido),
 // frete/desconto, forma de pagamento. CONFIRMAR grava no banco, numa transação:
-// compra + custo médio ponderado + histórico + conta a pagar (mercadoria).
-// COMPRA ≠ CMV. Não mexe no saldo do Controle de Estoque.
+// compra + ENTRADA NO ESTOQUE (EST-MOV-4: cada item no local escolhido, com a
+// validade para o FEFO) + custo médio ponderado + histórico + conta a pagar.
+// Cancelar a confirmada é do administrador, com PIN, e desfaz tudo junto.
+// COMPRA ≠ CMV.
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,13 +17,13 @@ import {
 } from "../../../../lib/compras-registro";
 import {
   FORMAS_PAGAMENTO, STATUS_COMPRA, rotuloForma, montarItemCompra, divergenciaPedido, totalCompra, resumoCompras,
-  variacaoPct, custoNaUnidade, hojeLocal, novaChave, fmtQtd,
+  variacaoPct, custoNaUnidade, hojeLocal, novaChave, fmtQtd, entrouNoEstoque,
 } from "../../../../lib/compras-estoque.mjs";
 import { unidadeContagem, daBase } from "../../../../lib/contagem-estoque.mjs";
 import { intervaloPeriodo, unidadeValida, lerValor } from "../../../../lib/contas-pagar.mjs";
 import { hasPermission, permissionKey } from "../../../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../../../../components/ui";
-import { Plus, Search, X, Trash2, ShoppingCart, AlertTriangle, Loader2, History } from "lucide-react";
+import { Plus, Search, X, Trash2, ShoppingCart, AlertTriangle, Loader2, History, Lock, Check } from "lucide-react";
 import CampoDecimal from "../../../../components/CampoDecimal";
 
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -59,6 +61,8 @@ function Compras() {
   const [detalhe, setDetalhe] = useState(null);
   const [processando, setProcessando] = useState(false);
   const pode = (acao) => !sessao?.gerenciado || hasPermission(sessao, permissionKey("estoque", "purchases", acao));
+  // cancelar compra CONFIRMADA = estorno de estoque: administrador com o PIN (o banco confere)
+  const podeAutorizar = !sessao?.gerenciado || hasPermission(sessao, "estoque.security.approve");
 
   const intervalo = intervaloPeriodo(periodo, hojeLocal(), custom);
   const carregar = useCallback(async () => {
@@ -111,7 +115,7 @@ function Compras() {
         )}
       </div>
       {detalhe && <DetalheCompra compra={detalhe} itens={lista.itens.filter((i) => i.compra_id === detalhe.id)} insumoPorId={insumoPorId} fornecedorPorId={fornecedorPorId}
-        estoques={base?.estoques || []} unidade={unidadeAtiva} podeCancelar={pode("cancel")} processando={processando} executar={executar}
+        estoques={base?.estoques || []} unidade={unidadeAtiva} podeCancelar={pode("cancel")} podeAutorizar={podeAutorizar} processando={processando} executar={executar}
         onFechar={() => setDetalhe(null)} onMudou={async () => { setDetalhe(null); await carregar(); }}
         onEditar={(c) => { setDetalhe(null); setForm(formDoRascunho(c, lista.itens, insumoPorId)); irAba("nova"); }} />}
     </div>
@@ -135,6 +139,7 @@ function formDoRascunho(c, itens, insumoPorId) {
         emEmbalagens: emEmb, valor_total: String(i.valor_total).replace(".", ","),
         quantidade_pedida: i.quantidade_pedida_embalagens != null ? String(i.quantidade_pedida_embalagens).replace(".", ",") : "",
         valor_pedido: i.valor_pedido != null ? String(i.valor_pedido).replace(".", ",") : "", verPedido: i.quantidade_pedida_embalagens != null || i.valor_pedido != null,
+        validade: i.validade ? String(i.validade).slice(0, 10) : "", lote: i.lote || "",
       };
     }),
   };
@@ -213,7 +218,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
   const termo = normal(busca.trim());
   const achados = termo.length >= 2 ? base.insumos.filter((i) => normal(i.nome).includes(termo) || normal(i.nome_interno).includes(termo) || normal(i.codigo_interno).includes(termo)).slice(0, 12) : [];
   const adicionar = (ins) => {
-    setForm({ ...form, itens: [...form.itens, { k: novaChave(), insumo: ins, estoque_id: estoquePadrao(base.estoques, ins), quantidade: "", embalagens: "", conteudo: "", emEmbalagens: false, valor_total: "", quantidade_pedida: "", valor_pedido: "", verPedido: false }] });
+    setForm({ ...form, itens: [...form.itens, { k: novaChave(), insumo: ins, estoque_id: estoquePadrao(base.estoques, ins), quantidade: "", embalagens: "", conteudo: "", emEmbalagens: false, valor_total: "", quantidade_pedida: "", valor_pedido: "", verPedido: false, validade: "", lote: "" }] });
     setBusca("");
   };
   const montados = form.itens.map((it) => ({ it, m: montarItemCompra(it.emEmbalagens ? { ...it, quantidade: "" } : { ...it, embalagens: "", conteudo: "" }) }));
@@ -233,7 +238,8 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
     const r = await confirmarCompraRegistro({ compra_id: s.data.id, gerar_conta_pagar: form.gerar_conta, data_vencimento: form.data_vencimento || null });
     if (r.error) { setForm({ ...form, id: s.data.id }); return alert(`Compra salva como rascunho, mas não foi confirmada: ${r.error}`); }
     setConfirmando(false);
-    alert(`Compra confirmada: ${fmtBRL(r.data.valor_total ?? tot.total)}.${r.data.conta_pagar_id ? " Conta a pagar gerada." : ""} Custo médio atualizado.`);
+    const est = r.data.entradas_estoque;
+    alert(`Compra confirmada: ${fmtBRL(r.data.valor_total ?? tot.total)}.${est != null ? ` ${est} produto(s) entraram no estoque.` : " Atenção: o banco ainda não dá entrada no estoque pela compra (falta a atualização EST-MOV-4)."}${r.data.conta_pagar_id ? " Conta a pagar gerada." : ""} Custo médio atualizado.`);
     await onFeito();
   });
   const novoForn = async () => {
@@ -297,7 +303,7 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                 <select value={it.estoque_id} onChange={(e) => setItem(it.k, { estoque_id: e.target.value })} className={campo}>
-                  <option value="">Local não informado</option>{base.estoques.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                  <option value="">Estoque: onde o produto já está</option>{base.estoques.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
                 </select>
                 {it.emEmbalagens ? (
                   <div className="flex gap-1 col-span-1">
@@ -314,6 +320,12 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
               <div className="flex flex-wrap gap-3 mt-2 text-xs">
                 <label className="flex items-center gap-1"><input type="checkbox" checked={it.emEmbalagens} onChange={(e) => setItem(it.k, { emEmbalagens: e.target.checked })} /> Informar em embalagens (ex.: 2 caixas × 5 {uc.rotulo})</label>
                 <label className="flex items-center gap-1"><input type="checkbox" checked={it.verPedido} onChange={(e) => setItem(it.k, { verPedido: e.target.checked })} /> Comparar com o pedido</label>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <label className="block"><span className="text-3xs font-black uppercase text-fg">Validade (opcional)</span>
+                  <input type="date" value={it.validade || ""} onChange={(e) => setItem(it.k, { validade: e.target.value })} className={`${campo} mt-1`} /></label>
+                <label className="block"><span className="text-3xs font-black uppercase text-fg">Lote (opcional)</span>
+                  <input value={it.lote || ""} onChange={(e) => setItem(it.k, { lote: e.target.value })} className={`${campo} mt-1`} /></label>
               </div>
               {it.verPedido && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 items-center">
@@ -348,9 +360,10 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
             <div className="flex justify-between"><h3 className="font-black text-lg">Confirmar compra</h3><button onClick={() => setConfirmando(false)} aria-label="Fechar"><X size={20} /></button></div>
             <p className="text-sm">Total <b>{fmtBRL(tot.total)}</b> · {form.itens.length} produto(s) · {rotuloForma(form.forma_pagamento)}</p>
             <ul className="text-xs list-disc pl-5 space-y-1">
+              <li>Cada produto <b>entra no estoque</b> escolhido (sem estoque escolhido: no único em que ele já está), com a validade informada. A entrada fica no histórico com o seu nome: <b>não lance de novo</b> em Entrada e retirada.</li>
               <li>O custo médio de cada produto será atualizado (frete e desconto rateados).</li>
               <li>{form.gerar_conta ? <>Será gerada uma conta a pagar de <b>{fmtBRL(tot.total)}</b> com vencimento em <b>{fmtData(form.data_vencimento)}</b>, categoria Mercadoria (não é despesa).</> : "Nenhuma conta a pagar será gerada."}</li>
-              <li>Compra não é CMV. Depois de confirmada, a compra não muda: correção é por cancelamento com motivo.</li>
+              <li>Compra não é CMV. Depois de confirmada, a compra não muda: correção é pelo cancelamento (administrador com PIN), que desfaz estoque, custo e conta juntos.</li>
             </ul>
             <div className="flex gap-2">
               <button onClick={() => setConfirmando(false)} disabled={processando} className="h-12 px-4 rounded-2xl bg-slate-100 font-bold">Voltar</button>
@@ -366,18 +379,18 @@ function FormCompra({ form, setForm, base, insumoPorId, processando, unidade, po
 }
 
 // ═══ DETALHE: itens, pedido × recebido, custo antes → depois, cancelar ══════
-function DetalheCompra({ compra, itens, insumoPorId, fornecedorPorId, estoques, unidade, podeCancelar, processando, executar, onFechar, onMudou, onEditar }) {
+function DetalheCompra({ compra, itens, insumoPorId, fornecedorPorId, estoques, unidade, podeCancelar, podeAutorizar, processando, executar, onFechar, onMudou, onEditar }) {
   const [hist, setHist] = useState([]);
+  const [cancelando, setCancelando] = useState(null);
+  const confirmada = compra.status === "confirmada";
+  const comEntrada = itens.some(entrouNoEstoque);
   useEffect(() => { if (compra.status !== "rascunho") fetchHistoricoCusto(unidade, { compraId: compra.id }).then((r) => setHist(r.data || [])); }, [compra.id, compra.status, unidade]);
   const nomeEst = (id) => estoques.find((e) => e.id === id)?.nome || "—";
   const cancelar = () => executar(async () => {
-    const motivo = window.prompt(compra.status === "confirmada"
-      ? "Motivo do cancelamento. O custo médio volta ao anterior e a conta a pagar (sem pagamento) é cancelada:"
-      : "Motivo do cancelamento do rascunho:");
-    if (!motivo) return;
-    const r = await cancelarCompraRegistro({ compra_id: compra.id, motivo });
-    if (r.error) return alert(`Não foi possível cancelar: ${r.error}`);
-    alert("Compra cancelada. Ela continua no histórico.");
+    const r = await cancelarCompraRegistro({ compra_id: compra.id, motivo: cancelando.motivo, pin: confirmada ? cancelando.pin : null });
+    if (r.error) return setCancelando({ ...cancelando, pin: r.pin ? "" : cancelando.pin, erro: r.error });
+    setCancelando(null);
+    alert(`Compra cancelada. Ela continua no histórico.${r.data?.estornos_estoque ? ` ${r.data.estornos_estoque} entrada(s) no estoque estornada(s).` : ""}`);
     await onMudou();
   });
   return (
@@ -400,7 +413,8 @@ function DetalheCompra({ compra, itens, insumoPorId, fornecedorPorId, estoques, 
               const d = divergenciaPedido(i, um);
               return (
                 <tr key={i.id} className="border-t border-line">
-                  <td className="py-1 font-bold">{ins?.nome || i.descricao_snapshot}</td><td>{nomeEst(i.estoque_id)}</td>
+                  <td className="py-1 font-bold">{ins?.nome || i.descricao_snapshot}{i.validade && <span className="block text-3xs font-bold text-fg">validade {fmtData(i.validade)}{i.lote ? ` · lote ${i.lote}` : ""}</span>}</td>
+                  <td>{nomeEst(i.estoque_id)}{entrouNoEstoque(i) && <span className="block text-3xs font-black text-emerald-700"><Check size={10} className="inline" /> entrou no estoque</span>}</td>
                   <td className="text-right">{fmtQtd(qtd)} {uc.rotulo}</td>
                   <td className="text-right">{qtd > 0 ? `${fmtCusto(Number(i.valor_total) / qtd)}/${uc.rotulo}` : "—"}</td>
                   <td className="text-right font-black">{fmtBRL(i.valor_total)}</td>
@@ -418,14 +432,34 @@ function DetalheCompra({ compra, itens, insumoPorId, fornecedorPorId, estoques, 
               })}
             </div>
           )}
+          {confirmada && !comEntrada && <p className="text-xs rounded-xl bg-amber-50 border border-amber-300 p-2">Confirmada antes da entrada automática no estoque: esta compra não mexeu no saldo.</p>}
           {compra.conta_pagar_id && <p className="text-xs">Conta a pagar gerada: veja em <a className="underline font-bold" href="/dashboard/financeiro/contas">Financeiro → Contas a Pagar</a>.</p>}
           {compra.status === "cancelada" && <p className="text-xs text-fg">Cancelada: {compra.motivo_cancelamento}</p>}
           {compra.observacao && <p className="text-xs text-fg">Obs.: {compra.observacao}</p>}
         </div>
-        <div className="p-4 border-t border-line flex gap-2">
-          {compra.status === "rascunho" && <button onClick={() => onEditar(compra)} className="h-11 px-4 rounded-xl bg-emerald-500 text-white font-black text-sm">Continuar rascunho</button>}
-          {podeCancelar && compra.status !== "cancelada" && <button onClick={cancelar} disabled={processando} className="h-11 px-4 rounded-xl bg-stone-200 font-black text-sm disabled:opacity-50">Cancelar compra</button>}
-        </div>
+        {cancelando ? (
+          <div className="p-4 border-t border-line space-y-2">
+            <p className="font-black text-sm">{confirmada ? "Cancelar compra confirmada" : "Cancelar rascunho"}</p>
+            {confirmada && <p className="text-xs">Desfaz junto: {comEntrada ? "a entrada no estoque (estorno; o lançamento original continua no histórico), " : ""}o custo médio e a conta a pagar sem pagamento. Se parte já saiu do estoque, não cancela.</p>}
+            <input value={cancelando.motivo} onChange={(e) => setCancelando({ ...cancelando, motivo: e.target.value, erro: "" })} placeholder="Motivo do cancelamento" className={campo} />
+            {confirmada && <input type="password" inputMode="numeric" autoComplete="off" value={cancelando.pin} onChange={(e) => setCancelando({ ...cancelando, pin: e.target.value.replace(/\D/g, "").slice(0, 8), erro: "" })}
+              placeholder="PIN do administrador" className={`${campo} tracking-widest`} />}
+            {cancelando.erro && <p className="text-xs font-bold text-red-700">{cancelando.erro}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => setCancelando(null)} disabled={processando} className="h-11 px-4 rounded-xl bg-slate-100 font-bold text-sm">Voltar</button>
+              <button onClick={cancelar} disabled={processando || cancelando.motivo.trim().length < 3 || (confirmada && !/^\d{4,8}$/.test(cancelando.pin))}
+                className="flex-1 h-11 rounded-xl bg-rose-600 text-white font-black text-sm disabled:opacity-40 flex items-center justify-center gap-1">
+                {processando ? <Loader2 size={16} className="animate-spin" /> : confirmada && <Lock size={14} />} Cancelar compra
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 border-t border-line flex flex-wrap items-center gap-2">
+            {compra.status === "rascunho" && <button onClick={() => onEditar(compra)} className="h-11 px-4 rounded-xl bg-emerald-500 text-white font-black text-sm">Continuar rascunho</button>}
+            {podeCancelar && compra.status !== "cancelada" && (!confirmada || podeAutorizar) && <button onClick={() => setCancelando({ motivo: "", pin: "", erro: "" })} disabled={processando} className="h-11 px-4 rounded-xl bg-stone-200 font-black text-sm disabled:opacity-50">Cancelar compra</button>}
+            {podeCancelar && confirmada && !podeAutorizar && <p className="text-xs text-fg">Cancelar compra confirmada: só o administrador, com o PIN.</p>}
+          </div>
+        )}
       </div>
     </div>
   );

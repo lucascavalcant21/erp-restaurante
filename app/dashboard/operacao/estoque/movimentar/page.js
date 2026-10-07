@@ -14,7 +14,7 @@ import {
 } from "../../../../lib/estoque-movimento-dados";
 import {
   MOTIVOS, rotuloMotivo, quantidadeDoLancamento, unidadesDaFracao, embalagemDoProduto, produtosParaLancar, saldoDepois,
-  podeEstornar, novaChave, unidadeDoSaldo,
+  podeEstornar, novaChave, unidadeDoSaldo, ehEntradaDeCompra,
 } from "../../../../lib/estoque-movimento.mjs";
 import { unidadeValida } from "../../../../lib/contas-pagar.mjs";
 import { hasPermission } from "../../../../lib/permissions-catalog.mjs";
@@ -263,7 +263,7 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
             <div>
               <p className="text-3xs font-black uppercase text-fg">Motivo da {tipo === "entrada" ? "entrada" : "retirada"}</p>
               <div className="mt-1 flex flex-wrap gap-2">
-                {MOTIVOS[tipo].filter((m) => !m.admin || seg?.pode_autorizar).map((m) => (
+                {MOTIVOS[tipo].filter((m) => !m.pelaCompra && (!m.admin || seg?.pode_autorizar)).map((m) => (
                   <button key={m.codigo} onClick={() => setForm({ ...form, motivo: m.codigo })}
                     className={`h-10 px-3 rounded-xl text-sm font-black border ${form.motivo === m.codigo ? "bg-slate-900 text-white border-slate-900" : "bg-white border-line"}`}>
                     {m.admin && <Lock size={12} className="inline mr-1" />}{m.rotulo}
@@ -272,6 +272,9 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
               </div>
             </div>
 
+            {tipo === "entrada" && (
+              <p className="text-xs text-fg">Chegou mercadoria comprada? Lance em <a href="/dashboard/operacao/estoque/compras?aba=nova" className="font-black underline">Compras</a>: ao confirmar, a entrada no estoque, o custo médio e a conta a pagar saem juntos.</p>
+            )}
             {tipo === "entrada" && (
               <label className="block">
                 <span className="text-3xs font-black uppercase text-fg">Validade (opcional)</span>
@@ -327,6 +330,7 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
                     </p>
                     {m.motivo === "estorno" && <p className="text-3xs font-bold text-fg">Estorno autorizado por {m.autorizado_por_nome}: {m.justificativa}</p>}
                     {m.motivo === "ajuste_autorizado" && <p className="text-3xs font-bold text-fg">Autorizado por {m.autorizado_por_nome}: {m.justificativa}</p>}
+                    {ehEntradaDeCompra(m) && !estornado && <p className="text-3xs font-bold text-fg">{m.observacao}. Para desfazer, cancele a compra em Compras.</p>}
                     {estornado && <p className="text-3xs font-black uppercase text-rose-700">Estornado</p>}
                   </div>
                   {seg?.pode_autorizar && !ultimos.desatualizado && podeEstornar(m, ultimos.estornados) && (

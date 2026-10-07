@@ -2,9 +2,11 @@
 // sobre compras/compras_itens/estoque_custos da F2.1 + db/F2_4B_COMPRAS_CUSTO_MEDIO.sql.
 //
 //   rascunho    → public.compras (status 'rascunho') + compras_itens (editável)
-//   confirmar   → rpc compras_confirmar: compra + custo médio + histórico +
-//                 conta a pagar (mercadoria_insumos), tudo numa transação
-//   cancelar    → rpc compras_cancelar (desfaz custo e conta, com histórico)
+//   confirmar   → rpc compras_confirmar: compra + ENTRADA NO ESTOQUE (EST-MOV-4)
+//                 + custo médio + histórico + conta a pagar (mercadoria_insumos),
+//                 tudo numa transação
+//   cancelar    → rpc compras_cancelar: rascunho sai simples; confirmada só com
+//                 administrador + PIN e desfaz estoque, custo e conta juntos
 //
 // COMPRA ≠ CMV. O custo médio é calculado SÓ no banco (estoque_custo_medio_novo);
 // aqui só se mostra prévia/variação. Quantidades em unidade base (g/ml/un) com
@@ -203,13 +205,31 @@ export async function confirmarCompra(db, { compra_id, gerar_conta_pagar = true,
   return { data, error: null };
 }
 
-export async function cancelarCompra(db, { compra_id, motivo }) {
+// Banco sem a EST-MOV-4: a função ainda não aceita o PIN.
+export const MSG_SEM_EST_MOV_4 = "O banco ainda não recebeu a atualização EST-MOV-4 (compra dá entrada no estoque). Peça ao administrador para aplicá-la.";
+const semPinNoBanco = (msg) => /p_pin/.test(String(msg || "")) && /could not find|não existe|does not exist|schema cache/i.test(String(msg || ""));
+
+/**
+ * Cancela. Rascunho: só o motivo. Confirmada: administrador autorizado + PIN
+ * do estoque; o banco desfaz a entrada no estoque (estorno), o custo médio e a
+ * conta a pagar. PIN errado volta { pin: true } (a tentativa fica gravada).
+ */
+export async function cancelarCompra(db, { compra_id, motivo, pin = null }) {
   if (!db) return falha("Banco indisponível.");
   if (!String(motivo || "").trim()) return falha("Informe o motivo do cancelamento.");
-  const { data, error } = await db.rpc("compras_cancelar", { p_compra_id: compra_id, p_motivo: String(motivo).trim() });
-  if (error) return falha(erroDb(error));
+  const args = { p_compra_id: compra_id, p_motivo: String(motivo).trim() };
+  if (pin != null && pin !== "") {
+    if (!/^\d{4,8}$/.test(String(pin))) return { data: null, error: "Digite o PIN do administrador (4 a 8 números).", pin: true };
+    args.p_pin = String(pin);
+  }
+  const { data, error } = await db.rpc("compras_cancelar", args);
+  if (error) return falha(semPinNoBanco(error.message) ? MSG_SEM_EST_MOV_4 : erroDb(error));
+  if (data?.ok === false) return { data: null, error: data.erro || "Não autorizado.", pin: !!data.pin };
   return { data, error: null };
 }
+
+/** Item da compra que deu entrada no estoque (EST-MOV-4). */
+export const entrouNoEstoque = (item) => !!item?.movimento_estoque_id;
 
 export async function criarFornecedor(db, { unidade_id, nome }) {
   const n = String(nome || "").trim();

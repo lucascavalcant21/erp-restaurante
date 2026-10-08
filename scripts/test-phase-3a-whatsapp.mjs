@@ -73,7 +73,9 @@ async function runWhatsAppTests() {
 
   // --- 1. TESTE DE VERIFICAÇÃO DO WEBHOOK (GET Challenge) ---
   console.log("--- 1. Testing Webhook GET Verification Challenge ---");
-  const reqGetValid = new Request("http://localhost/api/channels/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=hefisto_verify_token&hub.challenge=test_challenge_123");
+  // Sem WHATSAPP_VERIFY_TOKEN o GET é sempre 403 (não há token padrão).
+  process.env.WHATSAPP_VERIFY_TOKEN = "token_verificacao_fase_3a";
+  const reqGetValid = new Request("http://localhost/api/channels/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=token_verificacao_fase_3a&hub.challenge=test_challenge_123");
   const resGetValid = await webhookGET(reqGetValid);
   const textGet = await resGetValid.text();
   assert(resGetValid.status === 200 && textGet === "test_challenge_123", "Webhook GET Challenge verificado com sucesso pelo Meta API (Status 200).");

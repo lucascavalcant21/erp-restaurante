@@ -245,6 +245,9 @@ function EtiquetasRunner() {
   const [copias, setCopias] = useState(1);
   // Fila de impressão: vários produtos, cada um com suas cópias, numa tirada só
   const [fila, setFila] = useState([]); // { codigo, produto, copias, html, alturaMm, larguraMm }
+  // Antes de imprimir (qualquer modo), a confirmação mostra a prévia do que vai sair.
+  const [confirmarModo, setConfirmarModo] = useState(null);
+  const [previaHtml, setPreviaHtml] = useState("");
   const [impressoraStatus, setImpressoraStatus] = useState("desconectada");
   const [impressoraErro, setImpressoraErro] = useState("");
   const [impressoras, setImpressoras] = useState([]);
@@ -523,6 +526,14 @@ function EtiquetasRunner() {
     });
     if (ok) setSalvou(`Teste enviado (${largura}×${altura}mm). Escolha a impressora na janela do Windows.`);
     setTimeout(() => setSalvou(""), 8000);
+  }
+
+  // Foto da etiqueta da prévia (a primeira cópia). O QR copiado perde a marca
+  // data-qr-* para a térmica não ler a cópia em vez do original.
+  function pedirImpressao(modo) {
+    const primeira = document.querySelector("#area-impressao .etiqueta-print");
+    setPreviaHtml(primeira ? primeira.outerHTML.replace(/data-qr-/g, "data-copia-qr-") : "");
+    setConfirmarModo(modo);
   }
 
   function imprimirFila() {
@@ -989,7 +1000,7 @@ function EtiquetasRunner() {
                   </div>
                   {btErro && <p className="text-2xs font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-2">{btErro}</p>}
                   {btNome && (
-                    <Btn variant="primary" className="w-full mt-3" disabled={salvando} onClick={() => salvar("bluetooth")}>
+                    <Btn variant="primary" className="w-full mt-3" disabled={salvando} onClick={() => pedirImpressao("bluetooth")}>
                       <Printer size={15} /> Imprimir por Bluetooth
                     </Btn>
                   )}
@@ -1016,7 +1027,7 @@ function EtiquetasRunner() {
                     </span>
                   </div>
                 </div>
-                <Btn variant="primary" className="w-full mt-3 !bg-indigo-600 hover:!bg-indigo-700 text-white" disabled={salvando} onClick={() => salvar("mdk022_usb")}>
+                <Btn variant="primary" className="w-full mt-3 !bg-indigo-600 hover:!bg-indigo-700 text-white" disabled={salvando} onClick={() => pedirImpressao("mdk022_usb")}>
                   <Printer size={15} /> Imprimir na MDK-022 (USB)
                 </Btn>
                 <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>
@@ -1026,6 +1037,41 @@ function EtiquetasRunner() {
             )}
 
           </div>
+
+          {confirmarModo && (() => {
+            const larguraMm = parseFloat(dim.w) || 80;
+            const alturaMm = parseFloat(dim.h) || 40;
+            const escala = Math.min(1.5, 320 / (larguraMm * 3.7795));
+            const destino = { mdk022_usb: "MDK-022 (USB)", tp20: impressoraNome || "impressora térmica", bluetooth: "Bluetooth", navegador: "impressora do computador", pdf: "PDF no tamanho exato" }[confirmarModo] || confirmarModo;
+            return (
+              <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-slate-900/75 sm:p-4" onClick={() => setConfirmarModo(null)}>
+                <div role="dialog" aria-modal="true" aria-label="Confira antes de imprimir" onClick={e => e.stopPropagation()}
+                  className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-card flex flex-col max-h-[92vh] overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+                    <h3 className="text-lg font-black text-fg">Confira antes de imprimir</h3>
+                    <button onClick={() => setConfirmarModo(null)} aria-label="Fechar"><X size={20} /></button>
+                  </div>
+                  <div className="flex flex-col items-center gap-3 overflow-y-auto bg-slate-100 p-5">
+                    {previaHtml ? (
+                      <div style={{ width: `${larguraMm * 3.7795 * escala}px`, height: `${alturaMm * 3.7795 * escala}px`, overflow: "hidden", background: "#fff", boxShadow: "0 2px 10px rgba(15,23,42,0.18)" }}>
+                        <div style={{ transform: `scale(${escala})`, transformOrigin: "top left", width: dim.w }} dangerouslySetInnerHTML={{ __html: previaHtml }} />
+                      </div>
+                    ) : <p className="text-sm font-bold text-fg">Não consegui montar a prévia.</p>}
+                    <p className="text-sm text-fg text-center"><strong>{nomeProduto || "Produto"}</strong> · {modelo === "nome" ? "Só o nome" : "Validade completa"} · {quantidadeCopias} cópia{quantidadeCopias !== 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="border-t border-line px-5 pt-3 pb-4 flex flex-col gap-2">
+                    <p className="text-center text-sm font-bold text-fg">{tamanho.replace("x", "×")} mm · {destino}</p>
+                    <div className="flex gap-2">
+                      <Btn variant="ghost" className="flex-1" onClick={() => setConfirmarModo(null)}>Voltar</Btn>
+                      <Btn variant="primary" className="flex-1" disabled={salvando} onClick={() => { const m = confirmarModo; setConfirmarModo(null); salvar(m); }}>
+                        <Printer size={15} /> {confirmarModo === "pdf" ? "Gerar PDF" : "Imprimir"}
+                      </Btn>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Preview / Etiqueta (coluna fixa) ── */}
           <div className="lg:sticky lg:top-4">
@@ -1211,10 +1257,10 @@ function EtiquetasRunner() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
               <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={15} /> {salvando ? "..." : "Salvar"}</Btn>
               {/* Um único botão Imprimir: prioriza MDK-022 USB no Android; TP20 se conectada no QZ Tray; senão navegador */}
-              <Btn variant="primary" disabled={salvando} onClick={() => salvar(temWebUsb ? "mdk022_usb" : (impressoraStatus === "conectada" ? "tp20" : "navegador"))}>
+              <Btn variant="primary" disabled={salvando} onClick={() => pedirImpressao(temWebUsb ? "mdk022_usb" : (impressoraStatus === "conectada" ? "tp20" : "navegador"))}>
                 <Printer size={15} /> {salvando ? "..." : "Imprimir"}
               </Btn>
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta">
+              <Btn variant="ghost" disabled={salvando} onClick={() => pedirImpressao("pdf")} title="Gera um PDF no tamanho exato da etiqueta">
                 <Printer size={15} /> PDF exato
               </Btn>
               <Btn variant="ghost" disabled={salvando} onClick={novaEtiqueta} title="Limpa o formulário e prepara uma nova etiqueta em branco">
@@ -1225,7 +1271,7 @@ function EtiquetasRunner() {
               <button
                 type="button"
                 disabled={salvando}
-                onClick={() => salvar("mdk022_usb")}
+                onClick={() => pedirImpressao("mdk022_usb")}
                 className="w-full mt-2 py-3 px-4 rounded-xl font-black text-xs text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2"
                 title="Imprime diretamente na impressora MDK-022 conectada por USB no Android"
               >

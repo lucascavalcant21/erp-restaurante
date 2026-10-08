@@ -1,3 +1,4 @@
+import { desenharNomeCentralizado, desenharImagemCentralizada } from "./etiqueta-centralizada.mjs";
 /**
  * Módulo de Impressão Direta WebUSB para Impressora de Etiquetas MDK-022 (TSPL)
  *
@@ -585,30 +586,34 @@ export function gerarComandosTsplMdk022({ dados, tamanho = "60x40", copias = 1, 
   addHeader("CLS");
   chunks.push(headerCmd);
 
-  // MODELO "SOMENTE NOME"
-  if (modeloEtiqueta === "nome") {
-    let asciiNome = "";
-    const fitNome = formatarTextoFitted(produto, maxTextWidth, "4");
-    const bmpNome = criarBitmapTextoCanvas({
-      linhas: fitNome.linhas,
-      maxLarguraDots: maxTextWidth,
-      alturaLinhaDots: 36,
-      tamanhoFontePx: 32,
-      ehNegrito: true,
-    });
-
-    asciiNome += `BITMAP ${safeLeft},${safeTop},${bmpNome.widthBytes},${bmpNome.heightDots},0,`;
-    chunks.push(asciiNome);
-    chunks.push(bmpNome.data);
-    chunks.push("\r\n");
-
-    let tailNome = "";
-    if (quantidade) {
-      tailNome += `TEXT ${safeLeft},${safeTop + bmpNome.heightDots + 10},"3",0,1,1,"QTD: ${quantidade}"\r\n`;
+  // MODELOS "SOMENTE NOME" E "APENAS IMAGEM": um bitmap do tamanho da área
+  // útil inteira (margens + deslocamento da calibração), com o conteúdo
+  // centralizado nos dois sentidos e tamanho ajustável. Mesmo desenho da
+  // térmica (etiqueta-centralizada.mjs). Antes o nome saía em fonte fixa,
+  // colado no canto, e "Apenas imagem" caía no layout completo.
+  if (modeloEtiqueta === "nome" || modeloEtiqueta === "logo") {
+    if (modeloEtiqueta === "logo" && !dados.logoImagem) {
+      throw new Error("A imagem da etiqueta não foi carregada. Escolha a imagem (logo) de novo.");
     }
-    tailNome += `PRINT ${Math.max(1, copias)},1\r\n`;
-    chunks.push(tailNome);
-
+    const dpiArea = perfilFisico?.dpi || 203;
+    const dotsMm = (mm) => Math.round(mm * (dpiArea / 25.4));
+    const margemBaixo = dotsMm(perfilFisico?.marginBottomMm ?? 2);
+    const margemTopo = perfilFisico ? dotsMm(perfilFisico.marginTopMm ?? 1) : safeTop;
+    const larguraArea = Math.max(40, maxTextWidth);
+    const alturaArea = Math.max(40, dotsMm(hMm) - margemTopo - margemBaixo);
+    const mostrarQtd = dados.informarQuantidade !== false && Number(dados.quantidade) > 0;
+    const bmp = renderizarCanvasParaBitmap((ctx, w, h) => {
+      if (modeloEtiqueta === "logo") desenharImagemCentralizada(ctx, w, h, dados.logoImagem, dados.escalaLogo);
+      else desenharNomeCentralizado(ctx, w, h, {
+        nomes: [produto, dados.produto2 || dados.nome2],
+        escala: dados.escalaNome,
+        rodape: mostrarQtd ? quantidade : "",
+      });
+    }, larguraArea, alturaArea);
+    chunks.push(`BITMAP ${safeLeft},${safeTop},${bmp.widthBytes},${bmp.heightDots},0,`);
+    chunks.push(bmp.data);
+    chunks.push("\r\n");
+    chunks.push(`PRINT ${Math.max(1, copias)},1\r\n`);
     return concatenarChunksTspl(chunks);
   }
 

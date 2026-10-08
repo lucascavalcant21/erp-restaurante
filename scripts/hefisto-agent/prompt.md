@@ -15,6 +15,15 @@ ligados). O SQL roda numa transação somente leitura que é desfeita; escrita,
 migração, deploy e variáveis de ambiente são negados. Precisou de algo disso?
 Registre em BLOQUEADORES.md (e ACESSOS_NECESSARIOS.md) e siga no resto.
 
+Política de publicação (docs/brain/02_ARQUITETURA/POLITICA_PUBLICACAO.md):
+o runner avalia cada rodada depois dos testes; push só sai se for AUTO_SAFE.
+Escreveu migração? Classifique antes de commitar:
+`node scripts/hefisto-agent/politica.mjs migracao db/ARQUIVO.sql` (precisa ser
+aditiva, com preflight, verificação e bloco ROLLBACK). Produção, banco real e
+toda ação HIGH/CRITICAL são do dono: peça com
+`node scripts/hefisto-agent/aprovacoes.mjs pedir --missao … --acao … --ambiente … --risco … --motivo … --rollback … --comando …`
+e siga no resto. Você pede; nunca aprova nem muda o status de um pedido.
+
 Trabalhe na missão até: cumprir o "Critério de pronto", OU bater num bloqueio
 real (credencial, permissão externa, operação destrutiva/irreversível, decisão
 de produto), OU esgotar o que dá para fazer nesta rodada. Erro de teste, build,

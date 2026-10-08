@@ -654,6 +654,26 @@ test("sincronia: traz o que chegou no GitHub antes da missão e envia o trabalho
   assert.match(noRemoto, /da nuvem/);
 });
 
+test("política no runner: teste falhou segura o push do branch (preview) e registra a decisão", async () => {
+  const amb = montarAmbiente({ validacao: "falha", missoes: { "HDEV-001": { prioridade: 1 } } });
+  writeFileSync(amb.arqCfg, JSON.stringify({ ...amb.cfg, commitarMemoria: true, caminhos: { ...amb.cfg.caminhos, aprovacoes: "brain/APROVACOES.md" } }));
+  writeFileSync(join(amb.raiz, ".gitignore"), ".estado/\nargv-motor.json\n");
+  const { remoto } = repoComRemoto(amb);
+  writeFileSync(join(amb.raiz, "local.txt"), "ainda não subiu\n");
+  gitEm(amb.raiz, "add", "local.txt"); gitEm(amb.raiz, "commit", "-q", "-m", "trabalho local");
+  const local = gitEm(amb.raiz, "rev-parse", "HEAD");
+
+  const r = await rodar(opcoes(amb, { uma: true }));
+  assert.notEqual(gitEm(remoto, "rev-parse", "hefisto/teste"), gitEm(amb.raiz, "rev-parse", "HEAD"), "o GitHub não recebeu o branch");
+  assert.notEqual(gitEm(remoto, "rev-parse", "hefisto/teste"), local);
+  const st = L.lerStatus(join(amb.raiz, ".estado", "status.json"));
+  assert.equal(st.politica.preview, "BLOCKED");
+  assert.match(st.politica.motivos.join(" "), /teste falhou/);
+  assert.match(readFileSync(r.relatorio, "utf8"), /## Publicação e banco\n\n- HDEV-001: preview BLOCKED/);
+  assert.match(readFileSync(join(amb.raiz, ".estado", "logs", "runner.log"), "utf8"), /push do branch segurado pela política/);
+  assert.ok(existsSync(join(amb.raiz, ".estado", "publicacoes.jsonl")));
+});
+
 test("sincronia: conflito não trava a noite; desfaz o merge, registra e segue", async () => {
   const amb = montarAmbiente({ missoes: { "HDEV-001": { prioridade: 1 } } });
   writeFileSync(amb.arqCfg, JSON.stringify({ ...amb.cfg, commitarMemoria: true }));

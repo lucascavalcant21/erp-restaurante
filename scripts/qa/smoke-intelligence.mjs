@@ -91,6 +91,18 @@ async function main() {
   }
   if (!env.HEFISTO_QA_TOKEN) console.log("Sem HEFISTO_QA_TOKEN: só os casos sem sessão rodaram.");
   console.log(ok ? "Smoke OK." : "Smoke com falha.");
+  // política de publicação: o runner só considera o preview validado com o smoke completo no MESMO commit
+  if (env.HEFISTO_REGISTRAR_PREVIEW) {
+    const { writeFileSync, mkdirSync } = await import("node:fs");
+    const { dirname } = await import("node:path");
+    const { spawnSync } = await import("node:child_process");
+    const commit = env.HEFISTO_QA_COMMIT || spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim();
+    mkdirSync(dirname(env.HEFISTO_REGISTRAR_PREVIEW), { recursive: true });
+    writeFileSync(env.HEFISTO_REGISTRAR_PREVIEW, JSON.stringify({
+      base_url: env.BASE_URL, commit_sha: commit, ok, critico,
+      completo: Boolean(env.HEFISTO_QA_TOKEN && env.HEFISTO_QA_OUTRA_UNIDADE), em: new Date().toISOString(),
+    }, null, 2));
+  }
   process.exit(critico ? 2 : ok ? 0 : 1);
 }
 

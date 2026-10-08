@@ -7,7 +7,9 @@
 //   3. roda o motor (Claude Code em modo headless, `claude -p`) com o prompt da missão;
 //   4. roda as validações (testes; build se o app mudou);
 //   5. decide o novo estado (DONE / READY / BLOCKED) com as travas anti-loop;
-//   6. atualiza índice de missões, STATUS_ATUAL, relatório noturno e commita a memória.
+//   6. aplica a política de publicação (politica.mjs): push do preview só se AUTO_SAFE;
+//      migração e produção viram pedido em APROVACOES_PENDENTES.md quando é com o dono;
+//   7. atualiza índice de missões, STATUS_ATUAL, relatório noturno e commita a memória.
 //
 // Opções:
 //   --raiz <dir>        raiz do repositório (padrão: diretório atual)
@@ -22,6 +24,7 @@ import { join, relative, resolve, dirname } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import * as L from "./lib.mjs";
+import { avaliarRodada, arquivosMudados } from "./publicacao.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
@@ -227,6 +230,7 @@ export async function rodar(opcoes) {
 
   const feitas = [];
   let motivoFim = "sem_missao";
+  let envioLiberado = true; // a última rodada avaliada pela política segura o push até outra liberar
   try {
     for (;;) {
       if (existsSync(arqStop)) { motivoFim = "stop"; break; }
@@ -264,7 +268,7 @@ export async function rodar(opcoes) {
         continue;
       }
 
-      sincronizar(raiz, cfg, "trazer", log, (motivo) => L.anotarRelatorio(relatorio, "Bloqueadores", motivo));
+      const conflito = sincronizar(raiz, cfg, "trazer", log, (motivo) => L.anotarRelatorio(relatorio, "Bloqueadores", motivo))?.conflito || false;
       const rodada = (m.tentativas || 0) + 1;
       const branch = git(raiz, "branch", "--show-current");
       if (branch && cfg.branchesProibidas.includes(branch)) throw new Error(`o runner não trabalha no branch ${branch}. Rode antes: npm run hefisto:preparar (cria hefisto/noite-${hoje}).`);
@@ -340,6 +344,17 @@ export async function rodar(opcoes) {
       L.gravarMissao(decidida);
       missaoAtual = null;
 
+      // política de publicação e banco
+      const arquivos = headAntes && headDepois ? arquivosMudados(git(raiz, "-c", "core.quotepath=false", "diff", "--name-only", headAntes, headDepois) || "", git(raiz, "-c", "core.quotepath=false", "status", "--porcelain") || "") : [];
+      const pub = await avaliarRodada({ raiz, cfg, C, arquivos, resultados, branch, head: headDepois, missao: m, missaoDone: decidida.status === "DONE", conflito });
+      envioLiberado = pub.preview.decisao.decision === "AUTO_SAFE";
+      const travas = pub.preview.decisao.reasons.filter((r) => /BLOQUEADO|faltam|exige|desligad/.test(r));
+      L.gravarStatus(arqStatus, { politica: { em: new Date().toISOString(), missao: m.id, preview: pub.preview.decisao.decision, producao: pub.producao?.decisao.decision || null, migracao: pub.piorMigracao, pendentes: pub.pendentes, motivos: travas } });
+      // trava técnica (teste/build) não é bloqueador externo: fica só nesta linha
+      L.anotarRelatorio(relatorio, "Publicação e banco", `${m.id}: ${pub.resumo}${travas.length ? ` — ${travas.join("; ")}` : ""}`);
+      for (const mg of pub.migracoes) if (mg.aprovacao) L.anotarRelatorio(relatorio, "Bloqueadores", `${m.id}: ${mg.arquivo} (${mg.classe}) aguarda o dono em ${mg.aprovacao}`);
+      if (pub.producao?.aprovacao) L.anotarRelatorio(relatorio, "Bloqueadores", `${m.id}: produção aguarda o dono em ${pub.producao.aprovacao}`);
+
       // memória: índice, status, relatório
       const atualizadas = L.carregarMissoes(C.missoes);
       if (existsSync(C.ativas)) writeFileSync(C.ativas, L.atualizarTrechoGerado(readFileSync(C.ativas, "utf8"), L.indiceAtivas(atualizadas)));
@@ -354,7 +369,8 @@ export async function rodar(opcoes) {
       L.gravarStatus(arqStatus, { estado: "RODANDO", current_mission: null, last_checkpoint: headDepois, last_result: ultimo });
       if (existsSync(C.statusAtual)) writeFileSync(C.statusAtual, L.atualizarTrechoGerado(readFileSync(C.statusAtual, "utf8"), blocoStatus(L.lerStatus(arqStatus), atualizadas), "agente"));
       commitarMemoria(raiz, cfg, `chore(brain): ${m.id} rodada ${rodada} → ${decidida.status}`, log);
-      sincronizar(raiz, cfg, "enviar", log);
+      if (envioLiberado) sincronizar(raiz, cfg, "enviar", log);
+      else log(`push do branch segurado pela política (preview ${pub.preview.decisao.decision}): ${travas.join("; ")}`);
       log(ultimo);
       feitas.push(m.id);
     }
@@ -365,7 +381,7 @@ export async function rodar(opcoes) {
     L.gravarStatus(arqStatus, { estado: "ENCERRADO", current_mission: null, last_result: `fim: ${motivoFim}; missões nesta execução: ${feitas.join(", ") || "nenhuma"}` });
     if (existsSync(C.statusAtual)) writeFileSync(C.statusAtual, L.atualizarTrechoGerado(readFileSync(C.statusAtual, "utf8"), blocoStatus(L.lerStatus(arqStatus), L.carregarMissoes(C.missoes)), "agente"));
     commitarMemoria(raiz, cfg, `chore(brain): fim da execução do agente (${motivoFim})`, log);
-    sincronizar(raiz, cfg, "enviar", log);
+    if (envioLiberado) sincronizar(raiz, cfg, "enviar", log);
     rmSync(arqLock, { force: true });
     log(`runner encerrado: ${motivoFim}`);
   }
@@ -402,6 +418,7 @@ function sincronizar(raiz, cfg, quando, log, aoConflito) {
       const motivo = `conflito ao trazer origin/${branch}; seguindo com a cópia local (resolver numa sessão acompanhada)`;
       log(`aviso: ${motivo}`);
       aoConflito?.(motivo);
+      return { conflito: true };
     }
   } else {
     const r = g("push", "-q", "-u", "origin", branch);

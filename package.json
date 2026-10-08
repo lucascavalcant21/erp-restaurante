@@ -18,7 +18,9 @@
     "hefisto:status": "node scripts/hefisto-agent/status.mjs",
     "hefisto:missoes": "node scripts/hefisto-agent/missoes.mjs",
     "hefisto:parar": "node scripts/hefisto-agent/parar.mjs",
-    "hefisto:preparar": "node scripts/hefisto-agent/preparar.mjs"
+    "hefisto:preparar": "node scripts/hefisto-agent/preparar.mjs",
+    "hefisto:aprovacoes": "node scripts/hefisto-agent/aprovacoes.mjs",
+    "hefisto:politica": "node scripts/hefisto-agent/politica.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

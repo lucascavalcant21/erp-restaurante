@@ -58,7 +58,7 @@ export function escreverFrontmatter(dados, corpo) {
 // ─── missões ─────────────────────────────────────────────────────────────────
 export function validarMissao(m) {
   const erros = [];
-  if (!/^[A-Z]+-\d{3,}$/.test(String(m.id || ""))) erros.push("id deve ser como HDEV-001");
+  if (!/^[A-Z]+(-[A-Z]+)*-\d{3,}$/.test(String(m.id || ""))) erros.push("id deve ser como HDEV-001 (ou HDEV-PUBLISH-001)");
   if (!m.titulo) erros.push("titulo obrigatório");
   if (!STATUS.includes(m.status)) erros.push(`status deve ser um de ${STATUS.join(", ")}`);
   if (!Number.isInteger(m.prioridade) || m.prioridade < 1 || m.prioridade > 5) erros.push("prioridade deve ser 1 (mais alta) a 5");

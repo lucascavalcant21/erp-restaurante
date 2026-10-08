@@ -77,3 +77,14 @@ Formato: **DA-NNN — título (data)**: contexto → decisão → consequência.
 - **Por quê:** o pedido do dono (HDEV-PUBLISH-001) preserva os defaults seguros. A concessão de escrita em produção ao agente sem supervisão continua pendente em [[DECISOES_PRODUTO]]: ligar a chave não dá a ferramenta (`apply_migration`, `gh pr merge` seguem negados).
 - **Push segurado:** com teste/build falhando, segredo no bundle, RLS inseguro ou conflito, o runner não envia o branch (o Vercel geraria um preview do código quebrado). A memória fica commitada localmente e sobe na próxima rodada verde.
 - **Evidência:** TESTADO LOCAL (`npm run test:agent`: 56/56 com PGLITE; inclui runner real com repositório Git e remoto: teste falhando não chega ao remoto). Classificador calibrado nos 150 arquivos de `db/`. NÃO VALIDADO: preview real e aplicação no Supabase pela política (o runner não tem essas ferramentas).
+
+## DA-009 — Isolamento por unidade: uma policy padrão `sec_unidade` (08/10/2026)
+
+- **Decisão:** as tabelas com `unidade_id` passam a ter UMA policy, `sec_unidade`, para `authenticated`:
+  `(select hefisto_ve_todas_unidades()) or unidade_id::text in (select unnest(hefisto_unidades_do_usuario()))`.
+  - `hefisto_ve_todas_unidades()`: super admin ou escopo `todos`;
+  - `hefisto_unidades_do_usuario()`: unidade principal + escopos de unidade;
+  - usuário inativo ou bloqueado: nada; escopo `empresa`: nada (falha fechada, ver S-14).
+- **Por quê:** substitui 4 formas abertas e o padrão antigo `pode_ver_todas() or unidade_id = auth_unidade_id()`, que só enxerga UMA unidade por usuário e deixava linhas sem unidade visíveis para todos. Calculada uma vez por consulta (subconsulta não correlacionada), não por linha.
+- **Tabela nova com `unidade_id` usa essa policy.** O teste `npm run test:seguranca` e a política de publicação recusam policy aberta.
+- **Evidência:** TESTADO LOCAL (PGlite com as policies reais). Aplicação no banco real: aguarda APR-001.

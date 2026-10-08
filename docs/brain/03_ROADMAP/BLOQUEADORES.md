@@ -8,6 +8,6 @@ Só bloqueio **real**: precisa de algo de fora (acesso, credencial, decisão ou 
 | BLQ-002 | [[HDEV-001]]: logs e preview protegido | Conector Vercel sem autorização no time `lucas-cavalcante` (ACESSO-002) | Dono: conector Vercel no claude.ai | 07/10/2026 | PENDENTE |
 | BLQ-003 | [[HDEV-001]]: smoke autenticado (API 200/403, tela, contexto) | Usuário de teste para o agente (ACESSO-003) | Dono | 08/10/2026 | PENDENTE |
 | BLQ-004 | [[HDEV-001]]: publicar | Aprovação do merge do PR #127 para produção (ACESSO-004), depois de BLQ-001 e BLQ-003 | Dono | 07/10/2026 | PENDENTE |
-| BLQ-005 | [[HDEV-008]]: corrigir RLS crítico | Aprovação para mudar RLS/policies em produção (S-01, S-02 em [[SEGURANCA]]) | Dono | 07/10/2026 | PENDENTE |
+| BLQ-005 | [[HDEV-SEC-001]] / [[HDEV-008]]: corrigir RLS crítico | Aprovação para mudar RLS/policies em produção (S-01, S-02 em [[SEGURANCA]]). Migração pronta e testada: **APR-001** em [[APROVACOES_PENDENTES]] | Dono | 07/10/2026 | PENDENTE (pedido feito 08/10) |
 | BLQ-007 | [[HDEV-001]]: harness Playwright, trazer `main`, push | Runner local nega comando com rede (`npm i`, `git fetch`, HTTP) no modo "não perguntar" ([[ACESSOS_NECESSARIOS]] ACESSO-005) | Dono: permissões do `.claude/settings.json` ou sessão acompanhada | 08/10/2026 | PENDENTE para o runner. Em sessão acompanhada (08/10 noite), fetch/push/`npm i` funcionaram: `main` trazida |
 | BLQ-006 | [[HDEV-007]]: WhatsApp | Conta Meta Business verificada + WhatsApp Business Platform (ACESSO-006) | Dono | 08/10/2026 | PENDENTE |

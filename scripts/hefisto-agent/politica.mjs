@@ -189,6 +189,9 @@ function classificarComando(c, ctx = { criadas: new Set(), recriadas: new Set() 
   }
   if (/^(create|alter) policy\b/.test(c)) {
     if (/\b(using|with check)\s*\(\s*true\s*\)/.test(c)) return R("CRITICAL", "policy aberta (USING/WITH CHECK true) pode misturar empresas");
+    // "auth.role() = 'authenticated'" (o texto vira '' na leitura) = qualquer logado de qualquer empresa
+    if (/\b(using|with check)\s*\(\s*\(?\s*auth\.role\(\)\s*=\s*''(::text)?\s*\)?\s*\)/.test(c)) return R("CRITICAL", "policy aberta (auth.role() = 'authenticated': qualquer logado) pode misturar empresas");
+    if (/\bor\s*\(?\s*\w*\.?unidade_id\s+is\s+null\b/.test(c)) return R("REVIEW", "policy deixa linhas sem unidade visíveis para todos (… OR unidade_id IS NULL)");
     if (/\bto\s+(anon|public)\b/.test(c)) return R("REVIEW", "policy para anon/public");
     return c.startsWith("alter") ? R("REVIEW", "ALTER POLICY (mudança relevante de RLS)") : R("SAFE", "CREATE POLICY");
   }
@@ -235,6 +238,14 @@ export function classificarMigracao(sql) {
   };
   ler(sql, false);
   for (const corpo of corposDo(sql)) ler(corpo, true);
+  // SQL dinâmico (EXECUTE format('…')): o perigo fica dentro do texto. Procura fora dos comentários.
+  const semComentarios = sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+  if (/disable\s+row\s+level\s+security|no\s+force\s+row\s+level\s+security/i.test(semComentarios) && !achados.some((a) => /desliga RLS/.test(a.motivo))) {
+    achados.push({ classe: "CRITICAL", comando: "(SQL dinâmico)", motivo: "desliga RLS (dentro de texto executado)" });
+  }
+  if (/\b(using|with check)\s*\(\s*(true|\(?\s*auth\.role\(\)\s*=\s*'authenticated')/i.test(semComentarios) && !achados.some((a) => /policy aberta/.test(a.motivo))) {
+    achados.push({ classe: "CRITICAL", comando: "(SQL dinâmico)", motivo: "policy aberta (USING/WITH CHECK true) dentro de texto executado" });
+  }
   const ctx = { criadas: new Set(), recriadas: new Set() };
   for (const { c } of comandos) {
     if (/^create table\b/.test(c)) ctx.criadas.add(alvoDoComando(c));

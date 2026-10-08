@@ -4,8 +4,8 @@
 
 | # | Achado | Gravidade | Evidência | Situação |
 |---|---|---|---|---|
-| S-01 | `colaboradores` e `registro_ponto` com **RLS desligado**: qualquer usuário logado lê salário, CPF e ponto | CRÍTICO | TESTADO NO SUPABASE REAL (advisor ERROR, 07/10) | Aguarda aprovação do dono ([[HDEV-008]]) |
-| S-02 | Policies `using (true)` em `insumos`, `estoques`, `etiquetas`, `unidades`, `usuarios_erp`, `rh_recibos_prestacao`, `colaboradores`: um usuário de uma empresa lê as outras | CRÍTICO para multiempresa (hoje só há 1 empresa) | TESTADO NO SUPABASE REAL (isolamento com tenant B, 07/10) | Aguarda aprovação ([[HDEV-008]]) |
+| S-01 | `colaboradores` e `registro_ponto` com **RLS desligado**: qualquer usuário logado lê salário, CPF e ponto | CRÍTICO | TESTADO NO SUPABASE REAL (advisor ERROR, 07/10; inventário 08/10) | **Correção pronta:** SEC-RLS-1 ([[HDEV-SEC-001]]), aguarda **APR-001**. Depois dela, ainda falta separar salário/CPF dentro da unidade (fase 2) |
+| S-02 | Policies abertas em **121 tabelas** (`using (true)`, `with check (true)`, `auth.role() = 'authenticated'`, `… or unidade_id is null`): um usuário de uma empresa lê e grava as outras. Anon sem grant | CRÍTICO para multiempresa (hoje só há 1 empresa) | TESTADO NO SUPABASE REAL (inventário só leitura, 08/10; `db/security/AUDITORIA_RLS.sql`) | **Fase 1 (88 tabelas) pronta**, aguarda **APR-001**. Fase 2 (33): dados órfãos, tabelas-filhas e catálogos, decisão do dono ([[HDEV-SEC-001]]) |
 | S-03 | Fase 1A/1B de segurança não aplicada; os arquivos da 1A nem estão no repositório | ALTO | Banco sem `hefisto_contexto_requisicao` | Planejar |
 | S-04 | Rotas `app/api/ia-*` (17) sem checagem de sessão | ALTO (custo de API e abuso) | Leitura do código, 08/10 | Backlog |
 | S-05 | `app/api/saas/export` sem autenticação (cliente anon) | ALTO | Leitura do código | Backlog |
@@ -16,7 +16,9 @@
 | S-10 | PIN do estoque começa como `1234` | MÉDIO | EST-MOV-1 | Exigir troca |
 | S-11 | `CRON_SECRET` com valor padrão no código legado | MÉDIO | `api/hefisto/automation/cron` | Backlog |
 | S-12 | Proteção contra senha vazada desligada no Supabase Auth | BAIXO | Advisor | Dono liga no painel |
-| S-13 | 24 arquivos antigos de `db/` criam policy `using (true)` ou desligam RLS (ex.: `migracao_central_comando.sql`, `migracao_compras_recebimento.sql`, `TODAS_AS_MIGRACOES.sql`). Reaplicar algum reabre o S-02 | MÉDIO (só se reaplicado) | Análise estática da política ([[POLITICA_PUBLICACAO]]), 08/10. Estado no banco: o S-02, não esta linha | A política já os classifica CRITICAL/RLS inseguro → BLOCKED. Limpar ou marcar como histórico |
+| S-13 | 29 arquivos de `db/` criam policy aberta ou desligam RLS (incluindo SQL dinâmico e o rollback da SEC-RLS-1) (ex.: `migracao_central_comando.sql`, `migracao_compras_recebimento.sql`, `TODAS_AS_MIGRACOES.sql`). Reaplicar algum reabre o S-02 | MÉDIO (só se reaplicado) | Análise estática da política ([[POLITICA_PUBLICACAO]]), 08/10. Estado no banco: o S-02, não esta linha | Congelados: `npm run test:seguranca` falha se surgir arquivo NOVO inseguro (lista só diminui); a política os marca BLOCKED |
+| S-14 | Escopo `empresa` em `pode_ver_todas()` dá **todas as unidades** (não existe `empresa_id` em `unidades`). Com a 2ª empresa, vira vazamento | ALTO quando houver 2ª empresa (hoje nenhum usuário tem escopo) | Leitura da função no banco real, 08/10 | A SEC-RLS-1 não aceita `empresa` (falha fechada). Trocar `pode_ver_todas()` antes da 2ª empresa |
+| S-15 | Dados com unidade inexistente ou nula (`burguer`, `ticotico`, `todas`, nulos) em 7 tabelas. `app/lib/notas.js` grava `unidade_id = "todas"` | MÉDIO (bloqueia o isolamento dessas tabelas) | TESTADO NO SUPABASE REAL (só leitura), 08/10 | Decisão do dono: reatribuir ou arquivar ([[HDEV-SEC-001]] fase 2) |
 
 ## O que já protege (validado)
 

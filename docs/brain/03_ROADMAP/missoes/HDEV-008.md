@@ -47,6 +47,8 @@ Testes de RH, ponto e estoque existentes · `npm run test:intelligence` · catá
 
 ## Resultado
 
+- 08/10: a parte de RLS (S-01, S-02) passou para [[HDEV-SEC-001]]. A migração SEC-RLS-1 está pronta e aguarda a APR-001. Aqui ficam as rotas `ia-*` e `saas/export` (S-04, S-05).
+
 ## Evidências
 
 ## Histórico

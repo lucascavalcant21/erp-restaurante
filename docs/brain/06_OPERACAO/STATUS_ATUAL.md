@@ -34,6 +34,10 @@ O ERP está em produção (`app.hefisto.com.br`, deploy da `main` `c3d45cb`).
   - o push do preview só sai com testes, build e varredura de segredo verdes;
   - migração e produção viram pedido em [[APROVACOES_PENDENTES]] (0 pendentes agora).
 - Testes: `test:intelligence` 130/130 com PGLITE; `test:agent` 56/56; build OK.
+- **Segurança ([[HDEV-SEC-001]]):**
+  - 121 tabelas com RLS aberto no banco real;
+  - a fase 1 (88 tabelas, isolamento por unidade) está pronta e testada, e aguarda a **APR-001**;
+  - a trava contra regressão já está ativa (`test:seguranca` em toda rodada e `AUDITORIA_RLS.sql`).
 
 Preview do Vercel: READY.
 

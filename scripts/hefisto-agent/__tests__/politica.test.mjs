@@ -143,6 +143,7 @@ test("migração REVIEW: ALTER COLUMN, constraint, RLS ligado em tabela existent
     "alter table public.insumos add column codigo text not null;",
     "do $$ begin execute format('select 1'); end $$;",
     "grant select on public.insumos to anon;",
+    "create policy rls_unidade on public.vendas for all to authenticated using (pode_ver_todas() or (unidade_id = auth_unidade_id()) or (unidade_id is null));",
   ]) assert.equal(classificarMigracao(sql).classe, "REVIEW", sql);
 });
 
@@ -156,6 +157,9 @@ test("migração CRITICAL: DROP, TRUNCATE, DELETE/UPDATE em massa, desliga RLS, 
     ["alter table public.compras disable row level security;", true],
     [`create policy "tudo" on public.compras for all to authenticated using (true) with check (true);`, true],
     ["do $$ begin delete from public.compras; end $$;", false],
+    [`create policy "Liberar para logados" on public.mesas for all to public using (auth.role() = 'authenticated'::text);`, true],
+    ["do $$ begin execute format('alter table public.%I disable row level security', 'x'); end $$;", true],
+    [`do $$ begin execute 'create policy p on public.x for all using (true)'; end $$;`, true],
   ]) {
     const r = classificarMigracao(sql);
     assert.equal(r.classe, "CRITICAL", sql);

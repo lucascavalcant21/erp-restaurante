@@ -85,6 +85,7 @@
   "validacoes": [
     { "nome": "intelligence", "comando": "npm run -s test:intelligence", "timeoutMin": 15 },
     { "nome": "permissões", "comando": "node app/lib/permissions-catalog.test.mjs", "timeoutMin": 5 },
+    { "nome": "segurança RLS", "comando": "npm run -s test:seguranca", "timeoutMin": 10 },
     { "nome": "agente", "comando": "npm run -s test:agent", "timeoutMin": 5 }
   ],
   "build": { "comando": "npm run -s build", "quando": "se_app_mudou", "timeoutMin": 20 },

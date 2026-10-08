@@ -23,20 +23,21 @@ Ele não espera um prompt novo se existe missão READY e não há bloqueio crít
 **Para liberar uma missão do backlog:** `npm run hefisto:missoes -- pronta HDEV-00X`.
 
 <!-- hefisto-agent:indice:inicio -->
-_Gerado por `npm run hefisto:missoes` em 2026-10-08 19:59 UTC. Edite as missões em `missoes/`, não esta tabela._
+_Gerado por `npm run hefisto:missoes` em 2026-10-08 20:35 UTC. Edite as missões em `missoes/`, não esta tabela._
 
 **Próxima automática:** nenhuma missão READY sem bloqueio
 
 ### Em andamento / prontas / validando
-_nenhuma_
-
-### Bloqueadas
 | id | título | status | prioridade | depende de | bloqueadores | rodadas |
 |---|---|---|---|---|---|---|
-| [[HDEV-001]] | Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível | BLOCKED | 1 | – | BLQ-001, BLQ-002, BLQ-003, BLQ-004, BLQ-007 | 0 |
+| [[HDEV-001]] | Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível | IN_PROGRESS | 1 | – | BLQ-001, BLQ-002, BLQ-003, BLQ-004, BLQ-007 | 0 |
+
+### Bloqueadas
+_nenhuma_
 
 ### Concluídas
 | id | título | status | prioridade | depende de | bloqueadores | rodadas |
 |---|---|---|---|---|---|---|
 | [[HDEV-000]] | Missão 000 — sistema autônomo de desenvolvimento | DONE | 1 | – | – | 1 |
+| [[HDEV-PUBLISH-001]] | Política de publicação e banco (AUTO SAFE / APPROVAL REQUIRED) no agente autônomo | DONE | 1 | – | – | 0 |
 <!-- hefisto-agent:indice:fim -->

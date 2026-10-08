@@ -10,3 +10,4 @@ Pedidos concretos (bug, ajuste, tela, relatório). O agente cria a missão, ou r
 | 08/10/2026 | Agente poder aplicar migração, escrever no banco, mexer em branches, fazer deploy/promover/reverter e mudar variáveis | **Aguardando o dono:** a verificação de segurança da sessão recusou; ver "Pendentes" em [[DECISOES_PRODUTO]] |
 | 08/10/2026 | Agente rodar 24 horas por dia, não só à noite | Feito: `npm run hefisto:continuo` (DP-006) |
 | 08/10/2026 | Quando acabar o limite, não usar dinheiro: esperar o plano voltar | Feito: só o plano, para antes do uso extra e espera o horário de volta (DP-007) |
+| 08/10/2026 | Política de publicação e banco AUTO SAFE / APPROVAL REQUIRED (HDEV-PUBLISH-001) | [[HDEV-PUBLISH-001]] DONE: preview automático; produção e migração pedem o dono (padrões seguros) |

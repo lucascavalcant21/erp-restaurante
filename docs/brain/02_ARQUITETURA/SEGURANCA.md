@@ -16,6 +16,7 @@
 | S-10 | PIN do estoque começa como `1234` | MÉDIO | EST-MOV-1 | Exigir troca |
 | S-11 | `CRON_SECRET` com valor padrão no código legado | MÉDIO | `api/hefisto/automation/cron` | Backlog |
 | S-12 | Proteção contra senha vazada desligada no Supabase Auth | BAIXO | Advisor | Dono liga no painel |
+| S-13 | 24 arquivos antigos de `db/` criam policy `using (true)` ou desligam RLS (ex.: `migracao_central_comando.sql`, `migracao_compras_recebimento.sql`, `TODAS_AS_MIGRACOES.sql`). Reaplicar algum reabre o S-02 | MÉDIO (só se reaplicado) | Análise estática da política ([[POLITICA_PUBLICACAO]]), 08/10. Estado no banco: o S-02, não esta linha | A política já os classifica CRITICAL/RLS inseguro → BLOCKED. Limpar ou marcar como histórico |
 
 ## O que já protege (validado)
 

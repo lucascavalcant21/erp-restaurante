@@ -184,6 +184,29 @@ Peça na sessão e o agente cria a Rotina.
 
 O agente registra o pedido em BLOQUEADORES/ACESSOS e segue no resto.
 
+### Política de publicação (AUTO SAFE / APPROVAL REQUIRED)
+
+Regras completas em `docs/brain/02_ARQUITETURA/POLITICA_PUBLICACAO.md`.
+
+- **Toda rodada** passa pela política (`scripts/hefisto-agent/politica.mjs`) depois dos testes:
+  - **preview:** o push do branch só sai se for AUTO_SAFE;
+  - **migração nova:** é classificada (SAFE/REVIEW/CRITICAL) e ensaiada;
+  - **produção:** a missão DONE com código vira pedido para você.
+- **Pedidos para você:** `docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md`.
+  - Ver: `npm run hefisto:aprovacoes`.
+  - Decidir: `npm run hefisto:aprovacoes -- aprovar APR-001` ou `-- rejeitar APR-001 "motivo"`.
+  - Depois de executar: `-- executado APR-001`.
+- **Classificar uma migração na mão:** `npm run hefisto:politica -- migracao db/ARQUIVO.sql`. Com `PGLITE=…`, também ensaia a sintaxe.
+- **O que está ligado:** `npm run hefisto:status` mostra o modo, se produção está permitida ou aguardando, a última migração e quantas aprovações estão pendentes.
+- **Padrões seguros** em `config.json` → `publicacao`:
+  - preview automático: **ligado**;
+  - produção automática: **desligada**;
+  - aplicar migração automática: **desligado**.
+  - Ligar não dá ferramenta ao agente: aplicar migração e fazer merge continuam negados no motor.
+- **Smoke que valida o preview para produção:**
+  `HEFISTO_REGISTRAR_PREVIEW=.hefisto-agent/preview.json BASE_URL=… HEFISTO_QA_TOKEN=… HEFISTO_QA_UNIDADE=… HEFISTO_QA_OUTRA_UNIDADE=… npm run qa:smoke`.
+  Vale só para o mesmo commit.
+
 ## TRAVAS DE SEGURANÇA (`scripts/hefisto-agent/config.json`)
 
 - **Só o plano:** sem chave de API; para antes de usar uso extra pago; espera o plano voltar (seção "Cobrança: só o plano").

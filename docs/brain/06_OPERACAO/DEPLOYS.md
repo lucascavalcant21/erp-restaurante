@@ -9,6 +9,8 @@
 
 ## Registro
 
+_Toda publicação do agente passa pela política ([[POLITICA_PUBLICACAO]]). A tabela automática fica no fim deste arquivo._
+
 | Data | O quê | Ambiente | Evidência |
 |---|---|---|---|
 | 07/10/2026 | IC_01 v ic-01.2 (tabelas `intelligence_*`) | Supabase produção | Verificação toda OK, impressão `d55eda66…` |

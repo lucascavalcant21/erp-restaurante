@@ -68,3 +68,12 @@ Formato: **DA-NNN — título (data)**: contexto → decisão → consequência.
     - a sonda do `hefisto:preparar` descobriu o prefixo real.
   - NÃO VALIDADO: os nomes exatos dos conectores do claude.ai no computador do dono. A sonda do preparar descobre e grava esses nomes.
 
+
+## DA-008 — Política de publicação e banco: AUTO SAFE / APPROVAL REQUIRED (08/10/2026)
+
+- **Decisão:** um motor só (`scripts/hefisto-agent/politica.mjs`) classifica toda alteração em LOW/MEDIUM/HIGH/CRITICAL e decide AUTO_SAFE, APPROVAL_REQUIRED ou BLOCKED. O runner o aplica em cada rodada (`publicacao.mjs`): preview (push), migração (classificação + ensaio) e produção (missão DONE). Regras em [[POLITICA_PUBLICACAO]].
+- **Pedidos ao dono** em `06_OPERACAO/APROVACOES_PENDENTES.md` (texto versionado, legível no Obsidian), com o formato pedido (ID, missão, ação, ambiente, risco, motivo, impacto, rollback, evidências, comando, status). O agente pede; aprovar é só do dono (trava por `HEFISTO_AGENT=1` e `disallowedTools`).
+- **Padrões seguros:** preview automático ligado; produção e aplicar migração automáticos **desligados**. As chaves só liberam o que já é LOW/MEDIUM com tudo verde. CRITICAL, HIGH em produção, migração REVIEW/CRITICAL e falta de rollback pedem o dono sempre.
+- **Por quê:** o pedido do dono (HDEV-PUBLISH-001) preserva os defaults seguros. A concessão de escrita em produção ao agente sem supervisão continua pendente em [[DECISOES_PRODUTO]]: ligar a chave não dá a ferramenta (`apply_migration`, `gh pr merge` seguem negados).
+- **Push segurado:** com teste/build falhando, segredo no bundle, RLS inseguro ou conflito, o runner não envia o branch (o Vercel geraria um preview do código quebrado). A memória fica commitada localmente e sobe na próxima rodada verde.
+- **Evidência:** TESTADO LOCAL (`npm run test:agent`: 56/56 com PGLITE; inclui runner real com repositório Git e remoto: teste falhando não chega ao remoto). Classificador calibrado nos 150 arquivos de `db/`. NÃO VALIDADO: preview real e aplicação no Supabase pela política (o runner não tem essas ferramentas).

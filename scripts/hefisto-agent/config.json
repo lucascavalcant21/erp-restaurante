@@ -1,0 +1,48 @@
+{
+  "_leia": "Configuração do agente autônomo do Héfisto. Explicação de cada campo em docs/autonomous/COMO_USAR.md.",
+  "caminhos": {
+    "cerebro": "docs/brain",
+    "missoes": "docs/brain/03_ROADMAP/missoes",
+    "ativas": "docs/brain/03_ROADMAP/MISSÕES_ATIVAS.md",
+    "backlog": "docs/brain/03_ROADMAP/BACKLOG.md",
+    "statusAtual": "docs/brain/06_OPERACAO/STATUS_ATUAL.md",
+    "noturnos": "docs/brain/07_RELATORIOS/NOTURNOS",
+    "estado": ".hefisto-agent"
+  },
+  "motor": {
+    "comando": "claude",
+    "args": ["-p", "--output-format", "json", "--permission-mode", "acceptEdits", "--max-budget-usd", "10"],
+    "allowedTools": [
+      "Read", "Edit", "Write", "Glob", "Grep", "TodoWrite", "Task",
+      "Bash(npm run:*)", "Bash(npm test:*)", "Bash(npm ci:*)", "Bash(npm install:*)", "Bash(npx playwright:*)",
+      "Bash(node:*)", "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(grep:*)", "Bash(rg:*)", "Bash(find:*)", "Bash(wc:*)", "Bash(sed -n:*)", "Bash(mkdir:*)", "Bash(date:*)",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git branch:*)", "Bash(git fetch:*)",
+      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git merge origin/main:*)", "Bash(git push -u origin claude/:*)", "Bash(git push -u origin hefisto/:*)",
+      "Bash(gh pr view:*)", "Bash(gh pr list:*)", "Bash(gh pr create:*)", "Bash(gh pr edit:*)", "Bash(gh pr checks:*)", "Bash(gh run view:*)"
+    ],
+    "disallowedTools": [
+      "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git push origin main:*)", "Bash(git push origin master:*)",
+      "Bash(git reset --hard:*)", "Bash(git clean:*)", "Bash(git rebase:*)", "Bash(gh pr merge:*)",
+      "Bash(rm -rf:*)", "Bash(sudo:*)", "Bash(supabase db reset:*)", "Bash(supabase db push:*)", "Bash(vercel --prod:*)", "Bash(vercel deploy --prod:*)",
+      "Bash(psql:*)", "Bash(curl:*)", "Bash(wget:*)"
+    ]
+  },
+  "limites": {
+    "maxMissoesPorExecucao": 6,
+    "maxHoras": 8,
+    "maxMinutosPorMissao": 90,
+    "maxMesmaFalha": 3,
+    "maxSemProgresso": 2,
+    "maxTentativas": 6,
+    "heartbeatSegundos": 60,
+    "travadoAposMinutos": 15
+  },
+  "validacoes": [
+    { "nome": "intelligence", "comando": "npm run -s test:intelligence", "timeoutMin": 15 },
+    { "nome": "permissões", "comando": "node app/lib/permissions-catalog.test.mjs", "timeoutMin": 5 },
+    { "nome": "agente", "comando": "npm run -s test:agent", "timeoutMin": 5 }
+  ],
+  "build": { "comando": "npm run -s build", "quando": "se_app_mudou", "timeoutMin": 20 },
+  "commitarMemoria": true,
+  "branchesProibidas": ["main", "master"]
+}

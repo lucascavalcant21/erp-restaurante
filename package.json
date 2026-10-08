@@ -8,7 +8,13 @@
     "dev:next": "next dev",
     "build": "next build",
     "build:next": "next build",
-    "test:intelligence": "node --test \"app/lib/intelligence/__tests__/*.test.mjs\""
+    "test:intelligence": "node --test \"app/lib/intelligence/__tests__/*.test.mjs\"",
+    "test:agent": "node --test \"scripts/hefisto-agent/__tests__/*.test.mjs\"",
+    "hefisto:agent": "node scripts/hefisto-agent/runner.mjs",
+    "hefisto:noite": "node scripts/hefisto-agent/vigia.mjs",
+    "hefisto:status": "node scripts/hefisto-agent/status.mjs",
+    "hefisto:missoes": "node scripts/hefisto-agent/missoes.mjs",
+    "hefisto:parar": "node scripts/hefisto-agent/parar.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

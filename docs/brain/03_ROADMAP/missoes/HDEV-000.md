@@ -49,7 +49,10 @@ Sistema criado. Relatório: [[2026-10-08-HDEV-000]].
 - `npm run test:agent`: 15/15. TESTADO LOCAL. O runner rodou de ponta a ponta com motor falso: dependência, anti-loop, STOP, dry-run e motor ausente.
 - Regressão: `test:intelligence` 130/130, catálogo de permissões OK, build OK. TESTADO LOCAL.
 - `npm run hefisto:agent -- --dry-run` escolhe a HDEV-001. TESTADO LOCAL.
-- Execução real do runner com `claude -p`: NÃO VALIDADO nesta sessão (seria uma sessão dentro da sessão).
+- Contrato do motor com o Claude Code real: TESTADO LOCAL.
+  - `claude -p --output-format json --permission-mode acceptEdits --max-budget-usd … --allowedTools … --disallowedTools …` respondeu sem erro.
+  - O runner leu `HEFISTO_RESULTADO` (US$ 0,08, 1 turno).
+- Uma missão inteira rodada pelo runner com o motor real: NÃO VALIDADO. Fica para a primeira noite; conferir o relatório gerado.
 
 ## Histórico
 

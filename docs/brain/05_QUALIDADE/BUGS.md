@@ -20,3 +20,4 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 | B-003 | Toda chamada autenticada da inteligência daria 503 (banco sem a Fase 1B) | Fallback de contexto (DA-003) | `214dfea`. TESTADO LOCAL + porta TESTADO NO SUPABASE REAL |
 | B-004 | 4 telas de eventos/orçamento caíam na entrada genérica `/dashboard` (qualquer funcionário abria) | Entradas `eventos.overview` e `eventos.quote` | `73b4643`. TESTADO LOCAL |
 | B-009 | Colunas inexistentes (`vw_compras.data_recebimento`, `colaboradores.ativo`) nas métricas | Colunas ajustadas ao banco real | `d94bda5`. TESTADO NO SUPABASE REAL |
+| B-010 | `npm run test:agent` falhava no Windows: o teste do prompt esperava `/` no caminho da missão | Regex aceita `/` ou `\` | `b8a398a`. TESTADO LOCAL (Windows, 30/30) |

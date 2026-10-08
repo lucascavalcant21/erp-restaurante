@@ -4,11 +4,11 @@ sem_progresso: 0
 mesma_falha: 0
 ultima_falha: ""
 dependencias: []
-bloqueadores: []
+bloqueadores: [BLQ-001, BLQ-002, BLQ-003, BLQ-004, BLQ-007]
 id: HDEV-001
 titulo: Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível
 fase: HI-02
-status: READY
+status: BLOCKED
 prioridade: 1
 atualizado_em: 2026-10-08
 ---
@@ -67,7 +67,26 @@ Quando só sobrarem itens ⛔, marque **BLOCKED** apontando BLQ-001..004 e siga 
 
 ## Resultado
 
+Rodada de 08/10 (noite, runner local no Windows):
+- **Smoke de API pronto** (`scripts/qa/smoke-intelligence.mjs`, `npm run qa:smoke`): sem token 401; com `HEFISTO_QA_TOKEN` + `HEFISTO_QA_UNIDADE`, brief/ask/history 200 (ask exige `fontesConsultadas`); com `HEFISTO_QA_OUTRA_UNIDADE`, 403. Se a outra empresa der 200, sai com código 2 (vazamento = não publicar). Só leitura: nenhuma ação confirmada.
+- **Checklist de deploy** em [[DEPLOYS]]: comando do smoke, código de saída e passo a passo do rollback.
+- Perfil de navegador `hefisto-agent`: já documentado em `docs/autonomous/COMO_USAR.md` (item 5 ok).
+- Corrigido o teste do agente que falhava no Windows (separador `\` no caminho da missão).
+- **Não feito nesta rodada:** harness Playwright (item 1) e trazer a `main` / push (item 4). O runner negou `npm i`, `git fetch` e a chamada HTTP à produção (BLQ-007).
+
+Sobram só itens ⛔ (BLQ-001..004 e BLQ-007) → BLOCKED.
+
 ## Evidências
+
+| Item | Evidência |
+|---|---|
+| Smoke: lógica dos casos (401/200/403, CRÍTICO, rede fora, BASE_URL inválida) | TESTADO EM MOCK (servidor HTTP falso, `npm run test:qa`: 6/6) |
+| Smoke contra preview/produção | NÃO VALIDADO (chamada negada pelo runner; BLQ-001/003/007) |
+| `npm run test:intelligence` | TESTADO LOCAL: 112 passam, 18 pulados (sem PGLITE: SQL **não** validado nesta rodada) |
+| `npm run test:agent` | TESTADO LOCAL: 30/30 (depois da correção do separador) |
+| `permissions-catalog.test.mjs` | TESTADO LOCAL: todos os casos passaram |
+| `npm run build` | NÃO VALIDADO nesta rodada (`app/` não mudou) |
+| Harness Playwright | NÃO VALIDADO (instalação negada; BLQ-007) |
 
 ## Histórico
 
@@ -79,3 +98,4 @@ Quando só sobrarem itens ⛔, marque **BLOCKED** apontando BLQ-001..004 e siga 
 - 2026-10-08T16:33 marcada READY manualmente
 - 2026-10-08T17:31 rodada 1 iniciada (branch claude/fervent-bell-t363k5)
 - 2026-10-08T17:32 rodada 1 não contou: limite do plano atingido
+- 2026-10-08T19:54 rodada 1 iniciada (branch claude/fervent-bell-t363k5)

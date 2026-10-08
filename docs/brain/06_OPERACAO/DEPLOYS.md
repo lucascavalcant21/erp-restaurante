@@ -19,6 +19,8 @@
 
 1. Preview READY no commit final; testes locais e build verdes.
 2. **Smoke no preview** (precisa de ACESSO-001 e 003):
+   - API: `BASE_URL=<preview> HEFISTO_QA_TOKEN=… HEFISTO_QA_UNIDADE=… HEFISTO_QA_OUTRA_UNIDADE=… npm run qa:smoke`
+     (sai 0 = OK, 1 = falha, **2 = vazamento entre empresas → não publicar**);
    - sem token: 401;
    - dono: 200 no brief e no ask;
    - outra unidade: 403;
@@ -27,5 +29,8 @@
 3. Aprovação do dono (ACESSO-004).
 4. Merge → produção READY.
 5. **Smoke em produção** (mesmos casos) + uma pergunta que leve à Anthropic (`provedor_ia` preenchido em `intelligence_eventos`).
-6. **Se algo falhar:** rollback instantâneo no Vercel para o deploy anterior.
+6. **Se algo falhar:** rollback instantâneo no Vercel para o deploy anterior
+   (Deployments → deploy de produção anterior → "Instant Rollback"; ou `vercel rollback <url-anterior>`).
+   Anotar aqui o id do deploy de produção **antes** do merge, para saber para onde voltar.
+   Depois do rollback: `BASE_URL=https://app.hefisto.com.br npm run qa:smoke` (casos sem sessão).
    - O banco não precisa voltar: as tabelas `intelligence_*` são aditivas e o ERP não as usa.

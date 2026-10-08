@@ -45,12 +45,12 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 
 ## Próximo
 
-[[HDEV-001]] (READY): harness de QA, smoke e checklist de deploy agora; o smoke real assim que os acessos chegarem.
+[[HDEV-001]] (BLOCKED, 08/10 noite): smoke de API pronto (`npm run qa:smoke`, TESTADO EM MOCK) e checklist de deploy com rollback. Falta o harness Playwright e trazer a `main`: o runner local nega comandos com rede (BLQ-007). O smoke real roda assim que BLQ-001/003 saírem.
 
 <!-- hefisto-agent:agente:inicio -->
 ### Agente autônomo (gerado pelo runner)
-- Estado: **ENCERRADO** · início: 2026-10-08T16:29:56.267Z · último heartbeat: 2026-10-08T17:39:09.731Z
+- Estado: **AGUARDANDO** · início: 2026-10-08T17:40:40.884Z · último heartbeat: 2026-10-08T17:40:41.007Z
 - Missão atual: nenhuma · último checkpoint: `55d958eb1f`
-- Último resultado: fim: stop; missões nesta execução: nenhuma
+- Último resultado: limite do plano; volta às 16:30
 - Próxima missão READY: [[HDEV-001]] — Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível
 <!-- hefisto-agent:agente:fim -->

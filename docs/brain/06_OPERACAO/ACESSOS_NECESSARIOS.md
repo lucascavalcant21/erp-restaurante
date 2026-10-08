@@ -76,6 +76,7 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
   - Instruções para Windows e `hefisto:preparar` criados.
   - Opcional: na nuvem dá para usar uma Rotina.
   - 08/10: o dono informou que Supabase e Vercel já estão conectados no claude.ai. O agente da noite passou a usá-los só para leitura, e o `hefisto:preparar` mostra se carregaram.
+  - 08/10 (rodada noturna do HDEV-001): no modo "não perguntar" o runner **nega comandos com rede**: `npm i` (Playwright), `git fetch`, chamada HTTP a `app.hefisto.com.br`. Commit local e testes locais passam. Para o harness Playwright e para trazer a `main`: liberar no `.claude/settings.json` (allow) `npm i --no-save playwright*`, `npx playwright install chromium`, `git fetch*`, `git push origin claude/*` e `node scripts/qa/*`, ou rodar essa parte numa sessão acompanhada (BLQ-007).
 
 ## ACESSO-006
 

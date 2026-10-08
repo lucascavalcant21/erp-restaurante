@@ -2,8 +2,9 @@
 // PREPARAR: `npm run hefisto:preparar` — confere tudo antes de deixar o agente
 // rodando (Windows, macOS ou Linux) e cria o branch da noite com a data,
 // sem depender de sintaxe de terminal (o `$(date +%F)` não existe no CMD).
-//   -- --sem-branch   não cria/troca de branch
-import { readFileSync, existsSync } from "node:fs";
+//   -- --sem-branch       não cria/troca de branch
+//   -- --sem-conectores   não testa os conectores (Supabase/Vercel)
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -11,13 +12,52 @@ import * as L from "./lib.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
-function rodar(arquivo, args, cwd) {
+function rodar(arquivo, args, cwd, { timeoutMs = 60000 } = {}) {
   const p = L.prepararSpawn(arquivo, args);
-  const r = spawnSync(p.arquivo, p.args, { cwd, encoding: "utf8", shell: p.shell, windowsHide: true, timeout: 60000 });
+  const r = spawnSync(p.arquivo, p.args, { cwd, encoding: "utf8", shell: p.shell, windowsHide: true, timeout: timeoutMs, input: "", maxBuffer: 16 * 1024 * 1024 });
   return { ok: r.status === 0, saida: `${r.stdout || ""}${r.stderr || ""}`.trim() };
 }
 
-export function verificar(raiz, cfg, { criarBranch = true, hoje = new Date().toISOString().slice(0, 10), executar = rodar } = {}) {
+/**
+ * Conectores do claude.ai (Supabase, Vercel): roda um `claude -p` curtinho
+ * (modelo haiku, sem ferramentas liberadas) e lê o evento de início, que lista
+ * os servidores e as ferramentas carregadas. Grava os prefixos reais em
+ * .hefisto-agent/conectores.json para o runner liberar só a leitura deles.
+ * Conector ausente é AVISO: o agente ainda trabalha no código e nos testes.
+ */
+function conferirConectores(raiz, cfg, motor, executar) {
+  const itens = [];
+  const aviso = (nome, detalhe, comoResolver) => itens.push({ ok: true, aviso: true, nome, detalhe, comoResolver });
+  const sonda = executar(motor, ["-p", "Responda apenas: ok", "--model", "haiku", "--output-format", "stream-json", "--verbose",
+    "--permission-mode", "dontAsk", "--max-turns", "1", "--max-budget-usd", "0.2"], raiz, { timeoutMs: 240000 });
+  const r = L.analisarInicio(sonda.saida, cfg.conectores);
+  if (!r) {
+    aviso("Conectores", `não deu para conferir (${sonda.saida.split("\n").filter(Boolean).pop() || "sem resposta"})`, "Rode de novo; para pular este teste: npm run hefisto:preparar -- --sem-conectores");
+    return itens;
+  }
+  const prefixos = {};
+  for (const [chave, info] of Object.entries(r.conectores)) {
+    const nome = `Conector ${chave[0].toUpperCase()}${chave.slice(1)}`;
+    prefixos[chave] = info.prefixos;
+    const estados = info.servidores.map((s) => s.status);
+    if (info.ferramentas) {
+      itens.push({ ok: true, nome, detalhe: `carregado: ${info.leitura} ferramenta(s) de leitura liberada(s) à noite, o resto bloqueado (${info.prefixos.join(", ")})` });
+    } else if (estados.includes("needs-auth")) {
+      aviso(nome, "precisa autorizar", "Rode claude dentro da pasta do projeto, digite /mcp, escolha o conector e Authenticate.");
+    } else if (estados.length) {
+      aviso(nome, `não conectou (${estados.join(", ")})`, "Rode claude, digite /mcp e veja o erro do conector. Sem ele, o agente trabalha só no código.");
+    } else {
+      aviso(nome, "não apareceu no Claude Code deste computador",
+        "Entre no Claude Code com a MESMA conta do claude.ai onde o conector está ligado (claude, depois /login). Com ANTHROPIC_API_KEY definida, os conectores do claude.ai não carregam.");
+    }
+  }
+  const estado = join(raiz, cfg.caminhos.estado);
+  mkdirSync(estado, { recursive: true });
+  writeFileSync(join(estado, "conectores.json"), `${JSON.stringify({ verificadoEm: new Date().toISOString(), versao: r.versao, prefixos, conectores: r.conectores }, null, 2)}\n`);
+  return itens;
+}
+
+export function verificar(raiz, cfg, { criarBranch = true, sondarConectores = true, hoje = new Date().toISOString().slice(0, 10), executar = rodar } = {}) {
   const itens = [];
   const add = (ok, nome, detalhe, comoResolver = "") => itens.push({ ok, nome, detalhe, comoResolver });
 
@@ -60,6 +100,7 @@ export function verificar(raiz, cfg, { criarBranch = true, hoje = new Date().toI
   if (ehClaudeCode) {
     const login = executar(motor, ["auth", "status"], raiz);
     add(login.ok, "Login no Claude Code", login.ok ? "logado" : "não logado", "Rode `claude` uma vez dentro da pasta do projeto e faça login no navegador.");
+    if (login.ok && sondarConectores && L.entradasConectores(cfg.conectores).length) itens.push(...conferirConectores(raiz, cfg, motor, executar));
   }
   if (process.env.ANTHROPIC_API_KEY) {
     itens.push({ ok: true, aviso: true, nome: "Cobrança", detalhe: "ANTHROPIC_API_KEY está definida neste terminal: o agente vai cobrar na API, não na sua assinatura",
@@ -83,7 +124,7 @@ export function verificar(raiz, cfg, { criarBranch = true, hoje = new Date().toI
 
 if (process.argv[1] && process.argv[1].endsWith("preparar.mjs")) {
   const cfg = JSON.parse(readFileSync(join(AQUI, "config.json"), "utf8"));
-  const itens = verificar(process.cwd(), cfg, { criarBranch: !process.argv.includes("--sem-branch") });
+  const itens = verificar(process.cwd(), cfg, { criarBranch: !process.argv.includes("--sem-branch"), sondarConectores: !process.argv.includes("--sem-conectores") });
   for (const i of itens) {
     console.log(`${i.aviso ? "AVISO" : i.ok ? "OK  " : "FALTA"} ${i.nome}: ${i.detalhe}`);
     if ((!i.ok || i.aviso) && i.comoResolver) console.log(`      → ${i.comoResolver}`);

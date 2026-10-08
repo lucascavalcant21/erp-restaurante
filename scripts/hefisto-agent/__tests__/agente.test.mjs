@@ -2,11 +2,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as L from "../lib.mjs";
 import { rodar } from "../runner.mjs";
+import { avaliarSql, decidirGancho, semLiterais } from "../guarda-sql.mjs";
 import { regenerarIndices, novaMissao, marcarPronta } from "../missoes.mjs";
 import { relatorioStatus } from "../status.mjs";
 
@@ -134,6 +136,7 @@ function montarAmbiente({ motor = "done", validacao = "ok", missoes } = {}) {
 import { readFileSync, writeFileSync } from "node:fs";
 let entrada = ""; process.stdin.on("data", (d) => entrada += d); process.stdin.on("end", () => {
   const arq = process.env.HEFISTO_MISSAO_ARQUIVO;
+  writeFileSync("argv-motor.json", JSON.stringify({ argv: process.argv.slice(2), guardaLog: process.env.HEFISTO_GUARDA_LOG }));
   if (process.argv[2] === "done") {
     writeFileSync(arq, readFileSync(arq, "utf8").replace(/^status: .*$/m, "status: DONE"));
     console.log(JSON.stringify({ result: "trabalhei\\nHEFISTO_RESULTADO: " + JSON.stringify({ status: "DONE", resumo: "feito " + process.env.HEFISTO_MISSAO_ID }), total_cost_usd: 0.01 }));
@@ -301,6 +304,172 @@ test("configuração real: caminhos, limites e travas de segurança presentes", 
   for (const k of ["cerebro", "missoes", "ativas", "backlog", "statusAtual", "noturnos", "estado"]) assert.ok(CFG_REAL.caminhos[k], k);
   for (const proibido of ["Bash(git push --force:*)", "Bash(git push origin main:*)", "Bash(rm -rf:*)", "Bash(supabase db reset:*)", "Bash(gh pr merge:*)"]) assert.ok(CFG_REAL.motor.disallowedTools.includes(proibido), proibido);
   assert.ok(CFG_REAL.motor.args.includes("--max-budget-usd"), "teto de gasto por rodada");
+  assert.equal(CFG_REAL.motor.args[CFG_REAL.motor.args.indexOf("--permission-mode") + 1], "dontAsk", "o que não está liberado é negado, sem perguntar");
   assert.ok(!CFG_REAL.motor.args.includes("--dangerously-skip-permissions"), "nunca pular permissões");
   assert.deepEqual(CFG_REAL.branchesProibidas, ["main", "master"]);
+});
+
+// ─── conectores do claude.ai (Supabase/Vercel) e guarda de SQL ───────────────
+const PROJ = { projetos: ["sezccspqxgklicfndwxx"], projeto: "sezccspqxgklicfndwxx" };
+
+test("guarda-sql: leitura passa embrulhada em transação somente leitura; escrita e truques são recusados", () => {
+  const rls = "select set_config('request.jwt.claims', '{\"sub\":\"u1\",\"role\":\"authenticated\"}', true);\nset local role authenticated;\nselect auth.uid(), count(*) from estoque_saldos";
+  for (const ok of ["select count(*) from produtos where unidade_id = $1", rls, "with t as (select 1) select case when 1 = 1 then 2 end from t;",
+    "select 'drop table x; commit' as texto -- delete\n", "explain analyze select * from vendas limit 1", "/* /* */ commit; */ select 1", "select $a$ ; commit $a$", "SHOW search_path"]) {
+    const r = avaliarSql(ok, PROJ);
+    assert.ok(r.ok, `${ok} → ${r.motivo}`);
+    assert.ok(r.consulta.startsWith("begin transaction read only;\n") && r.consulta.endsWith("\n;\nrollback;"), "sempre embrulhada");
+  }
+  const nega = {
+    "insert into x values (1)": /não permitido/, "select 1; commit; delete from x": /não permitido: "commit"/, "do $$ begin delete from x; end $$": /não permitido/,
+    "with d as (delete from x returning *) select * from d": /"delete" não é leitura/, "select * into nova from x": /"into"/,
+    "select * from produtos for update": /"update"/, "select * from vault.decrypted_secrets": /segredo/, "select email from auth.users": /auth/,
+    "select set_config('default_transaction_read_only', 'off', false)": /modo da transação/, "select pg_terminate_backend(1)": /administrativa/,
+    "select dblink_exec('x')": /rede/, "select net.http_post('https://x')": /rede/, "select pg_read_file('/etc/passwd')": /arquivos/,
+    "select 1 /* sem fim": /sem fim/, "select 'sem fim": /sem fim/, "   ": /vazia/, "select pg_sleep(600)": /pg_sleep/,
+  };
+  for (const [sql, motivo] of Object.entries(nega)) {
+    const r = avaliarSql(sql, PROJ);
+    assert.equal(r.ok, false, sql);
+    assert.match(r.motivo, motivo, sql);
+  }
+  assert.match(avaliarSql("select 1", { projetos: ["sezccspqxgklicfndwxx"], projeto: "outro" }).motivo, /fora da lista/);
+  assert.match(avaliarSql("select 1".padEnd(20001, " "), PROJ).motivo, /longa demais/);
+  assert.equal(semLiterais("select E'it\\'s; commit'").texto, "select E''");
+});
+
+test("guarda-sql como gancho: aprova com a consulta trocada, nega com motivo, falha fechada", () => {
+  const conectores = { supabase: { projetos: ["p1"] } };
+  const ok = decidirGancho({ tool_name: "mcp__claude_ai_Supabase__execute_sql", tool_input: { project_id: "p1", query: "select 1" } }, conectores);
+  assert.equal(ok.hookSpecificOutput.permissionDecision, "allow");
+  assert.equal(ok.hookSpecificOutput.updatedInput.project_id, "p1");
+  assert.match(ok.hookSpecificOutput.updatedInput.query, /^begin transaction read only;\nselect 1\n;\nrollback;$/);
+  const nao = decidirGancho({ tool_name: "mcp__Supabase__execute_sql", tool_input: { project_id: "p1", query: "delete from x" } }, conectores);
+  assert.equal(nao.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(nao.hookSpecificOutput.permissionDecisionReason, /só leitura/);
+  assert.equal(decidirGancho({ tool_name: "Bash", tool_input: { command: "ls" } }, conectores), null, "não é com ela");
+
+  // o script de verdade, como o Claude Code chama
+  const guarda = join(AQUI, "..", "guarda-sql.mjs");
+  const cfgArq = join(AQUI, "..", "config.json");
+  const roda = (entrada) => spawnSync(process.execPath, [guarda, cfgArq], { input: entrada, encoding: "utf8" });
+  const a = JSON.parse(roda(JSON.stringify({ tool_name: "mcp__Supabase__execute_sql", tool_input: { project_id: "sezccspqxgklicfndwxx", query: "select 1" } })).stdout);
+  assert.equal(a.hookSpecificOutput.permissionDecision, "allow");
+  const outroProjeto = JSON.parse(roda(JSON.stringify({ tool_name: "mcp__Supabase__execute_sql", tool_input: { project_id: "outro", query: "select 1" } })).stdout);
+  assert.equal(outroProjeto.hookSpecificOutput.permissionDecision, "deny");
+  const quebrado = JSON.parse(roda("isto não é json").stdout);
+  assert.equal(quebrado.hookSpecificOutput.permissionDecision, "deny", "na dúvida, nega");
+});
+
+test("conectores: só leitura liberada; SQL só pela guarda; escrita e segredos negados em todos os prefixos", () => {
+  const r = L.regrasConectores(CFG_REAL.conectores, { supabase: ["mcp__claude_ai_supabase__"] });
+  for (const p of ["mcp__Supabase__", "mcp__claude_ai_Supabase__", "mcp__claude_ai_supabase__"]) {
+    assert.ok(r.permitir.includes(`${p}list_tables`), p);
+    assert.ok(!r.permitir.includes(`${p}execute_sql`), "SQL nunca liberado direto: só pela guarda");
+    assert.ok(r.guardadas.includes(`${p}execute_sql`), p);
+    assert.ok(r.negar.includes(`${p}apply_migration`), p);
+  }
+  for (const v of ["get_deployment", "get_runtime_logs", "web_fetch_vercel_url"]) assert.ok(r.permitir.includes(`mcp__claude_ai_Vercel__${v}`), v);
+  for (const n of ["create_deployment", "request_promote", "edit_project_env", "get_project_env", "filter_project_envs", "buy_domain", "delete_project"]) {
+    assert.ok(r.negar.some((g) => new RegExp(`^${g.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(`mcp__claude_ai_Vercel__${n}`)), n);
+  }
+  // nada liberado casa com o que é proibido, e todo nome liberado é de leitura
+  const casa = (nome) => CFG_REAL.conectores.nuncaPermitir.some((g) => new RegExp(`^${g.replace(/\*/g, ".*")}$`).test(nome));
+  for (const [, c] of L.entradasConectores(CFG_REAL.conectores)) {
+    for (const f of c.leitura) {
+      assert.ok(!casa(f), `${f} está liberado e proibido ao mesmo tempo`);
+      assert.match(f, /^(list_|get_|search_|query_|execute_sql$|web_fetch_vercel_url$|generate_typescript_types$)/, f);
+    }
+  }
+  // o gancho cobre todo nome de SQL
+  const motor = L.configMotor(r, "node guarda");
+  const re = new RegExp(motor.hooks.PreToolUse[0].matcher);
+  for (const g of r.guardadas) assert.ok(re.test(g), g);
+  assert.ok(!re.test("mcp__Supabase__execute_sqlx") && !re.test("Bash"));
+  assert.deepEqual(motor.permissions, { allow: r.permitir, deny: r.negar });
+  assert.equal(L.configMotor({ permitir: [], negar: [], guardadas: [] }, "x"), null);
+  assert.throws(() => L.regrasConectores(CFG_REAL.conectores, { supabase: ["mcp__*__"] }), /inválido/);
+  assert.match(L.comandoGuarda("C:\\Users\\x\\g.mjs", "C:\\Users\\x\\c.json"), /^node "C:\/Users\/x\/g\.mjs" "C:\/Users\/x\/c\.json"$/);
+  // as regras vão no arquivo --settings: a linha de comando cabe no cmd do Windows (8191)
+  const linha = L.prepararSpawn("claude", L.argumentosMotor(CFG_REAL, { settings: "C:\\Users\\lucas\\erp-restaurante\\.hefisto-agent\\motor-settings.json" }), "win32").arquivo;
+  assert.ok(linha.length < 7000, `linha com ${linha.length} caracteres`);
+  const args = L.argumentosMotor(CFG_REAL, { settings: "s.json" });
+  assert.ok(args.indexOf("--settings") < args.indexOf("--allowedTools"), "--settings antes das listas, que engolem o resto");
+});
+
+function eventoInicio({ ferramentas = [], servidores = [] } = {}) {
+  return [
+    "aviso qualquer no stderr",
+    JSON.stringify({ type: "system", subtype: "init", claude_code_version: "2.1.294", apiKeySource: "none", mcp_servers: servidores, tools: ["Read", "Bash", ...ferramentas] }),
+    JSON.stringify({ type: "result", result: "ok" }),
+  ].join("\n");
+}
+
+test("descoberta: lê os conectores carregados no início da execução (nomes reais dos prefixos)", () => {
+  const saida = eventoInicio({
+    servidores: [{ name: "claude.ai Supabase", status: "connected" }, { name: "claude.ai Vercel", status: "needs-auth" }, { name: "plugin:x:y", status: "failed" }],
+    ferramentas: ["mcp__claude_ai_Supabase__execute_sql", "mcp__claude_ai_Supabase__list_tables", "mcp__claude_ai_Supabase__apply_migration", "mcp__plugin_x_y__z"],
+  });
+  const r = L.analisarInicio(saida, CFG_REAL.conectores);
+  assert.deepEqual(r.conectores.supabase.prefixos, ["mcp__claude_ai_Supabase__"]);
+  assert.deepEqual([r.conectores.supabase.ferramentas, r.conectores.supabase.leitura], [3, 2]);
+  assert.deepEqual(r.conectores.vercel, { servidores: [{ nome: "claude.ai Vercel", status: "needs-auth" }], prefixos: [], ferramentas: 0, leitura: 0 });
+  assert.equal(L.analisarInicio("sem json nenhum", CFG_REAL.conectores), null);
+  assert.deepEqual(L.partesFerramentaMcp("mcp__plugin_pdf-viewer_pdf__list_pdfs"), { prefixo: "mcp__plugin_pdf-viewer_pdf__", servidor: "plugin_pdf-viewer_pdf", ferramenta: "list_pdfs" });
+});
+
+test("preparar: confere os conectores com um claude -p curto e grava os prefixos para o runner", async () => {
+  const { verificar } = await import("../preparar.mjs");
+  const amb = montarAmbiente();
+  const cfg = { ...amb.cfg, conectores: CFG_REAL.conectores };
+  const sondas = [];
+  const executar = (a, args) => {
+    if (args[0] === "rev-parse") return { ok: true, saida: amb.raiz };
+    if (args[0] === "branch") return { ok: true, saida: "hefisto/noite-x" };
+    if (args[0] === "--version") return { ok: true, saida: "2.1.294 (Claude Code)" };
+    if (args[0] === "-p") {
+      sondas.push(args);
+      return { ok: true, saida: eventoInicio({ servidores: [{ name: "claude.ai Supabase", status: "connected" }, { name: "claude.ai Vercel", status: "needs-auth" }], ferramentas: ["mcp__claude_ai_Supabase__execute_sql"] }) };
+    }
+    return { ok: true, saida: "" };
+  };
+  const itens = verificar(amb.raiz, cfg, { executar });
+  assert.equal(sondas.length, 1);
+  assert.ok(sondas[0].includes("haiku") && sondas[0].includes("dontAsk") && sondas[0].includes("stream-json"), "sonda barata e sem ferramentas liberadas");
+  const supa = itens.find((i) => i.nome === "Conector Supabase");
+  assert.ok(supa.ok && !supa.aviso);
+  assert.match(supa.detalhe, /mcp__claude_ai_Supabase__/);
+  const vercel = itens.find((i) => i.nome === "Conector Vercel");
+  assert.ok(vercel.aviso && /autorizar/.test(vercel.detalhe) && /\/mcp/.test(vercel.comoResolver));
+  assert.ok(itens.filter((i) => i.nome.startsWith("Conector")).every((i) => i.ok), "conector ausente é aviso, não bloqueia a noite");
+  const desc = JSON.parse(readFileSync(join(amb.raiz, ".estado", "conectores.json"), "utf8"));
+  assert.deepEqual(desc.prefixos, { supabase: ["mcp__claude_ai_Supabase__"], vercel: [] });
+
+  sondas.length = 0;
+  verificar(amb.raiz, cfg, { executar, sondarConectores: false });
+  assert.equal(sondas.length, 0, "--sem-conectores pula a sonda");
+});
+
+test("runner: passa ao motor o --settings com as regras dos conectores e o gancho da guarda", async () => {
+  const amb = montarAmbiente({ missoes: { "HDEV-001": { prioridade: 1 } } });
+  const cfg = { ...amb.cfg, conectores: CFG_REAL.conectores };
+  writeFileSync(amb.arqCfg, JSON.stringify(cfg));
+  mkdirSync(join(amb.raiz, ".estado"), { recursive: true });
+  writeFileSync(join(amb.raiz, ".estado", "conectores.json"), JSON.stringify({ verificadoEm: "2026-10-08T20:00:00Z", prefixos: { supabase: ["mcp__claude_ai_supabase__"] } }));
+
+  const dry = await rodar(opcoes(amb, { dryRun: true }));
+  assert.match(dry.conectores.resumo, /só leitura.*descoberta de 2026-10-08T20:00/);
+  assert.ok(!existsSync(join(amb.raiz, ".estado", "motor-settings.json")), "dry-run não grava nada");
+
+  await rodar(opcoes(amb, { uma: true }));
+  const { argv, guardaLog } = JSON.parse(readFileSync(join(amb.raiz, "argv-motor.json"), "utf8"));
+  const arq = argv[argv.indexOf("--settings") + 1];
+  assert.equal(arq, join(amb.raiz, ".estado", "motor-settings.json"));
+  const s = JSON.parse(readFileSync(arq, "utf8"));
+  assert.ok(s.permissions.allow.includes("mcp__claude_ai_supabase__list_tables"), "prefixo descoberto também liberado");
+  assert.ok(s.permissions.deny.includes("mcp__claude_ai_Supabase__apply_migration"));
+  assert.ok(!s.permissions.allow.some((r) => r.endsWith("execute_sql")));
+  assert.ok(new RegExp(s.hooks.PreToolUse[0].matcher).test("mcp__claude_ai_supabase__execute_sql"));
+  assert.match(s.hooks.PreToolUse[0].hooks[0].command, /^node ".*guarda-sql\.mjs" ".*config\.json"$/);
+  assert.equal(guardaLog, join(amb.raiz, ".estado", "logs", "guarda-sql.log"));
 });

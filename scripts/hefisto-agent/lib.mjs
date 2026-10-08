@@ -252,6 +252,101 @@ export function comandoDoMotor(cfg, env = process.env) {
   return env.HEFISTO_AGENT_CLAUDE || cfg.motor.comando;
 }
 
+// ─── conectores do claude.ai (Supabase, Vercel) no agente da noite ──────────
+// Os conectores ligados no claude.ai aparecem sozinhos no Claude Code logado com
+// a mesma conta, com nomes `mcp__<servidor>__<ferramenta>`. O formato exato do
+// <servidor> não é documentado; por isso há prefixos padrão na configuração e o
+// `hefisto:preparar` descobre os reais (`.hefisto-agent/conectores.json`).
+
+/** "mcp__claude_ai_Supabase__execute_sql" → { prefixo, servidor, ferramenta } */
+export function partesFerramentaMcp(nome) {
+  const m = /^mcp__(.+?)__(.+)$/.exec(String(nome));
+  return m ? { prefixo: `mcp__${m[1]}__`, servidor: m[1], ferramenta: m[2] } : null;
+}
+
+/** Conectores da configuração (ignora `_leia` e `nuncaPermitir`). */
+export function entradasConectores(conectores = {}) {
+  return Object.entries(conectores || {}).filter(([, c]) => c && typeof c === "object" && !Array.isArray(c) && c.reconhecer);
+}
+
+/**
+ * Regras para o motor: `permitir` (só ferramentas de leitura), `negar` (o que
+ * nunca roda sem o dono) e `guardadas` (o SQL: fora da lista de permitidos, só
+ * roda se o gancho guarda-sql aprovar; se o gancho falhar, o modo dontAsk nega).
+ */
+export function regrasConectores(conectores = {}, descobertos = {}) {
+  const permitir = [];
+  const negar = [];
+  const guardadas = [];
+  for (const [chave, c] of entradasConectores(conectores)) {
+    const prefixos = [...new Set([...(c.prefixos || []), ...((descobertos || {})[chave] || [])])];
+    for (const p of prefixos) {
+      if (!/^mcp__[A-Za-z0-9_.-]+__$/.test(p)) throw new Error(`prefixo de conector inválido: ${p}`);
+      for (const f of c.leitura || []) if (!(c.sqlGuardado || []).includes(f)) permitir.push(p + f);
+      for (const f of c.sqlGuardado || []) guardadas.push(p + f);
+      for (const f of conectores.nuncaPermitir || []) negar.push(p + f);
+    }
+  }
+  return { permitir, negar, guardadas };
+}
+
+/** Comando do gancho: `node "<guarda>" "<config>"` (barras normais servem no bash, cmd e PowerShell). */
+export function comandoGuarda(arquivoGuarda, arquivoConfig) {
+  const barra = (p) => String(p).replaceAll("\\", "/");
+  return `node "${barra(arquivoGuarda)}" "${barra(arquivoConfig)}"`;
+}
+
+/**
+ * Arquivo --settings do motor: as regras dos conectores (permissions) e o gancho
+ * PreToolUse só nas ferramentas guardadas. Vão num arquivo, e não na linha de
+ * comando, porque o cmd do Windows corta linhas com mais de 8191 caracteres.
+ */
+export function configMotor(regras, comando) {
+  const out = {};
+  if (regras.permitir.length || regras.negar.length) out.permissions = { allow: regras.permitir, deny: regras.negar };
+  if (regras.guardadas.length) {
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out.hooks = { PreToolUse: [{ matcher: `^(${regras.guardadas.map(esc).join("|")})$`, hooks: [{ type: "command", command: comando, timeout: 30 }] }] };
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
+ * Lê a saída `--output-format stream-json --verbose` de uma execução curta e
+ * diz quais conectores carregaram (evento system/init: mcp_servers e tools).
+ */
+export function analisarInicio(saida, conectores = {}) {
+  const init = String(saida).split(/\r?\n/).map((l) => { try { return JSON.parse(l); } catch { return null; } })
+    .find((j) => j && j.type === "system" && j.subtype === "init");
+  if (!init) return null;
+  const servidores = (init.mcp_servers || []).map((s) => ({ nome: String(s.name), status: String(s.status) }));
+  const ferramentas = (init.tools || []).filter((t) => String(t).startsWith("mcp__")).map(partesFerramentaMcp).filter(Boolean);
+  const porConector = {};
+  for (const [chave, c] of entradasConectores(conectores)) {
+    const re = new RegExp(c.reconhecer, "i");
+    const doConector = ferramentas.filter((p) => re.test(p.servidor));
+    porConector[chave] = {
+      servidores: servidores.filter((s) => re.test(s.nome)),
+      prefixos: [...new Set(doConector.map((p) => p.prefixo))],
+      ferramentas: doConector.length,
+      leitura: doConector.filter((p) => (c.leitura || []).includes(p.ferramenta) || (c.sqlGuardado || []).includes(p.ferramenta)).length,
+    };
+  }
+  return { versao: init.claude_code_version || null, origemChave: init.apiKeySource || null, conectores: porConector };
+}
+
+/**
+ * Argumentos do `claude -p`. A instrução posicional e o --settings vêm ANTES das
+ * listas, porque --allowedTools/--disallowedTools consomem todos os argumentos seguintes.
+ */
+export function argumentosMotor(cfg, { settings = null } = {}) {
+  const args = [...cfg.motor.args, INSTRUCAO_MOTOR];
+  if (settings) args.push("--settings", settings);
+  if (cfg.motor.allowedTools?.length) args.push("--allowedTools", ...comPowerShell(cfg.motor.allowedTools));
+  if (cfg.motor.disallowedTools?.length) args.push("--disallowedTools", ...comPowerShell(cfg.motor.disallowedTools));
+  return args;
+}
+
 /** Instrução curta como argumento; o prompt completo vai pela entrada padrão (forma documentada do `claude -p`). */
 export const INSTRUCAO_MOTOR = "Siga as instrucoes completas recebidas pela entrada padrao desta execucao.";
 

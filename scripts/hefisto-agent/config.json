@@ -11,7 +11,7 @@
   },
   "motor": {
     "comando": "claude",
-    "args": ["-p", "--output-format", "json", "--permission-mode", "acceptEdits", "--max-budget-usd", "10"],
+    "args": ["-p", "--output-format", "json", "--permission-mode", "dontAsk", "--max-budget-usd", "10"],
     "allowedTools": [
       "Read", "Edit", "Write", "Glob", "Grep", "TodoWrite", "Task",
       "Bash(npm run:*)", "Bash(npm test:*)", "Bash(npm ci:*)", "Bash(npm install:*)", "Bash(npx playwright:*)",
@@ -25,6 +25,35 @@
       "Bash(git reset --hard:*)", "Bash(git clean:*)", "Bash(git rebase:*)", "Bash(gh pr merge:*)",
       "Bash(rm -rf:*)", "Bash(sudo:*)", "Bash(supabase db reset:*)", "Bash(supabase db push:*)", "Bash(vercel --prod:*)", "Bash(vercel deploy --prod:*)",
       "Bash(psql:*)", "Bash(curl:*)", "Bash(wget:*)"
+    ]
+  },
+  "conectores": {
+    "_leia": "Conectores do claude.ai no agente da noite: SÓ LEITURA. No modo dontAsk, o que não está em 'leitura' é negado. O execute_sql fica fora da lista de permitidos e só roda pela guarda scripts/hefisto-agent/guarda-sql.mjs (SELECT/WITH/EXPLAIN/SHOW/SET LOCAL dentro de 'begin transaction read only … rollback'); se a guarda falhar, o SQL é negado. Os prefixos reais são descobertos pelo npm run hefisto:preparar.",
+    "supabase": {
+      "reconhecer": "supabase",
+      "prefixos": ["mcp__Supabase__", "mcp__claude_ai_Supabase__"],
+      "projetos": ["sezccspqxgklicfndwxx"],
+      "leitura": [
+        "execute_sql", "list_projects", "get_project", "get_project_url", "list_tables", "list_extensions", "list_migrations",
+        "get_advisors", "query_logs", "search_docs", "list_edge_functions", "get_edge_function", "list_branches", "generate_typescript_types"
+      ],
+      "sqlGuardado": ["execute_sql"]
+    },
+    "vercel": {
+      "reconhecer": "vercel",
+      "prefixos": ["mcp__Vercel__", "mcp__claude_ai_Vercel__"],
+      "leitura": [
+        "list_teams", "get_team", "list_projects", "get_project", "list_deployments", "get_deployment", "list_deployment_events",
+        "list_deployment_files", "get_deployment_file_contents", "get_runtime_logs", "get_runtime_errors", "list_aliases",
+        "list_deployment_aliases", "list_project_domains", "get_git_deployment_context", "web_fetch_vercel_url", "search_vercel_documentation"
+      ]
+    },
+    "nuncaPermitir": [
+      "apply_migration", "deploy_edge_function", "create_*", "delete_*", "merge_*", "rebase_*", "reset_*", "pause_*", "unpause_*", "restore_*",
+      "update_*", "edit_*", "buy_*", "add_*", "put_*", "patch_*", "assign_*", "cancel_*", "request_*", "approve_*", "complete_*",
+      "start_*", "stop_*", "kill_*", "revoke_*", "activate_*", "accept_*", "upload_*", "write_*", "run_*", "invalidate_*",
+      "replace_*", "stage_*", "upsert_*", "record_*", "retry_*", "rerequest_*", "extend_*", "issue_*", "test_*",
+      "get_project_env", "filter_project_envs", "get_shared_env_var", "get_publishable_keys", "get_access_to_vercel_url", "get_project_deletion_link"
     ]
   },
   "limites": {

@@ -59,12 +59,9 @@ function montarPrompt(raiz, m, rodada, branch) {
 }
 
 /** Roda o motor com heartbeat; mata se passar do tempo. */
-function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin }) {
+function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin, extras }) {
   return new Promise((resolver) => {
-    // instrução posicional ANTES das listas (que consomem todos os argumentos seguintes)
-    const args = [...cfg.motor.args, L.INSTRUCAO_MOTOR];
-    if (cfg.motor.allowedTools?.length) args.push("--allowedTools", ...L.comPowerShell(cfg.motor.allowedTools));
-    if (cfg.motor.disallowedTools?.length) args.push("--disallowedTools", ...L.comPowerShell(cfg.motor.disallowedTools));
+    const args = L.argumentosMotor(cfg, extras);
     let filho;
     try {
       const p = L.prepararSpawn(L.comandoDoMotor(cfg), args);
@@ -92,6 +89,26 @@ function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin }) {
     });
     filho.stdin.end(prompt);
   });
+}
+
+/**
+ * Conectores (Supabase/Vercel) só leitura: regras para o motor e o gancho da
+ * guarda de SQL. Usa os prefixos que o `hefisto:preparar` descobriu, se houver.
+ */
+function prepararConectores(cfg, C, arqConfig, gravar) {
+  const descoberta = L.lerStatus(join(C.estado, "conectores.json"));
+  const regras = L.regrasConectores(cfg.conectores, descoberta?.prefixos);
+  const conteudo = L.configMotor(regras, L.comandoGuarda(join(AQUI, "guarda-sql.mjs"), resolve(arqConfig)));
+  let settings = null;
+  if (conteudo && gravar) {
+    settings = join(C.estado, "motor-settings.json");
+    writeFileSync(settings, `${JSON.stringify(conteudo, null, 2)}\n`);
+  }
+  const resumo = regras.permitir.length || regras.guardadas.length
+    ? `conectores só leitura: ${regras.permitir.length} regras de leitura, SQL pela guarda em ${regras.guardadas.length} nome(s); ` +
+      (descoberta?.verificadoEm ? `descoberta de ${descoberta.verificadoEm.slice(0, 16)}` : "sem descoberta (rode npm run hefisto:preparar)")
+    : "conectores: nenhum configurado";
+  return { ...regras, settings, resumo };
 }
 
 function matar(filho) {
@@ -122,9 +139,11 @@ export async function rodar(opcoes) {
     const m = L.proximaMissao(missoes);
     if (!m) { log("dry-run: nenhuma missão READY sem bloqueio."); return { missoes: [], motivoFim: "sem_missao" }; }
     log(`dry-run: próxima missão ${m.id} — ${m.titulo}`);
+    const conectores = prepararConectores(cfg, C, opcoes.config, false);
+    log(`dry-run: ${conectores.resumo}`);
     const prompt = montarPrompt(raiz, m, (m.tentativas || 0) + 1, git(raiz, "branch", "--show-current"));
     if (!opcoes.silencioso) console.log(`\n${prompt}`);
-    return { missoes: [m.id], motivoFim: "dry_run", prompt };
+    return { missoes: [m.id], motivoFim: "dry_run", prompt, conectores };
   }
 
   // uma execução por vez
@@ -139,6 +158,8 @@ export async function rodar(opcoes) {
   const relatorio = L.garantirRelatorioNoturno(C.noturnos, hoje, inicio.toISOString());
   L.gravarStatus(arqStatus, { estado: "RODANDO", pid: process.pid, agent_started_at: inicio.toISOString(), current_mission: null, last_result: null });
   log(`runner iniciado (pid ${process.pid})`);
+  const conectores = prepararConectores(cfg, C, opcoes.config, true);
+  log(conectores.resumo);
 
   let missaoAtual = null;
   const encerrar = (motivo) => {
@@ -183,7 +204,8 @@ export async function rodar(opcoes) {
       const t0 = Date.now();
       const motor = await rodarMotor(cfg, montarPrompt(raiz, m, rodada, branch), {
         cwd: raiz,
-        env: { HEFISTO_MISSAO_ID: m.id, HEFISTO_MISSAO_ARQUIVO: m.arquivo, HEFISTO_AGENT: "1" },
+        env: { HEFISTO_MISSAO_ID: m.id, HEFISTO_MISSAO_ARQUIVO: m.arquivo, HEFISTO_AGENT: "1", HEFISTO_GUARDA_LOG: join(C.estado, "logs", "guarda-sql.log") },
+        extras: { settings: conectores.settings },
         timeoutMin: cfg.limites.maxMinutosPorMissao,
         aoBater: () => L.gravarStatus(arqStatus, { estado: "RODANDO", current_mission: m.id }),
       });

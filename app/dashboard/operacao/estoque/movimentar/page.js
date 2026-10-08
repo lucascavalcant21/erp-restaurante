@@ -14,7 +14,7 @@ import {
 } from "../../../../lib/estoque-movimento-dados";
 import {
   MOTIVOS, rotuloMotivo, quantidadeDoLancamento, unidadesDaFracao, embalagemDoProduto, produtosParaLancar, saldoDepois,
-  podeEstornar, novaChave, unidadeDoSaldo, ehEntradaDeCompra,
+  podeEstornar, novaChave, unidadeDoSaldo, ehEntradaDeCompra, saldoEmEmbalagens,
 } from "../../../../lib/estoque-movimento.mjs";
 import { unidadeValida } from "../../../../lib/contas-pagar.mjs";
 import { hasPermission } from "../../../../lib/permissions-catalog.mjs";
@@ -54,6 +54,8 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
   const [produto, setProduto] = useState(null);
   // Héfisto: "Perdi 2 kg." / "Quanto tenho?" entendem o produto selecionado
   useContextoInteligencia(produto ? { modulo: "estoque", tipo: "produto", id: produto.id, nome: produto.nome } : null);
+  // Produto tocado na lista: a tela pergunta se é entrada ou retirada.
+  const [pergunta, setPergunta] = useState(null); // { insumo, saldo }
   const [form, setForm] = useState(FORM_VAZIO);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState(null);
@@ -102,8 +104,8 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
   const estoque = base?.estoques?.find((e) => e.id === estoqueId);
   const saldoAtual = produto ? (Number(base?.itens?.find((i) => i.estoque_id === estoqueId && i.insumo_id === produto.id)?.quantidade_atual) || 0) : 0;
   const resultados = useMemo(() => (base && estoqueId && !produto)
-    ? produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo, termo: busca }) : [],
-  [base, estoqueId, tipo, busca, produto]);
+    ? produtosParaLancar({ insumos: base.insumos, itens: base.itens, estoqueId, tipo: "entrada", termo: busca }) : [],
+  [base, estoqueId, busca, produto]);
 
   const embalagem = produto ? embalagemDoProduto(produto) : null;
   const unidadesFrac = produto ? unidadesDaFracao(produto) : [];
@@ -118,17 +120,18 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
   const pronto = produto && lanc && !lanc.erro && motivoSel && !(depois < 0)
     && (!motivoSel.admin || (form.justificativa.trim().length >= 3 && /^\d{4,8}$/.test(form.pin)));
 
-  const escolher = (ins) => {
+  const escolher = (ins, novoTipo = tipo) => {
+    setTipo(novoTipo);
     setProduto(ins);
     const emb = embalagemDoProduto(ins);
     const unidades = unidadesDaFracao(ins);
     // com embalagem, a fração costuma ser a unidade menor (g/ml); sem, a do cadastro
-    setForm({ ...FORM_VAZIO, motivo: form.motivo && MOTIVOS[tipo].some((m) => m.codigo === form.motivo && !m.admin) ? form.motivo : "",
+    setForm({ ...FORM_VAZIO, motivo: novoTipo === tipo && form.motivo && MOTIVOS[novoTipo].some((m) => m.codigo === form.motivo && !m.admin) ? form.motivo : "",
       unidadeFracao: emb && unidades.length > 1 ? unidades[1] : unidades[0] });
     chave.current = novaChave();
     setAviso(null);
   };
-  const trocarTipo = (t) => { setTipo(t); setForm((f) => ({ ...f, motivo: "", justificativa: "", pin: "" })); setAviso(null); };
+  const iniciar = (t) => { const p = pergunta; setPergunta(null); if (p) escolher(p.insumo, t); };
   const limpar = () => { setProduto(null); setForm(FORM_VAZIO); setBusca(""); chave.current = novaChave(); setTimeout(() => buscaRef.current?.focus(), 50); };
 
   const confirmar = async () => {
@@ -178,16 +181,6 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
           </div>
         )}
 
-        {/* ENTRADA / RETIRADA */}
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => trocarTipo("entrada")} className={`h-14 rounded-2xl font-black text-base flex items-center justify-center gap-2 border-2 ${tipo === "entrada" ? "bg-emerald-500 text-white border-emerald-500" : "bg-white border-line"}`}>
-            <Plus size={20} /> ENTRADA
-          </button>
-          <button onClick={() => trocarTipo("saida")} className={`h-14 rounded-2xl font-black text-base flex items-center justify-center gap-2 border-2 ${tipo === "saida" ? "bg-rose-600 text-white border-rose-600" : "bg-white border-line"}`}>
-            <Minus size={20} /> RETIRADA
-          </button>
-        </div>
-
         {/* 1. pesquisar e selecionar */}
         {!produto && (
           <div className="bg-card rounded-2xl border border-line p-2">
@@ -198,12 +191,12 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
               {busca && <button onClick={() => setBusca("")} aria-label="Limpar"><X size={18} /></button>}
             </div>
             <ul className="divide-y divide-line">
-              {!resultados.length && <li className="p-4 text-sm text-fg text-center">{tipo === "saida" ? "Nenhum produto deste local com esse nome." : busca ? "Nenhum produto no cadastro com esse nome." : "Pesquise o produto (o cadastro inteiro aparece na busca)."}</li>}
+              {!resultados.length && <li className="p-4 text-sm text-fg text-center">{busca ? "Nenhum produto no cadastro com esse nome." : "Nenhum produto neste local ainda. Pesquise para achar no cadastro."}</li>}
               {resultados.map((p) => {
                 const emb = embalagemDoProduto(p.insumo);
                 return (
                   <li key={p.insumo.id}>
-                    <button onClick={() => escolher(p.insumo)} className="w-full text-left p-3 flex justify-between gap-3 hover:bg-white">
+                    <button onClick={() => { setPergunta({ insumo: p.insumo, saldo: p.saldo }); setAviso(null); }} className="w-full text-left p-3 flex justify-between gap-3 hover:bg-white">
                       <div className="min-w-0">
                         <p className="font-black leading-tight">{p.insumo.nome}{p.insumo.marca ? <span className="font-bold text-fg"> · {p.insumo.marca}</span> : null}</p>
                         <p className="text-xs text-fg truncate">
@@ -214,6 +207,7 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
                       <div className="text-right shrink-0">
                         <p className="text-3xs uppercase font-bold text-fg">saldo aqui</p>
                         <p className={`font-black ${p.saldo > 0 ? "" : "text-fg"}`}>{fmtQ(p.saldo)} {unidadeDoSaldo(p.insumo)}</p>
+                        {saldoEmEmbalagens(p.insumo, p.saldo) && <p className="text-3xs font-bold text-fg max-w-[150px]">{saldoEmEmbalagens(p.insumo, p.saldo).texto}</p>}
                       </div>
                     </button>
                   </li>);
@@ -227,40 +221,50 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
           <div className="bg-card rounded-2xl border border-line p-4 space-y-3">
             <div className="flex justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-3xs font-black uppercase text-fg">{estoque?.nome}</p>
+                <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-black text-white ${tipo === "entrada" ? "bg-emerald-600" : "bg-rose-600"}`}>
+                  {tipo === "entrada" ? <Plus size={14} /> : <Minus size={14} />} {tipo === "entrada" ? "ENTRADA" : "RETIRADA"}
+                </span>
+                <p className="text-3xs font-black uppercase text-fg mt-1">{estoque?.nome}</p>
                 <p className="font-black text-lg leading-tight">{produto.nome}</p>
                 <p className="text-xs text-fg">
                   {[produto.fornecedor && `Fornecedor: ${produto.fornecedor}`, embalagem?.texto, podeVerCusto && base?.custosMedios?.[produto.id] != null && `custo médio ${fmtBRL(base.custosMedios[produto.id] * (["kg", "l"].includes(String(produto.unidade_medida).toLowerCase()) ? 1000 : 1))}/${un(produto.unidade_medida)}`].filter(Boolean).join(" · ")}
                 </p>
-                <p className="text-xs font-bold mt-1">Saldo neste local: {fmtQ(saldoAtual)} {unSaldo}</p>
+                <p className="text-xs font-bold mt-1">Saldo neste local: {fmtQ(saldoAtual)} {unSaldo}{saldoEmEmbalagens(produto, saldoAtual) ? ` · ${saldoEmEmbalagens(produto, saldoAtual).texto}` : ""}</p>
               </div>
               <button onClick={limpar} className="self-start h-9 px-3 rounded-xl bg-slate-100 text-xs font-black">Trocar</button>
             </div>
 
-            <div className={`grid gap-2 ${embalagem ? "grid-cols-2" : "grid-cols-1"}`}>
-              {embalagem && (
-                <label className="block">
-                  <span className="text-3xs font-black uppercase text-fg">Embalagens ({embalagem.texto})</span>
-                  <input inputMode="numeric" value={form.embalagens} onChange={(e) => setForm({ ...form, embalagens: e.target.value })} placeholder="0"
-                    className="mt-1 w-full h-14 px-3 rounded-xl border border-line bg-white font-black text-xl" />
-                </label>
-              )}
-              <label className="block">
-                <span className="text-3xs font-black uppercase text-fg">{embalagem ? "Mais (fração)" : "Quantidade"}</span>
-                <div className="mt-1 flex gap-1">
-                  <input inputMode="decimal" value={form.fracao} onChange={(e) => setForm({ ...form, fracao: e.target.value })} placeholder="0"
-                    className="flex-1 min-w-0 h-14 px-3 rounded-xl border border-line bg-white font-black text-xl" />
-                  {unidadesFrac.length > 1
-                    ? <select value={form.unidadeFracao} onChange={(e) => setForm({ ...form, unidadeFracao: e.target.value })} className="h-14 px-2 rounded-xl border border-line bg-white font-black">
-                        {unidadesFrac.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    : <span className="h-14 px-3 rounded-xl bg-slate-100 font-black flex items-center">{unidadesFrac[0]}</span>}
-                </div>
-              </label>
+            {/* Quantidade na unidade que a pessoa escolher (kg/g, L/ml): 1.340 ml de
+                leite cadastrado em 1 L vira 1 L + 340 ml. Embalagens fechadas é opcional. */}
+            <label className="block">
+              <span className="text-3xs font-black uppercase text-fg">Quantidade</span>
+              <input inputMode="decimal" value={form.fracao} onChange={(e) => setForm({ ...form, fracao: e.target.value })} placeholder="0"
+                className="mt-1 w-full h-14 px-3 rounded-xl border border-line bg-white font-black text-2xl" />
+            </label>
+            <div>
+              <span className="text-3xs font-black uppercase text-fg">Em que unidade?</span>
+              <div className="mt-1 flex gap-2">
+                {unidadesFrac.map((u) => (
+                  <button key={u} type="button" onClick={() => setForm({ ...form, unidadeFracao: u })} aria-pressed={(form.unidadeFracao || unidadesFrac[0]) === u}
+                    className={`flex-1 h-12 rounded-xl text-base font-black border-2 ${(form.unidadeFracao || unidadesFrac[0]) === u ? "bg-slate-900 text-white border-slate-900" : "bg-white border-line text-slate-900"}`}>{u}</button>
+                ))}
+              </div>
             </div>
+            {embalagem && (
+              <label className="block">
+                <span className="text-3xs font-black uppercase text-fg">Mais embalagens fechadas (opcional) · {embalagem.texto}</span>
+                <input inputMode="numeric" value={form.embalagens} onChange={(e) => setForm({ ...form, embalagens: e.target.value })} placeholder="0"
+                  className="mt-1 w-full h-12 px-3 rounded-xl border border-line bg-white font-black text-lg" />
+              </label>
+            )}
             {lanc && (lanc.erro
               ? <p className="text-sm font-bold text-red-700">{lanc.erro}</p>
-              : <p className="text-sm font-black">{lanc.texto} <span className="font-bold text-fg">· saldo depois: <span className={depois < 0 ? "text-red-700" : ""}>{fmtQ(depois)} {unSaldo}</span></span></p>)}
+              : <div className="rounded-xl bg-slate-100 p-3 space-y-0.5">
+                  <p className="text-sm font-black">{tipo === "entrada" ? "Entrando" : "Saindo"}: {lanc.texto}</p>
+                  {saldoEmEmbalagens(produto, lanc.quantidadeSaldo) && <p className="text-sm font-bold">= {saldoEmEmbalagens(produto, lanc.quantidadeSaldo).texto}</p>}
+                  <p className="text-xs font-bold text-fg">Saldo depois: <span className={depois < 0 ? "text-red-700" : ""}>{fmtQ(depois)} {unSaldo}</span>
+                    {depois > 0 && saldoEmEmbalagens(produto, depois) ? ` · ${saldoEmEmbalagens(produto, depois).texto}` : ""}</p>
+                </div>)}
             {depois < 0 && <p className="text-sm font-bold text-red-700">Retirada maior que o saldo deste local. Confira a quantidade ou o local.</p>}
 
             <div>
@@ -345,6 +349,34 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
           </ul>
         </div>
       </div>
+
+      {pergunta && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setPergunta(null)}>
+          <div role="dialog" aria-modal="true" aria-label="Entrada ou retirada" onClick={(e) => e.stopPropagation()}
+            className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            <div className="flex justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-3xs font-black uppercase text-fg">{estoque?.nome}</p>
+                <p className="font-black text-xl leading-tight">{pergunta.insumo.nome}</p>
+                <p className="text-sm mt-1">Saldo aqui: <b>{fmtQ(pergunta.saldo)} {unidadeDoSaldo(pergunta.insumo)}</b></p>
+                {saldoEmEmbalagens(pergunta.insumo, pergunta.saldo) && <p className="text-xs font-bold text-fg">{saldoEmEmbalagens(pergunta.insumo, pergunta.saldo).texto}</p>}
+              </div>
+              <button onClick={() => setPergunta(null)} aria-label="Fechar" className="self-start"><X size={22} /></button>
+            </div>
+            <p className="font-black text-base">É entrada ou retirada?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => iniciar("entrada")} className="h-24 rounded-2xl bg-emerald-600 text-white font-black text-lg flex flex-col items-center justify-center gap-1">
+                <Plus size={26} /> ENTRADA
+              </button>
+              <button onClick={() => iniciar("saida")} disabled={!(Number(pergunta.saldo) > 0)}
+                className="h-24 rounded-2xl bg-rose-600 text-white font-black text-lg flex flex-col items-center justify-center gap-1 disabled:opacity-40">
+                <Minus size={26} /> RETIRADA
+              </button>
+            </div>
+            {!(Number(pergunta.saldo) > 0) && <p className="text-sm font-bold text-fg">Sem saldo neste local: por enquanto só dá para dar entrada.</p>}
+          </div>
+        </div>
+      )}
 
       {estorno && <ModalEstorno estorno={estorno} setEstorno={setEstorno} onFeito={async (texto) => { setEstorno(null); setAviso({ tipo: "ok", texto }); await Promise.all([carregarBase(), carregarUltimos()]); }} />}
     </div>

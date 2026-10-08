@@ -122,6 +122,43 @@ export function embalagemDoProduto(insumo) {
   return { tamanho, nome, texto: `${nome} de ${fmt(tamanho)} ${mostrarUn(insumo?.unidade_medida)}` };
 }
 
+// Plural simples do nome da embalagem ("pacote" → "pacotes"); unidade vira "embalagem".
+function nomeEmbalagem(nome, n) {
+  const base = /^(kg|g|l|ml|un|unidade)$/i.test(String(nome || "").trim()) ? "embalagem" : String(nome || "embalagem").trim();
+  if (n === 1 || /s$/i.test(base)) return base;
+  if (/m$/i.test(base)) return `${base.slice(0, -1)}ns`;   // embalagem → embalagens
+  return /[rz]$/i.test(base) ? `${base}es` : `${base}s`;
+}
+
+/**
+ * Saldo em embalagens fechadas + sobra (embalagem aberta). Açaí em embalagem
+ * de 1 kg com 1,45 kg → 1 embalagem de 1 kg + 450 g; com 2 kg → 2 embalagens.
+ * Vale para cozinha e bar (garrafa guardada em ml: 2 garrafas + 300 ml). Só
+ * exibição: o saldo continua guardado na unidade do saldo. null = a granel.
+ */
+export function saldoEmEmbalagens(insumo, saldo) {
+  const emb = embalagemDoProduto(insumo);
+  const s = r3(Number(saldo) || 0);
+  if (!emb || !(emb.tamanho > 0) || !(s > 0)) return null;
+  const inteiras = Math.floor((s + 1e-9) / emb.tamanho);
+  const sobra = r3(s - inteiras * emb.tamanho);
+  const un = String(unidadeDoSaldo(insumo)).toLowerCase();
+  const f = familia(un);
+  // sobra menor que 1 kg / 1 L aparece em g / ml
+  const sobraTexto = !(sobra > 0) ? ""
+    : f && f.unidades[0].toLowerCase() === un && sobra < 1
+      ? `${fmt(r3(sobra * 1000))} ${f.unidades[1]}`
+      : `${fmt(sobra)} ${mostrarUn(un)}`;
+  const tamanhoTexto = `${fmt(emb.tamanho)} ${mostrarUn(un)}`;
+  const partes = [];
+  if (inteiras > 0) partes.push(`${fmt(inteiras)} ${nomeEmbalagem(emb.nome, inteiras)} de ${tamanhoTexto}`);
+  if (sobraTexto) partes.push(inteiras > 0 ? `${sobraTexto} de sobra` : `${sobraTexto} (embalagem aberta)`);
+  const curto = inteiras > 0
+    ? `${fmt(inteiras)} ${nomeEmbalagem(emb.nome, inteiras)}${sobraTexto ? ` + ${sobraTexto}` : ""}`
+    : `${sobraTexto} (aberta)`;
+  return { inteiras, sobra, tamanho: emb.tamanho, texto: partes.join(" + "), curto, embalagem: `${nomeEmbalagem(emb.nome, 1)} de ${tamanhoTexto}` };
+}
+
 /**
  * Quantidade de um lançamento a partir do que foi digitado (aceita soma "6+4").
  * → { quantidade (unidade do cadastro), quantidadeSaldo (unidade do saldo, a que

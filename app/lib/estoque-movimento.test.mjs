@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import {
   quantidadeDoLancamento, unidadesDaFracao, paraUnidadeDoCadastro, embalagemDoProduto, rotuloMotivo, podeEstornar,
   registrarMovimento, estornarMovimento, ajustarInventario, lerSegurancaEstoque, salvarSegurancaEstoque, novaChave,
-  corrigirItemContagem, MSG_BANCO_DESATUALIZADO, produtosParaLancar, saldoDepois, ehEntradaDeCompra, MOTIVOS,
+  corrigirItemContagem, MSG_BANCO_DESATUALIZADO, produtosParaLancar, saldoDepois, ehEntradaDeCompra, MOTIVOS, saldoEmEmbalagens,
 } from "./estoque-movimento.mjs";
 import { salvarRascunho, confirmarCompra, cancelarCompra, criarFornecedor, entrouNoEstoque } from "./compras-estoque.mjs";
 import { criarContagem, salvarItemContagem, fecharContagem, MSG_JA_CONTADO } from "./contagem-estoque.mjs";
@@ -72,6 +72,16 @@ conferir("garrafa fracionada (cadastro em garrafa): 2 fechadas + 300 ml → sald
   [qv.quantidadeSaldo, qv.unidadeSaldo, qv.quantidade, qv.texto, unidadesDaFracao(vinhoCad)], [1800, "ml", 2.4, "2 garrafa(s) fechadas + 300 ml = 1.800 ml", ["L", "ml"]]);
 conferir("soma no campo (expositor + depósito): 6+4 garrafas de água = 10", quantidadeDoLancamento({ insumo: { unidade_medida: "garrafa" }, fracao: "6+4" }).quantidadeSaldo, 10);
 conferir("produto comum: saldo na unidade do cadastro", [q1.quantidadeSaldo, q1.unidadeSaldo], [4.35, "kg"]);
+
+// saldo em embalagens + sobra (pedido do dono, 08/10): açaí em embalagem de 1 kg
+const acaiCad = { unidade_medida: "kg", tamanho_embalagem: 1, unidade_comercial: "" };
+conferir("açaí: entrada de 1.450 g = 1 embalagem de 1 kg + 450 g; +550 g = 2 embalagens",
+  [saldoEmEmbalagens(acaiCad, 1.45)?.texto, saldoEmEmbalagens(acaiCad, 1.45 + 0.55)?.texto, saldoEmEmbalagens(acaiCad, 0.45)?.curto],
+  ["1 embalagem de 1 kg + 450 g de sobra", "2 embalagens de 1 kg", "450 g (aberta)"]);
+conferir("bar: garrafa guardada em ml = garrafas + sobra; pacote de 5 kg; a granel e saldo zero não decompõem",
+  [saldoEmEmbalagens(vinhoCad, 1800)?.curto, saldoEmEmbalagens({ unidade_medida: "kg", tamanho_embalagem: 5, unidade_comercial: "pacote" }, 12)?.curto,
+   saldoEmEmbalagens(granel, 3), saldoEmEmbalagens(acaiCad, 0)],
+  ["2 garrafas + 300 ml", "2 pacotes + 2 kg", null, null]);
 
 // ── 2. banco: esquema de estoque como em produção ────────────────────────────
 const FIXTURE = `

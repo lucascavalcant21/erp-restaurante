@@ -622,14 +622,15 @@ function repoComRemoto(amb) {
   const remoto = mkdtempSync(join(tmpdir(), "hefisto-remoto-"));
   gitEm(remoto, "init", "-q", "--bare", "-b", "hefisto/teste");
   gitEm(amb.raiz, "init", "-q", "-b", "hefisto/teste");
-  for (const d of [amb.raiz]) { gitEm(d, "config", "user.name", "Agente"); gitEm(d, "config", "user.email", "agente@teste"); }
+  // core.autocrlf=true (padrão do Git no Windows) troca \n por \r\n no checkout e quebra a comparação do conteúdo
+  for (const d of [amb.raiz]) { gitEm(d, "config", "user.name", "Agente"); gitEm(d, "config", "user.email", "agente@teste"); gitEm(d, "config", "core.autocrlf", "false"); }
   writeFileSync(join(amb.raiz, "x.txt"), "base\n");
   gitEm(amb.raiz, "add", "-A");
   gitEm(amb.raiz, "commit", "-q", "-m", "inicio");
   gitEm(amb.raiz, "remote", "add", "origin", remoto);
   gitEm(amb.raiz, "push", "-q", "-u", "origin", "hefisto/teste");
   const outro = mkdtempSync(join(tmpdir(), "hefisto-outro-"));
-  gitEm(outro, "clone", "-q", "-b", "hefisto/teste", remoto, ".");
+  gitEm(outro, "clone", "-q", "-c", "core.autocrlf=false", "-b", "hefisto/teste", remoto, ".");
   gitEm(outro, "config", "user.name", "Nuvem"); gitEm(outro, "config", "user.email", "nuvem@teste");
   return { remoto, outro };
 }

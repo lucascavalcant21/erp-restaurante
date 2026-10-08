@@ -32,7 +32,7 @@ const PERFIL = { func: "a0000000-0000-0000-0000-000000000001", ger: "a0000000-00
 
 function fixtureDoEstoque() {
   const src = fs.readFileSync(path.join(raiz, "app", "lib", "estoque-movimento.test.mjs"), "utf8");
-  const m = src.match(/const FIXTURE = `([\s\S]*?)`;\n/);
+  const m = src.match(/const FIXTURE = `([\s\S]*?)`;\r?\n/); // \r: checkout com CRLF no Windows
   assert.ok(m, "FIXTURE do teste do estoque não encontrada");
   return m[1];
 }

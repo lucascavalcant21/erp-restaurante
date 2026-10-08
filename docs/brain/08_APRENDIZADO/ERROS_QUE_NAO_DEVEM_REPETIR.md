@@ -13,3 +13,11 @@
    - Instrução de uso tem que funcionar no CMD/PowerShell. Prefira um comando `npm run …` que faz o trabalho (`hefisto:preparar`) a sintaxe de shell.
    - Diga em que pasta e em que branch rodar.
    - No Windows, `claude` é `claude.cmd`: o runner monta a linha para o cmd com aspas e mata a árvore de processos com `taskkill`.
+9. **Lista longa de regras na linha de comando do Windows (08/10/2026).** Com as regras dos conectores, a chamada do `claude` passaria de 10 mil caracteres; o `cmd` corta em 8191.
+   - Regra extensa vai no arquivo `--settings`, não em `--allowedTools`.
+   - Um teste trava o tamanho da linha.
+10. **Confiar que o agente vai "obedecer" a regra de só leitura.** Sem ninguém olhando, a garantia tem que ser mecânica e falhar fechada:
+    - modo `dontAsk`;
+    - SQL só pelo gancho `guarda-sql.mjs`;
+    - transação somente leitura no banco.
+    Ver DA-007.

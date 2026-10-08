@@ -37,7 +37,7 @@ npm run hefisto:noite
 **Precisa de:**
 - **Git e Node.js 20+.**
 - **Claude Code instalado e logado uma vez.** Ver "Instalar o Claude Code no Windows" abaixo.
-- **Para o agente alcançar o banco e o deploy:** os conectores Supabase/Vercel/GitHub configurados no Claude Code do computador (`claude mcp`). Sem eles, ele trabalha só no código e nos testes locais.
+- **Para o agente ler o banco e o deploy:** os conectores Supabase e Vercel que você já ligou no claude.ai. Eles aparecem sozinhos no Claude Code do computador quando você entra com a **mesma conta**. Ver "Conectores à noite" abaixo. Sem eles, o agente trabalha só no código e nos testes locais.
 
 ### Instalar o Claude Code no Windows (uma vez)
 
@@ -58,16 +58,41 @@ Depois:
 
 **Cobrança:** se a variável `ANTHROPIC_API_KEY` estiver definida no seu computador, o `claude -p` cobra na API, e não na sua assinatura. O `npm run hefisto:preparar` avisa quando isso acontece.
 
-**Conectores no seu computador** (para o agente alcançar o banco e o deploy à noite):
-- **GitHub** (documentado):
-  `claude mcp add --transport http github https://api.githubcopilot.com/mcp/ --header "Authorization: Bearer SEU_TOKEN"`
-  O token fica só no seu computador; nunca cole no chat.
-- **Supabase e Vercel:** siga a página oficial de cada um.
-  - https://supabase.com/docs/guides/getting-started/mcp
-  - https://vercel.com/docs/mcp/vercel-mcp
+### Conectores à noite (Supabase e Vercel)
 
-  Depois, dentro do `claude`, use `/mcp` → Authenticate.
-- **Conferir:** `claude mcp list`.
+**Você não precisa configurar nada de novo.** Os conectores que já estão ligados no claude.ai valem também no Claude Code do computador, desde que:
+- você tenha entrado no `claude` com a **mesma conta** do claude.ai (`claude`, depois `/login`);
+- a variável `ANTHROPIC_API_KEY` **não** esteja definida. Com ela, o Claude Code usa a API e os conectores do claude.ai não carregam.
+
+**Conferir:** `npm run hefisto:preparar` faz um teste rápido (modelo haiku, centavos) e mostra uma linha para cada conector:
+- `OK Conector Supabase: carregado …`: pronto.
+- `AVISO … precisa autorizar`: rode `claude` na pasta do projeto, digite `/mcp`, escolha o conector e **Authenticate**.
+- `AVISO … não apareceu`: confira a conta e a `ANTHROPIC_API_KEY` (acima).
+- Para pular o teste: `npm run hefisto:preparar -- --sem-conectores`.
+
+**O que o agente pode fazer com eles à noite (sem ninguém olhando):**
+
+| Pode (leitura) | Nunca, sem você |
+|---|---|
+| **Supabase:** consultar com SQL de leitura, listar tabelas, migrações e extensões, ver os avisos de segurança e desempenho (advisors), ler os logs, buscar na documentação | aplicar migração, escrever no banco (mesmo em teste), criar/apagar/resetar branch, mexer em funções e segredos, pausar ou restaurar o projeto |
+| **Vercel:** ver projetos, deploys, logs de build e de execução, erros, domínios; abrir uma URL do deploy; buscar na documentação | deploy, promover ou reverter produção, ver ou mudar variáveis de ambiente, mudar projeto, domínio ou firewall, comprar qualquer coisa |
+
+**Como isso é garantido** (não depende do agente obedecer):
+- O motor roda no modo `dontAsk`: qualquer ferramenta fora da lista de leitura é **negada**. As de escrita nem aparecem para ele.
+- O SQL passa pela guarda `scripts/hefisto-agent/guarda-sql.mjs`:
+  - aceita só `SELECT`, `WITH`, `EXPLAIN`, `SHOW`, `VALUES`, `TABLE` e `SET LOCAL`;
+  - só no projeto do Héfisto;
+  - recusa tudo que mexe no modo da transação, rede, arquivos do servidor, funções administrativas e lugares com segredo (`vault`, `auth.*`);
+  - roda a consulta dentro de `begin transaction read only … rollback`: mesmo que algo escape, o Postgres recusa qualquer escrita, e o `rollback` desfaz tudo.
+- **Falha fechada:** se a guarda quebrar ou não rodar, o SQL é negado.
+- **Log:**
+  - cada consulta aprovada ou recusada fica em `.hefisto-agent/logs/guarda-sql.log`;
+  - as regras em vigor ficam em `.hefisto-agent/motor-settings.json`;
+  - os conectores encontrados ficam em `.hefisto-agent/conectores.json`.
+
+Escrita de teste no banco real (o `do $$ … raise exception $$` do `CLAUDE.md`) só numa sessão com você acompanhando.
+
+**GitHub:** o agente usa o `git` e o `gh` do computador (push só no branch dele; merge proibido). Para o `gh`, rode `gh auth login` uma vez.
 
 **Na nuvem (claude.ai/code), sem computador ligado:**
 1. Crie uma **Rotina** agendada, por exemplo todo dia às 23:50, com uma sessão nova por disparo, neste repositório.
@@ -127,7 +152,9 @@ O agente registra o pedido em BLOQUEADORES/ACESSOS e segue no resto.
 ## TRAVAS DE SEGURANÇA (`scripts/hefisto-agent/config.json`)
 
 - **Teto de gasto por rodada:** `--max-budget-usd 10`. Ajuste se quiser.
-- **Ferramentas permitidas e proibidas.** Proibidas: force push, push na main, `reset --hard`, `rm -rf`, reset/push de banco, merge de PR, deploy de produção, `psql`, `curl`.
+- **Ferramentas permitidas e proibidas** (modo `dontAsk`: o que não está liberado é negado).
+  - Proibidas: force push, push na main, `reset --hard`, `rm -rf`, reset/push de banco, merge de PR, deploy de produção, `psql`, `curl`.
+- **Conectores Supabase/Vercel só leitura**, com o SQL pela guarda (seção "Conectores à noite"). Lista em `conectores` no `config.json`.
 - **Por execução:** até 6 missões, 8 horas, 90 minutos por missão.
 - **Anti-loop:**
   - a mesma falha 3x → BLOCKED;

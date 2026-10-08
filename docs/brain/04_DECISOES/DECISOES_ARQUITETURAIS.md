@@ -44,3 +44,27 @@ Formato: **DA-NNN — título (data)**: contexto → decisão → consequência.
   - travas anti-loop.
 - **Por quê:** não reinventar um agente; usar o mecanismo oficial e testado.
 - **Na nuvem:** uma Rotina agendada inicia uma sessão com o ciclo (`docs/autonomous/COMO_USAR.md`).
+
+## DA-007 — Conectores no agente da noite: só leitura, com guarda determinística (08/10/2026)
+
+- **Decisão:** o agente da noite usa os conectores do claude.ai (Supabase, Vercel) só para ler.
+  - O motor roda em `dontAsk`: o que não está na lista de leitura é negado.
+  - O `execute_sql` fica fora da lista e só roda se o gancho `scripts/hefisto-agent/guarda-sql.mjs` aprovar. A guarda:
+    - aceita só leitura;
+    - aceita só o projeto do Héfisto;
+    - embrulha a consulta em `begin transaction read only … rollback`.
+  - As regras vão no arquivo `--settings` (`.hefisto-agent/motor-settings.json`), porque na linha de comando estourariam o limite de 8191 caracteres do cmd do Windows.
+- **Por quê:** ninguém está olhando à noite. Prioridade SEGURANÇA > INTEGRIDADE DOS DADOS. Escrita de teste no banco real (`do $$ … raise exception $$`) depende de o bloco chegar no `raise`; um erro do agente gravaria em produção.
+- **Falha fechada:** se a guarda quebrar, o modo `dontAsk` nega o SQL. TESTADO LOCAL com o Claude Code real.
+- **Evidência (08/10):**
+  - TESTADO NO SUPABASE REAL:
+    - leitura com `set local role authenticated` dentro do embrulho devolve linhas;
+    - `create table` dentro do embrulho: "cannot execute CREATE TABLE in a read-only transaction";
+    - nada ficou criado.
+  - TESTADO LOCAL, com o Claude Code 2.1.294 real e um servidor MCP de teste "supabase-teste":
+    - o `select` chegou embrulhado;
+    - o `delete` e o `select 1; commit; delete …` foram recusados e não chegaram ao servidor;
+    - o `apply_migration` e o `create_branch` nem apareceram para o agente;
+    - a sonda do `hefisto:preparar` descobriu o prefixo real.
+  - NÃO VALIDADO: os nomes exatos dos conectores do claude.ai no computador do dono. A sonda do preparar descobre e grava esses nomes.
+

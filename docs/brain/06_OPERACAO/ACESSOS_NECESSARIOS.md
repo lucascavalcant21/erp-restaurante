@@ -65,7 +65,8 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 - **Motivo:** rodar `npm run hefisto:noite` com o Claude Code local
 - **O que precisa ser liberado:**
   - `claude` instalado e logado;
-  - conectores MCP Supabase, Vercel e GitHub configurados no Claude Code local;
+  - os conectores Supabase e Vercel do claude.ai, que aparecem sozinhos com a mesma conta e sem `ANTHROPIC_API_KEY` (à noite, só leitura: DA-007);
+  - `gh auth login` para o GitHub;
   - um branch de trabalho (nunca a `main`).
 - **Escopo mínimo:** o repositório clonado
 - **Risco:** BAIXO a MÉDIO (o agente edita, commita e faz push no branch dele)
@@ -74,6 +75,7 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
   - 08/10: o dono tentou no Windows (CMD) fora da pasta do projeto.
   - Instruções para Windows e `hefisto:preparar` criados.
   - Opcional: na nuvem dá para usar uma Rotina.
+  - 08/10: o dono informou que Supabase e Vercel já estão conectados no claude.ai. O agente da noite passou a usá-los só para leitura, e o `hefisto:preparar` mostra se carregaram.
 
 ## ACESSO-006
 

@@ -140,7 +140,8 @@ Nunca escreva "funciona" sem dizer onde. Mock nunca vira "funcional".
   - sem `PGLITE`, esses testes **pulam**, não validam.
 - **Banco real pelo conector Supabase:**
   - leitura sob RLS com `set local role authenticated` + `request.jwt.claims`;
-  - escrita de teste dentro de `do $$ … raise exception $$` (desfaz tudo);
+  - escrita de teste dentro de `do $$ … raise exception $$` (desfaz tudo), **só em sessão acompanhada**;
+  - no agente da noite, o banco é **só leitura**: o SQL passa por `scripts/hefisto-agent/guarda-sql.mjs` (transação somente leitura, desfeita). O que precisar de escrita vai para `BLOQUEADORES.md`;
   - `DROP` pelo conector pede confirmação manual e expira sem ninguém olhando;
   - depois de qualquer timeout, verifique no catálogo antes de repetir.
 

@@ -10,6 +10,11 @@ Antes de tudo, leia e siga:
 Rodada {{RODADA}} desta missão. Branch atual: `{{BRANCH}}`.
 {{HISTORICO}}
 
+Conectores nesta execução: Supabase e Vercel SÓ PARA LEITURA (se estiverem
+ligados). O SQL roda numa transação somente leitura que é desfeita; escrita,
+migração, deploy e variáveis de ambiente são negados. Precisou de algo disso?
+Registre em BLOQUEADORES.md (e ACESSOS_NECESSARIOS.md) e siga no resto.
+
 Trabalhe na missão até: cumprir o "Critério de pronto", OU bater num bloqueio
 real (credencial, permissão externa, operação destrutiva/irreversível, decisão
 de produto), OU esgotar o que dá para fazer nesta rodada. Erro de teste, build,

@@ -136,7 +136,15 @@ function montarAmbiente({ motor = "done", validacao = "ok", missoes } = {}) {
 import { readFileSync, writeFileSync } from "node:fs";
 let entrada = ""; process.stdin.on("data", (d) => entrada += d); process.stdin.on("end", () => {
   const arq = process.env.HEFISTO_MISSAO_ARQUIVO;
-  writeFileSync("argv-motor.json", JSON.stringify({ argv: process.argv.slice(2), guardaLog: process.env.HEFISTO_GUARDA_LOG }));
+  writeFileSync("argv-motor.json", JSON.stringify({ argv: process.argv.slice(2), guardaLog: process.env.HEFISTO_GUARDA_LOG, chaveApi: "ANTHROPIC_API_KEY" in process.env }));
+  const linha = (o) => console.log(JSON.stringify(o));
+  if (process.argv[2] === "extra" || process.argv[2] === "paga") {
+    linha({ type: "system", subtype: "init", apiKeySource: process.argv[2] === "paga" ? "ANTHROPIC_API_KEY" : "none" });
+    linha({ type: "rate_limit_event", rate_limit_info: { status: "allowed", isUsingOverage: process.argv[2] === "extra", overageStatus: "allowed", resetsAt: Number(process.env.VOLTA_EM || 0), unifiedWindows: { five_hour: { utilization: 1.0, resetsAt: Number(process.env.VOLTA_EM || 0) } } } });
+    writeFileSync("chegou-ao-fim.txt", "o runner deveria ter matado antes");
+    setTimeout(() => linha({ type: "result", result: "trabalhei pago" }), 20000);
+    return;
+  }
   if (process.argv[2] === "done") {
     writeFileSync(arq, readFileSync(arq, "utf8").replace(/^status: .*$/m, "status: DONE"));
     console.log(JSON.stringify({ result: "trabalhei\\nHEFISTO_RESULTADO: " + JSON.stringify({ status: "DONE", resumo: "feito " + process.env.HEFISTO_MISSAO_ID }), total_cost_usd: 0.01 }));
@@ -399,10 +407,11 @@ test("conectores: só leitura liberada; SQL só pela guarda; escrita e segredos 
   assert.ok(args.indexOf("--settings") < args.indexOf("--allowedTools"), "--settings antes das listas, que engolem o resto");
 });
 
-function eventoInicio({ ferramentas = [], servidores = [] } = {}) {
+function eventoInicio({ ferramentas = [], servidores = [], fonte = "none", extra = "rejected" } = {}) {
   return [
     "aviso qualquer no stderr",
-    JSON.stringify({ type: "system", subtype: "init", claude_code_version: "2.1.294", apiKeySource: "none", mcp_servers: servidores, tools: ["Read", "Bash", ...ferramentas] }),
+    JSON.stringify({ type: "system", subtype: "init", claude_code_version: "2.1.294", apiKeySource: fonte, mcp_servers: servidores, tools: ["Read", "Bash", ...ferramentas] }),
+    JSON.stringify({ type: "rate_limit_event", rate_limit_info: { status: "allowed", resetsAt: 1791487800, overageStatus: extra, isUsingOverage: false, unifiedWindows: { five_hour: { utilization: 0.89, resetsAt: 1791487800 } } } }),
     JSON.stringify({ type: "result", result: "ok" }),
   ].join("\n");
 }
@@ -446,6 +455,19 @@ test("preparar: confere os conectores com um claude -p curto e grava os prefixos
   assert.ok(itens.filter((i) => i.nome.startsWith("Conector")).every((i) => i.ok), "conector ausente é aviso, não bloqueia a noite");
   const desc = JSON.parse(readFileSync(join(amb.raiz, ".estado", "conectores.json"), "utf8"));
   assert.deepEqual(desc.prefixos, { supabase: ["mcp__claude_ai_Supabase__"], vercel: [] });
+
+  assert.match(itens.find((i) => i.nome === "Cobrança").detalhe, /plano do claude\.ai/);
+  assert.match(itens.find((i) => i.nome === "Limite do plano").detalhe, /89% usado/);
+  assert.match(itens.find((i) => i.nome === "Uso extra pago").detalhe, /desligado/);
+  const apiLogin = verificar(amb.raiz, cfg, { executar: (a, args) => (args[0] === "auth" ? { ok: true, saida: '{"loggedIn": true, "authMethod": "api_key"}' } : executar(a, args)) });
+  assert.equal(apiLogin.find((i) => i.nome === "Cobrança" && !i.ok)?.ok, false, "login pago (Console) = FALTA");
+
+  // chave paga = FALTA; uso extra ligado = AVISO com onde desligar
+  const pago = verificar(amb.raiz, cfg, { executar: (a, args) => (args[0] === "-p" ? { ok: true, saida: eventoInicio({ fonte: "ANTHROPIC_API_KEY", extra: "allowed" }) } : executar(a, args)) });
+  assert.equal(pago.find((i) => i.nome === "Cobrança").ok, false);
+  assert.match(pago.find((i) => i.nome === "Cobrança").comoResolver, /\/login/);
+  const extra = pago.find((i) => i.nome === "Uso extra pago");
+  assert.ok(extra.aviso && /para sozinho em 97%/.test(extra.detalhe) && /Configurações/.test(extra.comoResolver));
 
   sondas.length = 0;
   verificar(amb.raiz, cfg, { executar, sondarConectores: false });
@@ -513,7 +535,7 @@ test("teto de gasto do dia: uma execução para; o contínuo espera o dia virar"
 
 test("limite de uso do Claude não conta como falha: a missão volta para READY sem tentativa", async () => {
   const amb = montarAmbiente({ motor: "limite", missoes: { "HDEV-001": { prioridade: 1 } } });
-  const r = await rodar(opcoes(amb));
+  const r = await rodar(opcoes(amb, { uma: true }));
   assert.equal(r.motivoFim, "limite_uso");
   const m = L.carregarMissoes(amb.dirM)[0];
   assert.deepEqual([m.status, m.tentativas || 0, m.mesma_falha || 0], ["READY", 0, 0]);
@@ -526,4 +548,66 @@ test("limite de uso do Claude não conta como falha: a missão volta para READY 
   assert.equal(L.carregarMissoes(amb2.dirM)[0].status, "READY", "nunca bloqueia por limite de uso");
   assert.ok(L.ehLimiteDeUso("You've hit your limit · resets 3pm"));
   assert.ok(!L.ehLimiteDeUso("not ok 1 - teste de rate limiter da API"), "texto comum não é limite de uso");
+});
+
+// ─── só o plano: nunca dinheiro a mais ───────────────────────────────────────
+test("cobrança: chave paga, uso extra e perto do limite com extra ligado param o motor; plano normal segue", () => {
+  assert.deepEqual(Object.keys(L.ambienteDoMotor({ ANTHROPIC_API_KEY: "x", ANTHROPIC_AUTH_TOKEN: "y", CLAUDE_CODE_USE_BEDROCK: "1", PATH: "p", ANTHROPIC_BASE_URL: "u" })), ["PATH", "ANTHROPIC_BASE_URL"]);
+  assert.ok(L.vigiarCobranca({ type: "system", subtype: "init", apiKeySource: "ANTHROPIC_API_KEY" }).fatal);
+  assert.equal(L.vigiarCobranca({ type: "system", subtype: "init", apiKeySource: "none" }), null);
+  const ev = (info) => ({ type: "rate_limit_event", rate_limit_info: info });
+  const volta = 1791487800;
+  // como veio do Claude Code real (08/10): plano em 89%, uso extra recusado
+  const real = L.vigiarCobranca(ev({ status: "allowed", resetsAt: volta, rateLimitType: "five_hour", overageStatus: "rejected", overageDisabledReason: "out_of_credits", isUsingOverage: false, unifiedWindows: { five_hour: { utilization: 0.89, resetsAt: volta }, seven_day: { utilization: 0.75, resetsAt: 1791597600 } } }));
+  assert.equal(real.parar, undefined);
+  assert.deepEqual([real.limite.uso, real.limite.janela, real.limite.extraLigado], [0.89, "five_hour", false]);
+  assert.match(L.vigiarCobranca(ev({ isUsingOverage: true, resetsAt: volta })).parar, /uso extra pago/);
+  assert.match(L.vigiarCobranca(ev({ status: "rejected", overageStatus: "rejected", resetsAt: volta })).parar, /limite do plano/);
+  const perto = L.vigiarCobranca(ev({ status: "allowed_warning", overageStatus: "allowed", unifiedWindows: { five_hour: { utilization: 0.98, resetsAt: volta } } }));
+  assert.match(perto.parar, /parou antes de cobrar/);
+  assert.equal(perto.ate, volta * 1000);
+  assert.equal(L.vigiarCobranca(ev({ status: "allowed_warning", overageStatus: "rejected", unifiedWindows: { five_hour: { utilization: 0.99, resetsAt: volta } } })).parar, undefined, "sem uso extra, gasta o plano até o fim");
+  // evento real sem overageStatus (08/10, 96%): vale o último estado conhecido; sem nenhum, para por segurança
+  const semInfo = { status: "allowed_warning", resetsAt: volta, rateLimitType: "five_hour", utilization: 0.98, isUsingOverage: false, surpassedThreshold: 0.9, unifiedWindows: { five_hour: { utilization: 0.98, resetsAt: volta } } };
+  assert.equal(L.vigiarCobranca(ev(semInfo), { extraConhecido: false }).parar, undefined);
+  assert.match(L.vigiarCobranca(ev(semInfo)).parar, /pode estar ligado/);
+  assert.match(L.vigiarCobranca(ev({ status: "rejected", errorCode: "credits_required", resetsAt: volta })).parar, /limite do plano/);
+  assert.ok(!L.fontePaga("none") && !L.fontePaga("oauth"));
+  for (const f of ["ANTHROPIC_API_KEY", "apiKeyHelper", "/login managed key", "algo-novo"]) assert.ok(L.fontePaga(f), f);
+  assert.equal(L.loginPago('{"loggedIn": true, "authMethod": "oauth_token"}'), false);
+  assert.equal(L.loginPago('{"loggedIn": true, "authMethod": "claude.ai"}'), false);
+  assert.equal(L.loginPago('{"loggedIn": true, "authMethod": "api_key"}'), "api_key");
+  for (const t of ["You've hit your session limit · resets 3:45pm", "You've hit your weekly limit · resets Mon 12:00am", "Usage limit reached · limit resets 3:45pm"]) assert.ok(L.ehLimiteDeUso(t), t);
+});
+
+test("runner: tira a chave de API do motor; uso extra mata o motor na hora e espera o plano voltar", async () => {
+  const antes = process.env.ANTHROPIC_API_KEY;
+  process.env.ANTHROPIC_API_KEY = "chave-falsa-do-teste";
+  process.env.VOLTA_EM = String(Math.floor(Date.now() / 1000) + 3600);
+  try {
+    const amb = montarAmbiente({ motor: "extra", missoes: { "HDEV-001": { prioridade: 1 } } });
+    const t0 = Date.now();
+    const esperas = [];
+    const r = await rodar(opcoes(amb, { continuo: true, esperar: async () => { esperas.push(L.lerStatus(join(amb.raiz, ".estado", "status.json")).last_result); writeFileSync(join(amb.raiz, ".estado", "STOP"), "x"); } }));
+    assert.ok(Date.now() - t0 < 15000, "matou o motor sem esperar ele terminar");
+    assert.equal(r.motivoFim, "stop");
+    assert.equal(JSON.parse(readFileSync(join(amb.raiz, "argv-motor.json"), "utf8")).chaveApi, false, "o motor nunca recebe a chave de API");
+    const m = L.carregarMissoes(amb.dirM)[0];
+    assert.deepEqual([m.status, m.tentativas || 0], ["READY", 0]);
+    assert.match(m.corpo, /não contou: o Claude começou a usar uso extra pago/);
+    assert.match(esperas[0], /limite do plano; volta às/);
+    const st = L.lerStatus(join(amb.raiz, ".estado", "status.json"));
+    assert.equal(Date.parse(st.plano_volta_em), Number(process.env.VOLTA_EM) * 1000);
+    assert.equal(st.plano.usandoExtra, true);
+    assert.match(readFileSync(r.relatorio, "utf8"), /sem pagar a mais/);
+
+    const paga = montarAmbiente({ motor: "paga", missoes: { "HDEV-001": { prioridade: 1 } } });
+    const r2 = await rodar(opcoes(paga, { continuo: true, esperar: async () => assert.fail("cobrança paga não espera: para") }));
+    assert.equal(r2.motivoFim, "cobranca_paga");
+    assert.equal(L.carregarMissoes(paga.dirM)[0].status, "READY");
+    assert.match(readFileSync(r2.relatorio, "utf8"), /não roda pago/);
+  } finally {
+    if (antes === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = antes;
+    delete process.env.VOLTA_EM;
+  }
 });

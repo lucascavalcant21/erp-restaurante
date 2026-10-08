@@ -332,7 +332,9 @@ export function analisarInicio(saida, conectores = {}) {
       leitura: doConector.filter((p) => (c.leitura || []).includes(p.ferramenta) || (c.sqlGuardado || []).includes(p.ferramenta)).length,
     };
   }
-  return { versao: init.claude_code_version || null, origemChave: init.apiKeySource || null, conectores: porConector };
+  const eventoLimite = String(saida).split(/\r?\n/).map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((j) => j && j.type === "rate_limit_event");
+  const limite = eventoLimite ? vigiarCobranca(eventoLimite)?.limite || null : null;
+  return { versao: init.claude_code_version || null, origemChave: init.apiKeySource ?? null, limite, conectores: porConector };
 }
 
 /**
@@ -384,12 +386,78 @@ export function diagnostico(status, { agora = new Date(), vivo = pidVivo, travad
   return { estado: "RODANDO", detalhe: `missão ${status.current_mission || "–"}, heartbeat há ${Math.max(0, Math.round(idadeMin))} min` };
 }
 
+// ─── só o plano do claude.ai, nunca dinheiro a mais ─────────────────────────
+// Regra do dono (08/10/2026): acabou o limite do plano, o agente espera voltar.
+// Nunca usa chave de API nem "uso extra" pago.
+
+/** Variáveis que trocam a assinatura por cobrança paga (API, Bedrock, Vertex, Foundry). */
+export const VARIAVEIS_PAGAS = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_PROFILE", "ANTHROPIC_FEDERATION_RULE_ID"];
+
+/** Ambiente do motor sem as variáveis pagas: o `claude` usa o login do plano. */
+export function ambienteDoMotor(env = process.env) {
+  const e = { ...env };
+  for (const v of VARIAVEIS_PAGAS) delete e[v];
+  return e;
+}
+
+/**
+ * `apiKeySource` do evento de início. Login do plano aparece como "none" ou
+ * "oauth"; o resto ("ANTHROPIC_API_KEY", "apiKeyHelper", "/login managed key" do
+ * Console…) é cobrança paga. Valor desconhecido conta como pago (nunca pagar).
+ */
+export function fontePaga(apiKeySource) {
+  return apiKeySource != null && !["none", "oauth"].includes(apiKeySource);
+}
+
+/** `claude auth status` (JSON): "claude.ai"/"oauth_token" = plano; "api_key", "api_key_helper", "third_party" = pago. */
+export function loginPago(saidaAuthStatus) {
+  let j;
+  try { j = JSON.parse(String(saidaAuthStatus).slice(String(saidaAuthStatus).indexOf("{"))); } catch { return null; }
+  return j?.authMethod ? !["claude.ai", "oauth_token"].includes(j.authMethod) && j.authMethod !== "none" ? j.authMethod : false : null;
+}
+
+/**
+ * Olha cada evento do `--output-format stream-json` e diz se o motor tem de
+ * parar JÁ: chave paga, uso extra pago em andamento, limite recusado, ou
+ * perto do limite com o uso extra ligado na conta (para antes de cobrar).
+ * { parar, ate (ms), fatal } | { limite } | null
+ */
+export function vigiarCobranca(ev, { margem = 0.97, extraConhecido = null } = {}) {
+  if (!ev || typeof ev !== "object") return null;
+  if (ev.type === "system" && ev.subtype === "init" && fontePaga(ev.apiKeySource)) {
+    return { parar: `o Claude Code está usando cobrança paga (${ev.apiKeySource}), não o plano`, fatal: true };
+  }
+  if (ev.type !== "rate_limit_event") return null;
+  const i = ev.rate_limit_info || {};
+  const janelas = Object.entries(i.unifiedWindows || {}).map(([nome, j]) => ({ nome, uso: Number(j.utilization) || 0, ate: Number(j.resetsAt) * 1000 || null }));
+  if (!janelas.length && i.utilization != null) janelas.push({ nome: i.rateLimitType || "plano", uso: Number(i.utilization) || 0, ate: Number(i.resetsAt) * 1000 || null });
+  const pior = janelas.sort((a, b) => b.uso - a.uso)[0];
+  const ate = (pior?.uso >= margem ? pior.ate : null) || (Number(i.resetsAt) * 1000 || null);
+  // o estado do uso extra nem sempre vem no evento: vale o último conhecido; sem nenhum, "não sei" (null)
+  const extraLigado = i.overageStatus ? i.overageStatus !== "rejected" : extraConhecido;
+  const limite = { status: i.status || null, uso: pior ? pior.uso : null, janela: pior?.nome || i.rateLimitType || null, ate, extraLigado, usandoExtra: Boolean(i.isUsingOverage) };
+  if (i.isUsingOverage) return { parar: "o Claude começou a usar uso extra pago", ate, limite };
+  if (i.status === "rejected") return { parar: "limite do plano atingido", ate, limite };
+  if (extraLigado !== false && pior && pior.uso >= margem) {
+    return { parar: `plano em ${Math.round(pior.uso * 100)}% (${pior.nome}) e o uso extra pago ${extraLigado ? "está ligado" : "pode estar ligado"} na conta: parou antes de cobrar`, ate, limite };
+  }
+  return { limite };
+}
+
+/** "15:30" (hoje) ou "10/10 15:30", no fuso do computador. */
+export function horaDeVolta(ms) {
+  if (!ms) return "em 30 min";
+  const d = new Date(ms);
+  const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? hora : `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} ${hora}`;
+}
+
 /**
  * O motor parou por limite de uso da assinatura/API (não é falha da missão):
  * o runner espera e tenta de novo, sem contar tentativa nem bloquear a missão.
  */
 export function ehLimiteDeUso(saida) {
-  return /Claude AI usage limit reached|usage limit reached|hit your (usage )?limit|limit reached[^\n]{0,40}resets|API Error: (429|529)|rate_limit_error|overloaded_error/i.test(String(saida || ""));
+  return /Claude AI usage limit reached|usage limit reached|hit your [a-z ]{0,20}limit|limit resets|limit reached[^\n]{0,40}resets|credits_required|API Error: (429|529)|rate_limit_error|overloaded_error/i.test(String(saida || ""));
 }
 
 export function registrarLog(arq, linha) {

@@ -113,6 +113,7 @@ Nunca escreva "funciona" sem dizer onde. Mock nunca vira "funcional".
   - qualquer mudança irreversível.
 
 **Nunca:**
+- gastar dinheiro além do plano do claude.ai (chave de API, uso extra pago). Acabou o limite: esperar voltar (DP-007);
 - force push, push na `main`/`master`, `git reset --hard` em branch compartilhado;
 - pular a confirmação de uma ferramenta, ou ofuscar SQL para escapar dela;
 - usar o perfil pessoal do navegador do dono;

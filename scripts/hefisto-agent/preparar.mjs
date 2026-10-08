@@ -11,18 +11,22 @@ import { fileURLToPath } from "node:url";
 import * as L from "./lib.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
+const COMO_DESLIGAR_EXTRA = "Para garantir, desligue os créditos de uso: claude.ai → Configurações → Uso (https://claude.ai/settings/usage), seção \"Usage credits\". Desligado, nada é cobrado além do plano.";
 
 function rodar(arquivo, args, cwd, { timeoutMs = 60000 } = {}) {
   const p = L.prepararSpawn(arquivo, args);
-  const r = spawnSync(p.arquivo, p.args, { cwd, encoding: "utf8", shell: p.shell, windowsHide: true, timeout: timeoutMs, input: "", maxBuffer: 16 * 1024 * 1024 });
+  // mesmo ambiente do motor: sem chave de API, para conferir o que o agente vai usar de verdade
+  const r = spawnSync(p.arquivo, p.args, { cwd, env: L.ambienteDoMotor(process.env), encoding: "utf8", shell: p.shell, windowsHide: true, timeout: timeoutMs, input: "", maxBuffer: 16 * 1024 * 1024 });
   return { ok: r.status === 0, saida: `${r.stdout || ""}${r.stderr || ""}`.trim() };
 }
 
 /**
- * Conectores do claude.ai (Supabase, Vercel): roda um `claude -p` curtinho
- * (modelo haiku, sem ferramentas liberadas) e lê o evento de início, que lista
- * os servidores e as ferramentas carregadas. Grava os prefixos reais em
- * .hefisto-agent/conectores.json para o runner liberar só a leitura deles.
+ * Roda um `claude -p` curtinho (modelo haiku, sem ferramentas liberadas) e lê
+ * o começo da execução:
+ *   - cobrança: tem de ser o plano do claude.ai, nunca chave paga;
+ *   - limite do plano e se o uso extra pago está ligado na conta;
+ *   - conectores (Supabase, Vercel) carregados. Grava os prefixos reais em
+ *     .hefisto-agent/conectores.json para o runner liberar só a leitura deles.
  * Conector ausente é AVISO: o agente ainda trabalha no código e nos testes.
  */
 function conferirConectores(raiz, cfg, motor, executar) {
@@ -35,13 +39,27 @@ function conferirConectores(raiz, cfg, motor, executar) {
     aviso("Conectores", `não deu para conferir (${sonda.saida.split("\n").filter(Boolean).pop() || "sem resposta"})`, "Rode de novo; para pular este teste: npm run hefisto:preparar -- --sem-conectores");
     return itens;
   }
+  if (L.fontePaga(r.origemChave)) {
+    itens.push({ ok: false, nome: "Cobrança", detalhe: `o Claude Code está usando cobrança paga (${r.origemChave}), não o plano`,
+      comoResolver: "Entre com a conta do plano: rode claude dentro da pasta do projeto e use /login (conta do claude.ai). O agente se recusa a rodar pago." });
+  } else {
+    itens.push({ ok: true, nome: "Cobrança", detalhe: "plano do claude.ai (sem chave de API); acabou o limite, o agente espera voltar" });
+  }
+  if (r.limite) {
+    const pct = r.limite.uso != null ? `${Math.round(r.limite.uso * 100)}% usado (${r.limite.janela === "seven_day" ? "semana" : "janela de 5 h"})` : "uso não informado";
+    itens.push({ ok: true, nome: "Limite do plano", detalhe: `${pct}; volta às ${L.horaDeVolta(r.limite.ate)}` });
+    const margem = `${Math.round((cfg.limites.margemUsoExtra ?? 0.97) * 100)}%`;
+    if (r.limite.extraLigado === true) aviso("Uso extra pago", `ligado na sua conta: o agente para sozinho em ${margem} do plano para não cobrar`, COMO_DESLIGAR_EXTRA);
+    else if (r.limite.extraLigado === false) itens.push({ ok: true, nome: "Uso extra pago", detalhe: "desligado ou sem créditos (nunca cobra a mais)" });
+    else aviso("Uso extra pago", `o Claude não informou agora; por segurança o agente para em ${margem} do plano`, COMO_DESLIGAR_EXTRA);
+  }
   const prefixos = {};
   for (const [chave, info] of Object.entries(r.conectores)) {
     const nome = `Conector ${chave[0].toUpperCase()}${chave.slice(1)}`;
     prefixos[chave] = info.prefixos;
     const estados = info.servidores.map((s) => s.status);
     if (info.ferramentas) {
-      itens.push({ ok: true, nome, detalhe: `carregado: ${info.leitura} ferramenta(s) de leitura liberada(s) à noite, o resto bloqueado (${info.prefixos.join(", ")})` });
+      itens.push({ ok: true, nome, detalhe: `carregado: ${info.usaveis} ferramenta(s) liberada(s) para o agente, o resto bloqueado (${info.prefixos.join(", ")})` });
     } else if (estados.includes("needs-auth")) {
       aviso(nome, "precisa autorizar", "Rode claude dentro da pasta do projeto, digite /mcp, escolha o conector e Authenticate.");
     } else if (estados.length) {
@@ -100,11 +118,14 @@ export function verificar(raiz, cfg, { criarBranch = true, sondarConectores = tr
   if (ehClaudeCode) {
     const login = executar(motor, ["auth", "status"], raiz);
     add(login.ok, "Login no Claude Code", login.ok ? "logado" : "não logado", "Rode `claude` uma vez dentro da pasta do projeto e faça login no navegador.");
-    if (login.ok && sondarConectores && L.entradasConectores(cfg.conectores).length) itens.push(...conferirConectores(raiz, cfg, motor, executar));
+    const pago = login.ok ? L.loginPago(login.saida) : null;
+    if (pago) add(false, "Cobrança", `o login do Claude Code é pago (${pago}), não o plano do claude.ai`, "Rode claude dentro da pasta do projeto, use /logout e depois /login com a conta do plano (claude.ai). O agente se recusa a rodar pago.");
+    if (login.ok && sondarConectores) itens.push(...conferirConectores(raiz, cfg, motor, executar));
   }
-  if (process.env.ANTHROPIC_API_KEY) {
-    itens.push({ ok: true, aviso: true, nome: "Cobrança", detalhe: "ANTHROPIC_API_KEY está definida neste terminal: o agente vai cobrar na API, não na sua assinatura",
-      comoResolver: "Se quiser usar a assinatura, remova a variável deste terminal (CMD: set ANTHROPIC_API_KEY=)." });
+  const pagas = L.VARIAVEIS_PAGAS.filter((v) => process.env[v]);
+  if (pagas.length) {
+    itens.push({ ok: true, aviso: true, nome: "Chave paga no terminal", detalhe: `${pagas.join(", ")} definida(s): o agente ignora e usa só o plano`,
+      comoResolver: "Nada a fazer. Se quiser limpar: CMD set ANTHROPIC_API_KEY= (ou apague nas variáveis de ambiente do Windows)." });
   }
 
   try {

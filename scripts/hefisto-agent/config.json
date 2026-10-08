@@ -11,7 +11,7 @@
   },
   "motor": {
     "comando": "claude",
-    "args": ["-p", "--output-format", "json", "--permission-mode", "dontAsk", "--max-budget-usd", "10"],
+    "args": ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--max-budget-usd", "10"],
     "allowedTools": [
       "Read", "Edit", "Write", "Glob", "Grep", "TodoWrite", "Task",
       "Bash(npm run:*)", "Bash(npm test:*)", "Bash(npm ci:*)", "Bash(npm install:*)", "Bash(npx playwright:*)",
@@ -65,7 +65,8 @@
     "maxTentativas": 6,
     "heartbeatSegundos": 60,
     "travadoAposMinutos": 15,
-    "maxCustoPorDiaUsd": 40,
+    "maxCustoPorDiaUsd": 0,
+    "margemUsoExtra": 0.97,
     "esperaSemMissaoMinutos": 15
   },
   "validacoes": [

@@ -30,10 +30,29 @@ Somente-consulta perdeu esse acesso.
 
 - **Decisão do dono:** "não precisa ser só à noite, pode ser o dia todo, 24h por dia".
 - **Como ficou:** `npm run hefisto:continuo`. Sem missão READY, ele espera e confere de novo.
-  - Teto de gasto por dia: US$ 40 (`maxCustoPorDiaUsd`).
-  - Limite de uso do Claude: espera 30 minutos, sem contar falha na missão.
+  - Limite do plano: espera o plano voltar, sem contar falha na missão (DP-007).
   - Parar: `npm run hefisto:parar`.
 - **Permissões:** as mesmas da noite (conectores só leitura, DA-007).
+
+## DP-007 — Só o plano do claude.ai, nunca dinheiro a mais (08/10/2026)
+
+- **Decisão do dono:** "quando acabar o limite, ele não pode usar dinheiro para mais limite; tem que aguardar os tokens do plano voltarem".
+- **Como ficou** (`scripts/hefisto-agent`):
+  - o motor roda sem `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` nem as variáveis de Bedrock, Vertex e Foundry;
+  - o runner lê o `stream-json` ao vivo:
+    - fonte paga no início (`apiKeySource`): mata o motor e para;
+    - `isUsingOverage`: mata na hora;
+    - plano em 97% com uso extra ligado ou desconhecido: para antes de cobrar;
+    - `status: rejected`: limite atingido;
+  - a missão volta para READY sem tentativa;
+  - o runner espera até o `resetsAt` informado (status `plano_volta_em`) e continua.
+- **Garantia definitiva:** créditos de uso desligados em claude.ai → Configurações → Uso. Fonte: suporte da Anthropic, "extra usage for paid Claude plans".
+- **Teto de gasto por dia:** desligado (`maxCustoPorDiaUsd: 0`). O custo que o Claude Code informa no plano é estimativa, não cobrança.
+- **Evidência:**
+  - TESTADO LOCAL: testes com motor falso (uso extra mata em menos de 15 s; a chave de API não chega ao motor);
+  - TESTADO LOCAL com o Claude Code 2.1.294 real:
+    - o `hefisto:preparar` mostrou "plano do claude.ai", "98% usado, volta às 19:30" e o estado do uso extra;
+    - o formato do `rate_limit_event` foi conferido (com e sem `overageStatus`).
 
 ## Pendentes de decisão do dono
 

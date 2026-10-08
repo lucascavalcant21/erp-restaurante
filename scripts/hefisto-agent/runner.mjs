@@ -61,34 +61,65 @@ function montarPrompt(raiz, m, rodada, branch) {
     .replaceAll("{{HISTORICO}}", hist ? `Últimas rodadas desta missão:\n${hist}` : "Primeira rodada desta missão.");
 }
 
-/** Roda o motor com heartbeat; mata se passar do tempo. */
-function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin, extras }) {
+/**
+ * Roda o motor com heartbeat; mata se passar do tempo. Lê o `stream-json`
+ * linha a linha e mata na hora se aparecer cobrança paga (chave de API ou uso
+ * extra): o agente só gasta o plano.
+ */
+function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin, extras, extraConhecido = null }) {
   return new Promise((resolver) => {
     const args = L.argumentosMotor(cfg, extras);
     let filho;
     try {
       const p = L.prepararSpawn(L.comandoDoMotor(cfg), args);
-      filho = spawn(p.arquivo, p.args, { cwd, env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "pipe"], shell: p.shell, windowsHide: true });
+      filho = spawn(p.arquivo, p.args, { cwd, env: { ...L.ambienteDoMotor(process.env), ...env }, stdio: ["pipe", "pipe", "pipe"], shell: p.shell, windowsHide: true });
     } catch (e) {
       return resolver({ ok: false, codigo: "spawn", saida: String(e.message), texto: "" });
     }
-    let saida = "";
+    const cauda = []; // últimas linhas, para o log
+    let tamanho = 0;
+    let resto = "";
     let erro = "";
     let morto = false;
-    filho.stdout.on("data", (d) => { saida += d; });
-    filho.stderr.on("data", (d) => { erro += d; });
+    let final = null;
+    let cobranca = null;
+    let limite = null;
+    const processar = (linha) => {
+      if (!linha.trim()) return;
+      cauda.push(linha); tamanho += linha.length;
+      while (tamanho > 200000 && cauda.length > 1) tamanho -= cauda.shift().length;
+      let ev;
+      try { ev = JSON.parse(linha); } catch { return; }
+      if (ev && typeof ev === "object" && "result" in ev && (!ev.type || ev.type === "result")) final = ev;
+      const v = L.vigiarCobranca(ev, { margem: cfg.limites.margemUsoExtra ?? 0.97, extraConhecido: limite?.extraLigado ?? extraConhecido ?? null });
+      if (v?.limite) limite = v.limite;
+      if (v?.parar && !cobranca) { cobranca = v; matar(filho); }
+    };
+    filho.stdout.on("data", (d) => {
+      resto += d;
+      let i;
+      while ((i = resto.indexOf("\n")) >= 0) { processar(resto.slice(0, i)); resto = resto.slice(i + 1); }
+    });
+    filho.stderr.on("data", (d) => { erro = (erro + d).slice(-50000); });
     filho.stdin.on("error", () => { /* motor saiu antes de ler o prompt: o código de saída conta */ });
     const batida = setInterval(aoBater, Math.max(5, cfg.limites.heartbeatSegundos) * 1000);
-    const limite = setTimeout(() => { morto = true; matar(filho); }, timeoutMin * 60000);
+    const prazo = setTimeout(() => { morto = true; matar(filho); }, timeoutMin * 60000);
     rodarMotor.atual = filho;
     filho.on("error", (e) => { erro += String(e.message); });
     filho.on("close", (codigo) => {
-      clearInterval(batida); clearTimeout(limite); rodarMotor.atual = null;
-      // --output-format json: um objeto com `result`; senão, texto puro
-      let texto = saida;
-      let custo = null;
-      try { const j = JSON.parse(saida); texto = String(j.result ?? ""); custo = j.total_cost_usd ?? null; } catch { /* texto puro */ }
-      resolver({ ok: codigo === 0 && !morto, codigo: morto ? "timeout" : codigo, saida: `${saida}\n${erro}`, texto, custo });
+      clearInterval(batida); clearTimeout(prazo); rodarMotor.atual = null;
+      processar(resto);
+      // stream-json: o último evento `result` traz o texto final e o custo; sem ele, texto puro
+      const texto = final ? String(final.result ?? "") : cauda.join("\n");
+      resolver({
+        ok: codigo === 0 && !morto && !cobranca,
+        codigo: cobranca ? "cobranca" : morto ? "timeout" : codigo,
+        saida: `${cauda.join("\n")}\n${erro}`,
+        texto,
+        custo: final?.total_cost_usd ?? null,
+        cobranca,
+        limite,
+      });
     });
     filho.stdin.end(prompt);
   });
@@ -181,12 +212,12 @@ export async function rodar(opcoes) {
   const sinal = (s) => { log(`recebido ${s}: encerrando com segurança`); encerrar(s); process.exit(130); };
   if (!opcoes.semSinais) { process.once("SIGINT", sinal); process.once("SIGTERM", sinal); }
 
-  // modo contínuo: espera em passos de 1 minuto, com heartbeat; STOP interrompe
-  const aguardar = async (motivo, { minutos = 0, ateOutroDia = false } = {}) => {
+  // espera em passos de 1 minuto, com heartbeat; STOP interrompe
+  const aguardar = async (motivo, { minutos = 0, ateOutroDia = false, ate = null } = {}) => {
     L.gravarStatus(arqStatus, { estado: "AGUARDANDO", current_mission: null, last_result: motivo });
     if (existsSync(C.statusAtual)) writeFileSync(C.statusAtual, L.atualizarTrechoGerado(readFileSync(C.statusAtual, "utf8"), blocoStatus(L.lerStatus(arqStatus), L.carregarMissoes(C.missoes)), "agente"));
     log(`aguardando: ${motivo}`);
-    const fim = Date.now() + minutos * 60000;
+    const fim = ate || Date.now() + minutos * 60000;
     while (!existsSync(arqStop) && (ateOutroDia ? dia() === hoje : Date.now() < fim)) {
       await esperar(Math.max(1000, Math.min(60000, ateOutroDia ? 60000 : fim - Date.now())));
       L.gravarStatus(arqStatus, { estado: "AGUARDANDO" });
@@ -213,6 +244,15 @@ export async function rodar(opcoes) {
         L.anotarRelatorio(relatorio, "Bloqueadores", motivo);
         if (!continuo) { motivoFim = "limite_custo"; break; }
         await aguardar(`${motivo}; volta amanhã`, { ateOutroDia: true });
+        continue;
+      }
+
+      const pausa = Date.parse(L.lerStatus(arqStatus)?.plano_volta_em || "") || 0;
+      if (pausa > Date.now()) {
+        const motivo = `limite do plano; volta às ${L.horaDeVolta(pausa)}`;
+        // execução normal espera só se o plano volta dentro do horário dela; --uma não espera
+        if (!continuo && (opcoes.uma || pausa - Date.now() > cfg.limites.maxHoras * 3600000 - (Date.now() - inicio))) { motivoFim = "limite_uso"; break; }
+        await aguardar(motivo, { ate: pausa + 2 * 60000 });
         continue;
       }
 
@@ -244,6 +284,7 @@ export async function rodar(opcoes) {
         cwd: raiz,
         env: { HEFISTO_MISSAO_ID: m.id, HEFISTO_MISSAO_ARQUIVO: m.arquivo, HEFISTO_AGENT: "1", HEFISTO_GUARDA_LOG: join(C.estado, "logs", "guarda-sql.log") },
         extras: { settings: conectores.settings },
+        extraConhecido: L.lerStatus(arqStatus)?.plano?.extraLigado ?? null,
         timeoutMin: cfg.limites.maxMinutosPorMissao,
         aoBater: () => L.gravarStatus(arqStatus, { estado: "RODANDO", current_mission: m.id }),
       });
@@ -251,17 +292,26 @@ export async function rodar(opcoes) {
       custoHoje += Number(motor.custo || 0);
       L.gravarStatus(arqStatus, { custo_hoje_usd: Number(custoHoje.toFixed(2)), dia: hoje });
 
-      // limite de uso (assinatura/API): não é falha da missão; volta para READY sem contar tentativa
-      if (!motor.ok && L.ehLimiteDeUso(motor.saida)) {
+      if (motor.limite) L.gravarStatus(arqStatus, { plano: motor.limite });
+      // só o plano, nunca dinheiro a mais: cobrança paga, uso extra ou limite do
+      // plano não são falha da missão; ela volta para READY sem contar tentativa
+      if (motor.cobranca || (!motor.ok && L.ehLimiteDeUso(motor.saida))) {
+        const motivo = motor.cobranca?.parar || "limite de uso do Claude";
         const volta = L.lerMissao(m.arquivo);
         volta.status = "READY";
-        volta.corpo = L.anotarSecao(volta.corpo, "Histórico", `${new Date().toISOString().slice(0, 16)} rodada ${rodada} não contou: limite de uso do Claude`);
+        volta.corpo = L.anotarSecao(volta.corpo, "Histórico", `${new Date().toISOString().slice(0, 16)} rodada ${rodada} não contou: ${motivo}`);
         L.gravarMissao(volta);
         missaoAtual = null;
-        L.anotarRelatorio(relatorio, "Bloqueadores", `limite de uso do Claude às ${new Date().toISOString().slice(11, 16)} UTC`);
-        if (!continuo) { motivoFim = "limite_uso"; break; }
-        await aguardar("limite de uso do Claude; tenta de novo em 30 min", { minutos: 30 });
-        continue;
+        if (motor.cobranca?.fatal) {
+          L.anotarRelatorio(relatorio, "Bloqueadores", `${motivo}. O agente não roda pago: entre no claude com a conta do plano (claude, depois /login) e rode npm run hefisto:preparar`);
+          log(`PAROU: ${motivo}`);
+          motivoFim = "cobranca_paga";
+          break;
+        }
+        const ate = motor.cobranca?.ate || motor.limite?.ate || Date.now() + 30 * 60000;
+        L.gravarStatus(arqStatus, { plano_volta_em: new Date(ate).toISOString() });
+        L.anotarRelatorio(relatorio, "Bloqueadores", `${motivo}; volta às ${L.horaDeVolta(ate)} (sem pagar a mais)`);
+        continue; // a pré-checagem do laço espera (ou encerra a execução normal)
       }
       const declarado = L.lerResultadoDoAgente(motor.texto);
       const depois = L.lerMissao(m.arquivo);

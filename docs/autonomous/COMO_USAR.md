@@ -42,8 +42,7 @@ npm run hefisto:noite
 
 **24 horas por dia:** no lugar do `hefisto:noite`, use `npm run hefisto:continuo`.
 - Ele não para quando acabam as missões: espera 15 minutos e confere de novo. Missão nova que você liberar (`npm run hefisto:missoes -- pronta HDEV-00X`) entra sozinha.
-- **Teto de gasto por dia:** US$ 40 (`maxCustoPorDiaUsd` no `config.json`). Bateu o teto, ele espera o dia virar.
-- **Limite de uso do Claude:** se a sua assinatura bater o limite, ele espera 30 minutos e tenta de novo. A missão não conta como falha.
+- **Só o plano, nunca dinheiro a mais.** Acabou o limite do plano, ele espera voltar. Ver "Cobrança: só o plano" abaixo.
 - Cada dia tem o seu relatório em `docs/brain/07_RELATORIOS/NOTURNOS/AAAA-MM-DD.md`.
 - Deixe o computador ligado e sem suspender (Windows: Configurações → Sistema → Energia → "Suspender: Nunca").
 - `npm run hefisto:status` mostra **AGUARDANDO** quando ele está esperando missão, teto ou limite.
@@ -72,7 +71,23 @@ Depois:
 4. **Se `claude` abrir o app Claude Desktop:** um Claude Desktop antigo pode ter tomado o nome. Rode `where.exe claude` e use o `HEFISTO_AGENT_CLAUDE` acima.
 5. **Recomendado: Git for Windows** (https://git-scm.com/downloads/win). O agente roda os comandos no Git Bash. Sem ele, usa o PowerShell, e as regras do agente cobrem os dois.
 
-**Cobrança:** se a variável `ANTHROPIC_API_KEY` estiver definida no seu computador, o `claude -p` cobra na API, e não na sua assinatura. O `npm run hefisto:preparar` avisa quando isso acontece.
+### Cobrança: só o plano, nunca dinheiro a mais
+
+Regra do dono: acabou o limite do plano, o agente **espera voltar**. Nunca paga a mais.
+
+- **Sem chave de API:** o runner tira `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` e as variáveis de Bedrock/Vertex/Foundry antes de chamar o `claude`. Ele usa só o login do plano.
+- **Confere no começo de cada rodada:** se o Claude Code disser que está usando cobrança paga (chave de API, `apiKeyHelper`, login do Console), o runner mata na hora e para tudo. O motivo fica no relatório.
+- **Uso extra pago ("Usage credits"):**
+  - se o Claude começar a usar uso extra, o runner mata na hora;
+  - se o uso extra estiver ligado (ou o Claude não informar), ele para em **97%** do plano, antes de cobrar;
+  - com o uso extra desligado, ele gasta o plano até o fim.
+- **Limite do plano:** a missão volta para READY sem contar como falha. O runner espera até o horário em que o plano volta, que o próprio Claude informa (janela de 5 horas ou da semana), e continua sozinho.
+- **Garantia definitiva:** deixe os créditos de uso **desligados** no claude.ai → Configurações → Uso (https://claude.ai/settings/usage), seção "Usage credits". Desligados, nada é cobrado além do plano.
+- O `npm run hefisto:preparar` mostra:
+  - a forma de cobrança;
+  - quanto do plano já foi usado e quando volta;
+  - se o uso extra está ligado.
+
 
 ### Conectores à noite (Supabase e Vercel)
 
@@ -167,13 +182,14 @@ O agente registra o pedido em BLOQUEADORES/ACESSOS e segue no resto.
 
 ## TRAVAS DE SEGURANÇA (`scripts/hefisto-agent/config.json`)
 
-- **Teto de gasto por rodada:** `--max-budget-usd 10`. Ajuste se quiser.
+- **Só o plano:** sem chave de API; para antes de usar uso extra pago; espera o plano voltar (seção "Cobrança: só o plano").
+- **Teto por rodada:** `--max-budget-usd 10` (estimativa do Claude Code). Ajuste se quiser.
 - **Ferramentas permitidas e proibidas** (modo `dontAsk`: o que não está liberado é negado).
   - Proibidas: force push, push na main, `reset --hard`, `rm -rf`, reset/push de banco, merge de PR, deploy de produção, `psql`, `curl`.
 - **Conectores Supabase/Vercel só leitura**, com o SQL pela guarda (seção "Conectores à noite"). Lista em `conectores` no `config.json`.
 - **Por execução** (`hefisto:noite`): até 6 missões e 8 horas. No `hefisto:continuo` esses dois não valem; vale o teto de gasto por dia.
 - **Por missão:** 90 minutos por rodada.
-- **Teto de gasto por dia:** US$ 40 (`maxCustoPorDiaUsd`).
+- **Teto de gasto por dia:** desligado (`maxCustoPorDiaUsd: 0`), porque o agente não paga nada além do plano. Ponha um valor se quiser um limite extra.
 - **Anti-loop:**
   - a mesma falha 3x → BLOCKED;
   - 2 rodadas sem progresso → BLOCKED;

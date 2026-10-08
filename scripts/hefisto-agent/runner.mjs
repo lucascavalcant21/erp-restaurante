@@ -14,6 +14,8 @@
 //   --config <arq>      outra configuração (padrão: scripts/hefisto-agent/config.json)
 //   --dry-run           só mostra a missão escolhida e o prompt; não muda nada
 //   --uma               no máximo uma missão nesta execução
+//   --continuo          24 horas por dia: sem missão READY, espera e confere de
+//                       novo; respeita o teto de gasto do dia e o limite de uso
 // Parar com segurança: `npm run hefisto:parar` (cria .hefisto-agent/STOP).
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { join, relative, resolve, dirname } from "node:path";
@@ -31,6 +33,7 @@ function argumentos(argv) {
     else if (a === "--config") o.config = resolve(argv[++i]);
     else if (a === "--dry-run") o.dryRun = true;
     else if (a === "--uma") o.uma = true;
+    else if (a === "--continuo") o.continuo = true;
     else throw new Error(`opção desconhecida: ${a}`);
   }
   return o;
@@ -154,10 +157,14 @@ export async function rodar(opcoes) {
   if (existsSync(arqStop)) { rmSync(arqLock, { force: true }); log("STOP presente: nada a fazer. Apague .hefisto-agent/STOP (ou rode npm run hefisto:agent -- depois de remover) para voltar."); return { missoes: [], motivoFim: "stop" }; }
 
   const inicio = new Date();
-  const hoje = inicio.toISOString().slice(0, 10);
-  const relatorio = L.garantirRelatorioNoturno(C.noturnos, hoje, inicio.toISOString());
-  L.gravarStatus(arqStatus, { estado: "RODANDO", pid: process.pid, agent_started_at: inicio.toISOString(), current_mission: null, last_result: null });
-  log(`runner iniciado (pid ${process.pid})`);
+  const dia = () => new Date().toISOString().slice(0, 10);
+  let hoje = dia();
+  let relatorio = L.garantirRelatorioNoturno(C.noturnos, hoje, inicio.toISOString());
+  let custoHoje = 0;
+  const continuo = Boolean(opcoes.continuo);
+  const esperar = opcoes.esperar || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  L.gravarStatus(arqStatus, { estado: "RODANDO", pid: process.pid, agent_started_at: inicio.toISOString(), current_mission: null, last_result: null, modo: continuo ? "contínuo" : "uma execução" });
+  log(`runner iniciado (pid ${process.pid}${continuo ? ", modo contínuo 24h" : ""})`);
   const conectores = prepararConectores(cfg, C, opcoes.config, true);
   log(conectores.resumo);
 
@@ -174,17 +181,48 @@ export async function rodar(opcoes) {
   const sinal = (s) => { log(`recebido ${s}: encerrando com segurança`); encerrar(s); process.exit(130); };
   if (!opcoes.semSinais) { process.once("SIGINT", sinal); process.once("SIGTERM", sinal); }
 
+  // modo contínuo: espera em passos de 1 minuto, com heartbeat; STOP interrompe
+  const aguardar = async (motivo, { minutos = 0, ateOutroDia = false } = {}) => {
+    L.gravarStatus(arqStatus, { estado: "AGUARDANDO", current_mission: null, last_result: motivo });
+    if (existsSync(C.statusAtual)) writeFileSync(C.statusAtual, L.atualizarTrechoGerado(readFileSync(C.statusAtual, "utf8"), blocoStatus(L.lerStatus(arqStatus), L.carregarMissoes(C.missoes)), "agente"));
+    log(`aguardando: ${motivo}`);
+    const fim = Date.now() + minutos * 60000;
+    while (!existsSync(arqStop) && (ateOutroDia ? dia() === hoje : Date.now() < fim)) {
+      await esperar(Math.max(1000, Math.min(60000, ateOutroDia ? 60000 : fim - Date.now())));
+      L.gravarStatus(arqStatus, { estado: "AGUARDANDO" });
+    }
+    L.gravarStatus(arqStatus, { estado: "RODANDO" });
+  };
+
   const feitas = [];
   let motivoFim = "sem_missao";
   try {
     for (;;) {
       if (existsSync(arqStop)) { motivoFim = "stop"; break; }
-      if (feitas.length >= (opcoes.uma ? 1 : cfg.limites.maxMissoesPorExecucao)) { motivoFim = "limite_missoes"; break; }
-      if ((Date.now() - inicio) / 3600000 >= cfg.limites.maxHoras) { motivoFim = "limite_horas"; break; }
+      if (dia() !== hoje) { // virou o dia: relatório novo e gasto zerado
+        L.fecharRelatorio(relatorio, new Date().toISOString());
+        hoje = dia();
+        relatorio = L.garantirRelatorioNoturno(C.noturnos, hoje, new Date().toISOString());
+        custoHoje = 0;
+      }
+      if (!continuo && feitas.length >= (opcoes.uma ? 1 : cfg.limites.maxMissoesPorExecucao)) { motivoFim = "limite_missoes"; break; }
+      if (!continuo && (Date.now() - inicio) / 3600000 >= cfg.limites.maxHoras) { motivoFim = "limite_horas"; break; }
+      const teto = cfg.limites.maxCustoPorDiaUsd;
+      if (teto && custoHoje >= teto) {
+        const motivo = `teto de gasto do dia atingido (US$ ${custoHoje.toFixed(2)} de ${teto})`;
+        L.anotarRelatorio(relatorio, "Bloqueadores", motivo);
+        if (!continuo) { motivoFim = "limite_custo"; break; }
+        await aguardar(`${motivo}; volta amanhã`, { ateOutroDia: true });
+        continue;
+      }
 
       const todas = L.carregarMissoes(C.missoes);
       const m = L.proximaMissao(todas);
-      if (!m) { motivoFim = "sem_missao"; break; }
+      if (!m) {
+        if (!continuo) { motivoFim = "sem_missao"; break; }
+        await aguardar("nenhuma missão READY; confere de novo", { minutos: cfg.limites.esperaSemMissaoMinutos || 15 });
+        continue;
+      }
 
       const rodada = (m.tentativas || 0) + 1;
       const branch = git(raiz, "branch", "--show-current");
@@ -210,6 +248,21 @@ export async function rodar(opcoes) {
         aoBater: () => L.gravarStatus(arqStatus, { estado: "RODANDO", current_mission: m.id }),
       });
       L.registrarLog(join(C.estado, "logs", `${hoje}-${m.id}.log`), `rodada ${rodada} motor=${motor.codigo}\n${motor.saida.slice(-20000)}`);
+      custoHoje += Number(motor.custo || 0);
+      L.gravarStatus(arqStatus, { custo_hoje_usd: Number(custoHoje.toFixed(2)), dia: hoje });
+
+      // limite de uso (assinatura/API): não é falha da missão; volta para READY sem contar tentativa
+      if (!motor.ok && L.ehLimiteDeUso(motor.saida)) {
+        const volta = L.lerMissao(m.arquivo);
+        volta.status = "READY";
+        volta.corpo = L.anotarSecao(volta.corpo, "Histórico", `${new Date().toISOString().slice(0, 16)} rodada ${rodada} não contou: limite de uso do Claude`);
+        L.gravarMissao(volta);
+        missaoAtual = null;
+        L.anotarRelatorio(relatorio, "Bloqueadores", `limite de uso do Claude às ${new Date().toISOString().slice(11, 16)} UTC`);
+        if (!continuo) { motivoFim = "limite_uso"; break; }
+        await aguardar("limite de uso do Claude; tenta de novo em 30 min", { minutos: 30 });
+        continue;
+      }
       const declarado = L.lerResultadoDoAgente(motor.texto);
       const depois = L.lerMissao(m.arquivo);
       const headDepois = git(raiz, "rev-parse", "HEAD");

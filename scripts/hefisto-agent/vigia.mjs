@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// VIGIA (modo noite): `npm run hefisto:noite` — roda o runner e, se o
-// processo cair de forma anormal (crash, OOM), registra e reinicia, até 3
-// vezes, com espera crescente. Saída normal (sem missão, STOP, limites) encerra.
+// VIGIA: `npm run hefisto:noite` (uma execução) ou `npm run hefisto:continuo`
+// (24 horas por dia). Roda o runner e, se o processo cair de forma anormal
+// (crash, OOM), registra e reinicia, até 3 vezes seguidas, com espera crescente.
+// Uma execução estável (30 min ou mais) zera a contagem. Saída normal (sem
+// missão, STOP, limites) encerra.
 // Tudo vai para .hefisto-agent/logs/vigia.log.
 import { spawn } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
@@ -25,7 +27,9 @@ function rodarUmaVez() {
 let reinicios = 0;
 for (;;) {
   log(`iniciando runner (tentativa ${reinicios + 1})`);
+  const t0 = Date.now();
   const { codigo, sinal } = await rodarUmaVez();
+  if (Date.now() - t0 >= 30 * 60000) reinicios = 0; // rodou estável: queda isolada não conta acumulado
   if (codigo === 0) { log("runner terminou normalmente"); break; }
   if (existsSync(join(estado, "STOP"))) { log("STOP presente: não reinicia"); break; }
   if (sinal === "SIGINT" || codigo === 130) { log("interrompido pelo dono: não reinicia"); break; }

@@ -19,7 +19,7 @@ O ciclo de trabalho está em `.claude/skills/hefisto-ciclo/SKILL.md`.
 |---|---|
 | Memória do projeto (Obsidian) | `docs/brain/` (comece em `00_HOME.md`) |
 | Missões | `docs/brain/03_ROADMAP/missoes/HDEV-*.md` (frontmatter = estado) |
-| Agente autônomo | `scripts/hefisto-agent/` · `npm run hefisto:agent` / `hefisto:noite` / `hefisto:status` / `hefisto:missoes` / `hefisto:parar` · `docs/autonomous/COMO_USAR.md` |
+| Agente autônomo | `scripts/hefisto-agent/` · `npm run hefisto:agent` / `hefisto:noite` / `hefisto:continuo` (24h) / `hefisto:status` / `hefisto:missoes` / `hefisto:parar` · `docs/autonomous/COMO_USAR.md` |
 | Intelligence Core | `app/lib/intelligence/` · APIs `app/api/intelligence/*` · telas `app/dashboard/inteligencia`, `app/components/intelligence/` |
 | Permissões | `app/lib/permissions-catalog.mjs` (rotas) · banco: `hefisto_user_can` (`docs/controle-acesso-rbac.sql`) |
 | SQL e migrações | `db/` (fases EST_MOV, F2, security, 1b, intelligence). **Não há dump confiável do esquema**: confira no banco real |

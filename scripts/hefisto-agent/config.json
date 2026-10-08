@@ -64,7 +64,9 @@
     "maxSemProgresso": 2,
     "maxTentativas": 6,
     "heartbeatSegundos": 60,
-    "travadoAposMinutos": 15
+    "travadoAposMinutos": 15,
+    "maxCustoPorDiaUsd": 40,
+    "esperaSemMissaoMinutos": 15
   },
   "validacoes": [
     { "nome": "intelligence", "comando": "npm run -s test:intelligence", "timeoutMin": 15 },

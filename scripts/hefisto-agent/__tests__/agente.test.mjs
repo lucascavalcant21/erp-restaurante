@@ -140,6 +140,8 @@ let entrada = ""; process.stdin.on("data", (d) => entrada += d); process.stdin.o
   if (process.argv[2] === "done") {
     writeFileSync(arq, readFileSync(arq, "utf8").replace(/^status: .*$/m, "status: DONE"));
     console.log(JSON.stringify({ result: "trabalhei\\nHEFISTO_RESULTADO: " + JSON.stringify({ status: "DONE", resumo: "feito " + process.env.HEFISTO_MISSAO_ID }), total_cost_usd: 0.01 }));
+  } else if (process.argv[2] === "limite") {
+    console.log(JSON.stringify({ is_error: true, result: "Claude AI usage limit reached|1760000000" })); process.exit(1);
   } else if (process.argv[2] === "nada") {
     console.log(JSON.stringify({ result: "não consegui" }));
   } else { process.exit(3); }
@@ -472,4 +474,56 @@ test("runner: passa ao motor o --settings com as regras dos conectores e o ganch
   assert.ok(new RegExp(s.hooks.PreToolUse[0].matcher).test("mcp__claude_ai_supabase__execute_sql"));
   assert.match(s.hooks.PreToolUse[0].hooks[0].command, /^node ".*guarda-sql\.mjs" ".*config\.json"$/);
   assert.equal(guardaLog, join(amb.raiz, ".estado", "logs", "guarda-sql.log"));
+});
+
+// ─── 24 horas por dia ────────────────────────────────────────────────────────
+test("contínuo: faz as missões, espera quando não há READY (AGUARDANDO no status) e para com STOP", async () => {
+  const amb = montarAmbiente();
+  const esperas = [];
+  const esperar = async (ms) => {
+    esperas.push(ms);
+    const st = L.lerStatus(join(amb.raiz, ".estado", "status.json"));
+    assert.equal(st.estado, "AGUARDANDO");
+    assert.equal(L.diagnostico(st, { vivo: () => true }).estado, "AGUARDANDO");
+    if (esperas.length === 2) writeFileSync(join(amb.raiz, ".estado", "STOP"), "x");
+  };
+  const r = await rodar(opcoes(amb, { continuo: true, esperar }));
+  assert.deepEqual(r.missoes, ["HDEV-001", "HDEV-002"]);
+  assert.equal(r.motivoFim, "stop");
+  assert.equal(esperas.length, 2, "espera em passos (heartbeat) até o STOP");
+  assert.ok(esperas.every((ms) => ms <= 60000));
+  assert.match(readFileSync(join(amb.raiz, "brain", "STATUS.md"), "utf8"), /Estado: \*\*ENCERRADO\*\*/);
+});
+
+test("teto de gasto do dia: uma execução para; o contínuo espera o dia virar", async () => {
+  const amb = montarAmbiente({ missoes: { "HDEV-001": { prioridade: 1 }, "HDEV-002": {}, "HDEV-003": {} } });
+  writeFileSync(amb.arqCfg, JSON.stringify({ ...amb.cfg, limites: { ...amb.cfg.limites, maxCustoPorDiaUsd: 0.015 } }));
+  const r = await rodar(opcoes(amb));
+  assert.deepEqual([r.missoes, r.motivoFim], [["HDEV-001", "HDEV-002"], "limite_custo"]);
+  assert.match(readFileSync(r.relatorio, "utf8"), /teto de gasto do dia atingido \(US\$ 0\.02 de 0\.015\)/);
+  assert.equal(L.lerStatus(join(amb.raiz, ".estado", "status.json")).custo_hoje_usd, 0.02);
+
+  const amb2 = montarAmbiente({ missoes: { "HDEV-001": { prioridade: 1 }, "HDEV-002": {}, "HDEV-003": {} } });
+  writeFileSync(amb2.arqCfg, JSON.stringify({ ...amb2.cfg, limites: { ...amb2.cfg.limites, maxCustoPorDiaUsd: 0.015 } }));
+  let motivo = null;
+  const r2 = await rodar(opcoes(amb2, { continuo: true, esperar: async () => { motivo = L.lerStatus(join(amb2.raiz, ".estado", "status.json")).last_result; writeFileSync(join(amb2.raiz, ".estado", "STOP"), "x"); } }));
+  assert.equal(r2.motivoFim, "stop");
+  assert.match(motivo, /teto de gasto.*volta amanhã/);
+});
+
+test("limite de uso do Claude não conta como falha: a missão volta para READY sem tentativa", async () => {
+  const amb = montarAmbiente({ motor: "limite", missoes: { "HDEV-001": { prioridade: 1 } } });
+  const r = await rodar(opcoes(amb));
+  assert.equal(r.motivoFim, "limite_uso");
+  const m = L.carregarMissoes(amb.dirM)[0];
+  assert.deepEqual([m.status, m.tentativas || 0, m.mesma_falha || 0], ["READY", 0, 0]);
+  assert.match(m.corpo, /não contou: limite de uso do Claude/);
+
+  const amb2 = montarAmbiente({ motor: "limite", missoes: { "HDEV-001": { prioridade: 1 } } });
+  const esperas = [];
+  const r2 = await rodar(opcoes(amb2, { continuo: true, esperar: async (ms) => { esperas.push(ms); if (esperas.length >= 3) writeFileSync(join(amb2.raiz, ".estado", "STOP"), "x"); } }));
+  assert.equal(r2.motivoFim, "stop");
+  assert.equal(L.carregarMissoes(amb2.dirM)[0].status, "READY", "nunca bloqueia por limite de uso");
+  assert.ok(L.ehLimiteDeUso("You've hit your limit · resets 3pm"));
+  assert.ok(!L.ehLimiteDeUso("not ok 1 - teste de rate limiter da API"), "texto comum não é limite de uso");
 });

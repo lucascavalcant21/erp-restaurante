@@ -380,7 +380,16 @@ export function diagnostico(status, { agora = new Date(), vivo = pidVivo, travad
   if (status.estado === "ENCERRADO") return { estado: "PARADO", detalhe: `encerrado normalmente: ${status.last_result || "sem resultado"}` };
   if (!vivo(status.pid)) return { estado: "PARADO", detalhe: `o processo ${status.pid} não existe mais (encerrou sem registrar fim)` };
   if (idadeMin > travadoAposMinutos) return { estado: "TRAVADO", detalhe: `processo vivo, mas sem heartbeat há ${Math.round(idadeMin)} min` };
+  if (status.estado === "AGUARDANDO") return { estado: "AGUARDANDO", detalhe: `modo contínuo, esperando: ${status.last_result || "–"}` };
   return { estado: "RODANDO", detalhe: `missão ${status.current_mission || "–"}, heartbeat há ${Math.max(0, Math.round(idadeMin))} min` };
+}
+
+/**
+ * O motor parou por limite de uso da assinatura/API (não é falha da missão):
+ * o runner espera e tenta de novo, sem contar tentativa nem bloquear a missão.
+ */
+export function ehLimiteDeUso(saida) {
+  return /Claude AI usage limit reached|usage limit reached|hit your (usage )?limit|limit reached[^\n]{0,40}resets|API Error: (429|529)|rate_limit_error|overloaded_error/i.test(String(saida || ""));
 }
 
 export function registrarLog(arq, linha) {

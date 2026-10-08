@@ -26,7 +26,22 @@ Antes, qualquer funcionário abria essas telas, inclusive o custo das fichas no 
 
 Somente-consulta perdeu esse acesso.
 
+## DP-006 — O agente pode trabalhar 24 horas por dia (08/10/2026)
+
+- **Decisão do dono:** "não precisa ser só à noite, pode ser o dia todo, 24h por dia".
+- **Como ficou:** `npm run hefisto:continuo`. Sem missão READY, ele espera e confere de novo.
+  - Teto de gasto por dia: US$ 40 (`maxCustoPorDiaUsd`).
+  - Limite de uso do Claude: espera 30 minutos, sem contar falha na missão.
+  - Parar: `npm run hefisto:parar`.
+- **Permissões:** as mesmas da noite (conectores só leitura, DA-007).
+
 ## Pendentes de decisão do dono
+
+- **Agente com escrita em produção** (pedido de 08/10: aplicar migração, escrever no banco, branches do Supabase, deploy, promover e reverter, ver e mudar variáveis de ambiente).
+  - A verificação de segurança automática da sessão de desenvolvimento recusou a mudança, por dar a um agente sem supervisão poder de deploy e escrita em produção.
+  - Para seguir, o dono precisa confirmar com a sessão em modo Auto.
+  - Desenho proposto: a guarda continua recusando DROP, TRUNCATE, DELETE/UPDATE sem WHERE, desligar RLS, policy aberta, auth.* e segredo em NEXT_PUBLIC_.
+
 
 - **Correção de RLS crítico:** colaboradores, registro de ponto e tabelas multiempresa. Ver [[HDEV-008]] e BLQ-005.
 - **Merge do PR #127 para produção:** BLQ-004.

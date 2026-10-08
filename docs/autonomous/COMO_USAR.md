@@ -32,6 +32,14 @@ npm run hefisto:noite
 - `npm run hefisto:agent -- --dry-run` mostra a missão que vai pegar; não muda nada.
 - `npm run hefisto:noite` roda a noite inteira e reinicia sozinho se cair. Deixe a janela aberta e o computador sem suspender.
 
+**24 horas por dia:** no lugar do `hefisto:noite`, use `npm run hefisto:continuo`.
+- Ele não para quando acabam as missões: espera 15 minutos e confere de novo. Missão nova que você liberar (`npm run hefisto:missoes -- pronta HDEV-00X`) entra sozinha.
+- **Teto de gasto por dia:** US$ 40 (`maxCustoPorDiaUsd` no `config.json`). Bateu o teto, ele espera o dia virar.
+- **Limite de uso do Claude:** se a sua assinatura bater o limite, ele espera 30 minutos e tenta de novo. A missão não conta como falha.
+- Cada dia tem o seu relatório em `docs/brain/07_RELATORIOS/NOTURNOS/AAAA-MM-DD.md`.
+- Deixe o computador ligado e sem suspender (Windows: Configurações → Sistema → Energia → "Suspender: Nunca").
+- `npm run hefisto:status` mostra **AGUARDANDO** quando ele está esperando missão, teto ou limite.
+
 **Só uma missão:** `npm run hefisto:agent -- --uma`.
 
 **Precisa de:**
@@ -155,7 +163,9 @@ O agente registra o pedido em BLOQUEADORES/ACESSOS e segue no resto.
 - **Ferramentas permitidas e proibidas** (modo `dontAsk`: o que não está liberado é negado).
   - Proibidas: force push, push na main, `reset --hard`, `rm -rf`, reset/push de banco, merge de PR, deploy de produção, `psql`, `curl`.
 - **Conectores Supabase/Vercel só leitura**, com o SQL pela guarda (seção "Conectores à noite"). Lista em `conectores` no `config.json`.
-- **Por execução:** até 6 missões, 8 horas, 90 minutos por missão.
+- **Por execução** (`hefisto:noite`): até 6 missões e 8 horas. No `hefisto:continuo` esses dois não valem; vale o teto de gasto por dia.
+- **Por missão:** 90 minutos por rodada.
+- **Teto de gasto por dia:** US$ 40 (`maxCustoPorDiaUsd`).
 - **Anti-loop:**
   - a mesma falha 3x → BLOCKED;
   - 2 rodadas sem progresso → BLOCKED;

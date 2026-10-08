@@ -6,6 +6,14 @@ O agente pega a próxima missão pronta, trabalha, testa, corrige, commita e doc
 
 **No seu computador (Windows, macOS ou Linux).** Todos os comandos são iguais no CMD, no PowerShell e no terminal do Mac/Linux. Abra o terminal **dentro da pasta do projeto**.
 
+**Atalho para o CMD (uma linha só; serve na primeira vez e nas seguintes):**
+
+```
+cd /d %USERPROFILE% && (if not exist erp-restaurante git clone https://github.com/lucascavalcant21/erp-restaurante.git) && cd erp-restaurante && git fetch origin && git checkout claude/fervent-bell-t363k5 && git pull && npm ci && npm run hefisto:preparar
+```
+
+Depois, na mesma janela (já dentro de `erp-restaurante`): `npm run hefisto:continuo`. O erro `ENOENT … C:\Users\<você>\package.json` quer dizer que o comando rodou fora da pasta do projeto.
+
 **1. Só na primeira vez:** pegar o projeto e o branch que tem o agente. Enquanto o PR #127 não entrar na `main`, o agente só existe nesse branch.
 
 ```

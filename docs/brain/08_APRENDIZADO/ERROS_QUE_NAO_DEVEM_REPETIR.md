@@ -21,3 +21,5 @@
     - SQL só pelo gancho `guarda-sql.mjs`;
     - transação somente leitura no banco.
     Ver DA-007.
+11. **O dono rodou de novo fora da pasta do projeto (08/10/2026):** `npm run hefisto:continuo` em `C:\Users\lucas` deu `ENOENT package.json`. Toda instrução de execução começa com uma linha única que entra na pasta (e clona se faltar), como o atalho do `COMO_USAR`.
+

@@ -66,7 +66,8 @@ function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin }) {
     if (cfg.motor.disallowedTools?.length) args.push("--disallowedTools", ...cfg.motor.disallowedTools);
     let filho;
     try {
-      filho = spawn(cfg.motor.comando, args, { cwd, env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "pipe"] });
+      const p = L.prepararSpawn(cfg.motor.comando, args);
+      filho = spawn(p.arquivo, p.args, { cwd, env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "pipe"], shell: p.shell, windowsHide: true });
     } catch (e) {
       return resolver({ ok: false, codigo: "spawn", saida: String(e.message), texto: "" });
     }
@@ -75,8 +76,9 @@ function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin }) {
     let morto = false;
     filho.stdout.on("data", (d) => { saida += d; });
     filho.stderr.on("data", (d) => { erro += d; });
+    filho.stdin.on("error", () => { /* motor saiu antes de ler o prompt: o código de saída conta */ });
     const batida = setInterval(aoBater, Math.max(5, cfg.limites.heartbeatSegundos) * 1000);
-    const limite = setTimeout(() => { morto = true; filho.kill("SIGTERM"); setTimeout(() => filho.kill("SIGKILL"), 10000); }, timeoutMin * 60000);
+    const limite = setTimeout(() => { morto = true; matar(filho); }, timeoutMin * 60000);
     rodarMotor.atual = filho;
     filho.on("error", (e) => { erro += String(e.message); });
     filho.on("close", (codigo) => {
@@ -89,6 +91,14 @@ function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin }) {
     });
     filho.stdin.end(prompt);
   });
+}
+
+function matar(filho) {
+  if (!filho || filho.exitCode !== null) return;
+  const t = L.comandoParaMatar(filho.pid);
+  if (t) { spawnSync(t.arquivo, t.args, { windowsHide: true }); return; }
+  filho.kill("SIGTERM");
+  setTimeout(() => { if (filho.exitCode === null) filho.kill("SIGKILL"); }, 10000).unref();
 }
 
 export async function rodar(opcoes) {
@@ -135,7 +145,7 @@ export async function rodar(opcoes) {
       const m = L.lerMissao(missaoAtual);
       if (m.status === "IN_PROGRESS") { m.status = "READY"; m.corpo = L.anotarSecao(m.corpo, "Histórico", `${new Date().toISOString().slice(0, 16)} interrompida (${motivo}); volta para READY`); L.gravarMissao(m); }
     }
-    rodarMotor.atual?.kill("SIGTERM");
+    matar(rodarMotor.atual);
     L.gravarStatus(arqStatus, { estado: "ENCERRADO", last_result: `interrompido: ${motivo}` });
     rmSync(arqLock, { force: true });
   };
@@ -156,7 +166,7 @@ export async function rodar(opcoes) {
 
       const rodada = (m.tentativas || 0) + 1;
       const branch = git(raiz, "branch", "--show-current");
-      if (branch && cfg.branchesProibidas.includes(branch)) throw new Error(`o runner não trabalha no branch ${branch}. Crie um branch de trabalho (ex.: hefisto/noite-${hoje}).`);
+      if (branch && cfg.branchesProibidas.includes(branch)) throw new Error(`o runner não trabalha no branch ${branch}. Rode antes: npm run hefisto:preparar (cria hefisto/noite-${hoje}).`);
 
       m.status = "IN_PROGRESS";
       m.atualizado_em = hoje;

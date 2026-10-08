@@ -69,8 +69,11 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
   - um branch de trabalho (nunca a `main`).
 - **Escopo mínimo:** o repositório clonado
 - **Risco:** BAIXO a MÉDIO (o agente edita, commita e faz push no branch dele)
-- **Como validar depois:** `npm run hefisto:agent -- --dry-run` mostra a próxima missão; `npm run hefisto:status`
-- **Estado:** PENDENTE (opcional: na nuvem dá para usar uma Rotina)
+- **Como validar depois:** `npm run hefisto:preparar` mostra tudo OK (Windows/macOS/Linux); depois `npm run hefisto:agent -- --dry-run`
+- **Estado:** EM ANDAMENTO
+  - 08/10: o dono tentou no Windows (CMD) fora da pasta do projeto.
+  - Instruções para Windows e `hefisto:preparar` criados.
+  - Opcional: na nuvem dá para usar uma Rotina.
 
 ## ACESSO-006
 

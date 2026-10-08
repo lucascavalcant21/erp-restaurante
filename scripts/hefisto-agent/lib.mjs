@@ -222,6 +222,26 @@ export function fecharRelatorio(arquivo, fim) {
   writeFileSync(arquivo, readFileSync(arquivo, "utf8").replace(/^Fim: .*$/m, `Fim: ${fim}`));
 }
 
+// ─── processo do motor (Linux/macOS/Windows) ────────────────────────────────
+/**
+ * No Windows, o `claude` instalado pelo npm é `claude.cmd`. Desde o Node 20,
+ * um .cmd só roda com shell; então montamos a linha para o cmd.exe com cada
+ * argumento entre aspas. Recusa o que o cmd interpretaria (" % e quebra de
+ * linha) em vez de tentar escapar.
+ */
+export function prepararSpawn(comando, args, plataforma = process.platform) {
+  if (plataforma !== "win32") return { arquivo: comando, args, shell: false };
+  for (const a of [comando, ...args]) {
+    if (/["%\r\n]/.test(String(a))) throw new Error(`argumento inseguro para o cmd do Windows: ${a}`);
+  }
+  return { arquivo: [comando, ...args].map((a) => `"${a}"`).join(" "), args: [], shell: true };
+}
+
+/** Encerra o processo e os filhos (no Windows, o cmd.exe e o claude por baixo). */
+export function comandoParaMatar(pid, plataforma = process.platform) {
+  return plataforma === "win32" ? { arquivo: "taskkill", args: ["/pid", String(pid), "/T", "/F"] } : null;
+}
+
 // ─── heartbeat / status ─────────────────────────────────────────────────────
 export function lerStatus(arq) {
   try { return JSON.parse(readFileSync(arq, "utf8")); } catch { return null; }

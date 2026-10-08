@@ -4,19 +4,40 @@ O agente pega a próxima missão pronta, trabalha, testa, corrige, commita e doc
 
 ## COMO INICIAR
 
-**No seu computador (recomendado para a noite):**
+**No seu computador (Windows, macOS ou Linux).** Todos os comandos são iguais no CMD, no PowerShell e no terminal do Mac/Linux. Abra o terminal **dentro da pasta do projeto**.
 
-```bash
-git checkout -b hefisto/noite-$(date +%F)    # nunca na main
+**1. Só na primeira vez:** pegar o projeto e o branch que tem o agente. Enquanto o PR #127 não entrar na `main`, o agente só existe nesse branch.
+
+```
+cd %USERPROFILE%
+git clone https://github.com/lucascavalcant21/erp-restaurante.git
+cd erp-restaurante
+git checkout claude/fervent-bell-t363k5
 npm ci
-npm run hefisto:agent -- --dry-run            # mostra a missão que vai pegar e o prompt; não muda nada
-npm run hefisto:noite                         # roda a noite inteira (reinicia sozinho se cair)
 ```
 
-- **Só uma missão:** `npm run hefisto:agent -- --uma`.
-- **Precisa de:**
-  - Claude Code instalado e logado (`claude`);
-  - os conectores Supabase/Vercel/GitHub configurados no seu Claude Code (`claude mcp`), para o agente alcançar o banco e o deploy.
+- `%USERPROFILE%` é para o CMD. No PowerShell use `cd ~`.
+- Se você já tem a pasta do projeto, entre nela e rode `git fetch origin`, depois `git checkout claude/fervent-bell-t363k5`, depois `git pull`.
+
+**2. Toda noite:**
+
+```
+cd %USERPROFILE%\erp-restaurante
+npm run hefisto:preparar
+npm run hefisto:agent -- --dry-run
+npm run hefisto:noite
+```
+
+- `npm run hefisto:preparar` confere Node, git, branch, `claude`, dependências e missões. Se você estiver na `main`, ele cria o branch `hefisto/noite-AAAA-MM-DD`. Diz o que falta e como resolver.
+- `npm run hefisto:agent -- --dry-run` mostra a missão que vai pegar; não muda nada.
+- `npm run hefisto:noite` roda a noite inteira e reinicia sozinho se cair. Deixe a janela aberta e o computador sem suspender.
+
+**Só uma missão:** `npm run hefisto:agent -- --uma`.
+
+**Precisa de:**
+- **Git e Node.js 20+.**
+- **Claude Code instalado e logado uma vez.** Ver "Instalar o Claude Code no Windows" abaixo.
+- **Para o agente alcançar o banco e o deploy:** os conectores Supabase/Vercel/GitHub configurados no Claude Code do computador (`claude mcp`). Sem eles, ele trabalha só no código e nos testes locais.
 
 **Na nuvem (claude.ai/code), sem computador ligado:**
 1. Crie uma **Rotina** agendada, por exemplo todo dia às 23:50, com uma sessão nova por disparo, neste repositório.

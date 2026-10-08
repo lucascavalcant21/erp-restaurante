@@ -233,6 +233,43 @@ test("missões e status: índice valida dependência inexistente; nova missão; 
   assert.equal(s.proxima, "HDEV-001 — Missão HDEV-001");
 });
 
+test("Windows: claude.cmd vai pelo cmd com cada argumento entre aspas; recusa o que o cmd interpretaria", () => {
+  const linux = L.prepararSpawn("claude", ["-p", "--allowedTools", "Bash(npm run:*)"], "linux");
+  assert.deepEqual(linux, { arquivo: "claude", args: ["-p", "--allowedTools", "Bash(npm run:*)"], shell: false });
+  const win = L.prepararSpawn("claude", ["-p", "--allowedTools", "Bash(npm run:*)", "Read"], "win32");
+  assert.deepEqual(win, { arquivo: '"claude" "-p" "--allowedTools" "Bash(npm run:*)" "Read"', args: [], shell: true });
+  assert.equal(L.prepararSpawn("C:\\Program Files\\nodejs\\node.exe", ["x.mjs"], "win32").arquivo, '"C:\\Program Files\\nodejs\\node.exe" "x.mjs"');
+  assert.throws(() => L.prepararSpawn("claude", ['-p "injeção"'], "win32"), /inseguro/);
+  assert.throws(() => L.prepararSpawn("claude", ["%PATH%"], "win32"), /inseguro/);
+  assert.deepEqual(L.comandoParaMatar(42, "win32"), { arquivo: "taskkill", args: ["/pid", "42", "/T", "/F"] });
+  assert.equal(L.comandoParaMatar(42, "linux"), null);
+  // a configuração real passa pela trava do Windows (nenhum argumento perigoso)
+  assert.doesNotThrow(() => L.prepararSpawn(CFG_REAL.motor.comando, [...CFG_REAL.motor.args, "--allowedTools", ...CFG_REAL.motor.allowedTools, "--disallowedTools", ...CFG_REAL.motor.disallowedTools], "win32"));
+});
+
+test("preparar: fora do repositório explica o que fazer; na main cria o branch da noite com a data", async () => {
+  const { verificar } = await import("../preparar.mjs");
+  const fora = verificar(tmpdir(), CFG_REAL, { executar: () => ({ ok: false, saida: "fatal: not a git repository" }) });
+  assert.equal(fora.find((i) => i.nome === "Repositório git").ok, false);
+  assert.match(fora.find((i) => i.nome === "Repositório git").comoResolver, /git clone/);
+
+  const amb = montarAmbiente();
+  const chamadas = [];
+  const executar = (arquivo, args) => {
+    chamadas.push([arquivo, ...args].join(" "));
+    if (args[0] === "rev-parse" && args[1] === "--show-toplevel") return { ok: true, saida: amb.raiz };
+    if (args[0] === "branch") return { ok: true, saida: "main" };
+    if (args[0] === "rev-parse" && args[1] === "--verify") return { ok: false, saida: "" };
+    if (args[0] === "checkout") return { ok: true, saida: "" };
+    if (args[0] === "--version") return { ok: true, saida: "2.1.293 (Claude Code)" };
+    return { ok: true, saida: "" };
+  };
+  const itens = verificar(amb.raiz, amb.cfg, { executar, hoje: "2026-10-08" });
+  assert.ok(chamadas.includes("git checkout -b hefisto/noite-2026-10-08"), chamadas.join(" | "));
+  assert.match(itens.find((i) => i.nome === "Branch de trabalho").detalhe, /criado hefisto\/noite-2026-10-08 \(a partir de main\)/);
+  assert.equal(itens.find((i) => i.nome === "Missões").ok, true);
+});
+
 test("configuração real: caminhos, limites e travas de segurança presentes", () => {
   for (const k of ["cerebro", "missoes", "ativas", "backlog", "statusAtual", "noturnos", "estado"]) assert.ok(CFG_REAL.caminhos[k], k);
   for (const proibido of ["Bash(git push --force:*)", "Bash(git push origin main:*)", "Bash(rm -rf:*)", "Bash(supabase db reset:*)", "Bash(gh pr merge:*)"]) assert.ok(CFG_REAL.motor.disallowedTools.includes(proibido), proibido);

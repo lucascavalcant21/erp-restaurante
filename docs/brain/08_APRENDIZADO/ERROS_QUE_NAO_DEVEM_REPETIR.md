@@ -9,3 +9,7 @@
 5. **`/tmp` some quando o container reinicia.** O PGlite instalado em `/tmp/pglite` precisa ser reinstalado; os testes de SQL real pulam sem `PGLITE`, então é preciso conferir se rodaram.
 6. **`cmd | tail` dentro de um laço de retry esconde o código de saída.** Usar `if cmd; then …` e conferir o resultado (ex.: `git ls-remote`).
 7. **Publicar sem conseguir verificar depois.** Sem smoke possível, não fazer merge em produção, mesmo com tudo verde localmente.
+8. **Instrução só para Linux para quem usa Windows (08/10/2026).** O dono rodou no CMD, fora da pasta do projeto: `$(date +%F)` não existe no CMD, e o agente ainda não estava na `main`.
+   - Instrução de uso tem que funcionar no CMD/PowerShell. Prefira um comando `npm run …` que faz o trabalho (`hefisto:preparar`) a sintaxe de shell.
+   - Diga em que pasta e em que branch rodar.
+   - No Windows, `claude` é `claude.cmd`: o runner monta a linha para o cmd com aspas e mata a árvore de processos com `taskkill`.

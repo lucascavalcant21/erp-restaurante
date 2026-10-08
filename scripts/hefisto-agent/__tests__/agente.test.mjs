@@ -611,3 +611,61 @@ test("runner: tira a chave de API do motor; uso extra mata o motor na hora e esp
     delete process.env.VOLTA_EM;
   }
 });
+
+// ─── sincronia com o GitHub (git de verdade, remoto local) ──────────────────
+function gitEm(dir, ...args) {
+  const r = spawnSync("git", args, { cwd: dir, encoding: "utf8", env: { ...process.env, GIT_EDITOR: "true" } });
+  if (r.status !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr}`);
+  return r.stdout.trim();
+}
+function repoComRemoto(amb) {
+  const remoto = mkdtempSync(join(tmpdir(), "hefisto-remoto-"));
+  gitEm(remoto, "init", "-q", "--bare", "-b", "hefisto/teste");
+  gitEm(amb.raiz, "init", "-q", "-b", "hefisto/teste");
+  for (const d of [amb.raiz]) { gitEm(d, "config", "user.name", "Agente"); gitEm(d, "config", "user.email", "agente@teste"); }
+  writeFileSync(join(amb.raiz, "x.txt"), "base\n");
+  gitEm(amb.raiz, "add", "-A");
+  gitEm(amb.raiz, "commit", "-q", "-m", "inicio");
+  gitEm(amb.raiz, "remote", "add", "origin", remoto);
+  gitEm(amb.raiz, "push", "-q", "-u", "origin", "hefisto/teste");
+  const outro = mkdtempSync(join(tmpdir(), "hefisto-outro-"));
+  gitEm(outro, "clone", "-q", "-b", "hefisto/teste", remoto, ".");
+  gitEm(outro, "config", "user.name", "Nuvem"); gitEm(outro, "config", "user.email", "nuvem@teste");
+  return { remoto, outro };
+}
+
+test("sincronia: traz o que chegou no GitHub antes da missão e envia o trabalho depois, sem abrir editor", async () => {
+  const amb = montarAmbiente({ missoes: { "HDEV-001": { prioridade: 1 } } });
+  writeFileSync(amb.arqCfg, JSON.stringify({ ...amb.cfg, commitarMemoria: true }));
+  writeFileSync(join(amb.raiz, ".gitignore"), ".estado/\nargv-motor.json\n");
+  const { remoto, outro } = repoComRemoto(amb);
+  // commit local que ainda não subiu (o caso do dono) + commit novo no GitHub (outra sessão)
+  writeFileSync(join(amb.raiz, "local.txt"), "do computador\n");
+  gitEm(amb.raiz, "add", "local.txt"); gitEm(amb.raiz, "commit", "-q", "-m", "trabalho local");
+  writeFileSync(join(outro, "da-nuvem.txt"), "da nuvem\n");
+  gitEm(outro, "add", "da-nuvem.txt"); gitEm(outro, "commit", "-q", "-m", "da nuvem"); gitEm(outro, "push", "-q");
+
+  await rodar(opcoes(amb, { uma: true }));
+  assert.ok(existsSync(join(amb.raiz, "da-nuvem.txt")), "trouxe o commit da nuvem (merge sem editor)");
+  const noRemoto = spawnSync("git", ["log", "--format=%s", "hefisto/teste"], { cwd: remoto, encoding: "utf8" }).stdout;
+  assert.match(noRemoto, /trabalho local/);
+  assert.match(noRemoto, /chore\(brain\): HDEV-001 rodada 1 → DONE/);
+  assert.match(noRemoto, /da nuvem/);
+});
+
+test("sincronia: conflito não trava a noite; desfaz o merge, registra e segue", async () => {
+  const amb = montarAmbiente({ missoes: { "HDEV-001": { prioridade: 1 } } });
+  writeFileSync(amb.arqCfg, JSON.stringify({ ...amb.cfg, commitarMemoria: true }));
+  writeFileSync(join(amb.raiz, ".gitignore"), ".estado/\nargv-motor.json\n");
+  const { outro } = repoComRemoto(amb);
+  writeFileSync(join(amb.raiz, "x.txt"), "versão do computador\n");
+  gitEm(amb.raiz, "commit", "-q", "-am", "local muda x");
+  writeFileSync(join(outro, "x.txt"), "versão da nuvem\n");
+  gitEm(outro, "commit", "-q", "-am", "nuvem muda x"); gitEm(outro, "push", "-q");
+
+  const r = await rodar(opcoes(amb, { uma: true }));
+  assert.equal(L.carregarMissoes(amb.dirM)[0].status, "DONE", "a missão seguiu");
+  assert.equal(readFileSync(join(amb.raiz, "x.txt"), "utf8"), "versão do computador\n");
+  assert.equal(spawnSync("git", ["status", "--porcelain", "x.txt"], { cwd: amb.raiz, encoding: "utf8" }).stdout, "", "sem merge pela metade");
+  assert.match(readFileSync(r.relatorio, "utf8"), /conflito ao trazer origin\/hefisto\/teste/);
+});

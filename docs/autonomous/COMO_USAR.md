@@ -9,10 +9,14 @@ O agente pega a próxima missão pronta, trabalha, testa, corrige, commita e doc
 **Atalho para o CMD (uma linha só; serve na primeira vez e nas seguintes):**
 
 ```
-cd /d %USERPROFILE% && (if not exist erp-restaurante git clone https://github.com/lucascavalcant21/erp-restaurante.git) && cd erp-restaurante && git fetch origin && git checkout claude/fervent-bell-t363k5 && git pull && npm ci && npm run hefisto:preparar
+cd /d %USERPROFILE% && (if not exist erp-restaurante git clone https://github.com/lucascavalcant21/erp-restaurante.git) && cd erp-restaurante && git fetch origin && git checkout claude/fervent-bell-t363k5 && git pull --no-edit && npm ci && npm run hefisto:preparar
 ```
 
-Depois, na mesma janela (já dentro de `erp-restaurante`): `npm run hefisto:continuo`. O erro `ENOENT … C:\Users\<você>\package.json` quer dizer que o comando rodou fora da pasta do projeto.
+Depois, na mesma janela (já dentro de `erp-restaurante`): `npm run hefisto:continuo`.
+
+**Se abrir uma tela escura com `Merge branch …` e linhas `~` (editor Vim):** aperte `Esc`, digite `:wq` e aperte `Enter`. O Git termina de juntar o trabalho do seu computador com o do GitHub. Use sempre `git pull --no-edit` para essa tela não abrir.
+
+**Sincronia:** o agente traz o que chegou no GitHub antes de cada missão e envia o trabalho dele depois, sem abrir editor. Se houver conflito, ele desfaz, registra no relatório e segue com a cópia local. O erro `ENOENT … C:\Users\<você>\package.json` quer dizer que o comando rodou fora da pasta do projeto.
 
 **1. Só na primeira vez:** pegar o projeto e o branch que tem o agente. Enquanto o PR #127 não entrar na `main`, o agente só existe nesse branch.
 

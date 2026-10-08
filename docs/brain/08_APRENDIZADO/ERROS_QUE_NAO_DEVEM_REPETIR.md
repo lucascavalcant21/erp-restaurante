@@ -22,4 +22,7 @@
     - transação somente leitura no banco.
     Ver DA-007.
 11. **O dono rodou de novo fora da pasta do projeto (08/10/2026):** `npm run hefisto:continuo` em `C:\Users\lucas` deu `ENOENT package.json`. Toda instrução de execução começa com uma linha única que entra na pasta (e clona se faltar), como o atalho do `COMO_USAR`.
+12. **Dois escritores no mesmo branch sem sincronia (08/10/2026):** o agente no computador do dono commitou local enquanto a sessão na nuvem enviava para o GitHub. O `git pull` abriu o Vim para a mensagem de merge e o dono travou.
+    - O runner agora sincroniza sozinho (traz antes da missão, envia depois, sem editor, sem force). Conflito: desfaz, registra e segue.
+    - Instruções usam `git pull --no-edit`.
 

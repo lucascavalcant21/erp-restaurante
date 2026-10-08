@@ -72,7 +72,7 @@ function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin, extras, extraC
     let filho;
     try {
       const p = L.prepararSpawn(L.comandoDoMotor(cfg), args);
-      filho = spawn(p.arquivo, p.args, { cwd, env: { ...L.ambienteDoMotor(process.env), ...env }, stdio: ["pipe", "pipe", "pipe"], shell: p.shell, windowsHide: true });
+      filho = spawn(p.arquivo, p.args, { cwd, env: { ...L.ambienteDoMotor(process.env), GIT_MERGE_AUTOEDIT: "no", GIT_EDITOR: "true", ...env }, stdio: ["pipe", "pipe", "pipe"], shell: p.shell, windowsHide: true });
     } catch (e) {
       return resolver({ ok: false, codigo: "spawn", saida: String(e.message), texto: "" });
     }
@@ -264,6 +264,7 @@ export async function rodar(opcoes) {
         continue;
       }
 
+      sincronizar(raiz, cfg, "trazer", log, (motivo) => L.anotarRelatorio(relatorio, "Bloqueadores", motivo));
       const rodada = (m.tentativas || 0) + 1;
       const branch = git(raiz, "branch", "--show-current");
       if (branch && cfg.branchesProibidas.includes(branch)) throw new Error(`o runner não trabalha no branch ${branch}. Rode antes: npm run hefisto:preparar (cria hefisto/noite-${hoje}).`);
@@ -353,6 +354,7 @@ export async function rodar(opcoes) {
       L.gravarStatus(arqStatus, { estado: "RODANDO", current_mission: null, last_checkpoint: headDepois, last_result: ultimo });
       if (existsSync(C.statusAtual)) writeFileSync(C.statusAtual, L.atualizarTrechoGerado(readFileSync(C.statusAtual, "utf8"), blocoStatus(L.lerStatus(arqStatus), atualizadas), "agente"));
       commitarMemoria(raiz, cfg, `chore(brain): ${m.id} rodada ${rodada} → ${decidida.status}`, log);
+      sincronizar(raiz, cfg, "enviar", log);
       log(ultimo);
       feitas.push(m.id);
     }
@@ -363,6 +365,7 @@ export async function rodar(opcoes) {
     L.gravarStatus(arqStatus, { estado: "ENCERRADO", current_mission: null, last_result: `fim: ${motivoFim}; missões nesta execução: ${feitas.join(", ") || "nenhuma"}` });
     if (existsSync(C.statusAtual)) writeFileSync(C.statusAtual, L.atualizarTrechoGerado(readFileSync(C.statusAtual, "utf8"), blocoStatus(L.lerStatus(arqStatus), L.carregarMissoes(C.missoes)), "agente"));
     commitarMemoria(raiz, cfg, `chore(brain): fim da execução do agente (${motivoFim})`, log);
+    sincronizar(raiz, cfg, "enviar", log);
     rmSync(arqLock, { force: true });
     log(`runner encerrado: ${motivoFim}`);
   }
@@ -378,6 +381,32 @@ function blocoStatus(s, missoes) {
     `- Último resultado: ${s?.last_result || "–"}`,
     `- Próxima missão READY: ${prox ? `[[${prox.id}]] — ${prox.titulo}` : "nenhuma"}`,
   ].join("\n");
+}
+
+/**
+ * Sincroniza o branch de trabalho com o GitHub (sem editor, sem force):
+ * traz o que chegou lá (outra sessão, o dono) antes de cada missão e envia o
+ * que o agente fez depois. Conflito: desfaz o merge, registra e segue.
+ */
+const SEM_EDITOR = { ...process.env, GIT_MERGE_AUTOEDIT: "no", GIT_EDITOR: "true", GIT_TERMINAL_PROMPT: "0" };
+function sincronizar(raiz, cfg, quando, log, aoConflito) {
+  if (cfg.sincronizarGit === false) return;
+  const branch = git(raiz, "branch", "--show-current");
+  if (!branch || cfg.branchesProibidas.includes(branch) || !git(raiz, "remote")) return;
+  const g = (...args) => spawnSync("git", args, { cwd: raiz, encoding: "utf8", env: SEM_EDITOR, timeout: 120000 });
+  if (quando === "trazer") {
+    if (g("fetch", "-q", "origin", branch).status !== 0) return; // sem rede ou branch novo: segue local
+    const r = g("merge", "--no-edit", "-q", `origin/${branch}`);
+    if (r.status !== 0) {
+      g("merge", "--abort");
+      const motivo = `conflito ao trazer origin/${branch}; seguindo com a cópia local (resolver numa sessão acompanhada)`;
+      log(`aviso: ${motivo}`);
+      aoConflito?.(motivo);
+    }
+  } else {
+    const r = g("push", "-q", "-u", "origin", branch);
+    if (r.status !== 0) log(`aviso: push de ${branch} falhou: ${(r.stderr || "").trim().split("\n").pop()}`);
+  }
 }
 
 function commitarMemoria(raiz, cfg, mensagem, log) {

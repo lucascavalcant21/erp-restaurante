@@ -222,7 +222,7 @@ test("runner: STOP impede começar; dry-run não muda nada; --uma faz só uma", 
   const antes = readFileSync(join(amb2.dirM, "HDEV-001.md"), "utf8");
   const dry = await rodar(opcoes(amb2, { dryRun: true }));
   assert.equal(dry.motivoFim, "dry_run");
-  assert.match(dry.prompt, /brain\/missoes\/HDEV-001\.md/);
+  assert.match(dry.prompt, /brain[\\/]missoes[\\/]HDEV-001\.md/); // "\" no Windows
   assert.match(dry.prompt, /HEFISTO_RESULTADO/);
   assert.equal(readFileSync(join(amb2.dirM, "HDEV-001.md"), "utf8"), antes);
 

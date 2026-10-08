@@ -10,6 +10,8 @@
     "build:next": "next build",
     "test:intelligence": "node --test \"app/lib/intelligence/__tests__/*.test.mjs\"",
     "test:agent": "node --test \"scripts/hefisto-agent/__tests__/*.test.mjs\"",
+    "test:qa": "node --test \"scripts/qa/__tests__/*.test.mjs\"",
+    "qa:smoke": "node scripts/qa/smoke-intelligence.mjs",
     "hefisto:agent": "node scripts/hefisto-agent/runner.mjs",
     "hefisto:noite": "node scripts/hefisto-agent/vigia.mjs",
     "hefisto:continuo": "node scripts/hefisto-agent/vigia.mjs --continuo",

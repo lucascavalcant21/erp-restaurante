@@ -1,14 +1,14 @@
 ---
-tentativas: 2
-sem_progresso: 2
-mesma_falha: 2
-ultima_falha: 01a3138b9807
+tentativas: 0
+sem_progresso: 0
+mesma_falha: 0
+ultima_falha: ""
 dependencias: []
 bloqueadores: []
 id: HDEV-001
 titulo: Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível
 fase: HI-02
-status: BLOCKED
+status: READY
 prioridade: 1
 atualizado_em: 2026-10-08
 ---
@@ -76,3 +76,6 @@ Quando só sobrarem itens ⛔, marque **BLOCKED** apontando BLQ-001..004 e siga 
 - 2026-10-08T16:17 rodada 1 → READY (falhou: motor (1): ou externo, um programa oper�vel ou um arquivo em lotes. — tenta de novo); 0 commit(s); 0 min
 - 2026-10-08T16:17 rodada 2 iniciada (branch claude/fervent-bell-t363k5)
 - 2026-10-08T16:18 rodada 2 → BLOCKED (2 rodadas sem progresso (sem commit nem mudança de estado)); 0 commit(s); 0 min
+- 2026-10-08T16:33 marcada READY manualmente
+- 2026-10-08T17:31 rodada 1 iniciada (branch claude/fervent-bell-t363k5)
+- 2026-10-08T17:32 rodada 1 não contou: limite do plano atingido

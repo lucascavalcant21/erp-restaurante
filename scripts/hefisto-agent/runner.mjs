@@ -61,12 +61,13 @@ function montarPrompt(raiz, m, rodada, branch) {
 /** Roda o motor com heartbeat; mata se passar do tempo. */
 function rodarMotor(cfg, prompt, { cwd, env, aoBater, timeoutMin }) {
   return new Promise((resolver) => {
-    const args = [...cfg.motor.args];
-    if (cfg.motor.allowedTools?.length) args.push("--allowedTools", ...cfg.motor.allowedTools);
-    if (cfg.motor.disallowedTools?.length) args.push("--disallowedTools", ...cfg.motor.disallowedTools);
+    // instrução posicional ANTES das listas (que consomem todos os argumentos seguintes)
+    const args = [...cfg.motor.args, L.INSTRUCAO_MOTOR];
+    if (cfg.motor.allowedTools?.length) args.push("--allowedTools", ...L.comPowerShell(cfg.motor.allowedTools));
+    if (cfg.motor.disallowedTools?.length) args.push("--disallowedTools", ...L.comPowerShell(cfg.motor.disallowedTools));
     let filho;
     try {
-      const p = L.prepararSpawn(cfg.motor.comando, args);
+      const p = L.prepararSpawn(L.comandoDoMotor(cfg), args);
       filho = spawn(p.arquivo, p.args, { cwd, env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "pipe"], shell: p.shell, windowsHide: true });
     } catch (e) {
       return resolver({ ok: false, codigo: "spawn", saida: String(e.message), texto: "" });

@@ -39,6 +39,36 @@ npm run hefisto:noite
 - **Claude Code instalado e logado uma vez.** Ver "Instalar o Claude Code no Windows" abaixo.
 - **Para o agente alcançar o banco e o deploy:** os conectores Supabase/Vercel/GitHub configurados no Claude Code do computador (`claude mcp`). Sem eles, ele trabalha só no código e nos testes locais.
 
+### Instalar o Claude Code no Windows (uma vez)
+
+O app Claude Desktop **não** basta: o agente precisa do Claude Code de linha de comando. Requisitos: Windows 10 1809+ de 64 bits e plano Pro, Max, Team ou Enterprise. Fonte: https://code.claude.com/docs/en/setup.md.
+
+| Onde | Comando |
+|---|---|
+| **CMD** (cole a linha inteira) | `curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd` |
+| **PowerShell** | `irm https://claude.ai/install.ps1 \| iex` |
+| Alternativa com npm (Node 22+) | `npm install -g @anthropic-ai/claude-code` |
+
+Depois:
+1. **Feche e abra o terminal** e confira: `claude --version`. Deve aparecer `… (Claude Code)`.
+2. **Faça login uma vez:** rode `claude` dentro da pasta do projeto. O navegador abre; entre e depois feche com `/exit`.
+3. **Se `claude` não for encontrado:** o instalador põe o programa em `%USERPROFILE%\.local\bin\claude.exe`. Adicione essa pasta ao PATH do usuário (Configurações → Variáveis de ambiente), ou aponte direto: `set HEFISTO_AGENT_CLAUDE=%USERPROFILE%\.local\bin\claude.exe`.
+4. **Se `claude` abrir o app Claude Desktop:** um Claude Desktop antigo pode ter tomado o nome. Rode `where.exe claude` e use o `HEFISTO_AGENT_CLAUDE` acima.
+5. **Recomendado: Git for Windows** (https://git-scm.com/downloads/win). O agente roda os comandos no Git Bash. Sem ele, usa o PowerShell, e as regras do agente cobrem os dois.
+
+**Cobrança:** se a variável `ANTHROPIC_API_KEY` estiver definida no seu computador, o `claude -p` cobra na API, e não na sua assinatura. O `npm run hefisto:preparar` avisa quando isso acontece.
+
+**Conectores no seu computador** (para o agente alcançar o banco e o deploy à noite):
+- **GitHub** (documentado):
+  `claude mcp add --transport http github https://api.githubcopilot.com/mcp/ --header "Authorization: Bearer SEU_TOKEN"`
+  O token fica só no seu computador; nunca cole no chat.
+- **Supabase e Vercel:** siga a página oficial de cada um.
+  - https://supabase.com/docs/guides/getting-started/mcp
+  - https://vercel.com/docs/mcp/vercel-mcp
+
+  Depois, dentro do `claude`, use `/mcp` → Authenticate.
+- **Conferir:** `claude mcp list`.
+
 **Na nuvem (claude.ai/code), sem computador ligado:**
 1. Crie uma **Rotina** agendada, por exemplo todo dia às 23:50, com uma sessão nova por disparo, neste repositório.
 2. Use este prompt:

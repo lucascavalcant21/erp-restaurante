@@ -237,6 +237,24 @@ export function prepararSpawn(comando, args, plataforma = process.platform) {
   return { arquivo: [comando, ...args].map((a) => `"${a}"`).join(" "), args: [], shell: true };
 }
 
+/**
+ * No Windows sem Git Bash o Claude Code usa a ferramenta PowerShell, e regra
+ * `Bash(...)` não vale para ela. Espelha cada `Bash(prefixo:*)` como
+ * `PowerShell(prefixo *)` para as permissões e proibições valerem nos dois.
+ */
+export function comPowerShell(regras = []) {
+  const extra = regras.map((r) => /^Bash\((.+):\*\)$/.exec(r)).filter(Boolean).map((m) => `PowerShell(${m[1]} *)`);
+  return [...new Set([...regras, ...extra])];
+}
+
+/** Executável do motor: HEFISTO_AGENT_CLAUDE (ex.: %USERPROFILE%\.local\bin\claude.exe) ou o da configuração. */
+export function comandoDoMotor(cfg, env = process.env) {
+  return env.HEFISTO_AGENT_CLAUDE || cfg.motor.comando;
+}
+
+/** Instrução curta como argumento; o prompt completo vai pela entrada padrão (forma documentada do `claude -p`). */
+export const INSTRUCAO_MOTOR = "Siga as instrucoes completas recebidas pela entrada padrao desta execucao.";
+
 /** Encerra o processo e os filhos (no Windows, o cmd.exe e o claude por baixo). */
 export function comandoParaMatar(pid, plataforma = process.platform) {
   return plataforma === "win32" ? { arquivo: "taskkill", args: ["/pid", String(pid), "/T", "/F"] } : null;

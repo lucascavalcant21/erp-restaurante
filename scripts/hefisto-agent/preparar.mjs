@@ -49,9 +49,22 @@ export function verificar(raiz, cfg, { criarBranch = true, hoje = new Date().toI
 
   add(existsSync(join(raiz, "node_modules")), "Dependências", existsSync(join(raiz, "node_modules")) ? "node_modules presente" : "faltam", "Rode: npm ci");
 
-  const claude = executar(cfg.motor.comando, ["--version"], raiz);
-  add(claude.ok, "Claude Code (motor)", claude.ok ? claude.saida.split("\n")[0] : "não encontrado no PATH",
-    "Instale o Claude Code e faça login uma vez rodando `claude` (ver docs/autonomous/COMO_USAR.md, seção Windows).");
+  const motor = L.comandoDoMotor(cfg);
+  const claude = executar(motor, ["--version"], raiz);
+  const ehClaudeCode = claude.ok && /Claude Code/i.test(claude.saida);
+  add(ehClaudeCode, "Claude Code (motor)",
+    ehClaudeCode ? claude.saida.split("\n")[0] : claude.ok ? `"${motor}" respondeu, mas não é o Claude Code (pode ser o app Claude Desktop)` : "não encontrado no PATH",
+    claude.ok
+      ? "Veja qual claude está no PATH (where.exe claude) e aponte o certo: set HEFISTO_AGENT_CLAUDE=%USERPROFILE%\\.local\\bin\\claude.exe"
+      : "Instale o Claude Code (docs/autonomous/COMO_USAR.md, seção \"Instalar o Claude Code no Windows\") e abra um terminal novo.");
+  if (ehClaudeCode) {
+    const login = executar(motor, ["auth", "status"], raiz);
+    add(login.ok, "Login no Claude Code", login.ok ? "logado" : "não logado", "Rode `claude` uma vez dentro da pasta do projeto e faça login no navegador.");
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    itens.push({ ok: true, aviso: true, nome: "Cobrança", detalhe: "ANTHROPIC_API_KEY está definida neste terminal: o agente vai cobrar na API, não na sua assinatura",
+      comoResolver: "Se quiser usar a assinatura, remova a variável deste terminal (CMD: set ANTHROPIC_API_KEY=)." });
+  }
 
   try {
     const missoes = L.carregarMissoes(join(raiz, cfg.caminhos.missoes));
@@ -72,8 +85,8 @@ if (process.argv[1] && process.argv[1].endsWith("preparar.mjs")) {
   const cfg = JSON.parse(readFileSync(join(AQUI, "config.json"), "utf8"));
   const itens = verificar(process.cwd(), cfg, { criarBranch: !process.argv.includes("--sem-branch") });
   for (const i of itens) {
-    console.log(`${i.ok ? "OK  " : "FALTA"} ${i.nome}: ${i.detalhe}`);
-    if (!i.ok && i.comoResolver) console.log(`      → ${i.comoResolver}`);
+    console.log(`${i.aviso ? "AVISO" : i.ok ? "OK  " : "FALTA"} ${i.nome}: ${i.detalhe}`);
+    if ((!i.ok || i.aviso) && i.comoResolver) console.log(`      → ${i.comoResolver}`);
   }
   const ok = itens.every((i) => i.ok);
   console.log(ok ? "\nTudo pronto. Para a noite: npm run hefisto:noite   (ver antes: npm run hefisto:agent -- --dry-run)" : "\nResolva os itens FALTA e rode de novo: npm run hefisto:preparar");

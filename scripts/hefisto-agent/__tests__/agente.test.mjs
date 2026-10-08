@@ -270,6 +270,33 @@ test("preparar: fora do repositório explica o que fazer; na main cria o branch 
   assert.equal(itens.find((i) => i.nome === "Missões").ok, true);
 });
 
+test("Windows sem Git Bash: regras Bash espelhadas em PowerShell; motor pode ser apontado por variável", () => {
+  assert.deepEqual(L.comPowerShell(["Read", "Bash(git push --force:*)", "Bash(npm run:*)"]),
+    ["Read", "Bash(git push --force:*)", "Bash(npm run:*)", "PowerShell(git push --force *)", "PowerShell(npm run *)"]);
+  for (const p of ["PowerShell(git push --force *)", "PowerShell(git push origin main *)", "PowerShell(gh pr merge *)"]) {
+    assert.ok(L.comPowerShell(CFG_REAL.motor.disallowedTools).includes(p), p);
+  }
+  assert.equal(L.comandoDoMotor(CFG_REAL, {}), "claude");
+  assert.equal(L.comandoDoMotor(CFG_REAL, { HEFISTO_AGENT_CLAUDE: "C:\\Users\\x\\.local\\bin\\claude.exe" }), "C:\\Users\\x\\.local\\bin\\claude.exe");
+  assert.doesNotMatch(L.INSTRUCAO_MOTOR, /["%]/, "a instrução passa pela trava do cmd");
+});
+
+test("preparar: claude que não é o Claude Code (app Desktop) e falta de login viram FALTA com o caminho", async () => {
+  const { verificar } = await import("../preparar.mjs");
+  const amb = montarAmbiente();
+  const base = (args) => {
+    if (args[0] === "rev-parse") return { ok: true, saida: amb.raiz };
+    if (args[0] === "branch") return { ok: true, saida: "hefisto/noite-x" };
+    return { ok: true, saida: "" };
+  };
+  const desktop = verificar(amb.raiz, amb.cfg, { executar: (a, args) => (args[0] === "--version" ? { ok: true, saida: "Claude 1.0.0" } : base(args)) });
+  const item = desktop.find((i) => i.nome === "Claude Code (motor)");
+  assert.equal(item.ok, false);
+  assert.match(item.comoResolver, /where\.exe claude/);
+  const semLogin = verificar(amb.raiz, amb.cfg, { executar: (a, args) => (args[0] === "--version" ? { ok: true, saida: "2.1.294 (Claude Code)" } : args[0] === "auth" ? { ok: false, saida: "" } : base(args)) });
+  assert.equal(semLogin.find((i) => i.nome === "Login no Claude Code").ok, false);
+});
+
 test("configuração real: caminhos, limites e travas de segurança presentes", () => {
   for (const k of ["cerebro", "missoes", "ativas", "backlog", "statusAtual", "noturnos", "estado"]) assert.ok(CFG_REAL.caminhos[k], k);
   for (const proibido of ["Bash(git push --force:*)", "Bash(git push origin main:*)", "Bash(rm -rf:*)", "Bash(supabase db reset:*)", "Bash(gh pr merge:*)"]) assert.ok(CFG_REAL.motor.disallowedTools.includes(proibido), proibido);

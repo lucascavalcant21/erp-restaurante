@@ -14,7 +14,7 @@ import {
 } from "../../../../lib/estoque-movimento-dados";
 import {
   MOTIVOS, rotuloMotivo, quantidadeDoLancamento, unidadesDaFracao, embalagemDoProduto, produtosParaLancar, saldoDepois,
-  podeEstornar, novaChave, unidadeDoSaldo, ehEntradaDeCompra,
+  podeEstornar, novaChave, unidadeDoSaldo, ehEntradaDeCompra, saldoEmEmbalagens,
 } from "../../../../lib/estoque-movimento.mjs";
 import { unidadeValida } from "../../../../lib/contas-pagar.mjs";
 import { hasPermission } from "../../../../lib/permissions-catalog.mjs";
@@ -204,6 +204,7 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
                       <div className="text-right shrink-0">
                         <p className="text-3xs uppercase font-bold text-fg">saldo aqui</p>
                         <p className={`font-black ${p.saldo > 0 ? "" : "text-fg"}`}>{fmtQ(p.saldo)} {unidadeDoSaldo(p.insumo)}</p>
+                        {saldoEmEmbalagens(p.insumo, p.saldo) && <p className="text-3xs font-bold text-fg max-w-[150px]">{saldoEmEmbalagens(p.insumo, p.saldo).texto}</p>}
                       </div>
                     </button>
                   </li>);
@@ -225,7 +226,7 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
                 <p className="text-xs text-fg">
                   {[produto.fornecedor && `Fornecedor: ${produto.fornecedor}`, embalagem?.texto, podeVerCusto && base?.custosMedios?.[produto.id] != null && `custo médio ${fmtBRL(base.custosMedios[produto.id] * (["kg", "l"].includes(String(produto.unidade_medida).toLowerCase()) ? 1000 : 1))}/${un(produto.unidade_medida)}`].filter(Boolean).join(" · ")}
                 </p>
-                <p className="text-xs font-bold mt-1">Saldo neste local: {fmtQ(saldoAtual)} {unSaldo}</p>
+                <p className="text-xs font-bold mt-1">Saldo neste local: {fmtQ(saldoAtual)} {unSaldo}{saldoEmEmbalagens(produto, saldoAtual) ? ` · ${saldoEmEmbalagens(produto, saldoAtual).texto}` : ""}</p>
               </div>
               <button onClick={limpar} className="self-start h-9 px-3 rounded-xl bg-slate-100 text-xs font-black">Trocar</button>
             </div>
@@ -253,7 +254,10 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
             </div>
             {lanc && (lanc.erro
               ? <p className="text-sm font-bold text-red-700">{lanc.erro}</p>
-              : <p className="text-sm font-black">{lanc.texto} <span className="font-bold text-fg">· saldo depois: <span className={depois < 0 ? "text-red-700" : ""}>{fmtQ(depois)} {unSaldo}</span></span></p>)}
+              : <div>
+                  <p className="text-sm font-black">{lanc.texto} <span className="font-bold text-fg">· saldo depois: <span className={depois < 0 ? "text-red-700" : ""}>{fmtQ(depois)} {unSaldo}</span></span></p>
+                  {depois > 0 && saldoEmEmbalagens(produto, depois) && <p className="text-xs font-bold text-emerald-800">Fica: {saldoEmEmbalagens(produto, depois).texto}</p>}
+                </div>)}
             {depois < 0 && <p className="text-sm font-bold text-red-700">Retirada maior que o saldo deste local. Confira a quantidade ou o local.</p>}
 
             <div>
@@ -348,6 +352,7 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
                 <p className="text-3xs font-black uppercase text-fg">{estoque?.nome}</p>
                 <p className="font-black text-xl leading-tight">{pergunta.insumo.nome}</p>
                 <p className="text-sm mt-1">Saldo aqui: <b>{fmtQ(pergunta.saldo)} {unidadeDoSaldo(pergunta.insumo)}</b></p>
+                {saldoEmEmbalagens(pergunta.insumo, pergunta.saldo) && <p className="text-xs font-bold text-fg">{saldoEmEmbalagens(pergunta.insumo, pergunta.saldo).texto}</p>}
               </div>
               <button onClick={() => setPergunta(null)} aria-label="Fechar" className="self-start"><X size={22} /></button>
             </div>

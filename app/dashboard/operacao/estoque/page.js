@@ -13,7 +13,7 @@ import EstoqueHub from "../../../components/navigation/EstoqueHub";
 import EstoqueAbas from "../../../components/navigation/EstoqueAbas";
 import { ehFracionavel, conteudoDe, cadastroParaSaldo } from "../../../lib/inventario-saldo.mjs";
 import { lancarMovimento } from "../../../lib/estoque-movimento-dados";
-import { novaChave } from "../../../lib/estoque-movimento.mjs";
+import { novaChave, saldoEmEmbalagens, unidadeDoSaldo } from "../../../lib/estoque-movimento.mjs";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { fetchPins } from "../../../lib/seguranca";
@@ -1944,26 +1944,14 @@ function EstoqueRunner() {
   );
 }
 
-// Saldo de bebidas/embalados: mostra UNIDADES comerciais como principal e o
-// equivalente (ml/L/g/kg) como secundário — quando o item tem conteúdo por
-// embalagem (> 1). Ex.: 5000 ml de garrafas de 750 → "6 un + 500 ml".
+// Saldo em embalagens fechadas + sobra (cozinha e bar), pela regra única de
+// estoque-movimento.mjs: açaí em embalagem de 1 kg com 1,45 kg → "1 embalagem
+// + 450 g"; 5000 ml de garrafas de 750 → "6 garrafas + 500 ml". O total fica
+// embaixo. A granel ou sem saldo: só o total.
 function saldoEmbalado(item) {
-  const conteudo = Number(item.tamanho_embalagem) || 1;
-  const total = Number(item.quantidade_atual) || 0;
-  const un = String(item.unidade_medida || "un").toLowerCase();
-  if (conteudo <= 1 || un === "un") return null; // sem embalagem fracionável
-  const unLabel = item.unidade_comercial || "un";
-  const fechadas = Math.floor(total / conteudo);
-  const aberto = +(total - fechadas * conteudo).toFixed(3);
-  const fmtEq = (q, u) => {
-    const n = Number(q) || 0;
-    if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${fmtQtd(n)} ml`;
-    if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${fmtQtd(n)} g`;
-    return `${fmtQtd(n)} ${mostrarUn(u)}`;
-  };
-  const principal = `${fechadas} ${unLabel}${aberto > 0 ? ` + ${fmtEq(aberto, un)}` : ""}`;
-  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${mostrarUn(un)}/un · Total: ${fmtEq(total, un)}`;
-  return { principal, secundario };
+  const e = saldoEmEmbalagens(item, item.quantidade_atual);
+  if (!e) return null;
+  return { principal: e.curto, secundario: `${fmtQtd(Number(item.quantidade_atual) || 0)} ${unidadeDoSaldo(item)} no total · ${e.embalagem}` };
 }
 
 function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, onRealocar, agruparPor = "categoria", dinheiro = fmtBRL }) {
@@ -2190,11 +2178,11 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                         const s = saldoEmbalado(item);
                         return s ? (
                           <>
-                            <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{s.principal}</strong>
+                            <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-700" : "text-emerald-700"}`}>{s.principal}</strong>
                             <span className="block text-3xs font-semibold text-dim">{s.secundario}</span>
                           </>
                         ) : (
-                          <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
+                          <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-700" : "text-emerald-700"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
                         );
                       })()}
                     </div>

@@ -1,0 +1,11 @@
+# Erros que não devem se repetir
+
+1. **SQL com `DROP` pelo conector Supabase numa sessão sem ninguém olhando.** O conector pede confirmação manual e a chamada expira em 60 s.
+   - Antes de concluir algo, conferir no catálogo se aplicou.
+   - Não tentar contornar a confirmação. Em banco novo, `drop … if exists` é no-op e pode ser omitido; senão, registrar ACESSO/BLOQUEIO.
+2. **Achar que `apply_migration` com timeout falhou ou aplicou.** Sempre verificar no catálogo (tabelas, comentário de versão) antes de repetir.
+3. **Testar só com o banco falso e chamar de validado.** Com dado real apareceram dois bugs (etiquetas ignoradas, lotes órfãos) que os testes com fixture não pegavam.
+4. **Ler colunas que não existem em produção.** O esquema do repositório não é confiável: conferir em `information_schema` antes (ex.: `vw_compras.data_recebimento`, `colaboradores.ativo`).
+5. **`/tmp` some quando o container reinicia.** O PGlite instalado em `/tmp/pglite` precisa ser reinstalado; os testes de SQL real pulam sem `PGLITE`, então é preciso conferir se rodaram.
+6. **`cmd | tail` dentro de um laço de retry esconde o código de saída.** Usar `if cmd; then …` e conferir o resultado (ex.: `git ls-remote`).
+7. **Publicar sem conseguir verificar depois.** Sem smoke possível, não fazer merge em produção, mesmo com tudo verde localmente.

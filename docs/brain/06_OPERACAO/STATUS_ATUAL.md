@@ -49,8 +49,8 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 
 <!-- hefisto-agent:agente:inicio -->
 ### Agente autônomo (gerado pelo runner)
-- Estado: **RODANDO** · início: 2026-10-08T16:17:34.259Z · último heartbeat: 2026-10-08T16:17:51.659Z
-- Missão atual: nenhuma · último checkpoint: `ca2ec85ffd`
-- Último resultado: HDEV-001 → READY: falhou: motor (1): ou externo, um programa oper�vel ou um arquivo em lotes. — tenta de novo
-- Próxima missão READY: [[HDEV-001]] — Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível
+- Estado: **RODANDO** · início: 2026-10-08T16:17:34.259Z · último heartbeat: 2026-10-08T16:18:08.535Z
+- Missão atual: nenhuma · último checkpoint: `f10d60162a`
+- Último resultado: HDEV-001 → BLOCKED: 2 rodadas sem progresso (sem commit nem mudança de estado)
+- Próxima missão READY: nenhuma
 <!-- hefisto-agent:agente:fim -->

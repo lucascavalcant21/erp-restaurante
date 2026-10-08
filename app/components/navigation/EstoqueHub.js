@@ -140,42 +140,42 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* 🔴 Sem Estoque */}
-              <div className="p-3.5 rounded-2xl bg-rose-950/30 border border-rose-900/60 flex flex-col justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-400">Sem Estoque</span>
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700">Sem Estoque</span>
                 <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-2xl font-black text-rose-200">{semEstoque.length}</span>
-                  <span className="text-[10px] text-rose-400/80">produtos</span>
+                  <span className="text-2xl font-black text-rose-700">{semEstoque.length}</span>
+                  <span className="text-[10px] text-rose-700">produtos</span>
                 </div>
               </div>
 
               {/* 🟠 Abaixo do Mínimo */}
-              <div className="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-900/60 flex flex-col justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600">Abaixo do Mínimo</span>
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">Abaixo do Mínimo</span>
                 <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-2xl font-black text-amber-200">{abaixoMinimo.length}</span>
-                  <span className="text-[10px] text-amber-600/80">itens</span>
+                  <span className="text-2xl font-black text-amber-800">{abaixoMinimo.length}</span>
+                  <span className="text-[10px] text-amber-800">itens</span>
                 </div>
               </div>
 
               {/* 🛒 Precisa Comprar */}
-              <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-900/60 flex flex-col justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Sugeridos p/ Compra</span>
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Sugeridos p/ Compra</span>
                 <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-2xl font-black text-emerald-200">{itensParaComprar.length}</span>
-                  <span className="text-[10px] text-emerald-600/80">reposições</span>
+                  <span className="text-2xl font-black text-emerald-800">{itensParaComprar.length}</span>
+                  <span className="text-[10px] text-emerald-800">reposições</span>
                 </div>
               </div>
 
               {/* 💰 Estimativa de Reposição */}
               <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200 flex flex-col justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Est. Reposição</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">Est. Reposição</span>
                 <div className="mt-1">
                   {podeVerCustos ? (
-                    <span className="text-lg sm:text-xl font-black text-white">
+                    <span className="text-lg sm:text-xl font-black text-slate-900">
                       R$ {custoReposicaoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   ) : (
-                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    <span className="text-xs font-bold text-slate-600 flex items-center gap-1">
                       <Lock size={12} /> Restrito
                     </span>
                   )}
@@ -200,7 +200,7 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   <button
                     type="button"
                     onClick={onVerTabelaCompleta}
-                    className="text-xs font-bold text-emerald-600 hover:underline min-h-[44px] flex items-center justify-center cursor-pointer"
+                    className="text-xs font-bold text-emerald-700 hover:underline min-h-[44px] flex items-center justify-center cursor-pointer"
                   >
                     Ver todos os {insumos.length} produtos →
                   </button>
@@ -228,7 +228,7 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                       <HubListItem key={item.id}>
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            eZero ? "bg-rose-500/20 text-rose-400" : "bg-amber-500/20 text-amber-600"
+                            eZero ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
                           }`}>
                             <AlertTriangle size={18} />
                           </div>
@@ -236,13 +236,13 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs sm:text-sm font-bold truncate">{item.nome}</span>
                               {item.marca && (
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-50 text-slate-500 shrink-0">
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-50 text-slate-600 shrink-0">
                                   {item.marca}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-500">
-                              Atual: <strong className={eZero ? "text-rose-400" : "text-amber-300"}>{qtd} {item.unidade_medida}</strong> • Mínimo desejado: {min} {item.unidade_medida}
+                            <span className="text-[11px] text-slate-600">
+                              Atual: <strong className={eZero ? "text-rose-700" : "text-amber-700"}>{qtd} {item.unidade_medida}</strong> • Mínimo desejado: {min} {item.unidade_medida}
                             </span>
                           </div>
                         </div>
@@ -250,11 +250,11 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                         {/* Indicador Proporcional */}
                         <div className="w-full sm:w-36 flex flex-col gap-1 shrink-0">
                           <div className="flex justify-between text-[10px] font-bold">
-                            <span className={eZero ? "text-rose-400" : "text-amber-600"}>
+                            <span className={eZero ? "text-rose-700" : "text-amber-700"}>
                               {eZero ? "ZERADO" : `${percentual}% do mínimo`}
                             </span>
                           </div>
-                          <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-200">
+                          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-200">
                             <div
                               className={`h-full rounded-full transition-all ${eZero ? "bg-rose-500" : "bg-amber-500"}`}
                               style={{ width: `${percentual}%` }}
@@ -282,13 +282,13 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                       if (onAbrirEntrada) onAbrirEntrada();
                       else router.push("/dashboard/operacao/estoque/tablet");
                     }}
-                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
+                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Plus size={20} />
                     </div>
                     <span className="text-xs font-bold leading-tight">➕ Entrada de Estoque</span>
-                    <span className="text-[10px] text-slate-500">Recebimento de carga</span>
+                    <span className="text-[10px] text-slate-600">Recebimento de carga</span>
                   </button>
                 )}
 
@@ -299,13 +299,13 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                       if (onAbrirSaida) onAbrirSaida();
                       else router.push("/dashboard/operacao/estoque/tablet");
                     }}
-                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-amber-950/40 border border-slate-200 hover:border-amber-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
+                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-amber-50 border border-slate-200 hover:border-amber-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Minus size={20} />
                     </div>
                     <span className="text-xs font-bold leading-tight">➖ Baixa / Saída</span>
-                    <span className="text-[10px] text-slate-500">Consumo da cozinha</span>
+                    <span className="text-[10px] text-slate-600">Consumo da cozinha</span>
                   </button>
                 )}
 
@@ -313,13 +313,13 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/compras?dept=cozinha")}
-                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
+                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <ShoppingCart size={20} />
                     </div>
                     <span className="text-xs font-bold leading-tight">🛒 Pedidos de Compras</span>
-                    <span className="text-[10px] text-slate-500">Cotação & Fornecedores</span>
+                    <span className="text-[10px] text-slate-600">Cotação & Fornecedores</span>
                   </button>
                 )}
 
@@ -327,13 +327,13 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/estoque")}
-                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-rose-950/40 border border-slate-200 hover:border-rose-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
+                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-rose-50 border border-slate-200 hover:border-rose-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <AlertTriangle size={20} />
                     </div>
                     <span className="text-xs font-bold leading-tight">⚠ Registrar Perda</span>
-                    <span className="text-[10px] text-slate-500">Validades & Avarias</span>
+                    <span className="text-[10px] text-slate-600">Validades & Avarias</span>
                   </button>
                 )}
 
@@ -341,13 +341,13 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/operacao/estoque/contagens")}
-                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
+                    className="flex flex-col items-start p-3.5 rounded-xl bg-white/80 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500/50 text-slate-900 transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-slate-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-lg bg-slate-50 text-emerald-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <ClipboardCheck size={20} />
                     </div>
                     <span className="text-xs font-bold leading-tight">📋 Contar estoque</span>
-                    <span className="text-[10px] text-slate-500">Inventário · vira o saldo</span>
+                    <span className="text-[10px] text-slate-600">Inventário · vira o saldo</span>
                   </button>
                 )}
 
@@ -360,7 +360,7 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                     <Search size={20} />
                   </div>
                   <span className="text-xs font-bold leading-tight">🔎 Consultar Produto</span>
-                  <span className="text-[10px] text-slate-500">Busca completa</span>
+                  <span className="text-[10px] text-slate-600">Busca completa</span>
                 </button>
               </div>
             </div>
@@ -380,11 +380,11 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
 
                 <HubCardContainer className="space-y-3">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200">Itens Atrasados / Abaixo do Mínimo</span>
-                    <span className="font-bold text-emerald-600">{itensParaComprar.length} sugeridos</span>
+                    <span className="font-bold text-slate-900">Itens Atrasados / Abaixo do Mínimo</span>
+                    <span className="font-bold text-emerald-700">{itensParaComprar.length} sugeridos</span>
                   </div>
 
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-600">
                     O sistema identifica automaticamente os insumos que atingiram o limite mínimo de segurança para rápida geração de pedidos.
                   </p>
 
@@ -408,7 +408,7 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
               />
 
               {movimentos.length === 0 ? (
-                <HubCardContainer className="py-4 text-center text-xs text-slate-500">
+                <HubCardContainer className="py-4 text-center text-xs text-slate-600">
                   Nenhuma movimentação registrada recentemente.
                 </HubCardContainer>
               ) : (
@@ -424,20 +424,20 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                       <HubListItem key={mov.id}>
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                            eEntrada ? "bg-emerald-500/15 text-emerald-600" : "bg-amber-500/15 text-amber-600"
+                            eEntrada ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                           }`}>
                             {eEntrada ? <Plus size={14} /> : <Minus size={14} />}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-white truncate text-xs">{nomeInsumo}</span>
-                            <span className="text-[10px] text-slate-500 truncate">
+                            <span className="font-bold text-slate-900 truncate text-xs">{nomeInsumo}</span>
+                            <span className="text-[10px] text-slate-600 truncate">
                               {eEntrada ? "+" : "-"}{qtd} un. • {horaFmt} • Por {resp}
                             </span>
                           </div>
                         </div>
 
                         <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
-                          eEntrada ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"
+                          eEntrada ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                         }`}>
                           {eEntrada ? "Entrada" : "Saída"}
                         </span>
@@ -460,8 +460,8 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   onClick={onVerTabelaCompleta}
                   className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
-                  <p className="text-xs font-bold text-white truncate">Estoque Geral</p>
-                  <p className="text-[10px] text-slate-500">Tabela completa</p>
+                  <p className="text-xs font-bold text-slate-900 truncate">Estoque Geral</p>
+                  <p className="text-[10px] text-slate-600">Tabela completa</p>
                 </button>
 
                 <button
@@ -469,8 +469,8 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   onClick={() => router.push("/dashboard/operacao/notas")}
                   className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
-                  <p className="text-xs font-bold text-white truncate">Entrada de NFe</p>
-                  <p className="text-[10px] text-slate-500">Importar XML</p>
+                  <p className="text-xs font-bold text-slate-900 truncate">Entrada de NFe</p>
+                  <p className="text-[10px] text-slate-600">Importar XML</p>
                 </button>
 
                 <button
@@ -478,8 +478,8 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   onClick={() => router.push("/dashboard/operacao/fornecedores")}
                   className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
-                  <p className="text-xs font-bold text-white truncate">Fornecedores</p>
-                  <p className="text-[10px] text-slate-500">Contatos e prazos</p>
+                  <p className="text-xs font-bold text-slate-900 truncate">Fornecedores</p>
+                  <p className="text-[10px] text-slate-600">Contatos e prazos</p>
                 </button>
 
                 <button
@@ -487,8 +487,8 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
                   onClick={() => router.push("/dashboard/operacao/embalagens")}
                   className="p-3 rounded-xl bg-white/60 hover:bg-slate-50/80 border border-slate-200 text-left transition-all min-h-[48px] cursor-pointer"
                 >
-                  <p className="text-xs font-bold text-white truncate">Embalagens</p>
-                  <p className="text-[10px] text-slate-500">Descartáveis</p>
+                  <p className="text-xs font-bold text-slate-900 truncate">Embalagens</p>
+                  <p className="text-[10px] text-slate-600">Descartáveis</p>
                 </button>
               </div>
             </div>

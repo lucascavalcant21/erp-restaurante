@@ -231,32 +231,36 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
               <button onClick={limpar} className="self-start h-9 px-3 rounded-xl bg-slate-100 text-xs font-black">Trocar</button>
             </div>
 
-            <div className={`grid gap-2 ${embalagem ? "grid-cols-2" : "grid-cols-1"}`}>
-              {embalagem && (
-                <label className="block">
-                  <span className="text-3xs font-black uppercase text-fg">Embalagens ({embalagem.texto})</span>
-                  <input inputMode="numeric" value={form.embalagens} onChange={(e) => setForm({ ...form, embalagens: e.target.value })} placeholder="0"
-                    className="mt-1 w-full h-14 px-3 rounded-xl border border-line bg-white font-black text-xl" />
-                </label>
-              )}
-              <label className="block">
-                <span className="text-3xs font-black uppercase text-fg">{embalagem ? "Mais (fração)" : "Quantidade"}</span>
-                <div className="mt-1 flex gap-1">
-                  <input inputMode="decimal" value={form.fracao} onChange={(e) => setForm({ ...form, fracao: e.target.value })} placeholder="0"
-                    className="flex-1 min-w-0 h-14 px-3 rounded-xl border border-line bg-white font-black text-xl" />
-                  {unidadesFrac.length > 1
-                    ? <select value={form.unidadeFracao} onChange={(e) => setForm({ ...form, unidadeFracao: e.target.value })} className="h-14 px-2 rounded-xl border border-line bg-white font-black">
-                        {unidadesFrac.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    : <span className="h-14 px-3 rounded-xl bg-slate-100 font-black flex items-center">{unidadesFrac[0]}</span>}
-                </div>
-              </label>
+            {/* Quantidade na unidade que a pessoa escolher (kg/g, L/ml): 1.340 ml de
+                leite cadastrado em 1 L vira 1 L + 340 ml. Embalagens fechadas é opcional. */}
+            <label className="block">
+              <span className="text-3xs font-black uppercase text-fg">Quantidade</span>
+              <input inputMode="decimal" value={form.fracao} onChange={(e) => setForm({ ...form, fracao: e.target.value })} placeholder="0"
+                className="mt-1 w-full h-14 px-3 rounded-xl border border-line bg-white font-black text-2xl" />
+            </label>
+            <div>
+              <span className="text-3xs font-black uppercase text-fg">Em que unidade?</span>
+              <div className="mt-1 flex gap-2">
+                {unidadesFrac.map((u) => (
+                  <button key={u} type="button" onClick={() => setForm({ ...form, unidadeFracao: u })} aria-pressed={(form.unidadeFracao || unidadesFrac[0]) === u}
+                    className={`flex-1 h-12 rounded-xl text-base font-black border-2 ${(form.unidadeFracao || unidadesFrac[0]) === u ? "bg-slate-900 text-white border-slate-900" : "bg-white border-line text-slate-900"}`}>{u}</button>
+                ))}
+              </div>
             </div>
+            {embalagem && (
+              <label className="block">
+                <span className="text-3xs font-black uppercase text-fg">Mais embalagens fechadas (opcional) · {embalagem.texto}</span>
+                <input inputMode="numeric" value={form.embalagens} onChange={(e) => setForm({ ...form, embalagens: e.target.value })} placeholder="0"
+                  className="mt-1 w-full h-12 px-3 rounded-xl border border-line bg-white font-black text-lg" />
+              </label>
+            )}
             {lanc && (lanc.erro
               ? <p className="text-sm font-bold text-red-700">{lanc.erro}</p>
-              : <div>
-                  <p className="text-sm font-black">{lanc.texto} <span className="font-bold text-fg">· saldo depois: <span className={depois < 0 ? "text-red-700" : ""}>{fmtQ(depois)} {unSaldo}</span></span></p>
-                  {depois > 0 && saldoEmEmbalagens(produto, depois) && <p className="text-xs font-bold text-emerald-800">Fica: {saldoEmEmbalagens(produto, depois).texto}</p>}
+              : <div className="rounded-xl bg-slate-100 p-3 space-y-0.5">
+                  <p className="text-sm font-black">{tipo === "entrada" ? "Entrando" : "Saindo"}: {lanc.texto}</p>
+                  {saldoEmEmbalagens(produto, lanc.quantidadeSaldo) && <p className="text-sm font-bold">= {saldoEmEmbalagens(produto, lanc.quantidadeSaldo).texto}</p>}
+                  <p className="text-xs font-bold text-fg">Saldo depois: <span className={depois < 0 ? "text-red-700" : ""}>{fmtQ(depois)} {unSaldo}</span>
+                    {depois > 0 && saldoEmEmbalagens(produto, depois) ? ` · ${saldoEmEmbalagens(produto, depois).texto}` : ""}</p>
                 </div>)}
             {depois < 0 && <p className="text-sm font-bold text-red-700">Retirada maior que o saldo deste local. Confira a quantidade ou o local.</p>}
 

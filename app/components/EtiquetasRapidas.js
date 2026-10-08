@@ -96,15 +96,17 @@ function Aviso({ aviso, fechar }) {
   </div>;
 }
 
-// Prévia da etiqueta de nome no tamanho real, reduzida só para caber na tela.
-function PreviaNome({ item, tamanho }) {
+// Prévia de qualquer etiqueta (completa, só nome, só imagem) no tamanho real,
+// ampliada ou reduzida só para caber na tela — o mesmo papel que vai impresso.
+const FORMATO_ROTULO = { validade: "Completa", nome: "Somente nome", logo: "Apenas imagem" };
+function PreviaEtiqueta({ item, tamanho, responsavel, unidadeInfo, momento, larguraMax = 300 }) {
   const dim = TAMANHOS[tamanho] || TAMANHOS["60x40"];
   const larguraPx = dim.w * 3.7795;                 // mm -> px
-  const escalaTela = Math.min(1, 268 / larguraPx);
+  const escalaTela = Math.min(1.5, larguraMax / larguraPx);
   return (
-    <div className="etq-previa" style={{ height: `${dim.h * 3.7795 * escalaTela + 2}px` }}>
-      <div style={{ transform: `scale(${escalaTela})`, transformOrigin: "top center" }}>
-        <EtiquetaPapel item={{ ...item, modeloEtiqueta: "nome" }} tamanho={tamanho} />
+    <div style={{ width: `${larguraPx * escalaTela}px`, height: `${dim.h * 3.7795 * escalaTela}px`, boxShadow: "0 2px 10px rgba(15,23,42,0.18)", background: "#fff", overflow: "hidden" }}>
+      <div style={{ transform: `scale(${escalaTela})`, transformOrigin: "top left" }}>
+        <EtiquetaPapel item={item} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho={tamanho} tipoEtiqueta={item.tipoEtiqueta || "aberto"} />
       </div>
     </div>
   );
@@ -268,6 +270,8 @@ export default function EtiquetasRapidas() {
   const [escalaLogo, setEscalaLogo] = useState(() => { try { return limitarEscala(localStorage.getItem("hefisto_etq_escala_logo") || 1); } catch { return 1; } });
   useEffect(() => { try { localStorage.setItem("hefisto_etq_escala_nome", String(escalaNome)); } catch {} }, [escalaNome]);
   useEffect(() => { try { localStorage.setItem("hefisto_etq_escala_logo", String(escalaLogo)); } catch {} }, [escalaLogo]);
+  // Antes de QUALQUER impressão, a confirmação mostra a prévia do que vai sair.
+  const [confirmacao, setConfirmacao] = useState(null); // { origem: "agora" | "fila", lista }
   const [vozAberta, setVozAberta] = useState(false);
   const [ouvindoVoz, setOuvindoVoz] = useState(false);
   const [textoVoz, setTextoVoz] = useState("");
@@ -463,6 +467,25 @@ export default function EtiquetasRapidas() {
     await imprimirFila("", [pronto]);
     setItem(null);
     setAviso({ tipo: "ok", texto: `✓ ${pronto.nome} preparado para impressão.` });
+  }
+
+  function pedirImpressaoAgora() {
+    if (!item || salvando) return;
+    if (numero(item.copias) < 1 || (modeloEtiqueta === "validade" && numero(item.dias) < 0)) return setAviso({ tipo: "erro", texto: "Revise a quantidade de cópias e a validade." });
+    if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
+    if (modeloEtiqueta === "logo" && !logoEtiqueta) return setAviso({ tipo: "erro", texto: "Adicione a imagem (logo) antes de imprimir." });
+    setConfirmacao({ origem: "agora", lista: [{ ...item, modeloEtiqueta, tipoEtiqueta, escalaNome, escalaLogo, logoEtiqueta: modeloEtiqueta === "logo" || mostrarLogo ? logoEtiqueta : "" }] });
+  }
+  function pedirImpressaoFila() {
+    if (!fila.length || salvando) return;
+    if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
+    setConfirmacao({ origem: "fila", lista: fila });
+  }
+  async function confirmarImpressao() {
+    const c = confirmacao;
+    setConfirmacao(null);
+    if (c?.origem === "agora") await imprimirAgora();
+    else if (c) await imprimirFila();
   }
 
   function adicionarFila() {
@@ -844,7 +867,7 @@ export default function EtiquetasRapidas() {
 
             <div className="ux-modal-footer">
               <button className="ux-btn-outline" onClick={adicionarFila}><List size={18}/> Adicionar à fila</button>
-              <button className="ux-btn-primary" onClick={imprimirAgora} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={18}/> : <Printer size={18}/>} Imprimir agora</button>
+              <button className="ux-btn-primary" onClick={pedirImpressaoAgora} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={18}/> : <Printer size={18}/>} Imprimir agora</button>
             </div>
           </div>
         </div>
@@ -875,13 +898,43 @@ export default function EtiquetasRapidas() {
             <div className="ux-fila-footer">
               <button className="ux-btn-limpar" onClick={limparFila}>Limpar</button>
               <button className="ux-btn-salvar" onClick={salvarFilaComoLista}><Save size={18}/></button>
-              <button className="ux-btn-primary" onClick={() => imprimirFila()} disabled={fila.length===0 || salvando}>{salvando ? "Enviando..." : `Imprimir ${totalEtiquetas}`}</button>
+              <button className="ux-btn-primary" onClick={pedirImpressaoFila} disabled={fila.length===0 || salvando}>{salvando ? "Enviando..." : `Imprimir ${totalEtiquetas}`}</button>
             </div>
           </div>
         </div>
       )}
 
       
+      {confirmacao && (() => {
+        const total = confirmacao.lista.reduce((s, p) => s + Math.max(1, Math.floor(numero(p.copias))), 0);
+        const destino = WebUsbDisponivel() ? "MDK-022 (USB)" : bluetoothNome ? `Bluetooth · ${bluetoothNome}` : "impressora do aparelho";
+        return (
+          <div className="ux-confirma-overlay" onClick={() => setConfirmacao(null)}>
+            <div className="ux-confirma" role="dialog" aria-modal="true" aria-label="Confira antes de imprimir" onClick={e => e.stopPropagation()}>
+              <div className="ux-modal-header">
+                <h3 style={{ fontWeight: 900, fontSize: 17 }}>Confira antes de imprimir</h3>
+                <button onClick={() => setConfirmacao(null)} aria-label="Fechar"><X size={20} /></button>
+              </div>
+              <div className="ux-confirma-corpo">
+                {confirmacao.lista.map((p, i) => (
+                  <div key={`${p.codigo || p.nome}-${i}`} className="ux-confirma-item">
+                    <PreviaEtiqueta item={p} tamanho={tamanho} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} />
+                    <p><strong>{p.nome}</strong> · {FORMATO_ROTULO[p.modeloEtiqueta] || "Completa"} · {Math.max(1, Math.floor(numero(p.copias)))} cópia{Math.max(1, Math.floor(numero(p.copias))) !== 1 ? "s" : ""}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="ux-confirma-rodape">
+                <p>{total} etiqueta{total !== 1 ? "s" : ""} · {String(tamanho).replace("x", "×")} mm · {destino}</p>
+                <div>
+                  <button className="ux-btn-outline" onClick={() => setConfirmacao(null)}>Voltar</button>
+                  <button className="ux-btn-primary" onClick={confirmarImpressao} disabled={salvando}><Printer size={18} /> Imprimir {total}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {modalSalvarLista && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95">
@@ -996,6 +1049,16 @@ const ESTILOS = `
 
   /* MODAL CONFIGURAÇÃO */
   .ux-modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(15,23,42,0.7); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+  .ux-confirma-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(15,23,42,0.75); display: flex; align-items: flex-end; justify-content: center; }
+  .ux-confirma { width: 100%; max-width: 560px; background: #fff; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; max-height: 92vh; overflow: hidden; }
+  .ux-confirma-corpo { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 18px; background: #f1f5f9; }
+  .ux-confirma-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .ux-confirma-item p { font-size: 13px; color: #0f172a; text-align: center; }
+  .ux-confirma-rodape { padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px; }
+  .ux-confirma-rodape p { font-size: 13px; font-weight: 700; color: #334155; text-align: center; }
+  .ux-confirma-rodape > div { display: flex; gap: 8px; }
+  .ux-confirma-rodape button { flex: 1; justify-content: center; }
+  @media (min-width: 640px) { .ux-confirma-overlay { align-items: center; padding: 16px; } .ux-confirma { border-radius: 24px; } }
   .ux-modal-largo { width: 100%; max-width: 900px; background: #fff; border-radius: 24px; display: flex; flex-direction: column; max-height: calc(100vh - 32px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
   .ux-modal-header { height: 64px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: #f8fafc; }
   .ux-modal-header h2 { font-size: 20px; font-weight: 800; margin: 0; color: #0f172a; }

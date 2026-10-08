@@ -1,17 +1,18 @@
 ---
+tentativas: 1
+sem_progresso: 1
+mesma_falha: 1
+ultima_falha: 01a3138b9807
+dependencias: []
+bloqueadores: []
 id: HDEV-001
 titulo: Concluir HEFISTO INTELLIGENCE HI-02 no ambiente mais real disponível
 fase: HI-02
 status: READY
 prioridade: 1
-dependencias: []
-bloqueadores: []
-tentativas: 0
-sem_progresso: 0
-mesma_falha: 0
-ultima_falha: ""
 atualizado_em: 2026-10-08
 ---
+
 
 # HDEV-001 — Concluir HI-02 no ambiente mais real disponível
 
@@ -71,3 +72,5 @@ Quando só sobrarem itens ⛔, marque **BLOCKED** apontando BLQ-001..004 e siga 
 ## Histórico
 
 - 2026-10-08 criada a partir do HI-02 (validação real feita; deploy bloqueado por acesso)
+- 2026-10-08T16:17 rodada 1 iniciada (branch claude/fervent-bell-t363k5)
+- 2026-10-08T16:17 rodada 1 → READY (falhou: motor (1): ou externo, um programa oper�vel ou um arquivo em lotes. — tenta de novo); 0 commit(s); 0 min

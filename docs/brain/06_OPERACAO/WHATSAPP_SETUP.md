@@ -10,6 +10,27 @@
 - Vercel Production: WHATSAPP_APP_SECRET, WHATSAPP_API_TOKEN, WHATSAPP_VERIFY_TOKEN (colados pelo dono), WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_NUMEROS_DONO, WHATSAPP_GRAPH_VERSION, WHATSAPP_DONO_AUTH_USER_ID, WHATSAPP_DONO_UNIDADE, WHATSAPP_PONTE_SEGREDO.
 - Próximo passo para sair do número de teste: Etapa 2 → registrar um número próprio.
 
+## Trocar para o número real (HDEV-WA-REAL-001)
+
+Decisão do dono (09/10): **chip novo, nunca usado no WhatsApp**. O celular pessoal do dono continua sendo o número AUTORIZADO (quem manda comandos); ele não pode virar o número do Héfisto.
+
+Quando o chip chegar (o agente faz, o dono só passa o código):
+1. Gerenciador do WhatsApp → Números de telefone → **Adicionar telefone**: nome público **Héfisto**, categoria, número do chip.
+2. Código por SMS ou ligação → **dono informa**.
+3. Registrar na Cloud API (`POST /{phone_number_id}/register`, PIN de 6 dígitos da verificação em duas etapas → **dono digita**, nunca no chat).
+4. Conferir: `GET /{waba}/phone_numbers` (status CONNECTED) e `GET /{waba}/subscribed_apps` (hefisto presente).
+5. Vercel Production: trocar só `WHATSAPP_PHONE_NUMBER_ID` (não é segredo); `WHATSAPP_NUMEROS_DONO` continua o celular do dono. Redeploy.
+6. Teste real: status → como está minha empresa? → missões / bloqueadores / aprovações.
+7. Número de teste: fica na conta (útil para testes), fora do fluxo de produção.
+
+Nenhum código depende do número de teste: tudo vem de `WHATSAPP_PHONE_NUMBER_ID` (conferido em 09/10).
+
+## Ponte sem depender do Claude Code
+
+- Religar à mão: `npm run hefisto:ponte` (na pasta do projeto).
+- Abrir sozinha no login do Windows: `npm run hefisto:ponte:autostart -- instalar` (um .cmd na pasta Inicializar do usuário, sem admin e sem segredo; remover com `-- remover`).
+- `continue` pelo WhatsApp abre o agente em janela própria (B-015), independente da ponte.
+
 
 Caminho mais rápido: o **número de teste gratuito** que a Meta cria junto com o app. Ele manda e recebe mensagens para até 5 números cadastrados (o seu). Depois dá para trocar por um número próprio verificado sem mudar código.
 

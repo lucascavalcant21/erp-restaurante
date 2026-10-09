@@ -1,6 +1,6 @@
 import { imprimirHtml } from "./imprimir";
 
-const esc = (valor) => String(valor ?? "").replace(/[&<>\"]/g, (caractere) => ({
+const esc = (valor) => String(valor ?? "").replace(/[&<>"]/g, (caractere) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
 }[caractere]));
 
@@ -46,8 +46,8 @@ export function imprimirReciboFuncionario(recibo, unidadeInfo, infoFuncionario) 
         </div>
         <div class="empresa-info">
           <strong>${esc(empresa)}</strong><br>
-          ${cnpj ? \`CNPJ: \${esc(cnpj)}<br>\` : ""}
-          ${enderecoEmpresa ? \`\${esc(enderecoEmpresa)}\` : ""}
+          ${cnpj ? `CNPJ: ${esc(cnpj)}<br>` : ""}
+          ${enderecoEmpresa ? `${esc(enderecoEmpresa)}` : ""}
         </div>
       </div>
 
@@ -60,10 +60,10 @@ export function imprimirReciboFuncionario(recibo, unidadeInfo, infoFuncionario) 
         referente ao pagamento de <strong>${esc(recibo.tipo)}</strong> 
         do período de referência <strong>${esc(recibo.referencia)}</strong>.<br><br>
         
-        <strong>Beneficiário:</strong> ${esc(nome)} ${cpf ? \`(CPF: \${esc(cpf)})\` : ""}<br>
+        <strong>Beneficiário:</strong> ${esc(nome)} ${cpf ? `(CPF: ${esc(cpf)})` : ""}<br>
         <strong>Cargo/Função:</strong> ${esc(cargo || "Não informado")}<br>
         <strong>Forma de pagamento:</strong> ${esc(recibo.formaPagamento)}<br>
-        ${recibo.observacao ? \`<strong>Observações:</strong> \${esc(recibo.observacao)}<br>\` : ""}
+        ${recibo.observacao ? `<strong>Observações:</strong> ${esc(recibo.observacao)}<br>` : ""}
       </div>
 
       <p style="text-align:right; font-size:14px;">Emitido em ${dataAtual} via Héfisto</p>
@@ -91,8 +91,8 @@ export function imprimirReciboFuncionario(recibo, unidadeInfo, infoFuncionario) 
         </div>
         <div class="empresa-info">
           <strong>${esc(empresa)}</strong><br>
-          ${cnpj ? \`CNPJ: \${esc(cnpj)}<br>\` : ""}
-          ${enderecoEmpresa ? \`\${esc(enderecoEmpresa)}\` : ""}
+          ${cnpj ? `CNPJ: ${esc(cnpj)}<br>` : ""}
+          ${enderecoEmpresa ? `${esc(enderecoEmpresa)}` : ""}
         </div>
       </div>
 
@@ -105,10 +105,10 @@ export function imprimirReciboFuncionario(recibo, unidadeInfo, infoFuncionario) 
         referente ao pagamento de <strong>${esc(recibo.tipo)}</strong> 
         do período de referência <strong>${esc(recibo.referencia)}</strong>.<br><br>
         
-        <strong>Beneficiário:</strong> ${esc(nome)} ${cpf ? \`(CPF: \${esc(cpf)})\` : ""}<br>
+        <strong>Beneficiário:</strong> ${esc(nome)} ${cpf ? `(CPF: ${esc(cpf)})` : ""}<br>
         <strong>Cargo/Função:</strong> ${esc(cargo || "Não informado")}<br>
         <strong>Forma de pagamento:</strong> ${esc(recibo.formaPagamento)}<br>
-        ${recibo.observacao ? \`<strong>Observações:</strong> \${esc(recibo.observacao)}<br>\` : ""}
+        ${recibo.observacao ? `<strong>Observações:</strong> ${esc(recibo.observacao)}<br>` : ""}
       </div>
 
       <p style="text-align:right; font-size:14px;">Emitido em ${dataAtual} via Héfisto</p>
@@ -127,7 +127,7 @@ export function imprimirReciboFuncionario(recibo, unidadeInfo, infoFuncionario) 
 
   </body>
   </html>
-  \`;
+  `;
 
   imprimirHtml(html);
 }

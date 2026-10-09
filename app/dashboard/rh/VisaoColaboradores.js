@@ -193,8 +193,9 @@ export default function VidaColaboradorPage() {
       <div className="min-h-screen pb-24">
         <PageHeader title={sel.nome} subtitle={`${sel.cargo || "—"} · ${isFree ? "Freelancer/Extra" : sel.tipo_contrato || "Fixo"} · ${unidadeInfo?.nome}`} icon={User} back={false}>
           <button onClick={() => { setSel(null); setVida(null); }} className="erp-btn erp-btn-ghost !h-9 text-xs"><ArrowLeft size={14} /> Todos</button>
-          <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho de Ponto</button>
-          <button onClick={() => router.push("/dashboard/rh")} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar no RH</button>
+          <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho</button>
+          <button onClick={() => router.push(isFree ? `/dashboard/rh/extra/${sel.id}/recibo` : `/dashboard/rh/funcionario/${sel.id}/recibo`)} className="erp-btn erp-btn-ghost !h-9 text-xs" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}><FileText size={14} /> Recibo</button>
+          <button onClick={() => router.push("/dashboard/rh")} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
         </PageHeader>
         <PageBody>
           {/* Dados cadastrais */}

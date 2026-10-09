@@ -2902,10 +2902,28 @@ export default function RHPage() {
                            </select>
                            {(() => {
                               const info = faseContratoCalculada(novoFunc);
+                              const decisao = !info.ehDefinitivo && info.diasRestantesPeriodo !== null && info.diasRestantesPeriodo <= 5;
                               return (
-                                 <p className="mt-2 text-xs font-bold text-indigo-700 bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100">
-                                    ℹ️ {info.fase}: {info.detalhe}
-                                 </p>
+                                 <div className="mt-2 flex flex-col gap-2">
+                                    <p className="text-xs font-bold text-indigo-700 bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100">
+                                       ℹ️ {info.fase}: {info.detalhe}
+                                    </p>
+                                    {decisao && (
+                                       <div className="flex flex-wrap gap-2 mt-1">
+                                          {info.periodo === 1 && (
+                                             <button type="button" onClick={() => alert("O contrato já passa automaticamente para o 2º período amanhã caso você não encerre hoje.")} className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold text-3xs rounded-lg border border-indigo-200 transition-colors">
+                                                ✅ Renovar para 2º Período
+                                             </button>
+                                          )}
+                                          <button type="button" onClick={() => setNovoFunc({...novoFunc, status_contrato: "Definitivo"})} className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-3xs rounded-lg border border-emerald-200 transition-colors">
+                                             🌟 Transformar em Fixo
+                                          </button>
+                                          <button type="button" onClick={() => { if(confirm("Deseja realmente marcar o funcionário como Inativo (desligado)?")) setNovoFunc({...novoFunc, status: "inativo"}) }} className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-3xs rounded-lg border border-rose-200 transition-colors">
+                                             ❌ Não Renovar (Desligar)
+                                          </button>
+                                       </div>
+                                    )}
+                                 </div>
                               );
                            })()}
                         </div>

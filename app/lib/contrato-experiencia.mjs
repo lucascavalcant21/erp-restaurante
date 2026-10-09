@@ -58,9 +58,10 @@ export function faseContratoCalculada(colaborador, hoje = new Date()) {
   if (diasCorridos <= p1) {
     const faltam = p1 - diasCorridos;
     const dataFim = new Date(admissao.getTime() + p1 * DIA);
+    const strDataFim = dataFim.toLocaleDateString("pt-BR", { weekday: "long" }) + ", " + dataFim.toLocaleDateString("pt-BR");
     return {
       fase: `Experiência (1º Período - ${p1} dias)`,
-      detalhe: `1º Período (${diasCorridos}/${p1} dias). Vence em ${dataFim.toLocaleDateString("pt-BR")}. Faltam ${faltam} dia(s).`,
+      detalhe: `Falta(m) ${faltam} dia(s) para terminar o 1º período de experiência (termina ${strDataFim}).`,
       ehDefinitivo: false,
       periodo: 1,
       diasCorridos,
@@ -69,9 +70,10 @@ export function faseContratoCalculada(colaborador, hoje = new Date()) {
   } else if (diasCorridos <= 90) {
     const faltam = 90 - diasCorridos;
     const dataFim = new Date(admissao.getTime() + 90 * DIA);
+    const strDataFim = dataFim.toLocaleDateString("pt-BR", { weekday: "long" }) + ", " + dataFim.toLocaleDateString("pt-BR");
     return {
       fase: `Experiência (2º Período - mais ${p2} dias)`,
-      detalhe: `Prorrogado (${diasCorridos}/90 dias). Vence final em ${dataFim.toLocaleDateString("pt-BR")}. Faltam ${faltam} dia(s).`,
+      detalhe: `Falta(m) ${faltam} dia(s) para terminar o contrato de experiência definitivo (termina ${strDataFim}).`,
       ehDefinitivo: false,
       periodo: 2,
       diasCorridos,

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { comprimirFotoParaIA } from "../../lib/imagem";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
-import RhHub from "../../components/navigation/RhHub";
+import RhNav from "./RhNav";
 import {
   fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
@@ -2002,6 +2002,7 @@ export default function RHPage() {
 
   return (
     <div className="min-h-screen font-sans pb-24 text-slate-800">
+      <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
       <>

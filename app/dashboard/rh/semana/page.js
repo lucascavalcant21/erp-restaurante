@@ -109,7 +109,8 @@ export default function SemanaPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16">
-      <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
+      <RhNav />
+      <div className="sticky top-[52px] sm:top-[44px] z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">

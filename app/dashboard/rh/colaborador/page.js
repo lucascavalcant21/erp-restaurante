@@ -174,6 +174,7 @@ export default function VidaColaboradorPage() {
     return (
       <div className="min-h-screen">
         <PageHeader title="Colaboradores" subtitle="A vida completa de cada funcionário" icon={Users} />
+        <RhNav />
         <PageBody><EmptyState icon={Users} title="Selecione uma unidade" hint="Escolha a unidade no topo." /></PageBody>
       </div>
     );
@@ -578,6 +579,7 @@ export default function VidaColaboradorPage() {
     <div className="min-h-screen pb-24">
       <PageHeader title="Colaboradores" subtitle={`A vida completa de cada funcionário · ${unidadeInfo?.nome || ""}`} icon={Users}
         onAction={() => router.push("/dashboard/rh")} actionLabel="Cadastrar no RH" />
+      <RhNav />
       <PageBody>
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por nome ou cargo..." />
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mt-1 mb-3">

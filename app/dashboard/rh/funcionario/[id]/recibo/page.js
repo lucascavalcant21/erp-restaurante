@@ -6,6 +6,7 @@ import { ArrowLeft, Printer, FileText, Save } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
 import { supabase } from "../../../../../lib/supabase";
 import { imprimirReciboFuncionario } from "../../../../../lib/recibo-funcionario";
+import { salvarReciboPrestacao } from "../../../../../lib/rh";
 import CampoDecimal from "../../../../../components/CampoDecimal";
 
 export default function GerarPagamentoFixoPage() {
@@ -69,23 +70,28 @@ export default function GerarPagamentoFixoPage() {
       }
     };
     
-    const { data, error } = await salvarReciboPrestacao(novoRecibo);
-    setSalvando(false);
-    if (error && error !== "Offline") {
-      return alert("Erro ao salvar o recibo no histórico: " + error);
-    }
-    const salvo = data || novoRecibo;
-    setRecibos(l => [salvo, ...l]);
-    setForm(f => ({ ...f, valor: "" }));
-    
-    if (imprimirDepois) {
-      imprimirReciboFuncionario({
-        valor: valorNum,
-        tipo: form.tipo,
-        referencia: form.referencia,
-        formaPagamento: form.formaPagamento,
-        observacao: form.observacao
-      }, unidadeInfo, func);
+    try {
+      const { data, error } = await salvarReciboPrestacao(novoRecibo);
+      setSalvando(false);
+      if (error && error !== "Offline") {
+        return alert("Erro ao salvar o recibo no histórico: " + error);
+      }
+      const salvo = data || novoRecibo;
+      setRecibos(l => [salvo, ...l]);
+      setForm(f => ({ ...f, valor: "" }));
+      
+      if (imprimirDepois) {
+        imprimirReciboFuncionario({
+          valor: valorNum,
+          tipo: form.tipo,
+          referencia: form.referencia,
+          formaPagamento: form.formaPagamento,
+          observacao: form.observacao
+        }, unidadeInfo, func);
+      }
+    } catch (e) {
+      setSalvando(false);
+      alert("Ocorreu um erro inesperado ao salvar: " + e.message);
     }
   };
 

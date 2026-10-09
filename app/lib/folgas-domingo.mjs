@@ -62,7 +62,7 @@ export function folgasDeDomingoNoMes(folgas, anoMes) {
  * tela pede confirmação — nada aqui proíbe, porque quem lança é o gerente.
  *   pontoDoDia: registro_ponto da pessoa nesse dia (ou null)
  */
-export function avisosDaFolga({ data, hoje, nome = "", folgas = [], pontoDoDia = null, horaLocal = (iso) => iso }) {
+export function avisosDaFolga({ data, hoje, nome = "", folgas = [], pontoDoDia = null, horaLocal = (iso) => iso, genero = "" }) {
   const avisos = [];
   const quem = nome ? String(nome).split(" ")[0] : "A pessoa";
   const trabalhou = !!pontoDoDia?.hora_entrada;
@@ -76,7 +76,8 @@ export function avisosDaFolga({ data, hoje, nome = "", folgas = [], pontoDoDia =
   }
   if (ehDomingo(data)) {
     const outras = folgasDeDomingoNoMes(folgas, data.slice(0, 7)).filter((d) => d !== data);
-    if (outras.length) avisos.push(`${quem} já tem folga de domingo em ${nomeDoMes(data.slice(0, 7))} (${outras.map(dataCurta).join(", ")}). A regra é uma por mês.`);
+    const limite = genero === "Feminino" ? 2 : 1;
+    if (outras.length >= limite) avisos.push(`${quem} já tem ${outras.length} folga(s) de domingo em ${nomeDoMes(data.slice(0, 7))} (${outras.map(dataCurta).join(", ")}). A regra é ${limite} por mês${genero === "Feminino" ? " para mulheres" : ""}.`);
   }
   return avisos;
 }

@@ -1973,6 +1973,7 @@ export default function RHPage() {
      const avisos = avisosDaFolga({
         data: dataAdicionar, hoje, nome: funcParaFolgas.nome, folgas: folgasEsporadicas, pontoDoDia,
         horaLocal: (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
+        genero: funcParaFolgas.genero,
      });
      if (avisos.length && !confirm(`${avisos.join("\n\n")}\n\nLançar a folga de ${dataCurta(dataAdicionar)} mesmo assim?`)) return;
      const { error } = await inserirFolgaEsporadica(unidadeAtiva, funcParaFolgas.id, dataAdicionar, descricao);
@@ -4014,7 +4015,7 @@ export default function RHPage() {
                      </div>
 
                      <div className="mb-6">
-                        <label className="text-xs font-bold text-indigo-700 uppercase tracking-widest block mb-1">Folga de domingo (1 por mês)</label>
+                        <label className="text-xs font-bold text-indigo-700 uppercase tracking-widest block mb-1">Folga de domingo (1 p/ mês, 2 para mulheres)</label>
                         <p className="text-xs font-medium text-slate-500 mb-3">Inclui o mês passado: dá para lançar a folga de um domingo que já foi.</p>
                         <div className="space-y-4">
                            {mesesDeDomingo.map(mes => {

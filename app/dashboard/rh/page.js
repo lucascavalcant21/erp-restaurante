@@ -2148,14 +2148,14 @@ export default function RHPage() {
                const adm = new Date(`${f.data_admissao}T12:00:00`); adm.setHours(0, 0, 0, 0);
                const diasDesdeAdmissao = Math.floor((hoje - adm) / 86400000);
                if (f.status_contrato?.startsWith("Experiência")) {
-                  const fc = faseContratoCalculada(f.data_admissao, f.status_contrato);
-                  if (fc) {
-                     const faltam = fc.diasRestantes;
+                  const fc = faseContratoCalculada(f);
+                  if (fc && !fc.ehDefinitivo) {
+                     const faltam = fc.diasRestantesPeriodo;
                      if (faltam <= 15) {
                         alertas.push({ 
                            id: f.id, 
                            nome: f.nome, 
-                           texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : `Experiência termina em ${faltam} dia(s) (${fc.dataFimStr})`, 
+                           texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : fc.detalhe, 
                            nivel: faltam <= 5 ? "erro" : "aviso" 
                         });
                      }
@@ -2356,13 +2356,22 @@ export default function RHPage() {
                               const casa = tempoDeCasa(f);
                               const aniv = aniversario(f);
                               const adm = f.data_admissao ? new Date(`${String(f.data_admissao).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : null;
+                              const fase = faseContratoCalculada(f);
+                              const isExp = fase && !fase.ehDefinitivo;
                               if (!adm && !casa && !aniv && !f.tipo_contrato) return null;
                               return (
-                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-fg">
-                                    {f.tipo_contrato && <span className="rounded-md bg-card px-2 py-0.5 text-slate-900">{f.tipo_contrato}</span>}
-                                    {adm && <span>Admissão {adm}</span>}
-                                    {casa && <span className="text-accent">{casa.textoDias} de {nomeDaCasa}</span>}
-                                    {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>Aniversário {aniv.diaMes}{aniv.ehHoje ? " · é hoje" : ""}</span>}
+                                 <div className="flex flex-col gap-1">
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-bold text-fg">
+                                       {f.tipo_contrato && <span className="rounded-md bg-card px-2 py-0.5 text-slate-900">{f.tipo_contrato}</span>}
+                                       {adm && <span>Admissão {adm}</span>}
+                                       {casa && !isExp && <span className="text-accent">{casa.textoDias} de {nomeDaCasa}</span>}
+                                       {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>🎂 {aniv.diaMes}{aniv.ehHoje ? " (Hoje!)" : ""}</span>}
+                                    </div>
+                                    {isExp && (
+                                       <div className={`text-2xs font-bold rounded-lg px-2.5 py-1 ${fase.diasRestantesPeriodo <= 5 ? "bg-amber-100 text-amber-900" : "bg-blue-50 text-blue-800"}`}>
+                                          <p>{fase.fase} · {fase.detalhe}</p>
+                                       </div>
+                                    )}
                                  </div>
                               );
                            })()}

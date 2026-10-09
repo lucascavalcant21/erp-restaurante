@@ -51,6 +51,8 @@
 */
 
 begin;
+-- não fica esperando trava de tabela em uso (seguraria o app): desiste e desfaz tudo
+set local lock_timeout = '5s';
 
 -- ── PREFLIGHT (aborta sem mudar nada) ───────────────────────────────────────
 create temp table _sec_rls_1_alvo (tabela text primary key) on commit drop;

@@ -14,6 +14,7 @@ _Toda publicação do agente passa pela política ([[POLITICA_PUBLICACAO]]). A t
 | Data | O quê | Ambiente | Evidência |
 |---|---|---|---|
 | 07/10/2026 | IC_01 v ic-01.2 (tabelas `intelligence_*`) | Supabase produção | Verificação toda OK, impressão `d55eda66…` |
+| 08/10/2026 | SEC-RLS-1 (isolamento por unidade, 88 tabelas; APR-001) | Supabase produção | Preflight e verificação OK; impressão `dd885d76…`; usuários reais isolados; AUDITORIA_RLS 0 NOVO. Rollback: `db/security/SEC_RLS_1_ROLLBACK.sql` |
 | 07/10/2026 | `main` `c3d45cb` (correção das fichas g/ml) | Produção `dpl_AqdMC…` | Vercel READY |
 | 07–08/10/2026 | Branch `claude/fervent-bell-t363k5` | Preview | Vercel READY (último build conferido: `c338122`) |
 

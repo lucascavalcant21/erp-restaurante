@@ -14,7 +14,7 @@ Ideias ainda sem forma de missão ficam em [[IDEIAS_DO_DONO]] e [[PEDIDOS_NOVOS]
 <!-- hefisto-agent:indice:inicio -->
 | id | título | status | prioridade | depende de | bloqueadores | rodadas |
 |---|---|---|---|---|---|---|
-| [[HDEV-008]] | SEG — Fechar RLS de colaboradores/registro_ponto e isolar tabelas multiempresa | BACKLOG | 1 | – | BLQ-005 | 0 |
+| [[HDEV-008]] | SEG — Fechar RLS de colaboradores/registro_ponto e isolar tabelas multiempresa | BACKLOG | 1 | – | – | 0 |
 | [[HDEV-002]] | HI-03 — CMV Real × Teórico + Estoque Real × Esperado | BACKLOG | 2 | HDEV-001 | – | 0 |
 | [[HDEV-003]] | HI-03 — Conciliação Financeira | BACKLOG | 2 | HDEV-001 | – | 0 |
 | [[HDEV-004]] | HI-04 — Forecast Engine | BACKLOG | 3 | HDEV-002 | – | 0 |

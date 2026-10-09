@@ -5,7 +5,7 @@ fase: seguranca
 status: BLOCKED
 prioridade: 1
 dependencias: []
-bloqueadores: [BLQ-005]
+bloqueadores: [BLQ-008]
 tentativas: 0
 sem_progresso: 0
 mesma_falha: 0
@@ -33,8 +33,8 @@ Assume a parte de RLS de [[HDEV-008]] (S-01, S-02). As rotas `ia-*` e `saas/expo
 | Isolamento validado com 2 unidades e as policies reais | ✅ TESTADO LOCAL (PGlite) |
 | Ninguém perde acesso hoje | ✅ TESTADO NO SUPABASE REAL (só leitura): 16/16 usuários; 0 linhas órfãs nas 88 |
 | Trava contra regressão | ✅ teste estático + auditoria do banco + política de publicação |
-| Aplicado no banco real | ⛔ aguarda o dono: **APR-001** (BLQ-005) |
-| Fase 2 (33 tabelas) | ⏳ precisa de decisão do dono sobre os dados (abaixo) |
+| Aplicado no banco real | ✅ TESTADO NO SUPABASE REAL: APR-001 aprovada pelo dono e executada em 08/10 (impressão `dd885d76…`) |
+| Fase 2 (33 tabelas) | ⛔ precisa de decisão do dono sobre os dados (BLQ-008) |
 
 ## Arquivos afetados
 
@@ -56,7 +56,7 @@ Assume a parte de RLS de [[HDEV-008]] (S-01, S-02). As rotas `ia-*` e `saas/expo
 - Qualquer usuário logado lê e grava os dados de qualquer empresa.
 - O anon não tem grant em nenhuma: o risco é entre logados.
 
-**Fase 1, pronta para aplicar (APR-001):**
+**Fase 1, APLICADA no banco real em 08/10 (APR-001):**
 - 88 tabelas passam a ter uma única policy `sec_unidade`: o usuário vê e grava só as unidades dele (unidade principal ou escopo). Super admin e escopo `todos` veem todas.
 - O RLS é ligado em `colaboradores` e `registro_ponto`.
 - Insert sem `unidade_id` recebe a unidade do usuário, para nenhuma tela quebrar.
@@ -103,9 +103,12 @@ Assume a parte de RLS de [[HDEV-008]] (S-01, S-02). As rotas `ia-*` e `saas/expo
 | Rollback volta exatamente ao estado anterior | TESTADO LOCAL (PGlite) |
 | Trava estática e auditoria passam pela guarda | TESTADO LOCAL |
 | `test:seguranca` 8/8 · `test:agent` 56/56 · `test:intelligence` 130/130 (PGLITE) · `test:qa` 6/6 | TESTADO LOCAL |
-| Aplicação no banco real | NÃO VALIDADO (aguarda APR-001) |
+| Aplicação no banco real: preflight + troca + verificação no mesmo commit; 88 `sec_unidade`, RLS ligado em colaboradores/registro_ponto, 107 policies no backup, 48 gatilhos, anon sem execute | TESTADO NO SUPABASE REAL (08/10) |
+| Usuários reais depois (transação desfeita): funcionário vê os 23 colaboradores, 392 pontos e 363 insumos da unidade; gravar em outra unidade → **recusado pelo RLS**; logado sem cadastro → 0 linhas; super admin → tudo | TESTADO NO SUPABASE REAL |
+| `AUDITORIA_RLS.sql` depois: 0 aguarda, 0 NOVO, 33 fase 2 · advisor sem `rls_disabled_in_public` | TESTADO NO SUPABASE REAL |
 | Telas do ERP depois da mudança | NÃO VALIDADO (fazer no preview logo depois de aplicar; com 1 unidade, o esperado é nenhuma diferença) |
 
 ## Histórico
 
 - 2026-10-08 criada e trabalhada em sessão acompanhada; fase 1 pronta; aplicação aguarda o dono (APR-001) → BLOCKED
+- 2026-10-08 ~21:20 (Brasília) dono aprovou a APR-001; fase 1 aplicada e verificada no Supabase real; fase 2 aguarda decisões sobre os dados (BLQ-008) → BLOCKED

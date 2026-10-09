@@ -5,7 +5,7 @@ fase: HI-06
 status: IN_PROGRESS
 prioridade: 1
 dependencias: []
-bloqueadores: [BLQ-006, BLQ-010]
+bloqueadores: [BLQ-006]
 tentativas: 0
 sem_progresso: 0
 mesma_falha: 0
@@ -34,8 +34,8 @@ WhatsApp → webhook Meta (assinatura obrigatória) → número autorizado → C
 - [x] Comandos: status, como está o desenvolvimento?, continue, pare, missões, bloqueadores, aprovações, aprovar <ID>, rejeitar <ID>, como está minha empresa?, pergunte ao Héfisto: <pergunta> — TESTADO LOCAL
 - [x] Empresa/pergunta pelo MESMO caminho da Central (`atenderInteligencia` + handlers compartilhados); DADOS INSUFICIENTES escrito; ações bloqueadas no WhatsApp — TESTADO LOCAL
 - [x] Ponte local com as funções dos comandos npm; aprovar só muda o status (nunca executa) — TESTADO LOCAL
-- [ ] Fila no banco (APR-003, `db/whatsapp/WA_001_FILA.sql`)
-- [ ] Publicar em produção (merge na `main`, com o dono)
+- [x] Fila no banco (APR-003 executada 09/10) — TESTADO NO SUPABASE REAL
+- [x] Publicado em produção 09/10 (`ba0a91a`, PR #128, com o dono): webhook recusa sem assinatura, ponte responde — TESTADO EM PRODUÇÃO
 - [ ] Meta configurada pelo dono (ACESSO-006, [[WHATSAPP_SETUP]])
 - [ ] TESTADO EM PRODUÇÃO: mensagem do celular do dono → resposta
 
@@ -50,3 +50,4 @@ WhatsApp → webhook Meta (assinatura obrigatória) → número autorizado → C
 ## Resultado
 
 09/10/2026: canal implementado e testado local (19 testes novos). Substitui o webhook da fase 3A (S-18). Aguarda: APR-003, merge para produção e a configuração na Meta.
+09/10/2026 ~01:00: APR-003 aplicada e PR #128 publicado (smoke OK). Falta só a Meta (BLQ-006) e a primeira mensagem real. Não validado ainda: abrir a sessão do dono (generateLink + verifyOtp) no Supabase real: acontece na primeira mensagem.

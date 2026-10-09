@@ -2267,7 +2267,7 @@ export default function RHPage() {
             />
          ) : abaAtiva === "Banco de Talentos" ? (
             <BancoTalentos unidadeAtiva={unidadeAtiva} />
-         
+         ) : null}
 
       </div>
 

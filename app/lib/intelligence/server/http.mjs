@@ -52,8 +52,10 @@ async function lerCorpo(request) {
 /**
  * @param {Request} request
  * @param {(amb: object) => Promise<object>} handler devolve { corpo, status? }
+ * @param {object} [opcoes]
+ * @param {"web"|"whatsapp"} [opcoes.canal] canal de origem gravado na auditoria e nas ações
  */
-export async function atenderInteligencia(request, handler, { limitePorMinuto = 30, injecao = null } = {}) {
+export async function atenderInteligencia(request, handler, { limitePorMinuto = 30, injecao = null, canal = "web" } = {}) {
   const requestId = randomUUID();
   const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim() || null;
   const unidade = request.headers.get("x-hefisto-unidade");
@@ -83,13 +85,16 @@ export async function atenderInteligencia(request, handler, { limitePorMinuto = 
     return recusar(500, "ERRO", "Falha ao montar o contexto.");
   }
 
-  const { store, persistente } = injecao?.store ? { store: injecao.store, persistente: true } : storeDoServidor();
+  const base = injecao?.store ? { store: injecao.store, persistente: true } : storeDoServidor();
+  const persistente = base.persistente;
+  // a auditoria grava "web" por padrão; o canal real da requisição vale para todo evento dela
+  const store = canal === "web" ? base.store : { ...base.store, registrarEvento: (ev) => base.store.registrarEvento({ ...ev, canal }) };
   const dbUsuario = injecao?.clienteDoUsuario ? injecao.clienteDoUsuario(token) : clienteDoUsuario(token);
   const dbe = criarDbEscopado(dbUsuario, ic.escopo);
   const verificador = criarVerificador(ctx, deps);
   const motor = criarMotorDeMetricas({ dbe, escopo: ic.escopo, verificador, agora, fuso: ic.fuso });
   const nomeUsuario = persistente && store.nomeDoUsuario ? await store.nomeDoUsuario(ic.escopo.userId).catch(() => "") : "";
-  const servicoAcoes = criarServicoDeAcoes({ store, escopo: ic.escopo, dbe, dbUsuario, verificador, nomeUsuario, canal: "web", relogio: injecao?.agora ? () => injecao.agora : undefined });
+  const servicoAcoes = criarServicoDeAcoes({ store, escopo: ic.escopo, dbe, dbUsuario, verificador, nomeUsuario, canal, relogio: injecao?.agora ? () => injecao.agora : undefined });
   const correlationId = `ic-${requestId}`;
 
   try {

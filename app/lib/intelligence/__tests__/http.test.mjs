@@ -78,6 +78,19 @@ test("Daily Brief pela casca com dados reais da unidade", async () => {
   assert.equal(j.brief.escopo.unidadeId, "loja-a");
 });
 
+test("auditoria marca o que veio do WhatsApp; a Central continua como antes (B-014)", async () => {
+  const web = criarStoreMemoria();
+  const r1 = await atenderInteligencia(pedido({ corpo: { texto: "quanto vendi ontem?" } }), ask, { injecao: injecao({}, web) });
+  assert.equal(r1.status, 200);
+  assert.ok(web.eventos.length > 0 && web.eventos.every((e) => e.canal !== "whatsapp"));
+  assert.ok(web.eventos.some((e) => e.canal === "texto"), "pedido da Central segue com o modo de entrada (texto)");
+
+  const wa = criarStoreMemoria();
+  const r2 = await atenderInteligencia(pedido({ corpo: { texto: "quanto vendi ontem?" } }), ask, { injecao: injecao({}, wa), canal: "whatsapp" });
+  assert.equal(r2.status, 200);
+  assert.ok(wa.eventos.length > 0 && wa.eventos.every((e) => e.canal === "whatsapp"), "todo evento do pedido pelo WhatsApp");
+});
+
 test("corpo inválido (não-JSON ou grande demais) é recusado", async () => {
   const req = new Request("http://localhost/x", { method: "POST", headers: { authorization: `Bearer tok-${UID_A}`, "x-hefisto-unidade": "loja-a" }, body: "{quebrado" });
   assert.equal((await atenderInteligencia(req, ask, { injecao: injecao() })).status, 400);

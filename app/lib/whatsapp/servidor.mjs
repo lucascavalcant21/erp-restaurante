@@ -18,7 +18,7 @@ async function chamarCore({ caminho, metodo, corpo, handler, limitePorMinuto, en
     const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
     if (env.WHATSAPP_DONO_UNIDADE) headers["x-hefisto-unidade"] = env.WHATSAPP_DONO_UNIDADE;
     const req = new Request(`${URL_INTERNA}/${caminho}`, { method: metodo, headers, body: metodo === "GET" ? undefined : JSON.stringify(corpo) });
-    const res = await atenderInteligencia(req, handler, { limitePorMinuto });
+    const res = await atenderInteligencia(req, handler, { limitePorMinuto, canal: "whatsapp" });
     const json = await res.json().catch(() => null);
     if (res.status === 401 && tentativa === 0) { esquecerSessaoDoDono(); continue; } // token revogado: abre outra sessão
     return json;

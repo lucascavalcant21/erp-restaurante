@@ -88,3 +88,17 @@ Formato: **DA-NNN — título (data)**: contexto → decisão → consequência.
 - **Por quê:** substitui 4 formas abertas e o padrão antigo `pode_ver_todas() or unidade_id = auth_unidade_id()`, que só enxerga UMA unidade por usuário e deixava linhas sem unidade visíveis para todos. Calculada uma vez por consulta (subconsulta não correlacionada), não por linha.
 - **Tabela nova com `unidade_id` usa essa policy.** O teste `npm run test:seguranca` e a política de publicação recusam policy aberta.
 - **Evidência:** TESTADO LOCAL (PGlite com as policies reais). Aplicação no banco real: aguarda APR-001.
+
+## DA-010 — Dados sensíveis, dono e tabelas-filhas (SEC-RLS-2, 08/10/2026)
+
+- **"Ver tudo" é só do super admin.** `pode_ver_todas()` e `hefisto_ve_todas_unidades()` não aceitam mais escopo.
+  - Dono = escopo `empresa` (ou `todos`): vê as unidades da **própria** empresa (`unidades.empresa_id`).
+- **Dados sensíveis de colaboradores:**
+  - a tabela completa fica para o próprio, RH/gerência com `rh.employees.*` na unidade, dono e super admin;
+  - as telas operacionais usam `hefisto_colaboradores_operacional()`, com lista fechada de colunas (coluna nova não vaza por padrão);
+  - o app junta as duas listas, então nenhuma tela quebra.
+- **Tabela-filha:** `sec_pai` = existe a mãe visível (`exists (select 1 from mãe where id = filha.fk)`).
+  - A RLS da mãe vale dentro da subconsulta. A regra fica num lugar só e não duplica policy.
+- **Segredo em coluna** (`token_nfe`): o navegador grava, mas não lê (privilégio de coluna). Uma função diz só se está configurado.
+- **Dado legado:** classificado em `sec_dados_legados`, fica só para o super admin. Nunca é apagado ou movido sem evidência e aprovação.
+- **Evidência:** TESTADO LOCAL (PGlite com 2 empresas e as policies reais). Aplicação: aguarda APR-002.

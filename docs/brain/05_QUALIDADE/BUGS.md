@@ -21,3 +21,5 @@ Formato: **B-NNN**, situação, onde foi visto, evidência da correção.
 | B-004 | 4 telas de eventos/orçamento caíam na entrada genérica `/dashboard` (qualquer funcionário abria) | Entradas `eventos.overview` e `eventos.quote` | `73b4643`. TESTADO LOCAL |
 | B-009 | Colunas inexistentes (`vw_compras.data_recebimento`, `colaboradores.ativo`) nas métricas | Colunas ajustadas ao banco real | `d94bda5`. TESTADO NO SUPABASE REAL |
 | B-010 | `npm run test:agent` falhava no Windows: o teste do prompt esperava `/` no caminho da missão | Regex aceita `/` ou `\` | `b8a398a`. TESTADO LOCAL (Windows, 30/30) |
+| B-011 | `pago_em` da nota gravado com a data UTC (`toISOString`): pagamento lançado entre 21h e 24h fica com a data de amanhã. Aberto: usar a data de São Paulo, como `fin_hoje()` | `app/dashboard/operacao/notas/page.js:89` | BAIXA |
+| B-012 | 4 testes (contas a pagar/receber, compras, contagem) calculavam "hoje" em UTC e falhavam entre 21h e 24h contra `fin_hoje()` (São Paulo). **Corrigido** na HDEV-SEC-002 (TESTADO LOCAL) | `app/lib/*-estoque.test.mjs`, `contas-*.test.mjs` | Teste |

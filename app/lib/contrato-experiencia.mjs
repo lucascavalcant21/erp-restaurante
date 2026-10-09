@@ -59,8 +59,8 @@ export function faseContratoCalculada(colaborador, hoje = new Date()) {
     const faltam = p1 - diasCorridos;
     const dataFim = new Date(admissao.getTime() + p1 * DIA);
     return {
-      fase: \`Experiência (1º Período - \${p1} dias)\`,
-      detalhe: \`1º Período (\${diasCorridos}/\${p1} dias). Vence em \${dataFim.toLocaleDateString("pt-BR")}. Faltam \${faltam} dia(s).\`,
+      fase: `Experiência (1º Período - ${p1} dias)`,
+      detalhe: `1º Período (${diasCorridos}/${p1} dias). Vence em ${dataFim.toLocaleDateString("pt-BR")}. Faltam ${faltam} dia(s).`,
       ehDefinitivo: false,
       periodo: 1,
       diasCorridos,
@@ -70,8 +70,8 @@ export function faseContratoCalculada(colaborador, hoje = new Date()) {
     const faltam = 90 - diasCorridos;
     const dataFim = new Date(admissao.getTime() + 90 * DIA);
     return {
-      fase: \`Experiência (2º Período - mais \${p2} dias)\`,
-      detalhe: \`Prorrogado (\${diasCorridos}/90 dias). Vence final em \${dataFim.toLocaleDateString("pt-BR")}. Faltam \${faltam} dia(s).\`,
+      fase: `Experiência (2º Período - mais ${p2} dias)`,
+      detalhe: `Prorrogado (${diasCorridos}/90 dias). Vence final em ${dataFim.toLocaleDateString("pt-BR")}. Faltam ${faltam} dia(s).`,
       ehDefinitivo: false,
       periodo: 2,
       diasCorridos,
@@ -80,7 +80,7 @@ export function faseContratoCalculada(colaborador, hoje = new Date()) {
   } else {
     return {
       fase: "Contrato Definitivo",
-      detalhe: \`Efetivado automaticamente (\${diasCorridos} dias de casa - ultrapassou 90 dias).\`,
+      detalhe: `Efetivado automaticamente (${diasCorridos} dias de casa - ultrapassou 90 dias).`,
       ehDefinitivo: true,
       automaticoDefinitivo: true,
       periodo: 3,

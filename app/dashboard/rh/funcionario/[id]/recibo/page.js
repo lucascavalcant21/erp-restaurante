@@ -42,7 +42,7 @@ export default function GerarPagamentoFixoPage() {
     const novoRecibo = {
       unidade_id: func.unidade_id,
       colaborador_id: func.id,
-      numero: \`REC-\${Date.now()}\`,
+      numero: `REC-${Date.now()}`,
       data_trabalho: new Date().toISOString(),
       datas_contratadas: [new Date().toISOString()],
       dias_contratados: 1,

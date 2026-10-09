@@ -5,6 +5,8 @@ import { comprimirFotoParaIA } from "../../lib/imagem";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import RhNav from "./RhNav";
+import VisaoColaboradores from "./VisaoColaboradores";
+import VisaoSemana from "./VisaoSemana";
 import {
   fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
@@ -74,6 +76,7 @@ function percentualCadastroFuncionario(f) {
 export default function RHPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const abaModulo = searchParams.get("aba") || "visao";
   const { unidadeAtiva, unidadeInfo } = useERP();
   
   // "71 dias de Seldeestrela" diz mais que "71 dias de casa": a equipe chama a
@@ -2005,6 +2008,9 @@ export default function RHPage() {
       <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
+      {abaModulo === "quadro" && <VisaoColaboradores />}
+      {abaModulo === "escala" && <VisaoSemana />}
+      {abaModulo === "visao" && (
       <>
           {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
           <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-5xl mx-auto">
@@ -4426,6 +4432,7 @@ export default function RHPage() {
        )}
 
         </>
+      )}
     </div>
   );
 }

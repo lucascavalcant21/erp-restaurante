@@ -84,10 +84,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       label: "RH",
       href: "/dashboard/rh",
       submodules: [
-        { label: "Visão Geral", href: "/dashboard/rh" },
-        { label: "Quadro de Funcionários", href: "/dashboard/rh/colaborador" },
+        { label: "Painel do RH", href: "/dashboard/rh" },
         { label: "Ponto e Espelho", href: "/dashboard/rh/ponto" },
-        { label: "Escalas de Trabalho", href: "/dashboard/rh/semana" },
         { label: "Gestão de Extras", href: "/dashboard/rh/extra" },
         { label: "Treinamentos", href: "/dashboard/treinamentos" }
       ]

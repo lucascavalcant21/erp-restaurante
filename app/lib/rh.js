@@ -2,19 +2,15 @@ import { supabase, isSupabaseReady } from "./supabase.js";
 import { criarContasPagarEmLote } from "./contas-pagar.mjs";
 import { enviarArquivoRH, removerArquivoRH } from "./rh-arquivos.js";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
+import { buscarColaboradores } from "./colaboradores-acesso.mjs";
 export { horarioDoDia } from "./jornada-semana.mjs";
 
+// Equipe da unidade: nome/cargo/horários para todos; CPF, salário etc. só para
+// quem a RLS libera (RH, o próprio, super admin). Ver colaboradores-acesso.mjs.
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
-  
-  let query = supabase.from("colaboradores").select("*");
-  if (unidadeId && unidadeId !== "matriz") {
-    query = query.eq("unidade_id", unidadeId);
-  }
-  query = query.order("nome");
-
-  const { data, error } = await query;
-  return { data: data || [], error: error?.message };
+  const { data, error } = await buscarColaboradores(supabase, unidadeId);
+  return { data, error: error || undefined };
 }
 
 // Remove do payload qualquer coluna que o banco não reconheça e tenta de novo

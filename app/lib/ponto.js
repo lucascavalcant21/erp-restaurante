@@ -2,6 +2,7 @@ import { supabase, isSupabaseReady } from "./supabase.js";
 import { registrarMarcacao } from "./ponto-marcacao.js";
 import { entradaContratada, minutosAteOTurno } from "./jornada-calculo.mjs";
 import { esperaEntreBatidasMs } from "./ponto-status.mjs";
+import { horarioDoColaborador } from "./colaboradores-acesso.mjs";
 
 // Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
 function dataLocalISO(offsetDias = 0) {
@@ -157,11 +158,8 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
   //
   // Falha na consulta não tranca o ponto de ninguém: sem o horário, libera.
   if (tipoBatida === "entrada" && !horaMarcada) {
-    const { data: colab } = await supabase
-      .from("colaboradores")
-      .select("horario_entrada, horario_dom_entrada, horario_por_dia, horarios_dia")
-      .eq("id", colaboradorId)
-      .maybeSingle();
+    // pela lista operacional: quem bate o ponto não precisa (nem pode) ler CPF/salário do colega
+    const colab = await horarioDoColaborador(supabase, colaboradorId);
     const agoraLocal = new Date();
     // Quem tem jornada por dia da semana comeca em hora diferente a cada dia.
     // Comparar com o horario fixo travaria a pessoa no dia errado.

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
+import { fetchUnidades, atualizarUnidade, tokenNfeConfigurado } from "../../../lib/unidades";
 import { Save, AlertCircle, Building2, FileText, CheckCircle, Shield } from "lucide-react";
 import { mascaraCpfCnpj } from "../../../lib/mascaras.mjs";
 
@@ -12,7 +12,9 @@ export default function ConfiguracoesFiscaisPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sucesso, setSucesso] = useState(false);
-  
+  // o token nunca volta para o navegador: só se ele já está salvo (null = não deu para saber)
+  const [tokenSalvo, setTokenSalvo] = useState(null);
+
   const [dadosLoja, setDadosLoja] = useState({
     cnpj: "",
     inscricao_estadual: "",
@@ -40,9 +42,10 @@ export default function ConfiguracoesFiscaisPage() {
           regime_tributario: minhaUnidade.regime_tributario || "Simples Nacional",
           endereco_fiscal: minhaUnidade.endereco_fiscal || "",
           codigo_ibge: minhaUnidade.codigo_ibge || "",
-          token_nfe: minhaUnidade.token_nfe || "",
+          token_nfe: "",
           ambiente_nfe: minhaUnidade.ambiente_nfe || "Homologacao"
         });
+        setTokenSalvo(await tokenNfeConfigurado(unidadeAtiva));
       }
       setLoading(false);
     }
@@ -61,14 +64,16 @@ export default function ConfiguracoesFiscaisPage() {
       regime_tributario: dadosLoja.regime_tributario,
       endereco_fiscal: dadosLoja.endereco_fiscal,
       codigo_ibge: dadosLoja.codigo_ibge,
-      token_nfe: dadosLoja.token_nfe,
       ambiente_nfe: dadosLoja.ambiente_nfe
     };
-    
+    // campo vazio = manter o token que já está salvo (o navegador não o conhece)
+    if (dadosLoja.token_nfe.trim()) updates.token_nfe = dadosLoja.token_nfe.trim();
+
     const { error } = await atualizarUnidade(unidadeAtiva, updates);
     setSaving(false);
     
     if (!error) {
+      if (updates.token_nfe) { setTokenSalvo(true); setDadosLoja(d => ({ ...d, token_nfe: "" })); }
       setSucesso(true);
       setTimeout(() => setSucesso(false), 3000);
     } else {
@@ -207,9 +212,13 @@ export default function ConfiguracoesFiscaisPage() {
                 type="password" 
                 value={dadosLoja.token_nfe}
                 onChange={e => setDadosLoja({...dadosLoja, token_nfe: e.target.value})}
-                placeholder="************************"
+                placeholder={tokenSalvo ? "Token salvo. Digite só para trocar" : "Cole o token de integração"}
+                autoComplete="new-password"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-white"
               />
+              <p className="text-xs text-subtle mt-2">
+                {tokenSalvo === true ? "Token configurado. Por segurança ele não é exibido." : tokenSalvo === false ? "Nenhum token salvo." : "Deixe em branco para manter o token atual."}
+              </p>
             </div>
             
             <div>

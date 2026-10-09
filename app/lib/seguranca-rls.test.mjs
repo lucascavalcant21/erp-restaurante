@@ -201,7 +201,7 @@ const LEGADO_INSEGURO = new Set([
   "db/migracao_memorandos_operacao.sql", "db/migracao_operacao_inteligente.sql", "db/migracao_ponto_nsr.sql", "db/migracao_portal_extras.sql",
   "db/migracao_portal_vagas_publico.sql", "db/migracao_recibos_prestacao.sql", "db/migracao_rls_autorizacao_servidor.sql",
   "db/migracao_vendas_recebiveis_conciliacao.sql", "db/TODAS_AS_MIGRACOES.sql",
-  "db/security/SEC_RLS_1_ROLLBACK.sql", // rollback: reabre de propósito, só com o dono
+  "db/security/SEC_RLS_1_ROLLBACK.sql", "db/security/SEC_RLS_2_ROLLBACK.sql", // rollbacks: reabrem de propósito, só com o dono
 ]);
 
 function arquivosSql(dir) {

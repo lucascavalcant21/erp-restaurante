@@ -286,9 +286,12 @@ export function classificarMigracao(sql) {
 export function rollbackIrmao(nome, irmaos) {
   const base = nome.replace(/\.sql$/i, "");
   const prefixo = base.split("_").slice(0, 2).join("_");
-  return irmaos.find((f) => f !== nome && /rollback/i.test(f) && /\.sql$/i.test(f) && (
+  const candidatos = irmaos.filter((f) => f !== nome && /rollback/i.test(f) && /\.sql$/i.test(f) && (
     f.toLowerCase() === `rollback_${nome.toLowerCase()}` || f.toLowerCase().startsWith(`${base.toLowerCase()}_rollback`) || (prefixo.length >= 4 && f.startsWith(`${prefixo}_`))
-  )) || null;
+  ));
+  // mais de um (SEC_RLS_1_ROLLBACK e SEC_RLS_2_ROLLBACK): o de maior prefixo em comum com o arquivo
+  const comum = (f) => { let i = 0; while (i < f.length && i < nome.length && f[i] === nome[i]) i++; return i; };
+  return candidatos.sort((a, b) => comum(b) - comum(a))[0] || null;
 }
 
 /**

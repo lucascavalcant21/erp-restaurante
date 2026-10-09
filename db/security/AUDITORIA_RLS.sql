@@ -2,9 +2,10 @@
 -- Lista toda tabela do schema public com RLS desligado ou policy aberta
 -- (true, auth.role() = 'authenticated', ou … OR unidade_id IS NULL) e diz se é:
 --   "aguarda SEC-RLS-1"  → corrigida pela migração da fase 1 quando o dono aprovar;
---   "fase 2: …"          → conhecida, depende de decisão sobre os dados;
+--   "aguarda SEC-RLS-2"  → corrigida pela migração da fase 2 quando o dono aprovar;
+--   "GLOBAL só leitura"  → catálogo do sistema, sem escrita pelo navegador (aceito);
 --   "NOVO: REGRESSÃO"    → tabela/policy insegura que não existia em 08/10/2026. Corrigir.
--- Resultado esperado depois da SEC-RLS-1: nenhuma linha "aguarda" e nenhuma "NOVO".
+-- Resultado esperado depois da SEC-RLS-2: só as 3 linhas GLOBAL; nenhuma "aguarda" e nenhuma "NOVO".
 -- Ao corrigir um item da fase 2, tire a tabela da lista "conhecidas".
 with conhecidas (tabela, situacao) as (
   values
@@ -35,23 +36,19 @@ with conhecidas (tabela, situacao) as (
     ('rh_tipos_bonificacao', 'aguarda SEC-RLS-1'), ('rh_turnos', 'aguarda SEC-RLS-1'), ('tarefas_instancias', 'aguarda SEC-RLS-1'),
     ('treinamentos', 'aguarda SEC-RLS-1'), ('venda_itens', 'aguarda SEC-RLS-1'), ('vendas', 'aguarda SEC-RLS-1'),
     ('advertencias', 'aguarda SEC-RLS-1'), ('avaliacoes_nps', 'aguarda SEC-RLS-1'), ('avisos', 'aguarda SEC-RLS-1'), ('campanhas', 'aguarda SEC-RLS-1'), ('cardapio', 'aguarda SEC-RLS-1'), ('clientes', 'aguarda SEC-RLS-1'), ('cupons', 'aguarda SEC-RLS-1'), ('cursos', 'aguarda SEC-RLS-1'), ('func_documentos', 'aguarda SEC-RLS-1'), ('observacoes_padrao', 'aguarda SEC-RLS-1'),
-    -- fase 2: dados que ficariam invisíveis (decisão do dono: reatribuir ou arquivar)
-    ('controle_limpeza', 'fase 2: dados da unidade antiga burguer'), ('controle_manutencoes', 'fase 2: dados da unidade antiga burguer'),
-    ('suprimentos_historico', 'fase 2: unidade ticotico e nula'), ('suprimentos_unidades', 'fase 2: unidade ticotico'),
-    ('montagem', 'fase 2: 12 linhas sem unidade'), ('eventos', 'fase 2: 1 linha sem unidade'),
-    ('notas_fiscais', 'fase 2: 15 linhas com unidade todas (app/lib/notas.js)'),
-    -- fase 2: sem coluna de unidade (policy pela tabela-mãe)
-    ('fichas_ingredientes', 'fase 2: pela ficha'), ('ficha_itens', 'fase 2: pela ficha'), ('pedidos_itens', 'fase 2: pelo pedido'),
-    ('evento_compras', 'fase 2: pelo evento'), ('evento_custos_fixos', 'fase 2: pelo evento'), ('evento_drinks', 'fase 2: pelo evento'),
-    ('evento_ingredientes', 'fase 2: pelo evento'), ('evento_pratos', 'fase 2: pelo evento'), ('evento_preparos', 'fase 2: pelo evento'),
-    ('evento_reservas', 'fase 2: pelo evento'), ('op_acoes_corretivas', 'fase 2: pelo processo'), ('op_itens', 'fase 2: pelo processo'),
-    ('op_respostas', 'fase 2: pela execução'), ('op_secoes', 'fase 2: pelo processo'), ('documentos_rh', 'fase 2: pelo colaborador'),
-    ('tarefas_templates', 'fase 2: sem unidade'), ('suprimentos_catalogo', 'fase 2: catálogo'), ('ponto', 'fase 2: tabela antiga vazia'),
-    -- fase 2: cadastro de acesso e catálogos globais (leitura por logado; decidir o que cada um pode ver)
-    ('usuarios_erp', 'fase 2: cadastro de usuários'), ('usuario_escopos', 'fase 2: escopos'), ('unidades', 'fase 2: unidades'),
-    ('perfis_acesso', 'fase 2: catálogo de perfis'), ('permissoes_auditoria', 'fase 2: auditoria de permissões'),
-    ('fin_categorias', 'fase 2: catálogo financeiro global'), ('fin_categorias_legado', 'fase 2: catálogo financeiro global'),
-    ('fin_centros_custo', 'fase 2: catálogo financeiro global')
+    -- fase 2 (SEC_RLS_2_FASE2.sql, aguarda aprovação): unidade com dados legados, tabelas-filhas, cadastro e acesso
+    ('controle_limpeza', 'aguarda SEC-RLS-2'), ('controle_manutencoes', 'aguarda SEC-RLS-2'), ('suprimentos_historico', 'aguarda SEC-RLS-2'),
+    ('suprimentos_unidades', 'aguarda SEC-RLS-2'), ('montagem', 'aguarda SEC-RLS-2'), ('eventos', 'aguarda SEC-RLS-2'),
+    ('notas_fiscais', 'aguarda SEC-RLS-2'), ('fichas_ingredientes', 'aguarda SEC-RLS-2'), ('ficha_itens', 'aguarda SEC-RLS-2'),
+    ('pedidos_itens', 'aguarda SEC-RLS-2'), ('evento_compras', 'aguarda SEC-RLS-2'), ('evento_custos_fixos', 'aguarda SEC-RLS-2'),
+    ('evento_drinks', 'aguarda SEC-RLS-2'), ('evento_ingredientes', 'aguarda SEC-RLS-2'), ('evento_pratos', 'aguarda SEC-RLS-2'),
+    ('evento_preparos', 'aguarda SEC-RLS-2'), ('evento_reservas', 'aguarda SEC-RLS-2'), ('op_acoes_corretivas', 'aguarda SEC-RLS-2'),
+    ('op_itens', 'aguarda SEC-RLS-2'), ('op_respostas', 'aguarda SEC-RLS-2'), ('op_secoes', 'aguarda SEC-RLS-2'),
+    ('documentos_rh', 'aguarda SEC-RLS-2'), ('tarefas_templates', 'aguarda SEC-RLS-2'), ('suprimentos_catalogo', 'aguarda SEC-RLS-2'),
+    ('ponto', 'aguarda SEC-RLS-2'), ('usuarios_erp', 'aguarda SEC-RLS-2'), ('usuario_escopos', 'aguarda SEC-RLS-2'),
+    ('unidades', 'aguarda SEC-RLS-2'), ('perfis_acesso', 'aguarda SEC-RLS-2'), ('permissoes_auditoria', 'aguarda SEC-RLS-2'),
+    -- catálogos globais do sistema: só leitura para logados, sem policy de escrita (aceito)
+    ('fin_categorias', 'GLOBAL só leitura (aceito)'), ('fin_categorias_legado', 'GLOBAL só leitura (aceito)'), ('fin_centros_custo', 'GLOBAL só leitura (aceito)')
 ),
 problemas as (
   select c.relname::text as tabela, 'RLS desligado' as problema

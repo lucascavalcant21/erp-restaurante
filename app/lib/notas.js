@@ -63,7 +63,11 @@ function colunaAusente(msg) {
 export async function salvarNota(dados, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase offline" };
   const nota = carimbarUnidade(dados, unidadeId);
-  if (!nota.unidade_id) nota.unidade_id = "todas"; // notas_fiscais exige unidade_id NOT NULL
+  // Antes, sem unidade, gravava o marcador "todas" (não é unidade: a nota ficava
+  // visível para qualquer empresa). Agora não salva: a tela precisa de uma unidade escolhida.
+  if (!nota.unidade_id || nota.unidade_id === "todas" || nota.unidade_id === "matriz") {
+    return { data: null, error: "Escolha a unidade antes de salvar a nota." };
+  }
 
   for (let tentativa = 0; tentativa < 6; tentativa++) {
     const { data, error } = await supabase.from("notas_fiscais").insert([nota]).select().single();

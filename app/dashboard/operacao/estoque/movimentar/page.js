@@ -20,6 +20,7 @@ import { unidadeValida } from "../../../../lib/contas-pagar.mjs";
 import { hasPermission } from "../../../../lib/permissions-catalog.mjs";
 import { fmtBRL } from "../../../../components/ui";
 import EstoqueAbas from "../../../../components/navigation/EstoqueAbas";
+import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 import { ArrowLeft, Check, Minus, Plus, Search, X, AlertTriangle, Loader2, Lock, RotateCcw } from "lucide-react";
 
 const fmtQ = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -51,6 +52,8 @@ function Movimentar({ unidade, sessao, inicial = {} }) {
   const [tipo, setTipo] = useState(inicial.tipo || "entrada");
   const [busca, setBusca] = useState("");
   const [produto, setProduto] = useState(null);
+  // Héfisto: "Perdi 2 kg." / "Quanto tenho?" entendem o produto selecionado
+  useContextoInteligencia(produto ? { modulo: "estoque", tipo: "produto", id: produto.id, nome: produto.nome } : null);
   // Produto tocado na lista: a tela pergunta se é entrada ou retirada.
   const [pergunta, setPergunta] = useState(null); // { insumo, saldo }
   const [form, setForm] = useState(FORM_VAZIO);

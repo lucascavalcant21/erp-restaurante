@@ -49,7 +49,8 @@ if (!pg) { console.log("\nPGLITE não informado: integração NÃO executada.");
 const db = clienteSupabase(pg);
 const outra = clienteSupabase(pg, { unidade: "outra", uid: "44444444-4444-4444-4444-444444444444" });
 const U = "seldeestrela";
-const HOJE = new Date().toISOString().slice(0, 10);
+// "hoje" no fuso de São Paulo, como fin_hoje() no banco (em UTC o teste falhava entre 21h e 24h)
+const HOJE = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const VENC = (() => { const d = new Date(); d.setDate(d.getDate() + 10); return d.toISOString().slice(0, 10); })();
 const id = async (sql, params = []) => (await pg.query(sql, params)).rows[0].id;
 const picanha = await id(`insert into public.insumos (unidade_id, nome, unidade_medida) values ($1,'Picanha','kg') returning id`, [U]);

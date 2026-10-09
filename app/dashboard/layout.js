@@ -7,6 +7,7 @@ import { HefistoPageContextProvider } from "../context/HefistoPageContext";
 import TopNavigation from "../components/layout/TopNavigation";
 import { Loader2 } from "lucide-react";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
+import PainelHefisto from "../components/intelligence/PainelHefisto";
 
 function ProtecaoPermissao({ sessao, children }) {
   const router = useRouter();
@@ -98,6 +99,13 @@ export default function DashboardLayout({ children }) {
         </main>
 
         <CommandCenterModal isOpen={commandCenterOpen} onClose={() => setCommandCenterOpen(false)} sessao={sessao} />
+
+        {/* Pergunte ao Héfisto: botão discreto → painel lateral / bottom sheet */}
+        {sessao && (
+          <Suspense fallback={null}>
+            <PainelHefisto />
+          </Suspense>
+        )}
         
       </div>
     </HefistoPageContextProvider>

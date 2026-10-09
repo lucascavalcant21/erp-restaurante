@@ -37,6 +37,11 @@ export const PERMISSION_MODULES = [
     id: "dashboard", label: "Dashboard",
     pages: [
       { id: "overview", label: "Painel geral", route: "/dashboard", actions: ["view", "view_values", "export"] },
+      // Central de Inteligência e "Pergunte ao Héfisto". Só abre a porta: cada
+      // número ainda exige a permissão da tela de onde ele vem, conferida no
+      // servidor (app/lib/intelligence/permissions/mapa.mjs).
+      // settings = metas de faturamento, alertas e sensibilidade da unidade (Inteligência > Configurações)
+      { id: "intelligence", label: "Central de Inteligência (Héfisto)", route: "/dashboard/inteligencia", actions: ["view", "settings"] },
     ],
   },
   {
@@ -218,6 +223,11 @@ export const PERMISSION_MODULES = [
       { id: "events", label: "Eventos", route: "/dashboard/eventos", actions: [...CRUD, "approve", "cancel", "view_values", "view_costs", "print", "export"] },
       { id: "budget", label: "Eventos e Reservas", route: "/dashboard/reservas-eventos/eventos", actions: [...CRUD, "approve", "reject", "view_values", "view_costs", "print"] },
       { id: "operation", label: "Eventos na operação", route: "/dashboard/operacao/eventos", actions: [...CRUD, "confirm", "cancel"] },
+      // Cobre por prefixo /dashboard/reservas-eventos/agenda e /contatos (a de
+      // /eventos tem entrada própria acima). Mostra o funil e as reservas.
+      { id: "overview", label: "Reservas e Eventos (visão geral)", route: "/dashboard/reservas-eventos", actions: ["view"] },
+      // Orçamento de buffet: monta o cardápio do evento com o custo das fichas.
+      { id: "quote", label: "Orçamento de buffet", route: "/dashboard/operacao/orcamento", actions: [...CRUD, "view_costs", "print"] },
     ],
   },
   {

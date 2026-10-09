@@ -9,11 +9,21 @@ import { supabase, isSupabaseReady } from "./supabase";
 // unidade marcada assim.
 const UNIDADE_DEMO = { id: "matriz", nome: "Unidade Matriz", cor: "#22c55e", demo: true };
 
+// Colunas que o navegador lê. token_nfe NÃO entra: depois da SEC-RLS-2 ele só é
+// gravado pelo navegador (o banco recusa a leitura) e a tela fiscal pergunta
+// hefisto_token_nfe_configurado(). Coluna nova em `unidades` que a tela precise ler: inclua aqui.
+export const COLUNAS_UNIDADE = [
+  "id", "nome", "cor", "ativo", "created_at", "cnpj", "razao_social", "nome_fantasia", "inscricao_estadual", "inscricao_municipal",
+  "cep", "endereco", "numero", "bairro", "cidade", "uf", "telefone_unidade", "email_unidade", "telefone_contato",
+  "delivery_aberto", "taxa_entrega_padrao", "horario_funcionamento", "ifood_conectado", "ifood_merchant_id",
+  "regime_tributario", "endereco_fiscal", "codigo_ibge", "ambiente_nfe", "empresa_id",
+].join(", ");
+
 export async function fetchUnidades() {
   // Sem Supabase nada é gravado, então a unidade de demonstração não faz mal.
   if (!isSupabaseReady()) return { data: [UNIDADE_DEMO], error: null };
 
-  const { data, error } = await supabase.from("unidades").select("*").order("nome");
+  const { data, error } = await supabase.from("unidades").select(COLUNAS_UNIDADE).order("nome");
 
   // Antes, erro de leitura OU tabela vazia devolviam a unidade "matriz" como se
   // fosse real. O app inteiro passava a operar nela — e "matriz" nunca foi uma
@@ -39,7 +49,7 @@ export async function fetchUnidades() {
 
 export async function inserirUnidade(u) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
-  const { data, error } = await supabase.from("unidades").insert([u]).select().single();
+  const { data, error } = await supabase.from("unidades").insert([u]).select(COLUNAS_UNIDADE).single();
   if (error) {
     const m = error.message || "";
     if (/row-level security|violates row-level|permission denied|policy/i.test(m)) {
@@ -54,6 +64,14 @@ export async function atualizarUnidade(id, updates) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("unidades").update(updates).eq("id", id);
   return { error: error?.message };
+}
+
+// Token da NF-e: o navegador nunca recebe o valor, só se está preenchido.
+// Antes da SEC-RLS-2 a função não existe: responde null (desconhecido).
+export async function tokenNfeConfigurado(id) {
+  if (!isSupabaseReady() || !id) return null;
+  const { data, error } = await supabase.rpc("hefisto_token_nfe_configurado", { p_unidade_id: id });
+  return error ? null : Boolean(data);
 }
 
 // Exclui a unidade E todos os dados vinculados a ela. Sem isso, os vínculos

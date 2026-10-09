@@ -28,3 +28,6 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Agente autônomo: estado local (heartbeat, lock, STOP, logs)
+.hefisto-agent/

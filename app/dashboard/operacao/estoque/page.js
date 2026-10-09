@@ -34,6 +34,7 @@ import SimuladorRendimento from "../../../components/SimuladorRendimento";
 import TabletSetor from "../../../components/TabletSetor";
 import { dividirSaldo } from "../../../lib/estoque-bebidas";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { useContextoInteligencia } from "../../../components/intelligence/useContextoInteligencia";
 
 // Item fracionável (garrafa, saco, galão): a regra mora em inventario-saldo.mjs,
 // a mesma que a contagem usa — as duas telas não podem discordar.
@@ -370,6 +371,10 @@ function EstoqueRunner() {
   const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
   const [agruparPor, setAgruparPor] = useState("categoria");   // categoria | local
   const [modal, setModal] = useState(null);
+  // Héfisto: produto aberto (editar, histórico, entrada, baixa) vira o contexto da conversa
+  const itemAberto = modal?.item && ["item", "historico_item", "entrada", "saida", "transferencia"].includes(modal.tipo) ? modal.item : null;
+  // mesmo id de produto que a própria tela usa para movimentar (item.insumo_id || item.id)
+  useContextoInteligencia(itemAberto ? { modulo: "estoque", tipo: "produto", id: itemAberto.insumo_id || itemAberto.id, nome: itemAberto.nome } : null);
   // Produto que não existe ainda: cadastra pelo próprio estoque.
   const [novoProduto, setNovoProduto] = useState(null);
   // Categorias criadas pela unidade, por departamento. As embutidas ficam no

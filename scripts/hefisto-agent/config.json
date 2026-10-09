@@ -1,0 +1,94 @@
+{
+  "_leia": "Configuração do agente autônomo do Héfisto. Explicação de cada campo em docs/autonomous/COMO_USAR.md.",
+  "caminhos": {
+    "cerebro": "docs/brain",
+    "missoes": "docs/brain/03_ROADMAP/missoes",
+    "ativas": "docs/brain/03_ROADMAP/MISSÕES_ATIVAS.md",
+    "backlog": "docs/brain/03_ROADMAP/BACKLOG.md",
+    "statusAtual": "docs/brain/06_OPERACAO/STATUS_ATUAL.md",
+    "noturnos": "docs/brain/07_RELATORIOS/NOTURNOS",
+    "estado": ".hefisto-agent",
+    "aprovacoes": "docs/brain/06_OPERACAO/APROVACOES_PENDENTES.md",
+    "deploys": "docs/brain/06_OPERACAO/DEPLOYS.md"
+  },
+  "publicacao": {
+    "_leia": "Política de publicação e banco (scripts/hefisto-agent/politica.mjs; regras em docs/brain/02_ARQUITETURA/POLITICA_PUBLICACAO.md). Estas chaves só LIBERAM o que já é LOW/MEDIUM com tudo verde: CRITICAL, HIGH em produção, migração REVIEW/CRITICAL e falta de rollback pedem o dono sempre. Produção e aplicar migração ficam desligadas até o dono decidir; ligar a chave não dá ferramenta ao agente (apply_migration e gh pr merge continuam negados).",
+    "autoPublishPreview": true,
+    "autoPublishProductionLowRisk": false,
+    "autoApplySafeMigrations": false,
+    "requireApprovalForHighRisk": true,
+    "requireApprovalForCritical": true,
+    "urlPreview": "https://erp-restaurante-git-{branch}-lucas-cavalcante.vercel.app"
+  },
+  "motor": {
+    "comando": "claude",
+    "args": ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--max-budget-usd", "10"],
+    "allowedTools": [
+      "Read", "Edit", "Write", "Glob", "Grep", "TodoWrite", "Task",
+      "Bash(npm run:*)", "Bash(npm test:*)", "Bash(npm ci:*)", "Bash(npm install:*)", "Bash(npx playwright:*)",
+      "Bash(node:*)", "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(grep:*)", "Bash(rg:*)", "Bash(find:*)", "Bash(wc:*)", "Bash(sed -n:*)", "Bash(mkdir:*)", "Bash(date:*)",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git branch:*)", "Bash(git fetch:*)",
+      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git merge origin/main:*)", "Bash(git push -u origin claude/:*)", "Bash(git push -u origin hefisto/:*)",
+      "Bash(gh pr view:*)", "Bash(gh pr list:*)", "Bash(gh pr create:*)", "Bash(gh pr edit:*)", "Bash(gh pr checks:*)", "Bash(gh run view:*)"
+    ],
+    "disallowedTools": [
+      "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git push origin main:*)", "Bash(git push origin master:*)",
+      "Bash(git reset --hard:*)", "Bash(git clean:*)", "Bash(git rebase:*)", "Bash(gh pr merge:*)",
+      "Bash(rm -rf:*)", "Bash(sudo:*)", "Bash(supabase db reset:*)", "Bash(supabase db push:*)", "Bash(vercel --prod:*)", "Bash(vercel deploy --prod:*)",
+      "Bash(psql:*)", "Bash(curl:*)", "Bash(wget:*)",
+      "Bash(npm run hefisto:aprovacoes -- aprovar:*)", "Bash(npm run hefisto:aprovacoes -- rejeitar:*)",
+      "Bash(node scripts/hefisto-agent/aprovacoes.mjs aprovar:*)", "Bash(node scripts/hefisto-agent/aprovacoes.mjs rejeitar:*)"
+    ]
+  },
+  "conectores": {
+    "_leia": "Conectores do claude.ai no agente da noite: SÓ LEITURA. No modo dontAsk, o que não está em 'leitura' é negado. O execute_sql fica fora da lista de permitidos e só roda pela guarda scripts/hefisto-agent/guarda-sql.mjs (SELECT/WITH/EXPLAIN/SHOW/SET LOCAL dentro de 'begin transaction read only … rollback'); se a guarda falhar, o SQL é negado. Os prefixos reais são descobertos pelo npm run hefisto:preparar.",
+    "supabase": {
+      "reconhecer": "supabase",
+      "prefixos": ["mcp__Supabase__", "mcp__claude_ai_Supabase__"],
+      "projetos": ["sezccspqxgklicfndwxx"],
+      "leitura": [
+        "execute_sql", "list_projects", "get_project", "get_project_url", "list_tables", "list_extensions", "list_migrations",
+        "get_advisors", "query_logs", "search_docs", "list_edge_functions", "get_edge_function", "list_branches", "generate_typescript_types"
+      ],
+      "sqlGuardado": ["execute_sql"]
+    },
+    "vercel": {
+      "reconhecer": "vercel",
+      "prefixos": ["mcp__Vercel__", "mcp__claude_ai_Vercel__"],
+      "leitura": [
+        "list_teams", "get_team", "list_projects", "get_project", "list_deployments", "get_deployment", "list_deployment_events",
+        "list_deployment_files", "get_deployment_file_contents", "get_runtime_logs", "get_runtime_errors", "list_aliases",
+        "list_deployment_aliases", "list_project_domains", "get_git_deployment_context", "web_fetch_vercel_url", "search_vercel_documentation"
+      ]
+    },
+    "nuncaPermitir": [
+      "apply_migration", "deploy_edge_function", "create_*", "delete_*", "merge_*", "rebase_*", "reset_*", "pause_*", "unpause_*", "restore_*",
+      "update_*", "edit_*", "buy_*", "add_*", "put_*", "patch_*", "assign_*", "cancel_*", "request_*", "approve_*", "complete_*",
+      "start_*", "stop_*", "kill_*", "revoke_*", "activate_*", "accept_*", "upload_*", "write_*", "run_*", "invalidate_*",
+      "replace_*", "stage_*", "upsert_*", "record_*", "retry_*", "rerequest_*", "extend_*", "issue_*", "test_*",
+      "get_project_env", "filter_project_envs", "get_shared_env_var", "get_publishable_keys", "get_access_to_vercel_url", "get_project_deletion_link"
+    ]
+  },
+  "limites": {
+    "maxMissoesPorExecucao": 6,
+    "maxHoras": 8,
+    "maxMinutosPorMissao": 90,
+    "maxMesmaFalha": 3,
+    "maxSemProgresso": 2,
+    "maxTentativas": 6,
+    "heartbeatSegundos": 60,
+    "travadoAposMinutos": 15,
+    "maxCustoPorDiaUsd": 0,
+    "margemUsoExtra": 0.97,
+    "esperaSemMissaoMinutos": 15
+  },
+  "validacoes": [
+    { "nome": "intelligence", "comando": "npm run -s test:intelligence", "timeoutMin": 15 },
+    { "nome": "permissões", "comando": "node app/lib/permissions-catalog.test.mjs", "timeoutMin": 5 },
+    { "nome": "segurança RLS", "comando": "npm run -s test:seguranca", "timeoutMin": 10 },
+    { "nome": "agente", "comando": "npm run -s test:agent", "timeoutMin": 5 }
+  ],
+  "build": { "comando": "npm run -s build", "quando": "se_app_mudou", "timeoutMin": 20 },
+  "commitarMemoria": true,
+  "branchesProibidas": ["main", "master"]
+}

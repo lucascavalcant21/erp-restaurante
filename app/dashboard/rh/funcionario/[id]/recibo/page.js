@@ -30,7 +30,7 @@ export default function GerarPagamentoFixoPage() {
   useEffect(() => {
     async function carregar() {
       const [rFunc, rRecibos] = await Promise.all([
-        supabase.from("rh_colaboradores").select("*").eq("id", id).maybeSingle(),
+        supabase.from("colaboradores").select("*").eq("id", id).maybeSingle(),
         supabase.from("rh_recibos_prestacao").select("*").eq("colaborador_id", id).order("created_at", { ascending: false })
       ]);
       setFunc(rFunc.data);

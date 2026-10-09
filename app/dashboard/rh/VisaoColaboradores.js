@@ -77,7 +77,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
 
   const atualizarStatusContrato = async (novoStatus) => {
     if (!confirm(`Deseja alterar o status do contrato para "${novoStatus}"?`)) return;
-    const { error } = await supabase.from("rh_colaboradores").update({ status_contrato: novoStatus }).eq("id", sel.id);
+    const { error } = await supabase.from("colaboradores").update({ status_contrato: novoStatus }).eq("id", sel.id);
     if (error) return alert("Erro ao atualizar contrato: " + error.message);
     setSel({ ...sel, status_contrato: novoStatus });
     setColaboradores(colaboradores.map(c => c.id === sel.id ? { ...c, status_contrato: novoStatus } : c));

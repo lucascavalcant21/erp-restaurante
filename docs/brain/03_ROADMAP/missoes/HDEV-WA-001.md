@@ -2,10 +2,10 @@
 id: HDEV-WA-001
 titulo: WhatsApp Command Channel (texto) — comandar o Héfisto e o agente pelo WhatsApp
 fase: HI-06
-status: IN_PROGRESS
+status: DONE
 prioridade: 1
 dependencias: []
-bloqueadores: [BLQ-006]
+bloqueadores: []
 tentativas: 0
 sem_progresso: 0
 mesma_falha: 0
@@ -36,8 +36,8 @@ WhatsApp → webhook Meta (assinatura obrigatória) → número autorizado → C
 - [x] Ponte local com as funções dos comandos npm; aprovar só muda o status (nunca executa) — TESTADO LOCAL
 - [x] Fila no banco (APR-003 executada 09/10) — TESTADO NO SUPABASE REAL
 - [x] Publicado em produção 09/10 (`ba0a91a`, PR #128, com o dono): webhook recusa sem assinatura, ponte responde — TESTADO EM PRODUÇÃO
-- [ ] Meta configurada pelo dono (ACESSO-006, [[WHATSAPP_SETUP]])
-- [ ] TESTADO EM PRODUÇÃO: mensagem do celular do dono → resposta
+- [x] Meta configurada 09/10 (app hefisto publicado, WABA assinada ao app, webhook com assinatura, token de usuário do sistema com permissões mínimas)
+- [x] TESTADO EM PRODUÇÃO 09/10: status, como está minha empresa?, missões, bloqueadores, aprovações e continue saíram do celular do dono, entraram pela Meta e foram respondidos
 
 ## Arquivos afetados
 
@@ -51,3 +51,8 @@ WhatsApp → webhook Meta (assinatura obrigatória) → número autorizado → C
 
 09/10/2026: canal implementado e testado local (19 testes novos). Substitui o webhook da fase 3A (S-18). Aguarda: APR-003, merge para produção e a configuração na Meta.
 09/10/2026 ~01:00: APR-003 aplicada e PR #128 publicado (smoke OK). Falta só a Meta (BLQ-006) e a primeira mensagem real. Não validado ainda: abrir a sessão do dono (generateLink + verifyOtp) no Supabase real: acontece na primeira mensagem.
+
+09/10/2026 ~12:40: **WHATSAPP DO HÉFISTO ATIVO EM PRODUÇÃO** (TESTADO EM PRODUÇÃO).
+- Dois bloqueios achados e resolvidos na Meta: o app estava **não publicado** (a Meta não entrega dados reais, nem do admin) e a WABA **não estava assinada ao app** (`subscribed_apps` só tinha o app interno da Meta). Publicar exigiu a política de privacidade (`/privacidade`, PR #130).
+- Provas: POST da Meta com assinatura válida (200); fila `whatsapp_comandos` com status, missões, bloqueadores, aprovações e continue CONCLUIDO; `intelligence_eventos` com o resumo diário como o usuário do dono, unidade seldeestrela, 26 consultas ao banco; 0 falha de envio.
+- Achados: B-014 (auditoria grava canal "web"), B-015 (continue no Windows, corrigido).

@@ -1,5 +1,16 @@
 # WhatsApp: o que o dono configura na Meta (HDEV-WA-001)
 
+## Estado em produção (09/10/2026)
+
+- App Meta **hefisto** `1410496401040910` (portfólio Hefisto `927661740418759`), **publicado**, política `https://app.hefisto.com.br/privacidade`.
+- WABA `2312598276160019`, **assinada ao app** (`POST /{waba}/subscribed_apps`; sem isso a Meta não entrega mensagens).
+- Número de teste +1 555 156 6178, Phone Number ID `1346801291845657`; destinatário cadastrado: o celular do dono.
+- Webhook `/api/channels/whatsapp/webhook`, campo **messages** assinado (v26.0); envio pela Graph v25.0.
+- Usuário do sistema `hefisto-whatsapp` (`61595443611916`): app = Desenvolver; WABA = Mensagens + Números (só visualização).
+- Vercel Production: WHATSAPP_APP_SECRET, WHATSAPP_API_TOKEN, WHATSAPP_VERIFY_TOKEN (colados pelo dono), WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_NUMEROS_DONO, WHATSAPP_GRAPH_VERSION, WHATSAPP_DONO_AUTH_USER_ID, WHATSAPP_DONO_UNIDADE, WHATSAPP_PONTE_SEGREDO.
+- Próximo passo para sair do número de teste: Etapa 2 → registrar um número próprio.
+
+
 Caminho mais rápido: o **número de teste gratuito** que a Meta cria junto com o app. Ele manda e recebe mensagens para até 5 números cadastrados (o seu). Depois dá para trocar por um número próprio verificado sem mudar código.
 
 > **Nunca mande no chat:** o token de acesso, o App Secret, o verify token nem o segredo da ponte. Eles vão direto na Vercel (ou no `.env.local`, no caso da ponte).

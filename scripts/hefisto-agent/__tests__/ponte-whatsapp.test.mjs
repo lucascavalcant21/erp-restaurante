@@ -63,7 +63,7 @@ test("status, missões e comando desconhecido", () => {
 });
 
 test("continuar no Windows abre o agente em janela própria (sem isso morria com 0xC000013A)", () => {
-  const w = comandoIniciarVigia("C:\raiz", "win32", "C:\node.exe");
+  const w = comandoIniciarVigia("C:/raiz", "win32", "C:/node.exe");
   assert.match(w.cmd, /cmd(\.exe)?$/i);
   assert.deepEqual(w.args.slice(0, 5), ["/d", "/c", "start", '"Hefisto agente"', "/min"]);
   assert.ok(w.args.includes("--continuo") && w.args.some((a) => a.endsWith('vigia.mjs"')));

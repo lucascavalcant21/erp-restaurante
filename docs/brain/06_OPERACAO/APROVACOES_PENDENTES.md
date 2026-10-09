@@ -29,7 +29,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** Aplicada em 08/10/2026 ~21:20 (horário de Brasília) em sessão acompanhada. Verificação OK; impressão digital dd885d7643ca73191ec17bc356fed4c1; AUDITORIA_RLS: 0 aguarda, 0 NOVO, 33 fase 2
 - **Chave:** migracao:db/security/SEC_RLS_1_ISOLAMENTO_POR_UNIDADE.sql
 
-### APR-002 · APROVADO
+### APR-002 · EXECUTADO
 
 - **Missão:** HDEV-SEC-002
 - **Ação:** Aplicar db/security/SEC_RLS_2_FASE2.sql no Supabase real (fase 2 do isolamento: 31 tabelas, dados sensíveis de colaboradores, pode_ver_todas só super admin, token_nfe sem leitura pelo navegador)
@@ -40,8 +40,9 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Rollback:** db/security/SEC_RLS_2_ROLLBACK.sql: recria as 37 policies e as 3 funções guardadas (sec_backup_policies_sec_rls_2 / sec_backup_funcoes_sec_rls_2) e devolve a leitura de token_nfe; testado no PGlite: volta exatamente ao estado da fase 1. Não apaga sec_dados_legados nem as 2 colunas unidade_id novas (aditivas).
 - **Evidências:** PGlite com 2 empresas e as policies reais: os 15 testes obrigatórios + token_nfe + preflight + rollback (test:seguranca 24/24). test:agent 56/56, test:intelligence 130/130, test:qa 6/6, permissões OK, 55 testes do app OK, build OK. Simulação do preflight no banco real (só leitura): 0 tabelas faltando, 88 sec_unidade, 0 usuários sem unidade, 0 policies desconhecidas, 37 a trocar.
 - **Comando/alteração:** `Rodar o arquivo inteiro (transação única; preflight aborta sem mudar nada). Depois: AUDITORIA_RLS.sql deve mostrar só as 3 linhas GLOBAL. NÃO inclui a reatribuição do evento (SEC_RLS_2_REATRIBUIR_EVENTO.sql precisa de aprovação própria).`
-- **Status:** APROVADO
+- **Status:** EXECUTADO
 - **Criado em:** 2026-10-09 02:02
 - **Decidido em:** 2026-10-09 02:05
 - **Decidido por:** lucas
+- **Nota:** Aplicada em 09/10/2026 ~00:05 (horário de Brasília) em sessão acompanhada, pelo conector Supabase, arquivo inteiro numa transação; preflight e verificação internos passaram (commit). Produção no ar antes: `5dea452` (contém `b5ba58b`). AUDITORIA_RLS depois: só as 3 linhas GLOBAL, 0 aguarda, 0 NOVO (TESTADO NO SUPABASE REAL). Smoke HTTP de produção sem sessão OK (TESTADO EM PRODUÇÃO). **Validação no Supabase real (09/10 ~00:20, só leitura, papel `authenticated` com o `sub` de um usuário real de cada perfil), TESTADO NO SUPABASE REAL:** backup 37 policies + 3 funções; impressão `9810b27e3d9a604b28933f84751db167`; legados classificados 46 (AMBIGUO 28, LEGADO 17, ORFAO 1), nada apagado; `token_nfe` sem SELECT para authenticated e anon, `hefisto_token_nfe_configurado` = true. Cozinheiro e somente-consulta: 0 linhas diretas de colaboradores, 0 CPF/salário, 0 documentos de RH; lista operacional 23 sem campo sensível; escala 1, registro_ponto 392 (iguais ao gerente); 1 unidade; 0 linha fora da unidade. Gerente geral: 23 colaboradores com dados de RH, 1 documento de RH, 1 unidade, 0 fora da unidade. Super admin: vê os 15 registros legados de notas e os 16 usuários. Entre empresas: produção tem 1 empresa só; isolamento entre empresas TESTADO LOCAL (PGlite, 2 empresas, test:seguranca 24/24). Smoke HTTP de produção sem sessão OK depois da aplicação. **SEC-RLS-2 CONCLUÍDA EM PRODUÇÃO.** Pendente fora do banco: smoke com sessão (`HEFISTO_QA_TOKEN`).
 - **Chave:** migracao:db/security/SEC_RLS_2_FASE2.sql

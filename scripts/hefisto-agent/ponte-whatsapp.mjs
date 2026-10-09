@@ -118,10 +118,22 @@ export function executar(item, { raiz = process.cwd(), cfg, agora = new Date(), 
   }
 }
 
+// No Windows o agente precisa de console próprio: solto e sem console (detached), os
+// processos filhos morriam com 0xC000013A (CONTROL_C_EXIT) logo depois de iniciar.
+// `start /min` abre uma janela minimizada, igual a rodar `npm run hefisto:continuo`.
+export function comandoIniciarVigia(raiz, plataforma = process.platform, node = process.execPath) {
+  const vigia = join(AQUI, "vigia.mjs");
+  if (plataforma === "win32") {
+    return { cmd: process.env.ComSpec || "cmd.exe", args: ["/d", "/c", "start", '"Hefisto agente"', "/min", `"${node}"`, `"${vigia}"`, "--continuo"], opcoes: { cwd: raiz, stdio: "ignore", windowsHide: true, windowsVerbatimArguments: true } };
+  }
+  return { cmd: node, args: [vigia, "--continuo"], opcoes: { cwd: raiz, detached: true, stdio: "ignore" } };
+}
+
 function iniciarVigia(raiz) {
-  const p = spawn(process.execPath, [join(AQUI, "vigia.mjs"), "--continuo"], { cwd: raiz, detached: true, stdio: "ignore", windowsHide: true });
+  const { cmd, args, opcoes } = comandoIniciarVigia(raiz);
+  const p = spawn(cmd, args, opcoes);
   p.unref();
-  return p.pid;
+  return process.platform === "win32" ? null : p.pid;
 }
 
 function lerEnvLocal(raiz) {

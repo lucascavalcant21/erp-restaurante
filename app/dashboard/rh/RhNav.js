@@ -20,12 +20,12 @@ export default function RhNav() {
           return (
             <button
               key={t.id}
-              onClick={() => router.push(\`/dashboard/rh\${t.id === "visao" ? "" : \`?aba=\${t.id}\`}\`)}
-              className={\`flex items-center gap-2 pb-3 pt-1 border-b-2 font-bold text-sm transition-colors whitespace-nowrap \${
+              onClick={() => router.push(`/dashboard/rh${t.id === "visao" ? "" : `?aba=${t.id}`}`)}
+              className={`flex items-center gap-2 pb-3 pt-1 border-b-2 font-bold text-sm transition-colors whitespace-nowrap ${
                 ativo 
                   ? "border-emerald-600 text-emerald-700" 
                   : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
-              }\`}
+              }`}
             >
               <t.icon size={16} className={ativo ? "text-emerald-600" : "text-slate-400"} />
               {t.label}

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { executar, bloqueadoresAbertos, textoAprovacoes } from "../ponte-whatsapp.mjs";
+import { executar, bloqueadoresAbertos, textoAprovacoes, comandoIniciarVigia } from "../ponte-whatsapp.mjs";
 import { pedirAprovacao, lerAprovacoes } from "../aprovacoes.mjs";
 
 function ambiente() {
@@ -60,4 +60,15 @@ test("status, missões e comando desconhecido", () => {
   assert.match(executar({ comando: "missoes" }, { raiz, cfg }).resposta, /^\*Missões\*/);
   assert.equal(executar({ comando: "bloqueadores" }, { raiz, cfg }).resposta, "Nenhum bloqueador aberto.");
   assert.equal(executar({ comando: "rm -rf" }, { raiz, cfg }).ok, false);
+});
+
+test("continuar no Windows abre o agente em janela própria (sem isso morria com 0xC000013A)", () => {
+  const w = comandoIniciarVigia("C:\raiz", "win32", "C:\node.exe");
+  assert.match(w.cmd, /cmd(\.exe)?$/i);
+  assert.deepEqual(w.args.slice(0, 5), ["/d", "/c", "start", '"Hefisto agente"', "/min"]);
+  assert.ok(w.args.includes("--continuo") && w.args.some((a) => a.endsWith('vigia.mjs"')));
+  assert.equal(w.opcoes.detached, undefined, "não pode nascer sem console");
+  const l = comandoIniciarVigia("/raiz", "linux", "/usr/bin/node");
+  assert.equal(l.cmd, "/usr/bin/node");
+  assert.equal(l.opcoes.detached, true);
 });

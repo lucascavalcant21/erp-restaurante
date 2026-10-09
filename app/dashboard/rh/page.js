@@ -2222,14 +2222,7 @@ export default function RHPage() {
                   if (faltam <= 45) alertas.push({ id: f.id, nome: f.nome, texto: `Aniversário de admissão em ${faltam} dia(s) — revisar férias`, nivel: "info" });
                }
             });
-            if (!alertas.length) return null;
-            const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
-            return <div className="mt-4 bg-card border border-line rounded-2xl p-5 shadow-sm">
-               <div className="flex items-center justify-between mb-3"><div><p className="text-3xs font-bold uppercase tracking-widest text-subtle">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-bold">{a.nome}</p><p className="text-3xs font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
-               {alertas.length > 8 && <p className="text-3xs font-bold text-subtle mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
-               <p className="text-3xs font-medium text-subtle mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
-            </div>;
+            return null; // Ocultado a pedido do usuario (ja existe no quadro)
          })()}
       </div>
 

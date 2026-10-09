@@ -72,3 +72,14 @@ test("continuar no Windows abre o agente em janela própria (sem isso morria com
   assert.equal(l.cmd, "/usr/bin/node");
   assert.equal(l.opcoes.detached, true);
 });
+
+test("autostart da ponte: .cmd na pasta Inicializar do usuário, sem segredo, ponte minimizada", async () => {
+  const { conteudoCmd, pastaInicializar, NOME_ARQUIVO } = await import("../ponte-autostart.mjs");
+  const c = conteudoCmd("D:/projeto", "D:/node.exe");
+  assert.match(c, /cd \/d "D:\/projeto"/);
+  assert.match(c, /start "Hefisto ponte WhatsApp" \/min "D:\/node.exe" ".*ponte-whatsapp\.mjs"/);
+  assert.ok(!/SEGREDO|TOKEN|SECRET/i.test(c.replace("Remover: npm run", "")), "o .cmd não carrega segredo");
+  assert.match(pastaInicializar({ APPDATA: "X:/AppData/Roaming" }).split(String.fromCharCode(92)).join("/"), /Start Menu\/Programs\/Startup$/);
+  assert.equal(NOME_ARQUIVO, "hefisto-ponte-whatsapp.cmd");
+  assert.throws(() => pastaInicializar({}), /APPDATA/);
+});

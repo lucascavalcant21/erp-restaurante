@@ -2,25 +2,25 @@
 // tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect } from "react";
-import { useTempoReal } from "../../../lib/realtime";
+import { useTempoReal } from "../../lib/realtime";
 import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
   ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network,
   DollarSign, AlertTriangle, MapPin
 } from "lucide-react";
-import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../../components/ui";
-import { useERP } from "../../../context/ERPContext";
+import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../components/ui";
+import { useERP } from "../../context/ERPContext";
 import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario, fetchAtestados,
   salvarAtestado, removerAtestado, anexarArquivoAtestado,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, calcularAdicionaisMes, entradaContratadaDoDia, jornadaContratadaMin, fetchFeriados, fetchAllFolgasDaUnidade
-} from "../../../lib/rh";
-import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../../lib/ponto";
-import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../../lib/ponto-status.mjs";
-import { fetchHolerites, confirmarRecebimentoHolerite } from "../../../lib/pessoas";
-import { abrirArquivoRH } from "../../../lib/rh-arquivos";
+} from "../../lib/rh";
+import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../lib/ponto";
+import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-status.mjs";
+import { fetchHolerites, confirmarRecebimentoHolerite } from "../../lib/pessoas";
+import { abrirArquivoRH } from "../../lib/rh-arquivos";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Nome curto de cada batida, para caber na etiqueta de localização.

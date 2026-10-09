@@ -16,10 +16,10 @@ import {
   ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Loader2, PartyPopper,
   Star, UserRound, Users,
 } from "lucide-react";
-import { useERP } from "../../../context/ERPContext";
-import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
-import { fetchEventos } from "../../../lib/eventos";
-import { isoData } from "../../../lib/compras.mjs";
+import { useERP } from "../../context/ERPContext";
+import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
+import { fetchEventos } from "../../lib/eventos";
+import { isoData } from "../../lib/compras.mjs";
 
 const brl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];

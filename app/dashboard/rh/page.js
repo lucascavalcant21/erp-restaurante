@@ -1647,7 +1647,7 @@ export default function RHPage() {
   const [loadingOcorrencias, setLoadingOcorrencias] = useState(false);
 
   // Forms da Central de Ocorrências
-  const [atestedoForm, setAtestadoForm] = useState({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+  const [atestedoForm, setAtestadoForm] = useState({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null, parcial: false });
   const [advFormNovo, setAdvFormNovo] = useState({ data: new Date().toISOString().split("T")[0], tipo: "Advertência Escrita", motivo: "" });
   const [reuniaoForm, setReuniaoForm] = useState({ data: new Date().toISOString().split("T")[0], titulo: "", resumo: "", participantes: "" });
   const [treinoForm, setTreinoForm] = useState({ data: new Date().toISOString().split("T")[0], nome_curso: "", instituicao: "", carga_horaria: "", vencimento: "" });
@@ -1709,7 +1709,7 @@ export default function RHPage() {
     const { error } = await salvarAtestado(payload);
     if (error) return alert("Erro ao salvar atestado: " + error);
     alert(`Atestado médico de ${atestedoForm.dias} dia(s) registrado! O ponto do colaborador será abonado automaticamente no período.`);
-    setAtestadoForm({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null });
+    setAtestadoForm({ data_inicio: new Date().toISOString().split("T")[0], dias: "1", cid: "", medico: "", motivo: "", arquivo: null, parcial: false });
     recarregarOcorrencias(funcOcorrencias.id);
   };
 
@@ -3703,7 +3703,7 @@ export default function RHPage() {
                                  ) : listaAtestados.map(a => (
                                     <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
                                        <div>
-                                          <p className="font-bold text-slate-800 text-xs">🏥 Atestado Médico · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                                          <p className="font-bold text-slate-800 text-xs">{a.parcial ? "🏥 Atestado de Horas (Parcial)" : "🏥 Atestado Médico"} · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
                                           <p className="text-2xs font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
                                        </div>
                                        <div className="flex items-center gap-2">

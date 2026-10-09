@@ -34,9 +34,38 @@ export default function GerarPagamentoFixoPage() {
     carregar();
   }, [id]);
 
-  const imprimir = () => {
+  const imprimir = async () => {
     const valorNum = Number(String(form.valor).replace(",", "."));
     if (!valorNum || valorNum <= 0) return alert("Informe um valor válido.");
+    
+    // Salva no banco de dados para o histórico do RH
+    const novoRecibo = {
+      unidade_id: func.unidade_id,
+      colaborador_id: func.id,
+      numero: \`REC-\${Date.now()}\`,
+      data_trabalho: new Date().toISOString(),
+      datas_contratadas: [new Date().toISOString()],
+      dias_contratados: 1,
+      valor_diaria: valorNum,
+      valor_total: valorNum,
+      pagamento_realizado: true,
+      data_pagamento: new Date().toISOString(),
+      forma_pagamento: form.formaPagamento,
+      funcao: func.cargo || "Fixo",
+      dados: {
+        tipo: form.tipo,
+        referencia: form.referencia,
+        observacao: form.observacao,
+        nome: func.nome || "", cpf: func.cpf || "", rg: func.rg || "",
+        telefone: func.telefone || "", chave_pix: func.chave_pix || "",
+        endereco: func.endereco || ""
+      }
+    };
+    
+    const { error } = await salvarReciboPrestacao(novoRecibo);
+    if (error && error !== "Offline") {
+      return alert("Erro ao salvar o recibo no histórico: " + error);
+    }
     
     imprimirReciboFuncionario({
       valor: valorNum,

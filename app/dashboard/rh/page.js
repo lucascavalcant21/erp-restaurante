@@ -2896,7 +2896,8 @@ export default function RHPage() {
                         <div>
                            <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Fase do Contrato</label>
                            <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-indigo-500 text-fg-soft appearance-none">
-                              <option value="Experiência (30 dias)">Experiência (renova a cada 30d até 90d)</option>
+                              <option value="Experiência 45">Experiência (45 + 45 dias)</option>
+                              <option value="Experiência 30">Experiência (30 + 60 dias)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
                            </select>
                            {(() => {

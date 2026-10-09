@@ -51,6 +51,7 @@ export default function SemanaPage() {
   const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [referencia, setReferencia] = useState(() => new Date());
+  const [mostrarExtras, setMostrarExtras] = useState(false);
 
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
@@ -67,7 +68,7 @@ export default function SemanaPage() {
     ])
       .then(([pessoas, historico, datasFeriado, agenda]) => {
         if (!vivo) return;
-        setEquipe((pessoas.data || []).filter(ativo));
+        setEquipe(pessoas.data || []);
         setRecibos(historico.data || []);
         setFeriados(datasFeriado?.data || []);
         setEventos(agenda?.data || []);
@@ -78,7 +79,8 @@ export default function SemanaPage() {
 
   const semana = useMemo(() => {
     const inicio = inicioDaSemana(referencia);
-    const contratados = equipe.filter(c => !ehExtra(c));
+    const contratados = equipe.filter(ativo).filter(c => !ehExtra(c));
+    const extrasIds = new Set(equipe.filter(ehExtra).map(c => c.id));
 
     return Array.from({ length: 7 }, (_, i) => {
       const data = new Date(inicio);
@@ -86,7 +88,7 @@ export default function SemanaPage() {
       const iso = isoData(data);
 
       const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()));
-      const diarias = recibos.filter(r => String(r.data_trabalho || "").slice(0, 10) === iso);
+      const diarias = recibos.filter(r => String(r.data_trabalho || "").slice(0, 10) === iso && extrasIds.has(r.colaborador_id));
       const custoDiarias = diarias.reduce((s, r) => s + (Number(r.valor_total) || 0), 0);
       // slice(0,10) nos dois lados: a data vem "2026-08-30" do feriado e
       // "2026-08-30T00:00:00+00" do evento. Comparar cru nunca casaria.
@@ -133,13 +135,21 @@ export default function SemanaPage() {
         ) : (
           <>
             <section className="rounded-2xl border-2 border-emerald-200 bg-card p-5 shadow-sm">
-              <p className="text-2xs font-bold uppercase tracking-widest text-accent">Diárias de extras na semana</p>
-              <p className="mt-1 text-3xl font-black text-fg sm:text-4xl">{brl(totalSemana)}</p>
-              <p className="mt-1 text-sm font-bold text-fg">
-                {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(c => !ehExtra(c)).length} contratado(s) na escala
-                {semana.reduce((s, d) => s + d.eventosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.eventosDoDia.length, 0)} evento(s)`}
-                {semana.reduce((s, d) => s + d.feriadosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.feriadosDoDia.length, 0)} feriado(s)`}
-              </p>
+              <div className="flex justify-between items-start sm:items-center flex-wrap gap-4">
+                <div>
+                  <p className="text-2xs font-bold uppercase tracking-widest text-accent">Diárias de extras na semana</p>
+                  <p className="mt-1 text-3xl font-black text-fg sm:text-4xl">{brl(totalSemana)}</p>
+                  <p className="mt-1 text-sm font-bold text-fg">
+                    {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(ativo).filter(c => !ehExtra(c)).length} contratado(s) na escala
+                    {semana.reduce((s, d) => s + d.eventosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.eventosDoDia.length, 0)} evento(s)`}
+                    {semana.reduce((s, d) => s + d.feriadosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.feriadosDoDia.length, 0)} feriado(s)`}
+                  </p>
+                </div>
+                <button onClick={() => setMostrarExtras(!mostrarExtras)} className="erp-btn erp-btn-ghost !h-10 text-xs border border-line whitespace-nowrap">
+                  <UserRound size={16} className="text-accent" />
+                  {mostrarExtras ? "Ocultar Extras na Escala" : "Mostrar Extras na Escala"}
+                </button>
+              </div>
             </section>
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -190,23 +200,27 @@ export default function SemanaPage() {
                       </div>
                     )}
 
-                    <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-fg">
-                      <UserRound size={13} /> Extras · {dia.diarias.length}
-                    </p>
-                    {dia.diarias.length === 0 ? (
-                      <p className="mt-1 text-[13px] font-bold text-subtle">Sem extras neste dia.</p>
-                    ) : (
-                      <div className="mt-1.5 space-y-1">
-                        {dia.diarias.map(r => (
-                          <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1">
-                            <span className="min-w-0 flex-1 truncate text-xs font-bold text-amber-900">
-                              {r.nome_prestador || r.funcao_exercida || "Extra"}
-                            </span>
-                            <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_total)}</span>
+                    {mostrarExtras && (
+                      <>
+                        <p className="mt-3 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-fg">
+                          <UserRound size={13} /> Extras · {dia.diarias.length}
+                        </p>
+                        {dia.diarias.length === 0 ? (
+                          <p className="mt-1 text-[13px] font-bold text-subtle">Sem extras neste dia.</p>
+                        ) : (
+                          <div className="mt-1.5 space-y-1">
+                            {dia.diarias.map(r => (
+                              <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-2 py-1">
+                                <span className="min-w-0 flex-1 truncate text-xs font-bold text-amber-900">
+                                  {r.nome_prestador || r.funcao_exercida || "Extra"}
+                                </span>
+                                <span className="shrink-0 text-xs font-bold text-amber-800">{brl(r.valor_total)}</span>
+                              </div>
+                            ))}
+                            <p className="pt-1 text-right text-2xs font-bold text-fg">Dia: {brl(dia.custoDiarias)}</p>
                           </div>
-                        ))}
-                        <p className="pt-1 text-right text-2xs font-bold text-fg">Dia: {brl(dia.custoDiarias)}</p>
-                      </div>
+                        )}
+                      </>
                     )}
                   </section>
                 );

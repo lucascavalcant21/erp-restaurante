@@ -55,13 +55,14 @@ function Bloco({ icon: Icon, titulo, extra, children }) {
   );
 }
 
-export default function VidaColaboradorPage() {
+export default function VidaColaboradorPage({ onEditar, onNovo }) {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("Todos");
+  const [statusFiltro, setStatusFiltro] = useState("Ativos");
   const [pontosHoje, setPontosHoje] = useState({});   // colaborador_id → registro de hoje
   const [folgasHoje, setFolgasHoje] = useState(new Set()); // ids com folga esporádica hoje
 
@@ -195,7 +196,7 @@ export default function VidaColaboradorPage() {
           <button onClick={() => { setSel(null); setVida(null); }} className="erp-btn erp-btn-ghost !h-9 text-xs"><ArrowLeft size={14} /> Todos</button>
           <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho</button>
           <button onClick={() => router.push(isFree ? `/dashboard/rh/extra/${sel.id}/recibo` : `/dashboard/rh/funcionario/${sel.id}/recibo`)} className="erp-btn erp-btn-ghost !h-9 text-xs" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}><FileText size={14} /> Recibo</button>
-          <button onClick={() => router.push("/dashboard/rh")} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
+          <button onClick={() => { if (onEditar) onEditar(sel); else router.push("/dashboard/rh"); }} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
         </PageHeader>
         <PageBody>
           {/* Dados cadastrais */}
@@ -558,10 +559,21 @@ export default function VidaColaboradorPage() {
   }
 
   // ── Lista de colaboradores ────────────────────────────────────────────────
-  const filtrados = colaboradores.filter(c =>
-    (c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())) &&
-    (areaFiltro === "Todos" || areaDoCargo(c.cargo) === areaFiltro)
-  );
+  const filtrados = colaboradores.filter(c => {
+    const isFree = c.tipo_contrato === "Freelancer";
+    const inativo = (c.status || "ativo") === "inativo";
+    
+    // Filtro 1: Apenas fixos (não mistura com extras)
+    if (isFree) return false;
+    
+    // Filtro 2: Ativos vs Inativos
+    if (statusFiltro === "Inativos" && !inativo) return false;
+    if (statusFiltro === "Ativos" && inativo) return false;
+    
+    // Filtro 3: Busca e Área
+    return (c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())) &&
+           (areaFiltro === "Todos" || areaDoCargo(c.cargo) === areaFiltro);
+  });
 
   // Situação de agora: folga na frente, o resto vem do módulo de status, que é
   // a mesma frase usada no painel do RH — a tela não escreve texto próprio.
@@ -577,28 +589,44 @@ export default function VidaColaboradorPage() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Colaboradores" subtitle={`A vida completa de cada funcionário · ${unidadeInfo?.nome || ""}`} icon={Users}
-        onAction={() => router.push("/dashboard/rh")} actionLabel="Cadastrar no RH" />
+      <PageHeader title="Quadro de Funcionários" subtitle={`Gerencie os colaboradores fixos e ex-funcionários · ${unidadeInfo?.nome || ""}`} icon={Users}
+        onAction={() => { if (onNovo) onNovo(); else router.push("/dashboard/rh"); }} actionLabel="Cadastrar Funcionário" />
       <PageBody>
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por nome ou cargo..." />
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mt-1 mb-3">
-          {["Todos", ...AREAS].map(a => {
-            const n = a === "Todos" ? colaboradores.length : colaboradores.filter(c => areaDoCargo(c.cargo) === a).length;
-            if (a !== "Todos" && n === 0) return null;
-            return (
-              <button key={a} onClick={() => setAreaFiltro(a)}
-                className={`px-3 py-1.5 rounded-full text-2xs font-bold whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-card dark:text-fg" : ""}`}
-                style={areaFiltro === a ? {} : { background: "var(--elevated)", color: "var(--muted)" }}>
-                {a} <span className={areaFiltro === a ? "opacity-60" : ""} style={areaFiltro === a ? {} : { color: "var(--dim)" }}>({n})</span>
+        
+        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-4 mt-2">
+          {/* Filtro de Status */}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+            {["Ativos", "Inativos"].map(st => (
+              <button key={st} onClick={() => setStatusFiltro(st)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFiltro === st ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                {st}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Filtro de Área */}
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none items-center">
+            {["Todos", ...AREAS].map(a => {
+              const n = a === "Todos" 
+                ? colaboradores.filter(c => c.tipo_contrato !== "Freelancer" && (statusFiltro === "Inativos" ? c.status === "inativo" : c.status !== "inativo")).length 
+                : colaboradores.filter(c => c.tipo_contrato !== "Freelancer" && (statusFiltro === "Inativos" ? c.status === "inativo" : c.status !== "inativo") && areaDoCargo(c.cargo) === a).length;
+              if (a !== "Todos" && n === 0) return null;
+              return (
+                <button key={a} onClick={() => setAreaFiltro(a)}
+                  className={`px-3 py-1.5 rounded-full text-2xs font-bold whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-card dark:text-fg" : ""}`}
+                  style={areaFiltro === a ? {} : { background: "var(--elevated)", color: "var(--muted)" }}>
+                  {a} <span className={areaFiltro === a ? "opacity-60" : ""} style={areaFiltro === a ? {} : { color: "var(--dim)" }}>({n})</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         {loading ? <SkeletonList rows={5} /> : filtrados.length === 0 ? (
           <EmptyState icon={Users} title={colaboradores.length === 0 ? "Nenhum colaborador" : "Nada encontrado"}
             hint={colaboradores.length === 0 ? "Cadastre a equipe na Gestão de RH — aqui você acompanha a vida de cada um." : "Tente outro nome ou cargo."}
-            actionLabel={colaboradores.length === 0 ? "Ir para Gestão de RH" : undefined}
-            onAction={colaboradores.length === 0 ? () => router.push("/dashboard/rh") : undefined} />
+            actionLabel={colaboradores.length === 0 ? "Cadastrar Funcionário" : undefined}
+            onAction={colaboradores.length === 0 ? () => { if (onNovo) onNovo(); else router.push("/dashboard/rh"); } : undefined} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtrados.map(c => {

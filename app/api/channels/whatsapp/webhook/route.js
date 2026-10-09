@@ -1,69 +1,46 @@
-import crypto from "crypto";
-import { processWhatsAppIncomingEvent } from "../../../../lib/server/channels/whatsapp/adapter.mjs";
+// Webhook oficial da Meta (WhatsApp Cloud API) → Command Gateway (HDEV-WA-001).
+//
+// GET  desafio de verificação (WHATSAPP_VERIFY_TOKEN; sem ele, recusa).
+// POST assinatura X-Hub-Signature-256 OBRIGATÓRIA (WHATSAPP_APP_SECRET; sem
+//      segredo ou sem assinatura válida, 401 e nada roda). Responde 200 na hora
+//      e processa depois (after), para a Meta não reenviar.
+//
+// Substitui o webhook da fase 3A, que aceitava POST sem assinatura e tinha um
+// número de teste fixo como administrador (achado em HDEV-WA-001).
+import { after } from "next/server";
+import { desafioDoWebhook, assinaturaValida, extrairMensagens } from "../../../../lib/whatsapp/meta.mjs";
+import { atenderMensagem } from "../../../../lib/whatsapp/gateway.mjs";
+import { depsDoServidor } from "../../../../lib/whatsapp/servidor.mjs";
 
-export const maxDuration = 60;
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-/**
- * Valida a assinatura HMAC-SHA256 enviada no cabeçalho 'X-Hub-Signature-256' pela Meta.
- */
-function verifyMetaSignature(rawBody, signatureHeader, appSecret) {
-  if (!signatureHeader || !appSecret) return true;
-  const expectedHash = crypto
-    .createHmac("sha256", appSecret)
-    .update(rawBody)
-    .digest("hex");
-  const signature = signatureHeader.replace("sha256=", "").trim();
-  return crypto.timingSafeEqual(Buffer.from(expectedHash), Buffer.from(signature));
-}
+const LIMITE_CORPO = 256 * 1024;
 
-/**
- * GET — Desafio de verificação do Webhook da Meta.
- */
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const mode = searchParams.get("hub.mode");
-  const token = searchParams.get("hub.verify_token");
-  const challenge = searchParams.get("hub.challenge");
-
-  const envToken = (process.env.WHATSAPP_VERIFY_TOKEN || "").trim().replace(/^["']|["']$/g, "");
-  const verifyToken = envToken || "hefisto_verify_token";
-
-  if (mode === "subscribe" && token === verifyToken) {
-    console.log("✓ Webhook do WhatsApp verificado com sucesso pelo Meta Graph API.");
-    return new Response(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
-  }
-
-  return Response.json({ error: "Token de verificação inválido." }, { status: 403 });
+  const challenge = desafioDoWebhook(new URL(request.url).searchParams, process.env.WHATSAPP_VERIFY_TOKEN);
+  if (!challenge) return new Response("Forbidden", { status: 403 });
+  return new Response(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
 }
 
-/**
- * POST — Recepção de eventos e mensagens do WhatsApp.
- */
 export async function POST(request) {
-  try {
-    const rawBody = await request.text();
-    const signatureHeader = request.headers.get("x-hub-signature-256");
-    const appSecret = process.env.WHATSAPP_APP_SECRET;
-
-    if (appSecret && signatureHeader) {
-      const isValid = verifyMetaSignature(rawBody, signatureHeader, appSecret);
-      if (!isValid) {
-        console.error("❌ Assinatura inválida no Webhook do WhatsApp.");
-        return Response.json({ error: "Assinatura inválida." }, { status: 401 });
-      }
-    }
-
-    const payload = JSON.parse(rawBody);
-
-    // Processamento assíncrono do evento sem bloquear a resposta HTTP de 200 da Meta
-    processWhatsAppIncomingEvent(payload).catch(err => {
-      console.error("Erro no processamento de evento do WhatsApp:", err);
-    });
-
-    return Response.json({ success: true, status: "EVENT_RECEIVED" }, { status: 200 });
-  } catch (err) {
-    console.error("Erro no manipulador POST do Webhook do WhatsApp:", err);
-    return Response.json({ error: "Erro interno no servidor." }, { status: 500 });
+  if (Number(request.headers.get("content-length") || 0) > LIMITE_CORPO) return new Response("Payload Too Large", { status: 413 });
+  const bruto = await request.text().catch(() => "");
+  if (bruto.length > LIMITE_CORPO) return new Response("Payload Too Large", { status: 413 });
+  if (!assinaturaValida(bruto, request.headers.get("x-hub-signature-256"), process.env.WHATSAPP_APP_SECRET)) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  let payload;
+  try { payload = JSON.parse(bruto); } catch { return new Response("Bad Request", { status: 400 }); }
+
+  const mensagens = extrairMensagens(payload);
+  if (mensagens.length) {
+    after(async () => {
+      const deps = depsDoServidor();
+      for (const m of mensagens) {
+        try { await atenderMensagem(m, deps); } catch (e) { console.error("[whatsapp] falha no gateway", e?.name || "Erro"); }
+      }
+    });
+  }
+  return Response.json({ ok: true });
 }

@@ -19,8 +19,10 @@ import {
 } from "../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-status.mjs";
+import { faseContratoCalculada } from "../../lib/contrato-experiencia.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../lib/pessoas";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
+import { supabase } from "../../lib/supabase";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Nome curto de cada batida, para caber na etiqueta de localização.
@@ -72,6 +74,14 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
   const [vidaLoading, setVidaLoading] = useState(false);
   const [formAtestado, setFormAtestado] = useState(null);
   const [salvandoAtestado, setSalvandoAtestado] = useState(false);
+
+  const atualizarStatusContrato = async (novoStatus) => {
+    if (!confirm(`Deseja alterar o status do contrato para "${novoStatus}"?`)) return;
+    const { error } = await supabase.from("rh_colaboradores").update({ status_contrato: novoStatus }).eq("id", sel.id);
+    if (error) return alert("Erro ao atualizar contrato: " + error.message);
+    setSel({ ...sel, status_contrato: novoStatus });
+    setColaboradores(colaboradores.map(c => c.id === sel.id ? { ...c, status_contrato: novoStatus } : c));
+  };
 
   const salvarAtestadoDoColaborador = async () => {
     if (!formAtestado?.data_inicio) return alert("Informe a data de início do atestado.");
@@ -211,6 +221,38 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
               <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Intervalo</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.tempo_intervalo || 60} min</p></div>
               <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Admissão</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.data_admissao ? fmtData(sel.data_admissao) : "—"}</p></div>
             </div>
+
+            {/* AVISO DO CONTRATO DE EXPERIÊNCIA (se aplicável) */}
+            {!isFree && sel.data_admissao && sel.status_contrato && sel.status_contrato.startsWith("Experiência") && (() => {
+              const f = faseContratoCalculada(sel.data_admissao, sel.status_contrato);
+              if (!f) return null;
+              const critico = f.diasRestantes <= 5;
+              return (
+                <div className={`mt-4 border rounded-xl p-4 ${critico ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200"}`}>
+                  <p className={`text-sm font-black mb-1 ${critico ? "text-amber-900" : "text-blue-900"}`}>Contrato de Experiência</p>
+                  <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-blue-800"}`}>{f.msg}</p>
+                  {critico && (
+                    <div className="flex flex-wrap gap-2">
+                      {f.renovavel && (
+                        <button type="button" onClick={() => atualizarStatusContrato(`Experiência (${f.primeiroDias + f.segundoDias}d)`)}
+                          className="bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors">
+                          Renovar para 2º Período
+                        </button>
+                      )}
+                      <button type="button" onClick={() => atualizarStatusContrato("Definitivo")}
+                        className="bg-emerald-600 border border-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">
+                        Transformar em Fixo
+                      </button>
+                      <button type="button" onClick={() => router.push(`/dashboard/rh/funcionario/${sel.id}?acao=desligar`)}
+                        className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-200 transition-colors">
+                        Não Renovar (Desligar)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--line-soft)" }}>
               <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--muted)" }}><Network size={12} /> Supervisor: {supervisor?.nome || "topo da hierarquia"}</span>
               {liderados.length > 0 && <span className="erp-badge erp-badge-ok"><Users size={12} /> Lidera {liderados.length} pessoa(s)</span>}

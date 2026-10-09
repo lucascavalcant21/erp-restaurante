@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Printer, FileText, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Printer, FileText, Save } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
 import { supabase } from "../../../../../lib/supabase";
 import { imprimirReciboFuncionario } from "../../../../../lib/recibo-funcionario";
@@ -40,7 +40,7 @@ export default function GerarPagamentoFixoPage() {
     carregar();
   }, [id]);
 
-  const imprimir = async () => {
+  const salvar = async (imprimirDepois) => {
     const valorNum = Number(String(form.valor).replace(",", "."));
     if (!valorNum || valorNum <= 0) return alert("Informe um valor válido.");
     
@@ -78,13 +78,15 @@ export default function GerarPagamentoFixoPage() {
     setRecibos(l => [salvo, ...l]);
     setForm(f => ({ ...f, valor: "" }));
     
-    imprimirReciboFuncionario({
-      valor: valorNum,
-      tipo: form.tipo,
-      referencia: form.referencia,
-      formaPagamento: form.formaPagamento,
-      observacao: form.observacao
-    }, unidadeInfo, func);
+    if (imprimirDepois) {
+      imprimirReciboFuncionario({
+        valor: valorNum,
+        tipo: form.tipo,
+        referencia: form.referencia,
+        formaPagamento: form.formaPagamento,
+        observacao: form.observacao
+      }, unidadeInfo, func);
+    }
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -160,10 +162,15 @@ export default function GerarPagamentoFixoPage() {
           </div>
 
           <div className="bg-slate-50 p-6 border-t border-slate-200">
-            <button disabled={salvando} onClick={imprimir} className="flex w-full h-14 items-center justify-center gap-2 rounded-xl bg-slate-900 font-black text-white hover:bg-slate-800 disabled:opacity-50 active:scale-[0.98] transition-all shadow-md">
-              <Printer size={20} /> {salvando ? "Salvando..." : "Gerar e Imprimir Recibo"}
-            </button>
-            <p className="text-center text-xs text-slate-400 font-bold mt-3">O recibo será aberto na tela de impressão com duas vias.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button disabled={salvando} onClick={() => salvar(false)} className="flex w-full h-14 items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50 active:scale-[0.98] transition-all shadow-sm">
+                <Save size={20} /> {salvando ? "Salvando..." : "Salvar no Histórico"}
+              </button>
+              <button disabled={salvando} onClick={() => salvar(true)} className="flex w-full h-14 items-center justify-center gap-2 rounded-xl bg-slate-900 font-black text-white hover:bg-slate-800 disabled:opacity-50 active:scale-[0.98] transition-all shadow-md">
+                <Printer size={20} /> {salvando ? "Salvando..." : "Salvar e Imprimir"}
+              </button>
+            </div>
+            <p className="text-center text-xs text-slate-400 font-bold mt-4">Recibos salvos ficarão disponíveis abaixo para impressão futura.</p>
           </div>
         </div>
 

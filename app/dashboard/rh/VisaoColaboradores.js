@@ -142,7 +142,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
     setVida(null);
     setVidaLoading(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados, rHolerites, rAtestados] = await Promise.all([
+    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados, rHolerites, rAtestados, rRecibos] = await Promise.all([
       fetchDocumentos(c.id),
       fetchFolgasEsporadicas(c.id),
       fetchConsumoFuncionario(c.id),
@@ -153,6 +153,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
       fetchFeriados(unidadeAtiva, mes),
       fetchHolerites(c.id),
       fetchAtestados(c.id),
+      supabase.from("rh_recibos_prestacao").select("*").eq("colaborador_id", c.id).order("created_at", { ascending: false })
     ]);
     setVida({
       docs: rDocs.data || [], folgas: rFolgas.data || [], consumo: rConsumo.data || [],
@@ -160,6 +161,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
       advertencias: rAdv.data || [], pontosMes: rPontosMes.data || [], feriados: rFeriados.data || [],
       holerites: Array.isArray(rHolerites) ? rHolerites : [],
       atestados: rAtestados?.data || [],
+      recibos: rRecibos?.data || [],
     });
     setVidaLoading(false);
   };
@@ -581,6 +583,31 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
                     })}
                   </div>
                 )}
+              </Bloco>
+
+              {/* Recibos (Adiantamentos e Vales) */}
+              <Bloco icon={FileText} titulo="Recibos Avulsos (Vales / Extras)"
+                extra={vida.recibos?.length > 0 && <span className="erp-badge erp-badge-info bg-cyan-100 text-cyan-800">{vida.recibos.length}</span>}>
+                {!vida.recibos || vida.recibos.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum recibo gerado ainda.</p> : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {vida.recibos.map(r => (
+                      <div key={r.id} className="p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
+                        <div className="flex justify-between items-center gap-3">
+                          <div>
+                            <p className="text-sm font-black text-slate-800">{r.dados?.tipo || "Recibo"} <span className="text-2xs bg-slate-200 text-slate-600 px-1.5 rounded">{r.dados?.referencia}</span></p>
+                            <p className="text-3xs font-bold" style={{ color: "var(--dim)" }}>{new Date(r.created_at).toLocaleDateString("pt-BR")} às {new Date(r.created_at).toLocaleTimeString("pt-BR", {hour: '2-digit', minute: '2-digit'})}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-emerald-700">{fmtBRL(r.valor_total)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-3xs font-medium mt-2 text-slate-400 leading-snug">
+                  Estes valores avulsos <b>não vão automaticamente para o holerite</b> nem somam na folha do painel. São comprovantes rápidos de vales ou adiantamentos em dinheiro/pix.
+                </p>
               </Bloco>
 
               {/* Documentos */}

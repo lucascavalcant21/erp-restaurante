@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Bell, ClipboardList, AlertTriangle, DollarSign, FileText, GraduationCap, Trash2, Upload, Download, User, Users, Clock } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtData,
@@ -126,6 +126,7 @@ function FormTab({ tab, func, onSalvar, onCancelar, opcoesDinamicas = {} }) {
 
 export default function FuncionarioDetalhePage() {
   const { id } = useParams();
+  const router = useRouter();
   const { unidadeInfo } = useERP();
   const [func, setFunc] = useState(null);
   // Héfisto: o funcionário aberto vira o contexto da conversa (o servidor reconfere a permissão de RH)
@@ -168,7 +169,11 @@ export default function FuncionarioDetalhePage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={func?.nome || "Funcionário"} subtitle={`Gestão de pessoal · ${unidadeInfo.nome}`} icon={User} />
+      <PageHeader title={func?.nome || "Funcionário"} subtitle={`Gestão de pessoal · ${unidadeInfo.nome}`} icon={User}>
+        <Btn onClick={() => router.push(`/dashboard/rh/funcionario/${id}/recibo`)}>
+          <FileText size={16} /> Gerar Recibo
+        </Btn>
+      </PageHeader>
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 

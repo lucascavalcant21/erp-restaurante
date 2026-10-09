@@ -81,7 +81,7 @@ O agente registra aqui tudo que precisa de fora e **continua trabalhando no que 
 ## ACESSO-006
 
 - **Serviço:** Meta (WhatsApp Business Platform)
-- **Motivo:** HI-06, WhatsApp Command Channel (HDEV-007)
+- **Motivo:** HI-06, WhatsApp Command Channel ([[HDEV-WA-001]], [[HDEV-007]]). **Passo a passo exato: [[WHATSAPP_SETUP]]**
 - **O que precisa ser liberado:**
   - conta Meta Business verificada;
   - app com o produto WhatsApp;

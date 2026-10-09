@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 0**
+**Pendentes agora: 1**
 
 ### APR-001 · EXECUTADO
 
@@ -46,3 +46,18 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido por:** lucas
 - **Nota:** Aplicada em 09/10/2026 ~00:05 (horário de Brasília) em sessão acompanhada, pelo conector Supabase, arquivo inteiro numa transação; preflight e verificação internos passaram (commit). Produção no ar antes: `5dea452` (contém `b5ba58b`). AUDITORIA_RLS depois: só as 3 linhas GLOBAL, 0 aguarda, 0 NOVO (TESTADO NO SUPABASE REAL). Smoke HTTP de produção sem sessão OK (TESTADO EM PRODUÇÃO). **Validação no Supabase real (09/10 ~00:20, só leitura, papel `authenticated` com o `sub` de um usuário real de cada perfil), TESTADO NO SUPABASE REAL:** backup 37 policies + 3 funções; impressão `9810b27e3d9a604b28933f84751db167`; legados classificados 46 (AMBIGUO 28, LEGADO 17, ORFAO 1), nada apagado; `token_nfe` sem SELECT para authenticated e anon, `hefisto_token_nfe_configurado` = true. Cozinheiro e somente-consulta: 0 linhas diretas de colaboradores, 0 CPF/salário, 0 documentos de RH; lista operacional 23 sem campo sensível; escala 1, registro_ponto 392 (iguais ao gerente); 1 unidade; 0 linha fora da unidade. Gerente geral: 23 colaboradores com dados de RH, 1 documento de RH, 1 unidade, 0 fora da unidade. Super admin: vê os 15 registros legados de notas e os 16 usuários. Entre empresas: produção tem 1 empresa só; isolamento entre empresas TESTADO LOCAL (PGlite, 2 empresas, test:seguranca 24/24). Smoke HTTP de produção sem sessão OK depois da aplicação. **SEC-RLS-2 CONCLUÍDA EM PRODUÇÃO.** Pendente fora do banco: smoke com sessão (`HEFISTO_QA_TOKEN`).
 - **Chave:** migracao:db/security/SEC_RLS_2_FASE2.sql
+
+### APR-003 · PENDENTE
+
+- **Missão:** HDEV-WA-001
+- **Ação:** Aplicar db/whatsapp/WA_001_FILA.sql no Supabase real (fila dos comandos do agente pelo WhatsApp: 2 tabelas novas e 1 função, só o servidor acessa)
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM
+- **Motivo:** Escrita de esquema em produção (aditiva). Sem ela, os comandos do agente pelo WhatsApp respondem fila indisponível; perguntas sobre a empresa funcionam sem ela
+- **Impacto:** –
+- **Rollback:** db/whatsapp/WA_001_ROLLBACK.sql (apaga só a fila nova)
+- **Evidências:** –
+- **Comando/alteração:** `–`
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-09 02:57
+- **Chave:** migracao:db/whatsapp/WA_001_FILA.sql

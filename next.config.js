@@ -14,6 +14,9 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: cabecalhosDeSeguranca }];
   },
+  // Build local em máquina com pouca memória (Windows do dono): HEFISTO_BUILD_LEVE=1 usa um
+  // processo só para gerar as páginas. Na Vercel a variável não existe: nada muda.
+  ...(process.env.HEFISTO_BUILD_LEVE === "1" ? { experimental: { cpus: 1, workerThreads: false } } : {}),
 };
 
 module.exports = nextConfig;

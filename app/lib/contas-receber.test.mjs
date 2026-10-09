@@ -47,7 +47,8 @@ const pg = await criarBancoF21(raiz, "", { secFin2: SEC_FIN_2 });
 if (!pg) { console.log("\nPGLITE não informado: integração NÃO executada."); process.exit(2); }
 const db = clienteSupabase(pg);
 const U = "seldeestrela";
-const HOJE = new Date().toISOString().slice(0, 10);
+// "hoje" no fuso de São Paulo, como fin_hoje() no banco (em UTC o teste falhava entre 21h e 24h)
+const HOJE = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const ver = async (id) => (await pg.query(`select * from public.vw_fin_contas_receber where id = $1`, [id])).rows[0];
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d);
 const listar = async () => (await pg.query(`select * from public.vw_fin_contas_receber where unidade_id = $1`, [U])).rows

@@ -91,7 +91,8 @@ console.log(`(banco: F2.1 + SEC-FIN-2${process.env.F24B === "1" ? " + F2.4B (gat
 const db = clienteSupabase(pg);
 const outra = clienteSupabase(pg, { unidade: "outra", uid: "44444444-4444-4444-4444-444444444444" });
 const U = "seldeestrela";
-const HOJE = new Date().toISOString().slice(0, 10);
+// "hoje" no fuso de São Paulo, como fin_hoje() no banco (em UTC o teste falhava entre 21h e 24h)
+const HOJE = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const id = async (sql, params = []) => (await pg.query(sql, params)).rows[0].id;
 const estCozinha = await id(`insert into public.estoques (unidade_id, nome, slug, tipo) values ($1,'Cozinha','cozinha','alimentos') returning id`, [U]);
 const estBar = await id(`insert into public.estoques (unidade_id, nome, slug, tipo) values ($1,'Bar','bar','bebidas') returning id`, [U]);

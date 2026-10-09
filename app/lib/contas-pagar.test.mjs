@@ -146,7 +146,8 @@ const ver = async (id) => (await pg.query(`select * from public.vw_fin_contas_pa
 const todas = async () => (await pg.query(`select * from public.vw_fin_contas_pagar where unidade_id = 'seldeestrela'`)).rows
   .map((r) => ({ ...r, data_vencimento: iso(r.data_vencimento), competencia_efetiva: iso(r.competencia_efetiva), data_ultimo_pagamento: iso(r.data_ultimo_pagamento) }));
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d);
-const HOJE = new Date().toISOString().slice(0, 10);
+// "hoje" no fuso de São Paulo, como fin_hoje() no banco (em UTC o teste falhava entre 21h e 24h)
+const HOJE = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const base = { unidade_id: "seldeestrela", descricao: "Energia de setembro", valor: "5.000,00", data_vencimento: "2026-10-10",
   competencia: "2026-09", categoria_codigo: "utilidades_energia", centro_custo_codigo: "cozinha",
   fornecedor_id: "11111111-1111-1111-1111-111111111111", documento_numero: "BOL-123", observacao: "conta de luz" };

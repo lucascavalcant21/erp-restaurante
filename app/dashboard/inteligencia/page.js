@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings } from "lucide-react";
+import { RefreshCw, Loader2, ShieldCheck, ChevronDown, History, Settings, ArrowLeft } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { buscarResumoDoDia, responderInsight, buscarHistorico } from "../../lib/intelligence/client/api";
 import { MetricaCartao, SeloCobertura } from "../../components/intelligence/Blocos";
@@ -111,7 +111,13 @@ export default function CentralDeInteligencia() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pt-8">
       <header className="mb-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">Héfisto</p>
+        <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700 mb-1">
+          <button onClick={() => window.history.back()} className="flex items-center gap-1 hover:text-emerald-900 transition-colors">
+            <ArrowLeft size={14} />
+            Voltar
+          </button>
+          <span>· Héfisto</span>
+        </div>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Central de Inteligência</h1>
           {!semUnidade && (

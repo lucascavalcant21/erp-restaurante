@@ -19,7 +19,7 @@ import {
 } from "../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-status.mjs";
-import { faseContratoCalculada } from "../../lib/contrato-experiencia.mjs";
+import { faseContratoCalculada, prazoExperiencia } from "../../lib/contrato-experiencia.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../lib/pessoas";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import { supabase } from "../../lib/supabase";
@@ -222,21 +222,42 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
               <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Dias de trabalho</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{diasTrab || "—"}</p></div>
               <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Intervalo</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.tempo_intervalo || 60} min</p></div>
               <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Admissão</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.data_admissao ? fmtData(sel.data_admissao) : "—"}</p></div>
+              <div><p className="text-3xs font-bold uppercase tracking-widest" style={{ color: "var(--dim)" }}>Nascimento</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.data_nascimento ? fmtData(sel.data_nascimento) : "—"}</p></div>
             </div>
+
+            {/* AVISO DE ANIVERSÁRIO DO MÊS */}
+            {sel.data_nascimento && (() => {
+              const hojeStr = new Date().toISOString().slice(5, 7);
+              const nascStr = sel.data_nascimento.slice(5, 7);
+              if (hojeStr !== nascStr) return null;
+              const hojeDia = new Date().toISOString().slice(8, 10);
+              const nascDia = sel.data_nascimento.slice(8, 10);
+              const ehHoje = hojeDia === nascDia;
+              return (
+                <div className={`mt-4 border rounded-xl p-4 ${ehHoje ? "bg-fuchsia-50 border-fuchsia-200" : "bg-purple-50 border-purple-200"}`}>
+                  <p className={`text-sm font-black mb-1 ${ehHoje ? "text-fuchsia-900" : "text-purple-900"}`}>
+                    🎂 {ehHoje ? "Aniversário é HOJE!" : "Aniversariante do Mês!"}
+                  </p>
+                  <p className={`text-xs font-bold ${ehHoje ? "text-fuchsia-800" : "text-purple-800"}`}>
+                    Celebre o aniversário no dia {fmtData(sel.data_nascimento).slice(0, 5)}.
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* AVISO DO CONTRATO DE EXPERIÊNCIA (se aplicável) */}
             {!isFree && sel.data_admissao && sel.status_contrato && sel.status_contrato.startsWith("Experiência") && (() => {
-              const f = faseContratoCalculada(sel.data_admissao, sel.status_contrato);
+              const f = faseContratoCalculada(sel);
               if (!f) return null;
-              const critico = f.diasRestantes <= 5;
+              const critico = f.diasRestantesPeriodo <= 5;
               return (
                 <div className={`mt-4 border rounded-xl p-4 ${critico ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200"}`}>
-                  <p className={`text-sm font-black mb-1 ${critico ? "text-amber-900" : "text-blue-900"}`}>Contrato de Experiência</p>
-                  <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-blue-800"}`}>{f.msg}</p>
+                  <p className={`text-sm font-black mb-1 ${critico ? "text-amber-900" : "text-blue-900"}`}>{f.fase}</p>
+                  <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-blue-800"}`}>{f.detalhe}</p>
                   {critico && (
                     <div className="flex flex-wrap gap-2">
-                      {f.renovavel && (
-                        <button type="button" onClick={() => atualizarStatusContrato(`Experiência (${f.primeiroDias + f.segundoDias}d)`)}
+                      {f.periodo === 1 && (
+                        <button type="button" onClick={() => atualizarStatusContrato(`Experiência (${prazoExperiencia(sel) + (90 - prazoExperiencia(sel))}d)`)}
                           className="bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors">
                           Renovar para 2º Período
                         </button>

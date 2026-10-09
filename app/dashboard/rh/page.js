@@ -2148,9 +2148,18 @@ export default function RHPage() {
                const adm = new Date(`${f.data_admissao}T12:00:00`); adm.setHours(0, 0, 0, 0);
                const diasDesdeAdmissao = Math.floor((hoje - adm) / 86400000);
                if (f.status_contrato?.startsWith("Experiência")) {
-                  const prazo = Number(f.status_contrato.match(/\d+/)?.[0] || 90);
-                  const faltam = prazo - diasDesdeAdmissao;
-                  if (faltam <= 15) alertas.push({ id: f.id, nome: f.nome, texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : `Experiência termina em ${faltam} dia(s)`, nivel: faltam < 0 ? "erro" : "aviso" });
+                  const fc = faseContratoCalculada(f.data_admissao, f.status_contrato);
+                  if (fc) {
+                     const faltam = fc.diasRestantes;
+                     if (faltam <= 15) {
+                        alertas.push({ 
+                           id: f.id, 
+                           nome: f.nome, 
+                           texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : `Experiência termina em ${faltam} dia(s) (${fc.dataFimStr})`, 
+                           nivel: faltam <= 5 ? "erro" : "aviso" 
+                        });
+                     }
+                  }
                } else {
                   const aniversario = new Date(adm); aniversario.setFullYear(hoje.getFullYear());
                   if (aniversario < hoje) aniversario.setFullYear(hoje.getFullYear() + 1);

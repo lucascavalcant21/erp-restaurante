@@ -14,7 +14,9 @@ export default function GerarPagamentoFixoPage() {
   const { unidadeInfo } = useERP();
   
   const [func, setFunc] = useState(null);
+  const [recibos, setRecibos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
   
   const mesAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const [form, setForm] = useState({
@@ -27,8 +29,12 @@ export default function GerarPagamentoFixoPage() {
 
   useEffect(() => {
     async function carregar() {
-      const { data } = await supabase.from("colaboradores").select("*").eq("id", id).maybeSingle();
-      setFunc(data);
+      const [rFunc, rRecibos] = await Promise.all([
+        supabase.from("rh_colaboradores").select("*").eq("id", id).maybeSingle(),
+        supabase.from("rh_recibos_prestacao").select("*").eq("colaborador_id", id).order("created_at", { ascending: false })
+      ]);
+      setFunc(rFunc.data);
+      setRecibos(rRecibos.data || []);
       setCarregando(false);
     }
     carregar();
@@ -38,6 +44,7 @@ export default function GerarPagamentoFixoPage() {
     const valorNum = Number(String(form.valor).replace(",", "."));
     if (!valorNum || valorNum <= 0) return alert("Informe um valor válido.");
     
+    setSalvando(true);
     // Salva no banco de dados para o histórico do RH
     const novoRecibo = {
       unidade_id: func.unidade_id,
@@ -62,10 +69,14 @@ export default function GerarPagamentoFixoPage() {
       }
     };
     
-    const { error } = await salvarReciboPrestacao(novoRecibo);
+    const { data, error } = await salvarReciboPrestacao(novoRecibo);
+    setSalvando(false);
     if (error && error !== "Offline") {
       return alert("Erro ao salvar o recibo no histórico: " + error);
     }
+    const salvo = data || novoRecibo;
+    setRecibos(l => [salvo, ...l]);
+    setForm(f => ({ ...f, valor: "" }));
     
     imprimirReciboFuncionario({
       valor: valorNum,
@@ -149,12 +160,45 @@ export default function GerarPagamentoFixoPage() {
           </div>
 
           <div className="bg-slate-50 p-6 border-t border-slate-200">
-            <button onClick={imprimir} className="flex w-full h-14 items-center justify-center gap-2 rounded-xl bg-slate-900 font-black text-white hover:bg-slate-800 active:scale-[0.98] transition-all shadow-md">
-              <Printer size={20} /> Gerar e Imprimir Recibo
+            <button disabled={salvando} onClick={imprimir} className="flex w-full h-14 items-center justify-center gap-2 rounded-xl bg-slate-900 font-black text-white hover:bg-slate-800 disabled:opacity-50 active:scale-[0.98] transition-all shadow-md">
+              <Printer size={20} /> {salvando ? "Salvando..." : "Gerar e Imprimir Recibo"}
             </button>
             <p className="text-center text-xs text-slate-400 font-bold mt-3">O recibo será aberto na tela de impressão com duas vias.</p>
           </div>
         </div>
+
+        {recibos.length > 0 && (
+          <div className="mt-8 bg-white border border-slate-200 shadow-sm rounded-3xl overflow-hidden">
+            <div className="bg-slate-50 p-4 sm:p-5 border-b border-slate-200">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                <FileText size={18} className="text-slate-400" />
+                Histórico de Recibos
+              </h2>
+              <p className="text-xs font-bold text-slate-500 mt-1">Recibos gerados anteriormente para este funcionário.</p>
+            </div>
+            <div className="p-4 sm:p-5 space-y-3">
+              {recibos.map(r => (
+                <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div>
+                    <p className="text-sm font-black text-slate-900 flex items-center gap-2">
+                      {r.dados?.tipo || "Recibo"} 
+                      <span className="text-2xs font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{r.dados?.referencia || "Geral"}</span>
+                    </p>
+                    <p className="text-xs font-bold text-slate-500 mt-1">
+                      {new Date(r.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-lg font-black text-emerald-700">R$ {Number(r.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <button onClick={() => imprimirReciboFuncionario(r.dados, unidadeInfo, func)} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:shadow-sm transition-all shadow-sm">
+                      <Printer size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

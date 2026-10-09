@@ -62,7 +62,7 @@ Segurança crítica anterior ao Intelligence Core: S-01 e S-02 em [[SEGURANCA]].
 
 <!-- hefisto-agent:agente:inicio -->
 ### Agente autônomo (gerado pelo runner)
-- Estado: **AGUARDANDO** · início: 2026-10-09T15:36:36.690Z · último heartbeat: 2026-10-09T22:03:26.657Z
+- Estado: **AGUARDANDO** · início: 2026-10-09T15:36:36.690Z · último heartbeat: 2026-10-09T22:48:26.950Z
 - Missão atual: nenhuma · último checkpoint: `411642794b`
 - Último resultado: nenhuma missão READY; confere de novo
 - Próxima missão READY: nenhuma

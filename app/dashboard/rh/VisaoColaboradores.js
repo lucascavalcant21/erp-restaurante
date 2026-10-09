@@ -202,6 +202,53 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
     const isFree = sel.tipo_contrato === "Freelancer";
     const diasTrab = String(sel.dias_trabalho || "").split(",").filter(Boolean).map(d => DIAS_SEMANA[Number(d)] || d).join(", ");
 
+    const renderPontoHojeDetalhado = () => {
+      const pt = pontosHoje[sel.id];
+      const strToMin = (s) => { if (!s) return null; const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+      const dateToMin = (d) => { if (!d) return null; const x = new Date(d); return x.getHours() * 60 + x.getMinutes(); };
+      const minToStr = (m) => { if (m < 0) m += 1440; const hh = Math.floor(m / 60), mm = m % 60; return hh === 0 ? `${mm}min` : `${hh}h${String(mm).padStart(2, '0')}`; };
+      const cls = (c) => `mt-4 text-xs font-bold px-4 py-3 rounded-xl border flex items-center gap-2 ${c}`;
+      
+      const hoje = new Date();
+      const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+      const diaSemana = hoje.getDay(); // 0 = domingo
+      
+      // Encontrar entrada esperada hoje
+      let entradaEsperada = null;
+      if (sel.horario_por_dia && sel.horarios_dia && sel.horarios_dia[diaSemana]) {
+        entradaEsperada = sel.horarios_dia[diaSemana].entrada;
+      } else if (!sel.horario_por_dia) {
+        entradaEsperada = diaSemana === 0 ? sel.horario_dom_entrada : sel.horario_entrada;
+      }
+
+      if (!pt) {
+        const folgaEsporadica = (vida?.folgas || []).some(fl => String(fl.data_folga).slice(0, 10) === hojeStr);
+        const folgaFixa = sel.dias_trabalho ? !sel.dias_trabalho.split(',').includes(String(diaSemana)) : false;
+        if (folgaEsporadica || folgaFixa) return <div className={cls("text-sky-800 bg-sky-50 border-sky-200")}><Clock size={14} /> {diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</div>;
+        if (entradaEsperada) {
+           const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
+           if (minAgora > strToMin(entradaEsperada)) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> Atrasado (esperado às {entradaEsperada})</div>;
+        }
+        return <div className={cls("text-slate-700 bg-slate-50 border-slate-200")}><Clock size={14} /> {situacaoDoPonto(null).texto}</div>;
+      }
+
+      const situacao = situacaoDoPonto(pt);
+      if (pt.status_jornada === 1) {
+         let atrasado = false;
+         if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + 5; }
+         return <div className={cls(atrasado ? "text-rose-800 bg-rose-50 border-rose-200" : "text-emerald-800 bg-emerald-50 border-emerald-200")}><Clock size={14} /> {situacao.texto}{atrasado ? ` (era p/ ${entradaEsperada})` : ""}</div>;
+      }
+      if (pt.status_jornada === 2) return <div className={cls("text-amber-800 bg-amber-50 border-amber-200")}><Clock size={14} /> {situacao.texto}</div>;
+      if (pt.status_jornada === 3) {
+         const minSaida = dateToMin(pt.hora_saida_intervalo); let minVolta = dateToMin(pt.hora_retorno_intervalo); if (minVolta < minSaida) minVolta += 1440;
+         const duracao = minVolta - minSaida, limite = sel.tempo_intervalo || 60;
+         if (duracao > limite) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> {situacao.texto} · passou do intervalo ({minToStr(duracao)}/{minToStr(limite)})</div>;
+         return <div className={cls("text-emerald-800 bg-emerald-50 border-emerald-200")}><Clock size={14} /> {situacao.texto}</div>;
+      }
+      if (pt.status_jornada === 4) return <div className={cls(situacao.semIntervalo ? "text-rose-800 bg-rose-50 border-rose-200" : "text-blue-800 bg-blue-50 border-blue-200")}><Clock size={14} /> {situacao.texto}</div>;
+      return null;
+    };
+
     return (
       <div className="min-h-screen pb-24">
         <PageHeader title={sel.nome} subtitle={`${sel.cargo || "—"} · ${isFree ? "Freelancer/Extra" : sel.tipo_contrato || "Fixo"} · ${unidadeInfo?.nome}`} icon={User} back={false}>
@@ -211,6 +258,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
           <button onClick={() => { if (onEditar) onEditar(sel); else router.push("/dashboard/rh"); }} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
         </PageHeader>
         <PageBody>
+          {renderPontoHojeDetalhado()}
           {/* Dados cadastrais */}
           <Bloco icon={User} titulo="Dados do colaborador">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3 text-sm">
@@ -296,6 +344,8 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
                   entradaDoDia: (d) => entradaContratadaDoDia(sel, d),
                 });
                 const fixo = Number(sel.salario) || 0;
+                const nDiasSemana = (sel.dias_trabalho || "").split(",").filter(Boolean).length;
+                const diariabase = nDiasSemana > 0 && fixo > 0 ? (fixo / (nDiasSemana * 4.345)) : 0;
                 const va = Number(sel.vale_alimentacao) || 0;
                 const taxa = Number(sel.taxa_servico_mes) || 0;
                 const totalMes = fixo + va + taxa + ad.valorNoturno + ad.valorExtra + ad.valorFeriado;
@@ -308,7 +358,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
                 return (
                   <Bloco icon={DollarSign} titulo="Remuneração do mês (prévia)"
                     extra={<span className="text-base font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(totalMes)}</span>}>
-                    <Linha rotulo="Salário fixo" valor={fixo} />
+                    <Linha rotulo="Salário fixo" valor={fixo} dica={diariabase > 0 ? `(${fmtBRL(diariabase)}/dia trabalhado)` : ""} />
                     <Linha rotulo="Vale alimentação" valor={va} />
                     <Linha rotulo="Taxa de serviço" valor={taxa} dica="definida no fim do mês" />
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} após 23h30 · 20% CLT`} />

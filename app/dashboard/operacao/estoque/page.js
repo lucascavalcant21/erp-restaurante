@@ -2409,11 +2409,10 @@ export default function EstoquePage() {
   return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-emerald-700" /></div>}><EstoqueUnificado /></Suspense>;
 }
 
+import EstoquePrincipal from "./EstoquePrincipal";
+
 function EstoqueUnificado() {
   const searchParams = useSearchParams();
   if (searchParams.get("gestao") === "1") return <EstoqueRunner />;
-  // Mesmo respiro das rotas /tablet: sem ele o "voltar" encosta na barra de
-  // status do celular.
-  return <div className="fixed inset-0 z-[200] overflow-auto bg-white"
-    style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><TabletSetor titulo="Estoque" voltarHref="/dashboard" /></div>;
+  return <EstoquePrincipal />;
 }

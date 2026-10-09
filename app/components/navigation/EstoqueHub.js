@@ -80,8 +80,10 @@ export default function EstoqueHub({ onVerTabelaCompleta, onAbrirEntrada, onAbri
     carregarDadosEstoque();
   }, [carregarDadosEstoque]);
 
-  // Cálculos Operacionais Dinâmicos baseados no modelo real
-  const semEstoque = insumos.filter(i => Number(i.quantidade_atual || 0) <= 0);
+  const semEstoque = insumos.filter(i => {
+    const min = Number(i.estoque_minimo);
+    return Number(i.quantidade_atual || 0) <= 0 && Number.isFinite(min) && min > 0;
+  });
   const abaixoMinimo = insumos.filter(i => {
     const min = Number(i.estoque_minimo);
     const qtd = Number(i.quantidade_atual || 0);

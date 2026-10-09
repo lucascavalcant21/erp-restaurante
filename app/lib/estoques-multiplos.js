@@ -339,6 +339,8 @@ export async function registrarMovimentoMulti({
   chave = null,
   validade = null,
   detalhe = null,
+  quantidadeInformada = null,
+  unidadeInformada = null,
 }) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const valor = Math.round(Number(quantidade) * 1000) / 1000;
@@ -349,6 +351,8 @@ export async function registrarMovimentoMulti({
     p_unidade_id: unidadeId, p_estoque_id: estoqueId, p_insumo_id: insumoId,
     p_tipo: tipo, p_motivo: motivo || (tipo === "entrada" ? "recebimento" : "consumo"), p_quantidade: valor,
     p_validade: tipo === "entrada" ? (validade || null) : null,
+    p_quantidade_informada: quantidadeInformada ?? null,
+    p_unidade_informada: unidadeInformada ?? null,
     p_detalhe: detalhe || null, p_observacao: observacao || null, p_responsavel_nome: usuarioNome || null,
     p_chave: chave || novaChave(), p_origem: origem || "movimentacao",
   });
@@ -513,6 +517,9 @@ export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usu
       insumoId: item.insumoId,
       tipo,
       quantidade: Number(item.quantidade),
+      quantidadeInformada: item.quantidadeInformada,
+      unidadeInformada: item.unidadeInformada,
+      detalhe: item.detalhe,
       usuarioNome,
       observacao,
       motivo,

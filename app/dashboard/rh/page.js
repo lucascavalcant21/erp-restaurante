@@ -2008,7 +2008,7 @@ export default function RHPage() {
       <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {abaModulo === "quadro" && <VisaoColaboradores onEditar={(f) => setNovoFunc(f)} onNovo={() => setNovoFunc(statePadrao)} />}
+      {abaModulo === "quadro" && <VisaoColaboradores onEditar={(f) => { setNovoFunc(f); setModalNovo(true); }} onNovo={() => { setNovoFunc(statePadrao); setModalNovo(true); }} />}
       {abaModulo === "escala" && <VisaoSemana />}
       {abaModulo === "visao" && (
       <>

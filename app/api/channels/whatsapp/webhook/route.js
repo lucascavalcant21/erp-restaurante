@@ -9,9 +9,8 @@
 // número de teste fixo como administrador (achado em HDEV-WA-001).
 import { after } from "next/server";
 import { desafioDoWebhook, assinaturaValida, extrairMensagens, extrairStatus } from "../../../../lib/whatsapp/meta.mjs";
-import { mascarar } from "../../../../lib/whatsapp/numero.mjs";
 import { atenderMensagem } from "../../../../lib/whatsapp/gateway.mjs";
-import { depsDoServidor } from "../../../../lib/whatsapp/servidor.mjs";
+import { depsDoServidor, auditoriaDoServidor } from "../../../../lib/whatsapp/servidor.mjs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -35,8 +34,9 @@ export async function POST(request) {
   try { payload = JSON.parse(bruto); } catch { return new Response("Bad Request", { status: 400 }); }
 
   // recibos das mensagens que enviamos: sem isso, uma entrega recusada pela Meta não aparece em lugar nenhum
+  const registrar = auditoriaDoServidor();
   for (const st of extrairStatus(payload)) {
-    console.log("[whatsapp] entrega", JSON.stringify({ id: st.id, status: st.status, para: mascarar(st.para), erros: st.erros }));
+    await registrar({ provedor: "meta", direcao: "status", wamid: st.id, status: st.status, numero: st.para, erros: st.erros });
   }
   const mensagens = extrairMensagens(payload);
   if (mensagens.length) {

@@ -6,10 +6,8 @@
 // GET  → { itens: [{ id, comando, args }] }  (marca a ponte como online)
 // POST { id, ok, resposta } → grava e responde no WhatsApp
 import { timingSafeEqual } from "node:crypto";
-import { filaDoServidor } from "../../../../lib/whatsapp/servidor.mjs";
-import { enviar as enviarPeloProvedor } from "../../../../lib/whatsapp/envio.mjs";
+import { filaDoServidor, enviarAuditado } from "../../../../lib/whatsapp/servidor.mjs";
 import { dentroDoLimite } from "../../../../lib/server/limite-por-ip.mjs";
-import { mascarar } from "../../../../lib/whatsapp/numero.mjs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -50,8 +48,7 @@ export async function POST(request) {
   try {
     const numero = await filaDoServidor().concluir(corpo.id, { ok: corpo.ok !== false, resposta: corpo.resposta });
     if (!numero) return json({ erro: "comando não está em execução" }, 409);
-    const envio = await enviarPeloProvedor({ para: numero, texto: corpo.resposta.slice(0, 8000) });
-    console.log("[whatsapp] envio ponte", JSON.stringify({ comando: corpo.id, para: mascarar(numero), ok: envio.ok, ids: envio.ids || [], status: envio.status || null, erro: envio.erro || null }));
+    const envio = await enviarAuditado({ para: numero, texto: corpo.resposta.slice(0, 8000), comandoId: corpo.id });
     return json({ ok: true, enviado: envio.ok });
   } catch {
     return json({ erro: "fila indisponível" }, 503);

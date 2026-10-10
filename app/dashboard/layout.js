@@ -8,6 +8,7 @@ import TopNavigation from "../components/layout/TopNavigation";
 import { Loader2 } from "lucide-react";
 import CommandCenterModal from "../components/navigation/CommandCenterModal";
 import PainelHefisto from "../components/intelligence/PainelHefisto";
+import { addRecentRoute } from "../lib/user-preferences.js";
 
 function ProtecaoPermissao({ sessao, children }) {
   const router = useRouter();
@@ -21,6 +22,11 @@ function ProtecaoPermissao({ sessao, children }) {
     const fallback = permittedRoutes(sessao)?.[0] || "/login";
     router.replace(fallback);
   }, [permitido, pathname, router, sessao]);
+
+  // Recentes e frequência da Central de Comando: só tela aberta com permissão.
+  useEffect(() => {
+    if (sessao && permitido) addRecentRoute(sessao, pathname, search);
+  }, [sessao, permitido, pathname, search]);
 
   if (!sessao || !permitido) {
     return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando área segura...</div>;

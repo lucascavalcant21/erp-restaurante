@@ -152,7 +152,7 @@ export default function CommandCenterModal({ isOpen, onClose, sessao }) {
             <Sparkles size={17} className="shrink-0 text-hf-accent" />
             <input ref={inputRef} value={consulta} onChange={(e) => { setConsulta(e.target.value); setSel(0); }}
               role="combobox" aria-expanded="true" aria-controls="cc-lista" aria-activedescendant={planos.length ? `cc-op-${sel}` : undefined}
-              placeholder="Pesquise módulos, ações ou comandos… Ex.: etiquetas, CMV, ponto, estoque"
+              placeholder="Pesquise módulos, ações ou comandos…"
               className="min-h-[46px] min-w-0 flex-1 bg-transparent text-[15px] text-hf-text outline-none placeholder:text-hf-muted" />
             {consulta ? (
               <button type="button" onClick={() => { setConsulta(""); inputRef.current?.focus(); }} aria-label="Limpar" className="grid h-7 w-7 place-items-center rounded-md text-hf-muted hover:text-hf-text"><X size={15} /></button>

@@ -38,6 +38,8 @@ const semValor = (e) => ["erro", "nao_apurado", "insuficiente", "nao_calculado"]
 const brl = (v) => fmtBRL(v);
 const pct = (v) => `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const sinal = (v) => (v > 0 ? `+ ${brl(v)}` : v < 0 ? `− ${brl(Math.abs(v))}` : brl(0));
+// O título do card já diz "Dados insuficientes"; o motivo não repete.
+const semRotulo = (m = "") => { const t = String(m).replace(/^dados insuficientes:\s*/i, ""); return t.charAt(0).toUpperCase() + t.slice(1); };
 const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
 
 function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado, onClick, acao, rodape, alerta = false }) {
@@ -55,7 +57,7 @@ function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado
       </div>
       <div className="min-h-[2.25rem] space-y-0.5 text-[11px] leading-snug text-hf-text-2">
         {semValor(estado) || estado?.estado === "zero"
-          ? <p className="line-clamp-2">{estado?.motivo}</p>
+          ? <p className="line-clamp-2">{semRotulo(estado?.motivo)}</p>
           : linhas.filter(Boolean).slice(0, 2).map((l, i) => <p key={i} className="line-clamp-2">{l}</p>)}
       </div>
       {(acao || rodape) && <div className="mt-auto flex items-center justify-between gap-2 pt-1">{rodape}{acao}</div>}
@@ -88,7 +90,7 @@ function Indicador({ titulo, estado, principal, secundaria, tom = "info", nota }
         {estadoCor && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${TOM[estadoCor].ponto}`} aria-label={rotuloEstado} title={rotuloEstado} />}{titulo}
       </span>
       <span className={`truncate font-black tabular-nums ${sem ? "text-sm text-hf-text-2" : "text-lg text-hf-text"}`}>{sem ? ROTULO_ESTADO[estado.estado] : principal}</span>
-      <span className="line-clamp-4 text-[11px] leading-snug text-hf-text-2" title={sem ? estado.motivo : secundaria}>{sem ? estado.motivo : secundaria}</span>
+      <span className="line-clamp-4 text-[11px] leading-snug text-hf-text-2" title={sem ? semRotulo(estado.motivo) : secundaria}>{sem ? semRotulo(estado.motivo) : secundaria}</span>
       {nota && !sem && <span className="line-clamp-3 text-[10px] leading-snug text-hf-muted" title={nota}>{nota}</span>}
     </div>
   );

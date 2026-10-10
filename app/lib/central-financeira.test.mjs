@@ -143,3 +143,12 @@ test("RESUMO DO HÉFISTO: só fatos dos dados (vencidas, faturamento, saldo)", (
   assert.ok(r.some((t) => t.startsWith("Saldo de caixa do período negativo")));
   assert.ok(r.length <= 4);
 });
+
+test("pagar pela Central: o modal de pagamento fica fora do ternário hub/tabela (antes só abria na tabela)", async () => {
+  const fs = await import("node:fs");
+  const pagina = fs.readFileSync(new URL("../dashboard/financeiro/page.js", import.meta.url), "utf8");
+  const modal = pagina.indexOf("<ModalPagamentoConta conta=");
+  assert.ok(modal > 0, "a página renderiza o modal");
+  assert.ok(modal > pagina.lastIndexOf("</>"), "o modal vem depois do fim do ramo da tabela");
+  assert.match(pagina, /onPagarConta=\{marcarPaga\}/, "a Central recebe a ação de pagar");
+});

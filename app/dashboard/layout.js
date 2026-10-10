@@ -23,9 +23,14 @@ function ProtecaoPermissao({ sessao, children }) {
     router.replace(fallback);
   }, [permitido, pathname, router, sessao]);
 
-  // Recentes e frequência da Central de Comando: só tela aberta com permissão.
+  // Recentes e frequência da Central de Comando: só tela aberta com permissão,
+  // uma vez por rota (a sessão é relida a cada navegação e não pode contar 2x).
+  const ultimaRota = useRef("");
   useEffect(() => {
-    if (sessao && permitido) addRecentRoute(sessao, pathname, search);
+    const chave = `${pathname}?${search}`;
+    if (!sessao || !permitido || ultimaRota.current === chave) return;
+    ultimaRota.current = chave;
+    addRecentRoute(sessao, pathname, search);
   }, [sessao, permitido, pathname, search]);
 
   if (!sessao || !permitido) {

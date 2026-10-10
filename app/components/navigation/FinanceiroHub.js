@@ -26,12 +26,12 @@ import { fmtBRL } from "../ui";
 
 // ─── aparência ────────────────────────────────────────────────────────────────
 const TOM = {
-  critico: { texto: "text-rose-400", borda: "border-rose-500/40", fundo: "bg-rose-500/10", ponto: "bg-rose-400" },
-  atencao: { texto: "text-amber-300", borda: "border-amber-400/40", fundo: "bg-amber-400/10", ponto: "bg-amber-300" },
-  positivo: { texto: "text-emerald-400", borda: "border-emerald-500/30", fundo: "bg-emerald-500/10", ponto: "bg-emerald-400" },
-  info: { texto: "text-sky-300", borda: "border-sky-500/30", fundo: "bg-sky-500/10", ponto: "bg-sky-300" },
-  neutro: { texto: "text-white", borda: "border-slate-700/70", fundo: "bg-slate-800/40", ponto: "bg-slate-400" },
-  apagado: { texto: "text-slate-400", borda: "border-slate-700/70", fundo: "bg-slate-800/40", ponto: "bg-slate-500" },
+  critico: { texto: "text-hf-danger", borda: "border-hf-danger/40", fundo: "bg-hf-danger/10", ponto: "bg-hf-danger" },
+  atencao: { texto: "text-hf-warning", borda: "border-hf-warning/40", fundo: "bg-hf-warning/10", ponto: "bg-hf-warning" },
+  positivo: { texto: "text-hf-success", borda: "border-hf-success/30", fundo: "bg-hf-success/10", ponto: "bg-hf-success" },
+  info: { texto: "text-hf-text", borda: "border-hf-border", fundo: "bg-hf-elevated", ponto: "bg-hf-muted" },
+  neutro: { texto: "text-hf-text", borda: "border-hf-border", fundo: "bg-hf-elevated", ponto: "bg-hf-muted" },
+  apagado: { texto: "text-hf-text-2", borda: "border-hf-border", fundo: "bg-hf-elevated", ponto: "bg-hf-muted" },
 };
 const ROTULO_ESTADO = { erro: "Erro ao carregar", nao_apurado: "Não apurado", insuficiente: "Dados insuficientes", nao_calculado: "Não calculado" };
 const semValor = (e) => ["erro", "nao_apurado", "insuficiente", "nao_calculado"].includes(e?.estado);
@@ -45,15 +45,15 @@ function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado
   const interativo = onClick ? { role: "button", tabIndex: 0, onClick, onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } } : {};
   return (
     <div {...interativo}
-      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-slate-900/70 p-3.5 text-left transition ${alerta && !semValor(estado) ? "border-rose-500/50" : "border-slate-800"} ${onClick ? "cursor-pointer hover:border-slate-600 hover:bg-slate-900" : ""}`}>
+      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-hf-surface p-3.5 text-left transition ${alerta && !semValor(estado) ? "border-hf-danger/40" : "border-hf-border"} ${onClick ? "cursor-pointer outline-none hover:border-hf-border-strong hover:bg-hf-elevated/60 focus-visible:ring-2 focus-visible:ring-hf-accent/40" : ""}`}>
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
-        {Icone && <Icone size={16} className={`shrink-0 ${t.texto}`} />}
+        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-hf-text-2">{titulo}</span>
+        {Icone && <Icone size={16} className={`shrink-0 ${alerta && !semValor(estado) ? "text-hf-danger" : "text-hf-muted"}`} />}
       </div>
-      <div className={`truncate text-xl font-black tabular-nums sm:text-2xl ${semValor(estado) ? "text-base text-slate-300 sm:text-lg" : t.texto}`}>
+      <div className={`truncate text-xl font-black tabular-nums sm:text-2xl ${semValor(estado) ? "text-base text-hf-text-2 sm:text-lg" : t.texto}`}>
         {semValor(estado) ? ROTULO_ESTADO[estado.estado] : valor}
       </div>
-      <div className="min-h-[2.25rem] space-y-0.5 text-[11px] leading-snug text-slate-400">
+      <div className="min-h-[2.25rem] space-y-0.5 text-[11px] leading-snug text-hf-text-2">
         {semValor(estado) || estado?.estado === "zero"
           ? <p className="line-clamp-2">{estado?.motivo}</p>
           : linhas.filter(Boolean).slice(0, 2).map((l, i) => <p key={i} className="line-clamp-2">{l}</p>)}
@@ -67,8 +67,8 @@ function Secao({ titulo, icone: Icone, direita, children, className = "" }) {
   return (
     <section className={`space-y-2.5 ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-300">
-          {Icone && <Icone size={14} className="text-slate-400" />}{titulo}
+        <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-hf-text-2">
+          {Icone && <Icone size={14} className="text-hf-text-2" />}{titulo}
         </h2>
         {direita}
       </div>
@@ -78,14 +78,18 @@ function Secao({ titulo, icone: Icone, direita, children, className = "" }) {
 }
 
 function Indicador({ titulo, estado, principal, secundaria, tom = "info", nota }) {
+  // Indicador neutro: a cor só aparece no pontinho de estado (saudável, atenção, ruim); sem dado, cinza.
   const sem = semValor(estado);
-  const t = TOM[sem ? "apagado" : tom];
+  const estadoCor = sem ? "apagado" : ["positivo", "atencao", "critico"].includes(tom) ? tom : null;
+  const rotuloEstado = { positivo: "saudável", atencao: "atenção", critico: "crítico", apagado: "sem dado" }[estadoCor];
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
-      <span className={`truncate font-black tabular-nums ${sem ? "text-sm text-slate-300" : `text-lg ${t.texto}`}`}>{sem ? ROTULO_ESTADO[estado.estado] : principal}</span>
-      <span className="line-clamp-4 text-[11px] leading-snug text-slate-400" title={sem ? estado.motivo : secundaria}>{sem ? estado.motivo : secundaria}</span>
-      {nota && !sem && <span className="line-clamp-3 text-[10px] leading-snug text-slate-500" title={nota}>{nota}</span>}
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-hf-border bg-hf-surface p-3">
+      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-hf-text-2">
+        {estadoCor && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${TOM[estadoCor].ponto}`} aria-label={rotuloEstado} title={rotuloEstado} />}{titulo}
+      </span>
+      <span className={`truncate font-black tabular-nums ${sem ? "text-sm text-hf-text-2" : "text-lg text-hf-text"}`}>{sem ? ROTULO_ESTADO[estado.estado] : principal}</span>
+      <span className="line-clamp-4 text-[11px] leading-snug text-hf-text-2" title={sem ? estado.motivo : secundaria}>{sem ? estado.motivo : secundaria}</span>
+      {nota && !sem && <span className="line-clamp-3 text-[10px] leading-snug text-hf-muted" title={nota}>{nota}</span>}
     </div>
   );
 }
@@ -93,7 +97,7 @@ function Indicador({ titulo, estado, principal, secundaria, tom = "info", nota }
 const Botao = ({ onClick, icone: Icone, children, variante = "sec", titulo }) => (
   <button type="button" onClick={onClick} title={titulo}
     className={`inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl px-3 text-xs font-bold transition ${
-      variante === "pri" ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400" : "border border-slate-700 bg-slate-900 text-slate-100 hover:border-slate-500"}`}>
+      variante === "pri" ? "bg-hf-accent text-hf-accent-fg hover:brightness-110" : "border border-hf-border bg-hf-surface text-hf-text hover:border-hf-border-strong"}`}>
     {Icone && <Icone size={15} />}{children}
   </button>
 );
@@ -165,67 +169,67 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
   const c = useMemo(() => (base && (fluxo || !intervalo.valido) ? montarCentral({ hoje, intervalo, fontes: { ...base, fluxo: fluxo || { error: intervalo.valido ? null : intervalo.motivo, data: [] } } }) : null), [base, fluxo, hoje, intervalo]);
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
-    return <div className="min-h-screen bg-[#070F1E] p-8 text-center text-sm font-bold text-slate-200">Selecione uma unidade para abrir a Central Financeira.</div>;
+    return <div className="min-h-screen bg-hf-bg p-8 text-center text-sm font-bold text-hf-text">Selecione uma unidade para abrir a Central Financeira.</div>;
   }
 
   const k = c?.cards, ind = c?.indicadores;
   const subtitulo = `${unidadeInfo?.nome || "Unidade"} • ${intervalo.rotulo || "Período"}`;
 
   return (
-    <div className="min-h-screen bg-[#070F1E] px-3 pb-28 pt-4 font-sans text-slate-100 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-hf-bg px-3 pb-28 pt-4 font-sans text-hf-text sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-5">
 
         {/* 1. CABEÇALHO */}
-        <header className="flex flex-col gap-3 border-b border-slate-800 pb-3 lg:flex-row lg:items-end lg:justify-between">
+        <header className="flex flex-col gap-3 border-b border-hf-border pb-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">Central Financeira</h1>
-            <p className="truncate text-xs text-slate-400">
-              {subtitulo}{atualizadoEm && <span className="text-slate-500"> · atualizado às {atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+            <h1 className="text-xl font-black tracking-tight text-hf-text sm:text-2xl">Central Financeira</h1>
+            <p className="truncate text-xs text-hf-text-2">
+              {subtitulo}{atualizadoEm && <span className="text-hf-muted"> · atualizado às {atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex max-w-full overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-1" role="tablist" aria-label="Período">
+            <div className="flex max-w-full overflow-x-auto rounded-xl border border-hf-border bg-hf-bg p-1" role="tablist" aria-label="Período">
               {PERIODOS.map((p) => (
                 <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => setPeriodo(p.id)}
-                  className={`min-h-[34px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition ${periodo === p.id ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-white"}`}>
+                  className={`min-h-[34px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition ${periodo === p.id ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:text-hf-text"}`}>
                   {p.rotulo}
                 </button>
               ))}
             </div>
             <button type="button" onClick={atualizar} aria-label="Atualizar" title="Atualizar"
-              className="grid min-h-[40px] min-w-[40px] place-items-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500">
-              <RefreshCw size={15} className={carregando ? "animate-spin text-emerald-400" : ""} />
+              className="grid min-h-[40px] min-w-[40px] place-items-center rounded-xl border border-hf-border bg-hf-surface text-hf-text hover:border-hf-border-strong">
+              <RefreshCw size={15} className={carregando ? "animate-spin text-hf-success" : ""} />
             </button>
             {podeVerFinanceiroTotal && (
               <div className="relative" ref={menuRef}>
                 <Botao variante="pri" icone={Plus} onClick={() => setMenuNovo((v) => !v)}>Novo lançamento <ChevronDown size={14} /></Botao>
                 {menuNovo && (
-                  <div className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-xl">
+                  <div className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-xl border border-hf-border bg-hf-surface shadow-xl">
                     {[["Conta a pagar", ROTAS.novaContaPagar, CreditCard], ["Conta a receber", ROTAS.contasReceber, Banknote], ["Faturamento do dia", ROTAS.faturamento, Receipt]]
                       .filter(([, r]) => podeRota(r)).map(([rot, r, I]) => (
-                        <button key={rot} type="button" onClick={() => { setMenuNovo(false); ir(r); }} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-slate-100 hover:bg-slate-800">
-                          <I size={14} className="text-slate-400" />{rot}
+                        <button key={rot} type="button" onClick={() => { setMenuNovo(false); ir(r); }} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-hf-text hover:bg-hf-elevated">
+                          <I size={14} className="text-hf-text-2" />{rot}
                         </button>
                       ))}
                   </div>
                 )}
               </div>
             )}
-            {podeVerFinanceiroTotal && <button type="button" className="inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900 px-3 text-xs font-bold text-slate-100 hover:border-slate-500" onClick={() => router.push("/dashboard/financeiro/contas")}><Wallet size={15} />Contas a Pagar</button>}
+            {podeVerFinanceiroTotal && <button type="button" className="inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-hf-border bg-hf-surface px-3 text-xs font-bold text-hf-text hover:border-hf-border-strong" onClick={() => router.push("/dashboard/financeiro/contas")}><Wallet size={15} />Contas a Pagar</button>}
             {podeRota(ROTAS.dre) && <Botao icone={FileText} onClick={() => (onAbrirDRE ? onAbrirDRE() : ir(ROTAS.dre))}>DRE Gerencial</Botao>}
           </div>
         </header>
 
         {periodo === "personalizado" && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <label className="flex items-center gap-1.5 text-slate-400">De <input type="date" value={pers.de} max={hoje} onChange={(e) => setPers((p) => ({ ...p, de: e.target.value }))} className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-slate-100" /></label>
-            <label className="flex items-center gap-1.5 text-slate-400">até <input type="date" value={pers.ate} max={hoje} onChange={(e) => setPers((p) => ({ ...p, ate: e.target.value }))} className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-slate-100" /></label>
-            {!intervalo.valido && <span className="font-bold text-amber-300">{intervalo.motivo}</span>}
+            <label className="flex items-center gap-1.5 text-hf-text-2">De <input type="date" value={pers.de} max={hoje} onChange={(e) => setPers((p) => ({ ...p, de: e.target.value }))} className="rounded-lg border border-hf-border bg-hf-surface px-2 py-1.5 text-hf-text" /></label>
+            <label className="flex items-center gap-1.5 text-hf-text-2">até <input type="date" value={pers.ate} max={hoje} onChange={(e) => setPers((p) => ({ ...p, ate: e.target.value }))} className="rounded-lg border border-hf-border bg-hf-surface px-2 py-1.5 text-hf-text" /></label>
+            {!intervalo.valido && <span className="font-bold text-hf-warning">{intervalo.motivo}</span>}
           </div>
         )}
 
         {!c ? (
-          <div className="flex min-h-[40vh] items-center justify-center gap-2 text-sm font-bold text-slate-300"><Loader2 className="animate-spin text-emerald-400" size={20} />Carregando a Central Financeira…</div>
+          <div className="flex min-h-[40vh] items-center justify-center gap-2 text-sm font-bold text-hf-text-2"><Loader2 className="animate-spin text-hf-success" size={20} />Carregando a Central Financeira…</div>
         ) : !podeVerFinanceiroTotal ? (
           /* VISÃO RESTRITA: só custos (CMV), sem valores de caixa */
           <Secao titulo="Custos que você pode ver" icone={Target}>
@@ -242,12 +246,12 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
               <Card titulo="A pagar" icone={Wallet} estado={k.aPagar} tom={k.aPagar.tom} alerta={k.aPagar.vencido > 0} valor={brl(k.aPagar.valor)}
                 linhas={[k.aPagar.nVencidas ? `${k.aPagar.nVencidas} vencida(s) · ${brl(k.aPagar.vencido)}` : "Nenhuma vencida", `${brl(k.aPagar.proximos7)} nos próximos 7 dias`]}
                 onClick={() => ir(ROTAS.contasPagar)}
-                acao={k.aPagar.vencido > 0 ? <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/dashboard/financeiro/contas?situacao=vencido"); }} className="rounded-lg bg-rose-500/15 px-2 py-1 text-[11px] font-black text-rose-300 hover:bg-rose-500/25">Resolver</button> : null}
-                rodape={<span className="text-[10px] text-slate-500">posição de hoje</span>} />
+                acao={k.aPagar.vencido > 0 ? <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/dashboard/financeiro/contas?situacao=vencido"); }} className="rounded-lg bg-hf-danger/10 px-2 py-1 text-[11px] font-black text-hf-danger hover:bg-hf-danger/20">Resolver</button> : null}
+                rodape={<span className="text-[10px] text-hf-muted">posição de hoje</span>} />
               <Card titulo="A receber" icone={Banknote} estado={k.aReceber} tom={k.aReceber.tom} valor={brl(k.aReceber.valor)}
                 linhas={[k.aReceber.atrasado ? `${brl(k.aReceber.atrasado)} atrasado` : "Nada atrasado", `${brl(k.aReceber.proximos7)} nos próximos 7 dias`]}
                 onClick={podeRota(ROTAS.contasReceber) ? () => ir(ROTAS.contasReceber) : undefined}
-                rodape={<span className="text-[10px] text-slate-500">posição de hoje</span>} />
+                rodape={<span className="text-[10px] text-hf-muted">posição de hoje</span>} />
               <Card titulo="Entradas" icone={ArrowDownCircle} estado={k.fluxo} tom="positivo" valor={brl(k.fluxo.entradas)}
                 linhas={["Recebimentos efetivos no período", k.fluxo.incluiLegado ? "Inclui pagamentos antigos sem histórico" : null]}
                 onClick={podeRota(ROTAS.caixa) ? () => ir(ROTAS.caixa) : undefined} />
@@ -255,19 +259,19 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
                 linhas={["Pagamentos efetivos no período"]} onClick={podeRota(ROTAS.caixa) ? () => ir(ROTAS.caixa) : undefined} />
               <Card titulo="Saldo do período" icone={Scale} estado={k.fluxo} tom={k.fluxo.saldo < 0 ? "critico" : k.fluxo.saldo > 0 ? "positivo" : "neutro"}
                 valor={sinal(k.fluxo.saldo)} linhas={["Entradas − saídas realizadas", `${k.fluxo.lancamentos} lançamento(s)`]} />
-              <Card titulo="Faturamento" icone={Receipt} estado={k.faturamento} tom={k.faturamento.estado === "parcial" ? "atencao" : "info"}
+              <Card titulo="Faturamento" icone={Receipt} estado={k.faturamento} tom={k.faturamento.estado === "parcial" ? "atencao" : "neutro"}
                 valor={brl(k.faturamento.valor)} linhas={[k.faturamento.estado === "parcial" ? `Parcial: ${k.faturamento.lancados} de ${k.faturamento.esperados} dias` : "Vendas − cancelamentos − descontos"]}
                 acao={["nao_apurado", "parcial"].includes(k.faturamento.estado) && podeRota(ROTAS.faturamento)
-                  ? <button type="button" onClick={(e) => { e.stopPropagation(); ir(ROTAS.faturamento); }} className="rounded-lg bg-sky-500/15 px-2 py-1 text-[11px] font-black text-sky-300 hover:bg-sky-500/25">Lançar faturamento</button> : null} />
+                  ? <button type="button" onClick={(e) => { e.stopPropagation(); ir(ROTAS.faturamento); }} className="rounded-lg bg-hf-elevated px-2 py-1 text-[11px] font-black text-hf-text-2 hover:bg-hf-border">Lançar faturamento</button> : null} />
             </div>
 
             {/* 3. PRECISA DA SUA ATENÇÃO + resumo do Héfisto */}
             <Secao titulo="Precisa da sua atenção" icone={AlertTriangle}
-              direita={<span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${c.alertas.length ? "bg-rose-500/15 text-rose-300" : "bg-emerald-500/15 text-emerald-300"}`}>{c.alertas.length ? `${c.alertas.length} item(ns)` : "tudo em dia"}</span>}>
+              direita={<span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${c.alertas.length ? "bg-hf-danger/10 text-hf-danger" : "bg-hf-success/10 text-hf-success"}`}>{c.alertas.length ? `${c.alertas.length} item(ns)` : "tudo em dia"}</span>}>
               {c.alertas.length === 0 ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300"><CheckCircle2 size={16} />Nenhum problema encontrado nos dados disponíveis.</div>
+                <div className="flex items-center gap-2 rounded-2xl border border-hf-border bg-hf-surface p-3 text-sm font-bold text-hf-success"><CheckCircle2 size={16} />Nenhum problema encontrado nos dados disponíveis.</div>
               ) : (
-                <div className="divide-y divide-slate-800 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70">
+                <div className="divide-y divide-hf-border overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
                   {c.alertas.map((a) => {
                     const t = TOM[a.prioridade === "critico" ? "critico" : a.prioridade === "atencao" ? "atencao" : "info"];
                     const Ic = a.prioridade === "critico" ? AlertCircle : a.prioridade === "atencao" ? AlertTriangle : Info;
@@ -277,10 +281,10 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             <span className={`text-[10px] font-black uppercase tracking-wider ${t.texto}`}>{a.prioridade === "critico" ? "Crítico" : a.prioridade === "atencao" ? "Atenção" : "Informativo"}</span>
-                            <span className="text-sm font-bold text-white">{a.titulo}</span>
+                            <span className="text-sm font-bold text-hf-text">{a.titulo}</span>
                             {a.valor != null && <span className={`text-sm font-black tabular-nums ${t.texto}`}>{brl(a.valor)}</span>}
                           </div>
-                          <p className="line-clamp-2 text-[11px] text-slate-400">{a.impacto}{a.motivo ? ` ${a.motivo}` : ""}</p>
+                          <p className="line-clamp-2 text-[11px] text-hf-text-2">{a.impacto}{a.motivo ? ` ${a.motivo}` : ""}</p>
                         </div>
                         {a.recarregar ? <Botao icone={RefreshCw} onClick={atualizar}>{a.acao}</Botao>
                           : a.href && podeRota(a.href) ? <Botao onClick={() => ir(a.href)}>{a.acao} <ChevronRight size={14} /></Botao> : null}
@@ -290,13 +294,13 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
                 </div>
               )}
               {c.resumo.length > 0 && (
-                <div className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 sm:flex-row sm:items-center">
+                <div className="flex flex-col gap-2 rounded-2xl border border-hf-border bg-hf-elevated p-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <Sparkles size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+                    <Sparkles size={15} className="mt-0.5 shrink-0 text-hf-success" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Héfisto identificou</p>
-                      <ul className="mt-0.5 space-y-0.5 text-xs text-slate-200">
-                        {c.resumo.map((r, i) => <li key={i} className="flex gap-1.5"><span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TOM[r.tom]?.ponto || "bg-slate-400"}`} />{r.texto}</li>)}
+                      <p className="text-[10px] font-black uppercase tracking-wider text-hf-text-2">Héfisto identificou</p>
+                      <ul className="mt-0.5 space-y-0.5 text-xs text-hf-text">
+                        {c.resumo.map((r, i) => <li key={i} className="flex gap-1.5"><span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TOM[r.tom]?.ponto || "bg-hf-muted"}`} />{r.texto}</li>)}
                       </ul>
                     </div>
                   </div>
@@ -308,35 +312,35 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
             {/* 4 e 5. FLUXO FINANCEIRO + INDICADORES GERENCIAIS */}
             <div className="grid gap-5 lg:grid-cols-5">
               <Secao titulo="Fluxo financeiro" icone={Landmark} className="lg:col-span-2"
-                direita={<span className="text-[10px] text-slate-500">{intervalo.rotulo}</span>}>
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3.5">
+                direita={<span className="text-[10px] text-hf-muted">{intervalo.rotulo}</span>}>
+                <div className="rounded-2xl border border-hf-border bg-hf-surface p-3.5">
                   {semValor(k.fluxo) ? (
-                    <p className="text-sm text-slate-300"><b>{ROTULO_ESTADO[k.fluxo.estado]}.</b> <span className="text-slate-400">{k.fluxo.motivo}</span></p>
+                    <p className="text-sm text-hf-text-2"><b>{ROTULO_ESTADO[k.fluxo.estado]}.</b> <span className="text-hf-text-2">{k.fluxo.motivo}</span></p>
                   ) : (
                     <>
                       <div className="grid grid-cols-2 gap-3">
-                        {[["Entradas", brl(k.fluxo.entradas), "text-emerald-400"], ["Saídas", brl(k.fluxo.saidas), "text-rose-400"],
-                          ["Saldo", sinal(k.fluxo.saldo), k.fluxo.saldo < 0 ? "text-rose-400" : k.fluxo.saldo > 0 ? "text-emerald-400" : "text-white"],
-                          ["Lançamentos", String(k.fluxo.lancamentos), "text-white"]].map(([r, v, cls]) => (
-                          <div key={r} className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{r}</p><p className={`truncate text-lg font-black tabular-nums ${cls}`}>{v}</p></div>
+                        {[["Entradas", brl(k.fluxo.entradas), "text-hf-success"], ["Saídas", brl(k.fluxo.saidas), "text-hf-danger"],
+                          ["Saldo", sinal(k.fluxo.saldo), k.fluxo.saldo < 0 ? "text-hf-danger" : k.fluxo.saldo > 0 ? "text-hf-success" : "text-hf-text"],
+                          ["Lançamentos", String(k.fluxo.lancamentos), "text-hf-text"]].map(([r, v, cls]) => (
+                          <div key={r} className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wider text-hf-text-2">{r}</p><p className={`truncate text-lg font-black tabular-nums ${cls}`}>{v}</p></div>
                         ))}
                       </div>
-                      <p className="mt-3 border-t border-slate-800 pt-2 text-[11px] text-slate-400">
+                      <p className="mt-3 border-t border-hf-border pt-2 text-[11px] text-hf-text-2">
                         Caixa realizado (data do dinheiro), registrado no financeiro.{k.fluxo.estado === "zero" ? ` ${k.fluxo.motivo}` : ""}{k.fluxo.incluiLegado ? " Inclui pagamentos antigos sem histórico." : ""} Não é DRE.
                       </p>
                     </>
                   )}
                   {k.saldoGerencial && (
-                    <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-slate-950/60 px-3 py-2 text-xs">
-                      <span className="text-slate-400">Saldo em caixa/banco (gerencial)</span>
-                      <span className={`font-black tabular-nums ${semValor(k.saldoGerencial) ? "text-slate-300" : "text-white"}`}>{semValor(k.saldoGerencial) ? ROTULO_ESTADO[k.saldoGerencial.estado] : brl(k.saldoGerencial.valor)}</span>
+                    <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-hf-elevated px-3 py-2 text-xs">
+                      <span className="text-hf-text-2">Saldo em caixa/banco (gerencial)</span>
+                      <span className={`font-black tabular-nums ${semValor(k.saldoGerencial) ? "text-hf-text-2" : "text-hf-text"}`}>{semValor(k.saldoGerencial) ? ROTULO_ESTADO[k.saldoGerencial.estado] : brl(k.saldoGerencial.valor)}</span>
                     </div>
                   )}
                 </div>
               </Secao>
 
               <Secao titulo="Indicadores gerenciais" icone={BarChart3} className="lg:col-span-3"
-                direita={<span className="text-[10px] text-slate-500">mês atual · CMV pelo último inventário fechado</span>}>
+                direita={<span className="text-[10px] text-hf-muted">mês atual · CMV pelo último inventário fechado</span>}>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   <Indicador titulo="CMV realizado" estado={ind.cmv}
                     tom={ind.cmv.saude === "acima" ? "atencao" : ind.cmv.saude === "saudavel" ? "positivo" : "info"}
@@ -361,36 +365,36 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
 
             {/* 6. PRÓXIMOS COMPROMISSOS */}
             <Secao titulo="Próximos compromissos" icone={CreditCard}
-              direita={<button type="button" onClick={() => ir(ROTAS.contasPagar)} className="inline-flex min-h-[36px] items-center gap-1 text-xs font-bold text-emerald-400 hover:underline">Ver todas as contas <ChevronRight size={14} /></button>}>
+              direita={<button type="button" onClick={() => ir(ROTAS.contasPagar)} className="inline-flex min-h-[36px] items-center gap-1 text-xs font-bold text-hf-success hover:underline">Ver todas as contas <ChevronRight size={14} /></button>}>
               {!c.compromissos ? (
-                <p className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3 text-sm text-slate-300"><b>Erro ao carregar.</b> <button type="button" onClick={atualizar} className="font-bold text-emerald-400 hover:underline">Tentar novamente</button></p>
+                <p className="rounded-2xl border border-hf-border bg-hf-surface p-3 text-sm text-hf-text-2"><b>Erro ao carregar.</b> <button type="button" onClick={atualizar} className="font-bold text-hf-success hover:underline">Tentar novamente</button></p>
               ) : c.compromissos.total === 0 ? (
-                <p className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300"><CheckCircle2 size={16} />Nenhuma conta vencida, para hoje ou para os próximos 7 dias.</p>
+                <p className="flex items-center gap-2 rounded-2xl border border-hf-border bg-hf-surface p-3 text-sm font-bold text-hf-success"><CheckCircle2 size={16} />Nenhuma conta vencida, para hoje ou para os próximos 7 dias.</p>
               ) : (
-                <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70">
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-slate-800 px-3 py-2 text-[11px] text-slate-400">
-                    <span><b className="text-rose-300">{c.compromissos.contagem.vencidas}</b> vencida(s)</span>
-                    <span><b className="text-amber-300">{c.compromissos.contagem.hoje}</b> vencem hoje</span>
-                    <span><b className="text-sky-300">{c.compromissos.contagem.proximos7}</b> nos próximos 7 dias</span>
+                <div className="overflow-hidden rounded-2xl border border-hf-border bg-hf-surface">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-hf-border px-3 py-2 text-[11px] text-hf-text-2">
+                    <span><b className="text-hf-danger">{c.compromissos.contagem.vencidas}</b> vencida(s)</span>
+                    <span><b className="text-hf-warning">{c.compromissos.contagem.hoje}</b> vencem hoje</span>
+                    <span><b className="text-hf-text-2">{c.compromissos.contagem.proximos7}</b> nos próximos 7 dias</span>
                     {c.compromissos.total > c.compromissos.linhas.length && <span>· mostrando as {c.compromissos.linhas.length} mais urgentes de {c.compromissos.total}</span>}
                   </div>
-                  <ul className="divide-y divide-slate-800">
+                  <ul className="divide-y divide-hf-border">
                     {c.compromissos.linhas.map((l) => {
                       const t = TOM[l.status.tom];
                       return (
                         <li key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_10rem_6rem_7.5rem_13rem]">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-white">{l.descricao}</p>
-                            <p className="truncate text-[11px] text-slate-400 sm:hidden">{l.categoria} · {l.vencimentoBr}</p>
+                            <p className="truncate text-sm font-bold text-hf-text">{l.descricao}</p>
+                            <p className="truncate text-[11px] text-hf-text-2 sm:hidden">{l.categoria} · {l.vencimentoBr}</p>
                           </div>
-                          <span className="hidden truncate text-xs text-slate-400 sm:block">{l.categoria}</span>
-                          <span className="hidden text-right text-xs tabular-nums text-slate-300 sm:block">{l.vencimentoBr}</span>
-                          <span className="text-right text-sm font-black tabular-nums text-white">{brl(l.valor)}</span>
+                          <span className="hidden truncate text-xs text-hf-text-2 sm:block">{l.categoria}</span>
+                          <span className="hidden text-right text-xs tabular-nums text-hf-text-2 sm:block">{l.vencimentoBr}</span>
+                          <span className="text-right text-sm font-black tabular-nums text-hf-text">{brl(l.valor)}</span>
                           <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1 sm:justify-end">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${t.fundo} ${t.texto}`}>{l.status.rotulo}{l.parcial ? " · parcial" : ""}</span>
                             <div className="flex gap-1">
-                              {onPagarConta && <button type="button" onClick={() => onPagarConta({ id: l.id })} className="min-h-[32px] rounded-lg bg-emerald-500 px-2.5 text-[11px] font-black text-slate-950 hover:bg-emerald-400">Pagar</button>}
-                              <button type="button" onClick={() => ir(l.status.tom === "critico" ? ROTAS.contasVencidas : ROTAS.contasPagar)} className="min-h-[32px] rounded-lg border border-slate-700 px-2.5 text-[11px] font-bold text-slate-200 hover:border-slate-500">Abrir</button>
+                              {onPagarConta && <button type="button" onClick={() => onPagarConta({ id: l.id })} className="min-h-[32px] rounded-lg border border-hf-border bg-hf-elevated px-2.5 text-[11px] font-black text-hf-text hover:border-hf-border-strong">Pagar</button>}
+                              <button type="button" onClick={() => ir(l.status.tom === "critico" ? ROTAS.contasVencidas : ROTAS.contasPagar)} className="min-h-[32px] rounded-lg border border-hf-border px-2.5 text-[11px] font-bold text-hf-text hover:border-hf-border-strong">Abrir</button>
                             </div>
                           </div>
                         </li>
@@ -417,9 +421,9 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
                   ["Pizza do lucro", "Custos fixos, equilíbrio e margem", ROTAS.pizza, PieChart],
                   ["Relatórios gerenciais", "Exportar PDF/CSV", ROTAS.relatorios, BarChart3], ["Dados fiscais", "Impostos e documentos", ROTAS.fiscal, ShieldCheck]]
                   .filter(([, , r]) => podeRota(r)).map(([rot, desc, r, I]) => (
-                    <button key={rot} type="button" onClick={() => ir(r)} className="flex min-h-[52px] min-w-0 items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left transition hover:border-slate-600">
-                      <I size={16} className="shrink-0 text-sky-300" />
-                      <span className="min-w-0"><span className="block truncate text-xs font-bold text-white">{rot}</span><span className="block truncate text-[10px] text-slate-400">{desc}</span></span>
+                    <button key={rot} type="button" onClick={() => ir(r)} className="flex min-h-[52px] min-w-0 items-center gap-2.5 rounded-xl border border-hf-border bg-hf-surface p-2.5 text-left transition hover:border-hf-border-strong">
+                      <I size={16} className="shrink-0 text-hf-text-2" />
+                      <span className="min-w-0"><span className="block truncate text-xs font-bold text-hf-text">{rot}</span><span className="block truncate text-[10px] text-hf-text-2">{desc}</span></span>
                     </button>
                   ))}
               </div>

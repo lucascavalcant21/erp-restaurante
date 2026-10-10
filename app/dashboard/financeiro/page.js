@@ -321,7 +321,7 @@ Motivo do cancelamento:`);
   if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-fg"><Loader2 className="animate-spin text-success" size={42} /><b>Carregando o caixa...</b></div>;
 
   return (
-    <div className={modoView === "hub" ? "min-h-screen bg-[#070F1E]" : "min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8"}>
+    <div className={modoView === "hub" ? "min-h-screen bg-hf-bg" : "min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8"}>
       {modoView === "hub" ? (
         <FinanceiroHub
           onAbrirDRE={() => router.push("/dashboard/financeiro/dre")}

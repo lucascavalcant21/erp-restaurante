@@ -130,7 +130,10 @@ test("COMPROMISSOS: vencidas mais antigas primeiro, depois hoje e 7 dias; limite
   assert.equal(c.total, 6);
   assert.deepEqual(c.linhas.map((l) => l.id), ["v2", "v1", "v3", "v4"]);
   assert.deepEqual(compromissos(rows, HOJE, 10).linhas.slice(4).map((l) => [l.id, l.status.rotulo]), [["h", "Vence hoje"], ["n", "Em 3 dias"]]);
-  assert.equal(c.linhas[0].vencimentoBr, "22/06/2026");
+  assert.equal(c.linhas[0].vencimentoBr, "22/06/2026", "data do banco, sem conversão de fuso");
+  const leg = compromissos([conta("x", "2026-06-23", 10, { grupo: "LEGADO", natureza: "pessoal", categoria_texto_antigo: "cmo" })], HOJE);
+  assert.equal(leg.linhas[0].categoria, "Pessoal (CMO)", "natureza legível, nunca 'LEGADO'");
+  assert.equal(leg.linhas[0].vencimentoBr, "23/06/2026");
 });
 
 test("RESUMO DO HÉFISTO: só fatos dos dados (vencidas, faturamento, saldo)", () => {

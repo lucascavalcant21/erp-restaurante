@@ -14,18 +14,23 @@ export function getUserNamespace(session) {
   return `hefisto_prefs_${userId}_${unitId}`;
 }
 
+const VAZIO = () => ({ recentIds: [], favoriteIds: [], usage: {} });
+export const MAX_RECENTES = 6;
+
 function loadStorageData(namespace) {
-  if (typeof window === "undefined") return { recentIds: [], favoriteIds: [] };
+  if (typeof window === "undefined") return VAZIO();
   try {
     const raw = localStorage.getItem(namespace);
-    if (!raw) return { recentIds: [], favoriteIds: [] };
+    if (!raw) return VAZIO();
     const parsed = JSON.parse(raw);
+    const usage = parsed.usage && typeof parsed.usage === "object" && !Array.isArray(parsed.usage) ? parsed.usage : {};
     return {
       recentIds: Array.isArray(parsed.recentIds) ? parsed.recentIds : [],
-      favoriteIds: Array.isArray(parsed.favoriteIds) ? parsed.favoriteIds : []
+      favoriteIds: Array.isArray(parsed.favoriteIds) ? parsed.favoriteIds : [],
+      usage: Object.fromEntries(Object.entries(usage).filter(([, n]) => Number.isFinite(n) && n > 0)),
     };
   } catch (_) {
-    return { recentIds: [], favoriteIds: [] };
+    return VAZIO();
   }
 }
 
@@ -37,7 +42,8 @@ function saveStorageData(namespace, data) {
 }
 
 /**
- * Adiciona uma rota acessada aos Recentes (máximo 5).
+ * Adiciona uma rota acessada aos Recentes (máximo MAX_RECENTES) e conta o uso
+ * (frequência, para as Sugestões da Central de Comando).
  * Se a rota já existir, move para a primeira posição sem duplicar.
  */
 export function addRecentRoute(session, pathname, search = "") {
@@ -56,10 +62,11 @@ export function addRecentRoute(session, pathname, search = "") {
 
   // Remove duplicatas
   const filtered = data.recentIds.filter(id => id !== registryItem.id);
-  // Adiciona ao topo e limita aos 5 mais recentes
-  const updatedRecentIds = [registryItem.id, ...filtered].slice(0, 5);
+  // Adiciona ao topo e limita aos mais recentes
+  const updatedRecentIds = [registryItem.id, ...filtered].slice(0, MAX_RECENTES);
+  const usage = { ...data.usage, [registryItem.id]: Math.min((data.usage[registryItem.id] || 0) + 1, 100000) };
 
-  saveStorageData(ns, { ...data, recentIds: updatedRecentIds });
+  saveStorageData(ns, { ...data, recentIds: updatedRecentIds, usage });
 
   // Dispara evento para atualização reativa
   window.dispatchEvent(new CustomEvent("hefisto:recents-changed", { detail: { recentIds: updatedRecentIds } }));
@@ -130,4 +137,15 @@ export function getFavoriteItems(session) {
   return data.favoriteIds
     .map(id => accessibleMap.get(id))
     .filter(Boolean);
+}
+
+/**
+ * Quantas vezes cada módulo foi aberto por este usuário nesta unidade
+ * (só os que ele ainda pode acessar).
+ */
+export function getUsageCounts(session) {
+  if (!session) return {};
+  const data = loadStorageData(getUserNamespace(session));
+  const ok = new Set(getAccessibleNavigation(session).map((i) => i.id));
+  return Object.fromEntries(Object.entries(data.usage).filter(([id]) => ok.has(id)));
 }

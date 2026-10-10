@@ -92,7 +92,7 @@ export default function PainelHefisto() {
     <>
       {!aberto && (
         <button type="button" onClick={() => abrir()} aria-label="Pergunte ao Héfisto (Alt+H)" title="Pergunte ao Héfisto (Alt+H)"
-          className="fixed right-3 z-[90] grid h-10 w-10 place-items-center rounded-full bg-slate-900/80 text-emerald-400 opacity-70 shadow-md ring-1 ring-slate-700 backdrop-blur transition hover:scale-105 hover:opacity-100 focus-visible:opacity-100 print:hidden"
+          className="fixed right-3 z-[90] grid h-10 w-10 place-items-center rounded-full bg-hf-surface/90 text-hf-accent opacity-70 shadow-md ring-1 ring-hf-border backdrop-blur transition hover:scale-105 hover:opacity-100 focus-visible:opacity-100 print:hidden"
           style={{ bottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
           <Sparkles size={17} />
         </button>

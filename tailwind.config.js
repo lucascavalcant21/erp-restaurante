@@ -57,6 +57,24 @@ module.exports = {
         "warning-strong":"var(--warning-strong)",
         "warning-soft":  "var(--warning-soft)",
         info:            "var(--info)",
+
+        // ── Identidade escura Héfisto (tokens --hf-* no globals.css).
+        // Canais RGB: aceitam opacidade (bg-hf-danger/10). Ver o comentário lá.
+        hf: {
+          "bg":            "rgb(var(--hf-bg) / <alpha-value>)",
+          "surface":       "rgb(var(--hf-surface) / <alpha-value>)",
+          "elevated":      "rgb(var(--hf-elevated) / <alpha-value>)",
+          "border":        "rgb(var(--hf-border) / <alpha-value>)",
+          "border-strong": "rgb(var(--hf-border-strong) / <alpha-value>)",
+          "text":          "rgb(var(--hf-text) / <alpha-value>)",
+          "text-2":        "rgb(var(--hf-text-2) / <alpha-value>)",
+          "muted":         "rgb(var(--hf-muted) / <alpha-value>)",
+          "accent":        "rgb(var(--hf-accent) / <alpha-value>)",
+          "accent-fg":     "rgb(var(--hf-accent-fg) / <alpha-value>)",
+          "success":       "rgb(var(--hf-success) / <alpha-value>)",
+          "warning":       "rgb(var(--hf-warning) / <alpha-value>)",
+          "danger":        "rgb(var(--hf-danger) / <alpha-value>)",
+        },
       },
       borderRadius: {
         xl2: "14px",

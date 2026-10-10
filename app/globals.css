@@ -300,3 +300,27 @@ body {
   user-select: text;
   -webkit-touch-callout: default;
 }
+
+/* ═══ IDENTIDADE HÉFISTO (escuro) — tokens hf-* ═══════════════════════════
+   Preto/grafite + branco + verde Héfisto. Vermelho e âmbar SÓ para estado
+   real (vencido, crítico, negativo / atenção). Sem azul de identidade.
+   Canais RGB para o Tailwind aceitar opacidade: bg-hf-danger/10.
+   Uso: bg-hf-bg (página) · bg-hf-surface (card) · bg-hf-elevated (dentro do
+   card, hover, menus) · border-hf-border · text-hf-text / -text-2 / -muted.
+   Contraste (WCAG) sobre hf-surface: text 16:1 · text-2 7,4:1 · muted 4,3:1
+   (muted só para informação terciária). */
+:root {
+  --hf-bg:            10 10 11;   /* #0A0A0B página */
+  --hf-surface:       20 20 22;   /* #141416 card */
+  --hf-elevated:      28 28 31;   /* #1C1C1F menu, hover, bloco interno */
+  --hf-border:        39 39 43;   /* #27272B borda padrão */
+  --hf-border-strong: 63 63 70;   /* #3F3F46 hover/foco neutro */
+  --hf-text:          237 237 239;/* #EDEDEF principal */
+  --hf-text-2:        161 161 170;/* #A1A1AA secundário */
+  --hf-muted:         113 113 122;/* #71717A terciário */
+  --hf-accent:        16 185 129; /* #10B981 verde Héfisto: ação principal, seleção */
+  --hf-accent-fg:     4 30 20;    /* #041E14 texto sobre o verde */
+  --hf-success:       52 211 153; /* #34D399 entrada, positivo, saudável */
+  --hf-warning:       251 191 36; /* #FBBF24 atenção, pendência */
+  --hf-danger:        248 113 113;/* #F87171 vencido, crítico, negativo */
+}

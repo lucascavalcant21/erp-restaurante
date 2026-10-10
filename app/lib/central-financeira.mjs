@@ -96,6 +96,12 @@ export function faturamentoNaJanela(fonte, de, ate) {
   return { estado: "ok", valor, lancados, esperados };
 }
 
+// "grupo" das contas antigas é sempre LEGADO: a natureza diz o que a conta é
+export const ROTULO_NATUREZA = Object.freeze({
+  pessoal: "Pessoal (CMO)", mercadoria: "Mercadoria (CMV)", custo_variavel: "Custo variável", custo_fixo: "Custo fixo",
+  despesa_administrativa: "Despesa administrativa", imposto: "Imposto", investimento: "Investimento", financeiro: "Financeiro",
+});
+
 const statusDaConta = (c, hoje) => {
   if (c.vencida) return { rotulo: "Vencida", tom: "critico", dias: diasEntre(c.data_vencimento, hoje) };
   if (c.data_vencimento === hoje) return { rotulo: "Vence hoje", tom: "atencao", dias: 0 };
@@ -117,7 +123,7 @@ export function compromissos(contasPagar = [], hoje, limite = 6) {
     total: todas.length,
     linhas: todas.slice(0, limite).map((c) => ({
       id: c.id, descricao: c.descricao || "Sem descrição",
-      categoria: c.grupo || c.categoria_texto_antigo || c.natureza || "Sem categoria",
+      categoria: ROTULO_NATUREZA[c.natureza] || c.categoria_texto_antigo || "Sem categoria",
       vencimento: c.data_vencimento, vencimentoBr: c.data_vencimento ? ddmmaaaa(c.data_vencimento) : "—",
       valor: r2(c.saldo), status: statusDaConta(c, hoje), parcial: c.situacao === "parcial",
     })),

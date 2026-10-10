@@ -40,12 +40,12 @@ const pct = (v) => `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits:
 const sinal = (v) => (v > 0 ? `+ ${brl(v)}` : v < 0 ? `− ${brl(Math.abs(v))}` : brl(0));
 const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
 
-function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado, onClick, acao, rodape }) {
+function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado, onClick, acao, rodape, alerta = false }) {
   const t = TOM[semValor(estado) ? "apagado" : tom];
   const interativo = onClick ? { role: "button", tabIndex: 0, onClick, onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } } : {};
   return (
     <div {...interativo}
-      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-slate-900/70 p-3.5 text-left transition ${tom === "critico" && !semValor(estado) ? "border-rose-500/40" : "border-slate-800"} ${onClick ? "cursor-pointer hover:border-slate-600 hover:bg-slate-900" : ""}`}>
+      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-slate-900/70 p-3.5 text-left transition ${alerta && !semValor(estado) ? "border-rose-500/50" : "border-slate-800"} ${onClick ? "cursor-pointer hover:border-slate-600 hover:bg-slate-900" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
         {Icone && <Icone size={16} className={`shrink-0 ${t.texto}`} />}
@@ -56,7 +56,7 @@ function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado
       <div className="min-h-[2.25rem] space-y-0.5 text-[11px] leading-snug text-slate-400">
         {semValor(estado) || estado?.estado === "zero"
           ? <p className="line-clamp-2">{estado?.motivo}</p>
-          : linhas.filter(Boolean).slice(0, 2).map((l, i) => <p key={i} className="line-clamp-1">{l}</p>)}
+          : linhas.filter(Boolean).slice(0, 2).map((l, i) => <p key={i} className="line-clamp-2">{l}</p>)}
       </div>
       {(acao || rodape) && <div className="mt-auto flex items-center justify-between gap-2 pt-1">{rodape}{acao}</div>}
     </div>
@@ -84,8 +84,8 @@ function Indicador({ titulo, estado, principal, secundaria, tom = "info", nota }
     <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-slate-800 bg-slate-950/50 p-3">
       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
       <span className={`truncate font-black tabular-nums ${sem ? "text-sm text-slate-300" : `text-lg ${t.texto}`}`}>{sem ? ROTULO_ESTADO[estado.estado] : principal}</span>
-      <span className="line-clamp-2 text-[11px] leading-snug text-slate-400">{sem ? estado.motivo : secundaria}</span>
-      {nota && !sem && <span className="line-clamp-2 text-[10px] leading-snug text-slate-500">{nota}</span>}
+      <span className="line-clamp-4 text-[11px] leading-snug text-slate-400" title={sem ? estado.motivo : secundaria}>{sem ? estado.motivo : secundaria}</span>
+      {nota && !sem && <span className="line-clamp-3 text-[10px] leading-snug text-slate-500" title={nota}>{nota}</span>}
     </div>
   );
 }
@@ -239,7 +239,7 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
           <>
             {/* 2. RESUMO EXECUTIVO */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-              <Card titulo="A pagar" icone={Wallet} estado={k.aPagar} tom={k.aPagar.tom} valor={brl(k.aPagar.valor)}
+              <Card titulo="A pagar" icone={Wallet} estado={k.aPagar} tom={k.aPagar.tom} alerta={k.aPagar.vencido > 0} valor={brl(k.aPagar.valor)}
                 linhas={[k.aPagar.nVencidas ? `${k.aPagar.nVencidas} vencida(s) · ${brl(k.aPagar.vencido)}` : "Nenhuma vencida", `${brl(k.aPagar.proximos7)} nos próximos 7 dias`]}
                 onClick={() => ir(ROTAS.contasPagar)}
                 acao={k.aPagar.vencido > 0 ? <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/dashboard/financeiro/contas?situacao=vencido"); }} className="rounded-lg bg-rose-500/15 px-2 py-1 text-[11px] font-black text-rose-300 hover:bg-rose-500/25">Resolver</button> : null}
@@ -378,13 +378,13 @@ export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 
                     {c.compromissos.linhas.map((l) => {
                       const t = TOM[l.status.tom];
                       return (
-                        <li key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto_auto_auto]">
+                        <li key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_10rem_6rem_7.5rem_13rem]">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-white">{l.descricao}</p>
                             <p className="truncate text-[11px] text-slate-400 sm:hidden">{l.categoria} · {l.vencimentoBr}</p>
                           </div>
                           <span className="hidden truncate text-xs text-slate-400 sm:block">{l.categoria}</span>
-                          <span className="hidden text-xs tabular-nums text-slate-300 sm:block">{l.vencimentoBr}</span>
+                          <span className="hidden text-right text-xs tabular-nums text-slate-300 sm:block">{l.vencimentoBr}</span>
                           <span className="text-right text-sm font-black tabular-nums text-white">{brl(l.valor)}</span>
                           <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1 sm:justify-end">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${t.fundo} ${t.texto}`}>{l.status.rotulo}{l.parcial ? " · parcial" : ""}</span>

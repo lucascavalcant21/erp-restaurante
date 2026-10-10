@@ -22,6 +22,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
   const [hoveredModule, setHoveredModule] = useState(null);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [expandedMobileModule, setExpandedMobileModule] = useState(null);
+  const [atalho, setAtalho] = useState("Ctrl");
+  useEffect(() => { if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) setAtalho("⌘"); }, []);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -106,20 +108,20 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   return (
     <>
-      <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header className="bg-hf-bg/95 backdrop-blur border-b border-hf-border text-hf-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
         <div className="flex items-center gap-4 lg:gap-6 h-full">
           {/* HAMBURGER MOBILE */}
           <button 
             onClick={() => setMobileDrawerOpen(true)} 
-            className="xl:hidden w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            aria-label="Abrir menu" className="xl:hidden w-11 h-11 flex items-center justify-center text-hf-text-2 hover:text-hf-text transition-colors"
           >
             <Menu size={24} />
           </button>
 
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0 group">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform shadow-lg shadow-emerald-500/20">
-              <span className="text-white font-black text-lg">H</span>
+            <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
+              <span className="text-hf-accent-fg font-black text-lg">H</span>
             </div>
             <span className="font-black tracking-tight text-xl hidden sm:block">Héfisto</span>
           </Link>
@@ -142,7 +144,8 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                 >
                   <Link 
                     href={mod.href} 
-                    className={`h-full px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap rounded-lg transition-colors border-b-2 mt-[2px] ${isActive ? 'text-white border-emerald-500' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`h-full px-3 flex items-center gap-1 text-[13px] font-bold whitespace-nowrap transition-colors border-b-2 mt-[2px] ${isActive ? 'text-hf-text border-hf-accent' : 'text-hf-text-2 border-transparent hover:text-hf-text hover:bg-hf-elevated/60'}`}
                   >
                     {mod.label}
                     {temSubmenu && <ChevronDown size={12} className={`opacity-50 transition-transform ${isHovered ? 'rotate-180' : ''}`} />}
@@ -150,12 +153,12 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
                   {/* DROPDOWN SUBMENU */}
                   {isHovered && temSubmenu && (
-                    <div className="absolute top-full left-0 mt-0 w-64 bg-slate-900 border border-slate-800 rounded-b-2xl rounded-tr-2xl z-[100] shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-full left-0 mt-0 w-64 bg-hf-surface border border-hf-border rounded-b-2xl rounded-tr-2xl z-[100] shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
                       {mod.submodules.map(sub => (
                         <Link 
                           key={sub.href} 
                           href={sub.href}
-                          className="flex items-center px-4 py-2.5 text-sm font-medium text-zinc-300 hover:text-white hover:bg-slate-700 transition-colors"
+                          className="flex items-center px-4 py-2.5 text-sm font-medium text-hf-text-2 hover:text-hf-text hover:bg-hf-elevated transition-colors"
                         >
                           {sub.label}
                         </Link>
@@ -169,54 +172,53 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
-          <button onClick={onOpenSearch} className="hidden md:flex items-center gap-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors rounded-xl px-4 py-2 w-48 lg:w-80 group text-left">
-            <Search size={16} className="text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0" />
-            <span className="text-sm font-medium text-slate-400 truncate flex-1">O que quer fazer?</span>
-            <kbd className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
-              <span className="text-xs">⌘</span> K
+          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="hidden md:flex items-center gap-3 bg-hf-surface hover:border-hf-border-strong border border-hf-border transition-colors rounded-xl px-3.5 py-2 w-48 lg:w-80 group text-left">
+            <Search size={16} className="text-hf-muted group-hover:text-hf-text-2 transition-colors shrink-0" />
+            <span className="text-sm font-medium text-hf-muted truncate flex-1">Pesquisar ou comandar…</span>
+            <kbd className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-hf-muted bg-hf-bg px-1.5 py-0.5 rounded border border-hf-border font-sans">
+              {atalho} K
             </kbd>
           </button>
 
-          <button onClick={onOpenSearch} className="md:hidden w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="md:hidden w-11 h-11 rounded-xl bg-hf-surface flex items-center justify-center text-hf-text-2 border border-hf-border">
             <Search size={18} />
           </button>
 
-          <div className="w-px h-6 bg-slate-700 hidden sm:block mx-1"></div>
+          <div className="w-px h-6 bg-hf-border hidden sm:block mx-1"></div>
 
           
           <div className="relative" ref={notifRef}>
-            <button onClick={() => setNotifOpen(!notifOpen)} className="relative w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-600 transition-all group" title="Notificações">
-              <Bell size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+            <button onClick={() => setNotifOpen(!notifOpen)} aria-label="Notificações" className="relative w-11 h-11 rounded-xl bg-hf-surface border border-hf-border flex items-center justify-center text-hf-text-2 hover:text-hf-text hover:border-hf-border-strong transition-all group" title="Notificações">
+              <Bell size={18} />
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 py-4 px-4 z-50 animate-in fade-in slide-in-from-top-2 flex flex-col items-center justify-center text-center gap-2">
-                <Bell size={24} className="text-slate-300" />
-                <p className="text-sm font-bold text-slate-500">Nenhuma notificação no momento</p>
+              <div className="absolute right-0 top-full mt-2 w-72 bg-hf-surface rounded-2xl shadow-xl shadow-black/40 border border-hf-border py-4 px-4 z-50 animate-in fade-in slide-in-from-top-2 flex flex-col items-center justify-center text-center gap-2">
+                <Bell size={24} className="text-hf-muted" />
+                <p className="text-sm font-bold text-hf-text-2">Nenhuma notificação no momento</p>
               </div>
             )}
           </div>
 
 
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-slate-700">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
+            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Conta" className="flex items-center gap-2 hover:bg-hf-surface p-1 rounded-full transition-colors border border-transparent hover:border-hf-border">
+              <div className="w-8 h-8 rounded-full bg-hf-elevated border border-hf-border-strong flex items-center justify-center text-hf-text font-bold text-sm shrink-0">
                 {sessao?.nome?.substring(0,1).toUpperCase() || <User size={16}/>}
               </div>
               
             </button>
             
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 text-slate-900">
-                <div className="px-4 py-3 border-b border-slate-100 mb-2">
-                  <div className="text-sm font-bold text-slate-900">{sessao?.nome}</div>
-                  <div className="text-xs text-slate-500">{sessao?.email}</div>
+              <div className="absolute right-0 top-full mt-2 w-56 bg-hf-surface rounded-2xl shadow-xl shadow-black/40 border border-hf-border py-2 z-50 animate-in fade-in slide-in-from-top-2 text-hf-text">
+                <div className="px-4 py-3 border-b border-hf-border mb-2">
+                  <div className="text-sm font-bold text-hf-text">{sessao?.nome}</div>
+                  <div className="text-xs text-hf-text-2 truncate">{sessao?.email}</div>
                 </div>
-                <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-medium">
-                  <Settings size={16} className="text-slate-400"/> Configurações
+                <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium">
+                  <Settings size={16} className="text-hf-muted"/> Configurações
                 </Link>
-                <button onClick={onSair} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium text-left">
-                  <LogOut size={16} className="text-red-400"/> Sair do sistema
+                <button onClick={onSair} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-hf-text hover:bg-hf-elevated font-medium text-left">
+                  <LogOut size={16} className="text-hf-muted"/> Sair do sistema
                 </button>
               </div>
             )}
@@ -229,15 +231,15 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       {mobileDrawerOpen && (
         <div className="fixed inset-0 z-[100] flex xl:hidden print:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)}></div>
-          <div className="relative w-80 max-w-[80vw] h-full bg-slate-900 flex flex-col shadow-2xl animate-in slide-in-from-left">
-            <div className="flex items-center justify-between p-4 border-b border-slate-800" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="relative w-80 max-w-[80vw] h-full bg-hf-bg border-r border-hf-border flex flex-col shadow-2xl animate-in slide-in-from-left">
+            <div className="flex items-center justify-between p-4 border-b border-hf-border" style={{ marginTop: "env(safe-area-inset-top, 0px)" }}>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-black text-lg">H</span>
+                <div className="w-8 h-8 bg-hf-accent rounded-lg flex items-center justify-center">
+                  <span className="text-hf-accent-fg font-black text-lg">H</span>
                 </div>
-                <span className="font-black tracking-tight text-xl text-white">Héfisto</span>
+                <span className="font-black tracking-tight text-xl text-hf-text">Héfisto</span>
               </div>
-              <button onClick={() => setMobileDrawerOpen(false)} className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
+              <button onClick={() => setMobileDrawerOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-hf-text-2 hover:text-hf-text rounded-xl hover:bg-hf-surface">
                 <X size={20} />
               </button>
             </div>
@@ -252,7 +254,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                 if (!(mod.submodules?.length > 0)) {
                   return (
                     <Link key={mod.id} href={mod.href}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-emerald-500/10 text-emerald-400' : 'text-zinc-300 hover:bg-slate-800 hover:text-white'}`}>
+                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-hf-surface text-hf-text shadow-[inset_2px_0_0_rgb(var(--hf-accent))]' : 'text-hf-text-2 hover:bg-hf-surface hover:text-hf-text'}`}>
                       {mod.label}
                     </Link>
                   );
@@ -262,19 +264,19 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
                   <div key={mod.id} className="flex flex-col">
                     <button 
                       onClick={() => setExpandedMobileModule(isExpanded ? null : mod.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-emerald-500/10 text-emerald-400' : 'text-zinc-300 hover:bg-slate-800 hover:text-white'}`}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl font-bold transition-colors ${isActive ? 'bg-hf-surface text-hf-text shadow-[inset_2px_0_0_rgb(var(--hf-accent))]' : 'text-hf-text-2 hover:bg-hf-surface hover:text-hf-text'}`}
                     >
                       {mod.label}
                       <ChevronRight size={16} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     </button>
                     
                     {isExpanded && (
-                      <div className="flex flex-col gap-1 ml-4 mt-1 border-l border-slate-700 pl-3 py-1">
+                      <div className="flex flex-col gap-1 ml-4 mt-1 border-l border-hf-border pl-3 py-1">
                         {mod.submodules.map((sub) => (
                           <Link 
                             key={sub.href} 
                             href={sub.href}
-                            className="p-2 text-sm font-medium text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                            className="p-2 text-sm font-medium text-hf-text-2 hover:text-hf-text rounded-lg hover:bg-hf-surface"
                           >
                             {sub.label}
                           </Link>

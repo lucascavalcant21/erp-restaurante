@@ -19,6 +19,8 @@ export function conteudoCmd(raiz, node = process.execPath) {
   return [
     "@echo off",
     "rem Hefisto: ponte do WhatsApp (HDEV-WA-REAL-001). Remover: npm run hefisto:ponte:autostart -- remover",
+    // o arquivo é UTF-8 e o caminho tem acento ("Área de Trabalho"): sem isto o cd falha
+    "chcp 65001 >nul",
     `cd /d "${raiz}"`,
     `start "Hefisto ponte WhatsApp" /min "${node}" "${join(raiz, "scripts", "hefisto-agent", "ponte-whatsapp.mjs")}"`,
     "",

@@ -76,6 +76,8 @@ test("continuar no Windows abre o agente em janela própria (sem isso morria com
 test("autostart da ponte: .cmd na pasta Inicializar do usuário, sem segredo, ponte minimizada", async () => {
   const { conteudoCmd, pastaInicializar, NOME_ARQUIVO } = await import("../ponte-autostart.mjs");
   const c = conteudoCmd("D:/projeto", "D:/node.exe");
+  assert.match(c, /chcp 65001/, "caminho com acento (Área de Trabalho) precisa de UTF-8");
+  assert.ok(c.indexOf("chcp") < c.indexOf("cd /d"), "chcp antes do cd");
   assert.match(c, /cd \/d "D:\/projeto"/);
   assert.match(c, /start "Hefisto ponte WhatsApp" \/min "D:\/node.exe" ".*ponte-whatsapp\.mjs"/);
   assert.ok(!/SEGREDO|TOKEN|SECRET/i.test(c.replace("Remover: npm run", "")), "o .cmd não carrega segredo");

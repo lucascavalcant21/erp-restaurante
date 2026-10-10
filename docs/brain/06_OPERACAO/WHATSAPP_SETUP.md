@@ -10,7 +10,20 @@
 - Vercel Production: WHATSAPP_APP_SECRET, WHATSAPP_API_TOKEN, WHATSAPP_VERIFY_TOKEN (colados pelo dono), WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_NUMEROS_DONO, WHATSAPP_GRAPH_VERSION, WHATSAPP_DONO_AUTH_USER_ID, WHATSAPP_DONO_UNIDADE, WHATSAPP_PONTE_SEGREDO.
 - Próximo passo para sair do número de teste: Etapa 2 → registrar um número próprio.
 
-## Trocar para o número real (HDEV-WA-REAL-001)
+## Números (decisão do dono, 10/10/2026)
+
+- Héfisto: **+55 45 98812-5320** (WhatsApp Business App, coexistência via YCloud) — [[HDEV-WA-COEX-001]].
+- Admin: **+55 45 99857-4041** (único em WHATSAPP_NUMEROS_DONO).
+- Número de teste da Meta (+1 555): não entrega para o Brasil (erro 130497); sai do fluxo quando o YCloud entrar.
+
+## YCloud (coexistência)
+
+1. Dono: verificação da empresa na Meta; conta no YCloud; WhatsApp accounts → Create Channel → **WhatsApp Business APP Coexistence** → portfólio Hefisto → número 98812-5320 → QR code no app.
+2. Dono cola na Vercel Production: `YCLOUD_API_KEY` e `YCLOUD_WEBHOOK_SECRET` (o whsec_ do endpoint).
+3. Agente: `WHATSAPP_NUMERO_HEFISTO=5545988125320`, `WHATSAPP_PROVEDOR=ycloud`, redeploy.
+4. Endpoint de webhook no YCloud: `https://app.hefisto.com.br/api/channels/whatsapp/ycloud` com inbound_message.received, message.updated, smb.message.echoes, smb.history.
+
+## Trocar para o número real (HDEV-WA-REAL-001, substituído)
 
 Decisão do dono (09/10): **chip novo, nunca usado no WhatsApp**. O celular pessoal do dono continua sendo o número AUTORIZADO (quem manda comandos); ele não pode virar o número do Héfisto.
 

@@ -29,7 +29,9 @@ Por que: o número de teste da Meta (+1 555) é dos EUA e a Meta recusa entrega 
 - [x] Allowlist só 99857-4041 (Vercel Production; vale no próximo deploy) — conferido no código
 - [x] Adaptador YCloud: webhook assinado (`YCloud-Signature`, HMAC-SHA256, 5 min), envio `sendDirectly`, recibos, ecos/histórico nunca viram comando, só mensagens PARA o número do Héfisto — TESTADO LOCAL
 - [x] Provedor por configuração (`WHATSAPP_PROVEDOR` = meta | ycloud), nenhum número fixo no código
-- [ ] Verificação da empresa Hefisto na Meta (dono) — BLQ-012
+- [x] Auditoria durável do canal (whatsapp_eventos, APR-004 executada 10/10): entrada, saída com message_id, recibos com código de erro, ecos e histórico — TESTADO NO SUPABASE REAL
+- [x] Rota de saúde sem segredos (`npm run hefisto:whatsapp:saude`) — TESTADO EM PRODUÇÃO
+- [ ] Verificação da empresa Hefisto na Meta: ENVIADA pelo dono 10/10, EM ANÁLISE — BLQ-012
 - [ ] Conta YCloud (dono), canal "WhatsApp Business APP Coexistence", QR code no celular do 98812-5320 (dono)
 - [ ] Vercel: YCLOUD_API_KEY, YCLOUD_WEBHOOK_SECRET (dono cola), WHATSAPP_NUMERO_HEFISTO, WHATSAPP_PROVEDOR=ycloud (agente) + redeploy
 - [ ] Webhook do YCloud → `https://app.hefisto.com.br/api/channels/whatsapp/ycloud` (eventos: inbound_message.received, message.updated, smb.message.echoes, smb.history)
@@ -46,3 +48,13 @@ ycloud.test, canal.test, rotas-vercel, build.
 ## Resultado
 
 10/10/2026: adaptador pronto (inerte em produção sem o segredo do YCloud). Aguarda a verificação da empresa.
+10/10/2026 ~08:30: auditoria e saúde em produção (PR #135); WA_002 aplicada. Produção conferida pela rota de saúde: provedor meta, Héfisto …5320 configurado, admin só …4041, chaves Meta presentes, YCloud pendente, tabela de auditoria presente, ponte ativa.
+
+## Quando a Meta aprovar (roteiro do agente)
+1. `npm run hefisto:whatsapp:saude` (linha de base).
+2. Dono: conta YCloud → Create Channel → WhatsApp Business APP Coexistence → portfólio Hefisto → 98812-5320 → **QR code no app** (aceitar sincronizar histórico).
+3. Endpoint no YCloud → `https://app.hefisto.com.br/api/channels/whatsapp/ycloud` (inbound_message.received, message.updated, smb.message.echoes, smb.history).
+4. Dono cola na Vercel: YCLOUD_API_KEY, YCLOUD_WEBHOOK_SECRET. Agente: WHATSAPP_PROVEDOR=ycloud, redeploy.
+5. Saúde de novo: `pronto: true`, número …5320 CONNECTED no YCloud.
+6. Testes do 99857-4041: status, missões, bloqueadores, aprovações, continue, como está minha empresa?; conferir `whatsapp_eventos` (entrada → saída com message_id → status delivered/read) e um número não autorizado sem efeito.
+7. Número de teste da Meta sai do fluxo.

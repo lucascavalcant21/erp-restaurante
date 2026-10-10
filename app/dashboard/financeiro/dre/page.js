@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, AlertTriangle, Info, Calculator, ChevronRight } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../../lib/dre-dados";
+import { carregarBaseDre, cmvDoMes, cmoDoMesRH, lancarFechamentoMes } from "../../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../../lib/dre-gerencial.mjs";
 import { fmtReais, fmtPct } from "../../../lib/valor-percentual.mjs";
 import { lerValor } from "../../../lib/contas-pagar.mjs";
@@ -118,7 +118,7 @@ export default function DreGerencialPage() {
     const fat = faturamentoDoMes(base.cmvDados?.fonteFaturamento, janela);
     const cmv = cmvDoMes(base.cmvDados, janela);
     const cmo = cmoDoMesRH(base, mes);
-    const simulacao = { faturamento: lerValor(simFat), cmvPct: lerValor(simCmv) };
+    const simulacao = { faturamento: lerValor(simFat), taxaServico: lerValor(simCmv) };
     const dre = montarDre({ mes, janela, fat, contas: base.contas, categorias: base.categorias, cmv, cmo, params: base.params, simulacao });
     return { janela, fat, cmv, dre };
   }, [base, mes, simFat, simCmv]);

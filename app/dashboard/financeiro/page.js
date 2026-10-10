@@ -73,6 +73,7 @@ export default function FinanceiroPage() {
   const [formVenda, setFormVenda] = useState({ valor: "", forma_pagamento: "pix", cliente: "Venda do dia" });
   const [salvando, setSalvando] = useState(false);
   const [contaPagar, setContaPagar] = useState(null);
+  const [versaoCentral, setVersaoCentral] = useState(0);
   const [contasFinanceiras, setContasFinanceiras] = useState([]);
   // Trava contra clique duplo (o estado só desabilita após o re-render).
   const emAndamento = useRef(false);
@@ -312,6 +313,7 @@ Motivo do cancelamento:`);
     const resposta = await pagarConta(dados);
     if (resposta.error) return alert("Não foi possível registrar o pagamento: " + resposta.error);
     setContaPagar(null);
+    setVersaoCentral((v) => v + 1);
     await carregar();
   });
 
@@ -319,11 +321,12 @@ Motivo do cancelamento:`);
   if (loading) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-fg"><Loader2 className="animate-spin text-success" size={42} /><b>Carregando o caixa...</b></div>;
 
   return (
-    <div className="min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8">
+    <div className={modoView === "hub" ? "min-h-screen bg-[#070F1E]" : "min-h-screen bg-slate-100/80 p-3 pb-24 sm:p-6 lg:p-8"}>
       {modoView === "hub" ? (
         <FinanceiroHub
-          onVerTabelaCompleta={() => setModoView("tabela")}
           onAbrirDRE={() => router.push("/dashboard/financeiro/dre")}
+          onPagarConta={marcarPaga}
+          atualizacao={versaoCentral}
         />
       ) : (
         <>

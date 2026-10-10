@@ -65,7 +65,7 @@ export async function atenderMensagem(msg, deps, agora = Date.now()) {
   }
 
   const c = interpretar(msg.texto);
-  registrar({ resultado: "comando", comando: c.comando, destino: c.destino, id: msg.id });
+  registrar({ resultado: "comando", comando: c.comando, destino: c.destino, id: msg.id, numero: msg.de });
   let texto;
   try {
     if (c.destino === "local") {
@@ -81,7 +81,7 @@ export async function atenderMensagem(msg, deps, agora = Date.now()) {
       else texto = f?.ponteOnline ? null : MSG_AGENTE_OFFLINE; // online: a ponte responde
     }
   } catch (e) {
-    registrar({ resultado: "erro", comando: c.comando, erro: e?.name || "Erro" });
+    registrar({ resultado: "erro", comando: c.comando, id: msg.id, numero: msg.de, erro: e?.name || "Erro" });
     texto = "Não consegui concluir agora. Tente de novo em instantes.";
   }
   if (texto) await deps.enviar(msg.de, texto);

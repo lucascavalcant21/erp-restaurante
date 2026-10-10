@@ -24,6 +24,7 @@
     "hefisto:politica": "node scripts/hefisto-agent/politica.mjs",
     "hefisto:ponte": "node scripts/hefisto-agent/ponte-whatsapp.mjs",
     "hefisto:ponte:autostart": "node scripts/hefisto-agent/ponte-autostart.mjs",
+    "hefisto:whatsapp:saude": "node scripts/hefisto-agent/whatsapp-saude.mjs",
     "test:whatsapp": "node --test \"app/lib/whatsapp/__tests__/*.test.mjs\""
   },
   "dependencies": {

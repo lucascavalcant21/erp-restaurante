@@ -68,9 +68,9 @@ test("FATURAMENTO: nunca vem das entradas do caixa; dia faltando nunca vira zero
   assert.equal(faturamentoNaJanela({ erro: "rede" }, "2026-10-01", HOJE).estado, "erro");
 });
 
-test("CMV: sem inventário fechado é NÃO APURADO (nada de 28,4% inventado); com período, CMV R$ sem % se faltar faturamento", () => {
+test("CMV: sem inventário fechado é NÃO CALCULADO (nada de 28,4% inventado); com período, CMV R$ sem % se faltar faturamento", () => {
   const sem = central().indicadores.cmv;
-  assert.equal(sem.estado, "nao_apurado");
+  assert.equal(sem.estado, "nao_calculado");
   assert.equal(sem.pct, undefined);
   assert.ok(!JSON.stringify(central()).includes("28.4"));
   const per = { de: "2026-09-01", ate: "2026-09-30", estoque_inicial: 1000, compras: 3000, estoque_final: 1200, cmv_real: 2800, faturamento: null, cmv_pct: null, motivos: [] };

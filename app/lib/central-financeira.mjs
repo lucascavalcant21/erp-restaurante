@@ -15,7 +15,8 @@
 // Estados de cada número (nunca R$ 0,00 quando não se sabe):
 //   ok · zero (zero real, a fonte respondeu) · parcial · nao_apurado (fonte
 //   existe, faltam dados) · insuficiente (depende de outro número ausente) ·
-//   erro (a fonte não respondeu).
+//   erro (a fonte não respondeu) · nao_calculado (depende de um fechamento que
+//   ainda não existe, ex.: inventário fechado para o CMV realizado).
 //
 // Faturamento NUNCA vem do extrato/caixa: entrada de dinheiro não é venda.
 
@@ -237,7 +238,7 @@ export function montarCentral({ hoje, intervalo, fontes = {} }) {
   const pc = f.cmv?.periodo || null;
   const meta = Number(f.cmv?.meta) > 0 ? Number(f.cmv.meta) : null;
   if (eCmv || !f.cmv) cmv = { estado: "erro", motivo: eCmv || "Não carregou." };
-  else if (!pc) cmv = { estado: "nao_apurado", motivo: "Ainda não há um período de inventário fechado (precisa de duas contagens fechadas).", meta };
+  else if (!pc) cmv = { estado: "nao_calculado", motivo: "Sem inventário fechado (estoque inicial e final contados). O CMV estimado das fichas fica em Custos e precificação e não é mostrado como realizado.", meta };
   else if (pc.cmv_real == null) cmv = { estado: "nao_apurado", motivo: (pc.motivos || [])[0] || "CMV do período não apurado.", periodo: { de: pc.de, ate: pc.ate }, meta };
   else {
     const pct = pc.cmv_pct == null ? null : r2(pc.cmv_pct);
@@ -313,7 +314,7 @@ export function montarCentral({ hoje, intervalo, fontes = {} }) {
   if (fatPeriodo.estado === "parcial") resumo.push({ tom: "atencao", texto: `Faturamento parcial: ${fatPeriodo.lancados} de ${fatPeriodo.esperados} dias lançados.` });
   if (fluxo.estado === "ok") resumo.push({ tom: fluxo.saldo < 0 ? "atencao" : "positivo", texto: `Saldo de caixa do período ${fluxo.saldo < 0 ? "negativo" : "positivo"}: ${brl(fluxo.saldo)}.` });
   if (cmv.estado === "ok" && cmv.pct != null) resumo.push({ tom: cmv.saude === "acima" ? "atencao" : "info", texto: `CMV realizado de ${cmv.pct}% (${ddmm(cmv.periodo.de)} a ${ddmm(cmv.periodo.ate)}).` });
-  else if (cmv.estado === "nao_apurado") resumo.push({ tom: "info", texto: "CMV realizado ainda não apurado (faltam inventários fechados)." });
+  else if (cmv.estado === "nao_calculado" || cmv.estado === "nao_apurado") resumo.push({ tom: "info", texto: "CMV realizado ainda não calculado (faltam inventários fechados)." });
 
   return {
     intervalo, hoje,

@@ -33,8 +33,8 @@ const TOM = {
   neutro: { texto: "text-white", borda: "border-slate-700/70", fundo: "bg-slate-800/40", ponto: "bg-slate-400" },
   apagado: { texto: "text-slate-400", borda: "border-slate-700/70", fundo: "bg-slate-800/40", ponto: "bg-slate-500" },
 };
-const ROTULO_ESTADO = { erro: "Erro ao carregar", nao_apurado: "Não apurado", insuficiente: "Dados insuficientes" };
-const semValor = (e) => ["erro", "nao_apurado", "insuficiente"].includes(e?.estado);
+const ROTULO_ESTADO = { erro: "Erro ao carregar", nao_apurado: "Não apurado", insuficiente: "Dados insuficientes", nao_calculado: "Não calculado" };
+const semValor = (e) => ["erro", "nao_apurado", "insuficiente", "nao_calculado"].includes(e?.estado);
 const brl = (v) => fmtBRL(v);
 const pct = (v) => `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const sinal = (v) => (v > 0 ? `+ ${brl(v)}` : v < 0 ? `− ${brl(Math.abs(v))}` : brl(0));

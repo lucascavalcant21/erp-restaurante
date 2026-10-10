@@ -752,8 +752,6 @@ Motivo do cancelamento:`);
         </div>
       )}
 
-      {contaPagar && <ModalPagamentoConta conta={contaPagar} contasFinanceiras={contasFinanceiras} processando={salvando} onConfirmar={confirmarPagamento} onFechar={() => setContaPagar(null)} />}
-
       {/* MODAL LANÇAR VENDA MANUAL DO DIA */}
       {modalVenda && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-3 pt-8 backdrop-blur-sm sm:items-center sm:pt-3">
@@ -814,6 +812,9 @@ Motivo do cancelamento:`);
       )}
       </>
       )}
+
+      {/* Pagamento fora do ternário: abre tanto pela Central (modo hub) quanto pela tabela */}
+      {contaPagar && <ModalPagamentoConta conta={contaPagar} contasFinanceiras={contasFinanceiras} processando={salvando} onConfirmar={confirmarPagamento} onFechar={() => setContaPagar(null)} />}
     </div>
   );
 }

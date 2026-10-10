@@ -64,3 +64,21 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido por:** lucas
 - **Nota:** aplicada 09/10 ~01:00 em sessão acompanhada; verificação OK: RLS ligado, 0 policy, sem SELECT para anon/authenticated, função só service_role; 0 tabelas sem RLS no schema public (TESTADO NO SUPABASE REAL)
 - **Chave:** migracao:db/whatsapp/WA_001_FILA.sql
+
+### APR-004 · EXECUTADO
+
+- **Missão:** HDEV-WA-COEX-001
+- **Ação:** Aplicar db/whatsapp/WA_002_EVENTOS.sql no Supabase real (trilha de auditoria do canal WhatsApp: 1 tabela nova, só o servidor acessa)
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM
+- **Motivo:** Escrita de esquema em produção (aditiva). Os logs da Vercel duram 1 hora; sem a tabela, message_id, recibos e erros da Meta/YCloud se perdem. O canal funciona sem ela
+- **Impacto:** –
+- **Rollback:** db/whatsapp/WA_002_ROLLBACK.sql (apaga só a trilha nova)
+- **Evidências:** –
+- **Comando/alteração:** `–`
+- **Status:** EXECUTADO
+- **Criado em:** 2026-10-10 11:24
+- **Decidido em:** 2026-10-10 11:25
+- **Decidido por:** lucas
+- **Nota:** aplicada 10/10 ~08:30 em sessão acompanhada; verificação OK: RLS ligado, 0 policy, sem SELECT para anon/authenticated; 0 tabelas sem RLS; rota de saúde vê a tabela (TESTADO NO SUPABASE REAL)
+- **Chave:** migracao:db/whatsapp/WA_002_EVENTOS.sql

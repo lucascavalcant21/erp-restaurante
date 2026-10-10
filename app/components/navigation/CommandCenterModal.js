@@ -1,397 +1,214 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+// CENTRAL DE COMANDO (Ctrl/Cmd+K): busca global, comandos ("abrir estoque") e
+// atalhos. Regras em app/lib/central-comando.mjs (testadas); aqui só a tela.
+// Teclado: ↑ ↓ navegam por TODOS os itens visíveis, Enter abre, Esc fecha.
+// Sem resultado, Enter manda a frase para o "Pergunte ao Héfisto".
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Search, X, ArrowRight, Sparkles, ChefHat, Tag, Package, Users,
-  Wallet, Calendar, BarChart2, Settings, Home, ClipboardList, GlassWater,
-  Grid, Clock, ChevronRight, Star, History
-} from "lucide-react";
-import { searchNavigationRegistry, getAccessibleNavigation } from "../../lib/navigation-registry.mjs";
+import * as Icones from "lucide-react";
+import { getAccessibleNavigation } from "../../lib/navigation-registry.mjs";
 import { hasPermission } from "../../lib/permissions-catalog.mjs";
-import { getRecentItems, getFavoriteItems } from "../../lib/user-preferences.js";
-import FavoriteStarButton from "./FavoriteStarButton.js";
+import { getRecentItems, getFavoriteItems, getUsageCounts, isFavorite, toggleFavoriteItem } from "../../lib/user-preferences.js";
+import { sugestoes, buscar, explorar, nomeDo, categoriaDo } from "../../lib/central-comando.mjs";
 
-const ICON_MAP = {
-  Home, ChefHat, Tag, Package, Users, Wallet, Calendar, BarChart: BarChart2,
-  Settings, ClipboardList, GlassWater, Clock, Grid
-};
+const { Search, X, Sparkles, Star, CornerDownLeft, ArrowUp, ArrowDown, Compass, ChevronLeft, MessageSquare } = Icones;
+const ICONE_ALIAS = { BarChart: "BarChart2" };
+const iconeDo = (nome) => Icones[ICONE_ALIAS[nome] || nome] || Icones.Circle;
 
-export default function CommandCenterModal({
-  isOpen,
-  onClose,
-  sessao,
-  onOpenAllModules
-}) {
+function Estrela({ item, sessao, fav, onAlternar }) {
+  const rot = fav ? "Remover dos favoritos" : "Favoritar";
+  return (
+    <button type="button" tabIndex={-1} aria-label={`${rot}: ${nomeDo(item)}`} title={rot}
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onAlternar(item.id); }}
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${fav ? "text-hf-warning" : "text-hf-muted opacity-0 hover:text-hf-text group-hover:opacity-100 group-aria-selected:opacity-100 focus-visible:opacity-100"}`}>
+      <Star size={15} className={fav ? "fill-current" : ""} />
+    </button>
+  );
+}
+
+function Linha({ item, indice, selecionado, onAbrir, onHover, sessao, fav, onAlternar }) {
+  const Ic = iconeDo(item.icon);
+  return (
+    <li role="option" id={`cc-op-${indice}`} aria-selected={selecionado} data-indice={indice}
+      onMouseMove={() => onHover(indice)} onClick={() => onAbrir(item)}
+      className={`group flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 transition ${selecionado ? "bg-hf-elevated ring-1 ring-hf-border-strong" : "hover:bg-hf-elevated/70"}`}>
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border ${selecionado ? "border-hf-accent/40 text-hf-accent" : "border-hf-border text-hf-text-2"}`}><Ic size={16} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline gap-2">
+          <span className="truncate text-sm font-semibold text-hf-text">{nomeDo(item)}</span>
+          <span className="hidden shrink-0 truncate text-[11px] text-hf-muted sm:inline">{categoriaDo(item)}</span>
+        </span>
+        <span className="block truncate text-xs text-hf-text-2">{item.description}</span>
+      </span>
+      <Estrela item={item} sessao={sessao} fav={fav} onAlternar={onAlternar} />
+      {selecionado && <CornerDownLeft size={14} className="hidden shrink-0 text-hf-muted sm:block" />}
+    </li>
+  );
+}
+
+const Titulo = ({ children, direita }) => (
+  <div className="flex items-center justify-between px-2.5 pb-1 pt-3">
+    <h3 className="text-[11px] font-bold uppercase tracking-wider text-hf-muted">{children}</h3>
+    {direita}
+  </div>
+);
+
+export default function CommandCenterModal({ isOpen, onClose, sessao }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [recentItems, setRecentItems] = useState([]);
-  const [favoriteItems, setFavoriteItems] = useState([]);
+  const [consulta, setConsulta] = useState("");
+  const [sel, setSel] = useState(0);
+  const [modo, setModo] = useState("inicio"); // inicio | explorar
+  const [prefs, setPrefs] = useState({ recentes: [], favoritos: [], uso: {}, favIds: new Set() });
   const inputRef = useRef(null);
-  const listRef = useRef(null);
+  const listaRef = useRef(null);
 
-  // Executa a busca em tempo real com base no query e nas permissões da sessão
-  const results = searchNavigationRegistry(query, sessao, { limit: 12 });
-  // Uma inteligência só: pergunta digitada aqui vai para o "Pergunte ao Héfisto"
+  const acessiveis = useMemo(() => getAccessibleNavigation(sessao), [sessao]);
   const podeHefisto = !!sessao && (!sessao.gerenciado || hasPermission(sessao, "dashboard.intelligence.view"));
-  const perguntarAoHefisto = () => {
-    const texto = query.trim().slice(0, 500);
+
+  const recarregar = useCallback(() => {
+    if (!sessao) return;
+    const favoritos = getFavoriteItems(sessao);
+    setPrefs({ recentes: getRecentItems(sessao).slice(0, 6), favoritos, uso: getUsageCounts(sessao), favIds: new Set(favoritos.map((f) => f.id)) });
+  }, [sessao]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setConsulta(""); setSel(0); setModo("inicio"); recarregar();
+    const t = setTimeout(() => inputRef.current?.focus(), 30);
+    return () => clearTimeout(t);
+  }, [isOpen, recarregar]);
+
+  useEffect(() => {
+    const atualizar = () => recarregar();
+    window.addEventListener("hefisto:favorites-changed", atualizar);
+    window.addEventListener("hefisto:recents-changed", atualizar);
+    return () => { window.removeEventListener("hefisto:favorites-changed", atualizar); window.removeEventListener("hefisto:recents-changed", atualizar); };
+  }, [recarregar]);
+
+  // Blocos visíveis, na ordem em que o teclado percorre
+  const blocos = useMemo(() => {
+    if (consulta.trim()) {
+      const r = buscar(consulta, sessao, { uso: prefs.uso, limite: 12 });
+      return [{ id: "resultados", titulo: r.comando ? `Abrir “${r.termo || "…"}”` : "Resultados", itens: r.itens }];
+    }
+    if (modo === "explorar") return explorar(acessiveis).map((g) => ({ id: g.area, titulo: g.area, itens: g.itens }));
+    const recentes = prefs.recentes;
+    const sug = sugestoes({ acessiveis, uso: prefs.uso, excluir: recentes.map((r) => r.id), limite: 6 });
+    return [
+      { id: "sugestoes", titulo: "Sugestões", subtitulo: sug.origem === "uso" ? "Mais usados por você" : "Para o seu perfil", itens: sug.itens },
+      ...(recentes.length ? [{ id: "recentes", titulo: "Recentes", itens: recentes }] : []),
+      ...(prefs.favoritos.length ? [{ id: "favoritos", titulo: "Favoritos", itens: prefs.favoritos }] : []),
+    ];
+  }, [consulta, modo, sessao, prefs, acessiveis]);
+
+  const planos = useMemo(() => blocos.flatMap((b) => b.itens), [blocos]);
+  useEffect(() => { if (sel >= planos.length) setSel(Math.max(0, planos.length - 1)); }, [planos.length, sel]);
+  useEffect(() => { listaRef.current?.querySelector(`[data-indice="${sel}"]`)?.scrollIntoView({ block: "nearest" }); }, [sel]);
+
+  const abrir = useCallback((item) => { onClose(); router.push(item.route); }, [onClose, router]);
+  const perguntar = useCallback(() => {
+    const texto = consulta.trim().slice(0, 500);
     if (!texto) return;
     onClose();
     setTimeout(() => window.dispatchEvent(new CustomEvent("hefisto:perguntar", { detail: { texto } })), 60);
-  };
-  const accessibleItems = getAccessibleNavigation(sessao);
-
-  // Seleciona de 6 a 8 atalhos principais para o Acesso Rápido com base nas permissões
-  const quickAccessItems = accessibleItems
-    .filter(item => item.mobilePriority && item.mobilePriority <= 2)
-    .slice(0, 8);
-
-  // Carrega Recentes e Favoritos revalidados por permissão
-  const refreshUserPrefs = () => {
-    if (sessao) {
-      setRecentItems(getRecentItems(sessao).slice(0, 5));
-      setFavoriteItems(getFavoriteItems(sessao).slice(0, 5));
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      setQuery("");
-      setSelectedIndex(0);
-      refreshUserPrefs();
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-    }
-  }, [isOpen, sessao]);
-
-  useEffect(() => {
-    const handleFavChange = () => refreshUserPrefs();
-    const handleRecentsChange = () => refreshUserPrefs();
-    window.addEventListener("hefisto:favorites-changed", handleFavChange);
-    window.addEventListener("hefisto:recents-changed", handleRecentsChange);
-    return () => {
-      window.removeEventListener("hefisto:favorites-changed", handleFavChange);
-      window.removeEventListener("hefisto:recents-changed", handleRecentsChange);
-    };
+  }, [consulta, onClose]);
+  const alternarFav = useCallback((id) => {
+    const agora = toggleFavoriteItem(sessao, id);
+    window.dispatchEvent(new CustomEvent("erp:feedback", { detail: { texto: agora ? "Adicionado aos favoritos" : "Removido dos favoritos", tipo: agora ? "ok" : "salvando", duracao: 1400 } }));
   }, [sessao]);
 
-  // Teclado (Navegação com setas Up/Down, Enter e Esc)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % Math.max(1, results.length));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + results.length) % Math.max(1, results.length));
-      } else if (e.key === "Enter" && results[selectedIndex]) {
-        e.preventDefault();
-        handleNavigate(results[selectedIndex].route);
-      } else if (e.key === "Enter" && podeHefisto && query.trim()) {
-        e.preventDefault();
-        perguntarAoHefisto();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, results, selectedIndex, onClose, podeHefisto, query]);
-
-  const handleNavigate = (route) => {
-    onClose();
-    router.push(route);
+  const teclado = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); if (modo === "explorar" && !consulta) setModo("inicio"); else onClose(); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => (planos.length ? (s + 1) % planos.length : 0)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => (planos.length ? (s - 1 + planos.length) % planos.length : 0)); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (planos[sel]) abrir(planos[sel]);
+      else if (podeHefisto && consulta.trim()) perguntar();
+    }
   };
 
   if (!isOpen) return null;
+  let indice = -1;
+  const semResultado = consulta.trim() && planos.length === 0;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Command Center Héfisto"
-      className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
-    >
-      {/* Backdrop click to close */}
-      <div
-        className="fixed inset-0 pointer-events-auto"
-        onClick={onClose}
-      />
-
-      {/* Container Principal do Command Center (Tablet / Desktop / Mobile) */}
-      <div className="relative z-10 w-full max-w-[760px] md:w-[92vw] lg:w-[760px] my-auto bg-[#0D1527] border border-slate-800 rounded-2xl shadow-2xl shadow-emerald-950/30 overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Cabeçalho de Busca */}
-        <div className="p-3.5 sm:p-5 border-b border-slate-800/80 bg-slate-900/60 flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
-            <Sparkles size={20} />
+    <div role="dialog" aria-modal="true" aria-label="Central de Comando" onKeyDown={teclado}
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-0 backdrop-blur-sm sm:p-4 sm:pt-[10vh]">
+      <div className="fixed inset-0" onClick={onClose} />
+      <div className="relative z-10 flex h-full w-full flex-col overflow-hidden border-hf-border bg-hf-surface shadow-2xl shadow-black/60 sm:h-auto sm:max-h-[78vh] sm:max-w-[640px] sm:rounded-2xl sm:border">
+        {/* Cabeçalho + busca */}
+        <div className="border-b border-hf-border px-3 pb-3 pt-3 sm:px-4">
+          <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-hf-text">Central de Comando</p>
+              <p className="truncate text-[11px] text-hf-muted">Acesse módulos, ações e comandos com IA.</p>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"><X size={18} /></button>
           </div>
-
-          <div className="relative flex-1 flex items-center min-w-0">
-            <Search size={20} className="absolute left-3 text-slate-400 pointer-events-none" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setSelectedIndex(0);
-              }}
-              placeholder="O que você quer fazer? Ex: etiquetas, cmv, ponto, estoque..."
-              className="w-full bg-slate-950/80 border border-slate-700/60 focus:border-emerald-500/80 text-slate-100 placeholder-slate-400 text-sm sm:text-base font-medium rounded-xl pl-10 pr-10 py-3 transition-colors outline-none min-h-[48px]"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                aria-label="Limpar busca"
-                className="absolute right-3 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
-              >
-                <X size={16} />
-              </button>
-            )}
+          <div className="flex items-center gap-2 rounded-xl border border-hf-border bg-hf-bg px-3 transition focus-within:border-hf-accent/60 focus-within:ring-2 focus-within:ring-hf-accent/15">
+            <Sparkles size={17} className="shrink-0 text-hf-accent" />
+            <input ref={inputRef} value={consulta} onChange={(e) => { setConsulta(e.target.value); setSel(0); }}
+              role="combobox" aria-expanded="true" aria-controls="cc-lista" aria-activedescendant={planos.length ? `cc-op-${sel}` : undefined}
+              placeholder="Pesquise módulos, ações ou comandos… Ex.: etiquetas, CMV, ponto, estoque"
+              className="min-h-[46px] min-w-0 flex-1 bg-transparent text-[15px] text-hf-text outline-none placeholder:text-hf-muted" />
+            {consulta ? (
+              <button type="button" onClick={() => { setConsulta(""); inputRef.current?.focus(); }} aria-label="Limpar" className="grid h-7 w-7 place-items-center rounded-md text-hf-muted hover:text-hf-text"><X size={15} /></button>
+            ) : <Search size={16} className="shrink-0 text-hf-muted" />}
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors shrink-0 min-h-[44px]"
-          >
-            <X size={22} />
-          </button>
         </div>
 
-        {/* Conteúdo rolável */}
-        <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar p-3.5 sm:p-5 space-y-6">
-          {/* Se query estiver vazia: Mostrar Acesso Rápido, Favoritos e Recentes */}
-          {!query.trim() && (
-            <>
-              {/* 1. ACESSO RÁPIDO */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Acesso Rápido
-                  </span>
-                  <span className="text-3xs text-slate-400">Baseado em seu perfil</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {quickAccessItems.map((item) => {
-                    const IconComponent = ICON_MAP[item.icon] || Package;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleNavigate(item.route)}
-                        className="flex flex-col items-start p-3 sm:p-3.5 rounded-xl bg-slate-900/60 hover:bg-emerald-950/30 border border-slate-800 hover:border-emerald-500/40 text-slate-200 hover:text-white transition-all group text-left min-h-[56px] justify-between"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-slate-800 group-hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2 transition-colors">
-                          <IconComponent size={18} />
-                        </div>
-                        <span className="text-xs font-bold leading-tight line-clamp-1">{item.shortTitle}</span>
-                        <span className="text-3xs text-slate-400 line-clamp-1">{item.domain}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 2. FAVORITOS */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                    <Star size={14} className="fill-amber-400 text-amber-400" />
-                    Favoritos
-                  </span>
-                  {favoriteItems.length > 0 && (
-                    <span className="text-3xs text-slate-400">{favoriteItems.length} salvos</span>
-                  )}
-                </div>
-
-                {favoriteItems.length === 0 ? (
-                  <div className="p-3 rounded-xl bg-slate-900/30 border border-slate-800/60 text-3xs sm:text-xs text-slate-400 flex items-center gap-2">
-                    <Star size={14} className="text-slate-500 shrink-0" />
-                    <span>Favorite as ferramentas que mais usa no dia a dia clicando na estrela.</span>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {favoriteItems.map((item) => {
-                      const IconComponent = ICON_MAP[item.icon] || Package;
-                      return (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/50 hover:bg-amber-950/20 border border-slate-800 hover:border-amber-500/30 text-slate-200 transition-all min-h-[52px]"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleNavigate(item.route)}
-                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
-                          >
-                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-                              <IconComponent size={16} />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-bold truncate">{item.title}</span>
-                              <span className="text-3xs text-slate-400 truncate">{item.domain}</span>
-                            </div>
-                          </button>
-                          <FavoriteStarButton itemId={item.id} sessao={sessao} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* 3. RECENTES */}
-              {recentItems.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                      <History size={14} className="text-slate-400" />
-                      Recentes
-                    </span>
-                    <span className="text-3xs text-slate-400">Últimos acessados</span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {recentItems.map((item) => {
-                      const IconComponent = ICON_MAP[item.icon] || Package;
-                      return (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/80 text-slate-300 transition-all min-h-[48px]"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleNavigate(item.route)}
-                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
-                          >
-                            <div className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center shrink-0">
-                              <IconComponent size={15} />
-                            </div>
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-xs font-bold truncate">{item.title}</span>
-                              <span className="text-3xs text-slate-400 hidden sm:inline">• {item.domain}</span>
-                            </div>
-                          </button>
-                          <FavoriteStarButton itemId={item.id} sessao={sessao} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Lista de Resultados da Busca */}
-          {query.trim() && podeHefisto && (
-            <button type="button" onClick={perguntarAoHefisto}
-              className="mb-3 flex w-full items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-left text-emerald-100 hover:bg-emerald-500/20 min-h-[52px]">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/20 text-emerald-300"><Sparkles size={18} /></span>
-              <span className="min-w-0">
-                <span className="block text-xs font-bold uppercase tracking-wider text-emerald-300">Perguntar ao Héfisto</span>
-                <span className="block truncate text-sm font-semibold">&ldquo;{query.trim()}&rdquo;</span>
-              </span>
+        {/* Lista */}
+        <div ref={listaRef} id="cc-lista" role="listbox" aria-label="Módulos" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 sm:px-2.5">
+          {modo === "explorar" && !consulta && (
+            <button type="button" onClick={() => setModo("inicio")} className="mt-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text">
+              <ChevronLeft size={14} />Voltar
             </button>
           )}
-          {query.trim() && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1 mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Resultados da Busca ({results.length})
-                </span>
-                <span className="text-3xs text-slate-400">Use ↑ ↓ para navegar, ENTER para abrir</span>
-              </div>
 
-              {results.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 space-y-2">
-                  <p className="text-sm font-bold text-slate-300">Nenhum resultado encontrado para &quot;{query}&quot;</p>
-                  <p className="text-xs">Verifique os termos ou busque em &quot;Todos os Módulos&quot;.</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {results.map((item, idx) => {
-                    const IconComponent = ICON_MAP[item.icon] || Package;
-                    const isSelected = idx === selectedIndex;
-                    return (
-                      <div
-                        key={item.id}
-                        onMouseEnter={() => setSelectedIndex(idx)}
-                        className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all text-left min-h-[52px] ${
-                          isSelected
-                            ? "bg-emerald-500/15 border-emerald-500/50 text-white shadow-sm"
-                            : "bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:text-white"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleNavigate(item.route)}
-                          className="flex items-center gap-3 min-w-0 flex-1 text-left"
-                        >
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            isSelected ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-800 text-emerald-400"
-                          }`}>
-                            <IconComponent size={18} />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs sm:text-sm font-bold truncate">{item.title}</span>
-                              <span className="text-3xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold uppercase tracking-wider shrink-0">
-                                {item.domain}
-                              </span>
-                            </div>
-                            <span className="text-3xs sm:text-xs text-slate-400 truncate">{item.description}</span>
-                          </div>
-                        </button>
+          {blocos.map((b) => (b.itens.length > 0 || b.id === "resultados") && (
+            <section key={b.id}>
+              <Titulo direita={b.subtitulo && <span className="text-[11px] text-hf-muted">{b.subtitulo}</span>}>{b.titulo}</Titulo>
+              <ul className="space-y-0.5">
+                {b.itens.map((item) => {
+                  indice += 1;
+                  return <Linha key={`${b.id}-${item.id}`} item={item} indice={indice} selecionado={indice === sel} onAbrir={abrir} onHover={setSel}
+                    sessao={sessao} fav={prefs.favIds.has(item.id)} onAlternar={alternarFav} />;
+                })}
+              </ul>
+            </section>
+          ))}
 
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
-                          <FavoriteStarButton itemId={item.id} sessao={sessao} />
-                          <button
-                            type="button"
-                            onClick={() => handleNavigate(item.route)}
-                            className={`hidden sm:flex items-center gap-1 text-xs font-bold ${
-                              isSelected ? "text-emerald-400" : "text-slate-400 hover:text-white"
-                            }`}
-                          >
-                            <span>Abrir</span>
-                            <ArrowRight size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+          {semResultado && (
+            <div className="mx-1 mt-3 rounded-xl border border-hf-border bg-hf-bg p-4 text-center">
+              <p className="text-sm font-semibold text-hf-text">Nenhum módulo para “{consulta.trim()}”.</p>
+              {podeHefisto
+                ? <button type="button" onClick={perguntar} className="mt-3 inline-flex min-h-[38px] items-center gap-2 rounded-lg bg-hf-accent px-3 text-xs font-bold text-hf-accent-fg hover:brightness-110"><MessageSquare size={14} />Perguntar ao Héfisto</button>
+                : <p className="mt-1 text-xs text-hf-text-2">Tente outro termo ou explore os módulos.</p>}
+            </div>
+          )}
+
+          {!consulta.trim() && modo === "inicio" && prefs.favoritos.length === 0 && (
+            <div className="mx-1 mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-hf-border px-3 py-2.5">
+              <span className="text-xs text-hf-text-2"><Star size={13} className="mr-1.5 inline -translate-y-px text-hf-muted" />Você ainda não tem favoritos.</span>
+              <button type="button" onClick={() => { setModo("explorar"); setSel(0); }} className="text-xs font-semibold text-hf-accent hover:underline">Explorar módulos</button>
             </div>
           )}
         </div>
 
-        {/* Rodapé: Link para Todos os Módulos */}
-        <div className="p-3 sm:p-4 border-t border-slate-800/80 bg-slate-900/80 flex items-center justify-between gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              if (onOpenAllModules) onOpenAllModules();
-            }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-emerald-950/50 border border-slate-700/60 hover:border-emerald-500/40 text-xs font-bold text-slate-200 hover:text-emerald-300 transition-all min-h-[44px]"
-          >
-            <Grid size={16} className="text-emerald-400" />
-            <span>Todos os Módulos</span>
-            <ChevronRight size={14} />
-          </button>
-
-          <span className="text-3xs text-slate-400 hidden sm:inline font-mono">
-            Pressione ESC para fechar
+        {/* Rodapé */}
+        <div className="flex items-center justify-between gap-3 border-t border-hf-border px-3 py-2 text-[11px] text-hf-muted sm:px-4">
+          {modo === "inicio" && !consulta ? (
+            <button type="button" onClick={() => { setModo("explorar"); setSel(0); inputRef.current?.focus(); }} className="inline-flex items-center gap-1.5 font-semibold text-hf-text-2 hover:text-hf-text">
+              <Compass size={13} />Explorar módulos <span className="text-hf-muted">({acessiveis.length})</span>
+            </button>
+          ) : <span>{planos.length} {planos.length === 1 ? "item" : "itens"}</span>}
+          <span className="hidden items-center gap-3 sm:flex">
+            <span className="inline-flex items-center gap-1"><ArrowUp size={11} /><ArrowDown size={11} />navegar</span>
+            <span className="inline-flex items-center gap-1"><CornerDownLeft size={11} />abrir</span>
+            <span><kbd className="rounded border border-hf-border px-1 font-sans">Esc</kbd> para fechar</span>
           </span>
         </div>
       </div>

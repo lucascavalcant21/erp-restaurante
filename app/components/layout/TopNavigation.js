@@ -172,7 +172,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
-          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="hidden md:flex items-center gap-3 bg-hf-surface hover:border-hf-border-strong border border-hf-border transition-colors rounded-xl px-3.5 py-2 w-48 lg:w-80 group text-left">
+          <button onClick={onOpenSearch} aria-label="Abrir a Central de Comando" className="hidden md:flex items-center gap-3 bg-hf-surface hover:border-hf-border-strong border border-hf-border transition-colors rounded-xl px-3.5 py-2 w-44 lg:w-60 2xl:w-80 group text-left">
             <Search size={16} className="text-hf-muted group-hover:text-hf-text-2 transition-colors shrink-0" />
             <span className="text-sm font-medium text-hf-muted truncate flex-1">Pesquisar ou comandar…</span>
             <kbd className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold text-hf-muted bg-hf-bg px-1.5 py-0.5 rounded border border-hf-border font-sans">

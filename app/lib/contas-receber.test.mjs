@@ -321,10 +321,10 @@ conferir("taxa encerrada não é mais aplicada", escolherTaxa(regrasDepois, { me
 const ler = (f) => fs.readFileSync(path.join(raiz, f), "utf8");
 conferir("Vendas e Recebimentos antiga → redireciona para Contas a Receber", ler("app/dashboard/vendas/page.js").includes('router.replace("/dashboard/financeiro/receber")'), true);
 conferir("Recebíveis/Conciliação antigas → redirecionam", ["app/dashboard/financeiro/recebiveis/page.js", "app/dashboard/financeiro/conciliacao/page.js"].every((f) => ler(f).includes('router.replace("/dashboard/financeiro/receber")')), true);
-const novos = ["app/lib/contas-receber.mjs", "app/dashboard/financeiro/receber/page.js", "app/dashboard/financeiro/caixa/page.js", "app/components/ModalRecebimentoConta.js", "app/components/navigation/PosicaoFinanceira.js"].map(ler).join("\n");
+const novos = ["app/lib/contas-receber.mjs", "app/dashboard/financeiro/receber/page.js", "app/dashboard/financeiro/caixa/page.js", "app/components/ModalRecebimentoConta.js", "app/components/navigation/FinanceiroHub.js", "app/lib/central-financeira.mjs"].map(ler).join("\n");
 conferir("sem UUID falso de unidade", novos.includes("00000000-0000-0000-0000-000000000001"), false);
 conferir("nenhum percentual de taxa padrão no código", /taxa_percentual:\s*\d/.test(novos), false);
-conferir("faturamento aparece como NÃO APURADO na Central", /Faturamento[\s\S]{0,80}Não apurado/.test(ler("app/components/navigation/PosicaoFinanceira.js")), true);
+conferir("Central: faturamento sem fonte aparece como NÃO APURADO (e nunca vem do caixa)", /nao_apurado: "Não apurado"/.test(ler("app/components/navigation/FinanceiroHub.js")) && /Faturamento NUNCA vem do extrato/.test(ler("app/lib/central-financeira.mjs")), true);
 const efeitos = (ler("app/dashboard/financeiro/receber/page.js").match(/useEffect\(\(\) => \{[\s\S]*?\}, \[[^\]]*\]\);/g) || []).join("\n");
 conferir("abrir Contas a Receber não grava nada", /salvar|receberConta|cancelar|estornar|criar/i.test(efeitos), false);
 

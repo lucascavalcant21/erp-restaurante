@@ -1,668 +1,431 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+// CENTRAL FINANCEIRA — tela executiva do financeiro. Só exibe: todo número sai
+// de app/lib/central-financeira.mjs (motor puro, testado), com o estado de cada
+// um (real, zero real, parcial, não apurado, dados insuficientes, erro).
+// Faturamento vem da fonte de vendas (fin_faturamento_diario), nunca do caixa.
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  DollarSign, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2,
-  Calendar, Clock, FileText, ArrowRight, ShoppingCart, RefreshCw,
-  PieChart, ShieldCheck, CreditCard, ChevronRight, Layers, Lock, Filter, Wallet
+  Wallet, ArrowDownCircle, ArrowUpCircle, Scale, Receipt, AlertTriangle, AlertCircle, Info,
+  RefreshCw, Plus, FileText, CreditCard, ShoppingCart, Landmark, Calculator, PieChart, BarChart3,
+  ShieldCheck, Target, Sparkles, ChevronRight, ChevronDown, Banknote, CheckCircle2, Loader2,
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
-import { fetchContas, fetchLancamentos, fetchEntradasEstoqueFinanceiro } from "../../lib/financeiro";
+import { supabase } from "../../lib/supabase";
+import { fetchContasPagar, fetchContasReceber, fetchFluxoCaixa, fetchSaldosContasFinanceiras } from "../../lib/financeiro";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../lib/rh";
-import { fetchEstoque } from "../../lib/estoque";
-import { calcularCMO } from "../../lib/cmo.mjs";
+import { fetchCustosFixos } from "../../lib/custos-fixos";
+import { carregarDadosCmv } from "../../lib/cmv-dados.mjs";
+import { periodosEntreContagens, apurarPeriodo, cmvRealPeriodo } from "../../lib/cmv-real.mjs";
+import { hojeLocal } from "../../lib/contas-receber.mjs";
+import { montarCentral, intervaloCentral, PERIODOS, ROTAS } from "../../lib/central-financeira.mjs";
 import { canAccessRoute, hasPermission } from "../../lib/permissions-catalog.mjs";
-import { fmtBRL, fmtPct } from "../../components/ui";
-import PosicaoFinanceira from "./PosicaoFinanceira";
-import {
-  HubHeader,
-  HubAttentionCard,
-  HubSectionHeader,
-  HubCardContainer,
-  HubActionButton,
-  HubSkeleton,
-  HubErrorState,
-  HubListContainer,
-  HubListItem
-} from "./HubPrimitives";
+import { fmtBRL } from "../ui";
 
-export default function FinanceiroHub({ onVerTabelaCompleta, onAbrirDRE }) {
+// ─── aparência ────────────────────────────────────────────────────────────────
+const TOM = {
+  critico: { texto: "text-rose-400", borda: "border-rose-500/40", fundo: "bg-rose-500/10", ponto: "bg-rose-400" },
+  atencao: { texto: "text-amber-300", borda: "border-amber-400/40", fundo: "bg-amber-400/10", ponto: "bg-amber-300" },
+  positivo: { texto: "text-emerald-400", borda: "border-emerald-500/30", fundo: "bg-emerald-500/10", ponto: "bg-emerald-400" },
+  info: { texto: "text-sky-300", borda: "border-sky-500/30", fundo: "bg-sky-500/10", ponto: "bg-sky-300" },
+  neutro: { texto: "text-white", borda: "border-slate-700/70", fundo: "bg-slate-800/40", ponto: "bg-slate-400" },
+  apagado: { texto: "text-slate-400", borda: "border-slate-700/70", fundo: "bg-slate-800/40", ponto: "bg-slate-500" },
+};
+const ROTULO_ESTADO = { erro: "Erro ao carregar", nao_apurado: "Não apurado", insuficiente: "Dados insuficientes", nao_calculado: "Não calculado" };
+const semValor = (e) => ["erro", "nao_apurado", "insuficiente", "nao_calculado"].includes(e?.estado);
+const brl = (v) => fmtBRL(v);
+const pct = (v) => `${Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+const sinal = (v) => (v > 0 ? `+ ${brl(v)}` : v < 0 ? `− ${brl(Math.abs(v))}` : brl(0));
+const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
+
+function Card({ titulo, icone: Icone, valor, tom = "neutro", linhas = [], estado, onClick, acao, rodape }) {
+  const t = TOM[semValor(estado) ? "apagado" : tom];
+  const interativo = onClick ? { role: "button", tabIndex: 0, onClick, onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } } : {};
+  return (
+    <div {...interativo}
+      className={`group flex min-w-0 flex-col gap-2 rounded-2xl border bg-slate-900/70 p-3.5 text-left transition ${tom === "critico" && !semValor(estado) ? "border-rose-500/40" : "border-slate-800"} ${onClick ? "cursor-pointer hover:border-slate-600 hover:bg-slate-900" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
+        {Icone && <Icone size={16} className={`shrink-0 ${t.texto}`} />}
+      </div>
+      <div className={`truncate text-xl font-black tabular-nums sm:text-2xl ${semValor(estado) ? "text-base text-slate-300 sm:text-lg" : t.texto}`}>
+        {semValor(estado) ? ROTULO_ESTADO[estado.estado] : valor}
+      </div>
+      <div className="min-h-[2.25rem] space-y-0.5 text-[11px] leading-snug text-slate-400">
+        {semValor(estado) || estado?.estado === "zero"
+          ? <p className="line-clamp-2">{estado?.motivo}</p>
+          : linhas.filter(Boolean).slice(0, 2).map((l, i) => <p key={i} className="line-clamp-1">{l}</p>)}
+      </div>
+      {(acao || rodape) && <div className="mt-auto flex items-center justify-between gap-2 pt-1">{rodape}{acao}</div>}
+    </div>
+  );
+}
+
+function Secao({ titulo, icone: Icone, direita, children, className = "" }) {
+  return (
+    <section className={`space-y-2.5 ${className}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-300">
+          {Icone && <Icone size={14} className="text-slate-400" />}{titulo}
+        </h2>
+        {direita}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Indicador({ titulo, estado, principal, secundaria, tom = "info", nota }) {
+  const sem = semValor(estado);
+  const t = TOM[sem ? "apagado" : tom];
+  return (
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
+      <span className={`truncate font-black tabular-nums ${sem ? "text-sm text-slate-300" : `text-lg ${t.texto}`}`}>{sem ? ROTULO_ESTADO[estado.estado] : principal}</span>
+      <span className="line-clamp-2 text-[11px] leading-snug text-slate-400">{sem ? estado.motivo : secundaria}</span>
+      {nota && !sem && <span className="line-clamp-2 text-[10px] leading-snug text-slate-500">{nota}</span>}
+    </div>
+  );
+}
+
+const Botao = ({ onClick, icone: Icone, children, variante = "sec", titulo }) => (
+  <button type="button" onClick={onClick} title={titulo}
+    className={`inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl px-3 text-xs font-bold transition ${
+      variante === "pri" ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400" : "border border-slate-700 bg-slate-900 text-slate-100 hover:border-slate-500"}`}>
+    {Icone && <Icone size={15} />}{children}
+  </button>
+);
+
+// ─── tela ─────────────────────────────────────────────────────────────────────
+export default function FinanceiroHub({ onAbrirDRE, onPagarConta, atualizacao = 0 }) {
   const router = useRouter();
   const { sessao, unidadeAtiva, unidadeInfo } = useERP();
+  const [periodo, setPeriodo] = useState("mes");
+  const [pers, setPers] = useState({ de: "", ate: "" });
+  const [base, setBase] = useState(null);      // fontes que não dependem do filtro
+  const [fluxo, setFluxo] = useState(null);    // vw_fin_fluxo_caixa do período
+  const [carregando, setCarregando] = useState(true);
+  const [atualizadoEm, setAtualizadoEm] = useState(null);
+  const [menuNovo, setMenuNovo] = useState(false);
+  const menuRef = useRef(null);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const gerenciado = !!sessao?.gerenciado;
+  const podeVerFinanceiroTotal = !gerenciado || hasPermission(sessao, "dashboard.overview.view_values") || hasPermission(sessao, "financeiro.cashflow.view") || hasPermission(sessao, "financeiro.dre.view");
+  const podeRota = useCallback((rota) => !gerenciado || canAccessRoute(sessao, rota.split("?")[0]), [gerenciado, sessao]);
+  const ir = useCallback((rota) => router.push(rota), [router]);
 
-  const [contas, setContas] = useState([]);
-  const [lancamentos, setLancamentos] = useState([]);
-  const [insumosEstoque, setInsumosEstoque] = useState([]);
-  const [cmoDados, setCmoDados] = useState(null);
+  const hoje = hojeLocal();
+  const intervalo = useMemo(() => intervaloCentral(periodo, hoje, pers), [periodo, hoje, pers]);
 
-  const [periodo, setPeriodo] = useState("mes_atual"); // mes_atual | ultimos_30 | hoje
-
-  // Permissões Financeiras Granulares
-  const podeVerFinanceiroTotal = !sessao?.gerenciado || hasPermission(sessao, "dashboard.overview.view_values") || hasPermission(sessao, "financeiro.cashflow.view") || hasPermission(sessao, "financeiro.dre.view");
-  const podeVerDRE = !sessao?.gerenciado || hasPermission(sessao, "financeiro.dre.view");
-  const podeVerContas = !sessao?.gerenciado || hasPermission(sessao, "financeiro.cashflow.view") || hasPermission(sessao, "compras.invoices.view");
-  const podeVerCMV = !sessao?.gerenciado || hasPermission(sessao, "financeiro.cmv.view_costs") || hasPermission(sessao, "cozinha.recipes.view_costs") || hasPermission(sessao, "estoque.overview.view_costs");
-  const podeVerFiscal = !sessao?.gerenciado || hasPermission(sessao, "financeiro.fiscal.view");
-
-  const agora = new Date();
-  const dataHojeISO = agora.toISOString().slice(0, 10);
-  const mesAnoAtual = agora.toISOString().slice(0, 7);
-
-  // Mês anterior (YYYY-MM)
-  const mesAnteriorDate = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
-  const mesAnoAnterior = mesAnteriorDate.toISOString().slice(0, 7);
-
-  const dataFormatada = agora.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long"
-  });
-  const dataCapitalizada = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
-
-  // Carrega dados financeiros unificados
-  const carregarDadosFinanceiros = useCallback(async () => {
-    if (!unidadeAtiva) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [resContas, resLanc, resEstoque, resEquipe, resRecibos] = await Promise.all([
-        fetchContas(unidadeAtiva, mesAnoAtual),
-        fetchLancamentos(unidadeAtiva),
-        fetchEstoque(unidadeAtiva, null),
-        fetchColaboradores(unidadeAtiva),
-        fetchRecibosPrestacaoUnidade(unidadeAtiva)
-      ]);
-
-      if (resContas.error) setError(resContas.error);
-
-      setContas(resContas.data || []);
-      setLancamentos(resLanc.data || []);
-      setInsumosEstoque(resEstoque.data || []);
-
-      if (resEquipe.data && resRecibos.data) {
-        setCmoDados(calcularCMO({ colaboradores: resEquipe.data, recibos: resRecibos.data }));
-      }
-    } catch (e) {
-      setError(e.message || "Falha ao carregar dados financeiros");
-    } finally {
-      setLoading(false);
+  const carregarBase = useCallback(async () => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
+    setCarregando(true);
+    const capturar = (p) => p.then((r) => r, (e) => ({ error: e?.message || "Falha de rede" }));
+    const [pagar, receber, saldos, equipe, recibos, custos, cmvDados] = await Promise.all([
+      capturar(fetchContasPagar(unidadeAtiva)), capturar(fetchContasReceber(unidadeAtiva)), capturar(fetchSaldosContasFinanceiras(unidadeAtiva)),
+      capturar(fetchColaboradores(unidadeAtiva)), capturar(fetchRecibosPrestacaoUnidade(unidadeAtiva)), capturar(fetchCustosFixos(unidadeAtiva)),
+      capturar(carregarDadosCmv(supabase, unidadeAtiva)),
+    ]);
+    let cmv = { error: cmvDados.error || null, periodo: null };
+    let faturamento = { erro: cmvDados.error || null };
+    if (!cmvDados.error && cmvDados.data) {
+      const d = cmvDados.data;
+      faturamento = { disponivel: !!d.fonteFaturamento?.disponivel, motivo: d.fonteFaturamento?.motivo, dias: d.fonteFaturamento?.dias || [] };
+      const fechados = periodosEntreContagens(d.contagens, hojeLocal()).filter((p) => !p.emAndamento);
+      const ultimo = fechados[fechados.length - 1];
+      cmv = { error: null, periodo: ultimo ? cmvRealPeriodo(apurarPeriodo(ultimo, d)) : null };
     }
-  }, [unidadeAtiva, mesAnoAtual]);
+    setBase({
+      pagar, receber, saldos, custosFixos: { data: custos.data, incluirFolha: custos.incluirFolha, error: custos.error },
+      cmo: { colaboradores: equipe.data || [], recibos: recibos.data || [], error: equipe.error || recibos.error || null },
+      faturamento, cmv,
+    });
+    setAtualizadoEm(new Date());
+    setCarregando(false);
+  }, [unidadeAtiva]);
 
+  const carregarFluxo = useCallback(async () => {
+    if (!unidadeAtiva || unidadeAtiva === "todas" || !intervalo.valido) { setFluxo(null); return; }
+    const r = await fetchFluxoCaixa(unidadeAtiva, intervalo.de, intervalo.ate).then((x) => x, (e) => ({ error: e?.message || "Falha de rede" }));
+    setFluxo(r);
+  }, [unidadeAtiva, intervalo.de, intervalo.ate, intervalo.valido]);
+
+  useEffect(() => { carregarBase(); }, [carregarBase, atualizacao]);
+  useEffect(() => { carregarFluxo(); }, [carregarFluxo, atualizacao]);
   useEffect(() => {
-    carregarDadosFinanceiros();
-  }, [carregarDadosFinanceiros]);
+    if (!menuNovo) return;
+    const fechar = (e) => { if (!menuRef.current?.contains(e.target)) setMenuNovo(false); };
+    document.addEventListener("mousedown", fechar);
+    return () => document.removeEventListener("mousedown", fechar);
+  }, [menuNovo]);
 
-  // 1. ALERTAS E EXCEÇÕES ("PRECISA DA SUA ATENÇÃO")
-  const contasVencidas = useMemo(() => {
-    return contas.filter(c => c.status === "pendente" && c.data_vencimento && String(c.data_vencimento).slice(0, 10) < dataHojeISO);
-  }, [contas, dataHojeISO]);
+  const atualizar = () => { carregarBase(); carregarFluxo(); };
+  const c = useMemo(() => (base && (fluxo || !intervalo.valido) ? montarCentral({ hoje, intervalo, fontes: { ...base, fluxo: fluxo || { error: intervalo.valido ? null : intervalo.motivo, data: [] } } }) : null), [base, fluxo, hoje, intervalo]);
 
-  const valorTotalVencidas = useMemo(() => {
-    return contasVencidas.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  }, [contasVencidas]);
+  if (!unidadeAtiva || unidadeAtiva === "todas") {
+    return <div className="min-h-screen bg-[#070F1E] p-8 text-center text-sm font-bold text-slate-200">Selecione uma unidade para abrir a Central Financeira.</div>;
+  }
 
-  const contasVencemHoje = useMemo(() => {
-    return contas.filter(c => c.status === "pendente" && c.data_vencimento && String(c.data_vencimento).slice(0, 10) === dataHojeISO);
-  }, [contas, dataHojeISO]);
-
-  const valorTotalVencemHoje = useMemo(() => {
-    return contasVencemHoje.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  }, [contasVencemHoje]);
-
-  const impostosProximos = useMemo(() => {
-    return contas.filter(c => c.status === "pendente" && c.categoria === "impostos");
-  }, [contas]);
-
-  // 2. DISPONIBILIDADE DO DIA (HOJE)
-  const aPagarHoje = valorTotalVencemHoje;
-  const lancamentosHoje = useMemo(() => {
-    return lancamentos.filter(l => l.data && String(l.data).slice(0, 10) === dataHojeISO);
-  }, [lancamentos, dataHojeISO]);
-
-  const entradasHoje = useMemo(() => {
-    return lancamentosHoje.filter(l => l.tipo === "entrada").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosHoje]);
-
-  // 3. MOTOR DRE DO PERÍODO SELECIONADO
-  const lancamentosFiltradosPeriodo = useMemo(() => {
-    if (periodo === "hoje") {
-      return lancamentos.filter(l => l.data && String(l.data).slice(0, 10) === dataHojeISO);
-    }
-    if (periodo === "ultimos_30") {
-      const limite = new Date(agora.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-      return lancamentos.filter(l => l.data && String(l.data).slice(0, 10) >= limite);
-    }
-    // mes_atual (padrão)
-    return lancamentos.filter(l => l.data && String(l.data).slice(0, 7) === mesAnoAtual);
-  }, [lancamentos, periodo, dataHojeISO, mesAnoAtual]);
-
-  const receitaBrutaPeriodo = useMemo(() => {
-    return lancamentosFiltradosPeriodo.filter(l => l.tipo === "entrada").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosFiltradosPeriodo]);
-
-  const despesasPeriodo = useMemo(() => {
-    return lancamentosFiltradosPeriodo.filter(l => l.tipo === "saida").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosFiltradosPeriodo]);
-
-  const resultadoLiquido = receitaBrutaPeriodo - despesasPeriodo;
-  const margemLiquidaPct = receitaBrutaPeriodo > 0 ? (resultadoLiquido / receitaBrutaPeriodo) * 100 : 0;
-
-  // 4. CÁLCULO DE COMPARAÇÃO TEMPORAL ("O QUE MUDOU?") - MÊS ATUAL vs MÊS ANTERIOR
-  const lancamentosMesAnterior = useMemo(() => {
-    return lancamentos.filter(l => l.data && String(l.data).slice(0, 7) === mesAnoAnterior);
-  }, [lancamentos, mesAnoAnterior]);
-
-  const receitaMesAnterior = useMemo(() => {
-    return lancamentosMesAnterior.filter(l => l.tipo === "entrada").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosMesAnterior]);
-
-  const despesasMesAnterior = useMemo(() => {
-    return lancamentosMesAnterior.filter(l => l.tipo === "saida").reduce((s, l) => s + (Number(l.valor) || 0), 0);
-  }, [lancamentosMesAnterior]);
-
-  // Variação % de Receita
-  const varReceitaPct = useMemo(() => {
-    if (receitaMesAnterior <= 0) return null;
-    return ((receitaBrutaPeriodo - receitaMesAnterior) / receitaMesAnterior) * 100;
-  }, [receitaBrutaPeriodo, receitaMesAnterior]);
-
-  // Variação % de Despesas
-  const varDespesasPct = useMemo(() => {
-    if (despesasMesAnterior <= 0) return null;
-    return ((despesasPeriodo - despesasMesAnterior) / despesasMesAnterior) * 100;
-  }, [despesasPeriodo, despesasMesAnterior]);
-
-  // 5. CÁLCULO DE CMV OPERACIONAL
-  const cmvCalculado = useMemo(() => {
-    const valorEstoqueTotal = insumosEstoque.reduce((acc, i) => {
-      const qtd = Number(i.quantidade_atual) || 0;
-      const custo = Number(i.custo_unitario || i.custo_compra) || 0;
-      return acc + (qtd * custo);
-    }, 0);
-
-    const cmvPct = receitaBrutaPeriodo > 0 ? (valorEstoqueTotal / receitaBrutaPeriodo) * 100 : 28.4;
-    return { valorEstoqueTotal, cmvPct };
-  }, [insumosEstoque, receitaBrutaPeriodo]);
-
-  // 6. PRÓXIMOS VENCIMENTOS (Lotes ordenados)
-  const proximasContas = useMemo(() => {
-    return contas.filter(c => c.status === "pendente")
-      .sort((a, b) => String(a.data_vencimento).localeCompare(String(b.data_vencimento)))
-      .slice(0, 5);
-  }, [contas]);
+  const k = c?.cards, ind = c?.indicadores;
+  const subtitulo = `${unidadeInfo?.nome || "Unidade"} • ${intervalo.rotulo || "Período"}`;
 
   return (
-    <div className="min-h-screen bg-[#070F1E] text-slate-100 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#070F1E] px-3 pb-28 pt-4 font-sans text-slate-100 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-5">
 
-        {/* CABEÇALHO PADRONIZADO */}
-        <HubHeader
-          icon={DollarSign}
-          domainTag="Central de Decisão Financeira"
-          unitName={unidadeInfo?.nome || "Unidade"}
-          title={podeVerFinanceiroTotal ? "Posição Financeira da Operação" : "Resultado Operacional de Custos"}
-          subtitle={dataCapitalizada}
-          onRefresh={carregarDadosFinanceiros}
-          isRefreshing={loading}
-          viewModeButton={
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
-              {[
-                ["mes_atual", "Mês Atual"],
-                ["ultimos_30", "30 Dias"],
-                ["hoje", "Hoje"]
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setPeriodo(id)}
-                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    periodo === id ? "bg-emerald-600 text-white shadow-xs" : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {label}
+        {/* 1. CABEÇALHO */}
+        <header className="flex flex-col gap-3 border-b border-slate-800 pb-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">Central Financeira</h1>
+            <p className="truncate text-xs text-slate-400">
+              {subtitulo}{atualizadoEm && <span className="text-slate-500"> · atualizado às {atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex max-w-full overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-1" role="tablist" aria-label="Período">
+              {PERIODOS.map((p) => (
+                <button key={p.id} type="button" role="tab" aria-selected={periodo === p.id} onClick={() => setPeriodo(p.id)}
+                  className={`min-h-[34px] whitespace-nowrap rounded-lg px-2.5 text-xs font-bold transition ${periodo === p.id ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-white"}`}>
+                  {p.rotulo}
                 </button>
               ))}
             </div>
-          }
-          primaryActionButton={
-            <>
-              <HubActionButton
-                onClick={() => router.push("/dashboard/financeiro/contas")}
-                variant="primary"
-                icon={Wallet}
-              >
-                Contas a Pagar
-              </HubActionButton>
-              {podeVerDRE && onAbrirDRE ? (
-                <HubActionButton
-                  onClick={onAbrirDRE}
-                  variant="secondary"
-                  icon={FileText}
-                >
-                  Abrir DRE Gerencial
-                </HubActionButton>
-              ) : null}
-            </>
-          }
-        />
-
-        {error && (
-          <HubErrorState
-            message={error}
-            onRetry={carregarDadosFinanceiros}
-          />
-        )}
-
-        {/* ─── VISÃO COMPLETA FINANCEIRA (USUÁRIO AUTORIZADO) ─── */}
-        {podeVerFinanceiroTotal ? (
-          <>
-            {/* Posição real (F2.3): contas a pagar/receber, caixa e saldo gerencial */}
-            <PosicaoFinanceira unidadeId={unidadeAtiva} />
-            <p className="text-3xs text-slate-400">Faturamento: NÃO APURADO — não há fonte completa de vendas conectada. O bloco "Movimento do extrato" abaixo soma só lançamentos registrados no extrato antigo.</p>
-            {/* SEÇÃO 1: "PRECISA DA SUA ATENÇÃO" */}
-            <div className="space-y-3">
-              <HubSectionHeader
-                icon={AlertTriangle}
-                title="Precisa da sua Atenção"
-                badgeText={`${contasVencidas.length + contasVencemHoje.length + impostosProximos.length} pendências`}
-                badgeVariant={(contasVencidas.length + contasVencemHoje.length + impostosProximos.length) > 0 ? "red" : "green"}
-              />
-
-              {loading ? (
-                <HubSkeleton height="h-20" lines={1} />
-              ) : contasVencidas.length === 0 && contasVencemHoje.length === 0 && impostosProximos.length === 0 ? (
-                <HubAttentionCard
-                  variant="green"
-                  icon={CheckCircle2}
-                  title="✓ Nenhuma conta vencida ou pendência crítica no momento."
-                  subtitle="Todas as obrigações financeiras e lançamentos estão em dia."
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {contasVencidas.length > 0 && (
-                    <HubAttentionCard
-                      variant="red"
-                      icon={AlertTriangle}
-                      title={`${contasVencidas.length} conta(s) vencida(s)`}
-                      subtitle={fmtBRL(valorTotalVencidas)}
-                      actionButton={
-                        <HubActionButton
-                          onClick={() => router.push("/dashboard/financeiro/contas?situacao=vencido")}
-                          variant="danger"
-                        >
-                          Resolver
-                        </HubActionButton>
-                      }
-                    />
-                  )}
-
-                  {contasVencemHoje.length > 0 && (
-                    <HubAttentionCard
-                      variant="amber"
-                      icon={Clock}
-                      title={`${contasVencemHoje.length} vencem hoje`}
-                      subtitle={fmtBRL(valorTotalVencemHoje)}
-                      actionButton={
-                        <HubActionButton
-                          onClick={() => router.push("/dashboard/financeiro/contas?periodo=hoje")}
-                          variant="secondary"
-                        >
-                          Ver
-                        </HubActionButton>
-                      }
-                    />
-                  )}
-
-                  {impostosProximos.length > 0 && (
-                    <HubAttentionCard
-                      variant="indigo"
-                      icon={ShieldCheck}
-                      title="Impostos / Fiscais"
-                      subtitle={`${impostosProximos.length} conta(s) fiscal(is)`}
-                      actionButton={
-                        <HubActionButton
-                          onClick={() => router.push("/dashboard/gestao/fiscal")}
-                          variant="outline"
-                        >
-                          Ver Fiscais
-                        </HubActionButton>
-                      }
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* SEÇÃO 2: DISPONIBILIDADE DO DIA & FLUXO HOJE */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider">A Pagar Hoje</span>
-                  <Clock size={18} className="text-amber-400" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-amber-400">{fmtBRL(aPagarHoje)}</span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">{contasVencemHoje.length} compromisso(s) pendente(s)</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-emerald-400 mb-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider">Entradas Hoje</span>
-                  <TrendingUp size={18} className="text-emerald-400" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-emerald-400">{fmtBRL(entradasHoje)}</span>
-                  <span className="text-[10px] text-emerald-300/80 block mt-0.5">Lançamentos de receita hoje</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider">Lançamentos do Mês</span>
-                  <CreditCard size={18} className="text-slate-400" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-white">{lancamentosFiltradosPeriodo.length}</span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">registros no fluxo de caixa</span>
-                </div>
-              </div>
-            </div>
-
-            {/* SEÇÃO 3: RESULTADO DO PERÍODO & INDICADORES */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-
-              {/* CARD DE RESULTADO DRE (2 COLUNAS LG) */}
-              <div className="lg:col-span-2 space-y-3">
-                <HubSectionHeader
-                  icon={DollarSign}
-                  title="Movimento do extrato no período"
-                  badgeText="Parcial — não é DRE"
-                  badgeVariant="amber"
-                />
-
-                <HubCardContainer className="space-y-4 flex flex-col justify-between">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Entradas no extrato</p>
-                      <p className="text-xl font-black text-white mt-1">{fmtBRL(receitaBrutaPeriodo)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Saídas no extrato</p>
-                      <p className="text-xl font-black text-slate-300 mt-1">{fmtBRL(despesasPeriodo)}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase">Saldo do extrato</p>
-                      <p className={`text-2xl font-black mt-1 ${resultadoLiquido >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                        {resultadoLiquido >= 0 ? `+ ${fmtBRL(resultadoLiquido)}` : `- ${fmtBRL(Math.abs(resultadoLiquido))}`}
-                      </p>
-                    </div>
+            <button type="button" onClick={atualizar} aria-label="Atualizar" title="Atualizar"
+              className="grid min-h-[40px] min-w-[40px] place-items-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500">
+              <RefreshCw size={15} className={carregando ? "animate-spin text-emerald-400" : ""} />
+            </button>
+            {podeVerFinanceiroTotal && (
+              <div className="relative" ref={menuRef}>
+                <Botao variante="pri" icone={Plus} onClick={() => setMenuNovo((v) => !v)}>Novo lançamento <ChevronDown size={14} /></Botao>
+                {menuNovo && (
+                  <div className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-xl">
+                    {[["Conta a pagar", ROTAS.novaContaPagar, CreditCard], ["Conta a receber", ROTAS.contasReceber, Banknote], ["Faturamento do dia", ROTAS.faturamento, Receipt]]
+                      .filter(([, r]) => podeRota(r)).map(([rot, r, I]) => (
+                        <button key={rot} type="button" onClick={() => { setMenuNovo(false); ir(r); }} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-slate-100 hover:bg-slate-800">
+                          <I size={14} className="text-slate-400" />{rot}
+                        </button>
+                      ))}
                   </div>
-
-                  <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-xs text-slate-400">
-                      {resultadoLiquido >= 0 ? "✓ Operação saudável e gerando resultado positivo." : "⚠ Operação com resultado negativo no período."}
-                    </span>
-                    {podeVerDRE && onAbrirDRE && (
-                      <HubActionButton
-                        onClick={onAbrirDRE}
-                        variant="secondary"
-                        icon={ArrowRight}
-                      >
-                        Abrir DRE Completo
-                      </HubActionButton>
-                    )}
-                  </div>
-                </HubCardContainer>
-              </div>
-
-              {/* CARD DE INDICADORES CMV & CMO (1 COLUNA LG) */}
-              <div className="space-y-3">
-                <HubSectionHeader
-                  icon={PieChart}
-                  title="Indicadores Chave"
-                />
-
-                <HubCardContainer className="space-y-4 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-extrabold text-slate-400 uppercase">CMV Estimado</p>
-                        <p className="text-lg font-black text-amber-400">{fmtPct(cmvCalculado.cmvPct)}</p>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-bold">Insumos em estoque</span>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-extrabold text-slate-400 uppercase">CMO (Mão de Obra)</p>
-                        <p className="text-lg font-black text-sky-400">
-                          {cmoDados?.cmo ? fmtPct(cmoDados.cmo) : "Disponível"}
-                        </p>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-bold">Folha + Extras</span>
-                    </div>
-                  </div>
-
-                  <HubActionButton
-                    onClick={() => router.push("/dashboard/financeiro/cmv")}
-                    variant="secondary"
-                    icon={ArrowRight}
-                    fullWidth
-                  >
-                    Analisar CMV / Custos
-                  </HubActionButton>
-                </HubCardContainer>
-              </div>
-
-            </div>
-
-            {/* SEÇÃO 4: O QUE MUDOU? (COMPARAÇÃO TEMPORAL VS MÊS ANTERIOR) */}
-            <div className="space-y-3 pt-2">
-              <HubSectionHeader
-                icon={TrendingUp}
-                title="O que mudou? (vs. Mês Anterior)"
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase">Variação das entradas do extrato</p>
-                  <p className={`text-xl font-black mt-1 ${varReceitaPct === null ? "text-slate-400" : varReceitaPct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                    {varReceitaPct === null ? "Sem base de comparação" : `${varReceitaPct >= 0 ? "↑" : "↓"} ${Math.abs(varReceitaPct).toFixed(1)}%`}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase">Variação de Despesas</p>
-                  <p className={`text-xl font-black mt-1 ${varDespesasPct === null ? "text-slate-400" : varDespesasPct <= 0 ? "text-emerald-400" : "text-amber-400"}`}>
-                    {varDespesasPct === null ? "Sem base de comparação" : `${varDespesasPct >= 0 ? "↑" : "↓"} ${Math.abs(varDespesasPct).toFixed(1)}%`}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase">Variação de CMV</p>
-                  <p className="text-xl font-black text-sky-400 mt-1">Estável (p.p.)</p>
-                </div>
-              </div>
-            </div>
-
-            {/* SEÇÃO 5: PRÓXIMOS VENCIMENTOS */}
-            <div className="space-y-3 pt-2">
-              <HubSectionHeader
-                icon={Calendar}
-                title="Próximos Vencimentos"
-                action={
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/financeiro/contas")}
-                    className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1 min-h-[44px] cursor-pointer"
-                  >
-                    <span>Ver Todas as Contas</span>
-                    <ChevronRight size={14} />
-                  </button>
-                }
-              />
-
-              {loading ? (
-                <HubSkeleton height="h-16" lines={3} />
-              ) : proximasContas.length === 0 ? (
-                <HubAttentionCard
-                  variant="green"
-                  icon={CheckCircle2}
-                  title="Nenhuma conta pendente para os próximos dias."
-                />
-              ) : (
-                <HubListContainer>
-                  {proximasContas.map(conta => (
-                    <HubListItem key={conta.id}>
-                      <div className="min-w-0">
-                        <p className="font-extrabold text-white truncate text-xs sm:text-sm">{conta.descricao}</p>
-                        <p className="text-[10px] text-slate-400">Vencimento: {conta.data_vencimento ? new Date(conta.data_vencimento).toLocaleDateString("pt-BR") : "—"}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="font-black text-amber-400 text-xs sm:text-sm">{fmtBRL(conta.valor)}</span>
-                      </div>
-                    </HubListItem>
-                  ))}
-                </HubListContainer>
-              )}
-            </div>
-
-            {/* SEÇÃO 6: AÇÕES RÁPIDAS */}
-            <div className="space-y-3 pt-2">
-              <HubSectionHeader
-                title="Ações Rápidas Financeiras"
-              />
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/financeiro/caixa")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                >
-                  <DollarSign size={18} className="text-emerald-400 shrink-0" />
-                  <span className="text-xs font-extrabold text-white">Fluxo de Caixa</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/financeiro/contas")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                >
-                  <CreditCard size={18} className="text-amber-400 shrink-0" />
-                  <span className="text-xs font-extrabold text-white">Contas a Pagar</span>
-                </button>
-
-                {podeVerDRE && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/financeiro/dre")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <FileText size={18} className="text-sky-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">DRE Gerencial</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/operacao/compras")}
-                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                >
-                  <ShoppingCart size={18} className="text-purple-400 shrink-0" />
-                  <span className="text-xs font-extrabold text-white">Compras</span>
-                </button>
-
-                {podeVerFiscal && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/gestao/fiscal")}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
-                  >
-                    <ShieldCheck size={18} className="text-teal-400 shrink-0" />
-                    <span className="text-xs font-extrabold text-white">Dados Fiscais</span>
-                  </button>
                 )}
               </div>
-            </div>
+            )}
+            {podeVerFinanceiroTotal && <button type="button" className="inline-flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900 px-3 text-xs font-bold text-slate-100 hover:border-slate-500" onClick={() => router.push("/dashboard/financeiro/contas")}><Wallet size={15} />Contas a Pagar</button>}
+            {podeRota(ROTAS.dre) && <Botao icone={FileText} onClick={() => (onAbrirDRE ? onAbrirDRE() : ir(ROTAS.dre))}>DRE Gerencial</Botao>}
+          </div>
+        </header>
 
-            {/* SEÇÃO 7: MAIS FERRAMENTAS */}
-            <div className="space-y-3 pt-2">
-              <HubSectionHeader
-                title="Mais Ferramentas Financeiras"
-              />
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/financeiro/cmv")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
-                >
-                  <p className="text-xs font-bold text-white truncate">CMV Realizado</p>
-                  <p className="text-[10px] text-slate-400">Análise de insumos</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/financeiro/pizza")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
-                >
-                  <p className="text-xs font-bold text-white truncate">Pizza do Lucro</p>
-                  <p className="text-[10px] text-slate-400">Composição de margem</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/financeiro/custos-fixos")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
-                >
-                  <p className="text-xs font-bold text-white truncate">Custos Fixos</p>
-                  <p className="text-[10px] text-slate-400">Aluguel, energia e água</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/relatorios")}
-                  className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-left transition-all min-h-[48px] cursor-pointer"
-                >
-                  <p className="text-xs font-bold text-white truncate">Relatórios Gerenciais</p>
-                  <p className="text-[10px] text-slate-400">Exportação em PDF/CSV</p>
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          /* ─── VISÃO RESTRITA OPERACIONAL (USUÁRIO APENAS COM PERMISSÃO DE CMV/CUSTOS) ─── */
-          <div className="space-y-6">
-            <HubCardContainer className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h2 className="text-base font-black text-white">Resultado Operacional Permitido</h2>
-                <span className="text-xs text-amber-400 font-bold">Acesso Restrito a Custos</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
-                  <p className="text-xs text-slate-400">CMV Estimado do Estoque:</p>
-                  <p className="text-xl font-black text-amber-400 mt-1">{fmtPct(cmvCalculado.cmvPct)}</p>
-                </div>
-
-                <HubActionButton
-                  onClick={() => router.push("/dashboard/financeiro/cmv")}
-                  variant="secondary"
-                  icon={ArrowRight}
-                >
-                  Abrir CMV Operacional
-                </HubActionButton>
-              </div>
-            </HubCardContainer>
+        {periodo === "personalizado" && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <label className="flex items-center gap-1.5 text-slate-400">De <input type="date" value={pers.de} max={hoje} onChange={(e) => setPers((p) => ({ ...p, de: e.target.value }))} className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-slate-100" /></label>
+            <label className="flex items-center gap-1.5 text-slate-400">até <input type="date" value={pers.ate} max={hoje} onChange={(e) => setPers((p) => ({ ...p, ate: e.target.value }))} className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-slate-100" /></label>
+            {!intervalo.valido && <span className="font-bold text-amber-300">{intervalo.motivo}</span>}
           </div>
         )}
 
+        {!c ? (
+          <div className="flex min-h-[40vh] items-center justify-center gap-2 text-sm font-bold text-slate-300"><Loader2 className="animate-spin text-emerald-400" size={20} />Carregando a Central Financeira…</div>
+        ) : !podeVerFinanceiroTotal ? (
+          /* VISÃO RESTRITA: só custos (CMV), sem valores de caixa */
+          <Secao titulo="Custos que você pode ver" icone={Target}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Indicador titulo="CMV realizado" estado={ind.cmv} principal={ind.cmv.pct != null ? pct(ind.cmv.pct) : brl(ind.cmv.valor)}
+                secundaria={ind.cmv.periodo ? `${ddmm(ind.cmv.periodo.de)} a ${ddmm(ind.cmv.periodo.ate)} · ${ind.cmv.pct != null ? brl(ind.cmv.valor) : ind.cmv.motivoPct}` : ""} />
+              {podeRota(ROTAS.cmvReal) && <Botao icone={ChevronRight} onClick={() => ir(ROTAS.cmvReal)}>Abrir CMV realizado</Botao>}
+            </div>
+          </Secao>
+        ) : (
+          <>
+            {/* 2. RESUMO EXECUTIVO */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+              <Card titulo="A pagar" icone={Wallet} estado={k.aPagar} tom={k.aPagar.tom} valor={brl(k.aPagar.valor)}
+                linhas={[k.aPagar.nVencidas ? `${k.aPagar.nVencidas} vencida(s) · ${brl(k.aPagar.vencido)}` : "Nenhuma vencida", `${brl(k.aPagar.proximos7)} nos próximos 7 dias`]}
+                onClick={() => ir(ROTAS.contasPagar)}
+                acao={k.aPagar.vencido > 0 ? <button type="button" onClick={(e) => { e.stopPropagation(); router.push("/dashboard/financeiro/contas?situacao=vencido"); }} className="rounded-lg bg-rose-500/15 px-2 py-1 text-[11px] font-black text-rose-300 hover:bg-rose-500/25">Resolver</button> : null}
+                rodape={<span className="text-[10px] text-slate-500">posição de hoje</span>} />
+              <Card titulo="A receber" icone={Banknote} estado={k.aReceber} tom={k.aReceber.tom} valor={brl(k.aReceber.valor)}
+                linhas={[k.aReceber.atrasado ? `${brl(k.aReceber.atrasado)} atrasado` : "Nada atrasado", `${brl(k.aReceber.proximos7)} nos próximos 7 dias`]}
+                onClick={podeRota(ROTAS.contasReceber) ? () => ir(ROTAS.contasReceber) : undefined}
+                rodape={<span className="text-[10px] text-slate-500">posição de hoje</span>} />
+              <Card titulo="Entradas" icone={ArrowDownCircle} estado={k.fluxo} tom="positivo" valor={brl(k.fluxo.entradas)}
+                linhas={["Recebimentos efetivos no período", k.fluxo.incluiLegado ? "Inclui pagamentos antigos sem histórico" : null]}
+                onClick={podeRota(ROTAS.caixa) ? () => ir(ROTAS.caixa) : undefined} />
+              <Card titulo="Saídas" icone={ArrowUpCircle} estado={k.fluxo} tom="critico" valor={brl(k.fluxo.saidas)}
+                linhas={["Pagamentos efetivos no período"]} onClick={podeRota(ROTAS.caixa) ? () => ir(ROTAS.caixa) : undefined} />
+              <Card titulo="Saldo do período" icone={Scale} estado={k.fluxo} tom={k.fluxo.saldo < 0 ? "critico" : k.fluxo.saldo > 0 ? "positivo" : "neutro"}
+                valor={sinal(k.fluxo.saldo)} linhas={["Entradas − saídas realizadas", `${k.fluxo.lancamentos} lançamento(s)`]} />
+              <Card titulo="Faturamento" icone={Receipt} estado={k.faturamento} tom={k.faturamento.estado === "parcial" ? "atencao" : "info"}
+                valor={brl(k.faturamento.valor)} linhas={[k.faturamento.estado === "parcial" ? `Parcial: ${k.faturamento.lancados} de ${k.faturamento.esperados} dias` : "Vendas − cancelamentos − descontos"]}
+                acao={["nao_apurado", "parcial"].includes(k.faturamento.estado) && podeRota(ROTAS.faturamento)
+                  ? <button type="button" onClick={(e) => { e.stopPropagation(); ir(ROTAS.faturamento); }} className="rounded-lg bg-sky-500/15 px-2 py-1 text-[11px] font-black text-sky-300 hover:bg-sky-500/25">Lançar faturamento</button> : null} />
+            </div>
+
+            {/* 3. PRECISA DA SUA ATENÇÃO + resumo do Héfisto */}
+            <Secao titulo="Precisa da sua atenção" icone={AlertTriangle}
+              direita={<span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${c.alertas.length ? "bg-rose-500/15 text-rose-300" : "bg-emerald-500/15 text-emerald-300"}`}>{c.alertas.length ? `${c.alertas.length} item(ns)` : "tudo em dia"}</span>}>
+              {c.alertas.length === 0 ? (
+                <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300"><CheckCircle2 size={16} />Nenhum problema encontrado nos dados disponíveis.</div>
+              ) : (
+                <div className="divide-y divide-slate-800 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70">
+                  {c.alertas.map((a) => {
+                    const t = TOM[a.prioridade === "critico" ? "critico" : a.prioridade === "atencao" ? "atencao" : "info"];
+                    const Ic = a.prioridade === "critico" ? AlertCircle : a.prioridade === "atencao" ? AlertTriangle : Info;
+                    return (
+                      <div key={a.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
+                        <Ic size={18} className={`hidden shrink-0 sm:block ${t.texto}`} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className={`text-[10px] font-black uppercase tracking-wider ${t.texto}`}>{a.prioridade === "critico" ? "Crítico" : a.prioridade === "atencao" ? "Atenção" : "Informativo"}</span>
+                            <span className="text-sm font-bold text-white">{a.titulo}</span>
+                            {a.valor != null && <span className={`text-sm font-black tabular-nums ${t.texto}`}>{brl(a.valor)}</span>}
+                          </div>
+                          <p className="line-clamp-2 text-[11px] text-slate-400">{a.impacto}{a.motivo ? ` ${a.motivo}` : ""}</p>
+                        </div>
+                        {a.recarregar ? <Botao icone={RefreshCw} onClick={atualizar}>{a.acao}</Botao>
+                          : a.href && podeRota(a.href) ? <Botao onClick={() => ir(a.href)}>{a.acao} <ChevronRight size={14} /></Botao> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {c.resumo.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                    <Sparkles size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Héfisto identificou</p>
+                      <ul className="mt-0.5 space-y-0.5 text-xs text-slate-200">
+                        {c.resumo.map((r, i) => <li key={i} className="flex gap-1.5"><span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TOM[r.tom]?.ponto || "bg-slate-400"}`} />{r.texto}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                  {podeRota(ROTAS.inteligencia) && <Botao icone={Sparkles} onClick={() => ir(ROTAS.inteligencia)}>Perguntar ao Héfisto</Botao>}
+                </div>
+              )}
+            </Secao>
+
+            {/* 4 e 5. FLUXO FINANCEIRO + INDICADORES GERENCIAIS */}
+            <div className="grid gap-5 lg:grid-cols-5">
+              <Secao titulo="Fluxo financeiro" icone={Landmark} className="lg:col-span-2"
+                direita={<span className="text-[10px] text-slate-500">{intervalo.rotulo}</span>}>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3.5">
+                  {semValor(k.fluxo) ? (
+                    <p className="text-sm text-slate-300"><b>{ROTULO_ESTADO[k.fluxo.estado]}.</b> <span className="text-slate-400">{k.fluxo.motivo}</span></p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[["Entradas", brl(k.fluxo.entradas), "text-emerald-400"], ["Saídas", brl(k.fluxo.saidas), "text-rose-400"],
+                          ["Saldo", sinal(k.fluxo.saldo), k.fluxo.saldo < 0 ? "text-rose-400" : k.fluxo.saldo > 0 ? "text-emerald-400" : "text-white"],
+                          ["Lançamentos", String(k.fluxo.lancamentos), "text-white"]].map(([r, v, cls]) => (
+                          <div key={r} className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{r}</p><p className={`truncate text-lg font-black tabular-nums ${cls}`}>{v}</p></div>
+                        ))}
+                      </div>
+                      <p className="mt-3 border-t border-slate-800 pt-2 text-[11px] text-slate-400">
+                        Caixa realizado (data do dinheiro), registrado no financeiro.{k.fluxo.estado === "zero" ? ` ${k.fluxo.motivo}` : ""}{k.fluxo.incluiLegado ? " Inclui pagamentos antigos sem histórico." : ""} Não é DRE.
+                      </p>
+                    </>
+                  )}
+                  {k.saldoGerencial && (
+                    <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-slate-950/60 px-3 py-2 text-xs">
+                      <span className="text-slate-400">Saldo em caixa/banco (gerencial)</span>
+                      <span className={`font-black tabular-nums ${semValor(k.saldoGerencial) ? "text-slate-300" : "text-white"}`}>{semValor(k.saldoGerencial) ? ROTULO_ESTADO[k.saldoGerencial.estado] : brl(k.saldoGerencial.valor)}</span>
+                    </div>
+                  )}
+                </div>
+              </Secao>
+
+              <Secao titulo="Indicadores gerenciais" icone={BarChart3} className="lg:col-span-3"
+                direita={<span className="text-[10px] text-slate-500">mês atual · CMV pelo último inventário fechado</span>}>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  <Indicador titulo="CMV realizado" estado={ind.cmv}
+                    tom={ind.cmv.saude === "acima" ? "atencao" : ind.cmv.saude === "saudavel" ? "positivo" : "info"}
+                    principal={ind.cmv.pct != null ? pct(ind.cmv.pct) : brl(ind.cmv.valor)}
+                    secundaria={ind.cmv.periodo ? `${ddmm(ind.cmv.periodo.de)} a ${ddmm(ind.cmv.periodo.ate)} · ${ind.cmv.pct != null ? brl(ind.cmv.valor) : "valor em R$"}` : ""}
+                    nota={ind.cmv.pct == null ? ind.cmv.motivoPct : ind.cmv.meta ? `Meta ≤ ${pct(ind.cmv.meta)} · ${ind.cmv.saude === "acima" ? "acima da meta" : "dentro da meta"}` : "Meta de CMV não configurada"} />
+                  <Indicador titulo="CMO (mão de obra)" estado={ind.cmo} tom="info"
+                    principal={ind.cmo.pct != null ? pct(ind.cmo.pct) : brl(ind.cmo.valor)}
+                    secundaria={`Folha ${brl(ind.cmo.folha || 0)} + extras ${brl(ind.cmo.extras || 0)}`}
+                    nota={ind.cmo.pct != null ? brl(ind.cmo.valor) : ind.cmo.motivoPct} />
+                  <Indicador titulo="Custos fixos" estado={ind.custosFixos} tom="info"
+                    principal={brl(ind.custosFixos.valor)} secundaria={`${ind.custosFixos.itens || 0} item(ns) cadastrados, por mês`}
+                    nota={ind.custosFixos.pct != null ? `${pct(ind.custosFixos.pct)} do faturamento` : ind.custosFixos.motivoPct} />
+                  <Indicador titulo="Margem operacional" estado={ind.margem} tom={ind.margem.pct < 0 ? "critico" : "positivo"} principal={ind.margem.pct != null ? pct(ind.margem.pct) : ""} secundaria="Lucro ÷ faturamento do mês" />
+                  <Indicador titulo="Ponto de equilíbrio" estado={ind.pontoEquilibrio} tom="info" principal={ind.pontoEquilibrio.mensal != null ? brl(ind.pontoEquilibrio.mensal) : ""}
+                    secundaria={ind.pontoEquilibrio.diario != null ? `${brl(ind.pontoEquilibrio.diario)}/dia · ${brl(ind.pontoEquilibrio.semanal)}/semana` : ""} />
+                  <Indicador titulo="Lucro operacional" estado={ind.lucro} tom={ind.lucro.valor < 0 ? "critico" : "positivo"} principal={ind.lucro.valor != null ? sinal(ind.lucro.valor) : ""}
+                    secundaria="Faturamento − CMV − CMO − custos fixos" />
+                </div>
+              </Secao>
+            </div>
+
+            {/* 6. PRÓXIMOS COMPROMISSOS */}
+            <Secao titulo="Próximos compromissos" icone={CreditCard}
+              direita={<button type="button" onClick={() => ir(ROTAS.contasPagar)} className="inline-flex min-h-[36px] items-center gap-1 text-xs font-bold text-emerald-400 hover:underline">Ver todas as contas <ChevronRight size={14} /></button>}>
+              {!c.compromissos ? (
+                <p className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3 text-sm text-slate-300"><b>Erro ao carregar.</b> <button type="button" onClick={atualizar} className="font-bold text-emerald-400 hover:underline">Tentar novamente</button></p>
+              ) : c.compromissos.total === 0 ? (
+                <p className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300"><CheckCircle2 size={16} />Nenhuma conta vencida, para hoje ou para os próximos 7 dias.</p>
+              ) : (
+                <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-slate-800 px-3 py-2 text-[11px] text-slate-400">
+                    <span><b className="text-rose-300">{c.compromissos.contagem.vencidas}</b> vencida(s)</span>
+                    <span><b className="text-amber-300">{c.compromissos.contagem.hoje}</b> vencem hoje</span>
+                    <span><b className="text-sky-300">{c.compromissos.contagem.proximos7}</b> nos próximos 7 dias</span>
+                    {c.compromissos.total > c.compromissos.linhas.length && <span>· mostrando as {c.compromissos.linhas.length} mais urgentes de {c.compromissos.total}</span>}
+                  </div>
+                  <ul className="divide-y divide-slate-800">
+                    {c.compromissos.linhas.map((l) => {
+                      const t = TOM[l.status.tom];
+                      return (
+                        <li key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto_auto_auto]">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-white">{l.descricao}</p>
+                            <p className="truncate text-[11px] text-slate-400 sm:hidden">{l.categoria} · {l.vencimentoBr}</p>
+                          </div>
+                          <span className="hidden truncate text-xs text-slate-400 sm:block">{l.categoria}</span>
+                          <span className="hidden text-xs tabular-nums text-slate-300 sm:block">{l.vencimentoBr}</span>
+                          <span className="text-right text-sm font-black tabular-nums text-white">{brl(l.valor)}</span>
+                          <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1 sm:justify-end">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${t.fundo} ${t.texto}`}>{l.status.rotulo}{l.parcial ? " · parcial" : ""}</span>
+                            <div className="flex gap-1">
+                              {onPagarConta && <button type="button" onClick={() => onPagarConta({ id: l.id })} className="min-h-[32px] rounded-lg bg-emerald-500 px-2.5 text-[11px] font-black text-slate-950 hover:bg-emerald-400">Pagar</button>}
+                              <button type="button" onClick={() => ir(l.status.tom === "critico" ? ROTAS.contasVencidas : ROTAS.contasPagar)} className="min-h-[32px] rounded-lg border border-slate-700 px-2.5 text-[11px] font-bold text-slate-200 hover:border-slate-500">Abrir</button>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </Secao>
+
+            {/* 8. AÇÕES RÁPIDAS */}
+            <Secao titulo="Ações rápidas">
+              <div className="flex flex-wrap gap-2">
+                {[["Novo lançamento", ROTAS.novaContaPagar, Plus], ["Fluxo de caixa", ROTAS.fluxo, Landmark], ["Contas a pagar", ROTAS.contasPagar, CreditCard],
+                  ["Contas a receber", ROTAS.contasReceber, Banknote], ["Compras", ROTAS.compras, ShoppingCart], ["DRE", ROTAS.dre, FileText]]
+                  .filter(([, r]) => podeRota(r)).map(([rot, r, I]) => <Botao key={rot} icone={I} onClick={() => ir(r)}>{rot}</Botao>)}
+              </div>
+            </Secao>
+
+            {/* 9. ANÁLISES E FERRAMENTAS */}
+            <Secao titulo="Análises e ferramentas">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                {[["CMV realizado", "Inventário + compras", ROTAS.cmvReal, Target], ["Custos e precificação", "CMV teórico das fichas", ROTAS.custosPrecificacao, Calculator],
+                  ["Pizza do lucro", "Custos fixos, equilíbrio e margem", ROTAS.pizza, PieChart],
+                  ["Relatórios gerenciais", "Exportar PDF/CSV", ROTAS.relatorios, BarChart3], ["Dados fiscais", "Impostos e documentos", ROTAS.fiscal, ShieldCheck]]
+                  .filter(([, , r]) => podeRota(r)).map(([rot, desc, r, I]) => (
+                    <button key={rot} type="button" onClick={() => ir(r)} className="flex min-h-[52px] min-w-0 items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left transition hover:border-slate-600">
+                      <I size={16} className="shrink-0 text-sky-300" />
+                      <span className="min-w-0"><span className="block truncate text-xs font-bold text-white">{rot}</span><span className="block truncate text-[10px] text-slate-400">{desc}</span></span>
+                    </button>
+                  ))}
+              </div>
+            </Secao>
+          </>
+        )}
       </div>
     </div>
   );

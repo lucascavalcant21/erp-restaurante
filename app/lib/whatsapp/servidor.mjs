@@ -4,7 +4,7 @@ import { atenderInteligencia } from "../intelligence/server/http.mjs";
 import { handlerAsk, handlerBrief } from "../intelligence/server/handlers.mjs";
 import { dentroDoLimite } from "../server/limite-por-ip.mjs";
 import { getSupabaseServerClient } from "../server/supabase-server.mjs";
-import { enviarTexto } from "./meta.mjs";
+import { enviar as enviarPeloProvedor } from "./envio.mjs";
 import { tokenDoDono, esquecerSessaoDoDono } from "./sessao-dono.mjs";
 import { criarFila } from "./fila.mjs";
 import { mascarar } from "./numero.mjs";
@@ -32,7 +32,7 @@ export function depsDoServidor(env = process.env) {
   const fila = filaDoServidor();
   return {
     enviar: async (para, texto) => {
-      const r = await enviarTexto({ para, texto, env });
+      const r = await enviarPeloProvedor({ para, texto, env });
       if (!r.ok) console.error("[whatsapp] envio falhou", mascarar(para), r.status || "", r.erro || "");
       else console.log("[whatsapp] envio", JSON.stringify({ para: mascarar(para), ids: r.ids || [] }));
       return r;

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { mesmoNumero, numeroAutorizado, numerosAutorizados, mascarar } from "../numero.mjs";
 import { interpretar, normalizar, AJUDA } from "../comandos.mjs";
-import { assinaturaValida, desafioDoWebhook, extrairMensagens, partir, enviarTexto } from "../meta.mjs";
+import { assinaturaValida, desafioDoWebhook, extrairMensagens, extrairStatus, partir, enviarTexto } from "../meta.mjs";
 import { atenderMensagem, limparDedupe, bloquearAcoes, ACAO_BLOQUEADA } from "../gateway.mjs";
 import { formatarBrief, formatarResposta } from "../formatar.mjs";
 import { criarFila } from "../fila.mjs";
@@ -88,9 +88,9 @@ test("partir e enviarTexto: partes de até 4000; token nunca na resposta de erro
   const partes = partir(longo);
   assert.ok(partes.length > 1 && partes.every((p) => p.length <= 4000));
   const chamadas = [];
-  const fetchOk = async (url, o) => { chamadas.push({ url, o }); return { ok: true, json: async () => ({}) }; };
+  const fetchOk = async (url, o) => { chamadas.push({ url, o }); return { ok: true, json: async () => ({ messages: [{ id: "wamid.SAIDA1" }] }) }; };
   const e = { WHATSAPP_API_TOKEN: "TOKEN-SECRETO", WHATSAPP_PHONE_NUMBER_ID: "123" };
-  assert.deepEqual(await enviarTexto({ para: DONO, texto: "oi", env: e, fetchImpl: fetchOk }), { ok: true });
+  assert.deepEqual(await enviarTexto({ para: DONO, texto: "oi", env: e, fetchImpl: fetchOk }), { ok: true, ids: ["wamid.SAIDA1"] }, "devolve o message_id da Meta");
   assert.equal(chamadas[0].url, "https://graph.facebook.com/v23.0/123/messages");
   assert.equal(JSON.parse(chamadas[0].o.body).to, DONO);
   const fetchErro = async () => ({ ok: false, status: 401, json: async () => ({ error: { code: 190, message: "Invalid OAuth access token" } }) });
@@ -218,4 +218,20 @@ test("fila: sem a migração fica indisponível; duplicada; ponte online pelos �
   assert.equal((await criarFila(bancoFalso({ vistoEm: new Date(agora - 30_000).toISOString() })).enfileirar({}, agora)).ponteOnline, true);
   assert.equal((await criarFila(bancoFalso({ vistoEm: new Date(agora - 600_000).toISOString() })).enfileirar({}, agora)).ponteOnline, false);
   await assert.rejects(criarFila(bancoFalso({ erroInsert: { code: "XX000", message: "x" } })).enfileirar({}), /fila: falha ao gravar/);
+});
+
+test("extrairStatus: recibo de entrega com o erro da Meta (sem isso, falha de envio fica invisível)", () => {
+  const payload = { entry: [{ changes: [
+    { field: "messages", value: { statuses: [
+      { id: "wamid.S1", status: "delivered", recipient_id: DONO },
+      { id: "wamid.S2", status: "failed", recipient_id: DONO, errors: [{ code: 131047, title: "Re-engagement message" }] },
+    ] } },
+    { field: "messages", value: { messages: [{ id: "wamid.E1", from: DONO, type: "text", text: { body: "status" } }] } },
+  ] }] };
+  assert.deepEqual(extrairStatus(payload), [
+    { id: "wamid.S1", status: "delivered", para: DONO, erros: [] },
+    { id: "wamid.S2", status: "failed", para: DONO, erros: [{ codigo: 131047, titulo: "Re-engagement message" }] },
+  ]);
+  assert.deepEqual(extrairStatus(null), []);
+  assert.equal(extrairMensagens(payload).length, 1, "recibo não vira comando");
 });

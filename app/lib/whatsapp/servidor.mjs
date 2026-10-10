@@ -34,6 +34,7 @@ export function depsDoServidor(env = process.env) {
     enviar: async (para, texto) => {
       const r = await enviarTexto({ para, texto, env });
       if (!r.ok) console.error("[whatsapp] envio falhou", mascarar(para), r.status || "", r.erro || "");
+      else console.log("[whatsapp] envio", JSON.stringify({ para: mascarar(para), ids: r.ids || [] }));
       return r;
     },
     perguntar: (pergunta, msg) => chamarCore({

@@ -52,6 +52,24 @@ export function extrairMensagens(payload) {
   return out;
 }
 
+/** Recibos de entrega das mensagens que ENVIAMOS (sent/delivered/read/failed), com o erro da Meta se houver. */
+export function extrairStatus(payload) {
+  const out = [];
+  for (const entry of Array.isArray(payload?.entry) ? payload.entry : []) {
+    for (const ch of Array.isArray(entry?.changes) ? entry.changes : []) {
+      if (ch?.field !== "messages") continue;
+      for (const s of Array.isArray(ch.value?.statuses) ? ch.value.statuses : []) {
+        if (!s?.id || !s?.status) continue;
+        out.push({
+          id: String(s.id), status: String(s.status), para: String(s.recipient_id || ""),
+          erros: (Array.isArray(s.errors) ? s.errors : []).slice(0, 3).map((e) => ({ codigo: e?.code ?? null, titulo: String(e?.title || e?.message || "").slice(0, 120) })),
+        });
+      }
+    }
+  }
+  return out;
+}
+
 /** Quebra em partes de até `limite` caracteres, preferindo quebra de linha. */
 export function partir(texto, limite = LIMITE_TEXTO) {
   const partes = [];
@@ -69,12 +87,13 @@ export function partir(texto, limite = LIMITE_TEXTO) {
 /**
  * Envia texto para `para` (dígitos). Responde à mensagem do dono dentro da
  * janela de 24 h, então texto livre é permitido.
- * @returns {Promise<{ ok: boolean, status?: number, erro?: string }>}
+ * @returns {Promise<{ ok: boolean, ids?: string[], status?: number, erro?: string }>}  ids = message_id da Meta
  */
 export async function enviarTexto({ para, texto, env = process.env, fetchImpl = fetch }) {
   const token = env.WHATSAPP_API_TOKEN, numeroId = env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !numeroId) return { ok: false, erro: "WHATSAPP_API_TOKEN/WHATSAPP_PHONE_NUMBER_ID ausentes" };
   const url = `https://graph.facebook.com/${env.WHATSAPP_GRAPH_VERSION || VERSAO_GRAPH}/${encodeURIComponent(numeroId)}/messages`;
+  const ids = [];
   for (const parte of partir(texto)) {
     let r;
     try {
@@ -88,8 +107,10 @@ export async function enviarTexto({ para, texto, env = process.env, fetchImpl = 
     }
     if (!r.ok) {
       const corpo = await r.json().catch(() => null);
-      return { ok: false, status: r.status, erro: corpo?.error ? `${corpo.error.code || ""} ${corpo.error.message || ""}`.trim().slice(0, 200) : `HTTP ${r.status}` };
+      return { ok: false, ids, status: r.status, erro: corpo?.error ? `${corpo.error.code || ""} ${corpo.error.message || ""}`.trim().slice(0, 200) : `HTTP ${r.status}` };
     }
+    const corpo = await r.json().catch(() => null);
+    for (const m of Array.isArray(corpo?.messages) ? corpo.messages : []) if (m?.id) ids.push(String(m.id));
   }
-  return { ok: true };
+  return { ok: true, ids };
 }

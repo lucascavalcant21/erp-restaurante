@@ -89,4 +89,4 @@ await pg.exec(rollbackLocal);
 conferir("rollback apaga o Salão vazio", (await linhas("select count(*)::int n from public.estoques where slug = 'salao'"))[0].n, 0);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
-process.exit(falhas ? 1 : 0);
+process.exitCode = falhas ? 1 : 0;

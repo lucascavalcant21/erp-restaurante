@@ -37,6 +37,14 @@ Mapa da auditoria: [[ESTOQUE_AUDITORIA]] (`docs/brain/02_ARQUITETURA/ESTOQUE_AUD
 - TESTADO NO SUPABASE REAL (só leitura): auditoria, causa do erro de unidade, mínimo em garrafas.
 - NÃO VALIDADO: telas no navegador (preview pede login; validar em produção depois do merge), celular.
 
+## Rodada 2 (2026-10-11)
+
+- PRs #144 e #145 sem conflito (main não andou). Testes repetidos: tudo verde exceto navegacao e folgas-domingo (RH, já falhavam na main).
+- contas-pagar: 2 falhas por data real corrigidas com "hoje" fixo (fin_hoje = 2026-10-05) → 74/74.
+- Plano Supabase FREE: sem backup automático/PITR → migrações fazem cópia na mesma transação (RLS ligado, sem grant).
+- Preparados, NÃO executados: `db/EST_UNI_1`, `db/EST_LOCAL_1_SALAO`, `db/LIMPEZA_TESTES_FIN_20261011` (16 casos em PGlite para as migrações).
+- Duplicados: [[ESTOQUE_DUPLICADOS]].
+
 ## Pendente (decisão do dono)
 
 1. Merge dos PRs (paleta #144 e este) — produção.

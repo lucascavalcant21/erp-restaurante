@@ -48,3 +48,17 @@ Parte deve ser legítima:
 - insumo cru × pré-preparo da ficha.
 
 Parte é duplicado real: "Açúcar" em kg, g e L ao mesmo tempo. Precisa da mesma análise, item a item, antes de qualquer união.
+
+## Tabela de correspondência (proposta, NÃO executada)
+
+Referências conferidas em TODAS as tabelas com `insumo_id` (fichas, compras, contagens, custo médio, custo histórico, fornecedores, embalagens, lotes, movimentos, preços, estoque_atual legado). Custo = `custo_compra` do cadastro convertido para a embalagem (não há custo médio: nenhuma compra pelo módulo Compras).
+
+| Duplicado (id) | Unidade | Saldo | Custo cadastro | Referências | → Fica (id) | Unidade | Saldo | Custo cadastro | Referências |
+|---|---|---|---|---|---|---|---|---|---|
+| Heineken - 600ml (47ca891c-4503-492e-adc7-ddf5d90afe53) | un | 0 | R$ 7,60/un | estoque_itens 1, preços 1, legado 1 | Heineken (d48708f1-5ece-4b63-a933-7abe58be4806) | ml · 600 | 48 garrafas (28.800 ml) | R$ 7,60/garrafa | itens 1, lotes 1, mov 7, preços 1, legado 1 |
+| Heineken zero - Long neck 330ml (7d57e434-e058-4064-87b6-74996ab847b3) | un | 0 | R$ 5,70/un | estoque_itens 1, preços 1, legado 1 | Heineken - Long neck zero 330ml (f8877024-3790-4e9e-85f4-57f3968b517b) **ou** Heineken zero (79a931da-…) — dono decide (long neck × lata) | un / ml · 330 | 0 / 48 latas | R$ 5,70 / R$ 7,00 | itens 1, preços 1 / mov 8, lotes 1, preços 3 |
+| Corona Long Neck (79220b02-d974-4f03-aa19-12b9eed85480) | ml · 330 | 0 | R$ 2,00 (valor suspeito) | estoque_itens 1, preços 1, legado 1 | Corona (9d75bef9-1559-4228-b419-977ee68a683a) | ml · 330 | 12 garrafas (3.960 ml) | R$ 6,90/garrafa | itens 1, lotes 1, mov 4, preços 3, legado 1 |
+| Coroa zero (1ce6cc2d-5098-4c93-a629-51bae64f35db) | un | **24 un** | R$ 1,00/un (valor suspeito) | itens 1, lotes 1, mov 1 (08/10), preços 1, legado 1 | Corona zero (ac01cd2e-426d-42d3-bd32-bd9d7fb2f4bd) | ml · 330 | 36 garrafas (11.880 ml) | R$ 6,90/garrafa | itens 1, lotes 1, mov 3, preços 3, legado 1 |
+| — (variação legítima) "Heineken " (dda5ada5-f856-431a-acdd-b623c0a240f4) | ml · 330 | 30 long necks (9.900 ml) | R$ 6,40/un | itens 1, lotes 1, mov 9, preços 1, legado 1 | fica como está; só renomear para "Heineken Long Neck 330 ml" | | | | |
+
+Como unir sem perder histórico (quando aprovado): o duplicado NÃO é apagado (movimentos e histórico de preço apontam para ele). Saldo > 0 vai para o que fica por movimentação auditada (retirada "ajuste autorizado" no duplicado + entrada no que fica, mesma justificativa); depois o duplicado é arquivado. Nenhum UPDATE em movimentos antigos.

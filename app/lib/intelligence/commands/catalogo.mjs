@@ -16,7 +16,7 @@ export const UNIDADES = Object.freeze(["kg", "g", "l", "ml", "un"]);
 export const MOTIVOS_PERDA = Object.freeze(["limpeza", "validade", "erro_producao", "dano", "outro"]);
 
 export const DESTINOS = Object.freeze({
-  estoque: { rota: "/dashboard/operacao/estoque?gestao=1", rotulo: "Estoque" },
+  estoque: { rota: "/dashboard/operacao/estoque", rotulo: "Estoque" },
   compras: { rota: "/dashboard/operacao/estoque/compras", rotulo: "Compras" },
   contas_pagar: { rota: "/dashboard/financeiro/contas", rotulo: "Contas a pagar" },
   financeiro: { rota: "/dashboard/financeiro", rotulo: "Financeiro" },

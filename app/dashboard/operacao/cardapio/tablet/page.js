@@ -1,14 +1,13 @@
 "use client";
-import TabletSetor from "../../../../components/TabletSetor";
 
-export default function CozinhaTabletPage() {
-  return (
-    <TabletSetor
-      setor="Cozinha"
-      titulo="Cozinha"
-      emoji="👨‍🍳"
-      cor="#10B981"
-      voltarHref="/dashboard/operacao/cardapio"
-    />
-  );
+// Tablet antigo (Cozinha): a movimentação do estoque é uma tela só
+// (/dashboard/operacao/estoque, HDEV-EST-001). Abre já na área cozinha.
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function TabletAntigo() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/dashboard/operacao/estoque?area=cozinha"); }, [router]);
+  return null;
 }

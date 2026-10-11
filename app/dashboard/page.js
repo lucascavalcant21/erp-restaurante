@@ -26,7 +26,7 @@ const ROTAS = {
   contas: "/dashboard/financeiro/contas",
   rh: "/dashboard/rh",
   eventos: "/dashboard/reservas-eventos",
-  estoque: "/dashboard/operacao/estoque?gestao=1",
+  estoque: "/dashboard/operacao/estoque",
   mesas: "/dashboard/mesas",
 };
 

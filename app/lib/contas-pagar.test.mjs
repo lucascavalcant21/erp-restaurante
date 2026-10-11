@@ -77,6 +77,11 @@ insert into public.contas_pagar (id, unidade_id, descricao, valor, data_vencimen
  ('aaaaaaaa-0000-0000-0000-000000000003','seldeestrela','Histórica cmv',9,'2026-07-15',null,'cmv','pendente','2026-07-15','2026-07-15');
 `);
 await pg.exec(fs.readFileSync(path.join(raiz, "db", "F2_1_FUNDACAO_FINANCEIRA.sql"), "utf8"));
+// "Hoje" fixo: a conta de teste vence em 10/10/2026 e, com o relógio real,
+// virava "vencido" a partir de 11/10 (o teste quebrava sozinho com o tempo).
+// fin_hoje() do banco e HOJE do teste apontam para a mesma data controlada.
+const HOJE = "2026-10-05";
+await pg.exec(`create or replace function public.fin_hoje() returns date language sql stable set search_path = public as $$ select date '${HOJE}' $$;`);
 const historicoAntes = (await pg.query(`select id, descricao, valor, data_vencimento, data_pagamento, categoria, status, created_at from public.contas_pagar order by id`)).rows;
 
 // Adaptador mínimo no formato do supabase-js (só o que a camada usa).
@@ -146,8 +151,6 @@ const ver = async (id) => (await pg.query(`select * from public.vw_fin_contas_pa
 const todas = async () => (await pg.query(`select * from public.vw_fin_contas_pagar where unidade_id = 'seldeestrela'`)).rows
   .map((r) => ({ ...r, data_vencimento: iso(r.data_vencimento), competencia_efetiva: iso(r.competencia_efetiva), data_ultimo_pagamento: iso(r.data_ultimo_pagamento) }));
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d);
-// "hoje" no fuso de São Paulo, como fin_hoje() no banco (em UTC o teste falhava entre 21h e 24h)
-const HOJE = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const base = { unidade_id: "seldeestrela", descricao: "Energia de setembro", valor: "5.000,00", data_vencimento: "2026-10-10",
   competencia: "2026-09", categoria_codigo: "utilidades_energia", centro_custo_codigo: "cozinha",
   fornecedor_id: "11111111-1111-1111-1111-111111111111", documento_numero: "BOL-123", observacao: "conta de luz" };

@@ -115,7 +115,7 @@ export const AgenteEstoque = {
     if (!temValor(m)) return insuf(m, "Perdas");
     const blocos = [blocoMetrica(m, "Perdas registradas")];
     if (m.detalhes.porProduto.length) blocos.push(blocoLista("Por produto", m.detalhes.porProduto.map((p) => ({ rotulo: p.produto, valor: brl(p.valor), detalhe: `${num(p.quantidade)} ${p.unidade} · ${p.motivos.join(", ")}` }))));
-    return r(`${fraseDaMetrica(m, "Perdas registradas")} ${m.detalhes.lancamentos} lançamento(s).`, blocos, [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], NIVEL.ANALISAR);
+    return r(`${fraseDaMetrica(m, "Perdas registradas")} ${m.detalhes.lancamentos} lançamento(s).`, blocos, [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque/painel" }], NIVEL.ANALISAR);
   },
   async "estoque.saldo_produto"({ motor, params, ic }) {
     // Produto da tela/conversa: vale pelo id, reconferido no cadastro DA UNIDADE (o nome é só rótulo).
@@ -129,14 +129,14 @@ export const AgenteEstoque = {
     if (!temValor(m)) return insuf(m, "Saldo");
     const d = m.detalhes;
     const texto = `${d.produto.nome}: ${valorFormatado(m)} em estoque${d.locais.length > 1 ? ` (${d.locais.map((l) => `${l.local} ${num(l.quantidade)}`).join(", ")})` : d.locais[0] ? ` (${d.locais[0].local})` : ""}.${d.valorAoCustoMedio ? ` Valor ao custo médio: ${brl(d.valorAoCustoMedio.valor)} (ESTIMATIVA).` : ""}`;
-    return { ...r(texto, [blocoMetrica(m, `Saldo de ${d.produto.nome}`), blocoLista("Por local", d.locais.map((l) => ({ rotulo: l.local, valor: `${num(l.quantidade)} ${m.unidade}`, detalhe: l.minimo ? `mínimo ${num(l.minimo)}` : null })))], [{ rotulo: "Abrir estoque", rota: "/dashboard/operacao/estoque?gestao=1" }]),
+    return { ...r(texto, [blocoMetrica(m, `Saldo de ${d.produto.nome}`), blocoLista("Por local", d.locais.map((l) => ({ rotulo: l.local, valor: `${num(l.quantidade)} ${m.unidade}`, detalhe: l.minimo ? `mínimo ${num(l.minimo)}` : null })))], [{ rotulo: "Abrir estoque", rota: "/dashboard/operacao/estoque/painel" }]),
       referencia: { produto: { id: d.produto.id, nome: d.produto.nome } } };
   },
   async "estoque.abaixo_minimo"({ motor }) {
     const m = await motor.getLowStock();
     if (!temValor(m)) return insuf(m, "Abaixo do mínimo");
     const texto = m.valor ? `${m.valor} item(ns) abaixo do estoque mínimo.` : m.detalhes.itensComMinimo ? "Nenhum item abaixo do estoque mínimo." : `${DADOS_INSUFICIENTES}. Nenhum produto tem estoque mínimo configurado.`;
-    return r(texto, [blocoMetrica(m, "Abaixo do mínimo"), blocoLista("Itens", m.detalhes.lista.map((i) => ({ rotulo: `${i.produto} · ${i.local}`, valor: `${num(i.saldo)} ${i.unidade}`, detalhe: `mínimo ${num(i.minimo)}` })))], [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], NIVEL.DETECTAR);
+    return r(texto, [blocoMetrica(m, "Abaixo do mínimo"), blocoLista("Itens", m.detalhes.lista.map((i) => ({ rotulo: `${i.produto} · ${i.local}`, valor: `${num(i.saldo)} ${i.unidade}`, detalhe: `mínimo ${num(i.minimo)}` })))], [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque/painel" }], NIVEL.DETECTAR);
   },
   async "produto.explicar_variacao"({ motor, params, ic }) {
     const insumoId = params.insumoIdContexto || null;

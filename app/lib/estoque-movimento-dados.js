@@ -13,7 +13,9 @@ import { unidadeValida } from "./contas-pagar.mjs";
 import { marcadorInventario } from "./inventario-saldo.mjs";
 
 // unidade_conteudo + permite_fracionado: garrafa fracionada guarda o saldo em ml (inventario-saldo.mjs)
-const CAMPOS_INSUMO = "id, nome, nome_interno, marca, unidade_medida, categoria, codigo_interno, departamento, custo_unitario, custo_compra, tamanho_embalagem, unidade_comercial, unidade_conteudo, permite_fracionado, fornecedor, preco_atualizado_em";
+const CAMPOS_INSUMO = "id, nome, nome_interno, marca, unidade_medida, categoria, codigo_interno, departamento, custo_unitario, custo_compra, tamanho_embalagem, unidade_comercial, unidade_conteudo, permite_fracionado, conta_por_embalagem, fornecedor, preco_atualizado_em";
+// unidade de compra (caixa com N): db/EST_UNI_1; sem a migração, a tela segue sem "caixa"
+const CAMPOS_COMPRA = "unidade_compra, fator_compra";
 const semBanco = { data: null, error: "Sistema sem conexão com o banco." };
 // coluna nova ausente = SQL da EST-MOV-1 ainda não rodou
 const colunaAusente = (e) => /column .* does not exist|could not find .* column|PGRST204/i.test(String(e?.message || e || ""));
@@ -21,10 +23,15 @@ const colunaAusente = (e) => /column .* does not exist|could not find .* column|
 /** Locais, produtos por local (saldo), cadastro e custo médio. */
 export async function fetchBaseMovimento(unidadeId) {
   if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: null, error: "Selecione uma unidade." };
+  const insumos = async () => {
+    const r = await supabase.from("insumos").select(`${CAMPOS_INSUMO}, ${CAMPOS_COMPRA}`).eq("unidade_id", unidadeId).order("nome");
+    return r.error && colunaAusente(r.error)
+      ? supabase.from("insumos").select(CAMPOS_INSUMO).eq("unidade_id", unidadeId).order("nome") : r;
+  };
   const [e, ei, ins, cm] = await Promise.all([
     supabase.from("estoques").select("id, nome, slug, tipo, status, ordem, controla_validade").eq("unidade_id", unidadeId).eq("status", "ativo").order("ordem").order("nome"),
-    supabase.from("estoque_itens").select("id, estoque_id, insumo_id, quantidade_atual, validade, local_interno").eq("unidade_id", unidadeId),
-    supabase.from("insumos").select(CAMPOS_INSUMO).eq("unidade_id", unidadeId).order("nome"),
+    supabase.from("estoque_itens").select("id, estoque_id, insumo_id, quantidade_atual, estoque_minimo, validade, local_interno, permite_transferencia, ultima_movimentacao_em").eq("unidade_id", unidadeId),
+    insumos(),
     supabase.from("estoque_custos").select("insumo_id, custo_medio_base").eq("unidade_id", unidadeId),
   ]);
   const erro = [e.error, ei.error, ins.error].find(Boolean);
@@ -40,7 +47,49 @@ export async function fetchBaseMovimento(unidadeId) {
   };
 }
 
-const CAMPOS_MOV = "id, tipo, quantidade, saldo_anterior, saldo_posterior, usuario_nome, observacao, data_movimento, created_at, valor_total, insumo_id, estoque_id, estoque_destino_id";
+/**
+ * Produtos já conferidos na prateleira: entraram numa contagem FECHADA
+ * (chaves "estoqueId|insumoId"). O resto é "não conferido" no painel.
+ */
+export async function fetchConferidos(unidadeId) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: new Set(), error: null };
+  const { data, error } = await supabase.from("estoque_contagens_itens")
+    .select("estoque_id, insumo_id, contagem:estoque_contagens!inner(status, estoque_id)")
+    .eq("unidade_id", unidadeId).eq("contagem.status", "fechada");
+  if (error) return { data: new Set(), error: error.message };
+  return { data: new Set((data || []).map((i) => `${i.estoque_id || i.contagem?.estoque_id}|${i.insumo_id}`)), error: null };
+}
+
+/** Histórico de um local (ou de todos), o mais novo primeiro, com estornos. */
+export async function fetchHistorico(unidadeId, { estoqueId = null, limite = 200 } = {}) {
+  if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: [], estornados: new Set(), error: null };
+  let q = supabase.from("estoque_movimentacoes_multi")
+    .select(`${CAMPOS_MOV}, ${CAMPOS_MOV_NOVOS}, insumo:insumos(nome, unidade_medida, tamanho_embalagem, unidade_comercial, unidade_conteudo, permite_fracionado, conta_por_embalagem), estoque:estoques!estoque_id(nome)`)
+    .eq("unidade_id", unidadeId).order("created_at", { ascending: false }).limit(limite);
+  if (estoqueId) q = q.eq("estoque_id", estoqueId);
+  const { data, error } = await q;
+  if (error) return { data: [], estornados: new Set(), error: error.message };
+  const lista = data || [];
+  let estornados = new Set();
+  if (lista.length) {
+    const e = await supabase.from("estoque_movimentacoes_multi").select("estorno_de_id").in("estorno_de_id", lista.map((m) => m.id));
+    if (!e.error) estornados = new Set((e.data || []).map((x) => x.estorno_de_id));
+  }
+  return { data: lista, estornados, error: null };
+}
+
+/** Transferência entre locais numa operação só (estoque_transferir: sai da origem e entra no destino). */
+export async function transferirLancamento({ unidade_id, origem_id, destino_id, insumo_id, quantidade, observacao, responsavel_nome, chave }) {
+  if (!isSupabaseReady()) return semBanco;
+  const { data, error } = await supabase.rpc("estoque_transferir", {
+    p_unidade_id: unidade_id, p_estoque_origem_id: origem_id, p_estoque_destino_id: destino_id, p_insumo_id: insumo_id,
+    p_quantidade: quantidade, p_observacao: observacao || null, p_responsavel_nome: responsavel_nome || null, p_chave: chave,
+  });
+  if (error) return { data: null, error: bancoDesatualizado(error.message) ? MSG_BANCO_DESATUALIZADO : error.message };
+  return { data, error: null };
+}
+
+const CAMPOS_MOV ="id, tipo, quantidade, saldo_anterior, saldo_posterior, usuario_nome, observacao, data_movimento, created_at, valor_total, insumo_id, estoque_id, estoque_destino_id";
 const CAMPOS_MOV_NOVOS = "motivo, origem, estorno_de_id, autorizado_por_nome, justificativa, responsavel_nome, unidade_medida, detalhe_quantidade, validade, inventario_id";
 
 /**
@@ -50,7 +99,7 @@ const CAMPOS_MOV_NOVOS = "motivo, origem, estorno_de_id, autorizado_por_nome, ju
 export async function fetchUltimosMovimentos(unidadeId, estoqueId, limite = 30) {
   if (!isSupabaseReady() || !unidadeValida(unidadeId) || !estoqueId) return { data: [], estornados: new Set(), error: null };
   const consulta = (campos) => supabase.from("estoque_movimentacoes_multi")
-    .select(`${campos}, insumo:insumos(nome, unidade_medida, tamanho_embalagem, unidade_conteudo, permite_fracionado)`)
+    .select(`${campos}, insumo:insumos(nome, unidade_medida, tamanho_embalagem, unidade_comercial, unidade_conteudo, permite_fracionado, conta_por_embalagem)`)
     .eq("unidade_id", unidadeId).eq("estoque_id", estoqueId)
     .order("created_at", { ascending: false }).limit(limite);
   let r = await consulta(`${CAMPOS_MOV}, ${CAMPOS_MOV_NOVOS}`);

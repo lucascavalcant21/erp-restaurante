@@ -246,7 +246,7 @@ test("Crie uma compra… responde que não está disponível (sem executar)", as
 
 test("navegação respeita a permissão de rota", async () => {
   const a = await montar();
-  assert.deepEqual([(await a.pedir("Abra o estoque.")).tipo, (await a.pedir("Abra o estoque.")).rota], ["navegacao", "/dashboard/operacao/estoque?gestao=1"]);
+  assert.deepEqual([(await a.pedir("Abra o estoque.")).tipo, (await a.pedir("Abra o estoque.")).rota], ["navegacao", "/dashboard/operacao/estoque"]);
   const r = await montar({ token: "tok-restrito" });
   assert.equal((await r.pedir("Abra as contas")).tipo, "bloqueado");
 });

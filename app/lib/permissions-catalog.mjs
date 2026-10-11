@@ -56,12 +56,14 @@ export const PERMISSION_MODULES = [
   {
     id: "estoque", label: "Estoque",
     pages: [
-      { id: "overview", label: "Visão geral", route: "/dashboard/operacao/estoque", actions: ["view", "create", "edit", "delete", "adjust_stock", "view_values", "view_costs", "export"] },
+      // HDEV-EST-001: painel e produtos/locais (mostram custo e valor). A tela que
+      // abre em Operacional → Estoque é a movimentação (operation/movements abaixo).
+      { id: "overview", label: "Painel, produtos e locais (com custo)", route: "/dashboard/operacao/estoque/painel", actions: ["view", "create", "edit", "delete", "adjust_stock", "view_values", "view_costs", "export"] },
       // Entrada propria de proposito, e ela e o ponto da separacao: a tela de
       // operacao (10 campos, linguagem de cozinha) herdava a permissao da
       // visao geral, que mostra custo e valor de estoque. Sem separar, dar ao
       // cozinheiro a tela simples obrigava a dar junto a tela com dinheiro.
-      { id: "operation", label: "Estoque — modo operação", route: "/dashboard/operacao/estoque/tablet", actions: ["view", "create", "adjust_stock"] },
+      { id: "operation", label: "Estoque — movimentação (sem custo)", route: "/dashboard/operacao/estoque", actions: ["view", "create", "adjust_stock"] },
       // Contagem física (inventário, F2.4A): quem conta não precisa ver custo;
       // finalizar (valorizar e congelar) é ação separada.
       { id: "counts", label: "Contagem de estoque (inventário)", route: "/dashboard/operacao/estoque/contagens", actions: ["view", "inventory", "close_inventory"] },
@@ -71,7 +73,7 @@ export const PERMISSION_MODULES = [
       { id: "cmv", label: "CMV real", route: "/dashboard/operacao/estoque/cmv", actions: ["view", "edit"] },
       // EST-MOV-1: lançar ENTRADA/RETIRADA (o banco confere esta chave). Sem
       // editar nem apagar: correção é estorno, e estorno é da página abaixo.
-      { id: "movements", label: "Entrada e retirada de estoque", route: "/dashboard/operacao/estoque/movimentar", actions: ["view", "create"] },
+      { id: "movements", label: "Entrada e retirada de estoque", route: "/dashboard/operacao/estoque", actions: ["view", "create"] },
       // Segurança da contagem: approve = estornar/ajustar com o PIN do
       // administrador; settings = trocar o PIN e ligar/desligar contagem cega.
       { id: "security", label: "Segurança do estoque (PIN, estorno e ajuste)", route: "/dashboard/configuracoes/estoque", actions: ["view", "approve", "settings"] },

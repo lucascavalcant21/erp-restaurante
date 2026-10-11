@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }) {
     router.replace("/login");
   }
 
-  const interfaceTelaCheia = pathname === "/dashboard/operacao/estoque/tablet" || pathname === "/dashboard/operacao/etiquetas/tablet" || pathname.startsWith("/dashboard/rh/ponto");
+  const interfaceTelaCheia = pathname === "/dashboard/operacao/etiquetas/tablet" || pathname.startsWith("/dashboard/rh/ponto");
 
   if (interfaceTelaCheia) {
     return (

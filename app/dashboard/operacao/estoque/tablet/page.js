@@ -1,14 +1,13 @@
 "use client";
 
-import TabletSetor from "../../../../components/TabletSetor";
+// O "Modo Operação" (tablet) saiu: a tela única do estoque é simples para
+// todos os autorizados (HDEV-EST-001). Endereço antigo redireciona.
 
-export default function TabletEstoquePage() {
-  return (
-    <TabletSetor
-      titulo="Geral"
-      emoji="📦"
-      cor="#6366F1"
-      voltarHref="/dashboard/operacao/estoque"
-    />
-  );
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function TabletEstoqueAntigo() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/dashboard/operacao/estoque"); }, [router]);
+  return null;
 }

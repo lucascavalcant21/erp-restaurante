@@ -67,7 +67,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
       href: "/dashboard/operacao/estoque",
       submodules: [
         // Uma área só: saldo e contagem são abas dentro de Estoque.
-        { label: "Estoque", href: "/dashboard/operacao/estoque?gestao=1" },
+        { label: "Estoque", href: "/dashboard/operacao/estoque" },
         { label: "Compras e Custo Médio", href: "/dashboard/operacao/estoque/compras" },
         { label: "CMV Real", href: "/dashboard/operacao/estoque/cmv" },
         { label: "Cotações e Compras", href: "/dashboard/operacao/compras" },

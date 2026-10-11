@@ -365,14 +365,14 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
                 {podeVerEstoque && (
                   <button
                     type="button"
-                    onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
+                    onClick={() => router.push("/dashboard/operacao/estoque")}
                     className="flex flex-col items-start p-3.5 rounded-xl bg-hf-surface hover:bg-emerald-950/40 border border-hf-border hover:border-emerald-500/50 text-hf-text transition-all text-left group min-h-[72px] justify-between cursor-pointer"
                   >
                     <div className="w-9 h-9 rounded-lg bg-hf-elevated text-emerald-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Package size={20} />
                     </div>
                     <span className="text-xs font-bold leading-tight">Retirar Estoque</span>
-                    <span className="text-[10px] text-hf-text-2">Modo Operação</span>
+                    <span className="text-[10px] text-hf-text-2">Entrada e retirada</span>
                   </button>
                 )}
 

@@ -1096,7 +1096,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
             {tipoEstoque === "preparos" && <button onClick={() => router.push(`/dashboard/operacao/producao?dept=${departamento}`)} aria-label="Abrir produção de pré-preparos" title="Produção"><ChefHat size={17} /> <span className="estoque-rapido-abas-label">Produção</span></button>}
             {departamento === "limpeza" && <button className={aba === "ciclos" ? "ativo" : ""} onClick={() => setAba("ciclos")} aria-label="Controlar uso dos produtos" title="Chegada, início e fim"><CalendarDays size={17} /> <span className="estoque-rapido-abas-label">Uso dos produtos</span></button>}
             {AREAS_DIRETAS.includes(departamento) && <button onClick={() => setModalCadastro(true)} aria-label="Cadastrar item neste estoque" title="Cadastrar item"><Plus size={17} /> <span className="estoque-rapido-abas-label">Cadastrar</span></button>}
-            <button onClick={() => router.push(`/dashboard/operacao/estoque?gestao=1&dept=${departamento}`)} aria-label="Configurar estoque mínimo e máximo" title="Mínimo e máximo"><Settings2 size={17} /> <span className="estoque-rapido-abas-label">Mín. e máx.</span></button>
+            <button onClick={() => router.push(`/dashboard/operacao/estoque/painel/produtos?dept=${departamento}`)} aria-label="Configurar estoque mínimo e máximo" title="Mínimo e máximo"><Settings2 size={17} /> <span className="estoque-rapido-abas-label">Mín. e máx.</span></button>
           </nav>
           <button className="estoque-rapido-atualizar" onClick={() => carregar()} aria-label="Atualizar"><RefreshCw size={18} /></button>
         </div>

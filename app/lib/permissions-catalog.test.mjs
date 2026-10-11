@@ -123,21 +123,25 @@ const cozinheiro = {
   gerenciado: true, papel: "colaborador",
   permissions: ["dashboard.overview.view", "estoque.operation.view", "estoque.operation.adjust_stock"],
 };
-conferir("cozinheiro entra na tela de operacao",
-  canAccessRoute(cozinheiro, "/dashboard/operacao/estoque/tablet", ""), "true");
-conferir("cozinheiro NAO entra na tela de estoque com custo",
-  canAccessRoute(cozinheiro, "/dashboard/operacao/estoque", ""), "false");
+// HDEV-EST-001: a tela única de movimentação é /dashboard/operacao/estoque;
+// o painel com custo e o cadastro de produtos/locais ficam em /painel.
+conferir("cozinheiro entra na movimentação (tela única do estoque)",
+  canAccessRoute(cozinheiro, "/dashboard/operacao/estoque", ""), "true");
+conferir("cozinheiro entra no histórico do estoque",
+  canAccessRoute(cozinheiro, "/dashboard/operacao/estoque/historico", ""), "true");
+conferir("cozinheiro NAO entra no painel com custo nem em produtos e locais",
+  `${canAccessRoute(cozinheiro, "/dashboard/operacao/estoque/painel", "")}|${canAccessRoute(cozinheiro, "/dashboard/operacao/estoque/painel/produtos", "")}`, "false|false");
 // E o caminho contrario tambem vale: quem administra o estoque completo nao
 // perde a tela de operacao, porque a entrada dela e filha da area.
 const gerente = { gerenciado: true, papel: "colaborador", permissions: ["estoque.*"] };
 conferir("gerente de estoque entra nas duas",
   canAccessRoute(gerente, "/dashboard/operacao/estoque", "") === true
-  && canAccessRoute(gerente, "/dashboard/operacao/estoque/tablet", "") === true, "true");
+  && canAccessRoute(gerente, "/dashboard/operacao/estoque/painel", "") === true, "true");
 // Contagem de estoque (F2.4A): quem conta entra sem ganhar a tela com custo;
 // finalizar (valorizar e congelar) é ação separada.
 const contador = { gerenciado: true, papel: "colaborador", permissions: ["estoque.counts.view", "estoque.counts.inventory"] };
 conferir("contador entra na contagem e NAO na tela de estoque com custo",
-  `${canAccessRoute(contador, "/dashboard/operacao/estoque/contagens", "")}|${canAccessRoute(contador, "/dashboard/operacao/estoque", "")}`, "true|false");
+  `${canAccessRoute(contador, "/dashboard/operacao/estoque/contagens", "")}|${canAccessRoute(contador, "/dashboard/operacao/estoque/painel", "")}`, "true|false");
 conferir("contador NAO finaliza; gerente de estoque finaliza",
   `${hasPermission(contador, "estoque.counts.close_inventory")}|${hasPermission(gerente, "estoque.counts.close_inventory")}`, "false|true");
 const comprador = { gerenciado: true, papel: "colaborador", permissions: ["estoque.purchases.view", "estoque.purchases.create"] };

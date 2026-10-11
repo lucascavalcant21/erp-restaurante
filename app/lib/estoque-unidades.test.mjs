@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  quantidadeDoMovimento, saldoOperacional, perfilUnidades, situacaoDoItem, resumoSituacoes, saldosPorLocal, unidadeOperacional,
+  quantidadeDoMovimento, saldoOperacional, perfilUnidades, situacaoDoItem, resumoSituacoes, saldosPorLocal, unidadeOperacional, itemInativo, minimoNoSaldo,
 } from "./estoque-unidades.mjs";
 import { saldoDepois } from "./estoque-movimento.mjs";
 
@@ -97,6 +97,23 @@ test("produto sem saldo inicial conferido impede 'estoque seguro'", () => {
   assert.equal(r.seguro, false);
   assert.equal(resumoSituacoes([{ saldo: 10, minimo: 2, conferido: true }]).seguro, true);
   assert.equal(resumoSituacoes([]).seguro, false);
+});
+
+test("mínimo do local está em garrafas: Amstel mínimo 15 com 14.400 ml (24 garrafas) é normal; com 6.000 ml (10) é abaixo", () => {
+  const amstel = { unidade_medida: "ml", unidade_comercial: "garrafa", tamanho_embalagem: 600, conta_por_embalagem: true };
+  assert.equal(minimoNoSaldo(amstel, 15), 9000);
+  assert.equal(situacaoDoItem({ saldo: 14400, minimo: minimoNoSaldo(amstel, 15), conferido: true }), "normal");
+  assert.equal(situacaoDoItem({ saldo: 6000, minimo: minimoNoSaldo(amstel, 15), conferido: true }), "abaixo");
+  assert.equal(minimoNoSaldo(sal, 2), 2);
+  assert.equal(minimoNoSaldo(sal, null), null);
+});
+
+test("inativo: sem saldo e sem movimento há 90 dias", () => {
+  const agora = new Date("2026-10-11T12:00:00Z");
+  assert.equal(itemInativo({ saldo: 0, ultimaMovimentacao: "2026-06-01" }, agora), true);
+  assert.equal(itemInativo({ saldo: 0, ultimaMovimentacao: "2026-10-01" }, agora), false);
+  assert.equal(itemInativo({ saldo: 0, ultimaMovimentacao: null }, agora), true);
+  assert.equal(itemInativo({ saldo: 3, ultimaMovimentacao: "2020-01-01" }, agora), false);
 });
 
 test("mesmo produto em vários locais: um cadastro, saldos independentes", () => {

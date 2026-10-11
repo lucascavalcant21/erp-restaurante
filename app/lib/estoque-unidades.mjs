@@ -119,6 +119,25 @@ export function situacaoDoItem({ saldo, minimo = null, conferido = false, ativo 
   return "normal";
 }
 
+/**
+ * O mínimo do local (estoque_itens.estoque_minimo) é digitado na unidade
+ * operacional: "15" na Amstel 600 ml são 15 garrafas, não 15 ml (dado real).
+ * Converte para a unidade do saldo antes de comparar.
+ */
+export function minimoNoSaldo(insumo, minimo) {
+  const m = Number(minimo);
+  if (!Number.isFinite(m) || m <= 0) return null;
+  const op = unidadeOperacional(insumo);
+  return op.embalagem ? r3(m * op.fatorSaldo) : m;
+}
+
+/** Inativo = sem saldo e sem movimento há `dias` (o banco não tem "ativo" por item). */
+export function itemInativo({ saldo, ultimaMovimentacao }, agora = new Date(), dias = 90) {
+  if ((Number(saldo) || 0) > 0) return false;
+  if (!ultimaMovimentacao) return true;
+  return agora.getTime() - new Date(ultimaMovimentacao).getTime() > dias * 86400000;
+}
+
 export const SITUACOES = [
   { id: "nao_conferido", rotulo: "Não conferido" },
   { id: "zerado", rotulo: "Zerado" },

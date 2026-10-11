@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Search, Package, ArrowRightLeft, PackagePlus, PackageMinus, X, Plus, Minus,
-  LayoutDashboard, History, ClipboardCheck, Settings, Check, ChefHat, GlassWater, Sparkles, AlertCircle
+  LayoutDashboard, History, ClipboardCheck, Settings, Check, ChefHat, GlassWater, Sparkles, AlertCircle, Loader2
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoques, fetchItensEstoque, registrarLoteMovimentosMulti } from "../../../lib/estoques-multiplos";

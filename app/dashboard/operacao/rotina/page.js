@@ -982,12 +982,12 @@ function RotinaRunner() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5 mb-1">
                             {it.fase_turno && (
-                              <span className="text-3xs font-bold uppercase tracking-wider text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-md">
+                              <span className="text-3xs font-bold uppercase tracking-wider text-zinc-700 bg-zinc-100/80 px-2 py-0.5 rounded-md">
                                 {it.fase_turno === "abertura" ? "Abertura / Início" : it.fase_turno === "durante_turno" ? "No Turno" : "Fechamento / Fim"}
                               </span>
                             )}
                             {it.horario_previsto && (
-                              <span className="text-3xs font-bold uppercase tracking-wider text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span className="text-3xs font-bold uppercase tracking-wider text-zinc-700 bg-zinc-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
                                 <Clock3 size={10} /> Previsto {it.horario_previsto}
                               </span>
                             )}

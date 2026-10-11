@@ -236,16 +236,16 @@ export function EtapaProposta({ orc, setOrc, resumo: r, casa }) {
       </div>
 
       <article id="orcamento-cliente" className="mx-auto w-full max-w-[800px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm print:max-w-none print:rounded-none print:border-0 print:shadow-none">
-        <header className="bg-slate-900 px-6 py-8 text-white sm:px-10 print:bg-slate-900" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{casa || "Orçamento"}</p>
+        <header className="bg-hf-surface px-6 py-8 text-hf-text sm:px-10 print:bg-hf-surface" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{casa || "Orçamento"}</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight">{c.nome_evento || "Orçamento do evento"}</h1>
-          {c.cliente_nome && <p className="mt-1 text-lg font-semibold text-slate-200">Para {c.cliente_nome}</p>}
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-white/15 pt-5 text-sm sm:grid-cols-4">
+          {c.cliente_nome && <p className="mt-1 text-lg font-semibold text-hf-text">Para {c.cliente_nome}</p>}
+          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-hf-border pt-5 text-sm sm:grid-cols-4">
             {[[CalendarDays, "Data", fmtData(c.data_evento)], [Clock, "Horário", c.hora_inicio ? `${c.hora_inicio}${c.hora_fim ? ` às ${c.hora_fim}` : ""}` : "A definir"],
               [Users, "Pessoas", r.convidados || "A definir"], [MapPin, "Local", c.local_evento || "A definir"]].map(([Icone, rot, val]) => (
               <div key={rot} className="min-w-0">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-300"><Icone size={12} /> {rot}</p>
-                <p className="mt-0.5 break-words font-bold text-white">{val}</p>
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-hf-text-2"><Icone size={12} /> {rot}</p>
+                <p className="mt-0.5 break-words font-bold text-hf-text">{val}</p>
               </div>
             ))}
           </div>

@@ -87,7 +87,7 @@ function Compras() {
 
   return (
     <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
-      <div className="bg-slate-900 px-4 sm:px-8 pt-6 pb-5 text-white">
+      <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-5 text-hf-text">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Compras</h1>
@@ -97,7 +97,7 @@ function Compras() {
         </div>
         <div className="max-w-6xl mx-auto mt-4 flex gap-2">
           {[["compras", "Compras"], ["nova", form.id ? "Editar rascunho" : "Nova compra"], ["custos", "Custo médio"]].map(([id, r]) => (
-            <button key={id} onClick={() => irAba(id)} className={`px-4 py-2 rounded-xl text-sm font-black ${aba === id ? "bg-emerald-500" : "bg-slate-800 border border-slate-700"}`}>{r}</button>
+            <button key={id} onClick={() => irAba(id)} className={`px-4 py-2 rounded-xl text-sm font-black ${aba === id ? "bg-emerald-500" : "bg-hf-elevated border border-hf-border"}`}>{r}</button>
           ))}
         </div>
       </div>

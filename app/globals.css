@@ -301,26 +301,27 @@ body {
   -webkit-touch-callout: default;
 }
 
-/* ═══ IDENTIDADE HÉFISTO (escuro) — tokens hf-* ═══════════════════════════
-   Preto/grafite + branco + verde Héfisto. Vermelho e âmbar SÓ para estado
-   real (vencido, crítico, negativo / atenção). Sem azul de identidade.
+/* ═══ IDENTIDADE HÉFISTO (clara) — tokens hf-* ════════════════════════════
+   Off-white + branco + grafite + verde Héfisto. Sem fundo preto (pedido do
+   dono, 2026-10-11). Vermelho e âmbar SÓ para estado real (vencido, crítico,
+   negativo / atenção). Sem azul de identidade.
    Canais RGB para o Tailwind aceitar opacidade: bg-hf-danger/10.
    Uso: bg-hf-bg (página) · bg-hf-surface (card) · bg-hf-elevated (dentro do
    card, hover, menus) · border-hf-border · text-hf-text / -text-2 / -muted.
-   Contraste (WCAG) sobre hf-surface: text 16:1 · text-2 7,4:1 · muted 4,3:1
+   Contraste (WCAG) sobre hf-surface: text 17:1 · text-2 7,7:1 · muted 4,8:1
    (muted só para informação terciária). */
 :root {
-  --hf-bg:            10 10 11;   /* #0A0A0B página */
-  --hf-surface:       20 20 22;   /* #141416 card */
-  --hf-elevated:      28 28 31;   /* #1C1C1F menu, hover, bloco interno */
-  --hf-border:        39 39 43;   /* #27272B borda padrão */
-  --hf-border-strong: 63 63 70;   /* #3F3F46 hover/foco neutro */
-  --hf-text:          237 237 239;/* #EDEDEF principal */
-  --hf-text-2:        161 161 170;/* #A1A1AA secundário */
+  --hf-bg:            247 247 245;/* #F7F7F5 página */
+  --hf-surface:       255 255 255;/* #FFFFFF card */
+  --hf-elevated:      244 244 245;/* #F4F4F5 menu, hover, bloco interno */
+  --hf-border:        228 228 231;/* #E4E4E7 borda padrão */
+  --hf-border-strong: 212 212 216;/* #D4D4D8 hover/foco neutro */
+  --hf-text:          24 24 27;   /* #18181B principal */
+  --hf-text-2:        82 82 91;   /* #52525B secundário */
   --hf-muted:         113 113 122;/* #71717A terciário */
-  --hf-accent:        16 185 129; /* #10B981 verde Héfisto: ação principal, seleção */
-  --hf-accent-fg:     4 30 20;    /* #041E14 texto sobre o verde */
-  --hf-success:       52 211 153; /* #34D399 entrada, positivo, saudável */
-  --hf-warning:       251 191 36; /* #FBBF24 atenção, pendência */
-  --hf-danger:        248 113 113;/* #F87171 vencido, crítico, negativo */
+  --hf-accent:        4 120 87;   /* #047857 verde Héfisto: ação principal, seleção */
+  --hf-accent-fg:     255 255 255;/* #FFFFFF texto sobre o verde */
+  --hf-success:       4 120 87;   /* #047857 entrada, positivo, saudável */
+  --hf-warning:       180 83 9;   /* #B45309 atenção, pendência */
+  --hf-danger:        185 28 28;  /* #B91C1C vencido, crítico, negativo */
 }

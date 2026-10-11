@@ -137,14 +137,14 @@ export default function FluxoCaixaFintechPage() {
       <Toast show={salvou}>Transação contabilizada com sucesso!</Toast>
 
       {/* HEADER FINTECH */}
-      <div className="bg-slate-900 text-white px-6 pt-12 pb-24 rounded-b-[48px] shadow-xl relative overflow-hidden">
+      <div className="bg-hf-surface text-hf-text px-6 pt-12 pb-24 rounded-b-[48px] shadow-xl relative overflow-hidden">
          <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-500 rounded-full blur-[100px] opacity-20"></div>
          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500 rounded-full blur-[100px] opacity-10"></div>
 
          <div className="relative z-10 max-w-4xl mx-auto text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-2">Fluxo de Caixa Realizado & Projetado • {unidadeInfo.nome}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-2">Fluxo de Caixa Realizado & Projetado • {unidadeInfo.nome}</p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter mb-2 break-words">{fmtBRL(visaoCaixa.saldoRealizadoAtual)}</h1>
-            <p className="text-sm font-medium text-slate-300">Saldo Realizado em Contas Financeiras e Extratos</p>
+            <p className="text-sm font-medium text-hf-text-2">Saldo Realizado em Contas Financeiras e Extratos</p>
          </div>
       </div>
 

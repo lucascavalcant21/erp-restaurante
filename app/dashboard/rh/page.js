@@ -1815,7 +1815,7 @@ export default function RHPage() {
         prox.setFullYear(anoAtual);
         if (hj > prox) prox.setFullYear(anoAtual + 1);
         const faltamFerias = Math.floor((prox - hj) / (1000 * 60 * 60 * 24));
-        badges.push({ text: `1 Ano em ${faltamFerias} dias`, color: 'text-indigo-700 bg-indigo-50 border-indigo-200' });
+        badges.push({ text: `1 Ano em ${faltamFerias} dias`, color: 'text-zinc-700 bg-zinc-100 border-zinc-200' });
      }
 
      let proxColetiva = new Date(anoAtual, 11, 21);
@@ -2359,16 +2359,16 @@ export default function RHPage() {
          return (
          <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-0 backdrop-blur-sm sm:items-center sm:p-3" onClick={fechar}>
             <div className="flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[calc(100dvh-1.5rem)] sm:rounded-[28px]" onClick={e => e.stopPropagation()}>
-               <div className="flex shrink-0 items-center gap-2.5 bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3 text-white sm:gap-3 sm:px-5 sm:py-4">
+               <div className="flex shrink-0 items-center gap-2.5 bg-gradient-to-br from-hf-surface to-hf-elevated px-4 py-3 text-white sm:gap-3 sm:px-5 sm:py-4">
                   {f.foto
-                     ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-white/20 object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
-                     : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-lg font-black sm:h-12 sm:w-12 sm:rounded-2xl sm:text-xl">{(f.nome || "?")[0].toUpperCase()}</span>}
+                     ? <img src={`data:image/jpeg;base64,${f.foto}`} alt="" className="h-10 w-10 shrink-0 rounded-xl border-2 border-hf-border object-cover sm:h-12 sm:w-12 sm:rounded-2xl"/>
+                     : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-hf-elevated text-lg font-black sm:h-12 sm:w-12 sm:rounded-2xl sm:text-xl">{(f.nome || "?")[0].toUpperCase()}</span>}
                   <div className="min-w-0 flex-1">
-                     <p className="text-3xs font-bold uppercase tracking-[.16em] text-emerald-300 sm:text-3xs">Ações do colaborador</p>
+                     <p className="text-3xs font-bold uppercase tracking-[.16em] text-emerald-700 sm:text-3xs">Ações do colaborador</p>
                      <h2 className="truncate text-base font-black sm:text-lg">{f.nome}</h2>
                      <p className="truncate text-3xs font-bold text-dim sm:text-2xs">{f.cargo || "Sem cargo informado"}</p>
                   </div>
-                  <button onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"><X size={17}/></button>
+                  <button onClick={fechar} aria-label="Fechar" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hf-elevated text-hf-text hover:bg-hf-border"><X size={17}/></button>
                </div>
 
                <nav className="grid shrink-0 grid-cols-4 gap-1 border-b border-line bg-card p-1.5 sm:p-2">
@@ -2382,13 +2382,13 @@ export default function RHPage() {
                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-4">
                   {abaMenuAcoes === "trabalho" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
-                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-sky-50 group-hover:bg-sky-100"}
+                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-zinc-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-zinc-100 group-hover:bg-zinc-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
                         extra={tb > 0 && <span className="shrink-0 rounded-lg bg-card px-2 py-1 text-3xs font-bold text-fg-soft">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
-                     <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 group-hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
+                     <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
                   </div>}
 
                   {abaMenuAcoes === "financeiro" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -2396,7 +2396,7 @@ export default function RHPage() {
                      <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
                      {f.tipo_contrato === "Freelancer" && (
                         <>
-                          <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 group-hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
+                          <Acao icon={CheckCircle} cor="text-zinc-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
                           <Acao icon={Clock} cor="text-fg-soft" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
@@ -2404,8 +2404,8 @@ export default function RHPage() {
 
                   {abaMenuAcoes === "documentos" && <div>
                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                     <Acao icon={Printer} cor="text-indigo-700" bg="bg-indigo-50 group-hover:bg-indigo-100" onClick={() => ir(() => imprimirPerfilFuncionario(f))}>Perfil em PDF / imprimir</Acao>
-                     <Acao icon={Link2} cor="text-sky-700" bg="bg-sky-50 group-hover:bg-sky-100" onClick={() => ir(() => compartilharLinkAtualizacao(f))}>Link para atualizar dados</Acao>
+                     <Acao icon={Printer} cor="text-zinc-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => imprimirPerfilFuncionario(f))}>Perfil em PDF / imprimir</Acao>
+                     <Acao icon={Link2} cor="text-zinc-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => compartilharLinkAtualizacao(f))}>Link para atualizar dados</Acao>
                      <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
                      {f.tipo_contrato === "Freelancer" && (
@@ -2778,14 +2778,14 @@ export default function RHPage() {
                   )}
 
                   {novoFunc.tipo_contrato === "Fixo" && (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-line-soft pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-line-soft pt-4 mt-4 bg-zinc-100/30 p-4 rounded-2xl">
                         <div>
-                           <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Data de Admissão</label>
-                           <input type="date" value={novoFunc.data_admissao || ""} onChange={e=>setNovoFunc({...novoFunc, data_admissao: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-indigo-500 text-fg-soft"/>
+                           <label className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">Data de Admissão</label>
+                           <input type="date" value={novoFunc.data_admissao || ""} onChange={e=>setNovoFunc({...novoFunc, data_admissao: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-600 text-fg-soft"/>
                         </div>
                         <div>
-                           <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Fase do Contrato</label>
-                           <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-indigo-500 text-fg-soft appearance-none">
+                           <label className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">Fase do Contrato</label>
+                           <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-card border border-line rounded-xl font-bold outline-none focus:border-emerald-600 text-fg-soft appearance-none">
                               <option value="Experiência 45">Experiência (45 + 45 dias)</option>
                               <option value="Experiência 30">Experiência (30 + 60 dias)</option>
                               <option value="Definitivo">Contrato Definitivo</option>
@@ -2795,13 +2795,13 @@ export default function RHPage() {
                               const decisao = !info.ehDefinitivo && info.diasRestantesPeriodo !== null && info.diasRestantesPeriodo <= 5;
                               return (
                                  <div className="mt-2 flex flex-col gap-2">
-                                    <p className="text-xs font-bold text-indigo-700 bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100">
+                                    <p className="text-xs font-bold text-zinc-700 bg-zinc-100/80 p-2.5 rounded-xl border border-zinc-200">
                                        ℹ️ {info.fase}: {info.detalhe}
                                     </p>
                                     {decisao && (
                                        <div className="flex flex-wrap gap-2 mt-1">
                                           {info.periodo === 1 && (
-                                             <button type="button" onClick={() => alert("O contrato já passa automaticamente para o 2º período amanhã caso você não encerre hoje.")} className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold text-3xs rounded-lg border border-indigo-200 transition-colors">
+                                             <button type="button" onClick={() => alert("O contrato já passa automaticamente para o 2º período amanhã caso você não encerre hoje.")} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-3xs rounded-lg border border-zinc-200 transition-colors">
                                                 ✅ Renovar para 2º Período
                                              </button>
                                           )}
@@ -3665,35 +3665,35 @@ export default function RHPage() {
                         {/* ABA 1: ATESTADOS MÉDICOS */}
                         {abaOcorrencia === "atestados" && (
                            <div className="space-y-4">
-                              <form onSubmit={handleSalvarAtestado} className="bg-cyan-50/70 border border-cyan-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-cyan-900">Novo Atestado Médico</p>
+                              <form onSubmit={handleSalvarAtestado} className="bg-zinc-100/70 border border-zinc-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-900">Novo Atestado Médico</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">Início do Afastamento</label>
-                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-cyan-500"/>
+                                       <input type="date" value={atestedoForm.data_inicio} onChange={e=>setAtestadoForm({...atestedoForm, data_inicio: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
                                     </div>
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">Qtd Dias Afastado</label>
-                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-cyan-500"/>
+                                       <input type="number" min="1" max="60" value={atestedoForm.dias} onChange={e=>setAtestadoForm({...atestedoForm, dias: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-slate-800 text-xs outline-none focus:border-emerald-600"/>
                                     </div>
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">CID (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-cyan-500"/>
+                                       <input type="text" placeholder="Ex: Z76.5, J11" value={atestedoForm.cid} onChange={e=>setAtestadoForm({...atestedoForm, cid: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
                                     </div>
                                  </div>
 
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">Médico / CRM (Opcional)</label>
-                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-cyan-500"/>
+                                       <input type="text" placeholder="Ex: Dr. Carlos CRM 12345" value={atestedoForm.medico} onChange={e=>setAtestadoForm({...atestedoForm, medico: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-emerald-600"/>
                                     </div>
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">Anexar Documento (Foto/PDF)</label>
-                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-900 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor-pointer"/>
+                                       <input type="file" accept="image/*,application/pdf" onChange={e=>setAtestadoForm({...atestedoForm, arquivo: e.target.files?.[0] || null})} className="w-full text-xs text-slate-900 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer"/>
                                     </div>
                                  </div>
 
-                                 <button type="submit" className="w-full py-3 bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-emerald-800 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Atestado e Abonar Ponto Automático
                                  </button>
                               </form>
@@ -3705,11 +3705,11 @@ export default function RHPage() {
                                     <div key={a.id} className="p-3 bg-card border border-line rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
                                        <div>
                                           <p className="font-bold text-slate-800 text-xs">{a.parcial ? "🏥 Atestado de Horas (Parcial)" : "🏥 Atestado Médico"} · {new Date(a.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")} até {new Date((a.data_fim || a.data_inicio) + "T12:00:00").toLocaleDateString("pt-BR")}</p>
-                                          <p className="text-2xs font-bold text-cyan-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
+                                          <p className="text-2xs font-bold text-zinc-800 mt-0.5">{a.cid ? `CID: ${a.cid} · ` : ""}{a.medico ? `Dr(a). ${a.medico}` : "Ausência Abonada"}</p>
                                        </div>
                                        <div className="flex items-center gap-2">
                                           {a.arquivo_url && (
-                                             <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("atestado", a.id); }} className="py-1.5 px-3 bg-cyan-50 border border-cyan-200 text-cyan-800 font-bold text-2xs rounded-xl hover:bg-cyan-100">Ver Anexo</a>
+                                             <a href="#" onClick={(e) => { e.preventDefault(); abrirArquivoRH("atestado", a.id); }} className="py-1.5 px-3 bg-zinc-100 border border-zinc-200 text-zinc-800 font-bold text-2xs rounded-xl hover:bg-zinc-100">Ver Anexo</a>
                                           )}
                                           <button type="button" onClick={async () => { if(confirm("Excluir este atestado?")) { await removerAtestado(a.id); recarregarOcorrencias(funcOcorrencias.id); } }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
                                        </div>
@@ -3768,23 +3768,23 @@ export default function RHPage() {
                         {/* ABA 3: REUNIÕES & FEEDBACKS */}
                         {abaOcorrencia === "reunioes" && (
                            <div className="space-y-4">
-                              <form onSubmit={handleSalvarReuniao} className="bg-indigo-50/70 border border-indigo-200 p-4 rounded-2xl space-y-3">
-                                 <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Registrar Reunião ou Feedback (1-on-1)</p>
+                              <form onSubmit={handleSalvarReuniao} className="bg-zinc-100/70 border border-zinc-200 p-4 rounded-2xl space-y-3">
+                                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-900">Registrar Reunião ou Feedback (1-on-1)</p>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">Data</label>
-                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-indigo-500"/>
+                                       <input type="date" value={reuniaoForm.data} onChange={e=>setReuniaoForm({...reuniaoForm, data: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
                                     </div>
                                     <div>
                                        <label className="text-3xs font-bold text-fg uppercase block mb-1">Título / Pauta da Reunião</label>
-                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-indigo-500"/>
+                                       <input type="text" placeholder="Ex: Avaliação de 30 dias, Alinhamento de metas" value={reuniaoForm.titulo} onChange={e=>setReuniaoForm({...reuniaoForm, titulo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-bold text-fg-soft text-xs outline-none focus:border-emerald-600"/>
                                     </div>
                                  </div>
                                  <div>
                                     <label className="text-3xs font-bold text-fg uppercase block mb-1">Resumo dos Acordos e Pontos Discutidos</label>
-                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-indigo-500 resize-none"/>
+                                    <textarea rows={3} placeholder="Pontos fortes, pontos a melhorar, metas combinadas..." value={reuniaoForm.resumo} onChange={e=>setReuniaoForm({...reuniaoForm, resumo: e.target.value})} className="w-full p-2.5 bg-card border border-line rounded-xl font-medium text-fg-soft text-xs outline-none focus:border-emerald-600 resize-none"/>
                                  </div>
-                                 <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
+                                 <button type="submit" className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
                                     Registrar Reunião
                                  </button>
                               </form>
@@ -3952,21 +3952,21 @@ export default function RHPage() {
                )}
 
                {/* Lançar minutos não tirados do dia */}
-               <form onSubmit={lancarBancoHoras} className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-5 shrink-0">
-                  <p className="text-3xs font-bold uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
+               <form onSubmit={lancarBancoHoras} className="bg-zinc-100 border border-zinc-200 rounded-2xl p-4 mb-5 shrink-0">
+                  <p className="text-3xs font-bold uppercase tracking-widest text-zinc-700 mb-3">Lançar intervalo não tirado</p>
                   <div className="flex flex-wrap items-end gap-3">
                      <div>
                         <label className="text-3xs font-bold text-fg uppercase tracking-widest block">Dia</label>
-                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-card border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-sky-500"/>
+                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-card border border-line rounded-lg font-bold text-fg-soft outline-none focus:border-emerald-600"/>
                      </div>
                      <div>
                         <label className="text-3xs font-bold text-fg uppercase tracking-widest block">Minutos que faltaram</label>
-                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
+                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-card border border-line rounded-lg font-black text-slate-800 outline-none focus:border-emerald-600"/>
                      </div>
-                     <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
+                     <button type="submit" className="ml-auto px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
                   </div>
-                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-card border border-line rounded-lg font-medium text-sm text-fg-soft outline-none focus:border-sky-500"/>
-                  <p className="text-3xs font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
+                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-card border border-line rounded-lg font-medium text-sm text-fg-soft outline-none focus:border-emerald-600"/>
+                  <p className="text-3xs font-medium text-zinc-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
                </form>
 
                {/* Lançamentos do mês */}
@@ -3980,7 +3980,7 @@ export default function RHPage() {
                               {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
                               {b.tipo === "excesso"
                                  ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
-                                 : <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span>}
+                                 : <span className="text-zinc-700">{fmtMin(Number(b.minutos) || 0)}</span>}
                            </p>
                            {b.observacao && <p className="text-2xs font-medium text-subtle truncate">{b.observacao}</p>}
                         </div>
@@ -4015,7 +4015,7 @@ export default function RHPage() {
                      </div>
 
                      <div className="mb-6">
-                        <label className="text-xs font-bold text-indigo-700 uppercase tracking-widest block mb-1">Folga de domingo (1 p/ mês, 2 para mulheres)</label>
+                        <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest block mb-1">Folga de domingo (1 p/ mês, 2 para mulheres)</label>
                         <p className="text-xs font-medium text-slate-500 mb-3">Inclui o mês passado: dá para lançar a folga de um domingo que já foi.</p>
                         <div className="space-y-4">
                            {mesesDeDomingo.map(mes => {
@@ -4051,7 +4051,7 @@ export default function RHPage() {
                                                    <button
                                                       onClick={() => handleAdicionarFolga(dom.data, "Domingo")}
                                                       disabled={jaTemFolgaNesteDia}
-                                                      className="shrink-0 bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                      className="shrink-0 bg-zinc-100 text-zinc-700 px-3 py-1 text-xs font-bold rounded-lg hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                                       {jaTemFolgaNesteDia ? (dom.passou ? "Lançada" : "Agendada") : (dom.passou ? "Lançar folga" : "Agendar")}
                                                    </button>
                                                 </div>
@@ -4090,7 +4090,7 @@ export default function RHPage() {
                            <div key={folga.id} className="flex items-center justify-between bg-card p-3 rounded-xl border border-slate-200 shadow-sm">
                               <div>
                                  <div className="font-black text-slate-800">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
-                                 <div className="text-3xs font-bold text-indigo-500 uppercase">{folga.descricao || "Folga Extra"}</div>
+                                 <div className="text-3xs font-bold text-emerald-700 uppercase">{folga.descricao || "Folga Extra"}</div>
                               </div>
                               <button onClick={() => handleRemoverFolga(folga.id)} className="text-slate-500 hover:text-rose-600 transition-colors bg-white p-2 rounded-lg"><Trash2 size={16}/></button>
                            </div>

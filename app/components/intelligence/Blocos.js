@@ -38,7 +38,7 @@ export function SeloCobertura({ cobertura }) {
 const NATUREZA = { ESTIMATIVA: "ESTIMATIVA", PROJECAO: "PROJEÇÃO", SIMULACAO: "SIMULAÇÃO", META: "META", SUGESTAO: "SUGESTÃO" };
 export function SeloNatureza({ natureza }) {
   if (!NATUREZA[natureza]) return null;
-  return <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-800 ring-1 ring-violet-200">{NATUREZA[natureza]}</span>;
+  return <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-zinc-800 ring-1 ring-emerald-200">{NATUREZA[natureza]}</span>;
 }
 
 const CONFIANCA = { alta: "alta", media: "média", baixa: "baixa", nenhuma: "—" };

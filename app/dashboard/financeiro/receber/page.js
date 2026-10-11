@@ -23,7 +23,7 @@ import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
 
 const COR = {
-  previsto: "bg-slate-100 text-slate-900", parcial: "bg-blue-100 text-blue-800", recebido: "bg-emerald-100 text-emerald-800",
+  previsto: "bg-slate-100 text-slate-900", parcial: "bg-zinc-100 text-zinc-800", recebido: "bg-emerald-100 text-emerald-800",
   atrasado: "bg-red-100 text-red-800", cancelado: "bg-stone-200 text-stone-700",
 };
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -174,7 +174,7 @@ export default function ContasAReceberPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
-      <div className="bg-slate-900 pt-6 pb-6 px-4 sm:px-8 text-white">
+      <div className="bg-hf-surface pt-6 pb-6 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Contas a Receber</h1>
@@ -186,20 +186,20 @@ export default function ContasAReceberPage() {
         </div>
         <div className="max-w-7xl mx-auto mt-5 grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {[
-            { r: "A receber (bruto)", v: resumo.aReceberBruto, I: ArrowDownCircle, c: "text-sky-300",
+            { r: "A receber (bruto)", v: resumo.aReceberBruto, I: ArrowDownCircle, c: "text-hf-text-2",
               nota: resumo.aReceberLiquido == null ? "Líquido: há taxa não informada" : `Líquido previsto ${fmtBRL(resumo.aReceberLiquido)}` },
-            { r: "Atrasado", v: resumo.atrasado, I: AlertTriangle, c: "text-red-400", nota: "Previsão já passou" },
-            { r: "Recebido no período (líquido)", v: resumo.recebidoLiquido, I: Wallet, c: "text-emerald-400",
+            { r: "Atrasado", v: resumo.atrasado, I: AlertTriangle, c: "text-red-700", nota: "Previsão já passou" },
+            { r: "Recebido no período (líquido)", v: resumo.recebidoLiquido, I: Wallet, c: "text-emerald-700",
               nota: periodo ? `Bruto baixado ${fmtBRL(resumo.recebidoBruto)} · taxas ${resumo.taxasNaoInformadas
                 ? (resumo.taxasEfetivas > 0.004 ? `${fmtBRL(resumo.taxasEfetivas)} + não informadas` : "não informadas")
                 : fmtBRL(resumo.taxasEfetivas)}` : "Escolha um período" },
-            { r: "Receita lançada no período", v: resumo.receitaCompetencia, I: Receipt, c: "text-amber-300",
+            { r: "Receita lançada no período", v: resumo.receitaCompetencia, I: Receipt, c: "text-amber-700",
               nota: "Bruto pela data da venda · só o que foi lançado aqui (não é faturamento total)" },
           ].map(({ r, v, I, c, nota }) => (
-            <div key={r} className="bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-700/50">
-              <div className="flex items-center gap-1.5 text-slate-300"><I size={14} /><p className="text-3xs uppercase font-bold tracking-wider">{r}</p></div>
+            <div key={r} className="bg-hf-elevated p-3 sm:p-4 rounded-2xl border border-hf-border">
+              <div className="flex items-center gap-1.5 text-hf-text-2"><I size={14} /><p className="text-3xs uppercase font-bold tracking-wider">{r}</p></div>
               <p className={`text-lg sm:text-2xl font-black mt-1 ${c}`}>{v == null ? "—" : fmtBRL(v)}</p>
-              <p className="text-3xs text-slate-400 mt-0.5 leading-snug">{nota}</p>
+              <p className="text-3xs text-hf-text-2 mt-0.5 leading-snug">{nota}</p>
             </div>
           ))}
         </div>

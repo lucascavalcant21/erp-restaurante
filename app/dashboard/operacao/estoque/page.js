@@ -1236,7 +1236,7 @@ function EstoqueRunner() {
                   <ClipboardCheck size={16} /> Contar estoque
                 </button>
                 <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3.5 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
-                  <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
+                  <ArrowRightLeft size={16} className="text-emerald-700" /> Transferência
                 </button>
                 <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-extrabold text-fg-soft hover:bg-white disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
@@ -1250,10 +1250,10 @@ function EstoqueRunner() {
             <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
               {[
                 { icon: Package, label: "Valor no Estoque", value: dinheiro(valorTotal), oculto: quiosque, color: "text-emerald-700 bg-emerald-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-                { icon: ClipboardCheck, label: "CMV de Contagens", value: dinheiro(resumoContagens.cmvLiquidoAjustes), oculto: quiosque, color: "text-sky-700 bg-sky-50", action: () => setAba("movimentacoes") },
+                { icon: ClipboardCheck, label: "CMV de Contagens", value: dinheiro(resumoContagens.cmvLiquidoAjustes), oculto: quiosque, color: "text-zinc-700 bg-zinc-100", action: () => setAba("movimentacoes") },
                 { icon: AlertTriangle, label: "Abaixo do Mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, color: "text-red-700 bg-red-50", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
                 { icon: CalendarDays, label: "Validades Próximas", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Desativado", color: "text-amber-700 bg-amber-50", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
-                { icon: Boxes, label: "Resumo da Área", value: `${itensDaArea.length} produtos`, color: "text-indigo-700 bg-indigo-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+                { icon: Boxes, label: "Resumo da Área", value: `${itensDaArea.length} produtos`, color: "text-zinc-700 bg-zinc-100", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
               ].filter(cartao => !cartao.oculto).map(({ icon: Icon, label, value, color, action }) => (
                 <button
                   key={label}
@@ -1846,7 +1846,7 @@ function EstoqueRunner() {
                       {movsItem.map(m => (
                         <tr key={m.id} className="hover:bg-white">
                           <td className="p-3 font-medium text-slate-900">{fmtData(m.data_movimento, true)}</td>
-                          <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>{m.tipo}</span></td>
+                          <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-3xs ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-800"}`}>{m.tipo}</span></td>
                           <td className="p-3 font-extrabold text-fg">{fmtQtd(m.quantidade)} {mostrarUn(m.unidade_medida)}</td>
                           <td className="p-3 text-slate-900">{m.usuario_nome || m.responsavel_nome || "Sistema"}</td>
                           <td className="p-3 text-fg italic">{m.observacao || "—"}</td>
@@ -1891,7 +1891,7 @@ function EstoqueRunner() {
               }}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-line p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
             >
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-800 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-800 group-hover:bg-emerald-700 group-hover:text-white transition-colors">
                 <Download size={24} />
               </div>
               <div>
@@ -2092,22 +2092,22 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                         const cat = String(item.categoria || "").trim();
                         const cores = {
                           "Cervejas": "bg-amber-100 text-amber-950 border-amber-300",
-                          "Destilados": "bg-purple-100 text-purple-950 border-purple-300",
+                          "Destilados": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Vinhos": "bg-rose-100 text-rose-950 border-rose-300",
                           "Chopp": "bg-yellow-100 text-yellow-950 border-yellow-300",
-                          "Água": "bg-sky-100 text-sky-950 border-sky-300",
+                          "Água": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Refrigerantes": "bg-red-100 text-red-950 border-red-300",
                           "Bombons": "bg-pink-100 text-pink-950 border-pink-300",
-                          "Pré-preparos": "bg-indigo-100 text-indigo-950 border-indigo-300",
+                          "Pré-preparos": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Carne vermelha": "bg-red-100 text-red-950 border-red-300",
-                          "Peixe": "bg-cyan-100 text-cyan-950 border-cyan-300",
+                          "Peixe": "bg-zinc-100 text-zinc-900 border-zinc-200",
                           "Aves": "bg-amber-100 text-amber-950 border-amber-300",
                           "Frutos do mar": "bg-teal-100 text-teal-950 border-teal-300",
                           "Caranguejo": "bg-orange-100 text-orange-950 border-orange-300",
                           "Laticínios": "bg-yellow-100 text-yellow-950 border-yellow-300",
                           "Hortifrúti": "bg-emerald-100 text-emerald-950 border-emerald-300",
                           "Secos": "bg-stone-100 text-stone-950 border-stone-300",
-                          "Líquidos": "bg-blue-100 text-blue-950 border-blue-300",
+                          "Líquidos": "bg-zinc-100 text-zinc-900 border-zinc-200",
                         };
                         const cl = cores[cat] || "bg-emerald-100 text-emerald-950 border-emerald-300";
                         return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-bold border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
@@ -2177,7 +2177,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       </div>
                       <p className="mt-1.5 text-xs font-semibold text-fg">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
                     </div>
-                    <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
+                    <div className="text-right shrink-0 rounded-2xl bg-hf-surface px-3.5 py-2.5 text-hf-text shadow-inner min-w-[100px]">
                       <span className="block text-3xs font-extrabold uppercase tracking-wider text-subtle">Saldo Atual</span>
                       {(() => {
                         const s = saldoEmbalado(item);
@@ -2338,8 +2338,8 @@ function ListaMovimentos({ movimentos, modo, dinheiro = fmtBRL, itens = [] }) {
               : ehSaida
               ? { bg: "bg-red-100 text-red-800 border-red-300", label: "RETIRADA", icon: "−" }
               : ehContagem
-              ? { bg: "bg-sky-100 text-sky-800 border-sky-300", label: "CONTAGEM", icon: "📋" }
-              : { bg: "bg-purple-100 text-purple-800 border-purple-300", label: "TRANSFERÊNCIA", icon: "⇄" };
+              ? { bg: "bg-zinc-100 text-zinc-800 border-zinc-200", label: "CONTAGEM", icon: "📋" }
+              : { bg: "bg-zinc-100 text-zinc-800 border-zinc-200", label: "TRANSFERÊNCIA", icon: "⇄" };
 
             const nomeProduto = mov.insumo?.nome || mov.insumo_nome || "Produto";
             const unMedida = mostrarUn(mov.insumo?.unidade_medida || mov.unidade_medida);

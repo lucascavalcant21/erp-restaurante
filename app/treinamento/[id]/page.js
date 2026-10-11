@@ -44,12 +44,12 @@ export default function TreinamentoPublico() {
   return (
     <main className="min-h-screen bg-elevated px-4 py-6 text-fg sm:py-10">
       <article className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-card shadow-xl ring-1 ring-slate-200">
-        <header className="bg-slate-950 p-6 text-white sm:p-9">
+        <header className="bg-hf-bg p-6 text-hf-text sm:p-9">
           <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-widest">
-            <span className="flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-2 text-emerald-300"><SetorIcon size={15}/>{setor.label}</span>
-            <span className="rounded-full bg-white/10 px-3 py-2">{item.modulo || "Geral"}</span>
-            <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2"><Clock3 size={14}/>{Number(item.duracao_minutos) || 5} min</span>
-            {item.obrigatorio && <span className="flex items-center gap-1.5 rounded-full bg-amber-400/20 px-3 py-2 text-amber-200"><ShieldCheck size={14}/>Obrigatório</span>}
+            <span className="flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-2 text-emerald-700"><SetorIcon size={15}/>{setor.label}</span>
+            <span className="rounded-full bg-hf-elevated px-3 py-2">{item.modulo || "Geral"}</span>
+            <span className="flex items-center gap-1.5 rounded-full bg-hf-elevated px-3 py-2"><Clock3 size={14}/>{Number(item.duracao_minutos) || 5} min</span>
+            {item.obrigatorio && <span className="flex items-center gap-1.5 rounded-full bg-amber-400/20 px-3 py-2 text-amber-700"><ShieldCheck size={14}/>Obrigatório</span>}
           </div>
           <h1 className="mt-5 text-3xl font-black leading-tight sm:text-5xl">{item.titulo}</h1>
           {item.descricao && <p className="mt-3 text-base font-medium text-dim sm:text-lg">{item.descricao}</p>}
@@ -66,12 +66,12 @@ export default function TreinamentoPublico() {
           {embed ? (
             <section>
               <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><PlaySquare size={20} className="text-success"/>Vídeo</h2>
-              <div className="aspect-video overflow-hidden rounded-2xl bg-black"><iframe src={embed} title={item.titulo} className="h-full w-full" allowFullScreen /></div>
+              <div className="aspect-video overflow-hidden rounded-2xl bg-hf-bg"><iframe src={embed} title={item.titulo} className="h-full w-full" allowFullScreen /></div>
             </section>
           ) : item.link_video ? (
             <section>
               <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><PlaySquare size={20} className="text-success"/>Vídeo</h2>
-              <video src={item.link_video} controls playsInline preload="metadata" className="max-h-[70dvh] w-full rounded-2xl bg-black">Seu navegador não conseguiu abrir este vídeo.</video>
+              <video src={item.link_video} controls playsInline preload="metadata" className="max-h-[70dvh] w-full rounded-2xl bg-hf-bg">Seu navegador não conseguiu abrir este vídeo.</video>
               <a href={item.link_video} target="_blank" rel="noreferrer" className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-elevated px-5 text-sm font-black text-fg-soft">Abrir vídeo em outra tela<ExternalLink size={16}/></a>
             </section>
           ) : null}

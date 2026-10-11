@@ -88,7 +88,7 @@ export default function KDSPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col overflow-hidden font-sans">
+    <div className="fixed inset-0 z-[9999] bg-hf-bg flex flex-col overflow-hidden font-sans">
       
       {/* Audio Escondido */}
       <audio ref={audioRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=service-bell-ring-14610.mp3" preload="auto" />
@@ -100,9 +100,9 @@ export default function KDSPage() {
       )}
 
       {/* HEADER DO KDS */}
-      <div className="px-3 sm:px-6 py-3 sm:py-4 bg-slate-900 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 bg-hf-surface border-b border-hf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50">
          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-slate-800 hover:bg-slate-700 text-fg hover:text-white rounded-xl transition-colors active:scale-95">
+            <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-hf-elevated hover:bg-hf-border text-fg hover:text-hf-text rounded-xl transition-colors active:scale-95">
                <ArrowLeft size={24} />
             </button>
             
@@ -111,7 +111,7 @@ export default function KDSPage() {
             </div>
 
             <div>
-               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">KDS Produção</h1>
+               <h1 className="text-xl sm:text-2xl font-black text-hf-text tracking-tight truncate">KDS Produção</h1>
                <p className="text-xs sm:text-sm font-bold text-fg flex items-center gap-2 mt-0.5 truncate">
                  {unidadeInfo.nome} <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Sync ON
                </p>
@@ -133,7 +133,7 @@ export default function KDSPage() {
             <button 
                onClick={() => carregar(false)} 
                disabled={loading}
-               className="px-3 sm:px-6 py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
+               className="px-3 sm:px-6 py-2.5 sm:py-3 bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
             >
                {loading ? "Sincronizando..." : "Forçar Sync"}
             </button>
@@ -163,19 +163,19 @@ export default function KDSPage() {
                   const todosProntos = pedido.venda_itens.length > 0 && pedido.venda_itens.every(i => i.status_preparo === "pronto");
 
                   return (
-                     <div key={pedido.id} className={`flex flex-col bg-slate-900 rounded-[28px] border-2 overflow-hidden shadow-xl transition-all ${
-                        isAtrasado ? "border-emerald-500/50 shadow-[0_10px_40px_rgba(239,68,68,0.15)]" : "border-slate-800"
+                     <div key={pedido.id} className={`flex flex-col bg-hf-surface rounded-[28px] border-2 overflow-hidden shadow-xl transition-all ${
+                        isAtrasado ? "border-emerald-500/50 shadow-[0_10px_40px_rgba(239,68,68,0.15)]" : "border-hf-border"
                      }`}>
                         
                         {/* Barra SLA (Progresso) */}
-                        <div className="w-full h-2.5 bg-slate-800">
+                        <div className="w-full h-2.5 bg-hf-elevated">
                            <div className={`h-full ${corSLA} ${corSlaGlow} transition-all duration-1000 ${isAtrasado ? 'animate-pulse' : ''}`} style={{ width: `${pct}%` }}></div>
                         </div>
 
                         {/* Cabeçalho Ticket */}
-                         <div className={`p-3 sm:p-5 flex items-center justify-between gap-3 border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-900 border-slate-800'}`}>
+                         <div className={`p-3 sm:p-5 flex items-center justify-between gap-3 border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-hf-surface border-hf-border'}`}>
                            <div>
-                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-fg' : 'text-white'}`}>
+                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-fg' : 'text-hf-text'}`}>
                                  #{pedido.id.slice(0, 4).toUpperCase()}
                               </p>
                               <p className="text-sm font-bold text-fg mt-1 uppercase tracking-widest">
@@ -183,7 +183,7 @@ export default function KDSPage() {
                               </p>
                            </div>
                            <div className={`px-4 py-2 rounded-xl flex flex-col items-end border ${
-                              isAtrasado ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-slate-800/50 border-slate-700'
+                              isAtrasado ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-hf-elevated border-hf-border'
                            }`}>
                               <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-slate-900 animate-pulse' : 'text-fg'}`}>
                                  <Clock size={20} /> {minutos}m
@@ -198,10 +198,10 @@ export default function KDSPage() {
                               const st = item.status_preparo || "pendente";
                               
                               // Configs Visuais por Status
-                              let stBg = "bg-slate-800";
-                              let stBorder = "border-slate-700";
+                              let stBg = "bg-hf-elevated";
+                              let stBorder = "border-hf-border";
                               let stText = "text-fg";
-                              let stIcon = <div className="w-6 h-6 rounded-full border-4 border-slate-600" />;
+                              let stIcon = <div className="w-6 h-6 rounded-full border-4 border-hf-border-strong" />;
                               
                               if (st === "preparando") {
                                  stBg = "bg-emerald-500/20";
@@ -211,7 +211,7 @@ export default function KDSPage() {
                               } else if (st === "pronto") {
                                  stBg = "bg-emerald-500/20";
                                  stBorder = "border-emerald-500/50";
-                                 stText = "text-emerald-400";
+                                 stText = "text-emerald-700";
                                  stIcon = <CheckCircle size={24} className="text-emerald-500" />;
                               }
 
@@ -236,7 +236,7 @@ export default function KDSPage() {
                                  <p className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <TriangleAlert size={16} /> Observação do Cliente
                                  </p>
-                                 <p className="text-amber-100 font-bold text-sm leading-snug">{pedido.observacao}</p>
+                                 <p className="text-amber-700 font-bold text-sm leading-snug">{pedido.observacao}</p>
                               </div>
                            )}
                         </div>
@@ -248,7 +248,7 @@ export default function KDSPage() {
                               className={`w-full py-5 rounded-[20px] font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
                                  todosProntos 
                                    ? "bg-emerald-500 hover:bg-accent text-accent-fg shadow-[0_0_30px_rgba(16,185,129,0.4)] animate-pulse" 
-                                   : "bg-slate-800 text-fg hover:bg-slate-700"
+                                   : "bg-hf-elevated text-fg hover:bg-hf-border"
                               }`}
                            >
                               <Check size={24} /> Entregar Pedido

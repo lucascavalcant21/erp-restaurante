@@ -136,9 +136,9 @@ export default function CommandCenterModal({ isOpen, onClose, sessao }) {
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Central de Comando" onKeyDown={teclado}
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-0 backdrop-blur-sm sm:p-4 sm:pt-[10vh]">
+      className="fixed inset-0 z-50 flex items-start justify-center bg-zinc-900/30 p-0 backdrop-blur-sm sm:p-4 sm:pt-[10vh]">
       <div className="fixed inset-0" onClick={onClose} />
-      <div className="relative z-10 flex h-full w-full flex-col overflow-hidden border-hf-border bg-hf-surface shadow-2xl shadow-black/60 sm:h-auto sm:max-h-[78vh] sm:max-w-[640px] sm:rounded-2xl sm:border">
+      <div className="relative z-10 flex h-full w-full flex-col overflow-hidden border-hf-border bg-hf-surface shadow-2xl shadow-black/15 sm:h-auto sm:max-h-[78vh] sm:max-w-[640px] sm:rounded-2xl sm:border">
         {/* Cabeçalho + busca */}
         <div className="border-b border-hf-border px-3 pb-3 pt-3 sm:px-4">
           <div className="mb-2 flex items-center justify-between gap-2 px-0.5">

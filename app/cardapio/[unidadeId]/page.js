@@ -167,14 +167,14 @@ export default function CardapioPublicoPage() {
                            <div key={p.id} className="bg-card p-4 sm:p-5 rounded-3xl shadow-sm border border-line-soft flex flex-col sm:flex-row justify-between sm:items-center gap-3 relative overflow-hidden">
                               <div className="sm:pr-4 z-10 min-w-0">
                                  <h3 className="font-bold text-lg text-slate-800 leading-tight mb-1">{p.nome_produto}</h3>
-                                 <p className="font-black text-indigo-600 text-lg">{fmtBRL(p.preco_venda)}</p>
+                                 <p className="font-black text-emerald-700 text-lg">{fmtBRL(p.preco_venda)}</p>
                               </div>
                               <div className="z-10 w-full sm:w-auto">
                                  {qtdNoCart > 0 ? (
-                                    <div className="flex items-center justify-between sm:justify-start gap-3 bg-indigo-50 border border-indigo-100 rounded-2xl p-1">
-                                       <button onClick={()=>alterarQtd(p.id, -1)} className="w-10 h-10 flex items-center justify-center bg-card rounded-xl text-indigo-600 shadow-sm"><Minus size={18}/></button>
-                                       <span className="font-black text-indigo-900">{qtdNoCart}</span>
-                                       <button onClick={()=>alterarQtd(p.id, 1)} className="w-10 h-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white shadow-sm shadow-indigo-600/30"><Plus size={18}/></button>
+                                    <div className="flex items-center justify-between sm:justify-start gap-3 bg-zinc-100 border border-zinc-200 rounded-2xl p-1">
+                                       <button onClick={()=>alterarQtd(p.id, -1)} className="w-10 h-10 flex items-center justify-center bg-card rounded-xl text-emerald-700 shadow-sm"><Minus size={18}/></button>
+                                       <span className="font-black text-zinc-900">{qtdNoCart}</span>
+                                       <button onClick={()=>alterarQtd(p.id, 1)} className="w-10 h-10 flex items-center justify-center bg-emerald-700 rounded-xl text-white shadow-sm shadow-indigo-600/30"><Plus size={18}/></button>
                                     </div>
                                  ) : (
                                     <button onClick={()=>addAoCarrinho(p)} className="w-full sm:w-auto justify-center px-5 py-3 bg-elevated hover:bg-slate-200 text-fg-soft font-bold rounded-2xl transition-colors text-sm flex items-center gap-2">
@@ -194,14 +194,14 @@ export default function CardapioPublicoPage() {
       {/* FLOAT BAR CARRINHO */}
       {carrinho.length > 0 && !modalCart && lojaAberta && (
          <div className="fixed bottom-6 left-4 right-4 z-30 flex justify-center animate-in slide-in-from-bottom-10">
-            <button onClick={()=>setModalCart(true)} className="w-full max-w-md bg-indigo-600 text-white p-3 sm:p-4 rounded-[20px] sm:rounded-[24px] shadow-2xl shadow-indigo-600/30 flex items-center justify-between gap-3 active:scale-95 transition-transform">
+            <button onClick={()=>setModalCart(true)} className="w-full max-w-md bg-emerald-700 text-white p-3 sm:p-4 rounded-[20px] sm:rounded-[24px] shadow-2xl shadow-indigo-600/30 flex items-center justify-between gap-3 active:scale-95 transition-transform">
                <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center relative">
                      <ShoppingBag size={24} />
                      <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">{carrinho.length}</span>
                   </div>
                   <div className="text-left">
-                     <p className="text-3xs uppercase font-bold text-indigo-200 tracking-widest">Seu Pedido</p>
+                     <p className="text-3xs uppercase font-bold text-zinc-200 tracking-widest">Seu Pedido</p>
                      <p className="font-black text-xl">{fmtBRL(totalCarrinho)}</p>
                   </div>
                </div>
@@ -226,9 +226,9 @@ export default function CardapioPublicoPage() {
                         <div key={it.id} className="bg-card p-4 rounded-2xl border border-line shadow-sm">
                            <div className="flex justify-between items-start mb-3">
                               <p className="font-bold text-slate-800">{it.nome_produto}</p>
-                              <p className="font-black text-indigo-600">{fmtBRL(it.preco_venda * it.quantidade)}</p>
+                              <p className="font-black text-emerald-700">{fmtBRL(it.preco_venda * it.quantidade)}</p>
                            </div>
-                           <input type="text" placeholder="Alguma observação? (Ex: Sem gelo)" value={it.observacao} onChange={e=>alterarObs(it.id, e.target.value)} className="w-full text-sm p-3 bg-slate-50 rounded-xl outline-none focus:bg-indigo-50 border border-transparent focus:border-indigo-100 transition-colors mb-4"/>
+                           <input type="text" placeholder="Alguma observação? (Ex: Sem gelo)" value={it.observacao} onChange={e=>alterarObs(it.id, e.target.value)} className="w-full text-sm p-3 bg-slate-50 rounded-xl outline-none focus:bg-zinc-100 border border-transparent focus:border-zinc-200 transition-colors mb-4"/>
                            <div className="flex items-center justify-end gap-3 bg-slate-50 rounded-xl w-max ml-auto p-1 border border-line-soft">
                               <button onClick={()=>alterarQtd(it.id, -1)} className="w-10 h-10 flex items-center justify-center bg-card rounded-lg text-muted font-black shadow-sm">-</button>
                               <span className="font-black text-slate-800 w-6 text-center">{it.quantidade}</span>
@@ -244,35 +244,35 @@ export default function CardapioPublicoPage() {
                         <div>
                            <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-3">Como você quer receber?</label>
                            <div className="grid grid-cols-2 gap-3">
-                              <button onClick={()=>setForm({...form, tipo: 'delivery'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'delivery' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-card border-line text-subtle'}`}>Delivery</button>
-                              <button onClick={()=>setForm({...form, tipo: 'qrcode'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'qrcode' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-card border-line text-subtle'}`}>Estou na Mesa</button>
+                              <button onClick={()=>setForm({...form, tipo: 'delivery'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'delivery' ? 'bg-zinc-100 border-emerald-600 text-zinc-700' : 'bg-card border-line text-subtle'}`}>Delivery</button>
+                              <button onClick={()=>setForm({...form, tipo: 'qrcode'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'qrcode' ? 'bg-zinc-100 border-emerald-600 text-zinc-700' : 'bg-card border-line text-subtle'}`}>Estou na Mesa</button>
                            </div>
                         </div>
                      ) : (
-                        <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-200">
-                           <p className="text-indigo-800 font-bold text-sm text-center">📍 Pedido vinculado à Mesa {mesaUrl}</p>
+                        <div className="p-4 bg-zinc-100 rounded-2xl border border-zinc-200">
+                           <p className="text-zinc-800 font-bold text-sm text-center">📍 Pedido vinculado à Mesa {mesaUrl}</p>
                         </div>
                      )}
 
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Seu Nome</label>
-                        <input type="text" placeholder="Como devemos te chamar?" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-indigo-500"/>
+                        <input type="text" placeholder="Como devemos te chamar?" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-emerald-600"/>
                      </div>
 
                      <div>
                         <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">WhatsApp</label>
-                        <input type="text" inputMode="tel" placeholder="(DD) 99999-9999" value={form.telefone} onChange={e=>setForm({...form, telefone: mascaraTelefone(e.target.value)})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-indigo-500"/>
+                        <input type="text" inputMode="tel" placeholder="(DD) 99999-9999" value={form.telefone} onChange={e=>setForm({...form, telefone: mascaraTelefone(e.target.value)})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-emerald-600"/>
                      </div>
 
                      {form.tipo === 'delivery' && (
                         <>
                            <div>
                               <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Endereço de Entrega</label>
-                              <textarea placeholder="Rua, Número, Bairro, Ponto de Referência" value={form.endereco} onChange={e=>setForm({...form, endereco: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-indigo-500 h-24 custom-scrollbar"></textarea>
+                              <textarea placeholder="Rua, Número, Bairro, Ponto de Referência" value={form.endereco} onChange={e=>setForm({...form, endereco: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-emerald-600 h-24 custom-scrollbar"></textarea>
                            </div>
                            <div>
                               <label className="text-xs font-bold text-muted uppercase tracking-widest block mb-2">Troco para (Opcional)</label>
-                              <input type="text" placeholder="Ex: 50 reais" value={form.troco} onChange={e=>setForm({...form, troco: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-indigo-500"/>
+                              <input type="text" placeholder="Ex: 50 reais" value={form.troco} onChange={e=>setForm({...form, troco: e.target.value})} className="w-full p-4 bg-card border border-line rounded-2xl font-bold outline-none focus:border-emerald-600"/>
                            </div>
                         </>
                      )}
@@ -289,10 +289,10 @@ export default function CardapioPublicoPage() {
                )}
                <div className="flex justify-between items-center mb-6">
                   <span className="font-bold text-muted">Total a Pagar</span>
-                  <span className="text-2xl sm:text-3xl font-black text-indigo-600">{fmtBRL(totalGeral)}</span>
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-700">{fmtBRL(totalGeral)}</span>
                </div>
                {!telaCheckout ? (
-                  <button onClick={() => setTelaCheckout(true)} className="w-full py-5 bg-indigo-600 text-white font-black text-xl rounded-2xl active:scale-95 transition-transform shadow-xl shadow-indigo-600/30">
+                  <button onClick={() => setTelaCheckout(true)} className="w-full py-5 bg-emerald-700 text-white font-black text-xl rounded-2xl active:scale-95 transition-transform shadow-xl shadow-indigo-600/30">
                      Avançar
                   </button>
                ) : (

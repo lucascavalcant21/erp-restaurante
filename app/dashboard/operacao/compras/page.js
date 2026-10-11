@@ -323,13 +323,13 @@ export default function ComprasHubPage() {
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
 
       {/* CABEÇALHO SUPERIOR */}
-      <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-white">
+      <div className="bg-hf-surface pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-hf-text">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <button onClick={() => abrirMenu()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors cursor-pointer">
+            <button onClick={() => abrirMenu()} className="p-3 bg-hf-elevated hover:bg-hf-border rounded-full transition-colors cursor-pointer">
               <ArrowLeft size={20} />
             </button>
-            <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-emerald-500/20 text-emerald-400 items-center justify-center">
+            <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-emerald-500/20 text-emerald-700 items-center justify-center">
               <ShoppingCart size={30} />
             </div>
             <div>
@@ -351,16 +351,16 @@ export default function ComprasHubPage() {
         </div>
 
         {/* NAVEGAÇÃO DE ABAS */}
-        <div className="max-w-7xl mx-auto mt-8 flex border-b border-slate-800 gap-2 overflow-x-auto scrollbar-none">
+        <div className="max-w-7xl mx-auto mt-8 flex border-b border-hf-border gap-2 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setAbaAtiva("necessidade")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "necessidade" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
+              abaAtiva === "necessidade" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-hf-text"
             }`}
           >
             <Sparkles size={16} /> 1. Necessidade de Compra
             {listaNecessidades.length > 0 && (
-              <span className="ml-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-3xs font-bold">
+              <span className="ml-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 text-3xs font-bold">
                 {listaNecessidades.length}
               </span>
             )}
@@ -369,12 +369,12 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("pedidos")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "pedidos" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
+              abaAtiva === "pedidos" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-hf-text"
             }`}
           >
             <FileText size={16} /> 2. Pedidos de Compra
             {pedidos.length > 0 && (
-              <span className="ml-1.5 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-3xs font-bold">
+              <span className="ml-1.5 px-2 py-0.5 rounded-full bg-zinc-500/20 text-hf-text-2 text-3xs font-bold">
                 {pedidos.length}
               </span>
             )}
@@ -383,7 +383,7 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("recebimento")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "recebimento" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
+              abaAtiva === "recebimento" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-hf-text"
             }`}
           >
             <Truck size={16} /> 3. Recebimento & Conferência
@@ -392,7 +392,7 @@ export default function ComprasHubPage() {
           <button
             onClick={() => setAbaAtiva("fornecedores")}
             className={`px-5 py-3 font-black text-sm rounded-t-2xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              abaAtiva === "fornecedores" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-white"
+              abaAtiva === "fornecedores" ? "bg-[var(--surface)] text-slate-900 border-t-2 border-emerald-500" : "text-slate-800 hover:text-hf-text"
             }`}
           >
             <Building2 size={16} /> 4. Fornecedores & Preços
@@ -556,7 +556,7 @@ export default function ComprasHubPage() {
                       </div>
                       <span className={`px-3 py-1 rounded-full text-3xs font-black uppercase tracking-wider ${
                         ped.status === "RECEBIDO" ? "bg-emerald-100 text-emerald-800" :
-                        ped.status === "ENVIADO" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
+                        ped.status === "ENVIADO" ? "bg-zinc-100 text-zinc-800" : "bg-amber-100 text-amber-800"
                       }`}>
                         {ped.status}
                       </span>
@@ -600,12 +600,12 @@ export default function ComprasHubPage() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {abaAtiva === "recebimento" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="bg-gradient-to-br from-hf-surface to-hf-bg text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <span className="text-3xs font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30">
+                <span className="text-3xs font-black uppercase tracking-widest text-emerald-700 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30">
                   Modo Tablet / Conferência na Entrega
                 </span>
-                <h2 className="text-2xl font-black text-white mt-2">
+                <h2 className="text-2xl font-black text-hf-text mt-2">
                   {pedidoParaReceber ? `Conferência do Pedido: ${pedidoParaReceber.numero_pedido}` : "Recebimento de Mercadoria (Avulso)"}
                 </h2>
                 <p className="text-xs text-slate-800">Verifique os preços da Nota Fiscal e informe lote/validade</p>
@@ -614,7 +614,7 @@ export default function ComprasHubPage() {
               {pedidoParaReceber && (
                 <button
                   onClick={() => { setPedidoParaReceber(null); setItensRecebimento([]); }}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  className="px-4 py-2 bg-hf-elevated hover:bg-hf-border text-hf-text-2 font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Alternar para Recebimento Avulso
                 </button>

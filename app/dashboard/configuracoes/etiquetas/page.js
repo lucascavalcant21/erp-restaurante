@@ -152,7 +152,7 @@ export default function ConfiguracaoEtiquetasPage() {
                     </button>
                   ))}
                   <button
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors border ${isCustom ? "bg-indigo-50 border-indigo-300 text-indigo-800" : "bg-white border-line text-slate-900 hover:bg-slate-100"}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors border ${isCustom ? "bg-zinc-100 border-zinc-200 text-zinc-800" : "bg-white border-line text-slate-900 hover:bg-slate-100"}`}
                   >
                     PERSONALIZADO
                   </button>

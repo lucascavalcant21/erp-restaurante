@@ -312,29 +312,29 @@ export default function HefistoCopilotPanel() {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-sm transition-opacity">
       {/* Drawer do Copiloto no Desktop/Tablet */}
-      <div className="w-full sm:w-[460px] h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden">
+      <div className="w-full sm:w-[460px] h-full bg-hf-surface border-l border-hf-border shadow-2xl flex flex-col justify-between overflow-hidden">
         {/* Cabeçalho do Copiloto */}
-        <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-4 bg-hf-bg border-b border-hf-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-700">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-100">HÉFISTO</h3>
-                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <h3 className="text-sm font-bold text-hf-text">HÉFISTO</h3>
+                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 border border-amber-500/20">
                   Copiloto
                 </span>
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-hf-text-2 flex items-center gap-1 mt-0.5">
                 <span className="capitalize">{pageContext.domain}</span>
                 {pageContext.entityName && (
                   <>
-                    <ChevronRight className="w-3 h-3 text-slate-500" />
-                    <span className="text-amber-300 font-medium truncate max-w-[160px]">{pageContext.entityName}</span>
+                    <ChevronRight className="w-3 h-3 text-hf-muted" />
+                    <span className="text-amber-700 font-medium truncate max-w-[160px]">{pageContext.entityName}</span>
                     <button
                       onClick={clearSelectedEntity}
-                      className="text-slate-500 hover:text-red-400 ml-1"
+                      className="text-hf-muted hover:text-red-700 ml-1"
                       title="Limpar contexto da entidade"
                     >
                       <X className="w-3 h-3" />
@@ -352,7 +352,7 @@ export default function HefistoCopilotPanel() {
                   setIsOpen(false);
                   router.push("/dashboard");
                 }}
-                className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 text-xs px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
               >
                 <Inbox className="w-3.5 h-3.5" />
                 <span className="font-semibold text-[11px]">Precisa de você ({inboxCount})</span>
@@ -366,7 +366,7 @@ export default function HefistoCopilotPanel() {
                   router.push("/dashboard/gestao/saude-hefisto");
                 }}
                 title="Saúde do Sistema & Observabilidade"
-                className="p-1.5 text-cyan-400 hover:bg-cyan-500/10 border border-cyan-500/20 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-emerald-700 hover:bg-zinc-500/10 border border-zinc-500/20 rounded-lg transition-colors cursor-pointer"
               >
                 <Activity className="w-4 h-4" />
               </button>
@@ -374,7 +374,7 @@ export default function HefistoCopilotPanel() {
 
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-2 text-hf-text-2 hover:text-hf-text hover:bg-hf-elevated rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -385,22 +385,22 @@ export default function HefistoCopilotPanel() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {mensagens.length === 0 && !pendingPreview && (
             <div className="space-y-4 my-2">
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+              <div className="p-3.5 rounded-xl bg-hf-bg border border-hf-border text-xs text-hf-text-2 leading-relaxed">
                 👋 Olá! Sou o <strong>Héfisto</strong>, seu Copiloto Operacional. Reconheço a tela ativa e posso responder dúvidas ou executar ações autorizadas.
               </div>
 
               {/* Sugestões Contextuais */}
               <div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Sugestões para esta tela:</p>
+                <p className="text-[11px] font-bold text-hf-text-2 uppercase tracking-wider mb-2">Sugestões para esta tela:</p>
                 <div className="space-y-2">
                   {getContextualSuggestions().map((sug, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleEnviar(sug.prompt)}
-                      className="w-full text-left bg-slate-950/60 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 rounded-xl p-3 text-xs text-slate-200 flex items-center justify-between group transition-all"
+                      className="w-full text-left bg-hf-bg hover:bg-hf-elevated border border-hf-border hover:border-amber-500/40 rounded-xl p-3 text-xs text-hf-text flex items-center justify-between group transition-all"
                     >
                       <span>{sug.label}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                      <ArrowRight className="w-3.5 h-3.5 text-hf-muted group-hover:text-amber-700 transition-colors" />
                     </button>
                   ))}
                 </div>
@@ -411,19 +411,19 @@ export default function HefistoCopilotPanel() {
           {/* Renderização do Modal de Preview de Ação F2 */}
           {pendingPreview && (
             <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+              <div className="flex items-center gap-2 text-amber-700 font-bold text-xs">
                 <AlertTriangle className="w-4 h-4" />
                 <span>CONFIRMAÇÃO DE AÇÃO OPERACIONAL</span>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-slate-100">{pendingPreview.actionTitle}</p>
-                <p className="text-xs text-slate-300">Item: <strong>{pendingPreview.productName}</strong></p>
-                <p className="text-xs text-slate-300">Detalhes: {pendingPreview.detailsText}</p>
+                <p className="text-sm font-semibold text-hf-text">{pendingPreview.actionTitle}</p>
+                <p className="text-xs text-hf-text-2">Item: <strong>{pendingPreview.productName}</strong></p>
+                <p className="text-xs text-hf-text-2">Detalhes: {pendingPreview.detailsText}</p>
               </div>
               <div className="flex items-center gap-2 pt-2">
                 <button
                   onClick={() => setPendingPreview(null)}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 rounded-lg font-medium transition-colors"
+                  className="flex-1 bg-hf-elevated hover:bg-hf-border text-hf-text text-xs py-2 rounded-lg font-medium transition-colors"
                 >
                   Cancelar
                 </button>
@@ -449,30 +449,30 @@ export default function HefistoCopilotPanel() {
                   msg.sender === "user"
                     ? "bg-amber-500 text-slate-950 font-medium"
                     : msg.type === "ERROR"
-                    ? "bg-red-950/40 border border-red-500/30 text-red-200"
+                    ? "bg-red-950/40 border border-red-500/30 text-red-700"
                     : msg.type === "STATUS"
-                    ? "bg-emerald-950/40 border border-emerald-500/30 text-emerald-200"
-                    : "bg-slate-950 border border-slate-800 text-slate-200"
+                    ? "bg-emerald-950/40 border border-emerald-500/30 text-emerald-700"
+                    : "bg-hf-bg border border-hf-border text-hf-text"
                 }`}
               >
                 {msg.title && (
                   <p className="font-bold text-[11px] opacity-80 mb-1 tracking-wide">{msg.title}</p>
                 )}
                 <p className="whitespace-pre-wrap">{msg.responseText}</p>
-                <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-800/40 text-[9px] opacity-60">
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-hf-border text-[9px] opacity-60">
                   <span className="text-[9px] opacity-75">{msg.timestamp}</span>
                   {msg.sender === "hefisto" && (
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => recordUserFeedback({ correlationId: msg.correlationId, rating: "POSITIVE", tenantId: unidadeAtiva?.id })}
-                        className="hover:text-emerald-400 p-0.5 cursor-pointer"
+                        className="hover:text-emerald-700 p-0.5 cursor-pointer"
                         title="Resposta útil"
                       >
                         <ThumbsUp size={11} />
                       </button>
                       <button
                         onClick={() => recordUserFeedback({ correlationId: msg.correlationId, rating: "NEGATIVE", reason: "Resposta incorreta", tenantId: unidadeAtiva?.id })}
-                        className="hover:text-rose-400 p-0.5 cursor-pointer"
+                        className="hover:text-red-700 p-0.5 cursor-pointer"
                         title="Reportar problema nesta resposta"
                       >
                         <ThumbsDown size={11} />
@@ -485,7 +485,7 @@ export default function HefistoCopilotPanel() {
           ))}
 
           {loading && (
-            <div className="flex items-center gap-2 text-xs text-amber-400 p-2">
+            <div className="flex items-center gap-2 text-xs text-amber-700 p-2">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Héfisto consultando contexto...</span>
             </div>
@@ -493,8 +493,8 @@ export default function HefistoCopilotPanel() {
         </div>
 
         {/* Rodapé / Input Bar */}
-        <div className="p-4 bg-slate-950/90 border-t border-slate-800 space-y-2">
-          <div className="relative flex items-center bg-slate-900 border border-slate-700 focus-within:border-amber-500 rounded-xl px-3 py-2">
+        <div className="p-4 bg-hf-bg border-t border-hf-border space-y-2">
+          <div className="relative flex items-center bg-hf-surface border border-hf-border focus-within:border-amber-500 rounded-xl px-3 py-2">
             <input
               ref={inputRef}
               type="text"
@@ -502,13 +502,13 @@ export default function HefistoCopilotPanel() {
               onChange={e => setInputText(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleEnviar()}
               placeholder="Pergunte ou peça uma ação..."
-              className="w-full bg-transparent text-xs text-slate-100 placeholder-slate-500 focus:outline-none pr-16"
+              className="w-full bg-transparent text-xs text-hf-text placeholder-hf-muted focus:outline-none pr-16"
             />
             <div className="absolute right-2 flex items-center gap-1">
               <button
                 onClick={toggleVoz}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  oubindo ? "bg-red-500 text-white animate-pulse" : "text-slate-400 hover:text-amber-400"
+                  oubindo ? "bg-red-500 text-white animate-pulse" : "text-hf-text-2 hover:text-amber-700"
                 }`}
                 title="Comando de voz (F3)"
               >
@@ -524,11 +524,11 @@ export default function HefistoCopilotPanel() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <div className="flex items-center justify-between text-[10px] text-hf-text-2">
             <span>Piloto Héfisto F14 · Previa obrigatória em alterações</span>
             <button
               onClick={() => setShowReportModal(true)}
-              className="text-amber-400 hover:underline font-semibold cursor-pointer"
+              className="text-amber-700 hover:underline font-semibold cursor-pointer"
             >
               Reportar problema
             </button>
@@ -539,22 +539,22 @@ export default function HefistoCopilotPanel() {
       {/* MODAL 1: REPORTAR PROBLEMA NO PILOTO */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0B1528] border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4">
+          <div className="bg-hf-surface border border-hf-border rounded-3xl p-6 max-w-md w-full space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm">Reportar Problema no Piloto</h3>
-              <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-white cursor-pointer"><X size={16} /></button>
+              <h3 className="font-bold text-hf-text text-sm">Reportar Problema no Piloto</h3>
+              <button onClick={() => setShowReportModal(false)} className="text-hf-text-2 hover:text-hf-text cursor-pointer"><X size={16} /></button>
             </div>
-            <p className="text-xs text-slate-300">
-              Sua rota ativa (<code className="text-cyan-300">{pathname}</code>) e metadados sanitizados serão anexados automaticamente ao log do piloto.
+            <p className="text-xs text-hf-text-2">
+              Sua rota ativa (<code className="text-emerald-700">{pathname}</code>) e metadados sanitizados serão anexados automaticamente ao log do piloto.
             </p>
             <textarea
               value={reportComment}
               onChange={e => setReportComment(e.target.value)}
               placeholder="Descreva o que aconteceu (opcional)..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 min-h-[80px]"
+              className="w-full bg-hf-surface border border-hf-border rounded-2xl p-3 text-xs text-hf-text placeholder-hf-muted focus:outline-none focus:border-amber-500 min-h-[80px]"
             />
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowReportModal(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer">Cancelar</button>
+              <button onClick={() => setShowReportModal(false)} className="px-4 py-2 rounded-xl bg-hf-elevated text-xs font-bold text-hf-text-2 cursor-pointer">Cancelar</button>
               <button
                 onClick={() => {
                   recordPilotIssue({

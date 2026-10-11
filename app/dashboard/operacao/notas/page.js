@@ -470,7 +470,7 @@ export default function NotasFiscaisPage() {
                 {notaExpandida === n.id && (
                   <div className="p-4 mt-2 rounded-xl mb-6 flex flex-col sm:flex-row gap-4" style={{ background: "var(--card)", border: "1px dashed var(--line)" }}>
                     <div className="flex flex-col gap-2">
-                      <div onClick={() => n.imagem_url && setFotoAberta(n.imagem_url)} title="Clique para ampliar na mesma tela" className="w-full sm:w-32 h-48 sm:h-40 rounded-lg overflow-hidden border flex items-center justify-center bg-black/5 hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer" style={{ borderColor: "var(--line)" }}>
+                      <div onClick={() => n.imagem_url && setFotoAberta(n.imagem_url)} title="Clique para ampliar na mesma tela" className="w-full sm:w-32 h-48 sm:h-40 rounded-lg overflow-hidden border flex items-center justify-center bg-black/5 hover:ring-2 hover:ring-emerald-500 transition-all cursor-pointer" style={{ borderColor: "var(--line)" }}>
                         {n.imagem_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={n.imagem_url} alt="Nota Fisical" className="w-full h-full object-cover hover:object-contain transition-all" />

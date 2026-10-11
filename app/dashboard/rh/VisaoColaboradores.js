@@ -224,7 +224,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
       if (!pt) {
         const folgaEsporadica = (vida?.folgas || []).some(fl => String(fl.data_folga).slice(0, 10) === hojeStr);
         const folgaFixa = sel.dias_trabalho ? !sel.dias_trabalho.split(',').includes(String(diaSemana)) : false;
-        if (folgaEsporadica || folgaFixa) return <div className={cls("text-sky-800 bg-sky-50 border-sky-200")}><Clock size={14} /> {diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</div>;
+        if (folgaEsporadica || folgaFixa) return <div className={cls("text-zinc-800 bg-zinc-100 border-zinc-200")}><Clock size={14} /> {diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</div>;
         if (entradaEsperada) {
            const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
            if (minAgora > strToMin(entradaEsperada)) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> Atrasado (esperado às {entradaEsperada})</div>;
@@ -245,7 +245,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
          if (duracao > limite) return <div className={cls("text-rose-800 bg-rose-50 border-rose-200")}><AlertTriangle size={14} /> {situacao.texto} · passou do intervalo ({minToStr(duracao)}/{minToStr(limite)})</div>;
          return <div className={cls("text-emerald-800 bg-emerald-50 border-emerald-200")}><Clock size={14} /> {situacao.texto}</div>;
       }
-      if (pt.status_jornada === 4) return <div className={cls(situacao.semIntervalo ? "text-rose-800 bg-rose-50 border-rose-200" : "text-blue-800 bg-blue-50 border-blue-200")}><Clock size={14} /> {situacao.texto}</div>;
+      if (pt.status_jornada === 4) return <div className={cls(situacao.semIntervalo ? "text-rose-800 bg-rose-50 border-rose-200" : "text-zinc-800 bg-zinc-100 border-zinc-200")}><Clock size={14} /> {situacao.texto}</div>;
       return null;
     };
 
@@ -282,11 +282,11 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
               const nascDia = sel.data_nascimento.slice(8, 10);
               const ehHoje = hojeDia === nascDia;
               return (
-                <div className={`mt-4 border rounded-xl p-4 ${ehHoje ? "bg-fuchsia-50 border-fuchsia-200" : "bg-purple-50 border-purple-200"}`}>
-                  <p className={`text-sm font-black mb-1 ${ehHoje ? "text-fuchsia-900" : "text-purple-900"}`}>
+                <div className={`mt-4 border rounded-xl p-4 ${ehHoje ? "bg-zinc-100 border-zinc-200" : "bg-zinc-100 border-zinc-200"}`}>
+                  <p className={`text-sm font-black mb-1 ${ehHoje ? "text-zinc-900" : "text-zinc-900"}`}>
                     🎂 {ehHoje ? "Aniversário é HOJE!" : "Aniversariante do Mês!"}
                   </p>
-                  <p className={`text-xs font-bold ${ehHoje ? "text-fuchsia-800" : "text-purple-800"}`}>
+                  <p className={`text-xs font-bold ${ehHoje ? "text-zinc-800" : "text-zinc-800"}`}>
                     Celebre o aniversário no dia {fmtData(sel.data_nascimento).slice(0, 5)}.
                   </p>
                 </div>
@@ -299,9 +299,9 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
               if (!f) return null;
               const critico = f.diasRestantesPeriodo <= 5;
               return (
-                <div className={`mt-4 border rounded-xl p-4 ${critico ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200"}`}>
-                  <p className={`text-sm font-black mb-1 ${critico ? "text-amber-900" : "text-blue-900"}`}>{f.fase}</p>
-                  <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-blue-800"}`}>{f.detalhe}</p>
+                <div className={`mt-4 border rounded-xl p-4 ${critico ? "bg-amber-50 border-amber-200" : "bg-zinc-100 border-zinc-200"}`}>
+                  <p className={`text-sm font-black mb-1 ${critico ? "text-amber-900" : "text-zinc-900"}`}>{f.fase}</p>
+                  <p className={`text-xs font-bold mb-3 ${critico ? "text-amber-800" : "text-zinc-800"}`}>{f.detalhe}</p>
                   {critico && (
                     <div className="flex flex-wrap gap-2">
                       {f.periodo === 1 && (
@@ -493,7 +493,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
                         <input value={formAtestado.medico} onChange={e => setFormAtestado({ ...formAtestado, medico: e.target.value })} className="h-11 w-full rounded-lg border px-2 text-sm font-bold" style={{ borderColor: "var(--line)" }} /></label>
                     </div>
                     <label className="mt-2 flex items-center gap-2 text-xs font-bold" style={{ color: "var(--fg-soft)" }}>
-                      <input type="checkbox" checked={formAtestado.parcial} onChange={e => setFormAtestado({ ...formAtestado, parcial: e.target.checked })} className="h-4 w-4 accent-cyan-600" />
+                      <input type="checkbox" checked={formAtestado.parcial} onChange={e => setFormAtestado({ ...formAtestado, parcial: e.target.checked })} className="h-4 w-4 accent-emerald-700" />
                       Trabalhou e saiu no meio do turno (o ponto do dia continua valendo)
                     </label>
                     <label className="mt-2 block"><span className="erp-label">Anexar o atestado</span>
@@ -658,7 +658,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
 
               {/* Recibos (Adiantamentos e Vales) */}
               <Bloco icon={FileText} titulo="Recibos Avulsos (Vales / Extras)"
-                extra={vida.recibos?.length > 0 && <span className="erp-badge erp-badge-info bg-cyan-100 text-cyan-800">{vida.recibos.length}</span>}>
+                extra={vida.recibos?.length > 0 && <span className="erp-badge erp-badge-info bg-zinc-100 text-zinc-800">{vida.recibos.length}</span>}>
                 {!vida.recibos || vida.recibos.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum recibo gerado ainda.</p> : (
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {vida.recibos.map(r => (

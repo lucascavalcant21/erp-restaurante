@@ -82,9 +82,9 @@ export default function BarHubPage() {
             <h3 className="font-bold text-fg-soft text-sm">Lista de Compras</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-violet-50 border border-violet-200 hover:border-violet-400 transition-all flex flex-col justify-center items-center gap-2 group text-center">
-            <CalendarClock size={24} className="text-violet-600 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-violet-800 text-sm">Memorando de Amanhã</h3>
+         <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-zinc-100 border border-zinc-200 hover:border-emerald-600 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+            <CalendarClock size={24} className="text-emerald-700 group-hover:scale-110 transition-transform" />
+            <h3 className="font-bold text-zinc-800 text-sm">Memorando de Amanhã</h3>
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/produtos?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-card border border-line hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
@@ -107,12 +107,12 @@ export default function BarHubPage() {
             
             <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-white border border-line hover:bg-card transition-all flex items-center gap-4 group">
                <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-success shadow-sm"><CheckSquare size={20} /></div>
-               <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-3xs uppercase font-bold text-fg">Abertura e Fechamento Bar</p></div>
+               <div className="text-left"><p className="font-bold text-zinc-900">Checklist Operacional</p><p className="text-3xs uppercase font-bold text-fg">Abertura e Fechamento Bar</p></div>
             </button>
 
             <button onClick={() => router.push("/dashboard/operacao/rotina?dept=bar&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-white border border-line hover:bg-card transition-all flex items-center gap-4 group">
                <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-success shadow-sm"><Sparkles size={20} /></div>
-               <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-3xs uppercase font-bold text-fg">Higiene Diária e Semanal</p></div>
+               <div className="text-left"><p className="font-bold text-zinc-900">Checklist de Limpeza</p><p className="text-3xs uppercase font-bold text-fg">Higiene Diária e Semanal</p></div>
             </button>
 
          </div>

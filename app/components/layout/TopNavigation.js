@@ -108,7 +108,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
 
   return (
     <>
-      <header className="bg-hf-bg/95 backdrop-blur border-b border-hf-border text-hf-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header className="bg-hf-surface/95 backdrop-blur border-b border-hf-border text-hf-text sticky top-0 z-50 shadow-sm shrink-0 w-full relative print:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="h-16 flex items-center justify-between px-4 lg:px-8 w-full">
         <div className="flex items-center gap-4 lg:gap-6 h-full">
           {/* HAMBURGER MOBILE */}
@@ -192,7 +192,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
               <Bell size={18} />
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-hf-surface rounded-2xl shadow-xl shadow-black/40 border border-hf-border py-4 px-4 z-50 animate-in fade-in slide-in-from-top-2 flex flex-col items-center justify-center text-center gap-2">
+              <div className="absolute right-0 top-full mt-2 w-72 bg-hf-surface rounded-2xl shadow-xl shadow-black/10 border border-hf-border py-4 px-4 z-50 animate-in fade-in slide-in-from-top-2 flex flex-col items-center justify-center text-center gap-2">
                 <Bell size={24} className="text-hf-muted" />
                 <p className="text-sm font-bold text-hf-text-2">Nenhuma notificação no momento</p>
               </div>
@@ -209,7 +209,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
             </button>
             
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-hf-surface rounded-2xl shadow-xl shadow-black/40 border border-hf-border py-2 z-50 animate-in fade-in slide-in-from-top-2 text-hf-text">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-hf-surface rounded-2xl shadow-xl shadow-black/10 border border-hf-border py-2 z-50 animate-in fade-in slide-in-from-top-2 text-hf-text">
                 <div className="px-4 py-3 border-b border-hf-border mb-2">
                   <div className="text-sm font-bold text-hf-text">{sessao?.nome}</div>
                   <div className="text-xs text-hf-text-2 truncate">{sessao?.email}</div>

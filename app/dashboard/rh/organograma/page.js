@@ -190,7 +190,7 @@ export default function OrganogramaCorporativoPage() {
     <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
       
       {/* HEADER CORPORATIVO */}
-      <div className="bg-slate-900 text-white px-6 py-10 rounded-b-[40px] shadow-xl relative overflow-hidden">
+      <div className="bg-hf-surface text-hf-text px-6 py-10 rounded-b-[40px] shadow-xl relative overflow-hidden">
          <div className="absolute top-0 right-0 p-8 opacity-5"><Network size={200} /></div>
          
          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-7xl mx-auto">
@@ -210,10 +210,10 @@ export default function OrganogramaCorporativoPage() {
                     value={busca}
                     onChange={e => setBusca(e.target.value)}
                     placeholder="Pesquisar funcionário..."
-                    className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-2xl text-white font-bold placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
+                    className="w-full pl-12 pr-4 py-4 bg-hf-elevated border border-hf-border rounded-2xl text-hf-text font-bold placeholder-hf-muted focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
                   />
                </div>
-               <button onClick={imprimirOrganograma} title="Imprimir organograma" className="shrink-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-4 py-4 rounded-2xl transition-colors">
+               <button onClick={imprimirOrganograma} title="Imprimir organograma" className="shrink-0 flex items-center gap-2 bg-hf-elevated hover:bg-hf-border border border-hf-border text-hf-text font-bold px-4 py-4 rounded-2xl transition-colors">
                   <Printer size={18} /> <span className="hidden md:inline">Imprimir</span>
                </button>
             </div>

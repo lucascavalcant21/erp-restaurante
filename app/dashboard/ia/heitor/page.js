@@ -346,21 +346,21 @@ export default function HeitorPage() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-white">
       {/* HEADER COCKPIT IA PREMIUM */}
-      <div className="px-3 sm:px-4 py-3 sm:py-6 bg-slate-900 sticky top-0 z-30 shadow-2xl shadow-slate-900/20 border-b border-slate-800">
+      <div className="px-3 sm:px-4 py-3 sm:py-6 bg-hf-surface sticky top-0 z-30 shadow-2xl shadow-slate-900/20 border-b border-hf-border">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
               <Brain size={24} color="#fff" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">Hefisto AI</h1>
-                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 text-3xs font-bold uppercase tracking-widest flex items-center gap-1 border border-slate-700">
+                <h1 className="text-xl md:text-2xl font-black text-hf-text tracking-tight">Hefisto AI</h1>
+                <span className="px-2 py-0.5 rounded-full bg-hf-elevated text-emerald-700 text-3xs font-bold uppercase tracking-widest flex items-center gap-1 border border-hf-border">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
                 </span>
               </div>
               <p className="text-2xs sm:text-xs font-medium text-fg flex items-start sm:items-center gap-1 mt-0.5 min-w-0 leading-snug">
-                <Cpu size={12}/> Analisando dados da unidade <span className="text-white font-bold">{unidadeInfo.nome}</span>
+                <Cpu size={12}/> Analisando dados da unidade <span className="text-hf-text font-bold">{unidadeInfo.nome}</span>
               </p>
             </div>
           </div>
@@ -430,7 +430,7 @@ export default function HeitorPage() {
           </div>
           
           {/* Caixa de Texto Premium */}
-          <div className="flex items-end gap-2 sm:gap-3 bg-white p-2 border border-line rounded-2xl sm:rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-emerald-500 transition-all">
+          <div className="flex items-end gap-2 sm:gap-3 bg-white p-2 border border-line rounded-2xl sm:rounded-3xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all">
             <textarea 
               value={input} 
               onChange={(e) => setInput(e.target.value)} 
@@ -450,7 +450,7 @@ export default function HeitorPage() {
                 onClick={iniciarVoz}
                 title={escutando ? "Parar de ouvir" : "Falar com o Hefisto"}
                 aria-label={escutando ? "Parar de ouvir" : "Falar com o Hefisto"}
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${escutando ? "bg-rose-600 text-white animate-pulse" : "bg-card border border-line text-slate-900 hover:text-purple-600"}`}
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${escutando ? "bg-rose-600 text-white animate-pulse" : "bg-card border border-line text-slate-900 hover:text-emerald-700"}`}
               >
                 {escutando ? <MicOff size={19} /> : <Mic size={19} />}
               </button>
@@ -460,7 +460,7 @@ export default function HeitorPage() {
               onClick={() => setLerRespostas(valor => !valor)}
               title={lerRespostas ? "Desativar respostas faladas" : "Ativar respostas faladas"}
               aria-label={lerRespostas ? "Desativar respostas faladas" : "Ativar respostas faladas"}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-card border border-line text-slate-900 hover:text-purple-600 flex items-center justify-center flex-shrink-0"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-card border border-line text-slate-900 hover:text-emerald-700 flex items-center justify-center flex-shrink-0"
             >
               {lerRespostas ? <Volume2 size={19} /> : <VolumeX size={19} />}
             </button>

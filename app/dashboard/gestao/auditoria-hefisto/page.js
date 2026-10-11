@@ -65,15 +65,15 @@ export default function AuditoriaHefistoPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto text-slate-100 font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto text-hf-text font-sans">
       {/* CABEÇALHO DA AUDITORIA DO HÉFISTO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-[#0B1528] border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-hf-surface border border-hf-border shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center border border-emerald-500/20">
             <ShieldCheck size={26} />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight">Auditoria & Governança do Héfisto</h1>
+            <h1 className="text-xl font-black text-hf-text tracking-tight">Auditoria & Governança do Héfisto</h1>
             <p className="text-xs text-slate-800">Rastreabilidade Determinística, Matriz de Risco e Modo Seguro</p>
           </div>
         </div>
@@ -86,8 +86,8 @@ export default function AuditoriaHefistoPage() {
             onClick={toggleSafeMode}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black border transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
               safeMode
-                ? "bg-amber-500/20 border-amber-500/50 text-amber-300 hover:bg-amber-500/30"
-                : "bg-slate-900 border-slate-800 text-slate-800 hover:text-white"
+                ? "bg-amber-500/20 border-amber-500/50 text-amber-700 hover:bg-amber-500/30"
+                : "bg-hf-surface border-hf-border text-slate-800 hover:text-hf-text"
             }`}
           >
             {safeMode ? <Lock size={16} /> : <Unlock size={16} />}
@@ -100,8 +100,8 @@ export default function AuditoriaHefistoPage() {
             onClick={toggleKillSwitch}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black border transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
               killSwitch
-                ? "bg-rose-500/20 border-rose-500/60 text-rose-300 hover:bg-rose-500/30 animate-pulse"
-                : "bg-slate-900 border-slate-800 text-slate-800 hover:text-white"
+                ? "bg-rose-500/20 border-rose-500/60 text-red-700 hover:bg-rose-500/30 animate-pulse"
+                : "bg-hf-surface border-hf-border text-slate-800 hover:text-hf-text"
             }`}
           >
             <ShieldAlert size={16} />
@@ -111,17 +111,17 @@ export default function AuditoriaHefistoPage() {
       </div>
 
       {/* BARRA DE FILTROS E BUSCA */}
-      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+      <div className="p-4 rounded-2xl bg-hf-surface border border-hf-border flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
           {/* PERÍODO */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="flex bg-hf-bg p-1 rounded-xl border border-hf-border">
             {["hoje", "7dias", "30dias"].map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setPeriodo(p)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-extrabold capitalize transition-colors ${
-                  periodo === p ? "bg-emerald-500 text-slate-950" : "text-slate-800 hover:text-white"
+                  periodo === p ? "bg-emerald-500 text-slate-950" : "text-slate-800 hover:text-hf-text"
                 }`}
               >
                 {p === "hoje" ? "Hoje" : p === "7dias" ? "7 Dias" : "30 Dias"}
@@ -133,7 +133,7 @@ export default function AuditoriaHefistoPage() {
           <select
             value={filtroRisco}
             onChange={(e) => setFiltroRisco(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300 outline-none"
+            className="px-3 py-2 rounded-xl bg-hf-bg border border-hf-border text-xs font-bold text-hf-text-2 outline-none"
           >
             <option value="TODOS">Todos os Riscos</option>
             <option value={RISK_LEVELS.READ_ONLY}>Somente Leitura</option>
@@ -150,7 +150,7 @@ export default function AuditoriaHefistoPage() {
               placeholder="Buscar solicitação, usuário ou correlation ID..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 outline-none"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-hf-bg border border-hf-border text-xs text-hf-text placeholder-hf-muted outline-none"
             />
           </div>
         </div>
@@ -158,17 +158,17 @@ export default function AuditoriaHefistoPage() {
         <button
           type="button"
           onClick={carregarDados}
-          className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+          className="p-2.5 rounded-xl bg-hf-elevated hover:bg-hf-border text-hf-text-2 hover:text-hf-text transition-colors cursor-pointer"
         >
           <RefreshCw size={16} />
         </button>
       </div>
 
       {/* LISTA E TABELA DE EVENTOS DE AUDITORIA */}
-      <div className="bg-[#0B1528] border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-            <Layers size={16} className="text-emerald-400" />
+      <div className="bg-hf-surface border border-hf-border rounded-3xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-hf-border flex items-center justify-between">
+          <h2 className="text-sm font-bold text-hf-text uppercase tracking-wider flex items-center gap-2">
+            <Layers size={16} className="text-emerald-700" />
             <span>Trilha de Eventos Auditados ({eventos.length})</span>
           </h2>
           <span className="text-xs text-slate-800 font-medium">Isolamento de Tenant: {unitId}</span>
@@ -182,8 +182,8 @@ export default function AuditoriaHefistoPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-900/80 text-slate-800 font-bold uppercase text-[10px] border-b border-slate-800">
+            <table className="w-full text-left text-xs text-hf-text-2">
+              <thead className="bg-hf-surface text-slate-800 font-bold uppercase text-[10px] border-b border-hf-border">
                 <tr>
                   <th className="p-3.5">Horário</th>
                   <th className="p-3.5">Usuário</th>
@@ -195,37 +195,37 @@ export default function AuditoriaHefistoPage() {
                   <th className="p-3.5 text-right">Detalhes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-medium">
+              <tbody className="divide-y divide-hf-border font-medium">
                 {eventos.map((ev) => (
-                  <tr key={ev.eventId} className="hover:bg-slate-900/40 transition-colors">
+                  <tr key={ev.eventId} className="hover:bg-hf-surface transition-colors">
                     <td className="p-3.5 whitespace-nowrap text-slate-800 font-mono text-[11px]">
                       {new Date(ev.timestamp).toLocaleTimeString("pt-BR")}
                     </td>
-                    <td className="p-3.5 font-bold text-white">{ev.userName}</td>
-                    <td className="p-3.5 max-w-xs truncate text-slate-200">{ev.textInput || "—"}</td>
+                    <td className="p-3.5 font-bold text-hf-text">{ev.userName}</td>
+                    <td className="p-3.5 max-w-xs truncate text-hf-text">{ev.textInput || "—"}</td>
                     <td className="p-3.5 whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded-md font-black text-[10px] uppercase ${
-                        ev.riskLevel === "HIGH_RISK_ACTION" ? "bg-rose-950 text-rose-300 border border-rose-800" :
-                        ev.riskLevel === "SENSITIVE_ACTION" ? "bg-amber-950 text-amber-300 border border-amber-800" :
-                        ev.riskLevel === "LOW_RISK_ACTION" ? "bg-emerald-950 text-emerald-300 border border-emerald-800" :
-                        "bg-slate-800 text-slate-300"
+                        ev.riskLevel === "HIGH_RISK_ACTION" ? "bg-rose-950 text-red-700 border border-rose-800" :
+                        ev.riskLevel === "SENSITIVE_ACTION" ? "bg-amber-950 text-amber-700 border border-amber-800" :
+                        ev.riskLevel === "LOW_RISK_ACTION" ? "bg-emerald-950 text-emerald-700 border border-emerald-800" :
+                        "bg-hf-elevated text-hf-text-2"
                       }`}>
                         {ev.riskLevel}
                       </span>
                     </td>
                     <td className="p-3.5 whitespace-nowrap">
-                      <span className={ev.permissionResult ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                      <span className={ev.permissionResult ? "text-emerald-700 font-bold" : "text-red-700 font-bold"}>
                         {ev.permissionResult ? "✓ Autorizada" : "✗ Negada"}
                       </span>
                     </td>
-                    <td className="p-3.5 whitespace-nowrap text-slate-300">
+                    <td className="p-3.5 whitespace-nowrap text-hf-text-2">
                       {ev.approvalResult}
                     </td>
                     <td className="p-3.5 whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        ev.executionStatus === "SUCCEEDED" ? "bg-emerald-500/10 text-emerald-400" :
-                        ev.executionStatus.startsWith("BLOCKED") ? "bg-rose-500/10 text-rose-400" :
-                        "bg-slate-800 text-slate-800"
+                        ev.executionStatus === "SUCCEEDED" ? "bg-emerald-500/10 text-emerald-700" :
+                        ev.executionStatus.startsWith("BLOCKED") ? "bg-rose-500/10 text-red-700" :
+                        "bg-hf-elevated text-slate-800"
                       }`}>
                         {ev.executionStatus}
                       </span>
@@ -234,7 +234,7 @@ export default function AuditoriaHefistoPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedEvent(ev)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-hf-elevated hover:bg-hf-border text-hf-text-2 text-[11px] font-bold transition-colors cursor-pointer"
                       >
                         Ver Ficha
                       </button>
@@ -250,20 +250,20 @@ export default function AuditoriaHefistoPage() {
       {/* MODAL DE FICHA TÉCNICA DE AUDITORIA (DETALHES DO EVENTO) */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="w-full max-w-lg bg-[#0B1528] border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="font-black text-white text-base">Ficha de Evento de Auditoria</div>
+          <div className="w-full max-w-lg bg-hf-surface border border-hf-border rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-hf-border pb-3">
+              <div className="font-black text-hf-text text-base">Ficha de Evento de Auditoria</div>
               <button
                 type="button"
                 onClick={() => setSelectedEvent(null)}
-                className="text-slate-800 hover:text-white p-1"
+                className="text-slate-800 hover:text-hf-text p-1"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-300 font-medium">
-              <div><span className="text-slate-900">Correlation ID:</span> <span className="font-mono text-emerald-400">{selectedEvent.correlationId}</span></div>
+            <div className="space-y-2 text-xs text-hf-text-2 font-medium">
+              <div><span className="text-slate-900">Correlation ID:</span> <span className="font-mono text-emerald-700">{selectedEvent.correlationId}</span></div>
               <div><span className="text-slate-900">Horário:</span> {new Date(selectedEvent.timestamp).toLocaleString("pt-BR")}</div>
               <div><span className="text-slate-900">Usuário:</span> {selectedEvent.userName} (ID: {selectedEvent.userId})</div>
               <div><span className="text-slate-900">Solicitação:</span> "{selectedEvent.textInput}"</div>
@@ -273,7 +273,7 @@ export default function AuditoriaHefistoPage() {
               <div><span className="text-slate-900">Aprovação do Usuário:</span> {selectedEvent.approvalResult}</div>
               <div><span className="text-slate-900">Status Execução:</span> {selectedEvent.executionStatus}</div>
               {selectedEvent.errorCode && (
-                <div className="p-2 rounded-xl bg-rose-950/40 text-rose-300 border border-rose-900/60 font-mono">
+                <div className="p-2 rounded-xl bg-rose-950/40 text-red-700 border border-rose-900/60 font-mono">
                   Erro: {selectedEvent.errorCode}
                 </div>
               )}
@@ -282,7 +282,7 @@ export default function AuditoriaHefistoPage() {
             <button
               type="button"
               onClick={() => setSelectedEvent(null)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs transition-colors cursor-pointer"
             >
               Fechar Detalhes
             </button>

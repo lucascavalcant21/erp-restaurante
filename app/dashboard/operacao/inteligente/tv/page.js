@@ -108,18 +108,18 @@ export default function ModoTV() {
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
-      <div className="grid h-screen place-items-center bg-slate-950 p-10 text-center">
+      <div className="grid h-screen place-items-center bg-hf-bg p-10 text-center">
         <p className="text-3xl font-black text-dim">Escolha uma unidade para pendurar o painel.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-slate-100">
+    <div className="flex h-screen flex-col overflow-hidden bg-hf-bg text-hf-text">
       {/* Cabeçalho: hora grande, porque de longe é o que situa quem olha. */}
-      <header className="flex shrink-0 items-center justify-between gap-6 border-b border-white/10 px-8 py-5">
+      <header className="flex shrink-0 items-center justify-between gap-6 border-b border-hf-border px-8 py-5">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-black tracking-tight text-white sm:text-3xl">Operação do dia</h1>
+          <h1 className="truncate text-2xl font-black tracking-tight text-hf-text sm:text-3xl">Operação do dia</h1>
           {/* first-letter, e não `capitalize`: este maiusculiza toda palavra e
               "domingo, 30 de agosto" virava "Domingo, 30 De Agosto". */}
           <p className="mt-0.5 text-sm font-bold text-subtle first-letter:uppercase sm:text-base">{dataLonga}</p>
@@ -127,19 +127,19 @@ export default function ModoTV() {
         <div className="flex items-center gap-6">
           {contadores.ncs > 0 && (
             <div className="flex items-center gap-2.5 rounded-2xl bg-red-500/15 px-5 py-3">
-              <ShieldAlert size={26} className="text-red-400" />
-              <span className="text-2xl font-black text-red-300 sm:text-3xl">{contadores.ncs}</span>
-              <span className="text-xs font-bold uppercase tracking-wider text-red-300/80">
+              <ShieldAlert size={26} className="text-red-700" />
+              <span className="text-2xl font-black text-red-700 sm:text-3xl">{contadores.ncs}</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-red-700">
                 não conformidade{contadores.ncs > 1 ? "s" : ""}
               </span>
             </div>
           )}
-          <p className="text-5xl font-black tabular-nums tracking-tight text-white sm:text-6xl">{relogio}</p>
+          <p className="text-5xl font-black tabular-nums tracking-tight text-hf-text sm:text-6xl">{relogio}</p>
         </div>
       </header>
 
       {/* Três colunas fixas. Não há aba nem rolagem: o que não coube vira "+N". */}
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-px overflow-y-auto bg-white/10 lg:grid-cols-3 lg:overflow-hidden">
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-px overflow-y-auto bg-hf-elevated lg:grid-cols-3 lg:overflow-hidden">
         <Bloco titulo="Atrasado" tom="perigo" itens={painel.atrasadas}
           vazio="Nada atrasado." />
         <Bloco titulo="Acontecendo agora" tom="acao" itens={painel.emCurso}
@@ -149,14 +149,14 @@ export default function ModoTV() {
       </main>
 
       {/* Rodapé: o resumo do dia, que ninguém precisa ler correndo. */}
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-6 border-t border-white/10 px-8 py-4">
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-6 border-t border-hf-border px-8 py-4">
         <div className="flex items-center gap-8">
           <Numero rotulo="Concluídas" valor={`${contadores.concluidas}/${contadores.total}`} />
           <Numero rotulo="Do dia" valor={`${contadores.progresso}%`} destaque />
           {score.score != null && <Numero rotulo="Score" valor={score.score} destaque />}
         </div>
         <div className="flex items-center gap-3 text-fg">
-          {online ? <Wifi size={16} /> : <WifiOff size={16} className="text-amber-400" />}
+          {online ? <Wifi size={16} /> : <WifiOff size={16} className="text-amber-700" />}
           <span className="text-xs font-bold">
             {online
               ? `atualizado ${ultimaBusca ? ultimaBusca.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "agora"}`
@@ -168,12 +168,12 @@ export default function ModoTV() {
       <div className={`fixed right-6 top-6 z-10 flex gap-2 transition-opacity duration-500 ${controlesVisiveis ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         <button type="button" onClick={() => router.push("/dashboard/operacao/inteligente")}
           title="Voltar para a Central Operacional"
-          className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-white backdrop-blur hover:bg-white/20">
+          className="grid h-12 w-12 place-items-center rounded-2xl bg-hf-elevated text-hf-text backdrop-blur hover:bg-hf-border">
           <ArrowLeft size={20} />
         </button>
         <button type="button" onClick={alternarTelaCheia}
           title={telaCheia ? "Sair da tela cheia" : "Tela cheia"}
-          className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-white backdrop-blur hover:bg-white/20">
+          className="grid h-12 w-12 place-items-center rounded-2xl bg-hf-elevated text-hf-text backdrop-blur hover:bg-hf-border">
           {telaCheia ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
         </button>
       </div>
@@ -182,9 +182,9 @@ export default function ModoTV() {
 }
 
 const TONS = {
-  perigo: { titulo: "text-red-300", pinta: "bg-red-500/10", hora: "text-red-300", barra: "bg-red-400" },
-  acao: { titulo: "text-emerald-300", pinta: "bg-emerald-500/10", hora: "text-emerald-300", barra: "bg-emerald-400" },
-  neutro: { titulo: "text-subtle", pinta: "bg-white/[0.03]", hora: "text-dim", barra: "bg-slate-400" },
+  perigo: { titulo: "text-red-700", pinta: "bg-red-500/10", hora: "text-red-700", barra: "bg-red-400" },
+  acao: { titulo: "text-emerald-700", pinta: "bg-emerald-500/10", hora: "text-emerald-700", barra: "bg-emerald-400" },
+  neutro: { titulo: "text-subtle", pinta: "bg-hf-elevated", hora: "text-dim", barra: "bg-slate-400" },
 };
 
 function Bloco({ titulo, tom, itens, vazio }) {
@@ -193,7 +193,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
   const sobra = itens.length - mostrar.length;
 
   return (
-    <section className={`flex min-h-0 min-w-0 flex-col bg-slate-950 p-6 ${itens.length ? t.pinta : ""}`}>
+    <section className={`flex min-h-0 min-w-0 flex-col bg-hf-bg p-6 ${itens.length ? t.pinta : ""}`}>
       <h2 className={`mb-4 flex shrink-0 items-baseline gap-3 text-sm font-black uppercase tracking-[0.15em] ${t.titulo}`}>
         {titulo}
         <span className="text-2xl tabular-nums">{itens.length}</span>
@@ -206,12 +206,12 @@ function Bloco({ titulo, tom, itens, vazio }) {
           {mostrar.map(execucao => {
             const l = linhaDaExecucao(execucao);
             return (
-              <article key={l.id} className="rounded-2xl bg-white/[0.06] px-5 py-3.5">
+              <article key={l.id} className="rounded-2xl bg-hf-elevated px-5 py-3.5">
                 <div className="flex items-baseline gap-4">
                   <span className={`shrink-0 text-2xl font-black tabular-nums ${t.hora}`}>{l.hora}</span>
-                  <span className="min-w-0 flex-1 truncate text-xl font-black text-white">{l.nome}</span>
+                  <span className="min-w-0 flex-1 truncate text-xl font-black text-hf-text">{l.nome}</span>
                   {l.critica && (
-                    <span className="shrink-0 rounded-lg bg-red-500/20 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-red-300">
+                    <span className="shrink-0 rounded-lg bg-red-500/20 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-red-700">
                       crítico
                     </span>
                   )}
@@ -221,7 +221,7 @@ function Bloco({ titulo, tom, itens, vazio }) {
                   {l.responsavel && <span className="truncate text-dim">{l.responsavel}</span>}
                 </div>
                 {l.progresso != null && l.progresso > 0 && (
-                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-hf-elevated">
                     <div className={`h-full rounded-full ${t.barra}`} style={{ width: `${Math.min(100, l.progresso)}%` }} />
                   </div>
                 )}
@@ -241,7 +241,7 @@ function Numero({ rotulo, valor, destaque = false }) {
   return (
     <div>
       <p className="text-3xs font-bold uppercase tracking-[0.15em] text-fg">{rotulo}</p>
-      <p className={`text-3xl font-black tabular-nums ${destaque ? "text-emerald-400" : "text-white"}`}>{valor}</p>
+      <p className={`text-3xl font-black tabular-nums ${destaque ? "text-emerald-700" : "text-hf-text"}`}>{valor}</p>
     </div>
   );
 }

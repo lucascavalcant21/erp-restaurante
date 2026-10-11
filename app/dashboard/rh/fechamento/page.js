@@ -86,23 +86,23 @@ export default function FechamentoFolhaPage() {
   return (
     <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
       {/* Header Escuro */}
-      <div className="bg-slate-900 pt-8 pb-12 px-6 shadow-2xl relative text-white border-b border-slate-800">
+      <div className="bg-hf-surface pt-8 pb-12 px-6 shadow-2xl relative text-hf-text border-b border-hf-border">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
-               <button onClick={() => abrirMenu()} className="text-subtle hover:text-white mb-4 flex items-center gap-2 font-bold transition-colors">
+               <button onClick={() => abrirMenu()} className="text-subtle hover:text-hf-text mb-4 flex items-center gap-2 font-bold transition-colors">
                   <ArrowLeft size={18}/> Voltar
                </button>
                <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Fechamento de Folha</h1>
                <p className="text-subtle font-bold uppercase tracking-widest text-xs mt-1">Geração de Holerites e CMO Automático</p>
             </div>
             
-            <div className="flex gap-4 items-center bg-slate-800 p-2 pl-4 rounded-2xl border border-slate-700">
+            <div className="flex gap-4 items-center bg-hf-elevated p-2 pl-4 rounded-2xl border border-hf-border">
                <span className="font-bold text-sm text-subtle uppercase tracking-widest">Competência:</span>
                <input 
                   type="month" 
                   value={mesAno} 
                   onChange={(e) => setMesAno(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 font-black outline-none focus:border-indigo-500 text-white"
+                  className="bg-hf-surface border border-hf-border rounded-xl px-4 py-3 font-black outline-none focus:border-emerald-600 text-hf-text"
                />
             </div>
          </div>
@@ -113,7 +113,7 @@ export default function FechamentoFolhaPage() {
             
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-line-soft">
                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-zinc-100 text-emerald-700 rounded-2xl flex items-center justify-center">
                      <Calculator size={24}/>
                   </div>
                   <div>
@@ -127,7 +127,7 @@ export default function FechamentoFolhaPage() {
                </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 text-blue-800 text-sm mb-6 font-medium">
+            <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-xl flex gap-3 text-zinc-800 text-sm mb-6 font-medium">
                <Info size={20} className="shrink-0"/>
                <p>
                   <strong>Regras aplicadas:</strong> Funcionários fixos recebem o Salário Fixo. Freelancers recebem o Salário (Diária) multiplicado pelos dias em que bateram ponto no mês selecionado. O vencimento no financeiro será gerado automaticamente para o 5º dia útil do mês seguinte.
@@ -136,7 +136,7 @@ export default function FechamentoFolhaPage() {
 
             {loading ? (
                <div className="py-20 text-center text-fg flex flex-col items-center">
-                  <Loader2 size={32} className="animate-spin mb-4 text-indigo-500"/>
+                  <Loader2 size={32} className="animate-spin mb-4 text-emerald-700"/>
                   <p className="font-bold">Calculando pagamentos...</p>
                </div>
             ) : pagamentos.length === 0 ? (
@@ -183,7 +183,7 @@ export default function FechamentoFolhaPage() {
                                     value={p.acrescimos || ''}
                                     onChange={(e) => handleMudarValor(p.colaborador_id, 'acrescimos', e.target.value)}
                                     placeholder="0,00"
-                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-indigo-500 text-success font-bold"
+                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-emerald-600 text-success font-bold"
                                  />
                               </td>
 
@@ -210,7 +210,7 @@ export default function FechamentoFolhaPage() {
                                     value={p.descontos_manuais || ''}
                                     onChange={(e) => handleMudarValor(p.colaborador_id, 'descontos_manuais', e.target.value)}
                                     placeholder="0,00"
-                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-indigo-500 text-rose-500 font-bold"
+                                    className="w-24 text-right p-2 bg-card border border-line rounded-lg outline-none focus:border-emerald-600 text-rose-500 font-bold"
                                  />
                               </td>
 
@@ -230,7 +230,7 @@ export default function FechamentoFolhaPage() {
                <button 
                   onClick={handleFinalizar}
                   disabled={salvando || pagamentos.length === 0}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+                  className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
                >
                   {salvando ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
                   Confirmar, gerar holerites e CMO

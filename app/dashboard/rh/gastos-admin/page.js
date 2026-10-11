@@ -21,9 +21,9 @@ const soData = (v) => String(v || "").slice(0, 10);
 
 const COR_CATEGORIA = {
   Cozinha: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  Bar: "border-violet-200 bg-violet-50 text-violet-800",
+  Bar: "border-zinc-200 bg-zinc-100 text-zinc-800",
   Embalagens: "border-pink-200 bg-pink-50 text-pink-800",
-  Limpeza: "border-sky-200 bg-sky-50 text-sky-800",
+  Limpeza: "border-zinc-200 bg-zinc-100 text-zinc-800",
   "Materiais gerais": "border-amber-200 bg-amber-50 text-amber-800",
   Outros: "border-line bg-white text-fg-soft",
 };

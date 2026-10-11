@@ -110,7 +110,7 @@ export default function RecipeWorkspace({
                   <button
                     type="button"
                     onClick={() => router.push(`${pathname}?dept=bar`)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${bar ? "bg-card text-violet-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${bar ? "bg-card text-zinc-700 shadow-sm" : "text-muted hover:text-slate-800"}`}
                   >
                     🍹 Bar
                   </button>
@@ -130,7 +130,7 @@ export default function RecipeWorkspace({
               <button
                 type="button"
                 onClick={onPrimary}
-                className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold text-accent-fg shadow-md transition-all active:scale-[.98] ${bar ? "bg-violet-600 hover:bg-violet-700 shadow-violet-600/20" : "bg-accent hover:bg-accent shadow-emerald-600/20"}`}
+                className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold text-accent-fg shadow-md transition-all active:scale-[.98] ${bar ? "bg-emerald-700 hover:bg-emerald-800 shadow-violet-600/20" : "bg-accent hover:bg-accent shadow-emerald-600/20"}`}
               >
                 <PrimaryIcon size={16} /> {primaryLabel}
               </button>
@@ -151,26 +151,26 @@ export default function RecipeWorkspace({
                 onClick={() => router.push(`${etapa.href}?dept=${setor}`)}
                 className={`group flex items-center gap-3 rounded-2xl border p-2.5 text-left transition-all ${
                   ativo
-                    ? (bar ? "border-violet-300 bg-violet-50/70 text-violet-950 shadow-sm" : "border-emerald-300 bg-emerald-50/70 text-emerald-950 shadow-sm")
+                    ? (bar ? "border-zinc-200 bg-zinc-100/70 text-zinc-900 shadow-sm" : "border-emerald-300 bg-emerald-50/70 text-emerald-950 shadow-sm")
                     : "border-line bg-slate-50/50 text-fg-soft hover:bg-slate-100/80"
                 }`}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                     ativo
-                      ? (bar ? "bg-violet-600 text-accent-fg" : "bg-accent text-accent-fg")
+                      ? (bar ? "bg-emerald-700 text-accent-fg" : "bg-accent text-accent-fg")
                       : "bg-card border border-line text-muted"
                   }`}
                 >
                   <Icon size={17} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-3xs font-bold uppercase tracking-widest ${ativo ? (bar ? "text-violet-600" : "text-success") : "text-subtle"}`}>
+                  <span className={`block text-3xs font-bold uppercase tracking-widest ${ativo ? (bar ? "text-emerald-700" : "text-success") : "text-subtle"}`}>
                     Etapa {index + 1}
                   </span>
                   <span className="block text-xs font-bold leading-tight break-words">{etapa.label}</span>
                 </span>
-                <ArrowRight size={14} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? (bar ? "text-violet-600" : "text-success") : "text-subtle"}`} />
+                <ArrowRight size={14} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? (bar ? "text-emerald-700" : "text-success") : "text-subtle"}`} />
               </button>
             );
           })}

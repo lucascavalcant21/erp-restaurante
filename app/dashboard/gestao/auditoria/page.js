@@ -131,7 +131,7 @@ export default function AuditoriaPerdasPage() {
         <div className="mb-7">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--fg)" }}><Mic size={17} className="text-violet-600" /> Comandos e ações auditadas</p>
+              <p className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--fg)" }}><Mic size={17} className="text-emerald-700" /> Comandos e ações auditadas</p>
               <p className="mt-1 text-xs" style={{ color: "var(--dim)" }}>Quem fez, o que falou, itens preparados e resultado da confirmação.</p>
             </div>
             <span className="erp-badge">{acoesAuditadas.length} registro(s)</span>

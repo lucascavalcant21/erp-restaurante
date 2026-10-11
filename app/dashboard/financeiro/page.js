@@ -477,13 +477,13 @@ Motivo do cancelamento:`);
                 type="button"
                 onClick={() => window.location.href = "/dashboard/rh"}
                 title="Clique para ir para a Equipe / RH"
-                className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-left transition-all hover:border-blue-300 hover:bg-blue-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
+                className="rounded-xl border border-zinc-200 bg-zinc-100/60 p-3 text-left transition-all hover:border-zinc-200 hover:bg-zinc-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-3xs font-bold uppercase tracking-wider text-blue-700">2. CMO (Mão de Obra) 🔗</span>
-                  <span className="rounded-md bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-3xs font-bold text-blue-800">{calculoPE.cmoPct.toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-zinc-700">2. CMO (Mão de Obra) 🔗</span>
+                  <span className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-3xs font-bold text-zinc-800">{calculoPE.cmoPct.toFixed(1)}%</span>
                 </div>
-                <span className="mt-1 block text-lg font-black text-blue-950">{fmtBRL(calculoPE.cmoDiario)}<small className="text-xs text-fg">/dia</small></span>
+                <span className="mt-1 block text-lg font-black text-zinc-900">{fmtBRL(calculoPE.cmoDiario)}<small className="text-xs text-fg">/dia</small></span>
                 <span className="text-3xs font-semibold text-fg">{fmtBRL(calculoPE.cmoMensal)} / mês</span>
               </button>
 
@@ -492,13 +492,13 @@ Motivo do cancelamento:`);
                 type="button"
                 onClick={() => setModalPE(true)}
                 title="Clique para ajustar os Custos Operacionais"
-                className="rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-left transition-all hover:border-purple-300 hover:bg-purple-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
+                className="rounded-xl border border-zinc-200 bg-zinc-100/60 p-3 text-left transition-all hover:border-zinc-200 hover:bg-zinc-100/70 hover:shadow-md hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="block text-3xs font-bold uppercase tracking-wider text-purple-700">3. Operacional Fixo ✏️</span>
-                  <span className="rounded-md bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-3xs font-bold text-purple-800">{calculoPE.operacaoPct.toFixed(1)}%</span>
+                  <span className="block text-3xs font-bold uppercase tracking-wider text-zinc-700">3. Operacional Fixo ✏️</span>
+                  <span className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-3xs font-bold text-zinc-800">{calculoPE.operacaoPct.toFixed(1)}%</span>
                 </div>
-                <span className="mt-1 block text-lg font-black text-purple-950">{fmtBRL(calculoPE.operacaoDiaria)}<small className="text-xs text-fg">/dia</small></span>
+                <span className="mt-1 block text-lg font-black text-zinc-900">{fmtBRL(calculoPE.operacaoDiaria)}<small className="text-xs text-fg">/dia</small></span>
                 <span className="text-3xs font-semibold text-fg">{fmtBRL(calculoPE.operacionaisMensais)} / mês</span>
               </button>
 
@@ -540,10 +540,10 @@ Motivo do cancelamento:`);
               return (
                 <div className="mt-4 pt-3 border-t border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-900">
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Luz" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-amber-50 hover:text-amber-900 transition-all cursor-pointer border border-transparent hover:border-amber-200"><Zap size={14} className="text-amber-500"/> Luz: <b>{fmtBRL(paramsPE.luz)}</b> <span className="text-3xs font-bold text-amber-700 bg-amber-100/80 px-1 rounded">({calcPct(paramsPE.luz)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-blue-50 hover:text-blue-900 transition-all cursor-pointer border border-transparent hover:border-blue-200"><Droplets size={14} className="text-blue-500"/> Água: <b>{fmtBRL(paramsPE.agua)}</b> <span className="text-3xs font-bold text-blue-700 bg-blue-100/80 px-1 rounded">({calcPct(paramsPE.agua)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-indigo-50 hover:text-indigo-900 transition-all cursor-pointer border border-transparent hover:border-indigo-200"><Wifi size={14} className="text-indigo-500"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b> <span className="text-3xs font-bold text-indigo-700 bg-indigo-100/80 px-1 rounded">({calcPct(paramsPE.internet)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Água" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-100 hover:text-zinc-900 transition-all cursor-pointer border border-transparent hover:border-zinc-200"><Droplets size={14} className="text-emerald-700"/> Água: <b>{fmtBRL(paramsPE.agua)}</b> <span className="text-3xs font-bold text-zinc-700 bg-zinc-100/80 px-1 rounded">({calcPct(paramsPE.agua)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor da Internet" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-100 hover:text-zinc-900 transition-all cursor-pointer border border-transparent hover:border-zinc-200"><Wifi size={14} className="text-emerald-700"/> Internet: <b>{fmtBRL(paramsPE.internet)}</b> <span className="text-3xs font-bold text-zinc-700 bg-zinc-100/80 px-1 rounded">({calcPct(paramsPE.internet)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Gás" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-900 transition-all cursor-pointer border border-transparent hover:border-rose-200"><Flame size={14} className="text-rose-500"/> Gás: <b>{fmtBRL(paramsPE.gas)}</b> <span className="text-3xs font-bold text-rose-700 bg-rose-100/80 px-1 rounded">({calcPct(paramsPE.gas)}%)</span></button>
-                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-cyan-50 hover:text-cyan-900 transition-all cursor-pointer border border-transparent hover:border-cyan-200"><Sparkles size={14} className="text-cyan-500"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b> <span className="text-3xs font-bold text-cyan-700 bg-cyan-100/80 px-1 rounded">({calcPct(paramsPE.limpeza)}%)</span></button>
+                  <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor do Material de Limpeza" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-100 hover:text-zinc-900 transition-all cursor-pointer border border-transparent hover:border-zinc-200"><Sparkles size={14} className="text-emerald-700"/> Limpeza: <b>{fmtBRL(paramsPE.limpeza)}</b> <span className="text-3xs font-bold text-zinc-700 bg-zinc-100/80 px-1 rounded">({calcPct(paramsPE.limpeza)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar valor de Manutenção" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-card hover:text-fg transition-all cursor-pointer border border-transparent hover:border-line"><Wrench size={14} className="text-fg"/> Manutenção: <b>{fmtBRL(paramsPE.manutencao)}</b> <span className="text-3xs font-bold text-fg-soft bg-slate-200/80 px-1 rounded">({calcPct(paramsPE.manutencao)}%)</span></button>
                   <button type="button" onClick={() => setModalPE(true)} title="Clique para editar Gastos Extras" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-900 transition-all cursor-pointer border border-transparent hover:border-emerald-200"><PackagePlus size={14} className="text-emerald-500"/> Extras: <b>{fmtBRL(paramsPE.gastosExtras)}</b> <span className="text-3xs font-bold text-emerald-700 bg-emerald-100/80 px-1 rounded">({calcPct(paramsPE.gastosExtras)}%)</span></button>
                 </div>
@@ -563,8 +563,8 @@ Motivo do cancelamento:`);
         <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           {[
             [TrendingUp, "Faturamento", resumo.faturamento, "text-emerald-700", "bg-emerald-100"],
-            [ReceiptText, "Ticket médio · Bar", resumo.ticketBar, "text-cyan-700", "bg-cyan-100"],
-            [ReceiptText, "Ticket médio · Cozinha", resumo.ticketCozinha, "text-blue-700", "bg-blue-100"],
+            [ReceiptText, "Ticket médio · Bar", resumo.ticketBar, "text-zinc-700", "bg-zinc-100"],
+            [ReceiptText, "Ticket médio · Cozinha", resumo.ticketCozinha, "text-zinc-700", "bg-zinc-100"],
             [ShoppingBag, "CMV médio · Estoque", resumo.automaticos.cmvMedio, "text-orange-700", "bg-orange-100"],
             [Banknote, "Despesas pagas", resumo.despesasPagas, "text-rose-700", "bg-rose-100"],
             [Wallet, "Resultado", resumo.resultado, resumo.resultado >= 0 ? "text-emerald-700" : "text-rose-700", "bg-slate-200"],
@@ -628,12 +628,12 @@ Motivo do cancelamento:`);
       {modalPE && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-3 pt-8 backdrop-blur-sm sm:items-center sm:pt-3">
           <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-card shadow-2xl">
-            <div className="flex items-center justify-between bg-slate-900 p-5 text-white">
+            <div className="flex items-center justify-between bg-hf-surface p-5 text-hf-text">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Configuração Financeira</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Configuração Financeira</p>
                 <h2 className="text-xl font-black">Ajustar Custos Fixos & Dias de Trabalho</h2>
               </div>
-              <button type="button" onClick={() => setModalPE(false)} className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20">
+              <button type="button" onClick={() => setModalPE(false)} className="grid h-10 w-10 place-items-center rounded-xl bg-hf-elevated text-hf-text hover:bg-hf-border">
                 <X size={18} />
               </button>
             </div>

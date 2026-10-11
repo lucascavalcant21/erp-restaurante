@@ -24,8 +24,8 @@ export default function PerguntaCartao({ pergunta, onResponder, onComando }) {
   }
 
   return (
-    <article className="rounded-2xl border border-sky-200 bg-white p-4">
-      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-sky-700"><HelpCircle size={14} /> Pergunta do Héfisto</p>
+    <article className="rounded-2xl border border-zinc-200 bg-white p-4">
+      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-zinc-700"><HelpCircle size={14} /> Pergunta do Héfisto</p>
       {pergunta.situacao && <p className="mt-2 text-[14px] leading-snug text-slate-700">{pergunta.situacao}</p>}
       {evid.length > 0 && (
         <ul className="mt-2 space-y-0.5 text-[12px] text-slate-600">

@@ -243,14 +243,14 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-sky-950/30 border border-sky-800/40 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-sky-400 mb-2">
+                  <div className="p-4 rounded-2xl bg-hf-bg border border-hf-border flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-hf-text-2 mb-2">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider">Em Intervalo</span>
-                      <Coffee size={18} className="text-sky-400" />
+                      <Coffee size={18} className="text-hf-text-2" />
                     </div>
                     <div>
-                      <span className="text-2xl sm:text-3xl font-black text-sky-400">{emIntervalo.length}</span>
-                      <span className="text-[10px] text-sky-300/80 block mt-0.5">pausa de refeição</span>
+                      <span className="text-2xl sm:text-3xl font-black text-hf-text-2">{emIntervalo.length}</span>
+                      <span className="text-[10px] text-hf-text-2 block mt-0.5">pausa de refeição</span>
                     </div>
                   </div>
                 </div>
@@ -341,10 +341,10 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                         <div className="flex items-center gap-3 min-w-0">
                           <span className={`h-3 w-3 rounded-full shrink-0 ${
                             statusOperacional === "trabalhando" ? "bg-emerald-500" :
-                            statusOperacional === "intervalo" ? "bg-purple-500" :
+                            statusOperacional === "intervalo" ? "bg-emerald-700" :
                             statusOperacional === "atrasado" ? "bg-amber-500 animate-pulse" :
                             statusOperacional === "pendente" ? "bg-rose-500" :
-                            statusOperacional === "encerrado" ? "bg-sky-500" : "bg-slate-600"
+                            statusOperacional === "encerrado" ? "bg-emerald-700" : "bg-slate-600"
                           }`} />
 
                           <div className="min-w-0">
@@ -356,10 +356,10 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                         <div className="text-right shrink-0">
                           <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold block ${
                             statusOperacional === "trabalhando" ? "bg-emerald-950/60 text-emerald-600 border border-emerald-800/50" :
-                            statusOperacional === "intervalo" ? "bg-purple-950/60 text-purple-300 border border-purple-800/50" :
+                            statusOperacional === "intervalo" ? "bg-zinc-950/60 text-zinc-400 border border-zinc-800/50" :
                             statusOperacional === "atrasado" ? "bg-amber-950/60 text-amber-600 border border-amber-800/50" :
                             statusOperacional === "pendente" ? "bg-rose-950/60 text-rose-400 border border-rose-800/50" :
-                            statusOperacional === "encerrado" ? "bg-sky-950/60 text-sky-400 border border-sky-800/50" : "bg-slate-50 text-slate-500"
+                            statusOperacional === "encerrado" ? "bg-zinc-950/60 text-zinc-400 border border-zinc-800/50" : "bg-slate-50 text-slate-500"
                           }`}>
                             {statusOperacional === "trabalhando" ? "Trabalhando" :
                              statusOperacional === "intervalo" ? "☕ Intervalo" :
@@ -442,7 +442,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   onClick={() => router.push("/dashboard/rh/ponto")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
-                  <Clock size={18} className="text-sky-400 shrink-0" />
+                  <Clock size={18} className="text-zinc-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Espelho Ponto</span>
                 </button>
 
@@ -451,7 +451,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   onClick={() => router.push("/dashboard/rh/ponto")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
-                  <CalendarDays size={18} className="text-indigo-400 shrink-0" />
+                  <CalendarDays size={18} className="text-zinc-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">Escalas</span>
                 </button>
 
@@ -469,7 +469,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
                   onClick={() => router.push("/dashboard/rh/extra")}
                   className="p-3.5 rounded-xl bg-white/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-700 text-left transition-all min-h-[48px] flex items-center gap-3 cursor-pointer"
                 >
-                  <Plus size={18} className="text-purple-400 shrink-0" />
+                  <Plus size={18} className="text-zinc-400 shrink-0" />
                   <span className="text-xs font-extrabold text-white">+ Trabalho Extra</span>
                 </button>
 

@@ -99,7 +99,7 @@ export default function CRMPage() {
     <div className="space-y-6">
       {/* KPIs Principais de CRM */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+        <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-600">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">Clientes na Base</p>
@@ -123,7 +123,7 @@ export default function CRMPage() {
           <p className="text-xs font-bold text-fg mt-3">{kpis.npsAvg > 80 ? "Zona de Excelência" : "Atenção Requerida"}</p>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500">
+        <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-600">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">Taxa de Retorno</p>
@@ -134,7 +134,7 @@ export default function CRMPage() {
           <p className="text-xs font-bold text-fg mt-3">Clientes fidelizados</p>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 border-none text-white relative overflow-hidden">
+        <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-hf-elevated to-hf-surface border-none text-white relative overflow-hidden">
           <div className="absolute -right-4 -top-4 opacity-10"><Award size={120} /></div>
           <div className="relative z-10">
             <p className="text-3xs font-bold uppercase tracking-widest text-fg mb-1">LTV Médio</p>
@@ -152,7 +152,7 @@ export default function CRMPage() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Top Clientes (LTV)</h3>
               <p className="text-3xs font-medium text-fg mt-1">Os que mais gastaram historicamente</p>
             </div>
-            <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-success hover:text-blue-800">Ver todos</button>
+            <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-success hover:text-zinc-800">Ver todos</button>
           </div>
           <div className="divide-y divide-slate-100">
             {clientes.slice(0,5).map((cliente, idx) => (
@@ -182,7 +182,7 @@ export default function CRMPage() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Atenção: Avaliações</h3>
               <p className="text-3xs font-medium text-fg mt-1">Reviews recentes com nota baixa</p>
             </div>
-            <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-success hover:text-blue-800">Abrir NPS</button>
+            <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-success hover:text-zinc-800">Abrir NPS</button>
           </div>
           <div className="p-4 space-y-4">
             {avaliacoes.filter(a => Number(a.nota) <= 5).slice(0,4).map((av) => (
@@ -228,7 +228,7 @@ export default function CRMPage() {
       </div>
       <div className="rounded-2xl overflow-hidden shadow-md border border-line">
         {/* Cabeçalho */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center">
+        <div className="bg-gradient-to-r from-hf-elevated to-hf-border px-6 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center">
           <span className="text-2xs font-bold uppercase tracking-widest text-dim">Cliente</span>
           <span className="text-2xs font-bold uppercase tracking-widest text-dim">Contato</span>
           <span className="text-2xs font-bold uppercase tracking-widest text-dim">Status</span>
@@ -237,9 +237,9 @@ export default function CRMPage() {
         {/* Linhas */}
         <div className="bg-card divide-y divide-slate-100">
           {clientesFiltrados.map((cliente) => (
-            <div key={cliente.id} className="px-5 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center hover:bg-blue-50/40 transition-all duration-150">
+            <div key={cliente.id} className="px-5 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center hover:bg-zinc-100/40 transition-all duration-150">
               <div className="flex items-center gap-3">
-                <div className="w-1 h-10 rounded-full bg-blue-500 shrink-0" />
+                <div className="w-1 h-10 rounded-full bg-emerald-700 shrink-0" />
                 <div>
                   <p className="font-bold text-slate-800 text-sm">{cliente.nome}</p>
                   <p className="text-3xs font-medium uppercase tracking-widest text-fg mt-0.5">{cliente.total_pedidos} visitas</p>
@@ -248,7 +248,7 @@ export default function CRMPage() {
               <span className="text-sm text-slate-900 font-medium">{cliente.telefone || cliente.tel || "Não inf."}</span>
               <div>
                 <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                  cliente.status === 'Vip' ? 'bg-purple-100 text-purple-700' :
+                  cliente.status === 'Vip' ? 'bg-zinc-100 text-zinc-700' :
                   cliente.status === 'Risco' ? 'bg-rose-100 text-rose-700' :
                   'bg-emerald-100 text-emerald-700'}`}>
                   {cliente.status || "Ativo"}

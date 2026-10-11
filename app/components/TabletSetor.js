@@ -940,10 +940,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
             </button>
             
             <button 
-              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-blue-500/30 transition-all active:scale-[0.98] group"
+              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-zinc-500/30 transition-all active:scale-[0.98] group"
               onClick={() => selecionarSetor("bar")}
             >
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-zinc-100 text-emerald-700 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                 <GlassWater size={32} />
               </div>
               <span className="text-2xl font-black text-zinc-900">Bar</span>
@@ -951,10 +951,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
             </button>
             
             <button 
-              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-sky-500/30 transition-all active:scale-[0.98] group"
+              className="flex flex-col items-center justify-center gap-3 p-8 sm:p-12 bg-white border border-zinc-200 rounded-[2rem] shadow-sm hover:shadow-md hover:border-zinc-500/30 transition-all active:scale-[0.98] group"
               onClick={() => selecionarSetor("limpeza")}
             >
-              <div className="w-16 h-16 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-zinc-100 text-emerald-700 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                 <Sparkles size={32} />
               </div>
               <span className="text-2xl font-black text-zinc-900">Limpeza</span>

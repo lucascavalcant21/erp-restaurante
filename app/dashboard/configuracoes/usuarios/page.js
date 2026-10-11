@@ -213,12 +213,12 @@ export default function UsuariosAcessosPage() {
                   <td className="px-4 py-3"><Status value={user.status}/></td><td className="px-4 py-3">{formatLastAccess(user.ultimo_acesso_em)}</td><td className="px-4 py-3">{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td className="px-4 py-3">{(data?.users || []).find((item)=>item.auth_user_id===user.criado_por)?.nome||"Sistema"}</td>
                   <td className="px-4 py-3"><div className="flex gap-1">
                     <button title="Visualizar" onClick={()=>{setForm(user);setModal("view")}} className="rounded-lg p-2 text-fg hover:bg-card"><Eye size={15}/></button>
-                    <button title="Editar" onClick={()=>openForm(user)} className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Pencil size={15}/></button>
-                    <button title="Alterar permissões" onClick={()=>openPermissions(user)} className="rounded-lg p-2 text-violet-600 hover:bg-violet-50"><ShieldCheck size={15}/></button>
+                    <button title="Editar" onClick={()=>openForm(user)} className="rounded-lg p-2 text-emerald-700 hover:bg-zinc-100"><Pencil size={15}/></button>
+                    <button title="Alterar permissões" onClick={()=>openPermissions(user)} className="rounded-lg p-2 text-emerald-700 hover:bg-zinc-100"><ShieldCheck size={15}/></button>
                     <button title="Redefinir senha" onClick={()=>{setForm({...user,password:"",confirmPassword:""});setModal("password")}} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"><KeyRound size={15}/></button>
                     {user.status==="ativo"?<button title="Bloquear" onClick={()=>status(user,"bloqueado")} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"><Lock size={15}/></button>:<button title="Desbloquear" onClick={()=>status(user,"ativo")} className="rounded-lg p-2 text-accent-strong hover:bg-accent-soft"><CheckCircle2 size={15}/></button>}
                     <button title="Desativar" onClick={()=>status(user,"desativado")} className="rounded-lg p-2 text-fg hover:bg-card"><Ban size={15}/></button>
-                    <button title="Duplicar" onClick={()=>openForm(user,true)} className="rounded-lg p-2 text-cyan-600 hover:bg-cyan-50"><Copy size={15}/></button>
+                    <button title="Duplicar" onClick={()=>openForm(user,true)} className="rounded-lg p-2 text-emerald-700 hover:bg-zinc-100"><Copy size={15}/></button>
                     <button title="Histórico" onClick={()=>{setForm(user);setModal("history")}} className="rounded-lg p-2 text-fg hover:bg-card"><History size={15}/></button>
                     <button title="Excluir" onClick={()=>remove(user)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={15}/></button>
                   </div></td>

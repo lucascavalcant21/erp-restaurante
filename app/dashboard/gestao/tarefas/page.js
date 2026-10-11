@@ -139,13 +139,13 @@ export default function MotorDeTarefasPage() {
               <button onClick={() => removeCampo(i)} className="p-2 rounded hover:bg-emerald-500/20 self-end sm:self-auto" aria-label="Remover campo"><Trash size={16} color="#ef4444" /></button>
             </div>
           ))}
-          {fCampos.length === 0 && <p className="text-xs text-center p-4 text-gray-500">Nenhum campo. Adicione um abaixo.</p>}
+          {fCampos.length === 0 && <p className="text-xs text-center p-4 text-hf-muted">Nenhum campo. Adicione um abaixo.</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
-          <button onClick={() => addCampo("checkbox")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10">+ Checkbox</button>
-          <button onClick={() => addCampo("text")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10">+ Texto</button>
-          <button onClick={() => addCampo("number")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10">+ Número</button>
+          <button onClick={() => addCampo("checkbox")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-hf-elevated hover:bg-hf-elevated">+ Checkbox</button>
+          <button onClick={() => addCampo("text")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-hf-elevated hover:bg-hf-elevated">+ Texto</button>
+          <button onClick={() => addCampo("number")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-hf-elevated hover:bg-hf-elevated">+ Número</button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

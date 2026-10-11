@@ -338,7 +338,7 @@ export default function EstoquePrincipal() {
                     </button>
                   </div>
                   {unidadeSelecionada === "compra" && (
-                    <div className="mt-2 flex items-start gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 p-2 rounded-lg">
+                    <div className="mt-2 flex items-start gap-1.5 text-xs font-semibold text-emerald-700 bg-zinc-100 p-2 rounded-lg">
                       <AlertCircle size={14} className="shrink-0 mt-0.5" />
                       <span>O sistema vai multiplicar por {infoConversao.tamEmb} para guardar no saldo.</span>
                     </div>

@@ -114,10 +114,10 @@ export default function GerarPagamentoFixoPage() {
 
       <main className="mx-auto max-w-2xl p-4 mt-4 animate-in fade-in slide-in-from-bottom-4">
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="bg-slate-900 p-6 text-white text-center">
-            <FileText size={32} className="mx-auto mb-2 text-slate-300" />
+          <div className="bg-hf-surface p-6 text-hf-text text-center">
+            <FileText size={32} className="mx-auto mb-2 text-hf-text-2" />
             <h2 className="text-xl font-black">Emissão de Recibo</h2>
-            <p className="text-sm font-semibold text-slate-400 mt-1">Gere um documento para impressão e assinatura</p>
+            <p className="text-sm font-semibold text-hf-text-2 mt-1">Gere um documento para impressão e assinatura</p>
           </div>
 
           <div className="p-6 space-y-5">

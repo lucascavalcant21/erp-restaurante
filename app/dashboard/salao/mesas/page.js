@@ -880,9 +880,9 @@ export default function SaloesMesasPage() {
       )}
 
       {/* HEADER DE COMANDO */}
-      <header className="bg-slate-800 text-white px-3 sm:px-4 py-3 flex items-center justify-between gap-3 overflow-x-auto shrink-0 shadow-lg z-20">
+      <header className="bg-hf-elevated text-hf-text px-3 sm:px-4 py-3 flex items-center justify-between gap-3 overflow-x-auto shrink-0 shadow-lg z-20">
          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <div className="hidden sm:flex w-10 h-10 rounded-full bg-white/10 items-center justify-center text-emerald-400">
+            <div className="hidden sm:flex w-10 h-10 rounded-full bg-hf-elevated items-center justify-center text-emerald-700">
                <DollarSign size={20} />
             </div>
             <div className="hidden sm:block">
@@ -894,23 +894,23 @@ export default function SaloesMesasPage() {
             </div>
             
             <div className="sm:ml-4 lg:ml-8 bg-black/20 p-1 rounded-xl flex gap-1 items-center">
-               <button onClick={() => setAbaAtiva('salao')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'salao' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('salao')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'salao' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-hf-text'}`}>
                   <Users size={14} /> Salão (Mesas)
                </button>
-               <button onClick={() => setAbaAtiva('balcao')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'balcao' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('balcao')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'balcao' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-hf-text'}`}>
                   <ShoppingBag size={14} /> Balcão Rápido
                </button>
-               <button onClick={() => setAbaAtiva('ifood')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'ifood' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('ifood')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'ifood' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-hf-text'}`}>
                   <Utensils size={14} /> iFood
                </button>
-               <button onClick={() => setAbaAtiva('cardapio')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'cardapio' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('cardapio')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'cardapio' ? 'bg-card text-fg shadow-sm' : 'text-dim hover:text-hf-text'}`}>
                   <ShoppingBag size={14} /> Cardápio Digital
                </button>
             </div>
          </div>
 
          <div className="hidden lg:flex gap-2 shrink-0">
-            <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
+            <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text">
                <Bell size={16} /> Pedidos Online
                {pedidosOnline.length > 0 && (
                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-3xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
@@ -922,16 +922,16 @@ export default function SaloesMesasPage() {
                const url = `${window.location.origin}/delivery/${unidadeAtiva}`;
                navigator.clipboard.writeText(url);
                alert("Link do cardápio copiado para enviar aos clientes!");
-            }} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
+            }} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text">
                <Share2 size={16} /> Copiar Link
             </button>
-            <button onClick={toggleFullScreen} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
+            <button onClick={toggleFullScreen} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text">
                <Maximize size={16} /> Tela Cheia
             </button>
-            <button onClick={() => { setTipoMov('suprimento'); setModalMov(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-blue-300">
+            <button onClick={() => { setTipoMov('suprimento'); setModalMov(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text-2">
                <ArrowUpCircle size={16} /> Suprimento
             </button>
-            <button onClick={() => { setTipoMov('sangria'); setModalMov(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-orange-300">
+            <button onClick={() => { setTipoMov('sangria'); setModalMov(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-amber-700">
                <ArrowDownCircle size={16} /> Sangria
             </button>
             <button onClick={abrirFechamento} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 font-bold text-xs rounded-lg shadow transition-colors ml-4">
@@ -995,7 +995,7 @@ export default function SaloesMesasPage() {
                         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-subtle" />
                         <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-white border border-line rounded font-normal outline-none text-fg-soft" />
                      </div>
-                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-bold text-2xs uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-card text-fg hover:bg-slate-200'}`}>
+                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-bold text-2xs uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-emerald-700 text-white shadow-md' : 'bg-card text-fg hover:bg-slate-200'}`}>
                         <ShoppingBag size={14}/> {modoViagem ? 'Viagem: ON' : 'Viagem: OFF'}
                      </button>
                   </div>
@@ -1046,13 +1046,13 @@ export default function SaloesMesasPage() {
                         <div className="flex-1 flex flex-col h-full overflow-hidden">
                             <div className="bg-card border-b border-line shrink-0 z-10 flex flex-col md:flex-row md:items-center p-2 gap-2 md:gap-4">
                            <div className="flex gap-2 w-full sm:w-auto">
-                              <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-white border border-line text-fg-soft outline-none focus:border-blue-500 rounded" />
-                              <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-white border border-line text-fg-soft outline-none focus:border-blue-500 rounded" />
+                              <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-white border border-line text-fg-soft outline-none focus:border-emerald-600 rounded" />
+                              <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-white border border-line text-fg-soft outline-none focus:border-emerald-600 rounded" />
                            </div>
                            
                             <div className="flex items-center gap-2 sm:gap-4 text-3xs sm:text-xs font-bold text-subtle flex-wrap">
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#4CAF50]"></div> Disponível</div>
-                              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div> Em consumo</div>
+                              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-700"></div> Em consumo</div>
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Pediu a conta</div>
                            </div>
 
@@ -1065,13 +1065,13 @@ export default function SaloesMesasPage() {
                            {mesas.length === 0 ? (
                               <div className="text-center py-10">
                                  <p className="text-fg font-bold mb-4">Nenhuma mesa cadastrada no salão.</p>
-                                 <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
+                                 <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-emerald-700 text-white font-black rounded-xl">Gerenciar Mesas</button>
                               </div>
                            ) : (
                                <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 gap-2 sm:gap-2.5">
                                  {mesas.map(m => {
                                     const st = m.status === 'ocupada'
-                                       ? { bg: 'bg-blue-500', label: 'Em consumo' }
+                                       ? { bg: 'bg-emerald-700', label: 'Em consumo' }
                                        : m.status === 'fechando'
                                           ? { bg: 'bg-amber-500', label: 'Pediu a conta' }
                                           : { bg: 'bg-emerald-500', label: 'Livre' };
@@ -1236,7 +1236,7 @@ export default function SaloesMesasPage() {
                <div className="space-y-4">
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Produto do Cardápio</label>
-                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-blue-500">
+                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-emerald-500">
                         <option value="">-- Selecione --</option>
                         {produtos.map(p => (
                            <option key={p.id} value={p.id}>{p.nome_produto} - {fmtBRL(p.preco_venda||p.preco||0)}</option>
@@ -1264,11 +1264,11 @@ export default function SaloesMesasPage() {
 
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Quantidade</label>
-                     <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-blue-500" />
+                     <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-bold text-fg-soft outline-none focus:ring-2 focus:ring-emerald-500" />
                   </div>
                   <div>
                      <label className="block text-xs font-bold text-fg uppercase mb-2">Observação (Ex: Sem cebola)</label>
-                     <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-blue-500" placeholder="Opcional..." />
+                     <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 font-medium text-fg-soft outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Opcional..." />
                      {observacoesPadrao.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                            {observacoesPadrao.map(o => (
@@ -1356,28 +1356,28 @@ export default function SaloesMesasPage() {
                <div className="flex-1 p-4 sm:p-8 flex flex-col bg-card min-w-0">
                   
                   <div className="flex items-center justify-between gap-3 mb-5 sm:mb-8 pb-4 border-b border-line-soft">
-                     <h2 className="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2"><CreditCard className="text-blue-500"/> Fechar Pagamento</h2>
+                     <h2 className="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2"><CreditCard className="text-emerald-700"/> Fechar Pagamento</h2>
                      <button onClick={() => setModalPagamento(false)} className="text-subtle hover:text-slate-900 font-bold uppercase text-sm">Cancelar</button>
                   </div>
 
-                  <div className="flex justify-between items-center bg-slate-800 text-white rounded-2xl p-5 mb-6 shadow-md">
+                  <div className="flex justify-between items-center bg-hf-elevated text-hf-text rounded-2xl p-5 mb-6 shadow-md">
                      <div>
                         <p className="text-xs font-bold text-subtle uppercase tracking-widest">Total Líquido</p>
                          <div className="flex flex-wrap items-end gap-2">
-                            <span className="text-3xl sm:text-4xl font-black text-emerald-400">{fmtBRL(valorTotalFinal)}</span>
-                           {(Number(descontoPerc)>0 || Number(descontoRs)>0) && <span className="text-sm font-bold text-red-400 line-through pb-1">{fmtBRL(subtotalPagamento)}</span>}
+                            <span className="text-3xl sm:text-4xl font-black text-emerald-700">{fmtBRL(valorTotalFinal)}</span>
+                           {(Number(descontoPerc)>0 || Number(descontoRs)>0) && <span className="text-sm font-bold text-red-700 line-through pb-1">{fmtBRL(subtotalPagamento)}</span>}
                         </div>
                      </div>
                      <div className="text-right">
                         <p className="text-xs font-bold text-subtle uppercase tracking-widest">Restante</p>
-                        <span className={`text-2xl font-black ${restante === 0 ? 'text-emerald-400' : 'text-orange-400'}`}>{fmtBRL(restante)}</span>
+                        <span className={`text-2xl font-black ${restante === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>{fmtBRL(restante)}</span>
                      </div>
                   </div>
 
                   <div className="bg-white p-4 rounded-xl border border-line mb-6 flex items-center justify-between shadow-inner">
                      <div className="flex items-center gap-3">
                         <div className="bg-card p-2 rounded-lg shadow-sm">
-                           <Users className="text-blue-500" size={20} />
+                           <Users className="text-emerald-700" size={20} />
                         </div>
                         <div>
                            <label className="block text-3xs font-bold text-fg uppercase">Dividir Conta Por:</label>
@@ -1390,14 +1390,14 @@ export default function SaloesMesasPage() {
                      </div>
                      <div className="text-right">
                         <p className="text-3xs font-bold text-fg uppercase">Total por Pessoa</p>
-                        <span className="text-2xl font-black text-blue-600 tracking-tight">{fmtBRL(valorTotalFinal / Math.max(1, quantidadePessoas))}</span>
+                        <span className="text-2xl font-black text-emerald-700 tracking-tight">{fmtBRL(valorTotalFinal / Math.max(1, quantidadePessoas))}</span>
                      </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-2">
                      <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-slate-900 text-sm uppercase tracking-widest flex items-center gap-2"><SplitSquareHorizontal size={16}/> Formas de Pagamento</h3>
-                        <button onClick={() => setPagamentos([...pagamentos, { id: Date.now(), forma: 'pix', valor: 0 }])} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">+ Forma Adicional</button>
+                        <button onClick={() => setPagamentos([...pagamentos, { id: Date.now(), forma: 'pix', valor: 0 }])} className="text-xs font-bold text-emerald-700 bg-zinc-100 px-3 py-1.5 rounded-lg hover:bg-zinc-100">+ Forma Adicional</button>
                      </div>
 
                      <div className="space-y-3">
@@ -1536,7 +1536,7 @@ export default function SaloesMesasPage() {
       {modalMov && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-               <h2 className={`text-xl font-black mb-6 ${tipoMov === 'sangria' ? 'text-orange-600' : 'text-blue-600'}`}>
+               <h2 className={`text-xl font-black mb-6 ${tipoMov === 'sangria' ? 'text-orange-600' : 'text-emerald-700'}`}>
                   {tipoMov === 'sangria' ? 'Sangria (Saída)' : 'Suprimento (Entrada)'}
                </h2>
                <form onSubmit={handleMovimentacao}>
@@ -1550,7 +1550,7 @@ export default function SaloesMesasPage() {
                   </div>
                   <div className="flex gap-3">
                      <button type="button" onClick={() => setModalMov(false)} className="flex-1 py-3 text-fg font-bold hover:bg-card rounded-xl">Cancelar</button>
-                     <button type="submit" disabled={processando} className={`flex-1 text-white font-black py-3 rounded-xl ${tipoMov === 'sangria' ? 'bg-orange-500' : 'bg-blue-500'}`}>Confirmar</button>
+                     <button type="submit" disabled={processando} className={`flex-1 text-white font-black py-3 rounded-xl ${tipoMov === 'sangria' ? 'bg-orange-500' : 'bg-emerald-700'}`}>Confirmar</button>
                   </div>
                </form>
             </div>
@@ -1566,7 +1566,7 @@ export default function SaloesMesasPage() {
                   <div className="bg-white rounded-xl p-4">
                      <p className="text-xs font-bold text-fg uppercase mb-2">Gaveta Física</p>
                      <div className="flex justify-between text-sm"><span>Fundo</span><span>{fmtBRL(resumoZ.fundo_inicial)}</span></div>
-                     <div className="flex justify-between text-sm text-blue-600"><span>Suprimento</span><span>{fmtBRL(resumoZ.suprimentos)}</span></div>
+                     <div className="flex justify-between text-sm text-emerald-700"><span>Suprimento</span><span>{fmtBRL(resumoZ.suprimentos)}</span></div>
                      <div className="flex justify-between text-sm text-orange-600"><span>Sangria</span><span>- {fmtBRL(resumoZ.sangrias)}</span></div>
                      <div className="flex justify-between text-sm text-success"><span>Vendas em Dinheiro</span><span>{fmtBRL(resumoZ.vendas_dinheiro)}</span></div>
                      <div className="flex justify-between font-black mt-2 pt-2 border-t"><span>Total Esperado:</span><span>{fmtBRL(resumoZ.esperado_gaveta)}</span></div>
@@ -1590,9 +1590,9 @@ export default function SaloesMesasPage() {
       {modalGestaoGarcons && (
          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-card rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-               <div className="p-6 border-b border-line-soft bg-slate-800 text-white flex justify-between items-center">
+               <div className="p-6 border-b border-line-soft bg-hf-elevated text-hf-text flex justify-between items-center">
                   <div><h2 className="text-xl font-black">Gerenciar Garçons</h2><p className="text-sm text-subtle">Cadastre a equipe</p></div>
-                  <button onClick={() => setModalGestaoGarcons(false)} className="text-subtle hover:text-white"><X size={24} /></button>
+                  <button onClick={() => setModalGestaoGarcons(false)} className="text-subtle hover:text-hf-text"><X size={24} /></button>
                </div>
                <div className="p-6 flex-1 overflow-y-auto">
                   <form onSubmit={async (e) => {
@@ -1607,7 +1607,7 @@ export default function SaloesMesasPage() {
                      <label className="text-xs font-bold text-fg uppercase">Nome do Garçom</label>
                      <div className="flex gap-2">
                         <input type="text" value={novoGarcomNome} onChange={e => setNovoGarcomNome(e.target.value)} required className="flex-1 px-4 py-3 bg-white border border-line rounded-xl font-bold" placeholder="Ex: João, Maria" />
-                        <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white font-black rounded-xl shadow-lg"><Plus size={18} className="inline"/></button>
+                        <button type="submit" disabled={processando} className="px-6 py-3 bg-emerald-700 hover:bg-emerald-800 transition-colors text-white font-black rounded-xl shadow-lg"><Plus size={18} className="inline"/></button>
                      </div>
                   </form>
                   <h3 className="text-sm font-black text-fg-soft mb-4 flex items-center gap-2"><Users size={16}/> Equipe <span className="bg-card px-2 py-0.5 rounded text-xs text-fg">{garcons.length}</span></h3>
@@ -1657,10 +1657,10 @@ export default function SaloesMesasPage() {
          <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
             <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl">
                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><ArrowRightLeft size={20} className="text-purple-500"/> Transferir Comanda</h2>
+                  <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><ArrowRightLeft size={20} className="text-emerald-700"/> Transferir Comanda</h2>
                   <button onClick={() => setModalTransferir(false)} className="text-subtle hover:text-red-500"><X size={20}/></button>
                </div>
-               <p className="text-sm font-bold text-slate-900 mb-4">Transferindo a comanda <span className="text-blue-500">{pedidoAtivo.identificacao}</span> da Mesa {mesaAtiva.numero_mesa} para onde?</p>
+               <p className="text-sm font-bold text-slate-900 mb-4">Transferindo a comanda <span className="text-emerald-700">{pedidoAtivo.identificacao}</span> da Mesa {mesaAtiva.numero_mesa} para onde?</p>
                
                <div className="mb-6">
                   <label className="block text-xs font-bold text-fg uppercase mb-2">Mesa Destino</label>
@@ -1687,7 +1687,7 @@ export default function SaloesMesasPage() {
                         carregarMesas();
                         alert("Comanda transferida com sucesso!");
                      }
-                  }} className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-slate-300 text-white font-black rounded-xl shadow-md transition-colors">Transferir</button>
+                  }} className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black rounded-xl shadow-md transition-colors">Transferir</button>
                </div>
             </div>
          </div>
@@ -1728,8 +1728,8 @@ export default function SaloesMesasPage() {
                         setPedidoAtivo(pedido);
                         setFiltroCategoria("Todas");
                         setModalListaComandas(false);
-                     }} className="bg-card border border-line rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-blue-400 transition-all flex flex-col items-center text-center">
-                        <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-black mb-4">
+                     }} className="bg-card border border-line rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-emerald-600 transition-all flex flex-col items-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-zinc-100 text-emerald-700 flex items-center justify-center text-xl font-black mb-4">
                            {pedido.identificacao ? pedido.identificacao.substring(0,4) : '#'}
                         </div>
                         <span className="font-black text-fg-soft text-lg">{pedido.identificacao || 'Sem Ident'}</span>
@@ -1766,7 +1766,7 @@ export default function SaloesMesasPage() {
                      
                      <div className="flex gap-4 border-t border-line pt-8">
                         <button type="button" onClick={() => { setModalComanda(false); setModalGarcom(true); }} className="px-6 py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
-                        <button type="submit" disabled={processando} className="px-6 py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">ABRIR COMANDA</button>
+                        <button type="submit" disabled={processando} className="px-6 py-3 bg-[#2196F3] hover:bg-emerald-700 text-white font-bold text-sm rounded shadow transition-colors">ABRIR COMANDA</button>
                      </div>
                   </form>
                </div>
@@ -1778,15 +1778,15 @@ export default function SaloesMesasPage() {
       {modalGestaoMesas && (
          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-card rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-               <div className="bg-slate-800 text-white p-5 flex justify-between items-center shrink-0">
+               <div className="bg-hf-elevated text-hf-text p-5 flex justify-between items-center shrink-0">
                   <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center"><Settings size={20} className="text-blue-300" /></div>
+                     <div className="w-10 h-10 bg-hf-elevated rounded-xl flex items-center justify-center"><Settings size={20} className="text-hf-text-2" /></div>
                      <div>
                         <h2 className="font-black text-lg">Gerenciar Mesas</h2>
                         <p className="text-xs text-dim font-medium">Adicione ou remova mesas físicas do seu salão</p>
                      </div>
                   </div>
-                  <button onClick={() => setModalGestaoMesas(false)} className="text-subtle hover:text-white"><X size={24} /></button>
+                  <button onClick={() => setModalGestaoMesas(false)} className="text-subtle hover:text-hf-text"><X size={24} /></button>
                </div>
                
                <div className="p-6 flex-1 overflow-y-auto">
@@ -1805,8 +1805,8 @@ export default function SaloesMesasPage() {
                   }} className="flex flex-col gap-3 mb-8">
                      <label className="text-xs font-bold text-fg uppercase tracking-widest">Nome ou Número da Mesa</label>
                      <div className="flex gap-2">
-                        <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda..." required className="flex-1 px-4 py-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-blue-500 focus:bg-card transition-colors" />
-                        <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
+                        <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda..." required className="flex-1 px-4 py-3 bg-white border border-line rounded-xl font-bold text-fg-soft outline-none focus:border-emerald-600 focus:bg-card transition-colors" />
+                        <button type="submit" disabled={processando} className="px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-black rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
                            {processando ? 'Salvando...' : <><Plus size={18}/> Adicionar</>}
                         </button>
                      </div>
@@ -1828,7 +1828,7 @@ export default function SaloesMesasPage() {
                                     <div className="w-10 h-10 rounded-full bg-card flex items-center justify-center font-black text-slate-900">
                                        {m.numero_mesa}
                                     </div>
-                                    <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${m.status==='ocupada' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>{m.status}</span>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${m.status==='ocupada' ? 'bg-zinc-100 text-emerald-700' : 'bg-emerald-100 text-emerald-600'}`}>{m.status}</span>
                                  </div>
                                  <div className="flex gap-2">
                                     <button onClick={() => setQrMesa(m)} className="p-2 bg-card text-fg rounded-lg hover:bg-slate-200 transition" title="Gerar QR Code">
@@ -1891,7 +1891,7 @@ export default function SaloesMesasPage() {
                         <div className="p-3 border-b border-line-soft flex justify-between items-start bg-white/50">
                            <div>
                               <div className="flex gap-2 items-center mb-1">
-                                <span className={`text-3xs font-bold uppercase px-2 py-0.5 rounded ${pedido.tipo_pedido === 'qrcode' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                                <span className={`text-3xs font-bold uppercase px-2 py-0.5 rounded ${pedido.tipo_pedido === 'qrcode' ? 'bg-zinc-100 text-zinc-700' : 'bg-red-100 text-red-700'}`}>
                                    {pedido.tipo_pedido}
                                 </span>
                                 <span className="text-xs font-bold text-fg">#{pedido.numero_pedido}</span>
@@ -1944,7 +1944,7 @@ export default function SaloesMesasPage() {
                         {/* Ações para Chamada de TV */}
                         {(pedido.status === 'preparando_delivery' || pedido.status === 'preparando' || pedido.status === 'aberto' || pedido.status === 'pronto') && (
                            <div className="p-3 flex gap-2 border-t border-line bg-white">
-                              <button onClick={() => handleChamarTV(pedido.id)} disabled={pedido.status === 'pronto'} className="flex-1 py-2 text-xs font-bold text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                              <button onClick={() => handleChamarTV(pedido.id)} disabled={pedido.status === 'pronto'} className="flex-1 py-2 text-xs font-bold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1">
                                 <Bell size={14}/> {pedido.status === 'pronto' ? 'Chamado' : 'Chamar na TV'}
                               </button>
                               <button onClick={() => handleEntregue(pedido.id)} className="flex-1 py-2 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors flex items-center justify-center gap-1">

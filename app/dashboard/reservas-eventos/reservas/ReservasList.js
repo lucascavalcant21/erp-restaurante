@@ -106,7 +106,7 @@ export default function ReservasPage() {
                       {reserva.mesa || '-'}
                     </td>
                     <td className="py-4 px-6">
-                      <span className="inline-flex px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs uppercase tracking-wider">
+                      <span className="inline-flex px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-700 font-bold text-xs uppercase tracking-wider">
                         {reserva.status}
                       </span>
                     </td>

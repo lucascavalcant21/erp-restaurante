@@ -436,7 +436,7 @@ export default function DiagnosticoImpressorasUsbPage() {
 
         {/* Card Estado da Conexão Ativa */}
         <div className="p-5 rounded-2xl border border-line bg-card flex items-start gap-3 shadow-sm">
-          <Activity size={24} className="text-violet-600 shrink-0 mt-0.5" />
+          <Activity size={24} className="text-emerald-700 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-subtle">Status da Conexão</p>
             <p className="text-base font-black text-slate-800 capitalize flex items-center gap-1.5">
@@ -596,7 +596,7 @@ export default function DiagnosticoImpressorasUsbPage() {
                     type="button"
                     onClick={executarTesteImpressaoTspl}
                     disabled={imprimindoTeste || !endpointOut}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black py-2.5 px-5 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm transition-all"
+                    className="bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-black py-2.5 px-5 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm transition-all"
                   >
                     {imprimindoTeste ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                     Imprimir teste TSPL

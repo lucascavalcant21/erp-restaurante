@@ -324,7 +324,7 @@ export default function ControlesCozinha() {
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <span className={`px-2 py-1 text-3xs font-bold uppercase rounded-md ${st.cor}`}>{st.label}</span>
                       <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                        {item.categoria === "ar_condicionado" ? <Wind size={18} className="text-sky-500" /> : <Sparkles size={18} className="text-emerald-500" />}
+                        {item.categoria === "ar_condicionado" ? <Wind size={18} className="text-emerald-700" /> : <Sparkles size={18} className="text-emerald-500" />}
                         {item.nome}
                       </h3>
                     </div>

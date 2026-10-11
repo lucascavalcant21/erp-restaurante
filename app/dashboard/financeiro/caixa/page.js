@@ -94,13 +94,13 @@ export default function CaixaEContasPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
-      <div className="bg-slate-900 pt-6 pb-5 px-4 sm:px-8 text-white">
+      <div className="bg-hf-surface pt-6 pb-5 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Caixa e Contas</h1>
           <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Fluxo de caixa · contas financeiras · taxas</p>
           <div className="mt-4 flex gap-2 overflow-x-auto">
             {[["fluxo", "Fluxo de caixa"], ["contas", "Contas financeiras"], ["taxas", "Taxas de cartão/plataforma"]].map(([id, r]) => (
-              <button key={id} onClick={() => setAba(id)} className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${aba === id ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-300"}`}>{r}</button>
+              <button key={id} onClick={() => setAba(id)} className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${aba === id ? "bg-emerald-500 text-slate-950" : "bg-hf-elevated text-hf-text-2"}`}>{r}</button>
             ))}
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function CaixaEContasPage() {
                 {resumo.incluiLegado && <p className="text-3xs text-amber-700 mt-2">Inclui pagamentos antigos registrados sem histórico (data e valor da conta).</p>}
               </div>
               <div className="bg-card rounded-3xl border border-line p-4">
-                <p className="text-3xs font-black uppercase text-sky-700">Previsto (contas em aberto no período — ainda não é dinheiro)</p>
+                <p className="text-3xs font-black uppercase text-zinc-700">Previsto (contas em aberto no período — ainda não é dinheiro)</p>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
                   <div><p className="text-fg font-bold">A receber (líquido)</p><p className="font-black">{resumo.previsto.entradasIncompletas ? "NÃO APURADO" : fmtBRL(resumo.previsto.entradas)}</p></div>
                   <div><p className="text-fg font-bold">A pagar</p><p className="font-black">{fmtBRL(resumo.previsto.saidas)}</p></div>

@@ -177,7 +177,7 @@ export default function SemanaPage() {
                     ))}
                     {dia.eventosDoDia.map(e => (
                       <button key={e.id} type="button" onClick={() => router.push(`/dashboard/eventos/${e.id}`)}
-                        className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg bg-violet-50 px-2 py-1.5 text-left text-xs font-bold text-violet-800 hover:bg-violet-100">
+                        className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg bg-zinc-100 px-2 py-1.5 text-left text-xs font-bold text-zinc-800 hover:bg-zinc-100">
                         <PartyPopper size={13} className="shrink-0" />
                         <span className="min-w-0 flex-1 truncate">{e.nome || "Evento"}</span>
                         {Number(e.capacidade) > 0 && <span className="shrink-0 text-2xs font-bold">{e.capacidade} lug.</span>}

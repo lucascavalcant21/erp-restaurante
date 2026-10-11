@@ -54,7 +54,7 @@ export default function SalaoHubPage() {
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/estoque?dept=salao")} className="rounded-[32px] p-6 sm:p-10 bg-card border-2 border-line hover:border-slate-400 transition-all shadow-sm flex flex-col justify-between group text-left min-h-56 sm:h-64">
-            <div className="w-16 h-16 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-zinc-100 text-emerald-700 flex items-center justify-center mb-6">
                <Store size={32} />
             </div>
             <div>

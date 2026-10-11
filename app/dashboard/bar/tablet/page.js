@@ -1,14 +1,13 @@
 "use client";
-import TabletSetor from "../../../components/TabletSetor";
 
-export default function BarTabletPage() {
-  return (
-    <TabletSetor
-      setor="Bar"
-      titulo="Bar"
-      emoji="🍹"
-      cor="#3B82F6"
-      voltarHref="/dashboard/bar"
-    />
-  );
+// Tablet antigo (Bar): a movimentação do estoque é uma tela só
+// (/dashboard/operacao/estoque, HDEV-EST-001). Abre já na área bar.
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function TabletAntigo() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/dashboard/operacao/estoque?area=bar"); }, [router]);
+  return null;
 }

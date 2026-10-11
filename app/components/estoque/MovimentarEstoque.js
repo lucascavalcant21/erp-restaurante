@@ -85,7 +85,8 @@ export default function MovimentarEstoque({ unidade, sessao, inicial = {} }) {
     if (!estoques.length) return;
     setEstoqueId((atual) => {
       if (atual && estoques.some((e) => e.id === atual)) return atual;
-      const salvo = inicial.estoque || lerLocal(unidade);
+      const daArea = inicial.area && !inicial.estoque ? areasComLocais(estoques).find((g) => g.id === inicial.area)?.locais?.[0] : null;
+      const salvo = inicial.estoque || daArea?.id || lerLocal(unidade);
       const escolhido = estoques.find((e) => e.id === salvo) || estoques[0];
       setArea(areaDoLocal(escolhido));
       return escolhido.id;

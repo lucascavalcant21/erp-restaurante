@@ -30,7 +30,6 @@ import {
 } from "../../../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../../../components/ui";
 import SimuladorRendimento from "../../../../../components/SimuladorRendimento";
-import TabletSetor from "../../../../../components/TabletSetor";
 import { dividirSaldo } from "../../../../../lib/estoque-bebidas";
 import CampoDecimal from "../../../../../components/CampoDecimal";
 import { useContextoInteligencia } from "../../../../../components/intelligence/useContextoInteligencia";

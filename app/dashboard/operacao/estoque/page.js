@@ -2,7 +2,8 @@
 
 // Operacional → Estoque abre AQUI: a tela única de movimentação (HDEV-EST-001).
 // Inventário, histórico, painel e produtos/locais ficam nas abas (EstoqueAbas).
-// ?estoque=<id>&tipo=entrada|saida|transferencia&insumo=<id> abre já no produto.
+// ?estoque=<id>&tipo=entrada|saida|transferencia&insumo=<id> abre já no produto;
+// ?area=cozinha|bar|salao|limpeza abre no local principal da área.
 // Endereços antigos: ?gestao=1 (o painel de antes) vai para Produtos e locais.
 
 import { Suspense, useEffect } from "react";
@@ -25,12 +26,12 @@ function Estoque() {
     if (legado) router.replace(`/dashboard/operacao/estoque/painel/produtos${params.get("dept") ? `?dept=${params.get("dept")}` : ""}`);
   }, [legado]); // eslint-disable-line react-hooks/exhaustive-deps
   if (legado) return null;
-  const inicial = { estoque: params.get("estoque") || "", tipo: params.get("tipo") || "", insumo: params.get("insumo") || "" };
+  const inicial = { estoque: params.get("estoque") || "", area: params.get("area") || "", tipo: params.get("tipo") || "", insumo: params.get("insumo") || "" };
   return (
     <div className="min-h-screen bg-hf-bg">
       <EstoqueAbas />
       {unidadeValida(unidadeAtiva)
-        ? <MovimentarEstoque key={`${unidadeAtiva}|${inicial.estoque}|${inicial.tipo}|${inicial.insumo}`} unidade={unidadeAtiva} sessao={sessao} inicial={inicial} />
+        ? <MovimentarEstoque key={`${unidadeAtiva}|${inicial.estoque}|${inicial.area}|${inicial.tipo}|${inicial.insumo}`} unidade={unidadeAtiva} sessao={sessao} inicial={inicial} />
         : <p className="p-8 text-center font-bold text-hf-text-2">Selecione uma unidade para lançar no estoque.</p>}
     </div>
   );

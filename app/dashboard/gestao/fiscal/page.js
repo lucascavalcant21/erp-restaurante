@@ -199,9 +199,9 @@ export default function ConfiguracoesFiscaisPage() {
         </div>
 
         {/* Bloco API SEFAZ */}
-        <div className="bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-700 text-white">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-6 text-slate-200">
-            <Shield className="text-emerald-400" size={20} />
+        <div className="bg-hf-elevated p-6 rounded-2xl shadow-sm border border-hf-border text-hf-text">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-6 text-hf-text">
+            <Shield className="text-emerald-700" size={20} />
             Integração API (Motor Fiscal)
           </h2>
           
@@ -214,7 +214,7 @@ export default function ConfiguracoesFiscaisPage() {
                 onChange={e => setDadosLoja({...dadosLoja, token_nfe: e.target.value})}
                 placeholder={tokenSalvo ? "Token salvo. Digite só para trocar" : "Cole o token de integração"}
                 autoComplete="new-password"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-white"
+                className="w-full bg-hf-surface border border-hf-border rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-hf-text"
               />
               <p className="text-xs text-subtle mt-2">
                 {tokenSalvo === true ? "Token configurado. Por segurança ele não é exibido." : tokenSalvo === false ? "Nenhum token salvo." : "Deixe em branco para manter o token atual."}
@@ -226,7 +226,7 @@ export default function ConfiguracoesFiscaisPage() {
               <select 
                 value={dadosLoja.ambiente_nfe}
                 onChange={e => setDadosLoja({...dadosLoja, ambiente_nfe: e.target.value})}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-white"
+                className="w-full bg-hf-surface border border-hf-border rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-hf-text"
               >
                 <option value="Homologacao">Homologação (Testes Sem Valor Fiscal)</option>
                 <option value="Producao">Produção (Com Valor Fiscal)</option>

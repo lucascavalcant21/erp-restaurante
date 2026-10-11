@@ -90,9 +90,9 @@ export default function PermissionBuilder({ value = [], onChange, copySources = 
         <div className="mb-5 flex flex-wrap gap-2">
           <button type="button" onClick={() => quick("all")} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Selecionar tudo</button>
           <button type="button" onClick={() => quick("none")} className="flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700"><X size={13}/> Remover tudo</button>
-          <button type="button" onClick={() => quick("view")} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700"><Eye size={13}/> Somente visualizar</button>
+          <button type="button" onClick={() => quick("view")} className="flex items-center gap-1 rounded-lg bg-zinc-100 px-3 py-2 text-xs font-bold text-zinc-700"><Eye size={13}/> Somente visualizar</button>
           <button type="button" onClick={() => quick("operational")} className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">Acesso operacional</button>
-          <button type="button" onClick={() => quick("managerial")} className="flex items-center gap-1 rounded-lg bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700"><ShieldCheck size={13}/> Acesso gerencial</button>
+          <button type="button" onClick={() => quick("managerial")} className="flex items-center gap-1 rounded-lg bg-zinc-100 px-3 py-2 text-xs font-bold text-zinc-700"><ShieldCheck size={13}/> Acesso gerencial</button>
         </div>
 
         {copySources.length > 0 && (

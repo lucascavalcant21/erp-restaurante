@@ -103,8 +103,8 @@ function EditorExclusiva({ item, alterarItem }) {
   const porId = new Map(c.linhas.map((l) => [l.id, l]));
   const mudarIng = (id, campo, valor) => alterarItem({ ingredientes: item.ingredientes.map((g) => (g.id === id ? { ...g, [campo]: valor } : g)) });
   return (
-    <div className="mt-3 rounded-2xl border border-violet-200 bg-violet-50/40 p-3 sm:p-4">
-      <p className="mb-3 text-xs font-semibold text-violet-900">
+    <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-100/40 p-3 sm:p-4">
+      <p className="mb-3 text-xs font-semibold text-zinc-900">
         Ingredientes para <strong>uma porção</strong> (um prato, um drink). Informe a embalagem como você compra e quanto vai na porção. Estes ingredientes ficam só neste evento.
       </p>
       <Campo rotulo="Peso da porção pronta (g)" ajuda="Opcional. Necessário para informar o buffet em gramas por pessoa." className="mb-3 max-w-xs">
@@ -114,7 +114,7 @@ function EditorExclusiva({ item, alterarItem }) {
         {item.ingredientes.map((g) => {
           const l = porId.get(g.id);
           return (
-            <div key={g.id} className="grid grid-cols-2 gap-x-2 gap-y-3 rounded-xl border border-violet-100 bg-white p-3 sm:grid-cols-12 sm:items-start">
+            <div key={g.id} className="grid grid-cols-2 gap-x-2 gap-y-3 rounded-xl border border-zinc-200 bg-white p-3 sm:grid-cols-12 sm:items-start">
               <Campo rotulo="Ingrediente" className="col-span-2 sm:col-span-4"><Texto valor={g.nome} onChange={(v) => mudarIng(g.id, "nome", v)} placeholder="Ex.: Cachaça" /></Campo>
               <Campo rotulo="Preço da embalagem" className="col-span-2 sm:col-span-3"><Numero valor={g.preco_embalagem} onChange={(v) => mudarIng(g.id, "preco_embalagem", v)} prefixo="R$" placeholder="0,00" /></Campo>
               <Campo rotulo="Embalagem com" className="col-span-2 sm:col-span-5">
@@ -157,7 +157,7 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
     <li className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-end">
         <div className="col-span-2 sm:col-span-4">
-          <span className={`mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${exclusiva ? "bg-violet-100 text-violet-800" : "bg-slate-100 text-slate-700"}`}>
+          <span className={`mb-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${exclusiva ? "bg-zinc-100 text-zinc-800" : "bg-slate-100 text-slate-700"}`}>
             {exclusiva ? <><FlaskConical size={11} /> Exclusiva do evento</> : <><ChefHat size={11} /> Ficha técnica</>}
           </span>
           <Texto valor={item.nome} onChange={(v) => alterarItem({ nome: v })} aria-label="Nome do produto" readOnly={!exclusiva && !!item.ficha}
@@ -187,7 +187,7 @@ function LinhaItem({ item, convidados, alterarItem, remover, aberto, alternar, e
         <div className="col-span-2 flex items-end justify-end gap-2 sm:col-span-2">
           {exclusiva && (
             <button type="button" onClick={alternar} aria-expanded={aberto}
-              className="flex h-11 items-center gap-1 rounded-xl border border-violet-200 px-3 text-sm font-bold text-violet-800 hover:bg-violet-50">
+              className="flex h-11 items-center gap-1 rounded-xl border border-zinc-200 px-3 text-sm font-bold text-zinc-800 hover:bg-zinc-100">
               Ingredientes {aberto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
           )}

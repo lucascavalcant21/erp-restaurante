@@ -585,9 +585,9 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-slate-950 text-white select-none">
       {/* Topbar */}
-      <header className="flex h-16 items-center justify-between border-b border-slate-800 bg-slate-900 px-6">
+      <header className="flex h-16 items-center justify-between border-b border-hf-border bg-hf-surface px-6">
         <div className="flex items-center gap-3">
-          <span className="rounded-xl bg-emerald-500/20 px-3 py-1 text-xs font-bold uppercase text-emerald-400 border border-emerald-500/30">
+          <span className="rounded-xl bg-emerald-500/20 px-3 py-1 text-xs font-bold uppercase text-emerald-700 border border-emerald-500/30">
             {currentGuia?.departamento === "bar" ? "🍹 BAR DE PRODUÇÃO" : "🍳 COZINHA DA PRAÇA"}
           </span>
           <span className="text-sm font-bold text-subtle">
@@ -597,14 +597,14 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
 
         <div className="flex items-center gap-4">
           {timerRunning && (
-            <div className="flex items-center gap-2 rounded-2xl bg-amber-500/20 px-4 py-1.5 text-amber-400 border border-amber-500/30 animate-pulse">
+            <div className="flex items-center gap-2 rounded-2xl bg-amber-500/20 px-4 py-1.5 text-amber-700 border border-amber-500/30 animate-pulse">
               <Clock size={18} />
               <span className="font-mono text-lg font-black">{timerSeconds}s</span>
             </div>
           )}
           <button
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-dim hover:bg-slate-700 hover:text-white transition"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-hf-elevated text-dim hover:bg-hf-border hover:text-hf-text transition"
           >
             <X size={22} />
           </button>
@@ -614,8 +614,8 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
       {/* Main Body */}
       <main className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
         {/* Left Side: Photo + Specs + Ingredients */}
-        <div className="p-6 border-r border-slate-800 overflow-y-auto lg:col-span-5 bg-slate-900/50 flex flex-col gap-5">
-          <div className="relative aspect-video w-full overflow-hidden rounded-3xl border-2 border-slate-800 bg-slate-900 shadow-2xl">
+        <div className="p-6 border-r border-hf-border overflow-y-auto lg:col-span-5 bg-hf-surface flex flex-col gap-5">
+          <div className="relative aspect-video w-full overflow-hidden rounded-3xl border-2 border-hf-border bg-hf-surface shadow-2xl">
             {currentGuia?.foto_url ? (
               <img src={currentGuia.foto_url} alt={currentGuia.nome} className="h-full w-full object-cover" />
             ) : (
@@ -624,33 +624,33 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
                 <span className="mt-2 text-xs font-bold uppercase tracking-widest">Sem Foto de Referência</span>
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-            <h1 className="absolute bottom-4 left-4 right-4 text-2xl lg:text-3xl font-black text-white leading-tight">
+            <div className="absolute inset-0 bg-gradient-to-t from-hf-bg via-transparent to-transparent" />
+            <h1 className="absolute bottom-4 left-4 right-4 text-2xl lg:text-3xl font-black text-hf-text leading-tight">
               {currentGuia?.nome}
             </h1>
           </div>
 
           {/* Quick Specs */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-4">
               <span className="text-3xs font-bold uppercase text-subtle">Tempo de Preparo</span>
-              <p className="mt-1 text-lg font-black text-emerald-400">{currentGuia?.tempo_preparo ? `${currentGuia.tempo_preparo} min` : "Livre"}</p>
+              <p className="mt-1 text-lg font-black text-emerald-700">{currentGuia?.tempo_preparo ? `${currentGuia.tempo_preparo} min` : "Livre"}</p>
             </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-4">
               <span className="text-3xs font-bold uppercase text-subtle">{currentGuia?.departamento === "bar" ? "Copo / Coparia" : "Rendimento"}</span>
-              <p className="mt-1 text-lg font-black text-sky-400 truncate">{copo?.nome || currentGuia?.rendimento || "1 Porção"}</p>
+              <p className="mt-1 text-lg font-black text-hf-text-2 truncate">{copo?.nome || currentGuia?.rendimento || "1 Porção"}</p>
             </div>
           </div>
 
           {/* Ingredients List */}
           {ingredientes.length > 0 && (
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+            <div className="rounded-2xl border border-hf-border bg-hf-surface p-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-subtle mb-3 flex items-center gap-2">
-                <ListChecks size={16} className="text-emerald-400" /> Ingredientes & Dosagem
+                <ListChecks size={16} className="text-emerald-700" /> Ingredientes & Dosagem
               </h3>
               <ul className="space-y-2">
                 {ingredientes.map((ing, i) => (
-                  <li key={i} className="flex items-center gap-3 rounded-xl bg-slate-950 p-3 text-sm font-bold text-slate-200">
+                  <li key={i} className="flex items-center gap-3 rounded-xl bg-hf-bg p-3 text-sm font-bold text-hf-text">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                     {ing.nome}
                   </li>
@@ -2277,7 +2277,7 @@ function MontagemPageInner() {
                 </button>
               )}
               <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert(vazios ? `Nenhum drink com receita ainda. Use o botão "Receitas com IA" para a IA montar as ${vazios} bebidas de uma vez, ou cadastre manualmente.` : "Nenhum drink com receita para o guia.")}
-                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-bold text-white shadow-md shadow-violet-600/20 transition-all hover:bg-violet-700 active:scale-[.98]">
+                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex h-10 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-xs font-bold text-white shadow-md shadow-violet-600/20 transition-all hover:bg-emerald-800 active:scale-[.98]">
                 <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
               </button>
             </>
@@ -2578,7 +2578,7 @@ function MontagemPageInner() {
                 {/* DESIGNER — celular ordem 3; desktop coluna direita, linha 2 */}
                 <div className="order-3 lg:order-none lg:col-start-2 lg:row-start-2 space-y-4 border-t border-[var(--line)] pt-4 lg:border-0 lg:pt-0">
                     {dept === "bar" ? (
-                      <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+                      <div className="rounded-2xl border border-zinc-200 bg-zinc-100 p-4 text-sm text-zinc-900">
                         <p className="font-black">O cartão acima é o modelo real do Bar.</p>
                         <p className="mt-1 text-xs font-medium leading-relaxed">Preencha manualmente ingredientes, dosagens, copo e preparo. A IA é opcional e serve apenas para acelerar o primeiro preenchimento.</p>
                       </div>

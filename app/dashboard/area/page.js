@@ -121,8 +121,8 @@ function TecladoSenha({ cor, onSuccess, onClose, senha }) {
   };
   return (
     <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-6 w-full max-w-xs text-center max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
-        <p className="text-lg font-black text-white">Sair da área</p>
+      <div className="bg-hf-surface border border-hf-border rounded-3xl p-4 sm:p-6 w-full max-w-xs text-center max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
+        <p className="text-lg font-black text-hf-text">Sair da área</p>
         <p className="text-subtle font-medium text-xs mb-5">Digite a senha desta área para destravar</p>
         <div className="flex gap-3 justify-center mb-5">
           {[0, 1, 2, 3].map(i => (
@@ -133,12 +133,12 @@ function TecladoSenha({ cor, onSuccess, onClose, senha }) {
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((d, i) => (
             <button key={i} disabled={d === ""}
               onClick={() => d === "⌫" ? setPin(p => p.slice(0, -1)) : d !== "" && digito(String(d))}
-              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-dim hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
+              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-hf-border text-dim hover:bg-hf-border-strong" : "bg-hf-elevated text-hf-text hover:bg-hf-border"}`}>
               {d}
             </button>
           ))}
         </div>
-        {erro && <p className="text-red-400 text-xs font-bold mb-2">{erro}</p>}
+        {erro && <p className="text-red-700 text-xs font-bold mb-2">{erro}</p>}
         <button onClick={onClose} className="text-fg hover:text-dim text-xs font-bold">Cancelar</button>
       </div>
     </div>
@@ -203,12 +203,12 @@ function AreaRunner() {
               <AIcon size={28} style={{ color: area.cor }} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{area.nome}</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-hf-text tracking-tight">{area.nome}</h1>
               <p className="text-fg font-bold uppercase tracking-widest text-3xs">{unidadeInfo?.nome || ""} · estação de trabalho</p>
             </div>
           </div>
           <button onClick={() => setPedindoSenha(true)} title="Sair da área (senha)"
-            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-fg hover:text-dim bg-slate-900 border border-slate-800 transition-colors flex-shrink-0">
+            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-fg hover:text-dim bg-hf-surface border border-hf-border transition-colors flex-shrink-0">
             <Lock size={14} /> <span className="hidden sm:inline">Travado</span>
           </button>
         </div>
@@ -229,7 +229,7 @@ function AreaRunner() {
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${area.cor}18` }}>
                       <item.Icon size={20} style={{ color: area.cor }} />
                     </div>
-                    <span className="font-bold text-slate-100 text-[15px]">{item.label}</span>
+                    <span className="font-bold text-hf-text text-[15px]">{item.label}</span>
                   </button>
                 ))}
               </div>

@@ -28,7 +28,7 @@ const brl = (v) => (v == null ? NA : fmtBRL(v));
 const pct = (v) => (v == null ? NA : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`);
 const seta = (v) => (v == null ? "" : v > 0 ? "↑" : v < 0 ? "↓" : "=");
 const qtd = (q, b) => (q == null ? "—" : `${exibirQtd(q, b).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${rotuloBase(b)}`);
-const STATUS = { apurado: ["APURADO", "bg-emerald-100 text-emerald-800"], nao_apurado: [NA, "bg-amber-100 text-amber-900"], em_andamento: ["EM ANDAMENTO", "bg-sky-100 text-sky-800"] };
+const STATUS = { apurado: ["APURADO", "bg-emerald-100 text-emerald-800"], nao_apurado: [NA, "bg-amber-100 text-amber-900"], em_andamento: ["EM ANDAMENTO", "bg-zinc-100 text-zinc-800"] };
 
 export default function CmvPage() {
   return <Suspense fallback={<p className="p-8 text-center font-bold text-fg">Carregando...</p>}><Cmv /></Suspense>;
@@ -89,29 +89,29 @@ function Cmv() {
 
   return (
     <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
-      <div className="bg-slate-900 px-4 sm:px-8 pt-6 pb-5 text-white">
+      <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-5 text-hf-text">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">CMV Real</h1>
           <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Estoque inicial + compras − estoque final · entre inventários fechados</p>
           <div className="mt-4 flex flex-wrap gap-2 items-center">
-            <select value={modo} onChange={(e) => setModo(e.target.value)} className="h-10 px-3 rounded-xl bg-slate-800 border border-slate-700 font-bold text-sm">
+            <select value={modo} onChange={(e) => setModo(e.target.value)} className="h-10 px-3 rounded-xl bg-hf-elevated border border-hf-border font-bold text-sm">
               <option value="contagens">Entre contagens</option><option value="par">Escolher duas contagens</option>
               <option value="semana">Esta semana</option><option value="semana_anterior">Semana anterior</option>
               <option value="mes">Este mês</option><option value="mes_anterior">Mês anterior</option>
               <option value="ultimos30">Últimos 30 dias</option><option value="personalizado">Personalizado</option>
             </select>
             {modo === "contagens" && periodos.length > 0 && (
-              <select value={periodo?.id || ""} onChange={(e) => setSelPeriodo(e.target.value)} className="h-10 px-3 rounded-xl bg-slate-800 border border-slate-700 font-bold text-sm">
+              <select value={periodo?.id || ""} onChange={(e) => setSelPeriodo(e.target.value)} className="h-10 px-3 rounded-xl bg-hf-elevated border border-hf-border font-bold text-sm">
                 {[...periodos].reverse().map((p) => <option key={p.id} value={p.id}>{fmtData(p.de)} → {p.emAndamento ? "hoje (em andamento)" : fmtData(somarDiasIso(p.ateExclusivo, -1))}</option>)}
               </select>
             )}
             {modo === "par" && ["de", "ate"].map((k) => (
-              <select key={k} value={par[k]} onChange={(e) => setPar({ ...par, [k]: e.target.value })} className="h-10 px-3 rounded-xl bg-slate-800 border border-slate-700 font-bold text-sm">
+              <select key={k} value={par[k]} onChange={(e) => setPar({ ...par, [k]: e.target.value })} className="h-10 px-3 rounded-xl bg-hf-elevated border border-hf-border font-bold text-sm">
                 <option value="">{k === "de" ? "Contagem inicial" : "Contagem final"}</option>
                 {validas.map((c) => <option key={c.id} value={c.id}>{fmtData(c.data_referencia)} — {rotuloTipo(c.tipo)}</option>)}
               </select>
             ))}
-            {modo === "personalizado" && ["de", "ate"].map((k) => <input key={k} type="date" value={custom[k]} onChange={(e) => setCustom({ ...custom, [k]: e.target.value })} className="h-10 px-3 rounded-xl bg-slate-800 border border-slate-700 font-bold text-sm" />)}
+            {modo === "personalizado" && ["de", "ate"].map((k) => <input key={k} type="date" value={custom[k]} onChange={(e) => setCustom({ ...custom, [k]: e.target.value })} className="h-10 px-3 rounded-xl bg-hf-elevated border border-hf-border font-bold text-sm" />)}
           </div>
         </div>
       </div>

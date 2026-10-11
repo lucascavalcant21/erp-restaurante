@@ -72,7 +72,7 @@ function EngenhariaRunner() {
               
               {/* KPIs de Referência */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <Card className="flex items-center gap-4 border-l-4 border-l-indigo-500">
+                 <Card className="flex items-center gap-4 border-l-4 border-l-emerald-600">
                     <div className="p-3 bg-white rounded-xl text-success"><TrendingUp size={24}/></div>
                     <div>
                        <p className="text-xs font-bold text-fg uppercase">Média de Volume Vendido</p>

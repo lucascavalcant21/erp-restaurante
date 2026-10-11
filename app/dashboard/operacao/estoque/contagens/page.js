@@ -101,11 +101,11 @@ function Painel({ unidade }) {
   return (
     <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
       <EstoqueAbas />
-      <div className="bg-slate-900 px-4 sm:px-8 pt-6 pb-6 text-white">
+      <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-6 text-hf-text">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Contagem de estoque</h1>
-            <p className="text-slate-300 font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Inventário · ao fechar, vira o saldo do estoque · base do CMV real</p>
+            <p className="text-hf-text-2 font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Inventário · ao fechar, vira o saldo do estoque · base do CMV real</p>
           </div>
           <button onClick={() => setNova({ data: hoje, tipo: sugestaoTipo, nota: "" })} className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 font-black rounded-2xl flex items-center gap-2 text-sm">
             <Plus size={18} /> Nova contagem
@@ -118,10 +118,10 @@ function Painel({ unidade }) {
             ["Próxima contagem", proxima ? fmtData(proxima.data) : "—", proxima ? TIPOS_CONTAGEM.find((t) => t.codigo === proxima.tipo)?.rotulo : ""],
             ["Em contagem agora", String(abertas.length), abertas.length ? "toque em Continuar abaixo" : "nenhuma aberta"],
           ].map(([r, v, n]) => (
-            <div key={r} className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
-              <p className="text-3xs font-black uppercase text-slate-300">{r}</p>
+            <div key={r} className="bg-hf-elevated p-3 rounded-2xl border border-hf-border">
+              <p className="text-3xs font-black uppercase text-hf-text-2">{r}</p>
               <p className="text-lg sm:text-2xl font-black mt-1">{v}</p>
-              <p className="text-3xs text-slate-300">{n}</p>
+              <p className="text-3xs text-hf-text-2">{n}</p>
             </div>
           ))}
         </div>
@@ -371,14 +371,14 @@ function TelaContagem({ id, unidade, sessao }) {
   return (
     <div className="min-h-screen pb-32 bg-[var(--surface)] text-slate-800">
       {/* topo fixo: título, status, progresso */}
-      <div className="sticky top-0 z-20 bg-slate-900 text-white px-4 sm:px-8 pt-4 pb-3 shadow-lg">
+      <div className="sticky top-0 z-20 bg-hf-surface text-hf-text px-4 sm:px-8 pt-4 pb-3 shadow-lg">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-start justify-between gap-2">
             <button onClick={() => router.push("/dashboard/operacao/estoque/contagens")} className="p-2 -ml-2" aria-label="Voltar"><ArrowLeft size={20} /></button>
             <div className="flex-1 min-w-0">
-              <p className="text-3xs font-black uppercase tracking-widest text-slate-300">Contagem de estoque</p>
+              <p className="text-3xs font-black uppercase tracking-widest text-hf-text-2">Contagem de estoque</p>
               <h1 className="text-lg sm:text-2xl font-black truncate">{tituloContagem(contagem)}</h1>
-              <p className="text-xs text-slate-300">{fmtData(contagem.data_referencia)} · responsável: {nomeUsuario(sessao)}{cega ? " · " : ""}{cega && <span className="inline-flex items-center gap-1 font-bold"><EyeOff size={12} /> contagem cega</span>}</p>
+              <p className="text-xs text-hf-text-2">{fmtData(contagem.data_referencia)} · responsável: {nomeUsuario(sessao)}{cega ? " · " : ""}{cega && <span className="inline-flex items-center gap-1 font-bold"><EyeOff size={12} /> contagem cega</span>}</p>
             </div>
             <span className={`px-2 py-1 rounded-full text-3xs font-black uppercase ${COR_STATUS[contagem.status]}`}>{STATUS_CONTAGEM[contagem.status]}</span>
           </div>
@@ -387,9 +387,9 @@ function TelaContagem({ id, unidade, sessao }) {
               <span>{progGeral.contados} / {progGeral.total} produtos contados</span>
               <span>{progGeral.pct}% · não contados: {progGeral.naoContados}</span>
             </div>
-            <div className="h-2 bg-slate-700 rounded-full mt-1 overflow-hidden"><div className="h-full bg-emerald-400" style={{ width: `${progGeral.pct}%` }} /></div>
+            <div className="h-2 bg-hf-border rounded-full mt-1 overflow-hidden"><div className="h-full bg-emerald-400" style={{ width: `${progGeral.pct}%` }} /></div>
           </div>
-          {fila.length > 0 && <p className="mt-2 text-xs font-bold text-amber-300 flex items-center gap-1"><CloudOff size={14} /> {fila.length} contagem(ns) guardada(s) neste aparelho, aguardando envio. Não feche o navegador.</p>}
+          {fila.length > 0 && <p className="mt-2 text-xs font-bold text-amber-700 flex items-center gap-1"><CloudOff size={14} /> {fila.length} contagem(ns) guardada(s) neste aparelho, aguardando envio. Não feche o navegador.</p>}
         </div>
       </div>
 
@@ -657,7 +657,7 @@ function LinhaProduto({ p, contado, pendente, valor, onValor, onConfirmar, refIn
 
 const COR_STATUS_ITEM = {
   nao_contado: "bg-stone-100 text-stone-700", contado: "bg-emerald-100 text-emerald-800",
-  divergencia: "bg-amber-100 text-amber-900", revisao: "bg-sky-100 text-sky-900",
+  divergencia: "bg-amber-100 text-amber-900", revisao: "bg-zinc-100 text-zinc-900",
 };
 
 // Correção de produto já contado: só administrador, com PIN (o banco confere).

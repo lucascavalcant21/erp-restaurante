@@ -46,12 +46,12 @@ export default function IntegracoesCentralPage() {
       </div>
 
       {/* REGRAS ARQUITETURAIS */}
-      <div className="mb-8 p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="mb-8 p-5 rounded-2xl bg-hf-surface text-hf-text border border-hf-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <ShieldCheck size={28} className="text-emerald-400 shrink-0" />
+          <ShieldCheck size={28} className="text-emerald-700 shrink-0" />
           <div>
-            <h3 className="font-bold text-sm text-white">Fluxo Operacional Anti-Duplicidade Ativo</h3>
-            <p className="text-xs text-slate-300 mt-0.5">
+            <h3 className="font-bold text-sm text-hf-text">Fluxo Operacional Anti-Duplicidade Ativo</h3>
+            <p className="text-xs text-hf-text-2 mt-0.5">
               Arquitetura Operacional: <code>iFood</code> ➔ <code>Saipos</code> ➔ <code>Héfisto ERP</code> | Arquitetura Financeira: <code>iFood Merchant Financial API</code> ➔ <code>Héfisto Recebíveis</code>.
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function IntegracoesCentralPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold">
+                <div className="w-10 h-10 bg-emerald-700 text-white rounded-lg flex items-center justify-center font-bold">
                   <Monitor size={20} />
                 </div>
                 <div>

@@ -144,7 +144,7 @@ export default function CadastroExtrasPage() {
           <div className="rounded-2xl border border-line bg-card p-2.5 sm:p-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-3xs font-bold uppercase tracking-wider text-fg">Recibos Emitidos</span>
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReceiptText size={15} /></span>
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-zinc-100 text-zinc-700"><ReceiptText size={15} /></span>
             </div>
             <p className="mt-1 text-xl font-black text-fg">{recibos.length}</p>
           </div>

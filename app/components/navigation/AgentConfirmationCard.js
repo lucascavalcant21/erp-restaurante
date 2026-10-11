@@ -87,20 +87,20 @@ export default function AgentConfirmationCard({ confirmation, onConfirmed, onCan
       status === "EXECUTED"
         ? "bg-emerald-950/40 border-emerald-500/40"
         : status === "CANCELLED" || status === "EXPIRED" || status === "FAILED"
-        ? "bg-slate-900/60 border-slate-700/60 opacity-75"
+        ? "bg-hf-surface border-hf-border opacity-75"
         : isHighRisk
         ? "bg-rose-950/30 border-rose-500/50 shadow-lg shadow-rose-950/20"
-        : "bg-slate-900 border-amber-500/40 shadow-lg shadow-amber-950/20"
+        : "bg-hf-surface border-amber-500/40 shadow-lg shadow-amber-950/20"
     }`}>
       {/* Header do Cartão de Confirmação */}
-      <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
+      <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-hf-border">
         <div className="flex items-center gap-2">
           {isHighRisk ? (
-            <ShieldAlert size={18} className="text-rose-400 shrink-0" />
+            <ShieldAlert size={18} className="text-red-700 shrink-0" />
           ) : (
-            <AlertTriangle size={18} className="text-amber-400 shrink-0" />
+            <AlertTriangle size={18} className="text-amber-700 shrink-0" />
           )}
-          <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+          <span className="text-xs font-black uppercase tracking-wider text-hf-text">
             {preview.title || "Confirmação de Ação Requerida"}
           </span>
         </div>
@@ -108,15 +108,15 @@ export default function AgentConfirmationCard({ confirmation, onConfirmed, onCan
         <div className="flex items-center gap-2">
           {/* Badge de Risco */}
           <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-            isHighRisk ? "bg-rose-500/20 text-rose-300 border border-rose-500/40" : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+            isHighRisk ? "bg-rose-500/20 text-red-700 border border-rose-500/40" : "bg-amber-500/20 text-amber-700 border border-amber-500/40"
           }`}>
             Risco {riskLevel}
           </span>
 
           {/* Countdown Timer */}
           {status === "PENDING" && (
-            <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
-              <Clock size={12} className="text-slate-400" />
+            <div className="flex items-center gap-1 text-[11px] font-mono text-hf-text-2 bg-hf-elevated px-2 py-0.5 rounded-md">
+              <Clock size={12} className="text-hf-text-2" />
               <span>{minStr}:{secStr}</span>
             </div>
           )}
@@ -125,19 +125,19 @@ export default function AgentConfirmationCard({ confirmation, onConfirmed, onCan
 
       {/* Resumo */}
       {preview.summary && (
-        <p className="text-xs text-slate-300 mb-3 font-medium leading-relaxed">
+        <p className="text-xs text-hf-text-2 mb-3 font-medium leading-relaxed">
           {preview.summary}
         </p>
       )}
 
       {/* Campos Detalhados */}
-      <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+      <div className="grid grid-cols-2 gap-2 mb-4 bg-hf-bg p-3 rounded-xl border border-hf-border">
         {fields.map((f, idx) => (
           <div key={idx} className={f.fullWidth ? "col-span-2" : "col-span-1"}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-hf-text-2 block">
               {f.label}
             </span>
-            <span className="text-xs font-bold text-slate-100 block truncate">
+            <span className="text-xs font-bold text-hf-text block truncate">
               {f.value}
             </span>
           </div>
@@ -146,8 +146,8 @@ export default function AgentConfirmationCard({ confirmation, onConfirmed, onCan
 
       {/* Exibição de Erro */}
       {error && (
-        <div className="mb-3 p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-200 text-xs font-semibold flex items-center gap-2">
-          <XCircle size={16} className="shrink-0 text-rose-400" />
+        <div className="mb-3 p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/50 text-red-700 text-xs font-semibold flex items-center gap-2">
+          <XCircle size={16} className="shrink-0 text-red-700" />
           <span>{error}</span>
         </div>
       )}
@@ -159,7 +159,7 @@ export default function AgentConfirmationCard({ confirmation, onConfirmed, onCan
             type="button"
             onClick={handleCancel}
             disabled={loading}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all cursor-pointer border border-slate-700 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-hf-elevated hover:bg-hf-border text-hf-text-2 transition-all cursor-pointer border border-hf-border disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -189,22 +189,22 @@ export default function AgentConfirmationCard({ confirmation, onConfirmed, onCan
       )}
 
       {status === "EXECUTED" && (
-        <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/50 p-2.5 rounded-xl border border-emerald-500/30">
-          <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+        <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-950/50 p-2.5 rounded-xl border border-emerald-500/30">
+          <CheckCircle2 size={16} className="shrink-0 text-emerald-700" />
           <span>Ação executada com sucesso e auditada no sistema.</span>
         </div>
       )}
 
       {status === "CANCELLED" && (
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/50">
-          <XCircle size={16} className="shrink-0 text-slate-400" />
+        <div className="flex items-center gap-2 text-xs font-bold text-hf-text-2 bg-hf-elevated p-2.5 rounded-xl border border-hf-border">
+          <XCircle size={16} className="shrink-0 text-hf-text-2" />
           <span>Operação cancelada pelo usuário. O banco de dados não foi alterado.</span>
         </div>
       )}
 
       {status === "EXPIRED" && (
-        <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/50 p-2.5 rounded-xl border border-amber-500/30">
-          <Clock size={16} className="shrink-0 text-amber-400" />
+        <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-950/50 p-2.5 rounded-xl border border-amber-500/30">
+          <Clock size={16} className="shrink-0 text-amber-700" />
           <span>Esta confirmação expirou. Solicite a ação novamente para gerar uma nova prévia.</span>
         </div>
       )}

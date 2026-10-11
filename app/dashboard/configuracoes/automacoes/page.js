@@ -85,7 +85,7 @@ export default function AutomacoesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070D18] text-slate-100 p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="min-h-screen bg-[#070D18] text-hf-text p-4 sm:p-6 md:p-8 space-y-6">
       {/* CABEÇALHO DO MÓDULO */}
       <HubHeader
         title="Automações do Héfisto"
@@ -96,13 +96,13 @@ export default function AutomacoesPage() {
       />
 
       {/* BANNER INFORMATIVO DE SEGURANÇA */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-start gap-3">
-        <ShieldCheck className="text-emerald-400 mt-0.5 shrink-0" size={20} />
+      <div className="p-4 rounded-2xl bg-hf-surface border border-hf-border flex items-start gap-3">
+        <ShieldCheck className="text-emerald-700 mt-0.5 shrink-0" size={20} />
         <div className="text-xs space-y-1">
-          <div className="font-extrabold text-white uppercase tracking-wide">
+          <div className="font-extrabold text-hf-text uppercase tracking-wide">
             GARANTIA DE EXECUÇÃO READ-ONLY & AUTONOMIA CONTROLADA
           </div>
-          <p className="text-slate-300 leading-relaxed">
+          <p className="text-hf-text-2 leading-relaxed">
             As automações do Héfisto são estritamente <strong>consultivas</strong>. Elas preparam briefings de abertura,
             status e fechamento no fuso horário configurado da empresa. Nenhuma automação altera estoque, faz pagamentos ou registra ponto automaticamente.
           </p>
@@ -113,14 +113,14 @@ export default function AutomacoesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {automacoes.map((auto) => (
           <HubCardContainer key={auto.id} className="space-y-4">
-            <div className="flex items-start justify-between border-b border-slate-800/80 pb-3">
+            <div className="flex items-start justify-between border-b border-hf-border pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-white">{auto.name}</h3>
+                  <h3 className="text-sm font-black text-hf-text">{auto.name}</h3>
                   <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                     auto.enabled
-                      ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                      : "bg-slate-800 text-slate-800 border-slate-700"
+                      ? "bg-emerald-950 text-emerald-700 border-emerald-800"
+                      : "bg-hf-elevated text-slate-800 border-hf-border"
                   }`}>
                     {auto.enabled ? "Ativo" : "Inativo"}
                   </span>
@@ -133,8 +133,8 @@ export default function AutomacoesPage() {
                 onClick={() => handleToggle(auto)}
                 className={`p-2.5 rounded-xl border transition-all cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center ${
                   auto.enabled
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30"
-                    : "bg-slate-800 text-slate-800 border-slate-700 hover:text-white"
+                    ? "bg-emerald-500/20 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/30"
+                    : "bg-hf-elevated text-slate-800 border-hf-border hover:text-hf-text"
                 }`}
                 title={auto.enabled ? "Desativar automação" : "Ativar automação"}
               >
@@ -146,17 +146,17 @@ export default function AutomacoesPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-800 font-bold flex items-center gap-1.5">
-                  <Clock size={14} className="text-emerald-400" />
+                  <Clock size={14} className="text-emerald-700" />
                   Horário de Execução:
                 </span>
-                <span className="font-mono font-extrabold text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                <span className="font-mono font-extrabold text-hf-text bg-hf-bg px-2.5 py-1 rounded-lg border border-hf-border">
                   {auto.scheduleTime} ({auto.timezone.split("/")[1] || "Local"})
                 </span>
               </div>
 
               <div className="space-y-1">
                 <span className="text-xs text-slate-800 font-bold flex items-center gap-1.5">
-                  <Calendar size={14} className="text-emerald-400" />
+                  <Calendar size={14} className="text-emerald-700" />
                   Dias de Operação:
                 </span>
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -167,8 +167,8 @@ export default function AutomacoesPage() {
                         key={d.id}
                         className={`text-[10px] font-black px-2.5 py-1 rounded-md border ${
                           isSelected
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : "bg-slate-950 text-slate-900 border-slate-900"
+                            ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30"
+                            : "bg-hf-bg text-slate-900 border-hf-border"
                         }`}
                       >
                         {d.label}
@@ -180,10 +180,10 @@ export default function AutomacoesPage() {
             </div>
 
             {/* METADADOS E METRICAS DE EXECUÇÃO */}
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-800">
+            <div className="pt-2 border-t border-hf-border flex items-center justify-between text-[11px] text-slate-800">
               <div>
                 <span>Próxima: </span>
-                <strong className="text-slate-200">
+                <strong className="text-hf-text">
                   {auto.enabled ? new Date(auto.nextExecutionAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Pausada"}
                 </strong>
               </div>
@@ -192,9 +192,9 @@ export default function AutomacoesPage() {
                 type="button"
                 onClick={() => executarManual(auto.id)}
                 disabled={loading}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center gap-1 transition-colors cursor-pointer min-h-[36px]"
+                className="px-3 py-1.5 rounded-lg bg-hf-elevated hover:bg-hf-border text-hf-text font-bold flex items-center gap-1 transition-colors cursor-pointer min-h-[36px]"
               >
-                <Play size={12} className="text-emerald-400" />
+                <Play size={12} className="text-emerald-700" />
                 <span>Testar agora</span>
               </button>
             </div>
@@ -204,9 +204,9 @@ export default function AutomacoesPage() {
 
       {/* HISTÓRICO RECENTE DE EXECUÇÃO */}
       <HubCardContainer className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="text-sm font-black text-white flex items-center gap-2">
-            <Clock size={16} className="text-emerald-400" />
+        <div className="flex items-center justify-between border-b border-hf-border pb-3">
+          <h3 className="text-sm font-black text-hf-text flex items-center gap-2">
+            <Clock size={16} className="text-emerald-700" />
             <span>Histórico Recente de Execuções Automatizadas</span>
           </h3>
           <span className="text-[10px] text-slate-800 font-bold uppercase">Auditoria F6 Integrada</span>
@@ -219,16 +219,16 @@ export default function AutomacoesPage() {
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {historico.map((h) => (
-              <div key={h.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between text-xs">
+              <div key={h.id} className="p-3 rounded-xl bg-hf-bg border border-hf-border flex items-center justify-between text-xs">
                 <div className="space-y-0.5">
-                  <div className="font-bold text-white">{h.name}</div>
+                  <div className="font-bold text-hf-text">{h.name}</div>
                   <div className="text-[10px] text-slate-800">{h.summaryText}</div>
                 </div>
                 <div className="text-right space-y-1">
                   <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
-                    h.status === "SUCCEEDED" ? "bg-emerald-950 text-emerald-400 border-emerald-800" :
-                    h.status === "SKIPPED" ? "bg-amber-950 text-amber-400 border-amber-800" :
-                    "bg-rose-950 text-rose-400 border-rose-800"
+                    h.status === "SUCCEEDED" ? "bg-emerald-950 text-emerald-700 border-emerald-800" :
+                    h.status === "SKIPPED" ? "bg-amber-950 text-amber-700 border-amber-800" :
+                    "bg-rose-950 text-red-700 border-rose-800"
                   }`}>
                     {h.status}
                   </span>
@@ -245,33 +245,33 @@ export default function AutomacoesPage() {
       {/* MODAL DE PREVIEW E CONFIRMAÇÃO DE CONF DA AUTOMAÇÃO */}
       {previewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-[#0B1528] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-white font-black text-sm">
-                <Sparkles size={16} className="text-emerald-400" />
+          <div className="w-full max-w-md bg-hf-surface border border-hf-border rounded-2xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-hf-border pb-3">
+              <div className="flex items-center gap-2 text-hf-text font-black text-sm">
+                <Sparkles size={16} className="text-emerald-700" />
                 <span>Confirmar Automação: {previewModal.automation.name}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setPreviewModal(null)}
-                className="text-slate-800 hover:text-white text-xs font-bold"
+                className="text-slate-800 hover:text-hf-text text-xs font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+            <div className="space-y-3 text-xs text-hf-text-2 bg-hf-bg p-3 rounded-xl border border-hf-border">
               <div>
                 <strong>Empresa: </strong> {unidadeAtiva || "Unidade Padrão"}
               </div>
               <div>
-                <strong>Modo: </strong> <span className="text-emerald-400 font-bold">READ_ONLY_AUTOMATION</span>
+                <strong>Modo: </strong> <span className="text-emerald-700 font-bold">READ_ONLY_AUTOMATION</span>
               </div>
               <div>
                 <strong>Status: </strong> {previewModal.newEnabled ? "Ativar Automação" : "Pausar Automação"}
               </div>
               <div>
-                <strong>Garantia de Segurança: </strong> Apenas consultas e briefings. <strong className="text-amber-400">NÃO ALTERA DADOS.</strong>
+                <strong>Garantia de Segurança: </strong> Apenas consultas e briefings. <strong className="text-amber-700">NÃO ALTERA DADOS.</strong>
               </div>
             </div>
 
@@ -279,7 +279,7 @@ export default function AutomacoesPage() {
               <button
                 type="button"
                 onClick={() => setPreviewModal(null)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 transition-colors min-h-[44px] cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-hf-surface hover:bg-hf-elevated text-hf-text-2 font-bold text-xs border border-hf-border transition-colors min-h-[44px] cursor-pointer"
               >
                 Cancelar
               </button>

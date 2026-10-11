@@ -78,7 +78,7 @@ export function criarServicoDeAcoes({ store, escopo, dbe, dbUsuario, verificador
       tipo: "resultado_acao",
       texto: def.id === "stock.registerLoss" ? "Perda registrada." : "Ação executada.",
       resultado: { acaoId: rec.id, acao: def.id, linhas, movimentoId: r.movimentoId || null, repetido },
-      acoes: [{ rotulo: "Ver movimentações", rota: "/dashboard/operacao/estoque/movimentar" }],
+      acoes: [{ rotulo: "Ver movimentações", rota: "/dashboard/operacao/estoque/historico" }],
     };
   }
 

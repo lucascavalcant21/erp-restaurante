@@ -59,10 +59,10 @@ const rotuloTipo = (tipo) => {
 };
 const CORES_DEPT = {
   cozinha: "bg-amber-100 text-amber-700",
-  bar: "bg-purple-100 text-purple-700",
-  salao: "bg-sky-100 text-sky-700",
+  bar: "bg-zinc-100 text-zinc-700",
+  salao: "bg-zinc-100 text-zinc-700",
   estoque: "bg-emerald-100 text-emerald-700",
-  copa: "bg-cyan-100 text-cyan-700",
+  copa: "bg-zinc-100 text-zinc-700",
   caixa: "bg-orange-100 text-orange-700",
 };
 
@@ -719,17 +719,17 @@ function GerenciarChecklistsContent() {
               {/* Montar tudo por IA: texto, cópia/cola ou foto (quadro/papel) */}
               <div
                 onPaste={handlePasteIA}
-                className="rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/70 p-4 transition-all hover:border-violet-400"
+                className="rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-100/70 p-4 transition-all hover:border-emerald-600"
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-sm"><Sparkles size={18} /></div>
+                    <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-sm"><Sparkles size={18} /></div>
                     <div>
-                      <p className="font-black text-sm text-violet-950 leading-tight">Gerador Inteligente por IA (Texto & Fotos)</p>
-                      <p className="text-2xs font-medium text-violet-700">Cole um checklist, digite instruções ou envie a foto de um quadro/papel</p>
+                      <p className="font-black text-sm text-zinc-900 leading-tight">Gerador Inteligente por IA (Texto & Fotos)</p>
+                      <p className="text-2xs font-medium text-zinc-700">Cole um checklist, digite instruções ou envie a foto de um quadro/papel</p>
                     </div>
                   </div>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-violet-600 bg-violet-100 px-2.5 py-1 rounded-full">OCR / Visão + Texto</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-emerald-700 bg-zinc-100 px-2.5 py-1 rounded-full">OCR / Visão + Texto</span>
                 </div>
 
                 <textarea
@@ -738,31 +738,31 @@ function GerenciarChecklistsContent() {
                   onChange={e => setContextoIA(e.target.value)}
                   onPaste={handlePasteIA}
                   placeholder="Cole aqui seu checklist, rotina operacional, lista do WhatsApp (ou pressione Ctrl+V com uma imagem)..."
-                  className="w-full p-3.5 bg-card border border-violet-200 rounded-xl font-medium text-base text-slate-800 outline-none focus:border-violet-500 resize-none mb-3 shadow-inner"
+                  className="w-full p-3.5 bg-card border border-zinc-200 rounded-xl font-medium text-base text-slate-800 outline-none focus:border-emerald-600 resize-none mb-3 shadow-inner"
                 />
 
                 {imagemIA ? (
-                  <div className="relative mb-3 inline-block overflow-hidden rounded-xl border-2 border-violet-400 shadow-md">
+                  <div className="relative mb-3 inline-block overflow-hidden rounded-xl border-2 border-emerald-600 shadow-md">
                     <img src={`data:image/jpeg;base64,${imagemIA}`} alt="Imagem enviada para IA" className="h-28 max-w-xs object-cover" />
                     <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-2 py-0.5 text-3xs font-bold uppercase text-white">Foto para leitura</span>
                     <button type="button" onClick={() => setImagemIA("")} className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-700"><X size={14} /></button>
                   </div>
                 ) : (
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-card px-3.5 text-xs font-bold text-violet-800 border border-violet-200 hover:bg-violet-100 transition-colors shadow-sm">
-                      <Upload size={15} className="text-violet-600"/> Enviar foto (Quadro/Folha)
+                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-card px-3.5 text-xs font-bold text-zinc-800 border border-zinc-200 hover:bg-zinc-100 transition-colors shadow-sm">
+                      <Upload size={15} className="text-emerald-700"/> Enviar foto (Quadro/Folha)
                       <input type="file" accept="image/*" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
                     </label>
-                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-card px-3.5 text-xs font-bold text-violet-800 border border-violet-200 hover:bg-violet-100 transition-colors shadow-sm">
-                      <Camera size={15} className="text-violet-600"/> Tirar foto
+                    <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-card px-3.5 text-xs font-bold text-zinc-800 border border-zinc-200 hover:bg-zinc-100 transition-colors shadow-sm">
+                      <Camera size={15} className="text-emerald-700"/> Tirar foto
                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handleFotoIAUpload(e.target.files?.[0]); e.target.value = ""; }} />
                     </label>
-                    <span className="text-2xs font-semibold text-violet-600">Dica: Você também pode dar <b>Ctrl + V</b> com uma imagem copiada!</span>
+                    <span className="text-2xs font-semibold text-emerald-700">Dica: Você também pode dar <b>Ctrl + V</b> com uma imagem copiada!</span>
                   </div>
                 )}
 
                 <button type="button" onClick={montarPorIA} disabled={montandoIA}
-                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-md shadow-violet-600/20 active:scale-95 disabled:opacity-60">
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm py-3.5 rounded-xl transition-all shadow-md shadow-violet-600/20 active:scale-95 disabled:opacity-60">
                   {montandoIA ? <><Loader2 size={18} className="animate-spin" /> Processando texto e fotos com IA...</> : <><Sparkles size={18} /> Convertendo em Checklist Organizado (Abertura, Turno, Fechamento)</>}
                 </button>
               </div>
@@ -865,9 +865,9 @@ function GerenciarChecklistsContent() {
                     >
                       {novaCategoria && (
                         <div className="flex items-center gap-2 mt-4 mb-1.5">
-                          <Layers size={13} className="text-violet-500 shrink-0" />
-                          <span className="text-2xs font-bold uppercase tracking-widest text-violet-700">{catAtual}</span>
-                          <div className="flex-1 h-px bg-violet-100" />
+                          <Layers size={13} className="text-emerald-700 shrink-0" />
+                          <span className="text-2xs font-bold uppercase tracking-widest text-zinc-700">{catAtual}</span>
+                          <div className="flex-1 h-px bg-zinc-100" />
                         </div>
                       )}
                       <div className={`rounded-2xl border p-3 shadow-sm transition-all sm:p-4 ${dragIndex === i ? "opacity-50 border-emerald-400 bg-emerald-50/40" : "border-line bg-white/70 hover:shadow-md hover:border-slate-300"}`}>
@@ -928,13 +928,13 @@ function GerenciarChecklistsContent() {
                           </label>
 
                           <label className="block">
-                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-sky-700">Horário Previsto</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-zinc-700">Horário Previsto</span>
                             <input
                               type="text"
                               placeholder="Ex: 08:00"
                               value={it.horario_previsto || ""}
                               onChange={e => mudaTarefa(it.id, { horario_previsto: e.target.value })}
-                              className="w-full rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-900 outline-none focus:border-sky-500"
+                              className="w-full rounded-xl border border-zinc-200 bg-zinc-100 p-3 text-sm font-bold text-zinc-900 outline-none focus:border-emerald-600"
                             />
                           </label>
 
@@ -950,14 +950,14 @@ function GerenciarChecklistsContent() {
                           </label>
 
                           <label className="block">
-                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-violet-600">Grupo / etapa</span>
+                            <span className="mb-1 block text-3xs font-bold uppercase tracking-widest text-emerald-700">Grupo / etapa</span>
                             <input
                               type="text"
                               list="categorias-checklist"
                               placeholder="Ex: Bancadas"
                               value={it.categoria || ""}
                               onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
-                              className="w-full rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-bold text-slate-800 outline-none focus:border-violet-500"
+                              className="w-full rounded-xl border border-zinc-200 bg-zinc-100 p-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-600"
                             />
                           </label>
 

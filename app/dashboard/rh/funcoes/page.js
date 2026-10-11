@@ -608,8 +608,8 @@ export default function GuiaDeFuncoes() {
                   ))}
                 </div>
               </div>
-              <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl flex items-center gap-3 shrink-0 self-end sm:self-center">
-                <Clock size={20} className="text-emerald-400 animate-pulse" />
+              <div className="bg-hf-surface text-hf-text px-5 py-3 rounded-2xl flex items-center gap-3 shrink-0 self-end sm:self-center">
+                <Clock size={20} className="text-emerald-700 animate-pulse" />
                 <div>
                   <span className="text-3xs font-bold text-subtle uppercase tracking-widest block">Horário Atual</span>
                   <span className="text-xl font-black tabular-nums">{horaAtual}</span>
@@ -745,13 +745,13 @@ export default function GuiaDeFuncoes() {
         ) : abaAtiva === "painel" ? (
           /* 📊 ABA 3: PAINEL DE ACOMPANHAMENTO DA GERÊNCIA */
           <div className="space-y-6">
-            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-lg border border-slate-800">
+            <div className="bg-hf-surface text-hf-text p-6 rounded-3xl shadow-lg border border-hf-border">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-black">Painel da Gerência — Rotina do Dia</h2>
                   <p className="text-xs text-subtle font-bold mt-1">Acompanhamento em tempo real do cumprimento do Guia de Funções por Setor</p>
                 </div>
-                <div className="bg-slate-800 px-4 py-2 rounded-2xl text-right border border-slate-700">
+                <div className="bg-hf-elevated px-4 py-2 rounded-2xl text-right border border-hf-border">
                   <span className="text-3xs font-bold text-subtle uppercase tracking-widest block">Data</span>
                   <span className="text-sm font-black">{new Date().toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}</span>
                 </div>
@@ -817,17 +817,17 @@ export default function GuiaDeFuncoes() {
           <div className="space-y-6">
             {funcoesExibidas.map((funcao) => (
               <article key={funcao.id} data-funcao-id={funcao.id} className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm transition-all hover:border-slate-300">
-                <header className="flex flex-col gap-3 border-b border-line bg-slate-900 p-4 text-white sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <header className="flex flex-col gap-3 border-b border-line bg-hf-surface p-4 text-hf-text sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   {editando ? (
                     <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                      <input type="color" value={funcao.cor || "#475569"} onChange={e => alterarFuncao(funcao.id, "cor", e.target.value)} title="Cor da faixa no cartaz impresso" className="h-10 w-12 cursor-pointer rounded-lg border border-slate-700 bg-slate-800 p-1" />
-                      <input value={funcao.funcao || ""} onChange={e => alterarFuncao(funcao.id, "funcao", e.target.value)} placeholder="Nome da função" className="h-10 font-black text-white bg-slate-800 border border-slate-700 px-3 rounded-xl" />
-                      <input value={funcao.setor || ""} onChange={e => alterarFuncao(funcao.id, "setor", e.target.value)} placeholder="Área / Setor" className="h-10 font-bold text-white bg-slate-800 border border-slate-700 px-3 rounded-xl" />
+                      <input type="color" value={funcao.cor || "#475569"} onChange={e => alterarFuncao(funcao.id, "cor", e.target.value)} title="Cor da faixa no cartaz impresso" className="h-10 w-12 cursor-pointer rounded-lg border border-hf-border bg-hf-elevated p-1" />
+                      <input value={funcao.funcao || ""} onChange={e => alterarFuncao(funcao.id, "funcao", e.target.value)} placeholder="Nome da função" className="h-10 font-black text-hf-text bg-hf-elevated border border-hf-border px-3 rounded-xl" />
+                      <input value={funcao.setor || ""} onChange={e => alterarFuncao(funcao.id, "setor", e.target.value)} placeholder="Área / Setor" className="h-10 font-bold text-hf-text bg-hf-elevated border border-hf-border px-3 rounded-xl" />
                       <div className="flex gap-2">
-                        <button onClick={() => clonarFuncao(funcao.id)} title="Duplicar esta função" className="h-10 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 border border-slate-700">
+                        <button onClick={() => clonarFuncao(funcao.id)} title="Duplicar esta função" className="h-10 px-3 bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs rounded-xl flex items-center gap-1.5 border border-hf-border">
                           <Copy size={14} /> Clonar
                         </button>
-                        <button onClick={() => removerFuncao(funcao.id)} className="h-10 px-3 bg-red-500/20 text-red-300 hover:bg-red-500/30 font-bold text-xs rounded-xl flex items-center gap-1.5 border border-red-500/30">
+                        <button onClick={() => removerFuncao(funcao.id)} className="h-10 px-3 bg-red-500/20 text-red-700 hover:bg-red-500/30 font-bold text-xs rounded-xl flex items-center gap-1.5 border border-red-500/30">
                           <Trash2 size={14} /> Excluir
                         </button>
                       </div>
@@ -837,12 +837,12 @@ export default function GuiaDeFuncoes() {
                       <div className="flex items-center gap-3">
                         <div className="w-4 h-10 rounded-full" style={{ background: funcao.cor }}></div>
                         <div>
-                          <h2 className="text-lg font-black uppercase text-white">{funcao.funcao}</h2>
+                          <h2 className="text-lg font-black uppercase text-hf-text">{funcao.funcao}</h2>
                           <p className="text-xs font-bold text-subtle">{funcao.setor}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => clonarFuncao(funcao.id)} title="Duplicar função" className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl flex items-center gap-1.5 border border-slate-700">
+                        <button onClick={() => clonarFuncao(funcao.id)} title="Duplicar função" className="px-3 py-1.5 bg-hf-elevated hover:bg-hf-border text-xs font-bold text-hf-text rounded-xl flex items-center gap-1.5 border border-hf-border">
                           <Copy size={13} /> Clonar
                         </button>
                       </div>

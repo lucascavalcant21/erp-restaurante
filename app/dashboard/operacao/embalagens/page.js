@@ -114,13 +114,13 @@ function EmbalagensContent() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
-      <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-white">
+      <div className="bg-hf-surface pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-hf-text">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <button onClick={() => abrirMenu()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+              <button onClick={() => abrirMenu()} className="p-3 bg-hf-elevated hover:bg-hf-border rounded-full transition-colors">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-16 h-16 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-teal-500/20 text-emerald-700 flex items-center justify-center">
                  <Package size={32} />
               </div>
               <div>
@@ -303,7 +303,7 @@ function EmbalagensContent() {
                   </div>
                 ) : (
                   <div className="rounded-2xl overflow-x-auto shadow-md border border-line">
-                    <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center min-w-[680px]">
+                    <div className="bg-gradient-to-r from-hf-elevated to-hf-border px-6 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center min-w-[680px]">
                       <span className="text-2xs font-bold uppercase tracking-widest text-dim">Item</span>
                       <span className="text-2xs font-bold uppercase tracking-widest text-dim text-center">Saldo</span>
                       <span className="text-2xs font-bold uppercase tracking-widest text-dim text-center">Mínimo Ideal</span>

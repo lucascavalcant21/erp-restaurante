@@ -1093,12 +1093,12 @@ export default function OrcamentoEventoPage() {
                     ))}
                   </div>
                   {/* Totais */}
-                  <div className="px-5 py-3 bg-slate-800 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center min-w-[580px]">
-                    <span className="font-black text-white text-sm">TOTAL DO EVENTO</span>
+                  <div className="px-5 py-3 bg-hf-elevated grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center min-w-[580px]">
+                    <span className="font-black text-hf-text text-sm">TOTAL DO EVENTO</span>
                     <span />
                     <span />
-                    <span className="text-center font-black text-emerald-400 text-lg">{convidados > 0 ? fmtBRL(vendaPorConvidado) : '—'}</span>
-                    <span className="text-right font-black text-white text-sm">{fmtBRL(vendaEvento)}</span>
+                    <span className="text-center font-black text-emerald-700 text-lg">{convidados > 0 ? fmtBRL(vendaPorConvidado) : '—'}</span>
+                    <span className="text-right font-black text-hf-text text-sm">{fmtBRL(vendaEvento)}</span>
                   </div>
                 </div>
               </div>
@@ -1128,22 +1128,22 @@ export default function OrcamentoEventoPage() {
                            onDrop={() => reordenarItens(dragItemId, l.produto_id)}
                            className={`rounded-2xl border overflow-hidden transition-colors ${dragItemId === l.produto_id ? 'opacity-50 border-emerald-400' : 'border-line hover:border-slate-300'}`}>
                            {/* CABEÇALHO DO ITEM — nome + categoria */}
-                           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
+                           <div className="bg-gradient-to-r from-hf-elevated to-hf-border px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                  {/* Setas para reordenar no toque (celular/tablet) + alça de arrastar no desktop */}
                                  <div className="flex flex-col shrink-0 -my-1">
-                                    <button type="button" onClick={() => moverItem(l.produto_id, -1)} disabled={idxL === 0} title="Subir" className="text-subtle hover:text-white disabled:opacity-25 leading-none"><ChevronUp size={16} /></button>
-                                    <button type="button" onClick={() => moverItem(l.produto_id, 1)} disabled={idxL === linhas.length - 1} title="Descer" className="text-subtle hover:text-white disabled:opacity-25 leading-none"><ChevronDown size={16} /></button>
+                                    <button type="button" onClick={() => moverItem(l.produto_id, -1)} disabled={idxL === 0} title="Subir" className="text-subtle hover:text-hf-text disabled:opacity-25 leading-none"><ChevronUp size={16} /></button>
+                                    <button type="button" onClick={() => moverItem(l.produto_id, 1)} disabled={idxL === linhas.length - 1} title="Descer" className="text-subtle hover:text-hf-text disabled:opacity-25 leading-none"><ChevronDown size={16} /></button>
                                  </div>
                                  <div draggable onDragStart={() => setDragItemId(l.produto_id)} onDragEnd={() => setDragItemId(null)}
-                                    title="Arraste para reordenar os pratos" className="text-subtle hover:text-white cursor-grab active:cursor-grabbing shrink-0 hidden sm:block">
+                                    title="Arraste para reordenar os pratos" className="text-subtle hover:text-hf-text cursor-grab active:cursor-grabbing shrink-0 hidden sm:block">
                                     <GripVertical size={18} />
                                  </div>
                                  <div className="min-w-0">
-                                    <p className="font-black text-white text-[15px] truncate">{l.nome}</p>
+                                    <p className="font-black text-hf-text text-[15px] truncate">{l.nome}</p>
                                     <p className="text-3xs font-bold text-subtle uppercase tracking-widest flex items-center gap-1.5">
                                        {l.categoria}
-                                       {!l.ficha && <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded">sem ficha técnica</span>}
+                                       {!l.ficha && <span className="text-red-700 bg-red-500/20 px-1.5 py-0.5 rounded">sem ficha técnica</span>}
                                     </p>
                                  </div>
                               </div>
@@ -1221,11 +1221,11 @@ export default function OrcamentoEventoPage() {
 
                               {/* OPÇÕES ESPECIAIS — empanado */}
                               {l.fatorInNatura > 1 && (
-                                 <label className="flex items-center gap-2 mt-3 cursor-pointer bg-sky-50 border border-sky-200 rounded-xl p-2.5">
-                                    <input type="checkbox" checked={l.inNatura} onChange={e=>updateItem(l.produto_id, { inNatura: e.target.checked })} className="w-4 h-4 accent-sky-600 shrink-0"/>
-                                    <span className="text-3xs font-bold text-sky-700 leading-tight">
+                                 <label className="flex items-center gap-2 mt-3 cursor-pointer bg-zinc-100 border border-zinc-200 rounded-xl p-2.5">
+                                    <input type="checkbox" checked={l.inNatura} onChange={e=>updateItem(l.produto_id, { inNatura: e.target.checked })} className="w-4 h-4 accent-emerald-700 shrink-0"/>
+                                    <span className="text-3xs font-bold text-zinc-700 leading-tight">
                                        Cobrar como in natura (+{((l.fatorInNatura - 1) * 100).toFixed(0)}%)
-                                       {l.inNatura && <span className="text-sky-500"> · {fmtBRL(l.precoVenda)} → {fmtBRL(l.precoEfetivo)}/porção</span>}
+                                       {l.inNatura && <span className="text-emerald-700"> · {fmtBRL(l.precoVenda)} → {fmtBRL(l.precoEfetivo)}/porção</span>}
                                     </span>
                                  </label>
                               )}
@@ -1359,9 +1359,9 @@ export default function OrcamentoEventoPage() {
                // Nada configurado ainda: mostra o passo a passo em vez de zeros
                if (linhas.length === 0 && totalCliente <= 0) {
                   return (
-                     <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
+                     <div className="bg-hf-surface text-hf-text p-6 rounded-3xl shadow-xl">
                         <p className="text-3xs font-bold uppercase tracking-widest text-subtle mb-4">Resumo do Evento</p>
-                        <p className="text-sm font-bold text-slate-200 mb-4">Monte o orçamento em 3 passos:</p>
+                        <p className="text-sm font-bold text-hf-text mb-4">Monte o orçamento em 3 passos:</p>
                         <div className="space-y-3">
                            {[
                               ["1", "Preencha os dados do evento", "nome, nº de convidados e o valor por pessoa que vai cobrar"],
@@ -1369,9 +1369,9 @@ export default function OrcamentoEventoPage() {
                               ["3", "Acompanhe aqui o resultado", "faturamento, custos e lucro aparecem sozinhos"],
                            ].map(([n, t, s]) => (
                               <div key={n} className="flex gap-3 items-start">
-                                 <span className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-black text-sm flex items-center justify-center shrink-0">{n}</span>
+                                 <span className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 font-black text-sm flex items-center justify-center shrink-0">{n}</span>
                                  <div>
-                                    <p className="text-sm font-bold text-white leading-tight">{t}</p>
+                                    <p className="text-sm font-bold text-hf-text leading-tight">{t}</p>
                                     <p className="text-2xs font-medium text-subtle">{s}</p>
                                  </div>
                               </div>
@@ -1381,48 +1381,48 @@ export default function OrcamentoEventoPage() {
                   );
                }
                return (
-               <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
+               <div className="bg-hf-surface text-hf-text p-6 rounded-3xl shadow-xl">
                   <div className="flex items-center justify-between mb-3">
                      <p className="text-3xs font-bold uppercase tracking-widest text-subtle">Resumo do Evento</p>
-                     {convidados > 0 && <span className="text-3xs font-bold text-subtle bg-slate-800 px-2.5 py-1 rounded-full">{convidados} convidados</span>}
+                     {convidados > 0 && <span className="text-3xs font-bold text-subtle bg-hf-elevated px-2.5 py-1 rounded-full">{convidados} convidados</span>}
                   </div>
 
-                  <Linha cor="text-white" label="Faturamento (o que você recebe)" ajuda={vendaExtras > 0 ? `buffet ${fmtBRL(vendaEvento)} + extras ${fmtBRL(vendaExtras)}` : "buffet contratado"} total={totalCliente} porPes={totalCliente / pes} forte />
-                  <Linha cor="text-rose-300" sinal="− " label="Custo dos ingredientes" ajuda="somado das fichas técnicas dos pratos" total={custoEvento} porPes={custoEvento / pes} />
-                  {custoExtras > 0 && <Linha cor="text-rose-300" sinal="− " label="Custo dos extras" ajuda="equipe, música, espaço, energia..." total={custoExtras} porPes={custoExtras / pes} />}
-                  {comissao > 0 && <Linha cor="text-rose-300" sinal="− " label={`Comissão (${comissaoPct}%)`} ajuda="comissão sobre o faturamento" total={comissao} porPes={comissao / pes} />}
-                  {parceriaBar > 0 && <Linha cor="text-rose-300" sinal="− " label={`Parceria do bar (${parceriaBarPct}%)`} ajuda="repasse sobre as bebidas" total={parceriaBar} porPes={parceriaBar / pes} />}
+                  <Linha cor="text-hf-text" label="Faturamento (o que você recebe)" ajuda={vendaExtras > 0 ? `buffet ${fmtBRL(vendaEvento)} + extras ${fmtBRL(vendaExtras)}` : "buffet contratado"} total={totalCliente} porPes={totalCliente / pes} forte />
+                  <Linha cor="text-red-700" sinal="− " label="Custo dos ingredientes" ajuda="somado das fichas técnicas dos pratos" total={custoEvento} porPes={custoEvento / pes} />
+                  {custoExtras > 0 && <Linha cor="text-red-700" sinal="− " label="Custo dos extras" ajuda="equipe, música, espaço, energia..." total={custoExtras} porPes={custoExtras / pes} />}
+                  {comissao > 0 && <Linha cor="text-red-700" sinal="− " label={`Comissão (${comissaoPct}%)`} ajuda="comissão sobre o faturamento" total={comissao} porPes={comissao / pes} />}
+                  {parceriaBar > 0 && <Linha cor="text-red-700" sinal="− " label={`Parceria do bar (${parceriaBarPct}%)`} ajuda="repasse sobre as bebidas" total={parceriaBar} porPes={parceriaBar / pes} />}
                   {(economiaEmpanadoTotal > 0 || ganhoInNaturaTotal > 0) && (
-                     <Linha cor="text-sky-300" sinal="+ " label="Benefício empanado / in natura" ajuda="ganho de peso já embutido no cálculo" total={economiaEmpanadoTotal + ganhoInNaturaTotal} porPes={(economiaEmpanadoTotal + ganhoInNaturaTotal) / pes} />
+                     <Linha cor="text-hf-text-2" sinal="+ " label="Benefício empanado / in natura" ajuda="ganho de peso já embutido no cálculo" total={economiaEmpanadoTotal + ganhoInNaturaTotal} porPes={(economiaEmpanadoTotal + ganhoInNaturaTotal) / pes} />
                   )}
 
-                  <div className="mt-3 pt-3 border-t-2 border-slate-700">
+                  <div className="mt-3 pt-3 border-t-2 border-hf-border">
                      <div className="flex justify-between items-baseline gap-2">
                         <span className="text-dim font-bold text-xs uppercase tracking-widest">Lucro do evento</span>
-                        <span className={`font-black text-3xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
+                        <span className={`font-black text-3xl ${lucroEvento >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{fmtBRL(lucroEvento)}</span>
                      </div>
                      {convidados > 0 && (
                         <p className="text-right text-2xs font-bold text-subtle mt-0.5">{fmtBRL(lucroEvento / pes)} por pessoa</p>
                      )}
                      {totalCliente > 0 && (
                         <div className="grid grid-cols-2 gap-2 mt-3">
-                           <div className="bg-slate-800 rounded-xl p-2.5 text-center">
+                           <div className="bg-hf-elevated rounded-xl p-2.5 text-center">
                               <p className="text-3xs font-bold uppercase tracking-widest text-fg">Margem de lucro</p>
-                              <p className={`text-lg font-black ${margemPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{margemPct.toFixed(0)}%</p>
+                              <p className={`text-lg font-black ${margemPct >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{margemPct.toFixed(0)}%</p>
                            </div>
-                           <div className="bg-slate-800 rounded-xl p-2.5 text-center">
+                           <div className="bg-hf-elevated rounded-xl p-2.5 text-center">
                               <p className="text-3xs font-bold uppercase tracking-widest text-fg">Preço sobre o custo</p>
-                              <p className="text-lg font-black text-slate-200">{markupPct >= 0 ? '+' : ''}{markupPct.toFixed(0)}%</p>
+                              <p className="text-lg font-black text-hf-text">{markupPct >= 0 ? '+' : ''}{markupPct.toFixed(0)}%</p>
                            </div>
                         </div>
                      )}
                      {totalCliente <= 0 && custoEvento > 0 && (
-                        <p className="text-2xs font-bold text-dim bg-slate-800 rounded-lg px-3 py-2 mt-3 leading-snug">
+                        <p className="text-2xs font-bold text-dim bg-hf-elevated rounded-lg px-3 py-2 mt-3 leading-snug">
                            Defina o que vai cobrar (R$ por pessoa ou valor total) nos Dados do Evento — o lucro e a margem aparecem aqui.
                         </p>
                      )}
                      {lucroEvento < 0 && totalCliente > 0 && (
-                        <p className="text-2xs font-bold text-red-300 bg-red-500/10 rounded-lg px-3 py-2 mt-3 leading-snug">
+                        <p className="text-2xs font-bold text-red-700 bg-red-500/10 rounded-lg px-3 py-2 mt-3 leading-snug">
                            Prejuízo: o custo está maior que o faturamento. Confira o preço por pessoa e os custos das fichas — se os ingredientes parecerem altos, use "Recalcular custos" em Ingredientes.
                         </p>
                      )}

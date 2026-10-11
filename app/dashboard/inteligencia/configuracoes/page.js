@@ -121,8 +121,8 @@ export default function ConfiguracoesInteligencia() {
               ajuda="Vale para todos os meses até você mudar. Deixe em branco para ficar sem meta." />
 
             {sug?.hoje && (
-              <div className="rounded-xl bg-violet-50 p-3 ring-1 ring-violet-200">
-                <p className="text-[11px] font-black uppercase tracking-wide text-violet-800">Sugestão — não é realizado</p>
+              <div className="rounded-xl bg-zinc-100 p-3 ring-1 ring-emerald-200">
+                <p className="text-[11px] font-black uppercase tracking-wide text-zinc-800">Sugestão — não é realizado</p>
                 <p className="mt-1 text-[14px] text-slate-800">
                   Hoje: <strong>{brl(sug.hoje.valor)}</strong>{sug.semana ? <> · Esta semana: <strong>{brl(sug.semana.valor)}</strong></> : null}
                 </p>

@@ -90,8 +90,8 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
   };
 
   const gatilho = variant === "full"
-    ? <button type="button" onClick={abrir} className="w-full rounded-xl bg-indigo-50 py-2 text-sm font-bold text-indigo-700">Simular rendimento</button>
-    : <button type="button" onClick={abrir} title="Simular rendimento — não altera o estoque" className="grid h-9 w-9 place-items-center rounded-lg border border-indigo-200 text-indigo-600"><Calculator size={16} /></button>;
+    ? <button type="button" onClick={abrir} className="w-full rounded-xl bg-zinc-100 py-2 text-sm font-bold text-zinc-700">Simular rendimento</button>
+    : <button type="button" onClick={abrir} title="Simular rendimento — não altera o estoque" className="grid h-9 w-9 place-items-center rounded-lg border border-zinc-200 text-emerald-700"><Calculator size={16} /></button>;
 
   return (
     <>
@@ -127,7 +127,7 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
               <label className="text-xs font-bold uppercase tracking-widest text-muted">Dosagem / porção por {tipo === "drinks" ? "drink" : "unidade"}</label>
               <div className="mt-1 flex gap-2">
                 <input type="number" min="0" step="any" inputMode="decimal" value={medida} onChange={(e) => setMedida(e.target.value)} autoFocus
-                  className="w-28 rounded-xl border-2 border-line p-3 font-black text-slate-800 outline-none focus:border-indigo-500" />
+                  className="w-28 rounded-xl border-2 border-line p-3 font-black text-slate-800 outline-none focus:border-emerald-600" />
                 <select value={un} onChange={(e) => setUn(e.target.value)} className="rounded-xl border-2 border-line p-3 font-bold text-fg-soft outline-none">
                   {["ml", "l", "g", "kg", "un"].map((u) => <option key={u} value={u}>{mostrarUn(u)}</option>)}
                 </select>
@@ -137,26 +137,26 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {chips.map((c) => (
-                  <button key={c} onClick={() => { setMedida(String(c)); setUn(unItem); }} className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">{c}{ehVol ? "ml" : ehPeso ? "g" : ""}</button>
+                  <button key={c} onClick={() => { setMedida(String(c)); setUn(unItem); }} className="rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-bold text-emerald-700">{c}{ehVol ? "ml" : ehPeso ? "g" : ""}</button>
                 ))}
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl bg-indigo-50 p-4 text-center">
+            <div className="mt-4 rounded-2xl bg-zinc-100 p-4 text-center">
               {invalido ? (
                 <p className="font-bold text-red-500">Não é possível converter peso em volume para este ingrediente.</p>
               ) : medNum <= 0 ? (
                 <p className="font-medium text-muted">Informe a dosagem/porção.</p>
               ) : (
                 <>
-                  <p className="text-lg font-black text-indigo-700">Com o saldo atual, dá para {completos} {tipo} {completos === 1 ? "completo" : "completos"} de {fmtQtd(medNum, un)}.</p>
+                  <p className="text-lg font-black text-zinc-700">Com o saldo atual, dá para {completos} {tipo} {completos === 1 ? "completo" : "completos"} de {fmtQtd(medNum, un)}.</p>
                   <p className="mt-1 text-sm font-bold text-slate-600">Sobra estimada: {fmtQtd(sobra, unItem)}.</p>
                 </>
               )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-2">
-              <button onClick={salvarPadrao} disabled={salvando || medNum <= 0 || invalido} className="rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-black text-indigo-700 disabled:opacity-50">
+              <button onClick={salvarPadrao} disabled={salvando || medNum <= 0 || invalido} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-black text-zinc-700 disabled:opacity-50">
                 {salvando ? "..." : "Salvar como medida padrão"}
               </button>
               <button onClick={() => setAberto(false)} className="rounded-xl bg-elevated px-4 py-2.5 text-sm font-bold text-slate-600">Fechar</button>

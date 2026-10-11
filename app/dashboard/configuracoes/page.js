@@ -384,7 +384,7 @@ function CardControleAcessos() {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-line-soft bg-white p-4">
-        <ShieldCheck size={18} className="text-violet-600" />
+        <ShieldCheck size={18} className="text-emerald-700" />
         <div>
           <h2 className="font-bold text-slate-800">Usuários, perfis e permissões</h2>
           <p className="text-2xs font-medium text-fg">Controle acessos por empresa, unidade, setor, página e ação.</p>
@@ -396,8 +396,8 @@ function CardControleAcessos() {
           <p className="font-black text-slate-800">Usuários e acessos</p>
           <p className="mt-1 text-xs text-fg">Criar logins, redefinir senhas, limitar escopos e consultar históricos.</p>
         </a>
-        <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-line p-4 transition hover:border-violet-300 hover:bg-violet-50">
-          <ShieldCheck size={20} className="mb-3 text-violet-600" />
+        <a href="/dashboard/configuracoes/perfis" className="group rounded-xl border border-line p-4 transition hover:border-zinc-200 hover:bg-zinc-100">
+          <ShieldCheck size={20} className="mb-3 text-emerald-700" />
           <p className="font-black text-slate-800">Perfis de acesso</p>
           <p className="mt-1 text-xs text-fg">Monte permissões reutilizáveis por módulo, página e ação.</p>
         </a>

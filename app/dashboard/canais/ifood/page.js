@@ -100,13 +100,13 @@ export default function IFoodConfigPage() {
       </div>
 
       {/* BANNER REGRA ANTI-DUPLICIDADE */}
-      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 text-white flex items-start gap-4">
-        <div className="p-3 bg-red-500/20 text-red-400 rounded-xl">
+      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-hf-surface to-hf-elevated border border-hf-border text-white flex items-start gap-4">
+        <div className="p-3 bg-red-500/20 text-red-700 rounded-xl">
           <ShieldCheck size={24} />
         </div>
         <div>
-          <h3 className="font-bold text-sm text-white">Arquitetura de Vendas com Proteção Anti-Duplicidade</h3>
-          <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+          <h3 className="font-bold text-sm text-hf-text">Arquitetura de Vendas com Proteção Anti-Duplicidade</h3>
+          <p className="text-xs text-hf-text-2 mt-1 leading-relaxed">
             Sua unidade está configurada com <strong>Saipos como fonte operacional</strong>. As vendas chegam ao Héfisto via Saipos e vinculam o <code>upstream_external_id</code> do iFood. A API de Finanças do iFood importará comissões, taxas e repasses reais sem duplicar os pedidos operacionais.
           </p>
         </div>

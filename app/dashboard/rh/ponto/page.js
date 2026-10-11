@@ -75,25 +75,25 @@ function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtit
   };
   return (
     <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xs text-center">
-        <p className="text-lg font-black text-white">{titulo}</p>
-        <p className="text-slate-300 font-medium text-xs mb-5">{subtitulo}</p>
+      <div className="bg-hf-surface border border-hf-border rounded-3xl p-6 w-full max-w-xs text-center">
+        <p className="text-lg font-black text-hf-text">{titulo}</p>
+        <p className="text-hf-text-2 font-medium text-xs mb-5">{subtitulo}</p>
         <div className="flex gap-3 justify-center mb-5">
           {[0, 1, 2, 3].map(i => (
-            <div key={i} className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? "bg-emerald-400" : "bg-slate-700"}`} />
+            <div key={i} className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? "bg-emerald-400" : "bg-hf-border"}`} />
           ))}
         </div>
         <div className="grid grid-cols-3 gap-2 mb-3">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((d, i) => (
             <button key={i} disabled={d === ""}
               onClick={() => d === "⌫" ? setPin(p => p.slice(0, -1)) : d !== "" && digito(String(d))}
-              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-slate-200 hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
+              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-hf-border text-hf-text hover:bg-hf-border-strong" : "bg-hf-elevated text-hf-text hover:bg-hf-border"}`}>
               {d}
             </button>
           ))}
         </div>
-        {erro && <p className="text-red-400 text-xs font-bold mb-2">{erro}</p>}
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xs font-bold">Cancelar</button>
+        {erro && <p className="text-red-700 text-xs font-bold mb-2">{erro}</p>}
+        <button onClick={onClose} className="text-hf-text-2 hover:text-hf-text text-xs font-bold">Cancelar</button>
       </div>
     </div>
   );
@@ -199,26 +199,26 @@ function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando
   const [texto, setTexto] = useState("");
   return (
     <div className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-5">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md">
+      <div className="bg-hf-surface border border-hf-border rounded-3xl p-6 w-full max-w-md">
         <div className="flex items-start justify-between mb-1">
-          <h3 className="text-xl font-black text-white">{titulo}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1"><X size={20} /></button>
+          <h3 className="text-xl font-black text-hf-text">{titulo}</h3>
+          <button onClick={onClose} className="text-hf-text-2 hover:text-hf-text p-1"><X size={20} /></button>
         </div>
-        <p className="text-slate-300 font-medium text-sm mb-4">{subtitulo}</p>
+        <p className="text-hf-text-2 font-medium text-sm mb-4">{subtitulo}</p>
 
-        <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-2">Toque em um motivo (rápido)</p>
+        <p className="text-3xs font-bold uppercase tracking-widest text-hf-text-2 mb-2">Toque em um motivo (rápido)</p>
         <div className="space-y-2 mb-4">
           {MOTIVOS_RAPIDOS.map((m) => (
             <button key={m} disabled={confirmando} onClick={() => onConfirm(m)}
-              className="w-full text-left px-4 py-3 rounded-2xl bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 font-bold transition-colors disabled:opacity-50">
+              className="w-full text-left px-4 py-3 rounded-2xl bg-hf-elevated hover:bg-emerald-600 hover:text-white text-slate-200 font-bold transition-colors disabled:opacity-50">
               {m}
             </button>
           ))}
         </div>
 
-        <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mb-2">Ou escreva o motivo</p>
+        <p className="text-3xs font-bold uppercase tracking-widest text-hf-text-2 mb-2">Ou escreva o motivo</p>
         <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={2}
-          placeholder="Motivo..." className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-white font-medium outline-none focus:border-emerald-500 resize-none mb-3" />
+          placeholder="Motivo..." className="w-full p-3 bg-hf-elevated border border-hf-border rounded-2xl text-hf-text font-medium outline-none focus:border-emerald-500 resize-none mb-3" />
         <button disabled={confirmando || !texto.trim()} onClick={() => onConfirm(texto.trim())}
           className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black flex items-center justify-center gap-2">
           {confirmando ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} Confirmar
@@ -703,8 +703,8 @@ export default function PontoPage() {
         <div className="w-20 h-20 sm:w-28 sm:h-28 bg-card rounded-2xl sm:rounded-[32px] flex items-center justify-center mb-5 sm:mb-8 shadow-2xl">
           {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-success" />}
         </div>
-        <h1 className="text-white font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
-        {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-100"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
+        <h1 className="text-hf-text font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
+        {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-700"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
 
         {/* Comprovante da marcação (Portaria MTP 671/2021, art. 84). O
             trabalhador tem direito à prova do que bateu, e o NSR é o que
@@ -728,7 +728,7 @@ export default function PontoPage() {
             </div>
             <button
               onClick={() => imprimirComprovante(sucesso.comprovante)}
-              className="mt-3 w-full rounded-lg bg-slate-900 py-2 text-xs font-bold text-white hover:bg-slate-800">
+              className="mt-3 w-full rounded-lg bg-hf-surface py-2 text-xs font-bold text-hf-text hover:bg-hf-elevated">
               Imprimir comprovante
             </button>
           </div>
@@ -774,7 +774,7 @@ export default function PontoPage() {
     };
 
     return (
-      <div ref={containerRef} className="erp-safe-top fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+      <div ref={containerRef} className="erp-safe-top fixed inset-0 z-[9999] bg-hf-bg overflow-y-auto font-sans">
         {pinAntecipada && (
           <ModalPinGerente senha={pinGerente}
             titulo="Entrada antecipada"
@@ -791,20 +791,20 @@ export default function PontoPage() {
         {/* Decisão do gerente: minutos ANTES do horário viram extra ou saída antecipada */}
         {escolhaAntecipada && (
           <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
-            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center">
-              <p className="text-lg font-black text-white">{escolhaAntecipada.min} min antes do horário</p>
-              <p className="text-slate-300 font-medium text-xs mb-5">Como tratar esse tempo adiantado (reunião/serviço)?</p>
+            <div className="bg-hf-surface border border-hf-border rounded-3xl p-6 w-full max-w-sm text-center">
+              <p className="text-lg font-black text-hf-text">{escolhaAntecipada.min} min antes do horário</p>
+              <p className="text-hf-text-2 font-medium text-xs mb-5">Como tratar esse tempo adiantado (reunião/serviço)?</p>
               <div className="space-y-2">
                 <button disabled={batendo} onClick={() => confirmarAntecipada("extra")} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm disabled:opacity-50">
                   Contar como hora extra
                   <span className="block text-3xs font-bold opacity-80">vai para o banco de horas</span>
                 </button>
-                <button disabled={batendo} onClick={() => confirmarAntecipada("liberar")} className="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm disabled:opacity-50">
+                <button disabled={batendo} onClick={() => confirmarAntecipada("liberar")} className="w-full py-3.5 rounded-2xl bg-hf-elevated hover:bg-hf-border border border-hf-border-strong text-hf-text font-black text-sm disabled:opacity-50">
                   Vai ser liberado mais cedo hoje
                   <span className="block text-3xs font-bold opacity-70">só registra o combinado</span>
                 </button>
               </div>
-              <button onClick={() => setEscolhaAntecipada(null)} className="text-slate-400 hover:text-slate-200 text-xs font-bold mt-4">Cancelar</button>
+              <button onClick={() => setEscolhaAntecipada(null)} className="text-hf-text-2 hover:text-hf-text text-xs font-bold mt-4">Cancelar</button>
             </div>
           </div>
         )}
@@ -820,31 +820,31 @@ export default function PontoPage() {
 
         <div className="max-w-3xl mx-auto p-6 md:p-10">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
-            <button onClick={() => setSelecionado(null)} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-bold transition-colors">
+            <button onClick={() => setSelecionado(null)} className="flex items-center gap-2 px-4 py-3 bg-hf-elevated hover:bg-hf-border text-hf-text rounded-2xl font-bold transition-colors">
               <ArrowLeft size={18} /> Voltar
             </button>
             <div className="text-right">
-              <p className="text-3xl sm:text-4xl font-black text-white tabular-nums">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+              <p className="text-3xl sm:text-4xl font-black text-hf-text tabular-nums">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
+              <p className="text-hf-text-2 font-bold text-xs uppercase tracking-widest">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
             </div>
           </div>
 
           {/* Identificação */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 mb-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="bg-hf-surface border border-hf-border rounded-3xl p-4 sm:p-6 mb-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-2xl sm:text-3xl font-black text-emerald-400 shrink-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-2xl sm:text-3xl font-black text-emerald-700 shrink-0">
                 {selecionado.foto ? <img src={`data:image/jpeg;base64,${selecionado.foto}`} alt={selecionado.nome} className="w-full h-full object-cover" /> : selecionado.nome[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg sm:text-2xl font-black text-white leading-tight line-clamp-2">{selecionado.nome}</h2>
-                <p className="text-slate-300 font-bold text-xs sm:text-sm truncate">{selecionado.cargo || "—"}</p>
+                <h2 className="text-lg sm:text-2xl font-black text-hf-text leading-tight line-clamp-2">{selecionado.nome}</h2>
+                <p className="text-hf-text-2 font-bold text-xs sm:text-sm truncate">{selecionado.cargo || "—"}</p>
                 {/* A jornada da semana inteira, agrupada como no espelho:
                     "Terça a domingo: 15:40 às 00:00", e o domingo em linha
                     própria quando tem horário diferente. Mostrar só o horário
                     de hoje escondia justamente o dia que muda — que é o dia em
                     que a pessoa erra. */}
                 {linhasJornadaSemana(selecionado).map(linha => (
-                  <p key={linha} className="text-slate-300 font-bold text-2xs sm:text-xs mt-0.5">{linha}</p>
+                  <p key={linha} className="text-hf-text-2 font-bold text-2xs sm:text-xs mt-0.5">{linha}</p>
                 ))}
               </div>
             </div>
@@ -858,10 +858,10 @@ export default function PontoPage() {
               e o sistema registrar como intervalo do dia anterior. */}
           {reg && reg.data_referencia !== isoLocalDeHoje() && (
             <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-              <p className="text-2xs font-bold uppercase tracking-widest text-amber-300">
+              <p className="text-2xs font-bold uppercase tracking-widest text-amber-700">
                 Jornada de {reg.data_referencia.slice(5).split("-").reverse().join("/")} ainda aberta
               </p>
-              <p className="mt-1 text-xs font-bold leading-snug text-amber-100/90">
+              <p className="mt-1 text-xs font-bold leading-snug text-amber-700">
                 A batida vai para aquele dia, não para hoje. Se você já encerrou
                 aquele expediente, chame o gerente antes de bater.
               </p>
@@ -875,10 +875,10 @@ export default function PontoPage() {
               const puladoAqui = pulouIntervalo && (e.id === "saida_intervalo" || e.id === "retorno_intervalo");
               const ativa = e.id === etapa;
               return (
-                <div key={e.id} className={`p-4 rounded-2xl border text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-slate-800 border-slate-500 border-dashed" : "bg-slate-900 border-slate-800"}`}>
-                  <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400" : "text-slate-400"}`} />
-                  <p className="text-3xs font-bold uppercase tracking-widest text-slate-300">{e.label}</p>
-                  <p className={`text-lg font-bold mt-0.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400 text-xs leading-tight" : "text-slate-400"}`}>
+                <div key={e.id} className={`p-4 rounded-2xl border text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-hf-elevated border-hf-border-strong border-dashed" : "bg-hf-surface border-hf-border"}`}>
+                  <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-700" : puladoAqui ? "text-amber-700" : "text-hf-text-2"}`} />
+                  <p className="text-3xs font-bold uppercase tracking-widest text-hf-text-2">{e.label}</p>
+                  <p className={`text-lg font-bold mt-0.5 ${hora ? "text-emerald-700" : puladoAqui ? "text-amber-700 text-xs leading-tight" : "text-hf-text-2"}`}>
                     {hora || (puladoAqui ? "não tirado" : "--:--")}
                   </p>
                 </div>
@@ -893,13 +893,13 @@ export default function PontoPage() {
             const estourou = resta <= 0;
             return (
               <div className={`rounded-3xl p-6 text-center mb-4 border ${estourou ? "bg-rose-500/10 border-rose-500/40" : "bg-amber-500/10 border-amber-500/30"}`}>
-                <p className={`text-3xs font-bold uppercase tracking-widest ${estourou ? "text-rose-300" : "text-amber-300"}`}>
+                <p className={`text-3xs font-bold uppercase tracking-widest ${estourou ? "text-red-700" : "text-amber-700"}`}>
                   {estourou ? "Intervalo estourado" : "Em intervalo"}
                 </p>
-                <p className={`text-4xl sm:text-5xl font-black tabular-nums mt-2 ${estourou ? "text-rose-400" : "text-amber-400"}`}>
+                <p className={`text-4xl sm:text-5xl font-black tabular-nums mt-2 ${estourou ? "text-red-700" : "text-amber-700"}`}>
                   {estourou ? `+${Math.floor(-resta / 60000)}min` : fmtFalta(resta)}
                 </p>
-                <p className="text-slate-300 font-bold text-xs mt-2">
+                <p className="text-hf-text-2 font-bold text-xs mt-2">
                   {estourou
                     ? `A volta era às ${prevista.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} — bata a volta agora`
                     : `volta às ${prevista.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
@@ -911,28 +911,28 @@ export default function PontoPage() {
           {/* Ação principal */}
           {etapa === "concluido" ? (
             <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
-              <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
-              <p className="text-xl font-black text-white">Jornada de hoje concluída!</p>
-              <p className="text-slate-300 font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
+              <CheckCircle2 size={40} className="text-emerald-700 mx-auto mb-3" />
+              <p className="text-xl font-black text-hf-text">Jornada de hoje concluída!</p>
+              <p className="text-hf-text-2 font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
             </div>
           ) : bloqueiaFolga ? (
             <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
-              <Ban size={44} className="text-rose-400 mx-auto mb-3" />
-              <p className="text-2xl font-black text-white">Hoje é sua folga</p>
-              <p className="text-rose-200 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
-              <p className="text-slate-300 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
+              <Ban size={44} className="text-red-700 mx-auto mb-3" />
+              <p className="text-2xl font-black text-hf-text">Hoje é sua folga</p>
+              <p className="text-red-700 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
+              <p className="text-hf-text-2 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
             </div>
           ) : bloqueiaJanela ? (
-            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-8 text-center mb-6">
-              <Timer size={44} className="text-amber-400 mx-auto mb-3" />
-              <p className="text-lg font-black text-white">Ainda não dá para bater a entrada</p>
-              <p className="text-slate-300 font-bold text-sm mt-1">
+            <div className="bg-hf-surface border border-hf-border rounded-3xl p-5 sm:p-8 text-center mb-6">
+              <Timer size={44} className="text-amber-700 mx-auto mb-3" />
+              <p className="text-lg font-black text-hf-text">Ainda não dá para bater a entrada</p>
+              <p className="text-hf-text-2 font-bold text-sm mt-1">
                 Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
               </p>
-              <p className="text-4xl sm:text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-400 mt-1">faltam para liberar</p>
+              <p className="text-4xl sm:text-5xl font-black text-amber-700 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-hf-text-2 mt-1">faltam para liberar</p>
               <button onClick={() => setPinAntecipada(true)}
-                className="mt-5 px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm transition-colors">
+                className="mt-5 px-5 py-3 rounded-2xl bg-hf-elevated hover:bg-hf-border border border-hf-border-strong text-hf-text font-black text-sm transition-colors">
                 Reunião / serviço mais cedo? Liberar — PIN do gerente
               </button>
             </div>
@@ -953,48 +953,48 @@ export default function PontoPage() {
           {/* Histórico do mês, com navegação. O funcionário precisa conseguir
               conferir o mês fechado — com 7 dias não dava para contestar uma
               batida do começo do mês. */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+          <div className="bg-hf-surface border border-hf-border rounded-3xl p-5">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-3xs font-bold uppercase tracking-widest text-slate-300 flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
+              <p className="text-3xs font-bold uppercase tracking-widest text-hf-text-2 flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
               <div className="flex items-center gap-1">
                 <button onClick={() => andarMes(-1)} aria-label="Mês anterior"
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700">‹</button>
-                <span className="min-w-[112px] text-center text-xs font-bold uppercase text-slate-200">
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-hf-elevated text-hf-text hover:bg-hf-border">‹</button>
+                <span className="min-w-[112px] text-center text-xs font-bold uppercase text-hf-text">
                   {new Date(`${mesHistorico}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
                 </span>
                 <button onClick={() => andarMes(1)} disabled={mesEhFuturo} aria-label="Próximo mês"
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 disabled:opacity-30">›</button>
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-hf-elevated text-hf-text hover:bg-hf-border disabled:opacity-30">›</button>
               </div>
             </div>
             {historico.length > 0 && (
-              <p className="mb-2 text-2xs font-bold text-slate-400">
+              <p className="mb-2 text-2xs font-bold text-hf-text-2">
                 {historico.length} dia(s) com registro neste mês
               </p>
             )}
             {historico.length === 0 ? (
-              <p className="text-sm font-medium text-slate-400">Nenhum registro neste mês.</p>
+              <p className="text-sm font-medium text-hf-text-2">Nenhum registro neste mês.</p>
             ) : (
               <div className="space-y-1.5">
                 {/* Rotulo em cima de cada coluna: quatro horarios seguidos sem
                     titulo obrigam a decorar a ordem. Mesma grade das linhas
                     para os titulos cairem exatamente sobre os numeros. */}
                 <div className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-end px-2 pb-1 text-center">
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-400 text-left">Dia</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Entrada</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Saiu p/<br/>intervalo</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Voltou do<br/>intervalo</span>
-                  <span className="text-3xs font-bold uppercase tracking-wider text-slate-400">Saída</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2 text-left">Dia</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Entrada</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Saiu p/<br/>intervalo</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Voltou do<br/>intervalo</span>
+                  <span className="text-3xs font-bold uppercase tracking-wider text-hf-text-2">Saída</span>
                 </div>
                 {historico.map(h => (
-                  <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-slate-950/60">
+                  <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-hf-bg">
                     {/* Dia da semana ao lado da data: quem confere o próprio
                         ponto lembra "no sábado eu saí tarde", não "no dia 15". */}
-                    <span className="text-2xs font-bold text-slate-300 text-left">
+                    <span className="text-2xs font-bold text-hf-text-2 text-left">
                       {h.data_referencia?.slice(5).split("-").reverse().join("/")}
-                      <span className="ml-1.5 text-slate-400">{siglaDiaSemana(h.data_referencia)}</span>
+                      <span className="ml-1.5 text-hf-text-2">{siglaDiaSemana(h.data_referencia)}</span>
                     </span>
                     {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
-                      <span key={c} className={`text-xs font-bold ${h[c] ? "text-slate-200" : "text-slate-400"}`}>{horaDe(h[c]) || "--:--"}</span>
+                      <span key={c} className={`text-xs font-bold ${h[c] ? "text-hf-text" : "text-hf-text-2"}`}>{horaDe(h[c]) || "--:--"}</span>
                     ))}
                   </div>
                 ))}
@@ -1037,12 +1037,12 @@ export default function PontoPage() {
     }
     return (
       <button key={c.id} onClick={() => abrirFuncionario(c)}
-        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${reg?.hora_entrada && !concluido ? "bg-slate-900 border-sky-500/40 hover:border-sky-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
+        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${reg?.hora_entrada && !concluido ? "bg-hf-surface border-zinc-500/40 hover:border-zinc-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-hf-surface border-hf-border opacity-60" : "bg-hf-surface border-hf-border hover:border-emerald-500/60"}`}>
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-11 h-11 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-400" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
+          <div className={`w-11 h-11 rounded-full overflow-hidden bg-hf-elevated flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-red-700" : concluido ? "ring-hf-border text-hf-text-2" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-700" : "ring-hf-border text-emerald-700"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
-            <p className="font-black text-white leading-tight break-words text-xl">{c.nome}</p>
-            <p className="text-3xs font-bold text-slate-400 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
+            <p className="font-black text-hf-text leading-tight break-words text-xl">{c.nome}</p>
+            <p className="text-3xs font-bold text-hf-text-2 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1051,11 +1051,11 @@ export default function PontoPage() {
           {/* Folga não é falta: sai em âmbar, não em vermelho. E cada tipo diz
               o próprio nome — quem monta a escala precisa saber se a pessoa
               está de folga semanal ou se foi a vez dela no domingo. */}
-          <div className={`text-3xs font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-300" : "bg-slate-700/40 text-slate-200") : faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-300"}`}>
+          <div className={`text-3xs font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-zinc-500/10 text-emerald-700" : reg?.hora_entrada && !concluido ? "bg-zinc-500/10 text-emerald-700" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-700" : "bg-hf-border text-hf-text") : faltou ? "bg-rose-500/10 text-red-700" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-hf-elevated text-hf-text-2"}`}>
             {bloqueado && !reg?.hora_entrada ? <><Ban size={11} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> {info.motivo}</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
-            <span className="text-3xs font-bold text-slate-400">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>
+            <span className="text-3xs font-bold text-hf-text-2">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>
           )}
         </div>
       </button>
@@ -1066,7 +1066,7 @@ export default function PontoPage() {
   const saudacao = hNow >= 5 && hNow < 12 ? "Bom dia" : hNow >= 12 && hNow < 18 ? "Boa tarde" : "Boa noite";
 
   return (
-    <div ref={containerRef} onClick={reforcarFullscreen} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+    <div ref={containerRef} onClick={reforcarFullscreen} className="fixed inset-0 z-[9999] bg-hf-bg overflow-y-auto font-sans">
       {pinSair && (
         <ModalPinGerente senha={pinGerente}
           titulo="Sair do Modo Ponto"
@@ -1078,11 +1078,11 @@ export default function PontoPage() {
       <div className="max-w-4xl mx-auto p-6 md:p-10">
         <div className="flex items-center justify-between mb-6">
           {kiosk ? (
-            <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-2xl transition-colors border border-slate-800" title="Destravar com PIN do gerente">
+            <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-hf-surface hover:bg-hf-elevated text-hf-text-2 hover:text-hf-text rounded-2xl transition-colors border border-hf-border" title="Destravar com PIN do gerente">
               <Lock size={18} />
             </button>
           ) : (
-            <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-bold transition-colors">
+            <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-hf-elevated hover:bg-hf-border text-hf-text rounded-2xl font-bold transition-colors">
               <ArrowLeft size={18} /> Painel
             </button>
           )}
@@ -1095,20 +1095,20 @@ export default function PontoPage() {
 
         <div className="text-center mb-8 relative">
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
-          <p className="text-emerald-400 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
+          <p className="text-emerald-700 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
           <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
             {/* Segundos não são enfeite: o Anexo IX, item 3, exige que o
                 coletor exiba horas, minutos e segundos no momento da marcação. */}
             {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             <span className="text-3xl md:text-4xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
-          <p className="text-slate-400 font-bold uppercase tracking-widest mt-2 relative">
+          <p className="text-hf-text-2 font-bold uppercase tracking-widest mt-2 relative">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
           {/* Qual área está aberta, no meio e logo abaixo da hora: é a primeira
               coisa que quem chega procura para saber se está na lista certa. */}
           {areaAtiva && (
-            <p className="relative mt-4 text-3xl font-black text-white md:text-4xl">
+            <p className="relative mt-4 text-3xl font-black text-hf-text md:text-4xl">
               {AREAS_PONTO.find(a => a.id === areaAtiva)?.titulo}
             </p>
           )}
@@ -1156,21 +1156,21 @@ export default function PontoPage() {
                 const zap = linkZap(a.c, a.msg);
                 return (
                   <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl border bg-amber-500/10 border-amber-500/30 animate-pulse">
-                    <Timer size={20} className="text-amber-400 shrink-0" />
+                    <Timer size={20} className="text-amber-700 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-amber-300 leading-tight">
+                      <p className="text-sm font-black text-amber-700 leading-tight">
                         {a.tipo === "entrada" ? `${a.c.nome.split(" ").slice(0, 2).join(" ")} entra às ${a.hora}` : `${a.c.nome.split(" ").slice(0, 2).join(" ")} volta do intervalo às ${a.hora}`}
                       </p>
                       <p className="text-2xs font-bold text-amber-500/80">faltam {a.falta} min</p>
                     </div>
                     {zap ? (
                       <a href={zap} target="_blank" rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-bold text-xs text-white shrink-0 active:scale-95 transition-transform"
+                        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-bold text-xs text-hf-text shrink-0 active:scale-95 transition-transform"
                         style={{ background: "#25D366" }}>
                         <MessageCircle size={14} /> Lembrar no WhatsApp
                       </a>
                     ) : (
-                      <span className="text-3xs font-bold text-slate-400 shrink-0">sem telefone no cadastro</span>
+                      <span className="text-3xs font-bold text-hf-text-2 shrink-0">sem telefone no cadastro</span>
                     )}
                   </div>
                 );
@@ -1189,12 +1189,12 @@ export default function PontoPage() {
               const quantos = colaboradores.filter(c => AREAS_DA_CATEGORIA[area.id].includes(categoriaFuncao(c.cargo))).length;
               return (
                 <button key={area.id} onClick={() => setAreaAtiva(area.id)}
-                  className="flex flex-col items-center gap-3 rounded-3xl border-2 border-slate-800 bg-slate-900 p-8 transition-all hover:border-emerald-500 active:scale-[.98]">
+                  className="flex flex-col items-center gap-3 rounded-3xl border-2 border-hf-border bg-hf-surface p-8 transition-all hover:border-emerald-500 active:scale-[.98]">
                   <span className="grid h-24 w-24 place-items-center rounded-3xl" style={{ background: area.fundo, color: area.cor }}>
                     <Icone size={48} />
                   </span>
-                  <span className="text-3xl font-black text-white">{area.nome}</span>
-                  <span className="text-sm font-bold text-slate-400">{quantos} pessoa(s)</span>
+                  <span className="text-3xl font-black text-hf-text">{area.nome}</span>
+                  <span className="text-sm font-bold text-hf-text-2">{quantos} pessoa(s)</span>
                 </button>
               );
             })}
@@ -1203,22 +1203,22 @@ export default function PontoPage() {
           // Só a seta. O nome da área já está no título, abaixo do relógio —
           // repetir na tecla de voltar era dizer a mesma coisa duas vezes.
           <button onClick={() => setAreaAtiva("")} aria-label="Voltar para a escolha de área"
-            className="mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-slate-800 bg-slate-900 text-slate-200 hover:border-emerald-500">
+            className="mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-hf-border bg-hf-surface text-hf-text hover:border-emerald-500">
             <ArrowLeft size={24} />
           </button>
         )}
         {loading ? (
-          <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-slate-400 mx-auto" /></div>
+          <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-hf-text-2 mx-auto" /></div>
         ) : filtrados.length === 0 ? (
-          <p className="text-center text-slate-400 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Nenhum nome ou função encontrado."}</p>
+          <p className="text-center text-hf-text-2 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Nenhum nome ou função encontrado."}</p>
         ) : (
           <div className="space-y-7">
             {grupos.map(g => (
               <div key={g.cat}>
                 <div className="flex items-center gap-3 mb-3">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-300">{g.cat}</p>
-                  <span className="text-3xs font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">{g.itens.length}</span>
-                  <div className="flex-1 h-px bg-slate-800/70" />
+                  <p className="text-xs font-bold uppercase tracking-widest text-hf-text-2">{g.cat}</p>
+                  <span className="text-3xs font-bold text-hf-text-2 bg-hf-surface border border-hf-border px-2 py-0.5 rounded-full">{g.itens.length}</span>
+                  <div className="flex-1 h-px bg-hf-elevated" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {g.itens.map(renderCard)}

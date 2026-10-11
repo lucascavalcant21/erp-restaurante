@@ -215,7 +215,7 @@ export default function CadastroExtraPage() {
             <p className="text-xs font-bold text-fg">Freelancer / diarista · dados do recibo inclusos</p>
           </div>
           {!novo && <div className="flex gap-2">
-            <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100"><FileDown size={17}/> Pré-admissão eSocial</button>
+            <button type="button" onClick={baixarPreAdmissaoESocial} className="flex h-11 items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-100 px-3 text-xs font-bold text-zinc-700 hover:bg-zinc-100"><FileDown size={17}/> Pré-admissão eSocial</button>
             <button type="button" onClick={baixarCadastroPdf} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white"><FileDown size={17}/> PDF</button>
             <button type="button" onClick={imprimirCadastro} className="flex h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-fg-soft hover:bg-white"><Printer size={17}/> Imprimir</button>
           </div>}

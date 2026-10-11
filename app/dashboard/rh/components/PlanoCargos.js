@@ -442,14 +442,14 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
   return (
     <div className="space-y-6">
       {/* BANNER DE INSPIRAÇÃO E TOPO DA PÁGINA */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white rounded-3xl p-5 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-hf-surface via-hf-elevated to-emerald-50 rounded-3xl p-5 sm:p-8 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-widest border border-emerald-500/30">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-widest border border-emerald-500/30">
               <Sparkles size={14} /> Plano de Cargos, Carreiras & Salários
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-hf-text">
               Inspire sua equipe a evoluir e subir de nível 🚀
             </h2>
             <p className="text-dim text-xs sm:text-sm leading-relaxed">
@@ -465,7 +465,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
             </button>
             <button
               onClick={abrirNovoCargo}
-              className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-4 py-3.5 rounded-2xl border border-white/20 transition-all active:scale-95"
+              className="flex items-center justify-center gap-2 bg-hf-elevated hover:bg-hf-border text-hf-text font-bold text-xs sm:text-sm px-4 py-3.5 rounded-2xl border border-hf-border transition-all active:scale-95"
             >
               <Plus size={18} /> Criar Cargo
             </button>
@@ -506,22 +506,22 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
             <p className="text-2xs font-medium text-amber-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Cozinha.base)}</p>
           </div>
 
-          <div className="bg-purple-50/60 rounded-2xl p-4 border border-purple-100 space-y-1">
+          <div className="bg-zinc-100/60 rounded-2xl p-4 border border-zinc-200 space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-3xs font-bold text-purple-800 uppercase tracking-widest">🍸 Bar</span>
-              <span className="text-xs font-bold text-purple-700">{resumoFinanceiroFolha.porDepto.Bar.qtd} colabs</span>
+              <span className="text-3xs font-bold text-zinc-800 uppercase tracking-widest">🍸 Bar</span>
+              <span className="text-xs font-bold text-zinc-700">{resumoFinanceiroFolha.porDepto.Bar.qtd} colabs</span>
             </div>
-            <p className="text-lg font-black text-purple-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Bar.total)}</p>
-            <p className="text-2xs font-medium text-purple-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Bar.base)}</p>
+            <p className="text-lg font-black text-zinc-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Bar.total)}</p>
+            <p className="text-2xs font-medium text-zinc-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Bar.base)}</p>
           </div>
 
-          <div className="bg-sky-50/60 rounded-2xl p-4 border border-sky-100 space-y-1">
+          <div className="bg-zinc-100/60 rounded-2xl p-4 border border-zinc-200 space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-3xs font-bold text-sky-800 uppercase tracking-widest">🍽️ Salão</span>
-              <span className="text-xs font-bold text-sky-700">{resumoFinanceiroFolha.porDepto.Salão.qtd} colabs</span>
+              <span className="text-3xs font-bold text-zinc-800 uppercase tracking-widest">🍽️ Salão</span>
+              <span className="text-xs font-bold text-zinc-700">{resumoFinanceiroFolha.porDepto.Salão.qtd} colabs</span>
             </div>
-            <p className="text-lg font-black text-sky-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Salão.total)}</p>
-            <p className="text-2xs font-medium text-sky-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Salão.base)}</p>
+            <p className="text-lg font-black text-zinc-900">{fmtBRL(resumoFinanceiroFolha.porDepto.Salão.total)}</p>
+            <p className="text-2xs font-medium text-zinc-700">Base: {fmtBRL(resumoFinanceiroFolha.porDepto.Salão.base)}</p>
           </div>
         </div>
       </div>
@@ -622,7 +622,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                       </div>
                     )}
                     {taxa > 0 && (
-                      <div className="flex justify-between items-center text-xs text-indigo-700 font-semibold">
+                      <div className="flex justify-between items-center text-xs text-zinc-700 font-semibold">
                         <span>+ Taxa de Serviço:</span>
                         <span className="font-bold">{fmtBRL(taxa)}</span>
                       </div>
@@ -670,7 +670,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-line-soft mt-2">
                     <button
                       onClick={() => imprimirDescritivoFuncao(c, unidadeInfo)}
-                      className="px-2.5 py-1.5 text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
+                      className="px-2.5 py-1.5 text-zinc-700 bg-zinc-100 hover:bg-zinc-100 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
                       title="Imprimir Termo/Descritivo de Função em PDF"
                     >
                       <FileText size={14} /> Descritivo PDF
@@ -792,7 +792,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 400"
                     value={form.taxa_servico}
                     onChange={e => setForm({ ...form, taxa_servico: e.target.value })}
-                    className="w-full p-3 bg-white border border-line rounded-xl font-bold text-indigo-700 outline-none focus:border-emerald-500 text-sm"
+                    className="w-full p-3 bg-white border border-line rounded-xl font-bold text-zinc-700 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
               </div>

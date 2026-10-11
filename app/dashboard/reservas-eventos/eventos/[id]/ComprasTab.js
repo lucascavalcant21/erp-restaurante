@@ -63,7 +63,7 @@ export default function ComprasTab({ lista, valor = 0, nItens = 0 }) {
                 <li key={k} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-6 py-3 ${marcados.has(k) ? "opacity-50" : ""}`}>
                   <input type="checkbox" checked={marcados.has(k)} onChange={() => alternar(k)} aria-label={`Comprado: ${item.nome}`}
                     className="h-5 w-5 rounded border-slate-300 accent-emerald-600 print:hidden" />
-                  <span className="min-w-0 flex-1 basis-40 font-bold text-slate-800">{item.nome}{item.exclusivo && <span className="ml-2 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-violet-800">exclusivo</span>}</span>
+                  <span className="min-w-0 flex-1 basis-40 font-bold text-slate-800">{item.nome}{item.exclusivo && <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-800">exclusivo</span>}</span>
                   <span className="whitespace-nowrap rounded-lg bg-slate-100 px-3 py-1 font-black tabular-nums text-slate-800">{fmtQtd(item.quantidade, item.unidade)}</span>
                   <span className="w-40 whitespace-nowrap text-right text-sm font-bold tabular-nums text-slate-800 print:hidden">
                     {fmtReais(item.custo)}{valor > 0 ? <span className="font-semibold text-slate-500"> · {fmtPct(percentualDe(item.custo, valor))}</span> : null}

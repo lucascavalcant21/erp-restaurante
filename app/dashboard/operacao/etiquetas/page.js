@@ -805,13 +805,13 @@ function EtiquetasRunner() {
         <button
           type="button"
           onClick={() => router.push("/dashboard/operacao/etiquetas")}
-          className="mb-4 flex w-full items-center justify-between gap-4 rounded-2xl border border-violet-300 bg-gradient-to-r from-violet-700 to-fuchsia-600 p-4 text-left text-white shadow-lg shadow-violet-900/20 transition hover:brightness-105 sm:p-5"
+          className="mb-4 flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-gradient-to-r from-emerald-700 to-emerald-600 p-4 text-left text-white shadow-lg shadow-violet-900/20 transition hover:brightness-105 sm:p-5"
         >
           <span className="flex items-center gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/15"><Mic size={25} /></span>
-            <span><strong className="block text-lg font-black">Etiquetas por voz</strong><span className="mt-1 block text-sm font-semibold text-violet-50">Fale vários produtos e quantidades diferentes, confira e confirme a impressão por voz</span></span>
+            <span><strong className="block text-lg font-black">Etiquetas por voz</strong><span className="mt-1 block text-sm font-semibold text-zinc-100">Fale vários produtos e quantidades diferentes, confira e confirme a impressão por voz</span></span>
           </span>
-          <span className="hidden rounded-xl bg-card px-4 py-2 text-sm font-black text-violet-700 sm:block">Abrir voz</span>
+          <span className="hidden rounded-xl bg-card px-4 py-2 text-sm font-black text-zinc-700 sm:block">Abrir voz</span>
         </button>
         <Toast show={!!salvou}>{salvou}</Toast>
 
@@ -1272,7 +1272,7 @@ function EtiquetasRunner() {
                 type="button"
                 disabled={salvando}
                 onClick={() => pedirImpressao("mdk022_usb")}
-                className="w-full mt-2 py-3 px-4 rounded-xl font-black text-xs text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 px-4 rounded-xl font-black text-xs text-white bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2"
                 title="Imprime diretamente na impressora MDK-022 conectada por USB no Android"
               >
                 <Printer size={16} /> Imprimir na MDK-022 (USB)

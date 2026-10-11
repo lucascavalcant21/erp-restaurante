@@ -115,7 +115,7 @@ export default function CarrinhoPage({ params }) {
 
         {pagamentoInfo?.metodo === "CARTAO" && (
           <div className="w-full max-w-sm mt-4">
-            <button onClick={() => window.open(pagamentoInfo.linkCheckout, "_blank")} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
+            <button onClick={() => window.open(pagamentoInfo.linkCheckout, "_blank")} className="w-full bg-emerald-700 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
               <CreditCard size={20} /> Pagar com Cartão Seguramente
             </button>
           </div>
@@ -210,7 +210,7 @@ export default function CarrinhoPage({ params }) {
               <h2 className="font-bold text-lg border-b pb-2 flex items-center gap-2"><CreditCard size={20}/> Pagamento (PagSeguro)</h2>
               <div className="flex gap-2">
                 <button onClick={() => setForm({...form, formaPagamento: "PIX"})} className={`flex-1 py-3 rounded-xl font-bold border-2 transition ${form.formaPagamento === "PIX" ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-line-soft text-subtle'}`}>PIX</button>
-                <button onClick={() => setForm({...form, formaPagamento: "CARTAO"})} className={`flex-1 py-3 rounded-xl font-bold border-2 transition ${form.formaPagamento === "CARTAO" ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-line-soft text-subtle'}`}>CARTÃO</button>
+                <button onClick={() => setForm({...form, formaPagamento: "CARTAO"})} className={`flex-1 py-3 rounded-xl font-bold border-2 transition ${form.formaPagamento === "CARTAO" ? 'border-emerald-600 bg-zinc-100 text-zinc-700' : 'border-line-soft text-subtle'}`}>CARTÃO</button>
               </div>
             </div>
 

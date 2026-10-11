@@ -366,7 +366,7 @@ export default function FichaTecnicaPage() {
       </div>
 
       {aviso ? (
-        <div className="flex items-start justify-between gap-2 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
+        <div className="flex items-start justify-between gap-2 rounded-2xl border border-zinc-200 bg-zinc-100 p-3 text-xs text-zinc-800">
           <span className="flex items-start gap-2"><Info size={15} className="mt-0.5 shrink-0" /> {aviso}</span>
           <button onClick={() => setAviso("")} aria-label="Fechar aviso"><X size={14} /></button>
         </div>

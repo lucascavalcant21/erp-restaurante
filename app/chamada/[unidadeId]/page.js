@@ -92,12 +92,12 @@ export default function PainelChamadaTV() {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-black text-white font-sans overflow-x-hidden overflow-y-auto md:overflow-hidden flex flex-col relative select-none">
+    <div ref={containerRef} className="min-h-screen bg-hf-bg text-hf-text font-sans overflow-x-hidden overflow-y-auto md:overflow-hidden flex flex-col relative select-none">
        
        {/* Alerta de Tela Cheia (Quando alguém é chamado) */}
        {ultimoChamado && (
           <div className="absolute inset-0 z-50 bg-emerald-600 flex flex-col items-center justify-center animate-pulse-fast">
-             <h1 className="text-[16vw] sm:text-[12vw] font-black tracking-tighter leading-none text-white drop-shadow-2xl text-center break-words max-w-full px-4">
+             <h1 className="text-[16vw] sm:text-[12vw] font-black tracking-tighter leading-none text-hf-text drop-shadow-2xl text-center break-words max-w-full px-4">
                 {formatarNome(ultimoChamado)}
              </h1>
              <p className="text-lg sm:text-[4vw] font-bold mt-4 bg-black/30 px-5 sm:px-12 py-3 sm:py-4 rounded-full uppercase tracking-widest text-center">
@@ -107,10 +107,10 @@ export default function PainelChamadaTV() {
        )}
 
        {/* HEADER */}
-       <div className="min-h-20 sm:h-24 bg-zinc-900 border-b border-zinc-800 flex justify-between items-center gap-3 px-4 sm:px-10 py-3 sm:py-0">
+       <div className="min-h-20 sm:h-24 bg-hf-surface border-b border-hf-border flex justify-between items-center gap-3 px-4 sm:px-10 py-3 sm:py-0">
           <div className="flex items-center gap-4">
              <div className="w-11 h-11 sm:w-14 sm:h-14 bg-orange-500 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-                <MonitorPlay size={28} className="text-white" />
+                <MonitorPlay size={28} className="text-hf-text" />
              </div>
              <div>
                 <h1 className="text-lg sm:text-2xl lg:text-3xl font-black tracking-tighter leading-tight">PAINEL DE SENHAS</h1>
@@ -119,21 +119,21 @@ export default function PainelChamadaTV() {
           
           <div className="flex items-center gap-2 sm:gap-6 shrink-0">
              <div className="text-right">
-                <p className="text-sm sm:text-xl font-bold text-zinc-400">
+                <p className="text-sm sm:text-xl font-bold text-hf-text-2">
                    {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </p>
              </div>
-             <button onClick={toggleFullscreen} className="p-3 sm:p-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
-                <Maximize size={24} className="text-zinc-400" />
+             <button onClick={toggleFullscreen} className="p-3 sm:p-4 bg-hf-elevated hover:bg-hf-border rounded-xl transition-colors">
+                <Maximize size={24} className="text-hf-text-2" />
              </button>
           </div>
        </div>
 
        {/* CORPO DO PAINEL */}
-       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-800 overflow-y-auto md:overflow-hidden">
+       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-hf-border overflow-y-auto md:overflow-hidden">
           
           {/* COLUNA: PREPARANDO */}
-          <div className="flex flex-col bg-zinc-950">
+          <div className="flex flex-col bg-hf-bg">
              <div className="py-4 sm:py-6 px-4 sm:px-10 bg-amber-500 text-amber-950 text-center">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-widest flex items-center justify-center gap-3">
                    <Clock size={36} /> Preparando
@@ -145,7 +145,7 @@ export default function PainelChamadaTV() {
                    <p className="sm:col-span-2 text-center text-zinc-600 text-xl sm:text-3xl font-bold my-10 sm:mt-20">Nenhum pedido na fila</p>
                 ) : (
                    preparando.map(p => (
-                      <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex items-center justify-center text-center shadow-lg min-w-0">
+                      <div key={p.id} className="bg-hf-surface border border-hf-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex items-center justify-center text-center shadow-lg min-w-0">
                          <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-amber-500 truncate w-full">
                             {formatarNome(p)}
                          </span>
@@ -156,7 +156,7 @@ export default function PainelChamadaTV() {
           </div>
 
           {/* COLUNA: PRONTO */}
-          <div className="flex flex-col bg-black">
+          <div className="flex flex-col bg-hf-bg">
              <div className="py-4 sm:py-6 px-4 sm:px-10 bg-emerald-500 text-emerald-950 text-center">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-widest">
                    Pronto - Retirar
@@ -168,8 +168,8 @@ export default function PainelChamadaTV() {
                    <p className="sm:col-span-2 text-center text-zinc-700 text-xl sm:text-3xl font-bold my-10 sm:mt-20">Aguardando...</p>
                 ) : (
                    prontos.map((p, index) => (
-                      <div key={p.id} className={`border-2 rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex items-center justify-center text-center shadow-2xl transition-all min-w-0 ${index === 0 ? 'bg-emerald-950/40 border-emerald-500 shadow-emerald-500/20' : 'bg-zinc-900 border-zinc-800'}`}>
-                         <span className={`font-black truncate w-full ${index === 0 ? 'text-4xl sm:text-5xl lg:text-7xl text-emerald-400' : 'text-3xl sm:text-4xl lg:text-5xl text-success'}`}>
+                      <div key={p.id} className={`border-2 rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex items-center justify-center text-center shadow-2xl transition-all min-w-0 ${index === 0 ? 'bg-emerald-950/40 border-emerald-500 shadow-emerald-500/20' : 'bg-hf-surface border-hf-border'}`}>
+                         <span className={`font-black truncate w-full ${index === 0 ? 'text-4xl sm:text-5xl lg:text-7xl text-emerald-700' : 'text-3xl sm:text-4xl lg:text-5xl text-success'}`}>
                             {formatarNome(p)}
                          </span>
                       </div>

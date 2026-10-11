@@ -20,7 +20,7 @@ export default function RecrutamentoPage() {
         </button>
         <div className="flex-1">
           <h1 className="text-lg sm:text-xl font-black leading-tight flex items-center gap-2 text-slate-800">
-            <Users size={20} className="text-indigo-600" /> Recrutamento e Portal de Vagas
+            <Users size={20} className="text-emerald-700" /> Recrutamento e Portal de Vagas
           </h1>
           <p className="text-xs font-medium text-fg">
             Candidaturas e respostas conectadas ao portal · {unidadeInfo?.nome || "Unidade selecionada"}

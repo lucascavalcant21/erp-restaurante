@@ -342,10 +342,10 @@ export default function BancoTalentos({ unidadeAtiva }) {
              <button type="button" onClick={abrirEditorPortal} disabled={carregandoPortal} className="flex items-center justify-center gap-2 bg-card text-fg-soft px-4 py-3 rounded-2xl font-bold hover:bg-white transition-colors border border-line whitespace-nowrap disabled:opacity-60">
                 {carregandoPortal ? <Loader2 size={18} className="animate-spin" /> : <Pencil size={18} />} Editar portal
              </button>
-            <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 whitespace-nowrap">
+            <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-zinc-100 text-zinc-700 px-4 py-3 rounded-2xl font-bold hover:bg-zinc-100 transition-colors border border-zinc-200 whitespace-nowrap">
                <ExternalLink size={18} /> Abrir portal
             </a>
-            <button type="button" onClick={copiarLinkPortal} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold transition-colors border whitespace-nowrap ${linkCopiado ? "bg-accent-soft text-accent-strong border-emerald-200" : "bg-card text-indigo-700 border-indigo-200 hover:bg-indigo-50"}`}>
+            <button type="button" onClick={copiarLinkPortal} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold transition-colors border whitespace-nowrap ${linkCopiado ? "bg-accent-soft text-accent-strong border-emerald-200" : "bg-card text-zinc-700 border-zinc-200 hover:bg-zinc-100"}`}>
                {linkCopiado ? <Check size={18} /> : <Copy size={18} />} {linkCopiado ? "Link copiado" : "Copiar link"}
             </button>
          </div>
@@ -353,7 +353,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
 
       {loading ? (
         <div className="p-20 text-center flex flex-col items-center text-fg">
-           <Loader2 size={32} className="animate-spin mb-4 text-indigo-500" />
+           <Loader2 size={32} className="animate-spin mb-4 text-emerald-700" />
            <p className="font-bold">Carregando banco de talentos...</p>
         </div>
       ) : (
@@ -496,15 +496,15 @@ export default function BancoTalentos({ unidadeAtiva }) {
               <div className="grid md:grid-cols-2 gap-4">
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-widest text-fg">Título</span>
-                  <input value={editorPortal.titulo} onChange={e => setEditorPortal({ ...editorPortal, titulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-bold outline-none focus:border-indigo-500" />
+                  <input value={editorPortal.titulo} onChange={e => setEditorPortal({ ...editorPortal, titulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-bold outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-widest text-fg">Mensagem depois da candidatura</span>
-                  <input value={editorPortal.mensagem_sucesso} onChange={e => setEditorPortal({ ...editorPortal, mensagem_sucesso: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-medium outline-none focus:border-indigo-500" />
+                  <input value={editorPortal.mensagem_sucesso} onChange={e => setEditorPortal({ ...editorPortal, mensagem_sucesso: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-medium outline-none focus:border-emerald-600" />
                 </label>
                 <label className="block md:col-span-2">
                   <span className="text-xs font-bold uppercase tracking-widest text-fg">Apresentação do portal</span>
-                  <textarea rows={3} value={editorPortal.subtitulo} onChange={e => setEditorPortal({ ...editorPortal, subtitulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-medium outline-none focus:border-indigo-500 resize-y" />
+                  <textarea rows={3} value={editorPortal.subtitulo} onChange={e => setEditorPortal({ ...editorPortal, subtitulo: e.target.value })} className="mt-2 w-full rounded-xl border border-line bg-white p-3 font-medium outline-none focus:border-emerald-600 resize-y" />
                 </label>
               </div>
 
@@ -521,7 +521,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                       horario_trabalho: "", dias_trabalho: "", folga: "", domingo_folga: "1 domingo de folga por mês",
                       requisitos: [], ativa: true,
                     }],
-                  })} className="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-bold">
+                  })} className="flex items-center gap-2 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-700 px-3 py-2 text-xs font-bold">
                     <Plus size={15} /> Nova vaga
                   </button>
                 </div>
@@ -542,21 +542,21 @@ export default function BancoTalentos({ unidadeAtiva }) {
                         ].map(([campo, label]) => (
                           <label key={campo} className="block">
                             <span className="text-3xs font-bold uppercase tracking-widest text-fg">{label}</span>
-                            <input value={vaga[campo] || ""} onChange={e => atualizarVaga(index, { [campo]: e.target.value })} className="mt-1.5 w-full rounded-xl border border-line bg-card p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
+                            <input value={vaga[campo] || ""} onChange={e => atualizarVaga(index, { [campo]: e.target.value })} className="mt-1.5 w-full rounded-xl border border-line bg-card p-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
                           </label>
                         ))}
                         <label className="block">
                           <span className="text-3xs font-bold uppercase tracking-widest text-fg">Quantidade</span>
-                          <input type="number" min="1" value={vaga.quantidade} onChange={e => atualizarVaga(index, { quantidade: Number(e.target.value) || 1 })} className="mt-1.5 w-full rounded-xl border border-line bg-card p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
+                          <input type="number" min="1" value={vaga.quantidade} onChange={e => atualizarVaga(index, { quantidade: Number(e.target.value) || 1 })} className="mt-1.5 w-full rounded-xl border border-line bg-card p-2.5 text-sm font-bold outline-none focus:border-emerald-600" />
                         </label>
                       </div>
-                      <div className="mt-4 rounded-2xl border border-indigo-100 bg-card p-3.5">
+                      <div className="mt-4 rounded-2xl border border-zinc-200 bg-card p-3.5">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                           <div>
                             <p className="text-3xs font-bold uppercase tracking-widest text-fg">Pré-requisitos da função</p>
                             <p className="text-2xs text-subtle mt-0.5">Um requisito por linha. Você pode editar tudo que a IA sugerir.</p>
                           </div>
-                          <button type="button" disabled={gerandoRequisitos === vaga.id} onClick={() => gerarRequisitosIA(vaga, index)} className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">
+                          <button type="button" disabled={gerandoRequisitos === vaga.id} onClick={() => gerarRequisitosIA(vaga, index)} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">
                             {gerandoRequisitos === vaga.id ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
                             {gerandoRequisitos === vaga.id ? "Gerando..." : "Gerar com IA"}
                           </button>
@@ -566,7 +566,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                           value={(Array.isArray(vaga.requisitos) ? vaga.requisitos : String(vaga.requisitos || "").split(/\r?\n/)).join("\n")}
                           onChange={e => atualizarVaga(index, { requisitos: e.target.value.split(/\r?\n/) })}
                           placeholder="Ex.: Experiência com atendimento ao cliente&#10;Boa comunicação e trabalho em equipe"
-                          className="w-full rounded-xl border border-line bg-white p-3 text-sm font-medium leading-relaxed outline-none focus:border-indigo-500 resize-y"
+                          className="w-full rounded-xl border border-line bg-white p-3 text-sm font-medium leading-relaxed outline-none focus:border-emerald-600 resize-y"
                         />
                       </div>
                       <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-line">
@@ -586,7 +586,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
 
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-5 sm:px-7 py-4 border-t border-line-soft bg-card">
               <button type="button" onClick={() => setEditorPortal(null)} className="px-5 py-3 rounded-xl border border-line font-bold text-slate-900">Fechar</button>
-              <button type="button" disabled={salvandoPortal} onClick={salvarEditorPortal} className="px-5 py-3 rounded-xl bg-indigo-600 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60">
+              <button type="button" disabled={salvandoPortal} onClick={salvarEditorPortal} className="px-5 py-3 rounded-xl bg-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60">
                 {salvandoPortal ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} Salvar alterações
               </button>
             </div>
@@ -658,11 +658,11 @@ export default function BancoTalentos({ unidadeAtiva }) {
                   <section>
                      <h3 className="font-black text-lg text-slate-800 mb-3">Vaga e experiência profissional</h3>
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="flex items-start gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                           <Briefcase size={20} className="text-indigo-500 shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-3 bg-zinc-100 p-4 rounded-2xl border border-zinc-200">
+                           <Briefcase size={20} className="text-emerald-700 shrink-0 mt-0.5" />
                            <div>
-                              <p className="text-3xs font-bold text-indigo-400 uppercase tracking-widest">Cargo pretendido</p>
-                              <p className="font-black text-indigo-800">{valorOuTraco(detalhesAbertos.cargoPretendido)}</p>
+                              <p className="text-3xs font-bold text-zinc-400 uppercase tracking-widest">Cargo pretendido</p>
+                              <p className="font-black text-zinc-800">{valorOuTraco(detalhesAbertos.cargoPretendido)}</p>
                            </div>
                         </div>
                         <div className="sm:col-span-2 bg-white p-4 rounded-2xl border border-line-soft">
@@ -673,7 +673,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                   </section>
 
                   <section>
-                     <h3 className="font-black text-lg text-slate-800 mb-3 flex items-center gap-2"><MessageSquareText size={20} className="text-indigo-500" /> Respostas do teste de perfil</h3>
+                     <h3 className="font-black text-lg text-slate-800 mb-3 flex items-center gap-2"><MessageSquareText size={20} className="text-emerald-700" /> Respostas do teste de perfil</h3>
                      <div className="space-y-3">
                         {PERGUNTAS_RECRUTAMENTO.map((pergunta, index) => {
                            const resposta = respostaFormatada(candidatoAberto, pergunta);
@@ -700,7 +700,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                         <span className={`text-sm px-2 py-1 rounded-lg ${getCorNota(candidatoAberto.nota_ia)}`}>Nota: {candidatoAberto.nota_ia}</span>
                         Parecer do Sistema
                      </h3>
-                     <div className="bg-slate-800 text-slate-200 p-5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                     <div className="bg-hf-elevated text-hf-text p-5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap font-medium">
                         {candidatoAberto.avaliacao_ia}
                      </div>
                   </div>
@@ -712,7 +712,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                         Checar Antecedentes
                      </button>
                      {candidatoAberto.url_curriculo ? (
-                        <a href={candidatoAberto.url_curriculo} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 px-4 py-4 rounded-xl font-black transition-colors">
+                        <a href={candidatoAberto.url_curriculo} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-zinc-100 text-zinc-700 border border-zinc-200 hover:bg-zinc-100 px-4 py-4 rounded-xl font-black transition-colors">
                            <FileText size={18} />
                            Visualizar Currículo (PDF)
                         </a>

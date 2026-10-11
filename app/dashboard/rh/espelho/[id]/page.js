@@ -395,12 +395,12 @@ export default function EspelhoDePonto() {
                   // Se tem Atestado Médico no dia (e não bateu ponto)
                   if (atestado && !reg) {
                       return (
-                         <tr key={dia} className="bg-cyan-50/80">
-                            <td className="border border-slate-800 !py-0 !px-1 font-bold text-cyan-900 text-left">{rotuloDia(dia)}</td>
-                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.15em] text-cyan-950 bg-cyan-100/60">
+                         <tr key={dia} className="bg-zinc-100/80">
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold text-zinc-900 text-left">{rotuloDia(dia)}</td>
+                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.15em] text-zinc-900 bg-zinc-100/60">
                                🏥 ATESTADO MÉDICO — AUSÊNCIA ABONADA {atestado.cid ? `(CID ${atestado.cid})` : ""}
                             </td>
-                            <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.10em] text-cyan-900 bg-cyan-100/60 text-3xs">ABONADO — NÃO DESCONTAR</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.10em] text-zinc-900 bg-zinc-100/60 text-3xs">ABONADO — NÃO DESCONTAR</td>
                          </tr>
                       );
                   }

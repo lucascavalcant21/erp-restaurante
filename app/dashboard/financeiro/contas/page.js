@@ -24,7 +24,7 @@ import CampoDecimal from "../../../components/CampoDecimal";
 import { useContextoInteligencia } from "../../../components/intelligence/useContextoInteligencia";
 
 const COR = {
-  pago: "bg-emerald-100 text-emerald-800", parcial: "bg-blue-100 text-blue-800", vencido: "bg-red-100 text-red-800",
+  pago: "bg-emerald-100 text-emerald-800", parcial: "bg-zinc-100 text-zinc-800", vencido: "bg-red-100 text-red-800",
   pendente: "bg-slate-100 text-slate-900", cancelado: "bg-stone-200 text-stone-700", desconhecido: "bg-amber-100 text-amber-800",
 };
 const fmtData = (d) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
@@ -215,7 +215,7 @@ export default function ContasAPagarPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
-      <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 px-4 sm:px-8 text-white">
+      <div className="bg-hf-surface pt-6 sm:pt-8 pb-8 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Contas a Pagar</h1>
@@ -223,7 +223,7 @@ export default function ContasAPagarPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setRecorrencia({ mes: hoje.slice(0, 7) })} disabled={processando}
-              className="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-2xl flex items-center gap-2 text-sm disabled:opacity-60">
+              className="px-4 py-3 bg-hf-border hover:bg-hf-border-strong text-hf-text font-bold rounded-2xl flex items-center gap-2 text-sm disabled:opacity-60">
               <RefreshCw size={16} /> Recorrentes
             </button>
             <button onClick={abrirNova} disabled={processando}
@@ -235,16 +235,16 @@ export default function ContasAPagarPage() {
 
         <div className="max-w-7xl mx-auto mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { r: "A pagar (em aberto)", v: resumo.aPagar, I: CalendarDays, c: "text-amber-400" },
-            { r: "Vencido", v: resumo.vencido, I: AlertTriangle, c: "text-red-400" },
-            { r: "Próximos 7 dias", v: resumo.proximos7, I: Clock, c: "text-sky-300" },
-            { r: periodo ? "Pago no período (caixa)" : "Pago no período", v: resumo.pagoNoPeriodo, I: Wallet, c: "text-emerald-400",
+            { r: "A pagar (em aberto)", v: resumo.aPagar, I: CalendarDays, c: "text-amber-700" },
+            { r: "Vencido", v: resumo.vencido, I: AlertTriangle, c: "text-red-700" },
+            { r: "Próximos 7 dias", v: resumo.proximos7, I: Clock, c: "text-hf-text-2" },
+            { r: periodo ? "Pago no período (caixa)" : "Pago no período", v: resumo.pagoNoPeriodo, I: Wallet, c: "text-emerald-700",
               nota: !periodo ? "Escolha um período" : resumo.pagoNoPeriodoIncluiLegado ? "Inclui pagamentos antigos sem histórico" : null },
           ].map(({ r, v, I, c, nota }) => (
-            <div key={r} className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50">
-              <div className="flex items-center gap-2 text-slate-300"><I size={16} /><p className="text-3xs uppercase font-bold tracking-widest">{r}</p></div>
+            <div key={r} className="bg-hf-elevated p-4 rounded-2xl border border-hf-border">
+              <div className="flex items-center gap-2 text-hf-text-2"><I size={16} /><p className="text-3xs uppercase font-bold tracking-widest">{r}</p></div>
               <p className={`text-xl sm:text-2xl font-black mt-1 ${c}`}>{v == null ? "—" : fmtBRL(v)}</p>
-              <p className="text-3xs text-slate-400 mt-0.5">{nota || "Calculado das contas registradas no Héfisto"}</p>
+              <p className="text-3xs text-hf-text-2 mt-0.5">{nota || "Calculado das contas registradas no Héfisto"}</p>
             </div>
           ))}
         </div>

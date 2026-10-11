@@ -78,7 +78,7 @@ export default function CardapioGeradorPage() {
                      <Smartphone size={32} className="opacity-50"/>
                      <h3 className="text-xl font-black">Design Mobile-First</h3>
                   </div>
-                  <p className="text-blue-100 text-sm">O cardápio foi construído com a mesma tecnologia de grandes apps. Ele se adapta a qualquer celular e não requer que o cliente faça login para visualizar os pratos.</p>
+                  <p className="text-zinc-100 text-sm">O cardápio foi construído com a mesma tecnologia de grandes apps. Ele se adapta a qualquer celular e não requer que o cliente faça login para visualizar os pratos.</p>
                </div>
             </div>
 

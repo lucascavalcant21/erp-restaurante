@@ -286,7 +286,7 @@ export default function DeliveryKanbanPage() {
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colRota.map(p => (
-                 <div key={p.id} className="bg-card p-5 rounded-[20px] shadow-sm border-2 border-line border-l-4 border-l-blue-500">
+                 <div key={p.id} className="bg-card p-5 rounded-[20px] shadow-sm border-2 border-line border-l-4 border-l-emerald-600">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
                        <span className="text-xs font-bold text-fg">{horaStr(p.created_at)}</span>

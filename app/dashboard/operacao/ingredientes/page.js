@@ -909,7 +909,7 @@ function IngredientesRunner() {
             </button>
             <button
               onClick={() => iniciarCadastroPorVoz(true)}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-violet-600/30 bg-violet-50 px-4 text-sm font-black text-violet-700 shadow-sm transition hover:bg-violet-100"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-600/30 bg-zinc-100 px-4 text-sm font-black text-zinc-700 shadow-sm transition hover:bg-zinc-100"
             >
               <Mic size={18} /> Adicionar por voz
             </button>
@@ -934,7 +934,7 @@ function IngredientesRunner() {
             const cores = {
               emerald: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white",
               amber: "bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white",
-              violet: "bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white",
+              violet: "bg-zinc-100 text-emerald-700 group-hover:bg-emerald-700 group-hover:text-white",
               red: "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white",
             };
             return (
@@ -1008,7 +1008,7 @@ function IngredientesRunner() {
                 return (
                   <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
                     <td className="px-4 py-2">
-                      <p className="truncate text-sm font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-sky-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-sky-800">cozinha e bar</span>}</p>
+                      <p className="truncate text-sm font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-zinc-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-zinc-800">cozinha e bar</span>}</p>
                       <p className="mt-0.5 truncate text-2xs text-fg">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
@@ -1062,7 +1062,7 @@ function IngredientesRunner() {
                     </td>
                     <td className="sticky right-0 z-[3] bg-card px-2.5 py-2 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.45)]">
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-line p-1.5 text-fg hover:bg-blue-50 hover:text-blue-600">
+                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-line p-1.5 text-fg hover:bg-zinc-100 hover:text-emerald-700">
                           <Edit3 size={14} />
                         </button>
                         <button onClick={() => handleRemover(insumo)} title="Remover" className="rounded-lg border border-line p-1.5 text-fg hover:bg-red-50 hover:text-red-600">
@@ -1089,7 +1089,7 @@ function IngredientesRunner() {
               <article key={insumo.id} className="rounded-xl border border-line bg-card p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="truncate font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-sky-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-sky-800">cozinha e bar</span>}</h2>
+                    <h2 className="truncate font-black text-fg">{insumo.nome}{ehCozinhaEBar(insumo) && <span className="ml-1.5 rounded bg-zinc-100 px-1.5 py-0.5 align-middle text-3xs font-black uppercase text-zinc-800">cozinha e bar</span>}</h2>
                     <p className="mt-1 truncate text-xs text-fg">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
@@ -1612,7 +1612,7 @@ function IngredientesRunner() {
                     placeholder="Cole aqui nomes, valores, quantidades de produtos..."
                     className="w-full flex-1 rounded-xl border border-line bg-white p-3 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
                   />
-                  {origemMigracaoVoz && <div className="mt-2"><p className="rounded-lg bg-violet-50 px-3 py-2 text-2xs font-bold text-violet-700">{respostaVozIngredientes || "Use o microfone para ditar a lista."}</p><button type="button" onClick={ouvindoIngredientes ? () => escutaIngredientesRef.current?.parar?.() : () => iniciarCadastroPorVoz(false)} className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-bold text-white ${ouvindoIngredientes ? "bg-rose-600" : "bg-violet-600"}`}>{ouvindoIngredientes ? <><MicOff size={16}/> Parar de ouvir</> : <><Mic size={16}/> Falar ou confirmar por voz</>}</button></div>}
+                  {origemMigracaoVoz && <div className="mt-2"><p className="rounded-lg bg-zinc-100 px-3 py-2 text-2xs font-bold text-zinc-700">{respostaVozIngredientes || "Use o microfone para ditar a lista."}</p><button type="button" onClick={ouvindoIngredientes ? () => escutaIngredientesRef.current?.parar?.() : () => iniciarCadastroPorVoz(false)} className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-bold text-white ${ouvindoIngredientes ? "bg-rose-600" : "bg-emerald-700"}`}>{ouvindoIngredientes ? <><MicOff size={16}/> Parar de ouvir</> : <><Mic size={16}/> Falar ou confirmar por voz</>}</button></div>}
                 </div>
               </div>
 

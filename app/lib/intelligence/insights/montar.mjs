@@ -122,7 +122,7 @@ function corpo(a) {
         evidencias: [{ rotulo: "No período", valor: brl(d.atual) }, { rotulo: `Média de ${b.n} semanas`, valor: brl(b.media) },
           ...d.porProduto.map((p) => ({ rotulo: p.produto, valor: `${brl(p.valor)} (${num(p.quantidade)} ${p.unidade})` }))],
         impacto: { texto: `${brl(b.diferenca)} acima da média`, valor: b.diferenca, natureza: NATUREZA.REAL },
-        vars: {}, acoes: [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], aprofundar: null,
+        vars: {}, acoes: [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque/painel" }], aprofundar: null,
       };
     }
     case "produto_vencido":
@@ -173,14 +173,14 @@ function corpo(a) {
         titulo: `${d.total} item(ns) abaixo do estoque mínimo`,
         situacao: `${d.itens[0].produto} tem ${num(d.itens[0].saldo)} ${d.itens[0].unidade} (mínimo ${num(d.itens[0].minimo)}).`,
         evidencias: d.itens.slice(0, 5).map((i) => ({ rotulo: `${i.produto} · ${i.local}`, valor: `${num(i.saldo)} de ${num(i.minimo)} ${i.unidade}` })),
-        impacto: null, vars: {}, acoes: [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], aprofundar: null,
+        impacto: null, vars: {}, acoes: [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque/painel" }], aprofundar: null,
       };
     case "saldo_lotes_divergente":
       return {
         titulo: "Saldo diferente da soma dos lotes",
         situacao: `${d.total} produto(s) com saldo que não bate com a soma dos lotes por validade.`,
         evidencias: d.itens.slice(0, 5).map((i) => ({ rotulo: i.produto, valor: `saldo ${num(i.saldo)} · lotes ${num(i.somaDosLotes)}` })),
-        impacto: null, vars: {}, acoes: [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque?gestao=1" }], aprofundar: null,
+        impacto: null, vars: {}, acoes: [{ rotulo: "Ver estoque", rota: "/dashboard/operacao/estoque/painel" }], aprofundar: null,
       };
     default:
       return null;

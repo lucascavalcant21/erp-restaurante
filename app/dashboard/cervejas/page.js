@@ -200,8 +200,8 @@ export default function CervejasPage() {
 
   const opcoes = [
     { id: "catalogo", emoji: "🍺", titulo: "Catálogo", desc: "Marcas, estilos, preços e CMV", href: "/dashboard/cervejas/catalogo" },
-    { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de quantidades", href: "/dashboard/cervejas/estoque" },
-    { id: "tablet", emoji: "📱", titulo: "Modo Tablet — Sala de Cervejas", desc: "Interface quiosque para dar entrada e retirada no estoque de cervejas", href: "/dashboard/cervejas/tablet" },
+    // Estoque das cervejas é o estoque do Bar (tela única, HDEV-EST-001).
+    { id: "estoque", emoji: "📦", titulo: "Estoque do bar", desc: "Entrada, retirada e saldo das cervejas", href: "/dashboard/operacao/estoque?area=bar" },
   ];
 
   return (

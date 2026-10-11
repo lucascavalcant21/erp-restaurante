@@ -26,7 +26,7 @@ const ROTAS = {
   contas: "/dashboard/financeiro/contas",
   rh: "/dashboard/rh",
   eventos: "/dashboard/reservas-eventos",
-  estoque: "/dashboard/operacao/estoque?gestao=1",
+  estoque: "/dashboard/operacao/estoque",
   mesas: "/dashboard/mesas",
 };
 
@@ -222,21 +222,21 @@ export default function Inicio() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
       {/* Cabeçalho */}
-      <section className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-7 text-white sm:px-8 sm:py-8">
+      <section className="relative overflow-hidden rounded-3xl bg-hf-surface px-6 py-7 text-hf-text sm:px-8 sm:py-8">
         <div aria-hidden className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-sm font-bold text-emerald-300">
+            <p className="text-sm font-bold text-emerald-700">
               {agora ? `${saudacao(agora)}${nome ? `, ${nome}` : ""}` : " "}
             </p>
             <h1 className="mt-1 truncate text-3xl font-black tracking-tight sm:text-4xl">{unidadeInfo?.nome || "Sua operação"}</h1>
-            <p className="mt-1 text-sm font-medium text-slate-300 first-letter:uppercase">
+            <p className="mt-1 text-sm font-medium text-hf-text-2 first-letter:uppercase">
               {agora ? agora.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : " "}
             </p>
           </div>
           {!semUnidade && (
             <button onClick={carregar} disabled={atualizando}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-bold text-slate-100 transition hover:bg-white/15 disabled:opacity-70">
+              className="inline-flex items-center gap-2 rounded-xl bg-hf-elevated px-3.5 py-2 text-sm font-bold text-hf-text transition hover:bg-hf-elevated disabled:opacity-70">
               <RefreshCw size={15} className={atualizando ? "animate-spin" : ""} aria-hidden />
               {dados?.em ? `Atualizado às ${dados.em.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "Carregando..."}
             </button>

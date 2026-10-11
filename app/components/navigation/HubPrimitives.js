@@ -82,7 +82,7 @@ export function HubAttentionCard({
     red: "bg-rose-950/30 border-rose-900/60 text-rose-200",
     amber: "bg-amber-950/30 border-amber-900/60 text-amber-200",
     green: "bg-emerald-950/20 border-emerald-900/40 text-emerald-200",
-    indigo: "bg-indigo-950/30 border-indigo-900/60 text-indigo-200",
+    indigo: "bg-zinc-950/30 border-zinc-900/60 text-zinc-200",
     slate: "bg-white/80 border-slate-200 text-slate-600",
   };
 
@@ -90,7 +90,7 @@ export function HubAttentionCard({
     red: "bg-rose-500/20 text-rose-400",
     amber: "bg-amber-500/20 text-amber-600",
     green: "bg-emerald-500/20 text-emerald-600",
-    indigo: "bg-indigo-500/20 text-indigo-400",
+    indigo: "bg-zinc-500/20 text-zinc-400",
     slate: "bg-slate-50 text-slate-600",
   };
 

@@ -117,7 +117,7 @@ export default function LoginPage() {
 
   if (verificandoSessao) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-900 text-white">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-hf-surface text-hf-text">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gradient-to-br from-orange-500 to-amber-600 shadow-xl shadow-orange-500/20">
           <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
@@ -125,7 +125,7 @@ export default function LoginPage() {
         </div>
         <p className="text-xl font-bold tracking-tight mb-2">Hefisto</p>
         <div className="flex items-center gap-2 text-sm text-subtle font-medium">
-          <Loader2 size={16} className="animate-spin text-orange-400" />
+          <Loader2 size={16} className="animate-spin text-amber-700" />
           <span>Restaurando sua sessão...</span>
         </div>
       </div>

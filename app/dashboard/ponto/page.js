@@ -166,7 +166,7 @@ function ModalHistorico({ onClose, colaborador }) {
                        href={linkGoogleMaps(reg.latitude, reg.longitude)}
                        target="_blank"
                        rel="noreferrer"
-                       className="font-bold text-blue-600 hover:underline flex items-center gap-1"
+                       className="font-bold text-emerald-700 hover:underline flex items-center gap-1"
                      >
                        Google Maps <ExternalLink size={10} />
                      </a>
@@ -544,10 +544,10 @@ export default function PontoPage() {
                              </button>
 
                              {/* Botão 3 */}
-                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-white text-subtle border border-line-soft'}`}>
+                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-emerald-700 text-white shadow-xl shadow-blue-500/20 hover:bg-emerald-700 scale-105' : 'bg-white text-subtle border border-line-soft'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">3. Volta Int.</span>
-                                   {st > 2 && <CheckCircle2 size={16} className={st === 2 ? 'text-white' : 'text-blue-500'} />}
+                                   {st > 2 && <CheckCircle2 size={16} className={st === 2 ? 'text-white' : 'text-emerald-700'} />}
                                 </div>
                                 {pontoDoDia?.hora_retorno_intervalo ? (
                                    <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_retorno_intervalo).toLocaleTimeString('pt-BR')}</span>

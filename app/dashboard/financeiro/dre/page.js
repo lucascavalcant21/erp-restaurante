@@ -27,8 +27,8 @@ const nomeDoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return n
 const NATUREZAS = {
   real: { rotulo: "Real", classe: "border-slate-300 text-slate-600", ajuda: "Lançado ou medido no sistema." },
   estimado: { rotulo: "Estimado", classe: "border-amber-300 bg-amber-50 text-amber-800", ajuda: "Pelo % configurado na Pizza do Lucro, porque não há lançamento no mês." },
-  configurado: { rotulo: "Configurado", classe: "border-sky-300 bg-sky-50 text-sky-800", ajuda: "Valor informado nas configurações (Pizza do Lucro)." },
-  simulacao: { rotulo: "Simulação", classe: "border-violet-300 bg-violet-50 text-violet-800", ajuda: "Valor digitado só para simular; não é apurado." },
+  configurado: { rotulo: "Configurado", classe: "border-zinc-200 bg-zinc-100 text-zinc-800", ajuda: "Valor informado nas configurações (Pizza do Lucro)." },
+  simulacao: { rotulo: "Simulação", classe: "border-zinc-200 bg-zinc-100 text-zinc-800", ajuda: "Valor digitado só para simular; não é apurado." },
   sem_dado: { rotulo: "Sem dado", classe: "border-rose-300 bg-rose-50 text-rose-700", ajuda: "Falta a fonte desse número; o motivo está logo abaixo." },
   sem_lancamento: { rotulo: "Sem lançamento", classe: "border-amber-300 bg-amber-50 text-amber-800", ajuda: "Nada lançado nem configurado para esta linha." },
 };
@@ -131,15 +131,15 @@ export default function DreGerencialPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
       {/* Cabeçalho */}
-      <section className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-7 text-white sm:px-8">
+      <section className="relative overflow-hidden rounded-3xl bg-hf-surface px-6 py-7 text-hf-text sm:px-8">
         <div aria-hidden className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-sm font-bold text-emerald-300">Regime de competência · {unidadeInfo?.nome || "unidade"}</p>
+            <p className="text-sm font-bold text-emerald-700">Regime de competência · {unidadeInfo?.nome || "unidade"}</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">DRE gerencial</h1>
-            <p className="mt-1 text-sm font-medium text-slate-300 first-letter:uppercase">{nomeDoMes(mes)}{calc?.janela.emAndamento ? " · mês em andamento" : ""}</p>
+            <p className="mt-1 text-sm font-medium text-hf-text-2 first-letter:uppercase">{nomeDoMes(mes)}{calc?.janela.emAndamento ? " · mês em andamento" : ""}</p>
           </div>
-          <label className="flex flex-col gap-1 text-xs font-bold text-slate-300">
+          <label className="flex flex-col gap-1 text-xs font-bold text-hf-text-2">
             Mês
             <input type="month" value={mes} max={hojeIso().slice(0, 7)} onChange={(e) => e.target.value && setMes(e.target.value)}
               className="h-11 rounded-xl border-0 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-400" />
@@ -161,9 +161,9 @@ export default function DreGerencialPage() {
 
           {/* Sem faturamento real: explica e deixa simular, marcado como simulação */}
           {calc.fat.valor === null && (
-            <section className="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
               <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700"><Calculator size={18} /></span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-700"><Calculator size={18} /></span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-black text-slate-900">Faturamento do mês: sem dado</p>
                   <p className="mt-0.5 text-sm font-medium text-slate-600">{calc.fat.motivo}</p>
@@ -174,16 +174,16 @@ export default function DreGerencialPage() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-[repeat(2,minmax(0,14rem))]">
                     <label className="text-xs font-bold text-slate-600">Simular com faturamento (R$)
                       <CampoDecimal value={simFat} onChange={(e) => setSimFat(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="0,00"
-                        className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm font-bold text-slate-900 outline-none focus:border-violet-500" />
+                        className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600" />
                     </label>
                     {calc.cmv.valor === null && (
                       <label className="text-xs font-bold text-slate-600">CMV para simular (%)
                         <input inputMode="decimal" value={simCmv} onChange={(e) => setSimCmv(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="ex.: 32"
-                          className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm font-bold text-slate-900 outline-none focus:border-violet-500" />
+                          className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600" />
                       </label>
                     )}
                   </div>
-                  {dre.simulando && <p className="mt-2 text-xs font-bold text-violet-700">Simulação: os números abaixo usam o valor digitado e não ficam gravados.</p>}
+                  {dre.simulando && <p className="mt-2 text-xs font-bold text-zinc-700">Simulação: os números abaixo usam o valor digitado e não ficam gravados.</p>}
                 </div>
               </div>
             </section>

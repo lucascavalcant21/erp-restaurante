@@ -40,7 +40,10 @@ export function unidadeDeCompra(insumo) {
 export function unidadeOperacional(insumo) {
   const emb = embalagemDoProduto(insumo);
   const saldo = unidadeDoSaldo(insumo);
-  if (!emb) return { nome: saldo, fatorSaldo: 1, embalagem: false, saldo };
+  // "embalagem de 1 kg" sem nome no cadastro não é unidade de contagem: o
+  // funcionário pensa em kg/L ("3 kg", não "3 embalagens"). Visto em produção.
+  const semNome = !String(insumo?.unidade_comercial || "").trim();
+  if (!emb || (semNome && Number(emb.tamanho) === 1)) return { nome: saldo, fatorSaldo: 1, embalagem: false, saldo };
   return { nome: emb.nome === "embalagem" && /^(ml|l)$/i.test(saldo) ? "unidade" : emb.nome, fatorSaldo: emb.tamanho, embalagem: true, saldo };
 }
 

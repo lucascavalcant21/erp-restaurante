@@ -40,6 +40,12 @@ test("área sem local aparece vazia (Salão sem local); 'Outros' só se houver l
   assert.deepEqual(a.map((x) => [x.id, x.locais.length]), [["cozinha", 1], ["bar", 0], ["salao", 0], ["limpeza", 0]]);
 });
 
+test("com o local Salão criado (EST-LOCAL-1): Salão é o principal, pré-preparos depois", () => {
+  const a = areasComLocais([...LOCAIS, { id: 12, nome: "Salão", tipo: "materiais" }]);
+  assert.deepEqual(a.find((x) => x.id === "salao").locais.map((l) => l.nome), ["Salão", "Pré-preparos do Salão"]);
+  assert.equal(a.find((x) => x.id === "outros").locais.some((l) => l.nome === "Salão"), false);
+});
+
 test("categorias por área", () => {
   assert.equal(categoriaNaArea({ nome: "Corona", categoria: "Cerveja" }, "bar"), "Cervejas");
   assert.equal(categoriaNaArea({ nome: "Coca cola", categoria: "Refrigerante" }, "bar"), "Refrigerantes");

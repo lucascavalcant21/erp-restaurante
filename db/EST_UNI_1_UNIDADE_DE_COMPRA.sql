@@ -8,7 +8,12 @@
    garrafas vêm numa caixa. O app (estoque-unidades.mjs) converte
    "2 caixas" → 24 garrafas → 7.920 ml quando estes dois campos existem.
 
+   BACKUP: o projeto está no plano FREE do Supabase (sem backup automático nem
+   PITR). Por isso o passo 0 copia a tabela insumos inteira para
+   backup_insumos_est_uni_1_20261011 dentro da mesma transação.
+
    FAZ (uma transação; aditiva):
+     0. backup_insumos_est_uni_1_20261011 (cópia de insumos, se ainda não existir)
      1. insumos.unidade_compra text  (ex.: 'caixa', 'fardo')
      2. insumos.fator_compra numeric (unidades operacionais por unidade de compra; > 0)
    NÃO FAZ: não altera saldo, movimento, lote, custo nem nenhuma linha existente
@@ -28,6 +33,11 @@ begin
     raise exception 'EST-UNI-1: tabela insumos não existe. Nada foi alterado.';
   end if;
 end $$;
+
+create table if not exists public.backup_insumos_est_uni_1_20261011 as table public.insumos;
+-- cópia fora da API: RLS ligado sem política e sem grant para o app
+alter table public.backup_insumos_est_uni_1_20261011 enable row level security;
+revoke all on public.backup_insumos_est_uni_1_20261011 from anon, authenticated;
 
 alter table public.insumos add column if not exists unidade_compra text;
 alter table public.insumos add column if not exists fator_compra numeric;

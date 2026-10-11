@@ -67,6 +67,18 @@ test("produto em ml sem nome de embalagem conta em 'unidades'", () => {
   assert.equal(saldoOperacional(heineken, 1800), "3 unidades");
 });
 
+test("embalagem de 1 kg/1 L sem nome mostra kg/L, não 'embalagens' (Açaí e Absolut reais)", () => {
+  const acai = { nome: "Açaí", unidade_medida: "kg", unidade_comercial: null, tamanho_embalagem: 1 };
+  const absolut = { nome: "Absolut", unidade_medida: "l", unidade_comercial: null, tamanho_embalagem: 1 };
+  assert.equal(saldoOperacional(acai, 3), "3 kg");
+  assert.equal(saldoOperacional(absolut, 0.75), "0,75 L");
+  assert.equal(unidadeOperacional(acai).embalagem, false);
+  // com nome, continua contando pela embalagem
+  assert.equal(saldoOperacional({ ...acai, unidade_comercial: "balde" }, 3), "3 baldes");
+  // garrafa de 330 ml sem nome continua "unidades"
+  assert.equal(saldoOperacional(heineken, 1800), "3 unidades");
+});
+
 test("kg/g: 2 pacotes de 2 kg + 350 g = 4,35 kg; 500 g num produto em kg = 0,5 kg", () => {
   assert.equal(quantidadeDoMovimento({ insumo: arroz, embalagens: "2", fracao: "350", unidadeFracao: "g" }).quantidadeSaldo, 4.35);
   assert.equal(quantidadeDoMovimento({ insumo: sal, fracao: "500", unidadeFracao: "g" }).quantidadeSaldo, 0.5);

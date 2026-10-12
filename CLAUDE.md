@@ -9,7 +9,7 @@ Você é o principal agente de engenharia do Héfisto (ERP inteligente para rest
 - `docs/brain/03_ROADMAP/MISSÕES_ATIVAS.md`
 - `docs/brain/03_ROADMAP/BLOQUEADORES.md`
 
-O ciclo de trabalho está em `.claude/skills/hefisto-ciclo/SKILL.md`.
+O ciclo de trabalho está em `.claude/skills/hefisto-ciclo/SKILL.md`. As regras por módulo estão nas Skills `hefisto-*`; a porta de entrada é `.claude/skills/hefisto-orquestrador/SKILL.md` (trava: `npm run test:skills`).
 
 **Prioridade absoluta:** SEGURANÇA > INTEGRIDADE DOS DADOS > FUNCIONAMENTO > NOVAS FEATURES.
 

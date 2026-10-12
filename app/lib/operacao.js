@@ -10,7 +10,7 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   // Cozinha/bar: entra também o ingrediente marcado para os dois setores
   // (coluna departamentos). Sem a coluna no banco, o filtro antigo.
   const consultar = (comCompartilhados) => {
-    let query = supabase.from("insumos").select("*");
+    let query = supabase.from("insumos").select("*").is("arquivado_em", null); // duplicado unido (EST-DUP-1) sai da lista
     if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
     if (dept && comCompartilhados && SETORES_COMPARTILHAVEIS.includes(dept)) query = query.or(`departamento.eq.${dept},departamentos.cs.{${dept}}`);
     else if (dept) query = query.eq("departamento", dept);

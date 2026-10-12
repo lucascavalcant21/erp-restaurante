@@ -14,7 +14,7 @@ export const faltaMigracaoF24B = (msg) => /data_recebimento|forma_pagamento|data
 export async function fetchBaseCompras(unidadeId) {
   if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: null, error: "Selecione uma unidade." };
   const [ins, est, forn, cus] = await Promise.all([
-    supabase.from("insumos").select("id, nome, nome_interno, codigo_interno, unidade_medida, categoria, departamento").eq("unidade_id", unidadeId).order("nome"),
+    supabase.from("insumos").select("id, nome, nome_interno, codigo_interno, unidade_medida, categoria, departamento").eq("unidade_id", unidadeId).is("arquivado_em", null).order("nome"),
     supabase.from("estoques").select("id, nome, slug, tipo, status, ordem").eq("unidade_id", unidadeId).eq("status", "ativo").order("ordem").order("nome"),
     supabase.from("fornecedores").select("id, nome, unidade_id, ativo").order("nome"),
     supabase.from("estoque_custos").select("insumo_id, custo_medio_base, saldo_referencia, unidade_base, atualizado_em, origem_tipo").eq("unidade_id", unidadeId),

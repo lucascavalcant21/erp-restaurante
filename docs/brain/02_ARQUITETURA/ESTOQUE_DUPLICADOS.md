@@ -62,3 +62,20 @@ Referências conferidas em TODAS as tabelas com `insumo_id` (fichas, compras, co
 | — (variação legítima) "Heineken " (dda5ada5-f856-431a-acdd-b623c0a240f4) | ml · 330 | 30 long necks (9.900 ml) | R$ 6,40/un | itens 1, lotes 1, mov 9, preços 1, legado 1 | fica como está; só renomear para "Heineken Long Neck 330 ml" | | | | |
 
 Como unir sem perder histórico (quando aprovado): o duplicado NÃO é apagado (movimentos e histórico de preço apontam para ele). Saldo > 0 vai para o que fica por movimentação auditada (retirada "ajuste autorizado" no duplicado + entrada no que fica, mesma justificativa); depois o duplicado é arquivado. Nenhum UPDATE em movimentos antigos.
+
+## Executado em 12/10/2026 (aprovado pelo dono)
+
+TESTADO NO SUPABASE REAL. Migração `db/EST_DUP_1_ARQUIVAR_DUPLICADOS.sql`, ensaiada antes numa transação desfeita.
+
+- Backup externo conferido por md5: `Meu ERP/backups/2026-10-12-pre-limpeza` (14 tabelas). Cópia no banco: `backup_insumos_est_dup_1_20261012`.
+- Novas colunas em `insumos`: `arquivado_em`, `arquivado_motivo`, `unido_a`. Produto arquivado some das listas de escolha (estoque, compras, inventário, cadastro, eventos); histórico e saldo continuam ligados ao id.
+- Arquivados e unidos:
+  - Heineken - 600ml (47ca891c) → Heineken (d48708f1);
+  - Corona Long Neck (79220b02) → Corona (9d75bef9);
+  - Heineken zero - Long neck 330ml (7d57e434) → Heineken - Long neck zero 330ml (f8877024).
+- Renomeado: "Heineken " (dda5ada5) → "Heineken Long Neck 330 ml".
+- Conferência: 346 movimentos antes e depois; saldos iguais.
+
+**Ainda com o dono:**
+- "Coroa zero" (24 un, 08/10): se foi teste, estorna; se é estoque real, as 24 passam para a Corona zero.
+- Heineken zero long neck (f8877024) × lata (79a931da): vende os dois?

@@ -76,6 +76,7 @@ TESTADO NO SUPABASE REAL. Migração `db/EST_DUP_1_ARQUIVAR_DUPLICADOS.sql`, ens
 - Renomeado: "Heineken " (dda5ada5) → "Heineken Long Neck 330 ml".
 - Conferência: 346 movimentos antes e depois; saldos iguais.
 
-**Ainda com o dono:**
-- "Coroa zero" (24 un, 08/10): se foi teste, estorna; se é estoque real, as 24 passam para a Corona zero.
-- Heineken zero long neck (f8877024) × lata (79a931da): vende os dois?
+**Decidido pelo dono em seguida (12/10):**
+- Açaí R$ 9,00 (conta avulsa, sem compra nem estoque ligados): cancelada.
+- Heineken zero: vendem só long neck. `db/EST_DUP_2_HEINEKEN_ZERO.sql`: "Heineken zero" (79a931da, 48 un, 8 mov) fica, com embalagem corrigida de lata para long neck e nome "Heineken Zero Long Neck 330 ml"; f8877024 e 7d57e434 arquivados e unidos a ele.
+- "Coroa zero" (24 un, 08/10): foi teste. O estorno pede o PIN de administrador, então o dono faz pelo Histórico do estoque. Depois o produto é arquivado e unido à Corona zero (ac01cd2e).

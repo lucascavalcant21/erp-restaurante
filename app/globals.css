@@ -26,7 +26,7 @@
 }
 
 body {
-  background-color: var(--surface);
+  background-color: rgb(var(--hf-bg));
   color: var(--fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -302,7 +302,7 @@ body {
 }
 
 /* ═══ IDENTIDADE HÉFISTO (clara) — tokens hf-* ════════════════════════════
-   Off-white + branco + grafite + verde Héfisto. Sem fundo preto (pedido do
+   Fundo amarelo claro + cards brancos + grafite + verde Héfisto. Sem fundo preto (pedido do
    dono, 2026-10-11). Vermelho e âmbar SÓ para estado real (vencido, crítico,
    negativo / atenção). Sem azul de identidade.
    Canais RGB para o Tailwind aceitar opacidade: bg-hf-danger/10.
@@ -311,7 +311,7 @@ body {
    Contraste (WCAG) sobre hf-surface: text 17:1 · text-2 7,7:1 · muted 4,8:1
    (muted só para informação terciária). */
 :root {
-  --hf-bg:            247 247 245;/* #F7F7F5 página */
+  --hf-bg:            254 247 220;/* #FEF7DC página: amarelo claro (pedido do dono, 2026-10-12) */
   --hf-surface:       255 255 255;/* #FFFFFF card */
   --hf-elevated:      244 244 245;/* #F4F4F5 menu, hover, bloco interno */
   --hf-border:        228 228 231;/* #E4E4E7 borda padrão */

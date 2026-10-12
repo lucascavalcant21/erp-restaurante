@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    EST-LOCAL-1 · LOCAL DE ESTOQUE "SALÃO" (unidade seldeestrela)
 
-   STATUS: PROPOSTA (HDEV-EST-001). Rodar só com aprovação do dono.
+   STATUS: APLICADO em 12/10/2026 com aprovação do dono (HDEV-EST-001).
 
    Hoje a área Salão só tem "Pré-preparos do Salão" (tipo alimentos). Papéis,
    descartáveis e utensílios do salão não têm onde ficar. Este script cria UM

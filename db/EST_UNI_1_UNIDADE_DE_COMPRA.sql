@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    EST-UNI-1 · UNIDADE DE COMPRA DO PRODUTO (caixa com 12 garrafas)
 
-   STATUS: PROPOSTA (HDEV-EST-001). Rodar só com aprovação do dono.
+   STATUS: APLICADO em 12/10/2026 com aprovação do dono (HDEV-EST-001).
 
    Hoje o cadastro tem a unidade do saldo (unidade_medida: ml) e o conteúdo da
    embalagem (tamanho_embalagem: 330 ml numa garrafa), mas não sabe quantas

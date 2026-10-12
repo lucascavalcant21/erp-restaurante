@@ -763,7 +763,7 @@ export function rateForMethod(method, evento) {
  */
 export async function fetchIngredientesERP(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null };
-  let q = supabase.from("insumos").select("*").order("nome");
+  let q = supabase.from("insumos").select("*").is("arquivado_em", null).order("nome");
   if (unidadeId && unidadeId !== "todas" && unidadeId !== "matriz") q = q.eq("unidade_id", unidadeId);
   const { data, error } = await q;
   const normalizados = (data || []).map((i) => ({

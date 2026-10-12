@@ -16,9 +16,9 @@ const CAMPOS_INSUMO = "id, nome, nome_interno, unidade_medida, categoria, codigo
 // coluna faltar num banco antigo, a contagem segue sem ela (tudo por unidade).
 const CAMPOS_INSUMO_FRAC = `${CAMPOS_INSUMO}, permite_fracionado`;
 async function lerInsumos(unidadeId) {
-  const r = await supabase.from("insumos").select(CAMPOS_INSUMO_FRAC).eq("unidade_id", unidadeId).order("nome");
+  const r = await supabase.from("insumos").select(CAMPOS_INSUMO_FRAC).eq("unidade_id", unidadeId).is("arquivado_em", null).order("nome");
   if (r.error && /permite_fracionado/i.test(r.error.message || "")) {
-    return supabase.from("insumos").select(CAMPOS_INSUMO).eq("unidade_id", unidadeId).order("nome");
+    return supabase.from("insumos").select(CAMPOS_INSUMO).eq("unidade_id", unidadeId).is("arquivado_em", null).order("nome");
   }
   return r;
 }

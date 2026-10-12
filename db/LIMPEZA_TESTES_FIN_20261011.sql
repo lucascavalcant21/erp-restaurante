@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    LIMPEZA DOS LANÇAMENTOS DE TESTE DO FINANCEIRO (unidade seldeestrela)
 
-   STATUS: PREPARADO, NÃO EXECUTADO. Rodar só depois de o dono aprovar a lista.
+   STATUS: EXECUTADO em 12/10/2026 com aprovação do dono (sem o bloco 4, Açaí).
    Nada é apagado: o banco proíbe apagar pagamento/recebimento ("use o
    estorno"). Pagamentos e recebimentos são ESTORNADOS e as contas
    CANCELADAS, pelas funções do próprio sistema (fin_estornar_pagamento,

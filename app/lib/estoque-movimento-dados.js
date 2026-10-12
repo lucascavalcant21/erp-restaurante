@@ -24,7 +24,7 @@ const colunaAusente = (e) => /column .* does not exist|could not find .* column|
 export async function fetchBaseMovimento(unidadeId) {
   if (!isSupabaseReady() || !unidadeValida(unidadeId)) return { data: null, error: "Selecione uma unidade." };
   const insumos = async () => {
-    const r = await supabase.from("insumos").select(`${CAMPOS_INSUMO}, ${CAMPOS_COMPRA}`).eq("unidade_id", unidadeId).order("nome");
+    const r = await supabase.from("insumos").select(`${CAMPOS_INSUMO}, ${CAMPOS_COMPRA}`).eq("unidade_id", unidadeId).is("arquivado_em", null).order("nome");
     return r.error && colunaAusente(r.error)
       ? supabase.from("insumos").select(CAMPOS_INSUMO).eq("unidade_id", unidadeId).order("nome") : r;
   };
@@ -36,10 +36,12 @@ export async function fetchBaseMovimento(unidadeId) {
   ]);
   const erro = [e.error, ei.error, ins.error].find(Boolean);
   if (erro) return { data: null, error: erro.message };
+  // produto arquivado (duplicado unido, EST-DUP-1) não aparece: só os saldos de produtos da lista
+  const vivos = new Set((ins.data || []).map((i) => i.id));
   return {
     data: {
       estoques: e.data || [],
-      itens: ei.data || [],
+      itens: (ei.data || []).filter((i) => vivos.has(i.insumo_id)),
       insumos: ins.data || [],
       custosMedios: Object.fromEntries((cm.data || []).map((c) => [c.insumo_id, Number(c.custo_medio_base)])),
     },

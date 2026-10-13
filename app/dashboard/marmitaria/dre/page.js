@@ -21,7 +21,7 @@ import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchConfiguracoesMarmitaria,
   fetchProducaoLotes,
-  fetchRhAlocacoes,,
+  fetchRhAlocacoes,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { calcularDreGerencialMarmitaria } from "../../../lib/marmitaria/marmitaria-calculos.mjs";

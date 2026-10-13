@@ -20,7 +20,7 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import {
   fetchAssinaturas,
-  salvarAssinatura,,
+  salvarAssinatura,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 

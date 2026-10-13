@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import {
   fetchConfiguracoesMarmitaria,
-  salvarConfiguracoesMarmitaria,,
+  salvarConfiguracoesMarmitaria,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 

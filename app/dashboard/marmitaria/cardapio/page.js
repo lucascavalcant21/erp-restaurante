@@ -19,7 +19,7 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import {
   fetchMarmitas,
-  salvarMarmita,,
+  salvarMarmita,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 

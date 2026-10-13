@@ -21,7 +21,7 @@ import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchQualidadeOcorrencias,
   salvarQualidadeOcorrencia,
-  fetchMarmitas,,
+  fetchMarmitas,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { calcularMetricasQualidade } from "../../../lib/marmitaria/marmitaria-calculos.mjs";

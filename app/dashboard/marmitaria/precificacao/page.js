@@ -22,7 +22,7 @@ import {
   fetchMarmitas,
   fetchConfiguracoesMarmitaria,
   fetchPrecificacaoCanais,
-  salvarPrecificacaoCanal,,
+  salvarPrecificacaoCanal,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {

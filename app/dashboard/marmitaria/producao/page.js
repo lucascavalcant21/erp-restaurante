@@ -23,7 +23,7 @@ import { fmtBRL } from "../../../components/ui";
 import {
   fetchProducaoLotes,
   salvarProducaoLote,
-  fetchMarmitas,,
+  fetchMarmitas,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {

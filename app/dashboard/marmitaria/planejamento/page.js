@@ -28,7 +28,7 @@ import {
   fetchInsumosEstoque,
   fetchEmbalagensMarmitaria,
   fetchRhAlocacoes,
-  salvarPlanoOperacional,,
+  salvarPlanoOperacional,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { gerarPlanoOperacionalCompleto } from "../../../lib/marmitaria/marmitaria-calculos.mjs";

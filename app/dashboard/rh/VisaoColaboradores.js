@@ -19,7 +19,7 @@ import {
 } from "../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../lib/ponto-status.mjs";
-import { faseContratoCalculada, prazoExperiencia } from "../../lib/contrato-experiencia.mjs";
+import { faseContratoCalculada, prazoExperiencia, aniversario } from "../../lib/contrato-experiencia.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../lib/pessoas";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import { supabase } from "../../lib/supabase";
@@ -790,7 +790,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                   <div className="flex-1 min-w-0">
                     <p className="font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
                     <p className="text-2xs font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
-                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}
+                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}{(() => { const a = aniversario(c); return a ? ` · ${a.idade} anos${a.ehHoje ? " 🎂" : ""}` : ""; })()}
                     </p>
                     {st && (
                       <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-3xs font-bold" style={{ background: st.fundo, color: st.cor }}>

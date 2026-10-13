@@ -26,7 +26,7 @@ import {
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto, fetchPontoDoDia } from "../../lib/ponto";
 import { domingosParaFolga, folgasDeDomingoNoMes, avisosDaFolga, dataCurta } from "../../lib/folgas-domingo.mjs";
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
-import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
+import { situacaoExperiencia, emExperiencia, faseContratoCalculada, situacaoAvisoPrevio, tempoDeCasa, aniversario, aniversariantesDoMes, fraseAniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
@@ -2033,6 +2033,7 @@ export default function RHPage() {
             const FAT_MINIMO = paramsSis.faturamento_minimo_cmo;
             const pct = fat >= FAT_MINIMO ? (total / fat) * 100 : null;
             if (!ativos.length) return null;
+            const aniv = aniversariantesDoMes(ativos, new Date());
             const trabalhandoAgora = new Set(pontosHoje.map(p => p.colaborador_id)).size;
                         const emExperiencia = fixos.filter(f => String(f.status_contrato || "").toLowerCase().includes("experi")).length;
             const incompletos = ativos.filter(f => !f.data_admissao || !f.cpf).length;
@@ -2063,20 +2064,20 @@ export default function RHPage() {
                  render: () => (
                      <div>
                         <p className="text-xs font-medium text-subtle mb-4">Rateio do salário fixo (pelos dias trabalhados na semana) somado ao custo exato das diárias extras de quem bateu ponto hoje.</p>
-                        <h4 className="font-black text-accent mt-4 mb-2">Fixos (${fmtBRL(fixosDia)})</h4>
+                        <h4 className="font-black text-accent mt-4 mb-2">Fixos ({fmtBRL(fixosDia)})</h4>
                         <ul className="space-y-2 text-sm">
                            {fixos.map(f => {
                                const n = (f.dias_trabalho || "").split(",").filter(Boolean).length;
                                const rateio = n ? (Number(f.salario) || 0) / (n * 4.345) : 0;
                                if (rateio === 0) return null;
-                               return <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">${fmtBRL(rateio)}</span></li>;
+                               return <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">{fmtBRL(rateio)}</span></li>;
                            })}
                         </ul>
-                        <h4 className="font-black text-amber-600 mt-6 mb-2">Extras de hoje (${fmtBRL(extrasDiaHoje)})</h4>
+                        <h4 className="font-black text-amber-600 mt-6 mb-2">Extras de hoje ({fmtBRL(extrasDiaHoje)})</h4>
                         {extras.filter(f => idsPontoHoje.has(f.id)).length === 0 ? <p className="text-xs font-bold text-subtle">Nenhum extra bateu ponto hoje.</p> : (
                         <ul className="space-y-2 text-sm">
                            {extras.filter(f => idsPontoHoje.has(f.id)).map(f => (
-                               <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">${fmtBRL(f.salario)}</span></li>
+                               <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">{fmtBRL(f.salario)}</span></li>
                            ))}
                         </ul>
                         )}
@@ -2095,9 +2096,27 @@ export default function RHPage() {
                     <ul className="space-y-2 text-sm">
                         {fixos.map(f => {
                             const totM = (Number(f.salario) || 0) + (Number(f.vale_alimentacao) || 0) + (Number(f.taxa_servico_mes) || 0);
-                            return <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">${fmtBRL(totM)}</span></li>;
+                            return <li key={f.id} className="flex justify-between border-b border-line pb-1"><span className="text-fg">{f.nome}</span><span className="font-bold text-fg-soft">{fmtBRL(totM)}</span></li>;
                         })}
                     </ul>
+                 )
+               },
+               {
+                 rot: "Aniversariantes", val: aniv.itens.length, sub: aniv.itens.length ? `em ${aniv.mes}` : `ninguém em ${aniv.mes}`,
+                 render: () => (
+                    <div className="space-y-3">
+                       {aniv.itens.length === 0 ? <p className="text-sm font-bold text-subtle text-center py-2">Ninguém faz aniversário em {aniv.mes}.</p> : (
+                          <ul className="space-y-2 text-sm">
+                             {aniv.itens.map(it => (
+                                <li key={it.colaborador.id} className="flex justify-between gap-3 border-b border-line pb-2">
+                                   <span className={`font-bold ${it.ehHoje ? "text-accent" : "text-fg"}`}>{it.ehHoje ? "🎂 " : ""}{it.colaborador.nome}</span>
+                                   <span className="text-subtle text-right">{it.diaMes} · {it.ehHoje ? "faz" : it.jaFez ? "fez" : "vai fazer"} {it.vaiFazer} anos</span>
+                                </li>
+                             ))}
+                          </ul>
+                       )}
+                       {aniv.semData > 0 && <p className="text-xs font-medium text-amber-800">{aniv.semData} de {aniv.ativos} colaboradores ativos estão sem data de nascimento no cadastro: o aviso não os inclui.</p>}
+                    </div>
                  )
                },
                {
@@ -2108,7 +2127,14 @@ export default function RHPage() {
                }
             ];
             return (
-               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 relative">
+               <>
+               {aniv.itens.filter(it => !it.jaFez).length > 0 && (
+                  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                     <p className="text-3xs font-bold uppercase tracking-wider text-emerald-700">Aniversários de {aniv.mes}</p>
+                     <ul className="mt-1 space-y-0.5 font-semibold">{aniv.itens.filter(it => !it.jaFez).map(it => <li key={it.colaborador.id}>{it.ehHoje ? "🎂 " : ""}{fraseAniversario(it)}</li>)}</ul>
+                  </div>
+               )}
+               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 relative">
                   {cards.map(c => (
                      <div key={c.rot} onClick={() => setDetalheKpi(c)} className="bg-card rounded-2xl border border-line shadow-sm px-3 py-2.5 cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all active:scale-95">
                         <p className="text-3xs font-bold uppercase tracking-wider text-subtle leading-tight">{c.rot}</p>
@@ -2117,6 +2143,7 @@ export default function RHPage() {
                      </div>
                   ))}
                </div>
+               </>
             );
          })()}
 

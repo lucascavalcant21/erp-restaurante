@@ -49,6 +49,7 @@ import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import BancoTalentos from "./components/BancoTalentos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 import CampoDecimal from "../../components/CampoDecimal";
+import { formularioDeEdicao, validarCadastro, progressoCadastro, acharDuplicado } from "../../lib/colaborador-cadastro.mjs";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -64,14 +65,6 @@ export function horarioDoDia(f, weekday) {
   return { entrada: f?.horario_entrada || "", saida: f?.horario_saida || "" };
 }
 
-function percentualCadastroFuncionario(f) {
-  const campos = [
-    f?.nome, f?.cargo, f?.telefone, f?.cpf, f?.rg, f?.rua_av, f?.bairro,
-    f?.cidade_uf, f?.cep, f?.data_nascimento, f?.chave_pix, f?.salario,
-    f?.data_admissao, f?.horario_entrada, f?.horario_saida, f?.dias_trabalho,
-  ];
-  return Math.round((campos.filter(valor => String(valor ?? "").trim()).length / campos.length) * 100);
-}
 
 export default function RHPage() {
   const router = useRouter();
@@ -111,6 +104,13 @@ export default function RHPage() {
   const [funcParaLancamento, setFuncParaLancamento] = useState(null);
   const [formLancamento, setFormLancamento] = useState({ total: "0.00", fixo: "0.00", inss: "0.00", fgts: "0.00", taxa: "0.00" });
   const [editandoId, setEditandoId] = useState(null);
+  const [versaoQuadro, setVersaoQuadro] = useState(0); // recarrega o quadro e o perfil aberto depois de salvar
+  // Fase 1 (HDEV-RH-001): erros por campo, duplicado encontrado e trava de duplo clique
+  const [errosCadastro, setErrosCadastro] = useState({});
+  const [duplicado, setDuplicado] = useState(null);
+  const [erroSalvar, setErroSalvar] = useState("");
+  const [salvandoCadastro, setSalvandoCadastro] = useState(false);
+  const limparEstadoCadastro = () => { setErrosCadastro({}); setDuplicado(null); setErroSalvar(""); };
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
 
@@ -1396,6 +1396,7 @@ export default function RHPage() {
 
   const abrirModalNovo = () => {
     setEditandoId(null);
+    limparEstadoCadastro();
     setNovoFunc(statePadrao);
     setModalNovo(true);
   };
@@ -1428,67 +1429,21 @@ export default function RHPage() {
     // Extra tem cadastro próprio, em página separada do funcionário fixo.
     if (f?.tipo_contrato === "Freelancer") { router.push(`/dashboard/rh/extra/${f.id}`); return; }
     setEditandoId(f.id);
-    setNovoFunc({
-       foto: f.foto || "",
-       nome: f.nome || "",
-       cargo: f.cargo || "",
-       salario: f.salario || "",
-       horario_entrada: f.horario_entrada || "",
-       horario_saida: f.horario_saida || "",
-       horario_dom_entrada: f.horario_dom_entrada || "",
-       horario_dom_saida: f.horario_dom_saida || "",
-       horario_por_dia: !!f.horario_por_dia,
-       horarios_dia: (f.horarios_dia && typeof f.horarios_dia === "object") ? f.horarios_dia : {},
-       dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6",
-       tempo_intervalo: f.tempo_intervalo || 60,
-       intervalo_inicio: f.intervalo_inicio || "",
-       intervalo_fim: f.intervalo_fim || "",
-       intervalo_dom_inicio: f.intervalo_dom_inicio || "",
-       intervalo_dom_fim: f.intervalo_dom_fim || "",
-       tipo_contrato: f.tipo_contrato || "Fixo",
-       telefone: f.telefone || "",
-       email: f.email || "",
-       cpf: f.cpf || "",
-       rg: f.rg || "",
-       rua_av: f.rua_av || f.rua || "",
-       numero_casa: f.numero_casa || f.numero || "",
-       bairro: f.bairro || "",
-       cidade_uf: f.cidade_uf || f.cidade || "",
-       chave_pix: f.chave_pix || "",
-       avaliacao_estrelas: f.avaliacao_estrelas || 0,
-       data_admissao: f.data_admissao || "",
-       status_contrato: f.status_contrato || "Definitivo",
-       supervisor_id: f.supervisor_id || "",
-       supervisores_ids: Array.isArray(f.supervisores_ids) ? f.supervisores_ids : (f.supervisor_id ? [f.supervisor_id] : []),
-       vale_alimentacao: f.vale_alimentacao || "",
-       taxa_servico_mes: f.taxa_servico_mes || "",
-       endereco: f.endereco || "",
-       cep: f.cep || "",
-       cidade_nascimento: f.cidade_nascimento || "",
-       nome_pai: f.nome_pai || "",
-       nome_mae: f.nome_mae || "",
-       filhos: Array.isArray(f.filhos) ? f.filhos : [],
-       data_nascimento: f.data_nascimento || "",
-       tem_transporte: !!f.tem_transporte,
-       tipo_transporte: f.tipo_transporte || "",
-       usa_vale_transporte: !!f.usa_vale_transporte,
-       pontos_taxa: f.pontos_taxa != null ? String(f.pontos_taxa) : "",
-       genero: f.genero || "",
-       escolaridade: f.escolaridade || "",
-       estado_civil: f.estado_civil || "",
-       // Dados que alimentam o Recibo de Trabalho Extra
-       topicos_funcao: f.topicos_funcao || "",
-       itens_emprestados: f.itens_emprestados || "",
-       forma_pagamento: f.forma_pagamento || "Pix",
-       vale_transporte_val: f.vale_transporte_val ?? "",
-       setor_entrega: f.setor_entrega || "",
-       janta_ofertada: f.janta_ofertada !== false
-    });
+    limparEstadoCadastro();
+    setNovoFunc(formularioDeEdicao(f));
     setModalNovo(true);
   };
 
-  const handleSalvar = async () => {
-    if(!novoFunc.nome || !novoFunc.cargo) return alert("Por favor, preencha o Nome e a Função/Cargo antes de salvar.");
+  const handleSalvar = async ({ ignorarHomonimo = false } = {}) => {
+    if (salvandoCadastro) return; // duplo clique não grava duas vezes
+    const validacao = validarCadastro(novoFunc);
+    setErrosCadastro(validacao.erros);
+    setErroSalvar("");
+    if (!validacao.ok) return;
+    // Mesma pessoa já cadastrada (inclusive desligada): abre o cadastro dela em vez de criar outro.
+    const dup = acharDuplicado(novoFunc, funcionarios, editandoId);
+    if (dup && !(dup.motivo === "nome_telefone" && ignorarHomonimo)) { setDuplicado(dup); return; }
+    setDuplicado(null);
     
     const payload = {
       unidade_id: unidadeAtiva,
@@ -1557,14 +1512,22 @@ export default function RHPage() {
 
     let colaboradorSalvo = null;
     const cadastroNovo = !editandoId;
-    if (editandoId) {
-      const { error } = await atualizarColaborador(editandoId, payload);
-      if (error) return alert("Erro ao atualizar: " + error);
-    } else {
-      const { data, error } = await inserirColaborador(payload);
-      if (error) return alert("Erro ao salvar: " + error);
-      colaboradorSalvo = data || payload;
+    setSalvandoCadastro(true);
+    try {
+      if (editandoId) {
+        const { error, colunasIgnoradas } = await atualizarColaborador(editandoId, payload);
+        if (error) { setErroSalvar("Não foi possível salvar as alterações: " + error); return; }
+        if (colunasIgnoradas?.length) alert("Salvo, mas estes campos ainda não existem no banco e não foram gravados: " + colunasIgnoradas.join(", "));
+      } else {
+        const { data, error } = await inserirColaborador(payload);
+        if (error) { setErroSalvar("Não foi possível cadastrar: " + error); return; }
+        colaboradorSalvo = data || payload;
+      }
+    } finally {
+      setSalvandoCadastro(false);
     }
+    limparEstadoCadastro();
+    setVersaoQuadro((v) => v + 1);
     
     setModalNovo(false);
     setEditandoId(null);
@@ -2008,7 +1971,7 @@ export default function RHPage() {
       <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {abaModulo === "quadro" && <VisaoColaboradores onEditar={(f) => { setNovoFunc(f); setModalNovo(true); }} onNovo={() => { setNovoFunc(statePadrao); setModalNovo(true); }} />}
+      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} versao={versaoQuadro} />}
       {abaModulo === "escala" && <VisaoSemana />}
       {abaModulo === "visao" && (
       <>
@@ -2453,8 +2416,11 @@ export default function RHPage() {
                <div className="flex justify-between items-center gap-4 shrink-0 border-b border-line-soft p-4 sm:px-6 sm:py-5">
                   <div className="min-w-0">
                      <p className="text-3xs font-bold uppercase tracking-[.18em] text-accent">Equipe fixa · cadastro completo</p>
-                     <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar funcionário" : "Novo funcionário fixo"}</h2>
-                     <p className="mt-1 text-xs font-bold text-fg">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
+                     <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar colaborador" : "Novo colaborador"}</h2>
+                     {(() => { const p = progressoCadastro(novoFunc); return (<>
+                       <p className="mt-1 text-xs font-bold text-fg">{p.pct}% do essencial preenchido ({p.feitos} de {p.total}) · <span className="text-red-700">*</span> obrigatório</p>
+                       <div className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: p.pct + "%" }} /></div>
+                     </>); })()}
                   </div>
                   <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
                </div>
@@ -2475,7 +2441,7 @@ export default function RHPage() {
                         <div className="flex min-h-12 items-center rounded-xl border border-emerald-200 bg-accent-soft px-4 font-black text-accent-strong">Equipe fixa (CLT / mensalista)</div>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Nome Completo</label>
+                        <label className="text-xs font-bold text-fg uppercase tracking-widest">Nome Completo <span className="text-red-700">*</span></label>
                         <div className="flex items-center gap-3 mt-1">
                            {/* Foto do colaborador (aparece no ponto, organograma e portal) */}
                            <div className="relative shrink-0">
@@ -2496,7 +2462,7 @@ export default function RHPage() {
                      </div>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Função / Cargo</label>
+                     <label className="text-xs font-bold text-fg uppercase tracking-widest block mb-1">Função / Cargo <span className="text-red-700">*</span></label>
                      <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-fg-soft">
                         <option value="">Selecione um Cargo</option>
                         <optgroup label="Liderança">
@@ -2535,14 +2501,17 @@ export default function RHPage() {
                      <div>
                         <label className="text-xs font-bold text-fg uppercase tracking-widest">Telefone / WhatsApp</label>
                         <input type="text" inputMode="numeric" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        {errosCadastro.telefone && <p className="mt-1 text-xs font-bold text-red-700">{errosCadastro.telefone}</p>}
                      </div>
                      <div>
                         <label className="text-xs font-bold text-fg uppercase tracking-widest">E-mail</label>
                         <input type="email" value={novoFunc.email || ""} onChange={e=>setNovoFunc({...novoFunc, email: e.target.value})} placeholder="nome@email.com" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        {errosCadastro.email && <p className="mt-1 text-xs font-bold text-red-700">{errosCadastro.email}</p>}
                      </div>
                      <div>
                         <label className="text-xs font-bold text-fg uppercase tracking-widest">CPF</label>
                         <input type="text" inputMode="numeric" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: mascaraCPF(e.target.value)})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-white border border-line rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        {errosCadastro.cpf && <p className="mt-1 text-xs font-bold text-red-700">{errosCadastro.cpf}</p>}
                      </div>
                      <div>
                         <label className="text-xs font-bold text-fg uppercase tracking-widest">RG</label>
@@ -2961,9 +2930,25 @@ export default function RHPage() {
 
                </div>
 
-               <div className="border-t border-line bg-card p-3 sm:p-4 shrink-0">
-                  <button onClick={handleSalvar} disabled={!novoFunc.nome || !novoFunc.cargo} className="w-full min-h-14 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
-                     {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
+               <div className="border-t border-line bg-card p-3 sm:p-4 shrink-0 space-y-2">
+                  {duplicado && (
+                    <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                      <p className="font-bold">{duplicado.motivo === "cpf" ? "Já existe um colaborador com este CPF" : "Já existe um colaborador com este nome e telefone"}: {duplicado.colaborador.nome}{(duplicado.colaborador.status || "ativo") === "inativo" ? " (desligado)" : ""}.</p>
+                      <p className="mt-0.5 text-xs">Para não duplicar, abra o cadastro dele e atualize os dados.</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => abrirModalEdicao(duplicado.colaborador)} className="min-h-10 rounded-xl bg-emerald-700 px-3 text-xs font-bold text-white">Abrir o cadastro existente</button>
+                        {duplicado.motivo === "nome_telefone" && <button type="button" onClick={() => handleSalvar({ ignorarHomonimo: true })} className="min-h-10 rounded-xl border border-amber-400 px-3 text-xs font-bold">É outra pessoa: cadastrar mesmo assim</button>}
+                      </div>
+                    </div>
+                  )}
+                  {Object.keys(errosCadastro).length > 0 && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800" role="alert">
+                      Corrija antes de salvar: {Object.values(errosCadastro).join(" ")}
+                    </div>
+                  )}
+                  {erroSalvar && <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800" role="alert">{erroSalvar}</div>}
+                  <button onClick={() => handleSalvar()} disabled={!novoFunc.nome || !novoFunc.cargo || salvandoCadastro} className="w-full min-h-14 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+                     {salvandoCadastro ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar colaborador"}
                   </button>
                </div>
             </div>

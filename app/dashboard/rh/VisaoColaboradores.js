@@ -57,7 +57,7 @@ function Bloco({ icon: Icon, titulo, extra, children }) {
   );
 }
 
-export default function VidaColaboradorPage({ onEditar, onNovo }) {
+export default function VidaColaboradorPage({ onEditar, onNovo, versao = 0 }) {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   const [colaboradores, setColaboradores] = useState([]);
@@ -127,6 +127,8 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
       fetchAllFolgasDaUnidade(unidadeAtiva),
     ]);
     setColaboradores(data || []);
+    // perfil aberto mostra o cadastro recém-salvo, não a cópia antiga
+    setSel((atual) => (atual ? (data || []).find((c) => c.id === atual.id) || atual : atual));
     const mapa = {};
     (rPonto.data || []).forEach(r => { mapa[r.colaborador_id] = r; });
     setPontosHoje(mapa);
@@ -134,7 +136,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo }) {
     setLoading(false);
   };
 
-  useEffect(() => { carregarLista(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useEffect(() => { carregarLista(versao > 0); /* eslint-disable-next-line */ }, [unidadeAtiva, versao]);
   useTempoReal(null, () => carregarLista(true)); // batidas de ponto aparecem sozinhas nos cards
 
   const abrir = async (c) => {

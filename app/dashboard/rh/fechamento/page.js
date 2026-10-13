@@ -86,7 +86,7 @@ export default function FechamentoFolhaPage() {
   return (
     <div className="min-h-screen bg-hf-bg font-sans pb-24">
       {/* Header Escuro */}
-      <div className="bg-hf-surface pt-8 pb-12 px-6 shadow-2xl relative text-hf-text border-b border-hf-border">
+      <div className="bg-hf-bg pt-8 pb-12 px-6 relative text-hf-text border-b border-hf-border">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
                <button onClick={() => abrirMenu()} className="text-subtle hover:text-hf-text mb-4 flex items-center gap-2 font-bold transition-colors">

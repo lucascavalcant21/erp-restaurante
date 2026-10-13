@@ -215,7 +215,7 @@ export default function ContasAPagarPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
-      <div className="bg-hf-surface pt-6 sm:pt-8 pb-8 px-4 sm:px-8 text-hf-text">
+      <div className="bg-hf-bg border-b border-hf-border pt-6 sm:pt-8 pb-8 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Contas a Pagar</h1>

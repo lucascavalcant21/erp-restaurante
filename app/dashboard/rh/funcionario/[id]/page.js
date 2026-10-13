@@ -39,6 +39,7 @@ import { enviarArquivoRH, abrirArquivoRH } from "../../../../lib/rh-arquivos";
 import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
+import VinculosAba from "./VinculosAba";
 import { avosFerias } from "../../../../lib/trabalhista/regras-cct.mjs";
 import {
   ABAS_PRONTUARIO, statusDoColaborador, vinculoAtual, supervisoresDe, pendenciasDoColaborador, tempoDeCasa, mascararCpf,
@@ -210,15 +211,15 @@ export default function ProntuarioColaboradorPage() {
   useContextoInteligencia(func ? { modulo: "rh", tipo: "colaborador", id: func.id, nome: func.nome } : null);
   useEffect(() => { if (!aviso) return undefined; const t = setTimeout(() => setAviso(""), 2600); return () => clearTimeout(t); }, [aviso]);
 
-  useEffect(() => {
+  const recarregarColaborador = useCallback(() => {
     if (!supabase || !id) return;
-    lerSessao().then(setSessao);
     supabase.from("colaboradores").select("*").eq("id", id).maybeSingle().then(({ data, error }) => {
       if (error) setErro("Não foi possível abrir o prontuário: " + error.message);
       else if (!data) setErro("Colaborador não encontrado ou sem permissão para ver.");
       setFunc(data || null);
     });
   }, [id]);
+  useEffect(() => { lerSessao().then(setSessao); recarregarColaborador(); }, [recarregarColaborador]);
 
   useEffect(() => {
     if (!func?.unidade_id) return;
@@ -245,6 +246,8 @@ export default function ProntuarioColaboradorPage() {
   const podeEditar = !gerenciado || hasPermission(sessao, "rh.employees.edit");
   const podeDesligar = !gerenciado || hasPermission(sessao, "dp.desligamentos.solicitar") || hasPermission(sessao, "dp.desligamentos.aprovar");
   const podeVerValores = !gerenciado || hasPermission(sessao, "rh.payroll.view") || hasPermission(sessao, "rh.employees.view_values");
+  const podeAprovarContrato = !gerenciado || hasPermission(sessao, "dp.contratos.aprovar");
+  const podeSolicitarContrato = podeAprovarContrato || hasPermission(sessao, "dp.contratos.solicitar");
 
   const hoje = useMemo(() => new Date(), []);
   const status = func ? statusDoColaborador(func, hoje) : null;
@@ -350,16 +353,15 @@ export default function ProntuarioColaboradorPage() {
 
         {aba === "contratos" && (
           <div className="space-y-4">
-            <Card>
-              <SectionLabel>Vínculo atual</SectionLabel>
-              <Linha rotulo="Categoria" valor={vinculo.categoria} destaque />
-              <Linha rotulo="Fase" valor={vinculo.fase} />
-              {vinculo.detalhe && <Linha rotulo="Situação" valor={vinculo.detalhe} />}
-              <Linha rotulo="Início real da prestação" valor={dataBR(func.data_admissao) || vazio("")} />
-              {func.data_desligamento && <Linha rotulo="Desligamento" valor={`${dataBR(func.data_desligamento)}${func.tipo_desligamento ? ` · ${func.tipo_desligamento}` : ""}`} />}
-              {func.motivo_desligamento && <Linha rotulo="Motivo" valor={func.motivo_desligamento} />}
-              <p className="text-2xs text-hf-muted mt-3">Experiência pela CCT Foz 2026/2027 (cl. 19): mínimo de 30 dias, prorrogação não menor que o 1º período e total de até 90 dias.</p>
-            </Card>
+            <VinculosAba colaborador={func} podeSolicitar={podeSolicitarContrato} podeAprovar={podeAprovarContrato} podeVerValores={podeVerValores}
+              onAviso={setAviso} onMudou={recarregarColaborador} />
+            {func.data_desligamento && (
+              <Card>
+                <SectionLabel>Desligamento</SectionLabel>
+                <Linha rotulo="Data" valor={`${dataBR(func.data_desligamento)}${func.tipo_desligamento ? ` · ${func.tipo_desligamento}` : ""}`} />
+                {func.motivo_desligamento && <Linha rotulo="Motivo" valor={func.motivo_desligamento} />}
+              </Card>
+            )}
             <ListaDoProntuario chave="historico" func={func} podeEditar={podeEditar} opcoesDinamicas={opcoesDinamicas} onAviso={setAviso} />
           </div>
         )}

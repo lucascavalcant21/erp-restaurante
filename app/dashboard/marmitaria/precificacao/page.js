@@ -22,7 +22,8 @@ import {
   fetchMarmitas,
   fetchConfiguracoesMarmitaria,
   fetchPrecificacaoCanais,
-  salvarPrecificacaoCanal,
+  salvarPrecificacaoCanal,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   calcularPrecificacaoCanal,
@@ -31,7 +32,7 @@ import {
 
 export default function MarmitariaPrecificacaoPage() {
   const searchParams = useSearchParams();
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -47,7 +48,7 @@ export default function MarmitariaPrecificacaoPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resMarmitas, resConfig] = await Promise.all([
           fetchMarmitas(uId),
           fetchConfiguracoesMarmitaria(uId),
@@ -67,13 +68,13 @@ export default function MarmitariaPrecificacaoPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Carregar dados dos canais ao mudar de marmita
   useEffect(() => {
     async function carregarCanais() {
       if (!marmitaSelecionadaId) return;
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await fetchPrecificacaoCanais(uId, marmitaSelecionadaId);
       const salvos = res.data || [];
 
@@ -130,7 +131,7 @@ export default function MarmitariaPrecificacaoPage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const calc = calcularPrecificacaoCanal({
         custoTecnicoTotal: custoTecnico,
         custoAlimentos,

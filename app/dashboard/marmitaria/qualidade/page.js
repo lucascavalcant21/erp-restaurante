@@ -21,7 +21,8 @@ import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchQualidadeOcorrencias,
   salvarQualidadeOcorrencia,
-  fetchMarmitas,
+  fetchMarmitas,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { calcularMetricasQualidade } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
@@ -35,7 +36,7 @@ const TIPOS_OCORRENCIA = [
 ];
 
 export default function MarmitariaQualidadePage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [ocorrencias, setOcorrencias] = useState([]);
@@ -58,7 +59,7 @@ export default function MarmitariaQualidadePage() {
   const carregar = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const [resOc, resMar] = await Promise.all([
         fetchQualidadeOcorrencias(uId),
         fetchMarmitas(uId),
@@ -74,7 +75,7 @@ export default function MarmitariaQualidadePage() {
 
   useEffect(() => {
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Métricas de Qualidade
   const metricas = useMemo(() => {
@@ -90,7 +91,7 @@ export default function MarmitariaQualidadePage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const { error } = await salvarQualidadeOcorrencia(uId, form);
       if (error) {
         alert("Erro ao registrar: " + error);

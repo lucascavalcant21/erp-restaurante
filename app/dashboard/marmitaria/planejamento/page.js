@@ -28,12 +28,13 @@ import {
   fetchInsumosEstoque,
   fetchEmbalagensMarmitaria,
   fetchRhAlocacoes,
-  salvarPlanoOperacional,
+  salvarPlanoOperacional,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { gerarPlanoOperacionalCompleto } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
 export default function MarmitariaPlanejamentoPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState("");
@@ -58,7 +59,7 @@ export default function MarmitariaPlanejamentoPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resMarmitas, resIns, resEmb, resRh] = await Promise.all([
           fetchMarmitas(uId),
           fetchInsumosEstoque(uId),
@@ -77,7 +78,7 @@ export default function MarmitariaPlanejamentoPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Montagem do Mix de Produtos baseado nas marmitas cadastradas
   const mixProdutos = useMemo(() => {
@@ -113,7 +114,7 @@ export default function MarmitariaPlanejamentoPage() {
   const handleSalvarPlano = async () => {
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const payload = {
         data_planejada: dataPlanejada,
         periodo_tipo: periodo,

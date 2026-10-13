@@ -21,14 +21,16 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { fmtBRL, fmtPct } from "../../../components/ui";
-import { fetchMarmitas } from "../../../lib/marmitaria/marmitaria-service";
+import { fetchMarmitas,
+  resolverUnidade,
+} from "../../../lib/marmitaria/marmitaria-service";
 import {
   simularComboPromocional,
   classificarEngenhariaCardapio,
 } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
 export default function MarmitariaCombosPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [marmitas, setMarmitas] = useState([]);
   const [abaAtiva, setAbaAtiva] = useState("combos"); // 'combos' ou 'engenharia'
@@ -51,7 +53,7 @@ export default function MarmitariaCombosPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const { data } = await fetchMarmitas(uId);
         setMarmitas(data || []);
       } catch (err) {
@@ -61,7 +63,7 @@ export default function MarmitariaCombosPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Simulação do Combo
   const resultadoCombo = useMemo(() => {

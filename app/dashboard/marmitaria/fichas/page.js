@@ -36,6 +36,7 @@ import {
   salvarInsumoMarmitaria,
   fetchEmbalagensMarmitaria,
   salvarEmbalagemMarmitaria,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   calcularCustoTecnicoMarmita,
@@ -46,7 +47,7 @@ import {
 export default function MarmitariaFichasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -113,7 +114,7 @@ export default function MarmitariaFichasPage() {
   const carregarTudo = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const [resMarmitas, resPreps, resInsumos, resEmbs] = await Promise.all([
         fetchMarmitas(uId),
         fetchPreparacoesBase(uId),
@@ -138,7 +139,7 @@ export default function MarmitariaFichasPage() {
 
   useEffect(() => {
     carregarTudo();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Marmitas filtradas
   const marmitasFiltradas = useMemo(() => {
@@ -257,7 +258,7 @@ export default function MarmitariaFichasPage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const payload = {
         ...form,
         custo_total: resumoCustoForm.custoTecnicoTotal,
@@ -344,7 +345,7 @@ export default function MarmitariaFichasPage() {
     }
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await salvarPrePreparoMarmitaria(uId, formNovoPrePreparo);
       if (res.error) alert("Erro ao salvar: " + res.error);
       else {
@@ -392,7 +393,7 @@ export default function MarmitariaFichasPage() {
     }
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await salvarInsumoMarmitaria(uId, formNovoInsumo);
       if (res.error) alert("Erro ao salvar: " + res.error);
       else {
@@ -438,7 +439,7 @@ export default function MarmitariaFichasPage() {
     }
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await salvarEmbalagemMarmitaria(uId, formNovaEmbalagem);
       if (res.error) alert("Erro ao salvar: " + res.error);
       else {

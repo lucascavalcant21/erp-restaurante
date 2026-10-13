@@ -18,14 +18,15 @@ import { fmtBRL } from "../../../components/ui";
 import {
   fetchMarmitas,
   fetchInsumosEstoque,
-  fetchEmbalagensMarmitaria,
+  fetchEmbalagensMarmitaria,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   calcularNecessidadeComprasMarmitaria,
 } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
 export default function MarmitariaComprasPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [marmitas, setMarmitas] = useState([]);
@@ -38,7 +39,7 @@ export default function MarmitariaComprasPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resMarmitas, resInsumos] = await Promise.all([
           fetchMarmitas(uId),
           fetchInsumosEstoque(uId),
@@ -53,7 +54,7 @@ export default function MarmitariaComprasPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Cálculo de necessidade de compras
   const listaCompras = useMemo(() => {

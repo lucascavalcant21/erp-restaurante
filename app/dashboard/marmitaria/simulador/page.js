@@ -24,7 +24,8 @@ import {
   fetchConfiguracoesMarmitaria,
   fetchRhAlocacoes,
   salvarSimulacao,
-  fetchSimulacoes,
+  fetchSimulacoes,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   simularOperacaoMarmitaria,
@@ -32,7 +33,7 @@ import {
 } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
 export default function MarmitariaSimuladorPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -53,7 +54,7 @@ export default function MarmitariaSimuladorPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resMarmitas, resConfig, resRh, resSims] = await Promise.all([
           fetchMarmitas(uId),
           fetchConfiguracoesMarmitaria(uId),
@@ -98,7 +99,7 @@ export default function MarmitariaSimuladorPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // CMO e custos fixos alocados
   const cmoAlocadoMes = useMemo(() => {
@@ -157,7 +158,7 @@ export default function MarmitariaSimuladorPage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await salvarSimulacao(uId, {
         nome,
         descricao: `Mix com ${mixMarmitas.length} marmitas para ${diasOperacaoMes} dias/mês`,

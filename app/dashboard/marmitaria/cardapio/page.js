@@ -19,12 +19,13 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import {
   fetchMarmitas,
-  salvarMarmita,
+  salvarMarmita,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 
 export default function MarmitariaCardapioPage() {
   const router = useRouter();
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [marmitas, setMarmitas] = useState([]);
@@ -34,7 +35,7 @@ export default function MarmitariaCardapioPage() {
   const carregar = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await fetchMarmitas(uId);
       setMarmitas(res.data || []);
     } catch (e) {
@@ -46,7 +47,7 @@ export default function MarmitariaCardapioPage() {
 
   useEffect(() => {
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   const categorias = useMemo(() => {
     const setCats = new Set(["todas"]);

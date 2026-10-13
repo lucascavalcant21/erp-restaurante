@@ -19,11 +19,12 @@ import {
 } from "lucide-react";
 import {
   fetchConfiguracoesMarmitaria,
-  salvarConfiguracoesMarmitaria,
+  salvarConfiguracoesMarmitaria,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 
 export default function MarmitariaConfiguracoesPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState("");
@@ -48,7 +49,7 @@ export default function MarmitariaConfiguracoesPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const { data } = await fetchConfiguracoesMarmitaria(uId);
         if (data) {
           setForm((prev) => ({
@@ -63,13 +64,13 @@ export default function MarmitariaConfiguracoesPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const { error } = await salvarConfiguracoesMarmitaria(uId, form);
       if (error) {
         alert("Erro ao salvar: " + error);

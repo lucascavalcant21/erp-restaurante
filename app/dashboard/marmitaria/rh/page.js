@@ -21,7 +21,8 @@ import {
 import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchRhAlocacoes,
-  salvarRhAlocacao,
+  salvarRhAlocacao,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { fetchColaboradores } from "../../../lib/rh";
 import { calcularCmoAlocadoMarmitaria } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
@@ -37,7 +38,7 @@ const FUNCOES_MARMITARIA = [
 ];
 
 export default function MarmitariaRhPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [alocacoes, setAlocacoes] = useState([]);
@@ -62,7 +63,7 @@ export default function MarmitariaRhPage() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const [resAloc, resColabs] = await Promise.all([
         fetchRhAlocacoes(uId),
         fetchColaboradores(uId),
@@ -79,7 +80,7 @@ export default function MarmitariaRhPage() {
 
   useEffect(() => {
     carregarDados();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Colaboradores que ainda não foram alocados
   const colaboradoresDisponiveis = useMemo(() => {
@@ -130,7 +131,7 @@ export default function MarmitariaRhPage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const { error } = await salvarRhAlocacao(uId, form);
       if (error) {
         alert("Erro ao salvar alocação: " + error);

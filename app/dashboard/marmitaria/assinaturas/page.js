@@ -20,7 +20,8 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import {
   fetchAssinaturas,
-  salvarAssinatura,
+  salvarAssinatura,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 
 const DIAS_SEMANA = [
@@ -33,7 +34,7 @@ const DIAS_SEMANA = [
 ];
 
 export default function MarmitariaAssinaturasPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [assinaturas, setAssinaturas] = useState([]);
@@ -56,7 +57,7 @@ export default function MarmitariaAssinaturasPage() {
   const carregar = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const { data } = await fetchAssinaturas(uId);
       setAssinaturas(data || []);
     } catch (err) {
@@ -68,7 +69,7 @@ export default function MarmitariaAssinaturasPage() {
 
   useEffect(() => {
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Cálculos de receita recorrente (MRR de marmitas)
   const ativas = assinaturas.filter((a) => a.status === "ativo");
@@ -82,7 +83,7 @@ export default function MarmitariaAssinaturasPage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const { error } = await salvarAssinatura(uId, form);
       if (error) {
         alert("Erro ao salvar assinatura: " + error);

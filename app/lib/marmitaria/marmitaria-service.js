@@ -29,6 +29,40 @@ async function retrySemColunaAusente(error, tentar, campos, tentativas = 0) {
   return error;
 }
 
+let cacheUnidadeIdPadrao = null;
+
+export function resolverUnidade(unidadeAtiva, unidades = []) {
+  if (typeof unidadeAtiva === 'string' && unidadeAtiva && unidadeAtiva !== 'todas' && unidadeAtiva !== 'matriz') {
+    return unidadeAtiva;
+  }
+  if (unidadeAtiva && typeof unidadeAtiva === 'object' && unidadeAtiva.id && unidadeAtiva.id !== 'todas' && unidadeAtiva.id !== 'matriz') {
+    return unidadeAtiva.id;
+  }
+  if (Array.isArray(unidades) && unidades.length > 0 && unidades[0]?.id) {
+    return unidades[0].id;
+  }
+  return null;
+}
+
+export async function obterUnidadeIdReal(unidadeId) {
+  const uLimpo = typeof unidadeId === 'string' ? unidadeId.trim() : (unidadeId?.id || '');
+  if (uLimpo && uLimpo !== 'matriz' && uLimpo !== 'todas') {
+    return uLimpo;
+  }
+
+  if (cacheUnidadeIdPadrao) return cacheUnidadeIdPadrao;
+
+  try {
+    const { data } = await supabase.from('unidades').select('id').order('nome').limit(1);
+    if (data && data[0]?.id) {
+      cacheUnidadeIdPadrao = data[0].id;
+      return cacheUnidadeIdPadrao;
+    }
+  } catch (_) {}
+
+  return uLimpo || null;
+}
+
 // ─── 1. FICHAS TÉCNICAS DE MARMITAS ──────────────────────────────────────────
 
 export async function fetchMarmitas(unidadeId) {
@@ -100,9 +134,11 @@ export async function fetchMarmitas(unidadeId) {
 }
 
 export async function salvarMarmita(unidadeId, payload) {
-  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+  if (!isSupabaseReady()) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
+    if (!uReal) return { data: null, error: 'Nenhuma unidade ativa encontrada para vincular a marmita.' };
     const isNovo = !payload.id;
     const {
       nome_receita,
@@ -123,7 +159,7 @@ export async function salvarMarmita(unidadeId, payload) {
 
     // 1. Salvar ou atualizar ficha em `fichas_tecnicas`
     const dadosFicha = {
-      unidade_id: unidadeId,
+      unidade_id: uReal,
       nome_receita,
       categoria,
       departamento: 'marmitaria',
@@ -216,7 +252,7 @@ export async function salvarMarmita(unidadeId, payload) {
         await supabase.from('marmitaria_fichas_embalagens').delete().eq('ficha_id', fichaId);
         if (embalagens && embalagens.length > 0) {
           const rowsEmb = embalagens.map((emb) => ({
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             ficha_id: fichaId,
             embalagem_insumo_id: emb.embalagem_insumo_id || emb.insumo_id || null,
             tipo_embalagem: emb.tipo_embalagem || 'marmita',
@@ -233,7 +269,7 @@ export async function salvarMarmita(unidadeId, payload) {
       try {
         const preco = parseNumero(preco_venda);
         await salvarProduto({
-          unidade_id: unidadeId,
+          unidade_id: uReal,
           ficha_id: fichaId,
           nome_produto: nome_receita,
           preco_venda: preco,
@@ -284,12 +320,14 @@ export async function fetchPreparacoesBase(unidadeId) {
  * Cadastra ou atualiza uma ficha de pré-preparo (eh_base = true).
  */
 export async function salvarPrePreparoMarmitaria(unidadeId, payload) {
-  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+  if (!isSupabaseReady()) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
+    if (!uReal) return { data: null, error: 'Nenhuma unidade ativa encontrada.' };
     const isNovo = !payload.id;
     const dados = {
-      unidade_id: unidadeId,
+      unidade_id: uReal,
       nome_receita: payload.nome_receita,
       categoria: payload.categoria || 'Pré-preparo',
       departamento: payload.departamento || 'marmitaria',
@@ -439,12 +477,14 @@ export async function fetchTodosInsumosDoRestaurante(unidadeId) {
  * Cadastra ou edita um insumo (alimentício ou de marmitaria).
  */
 export async function salvarInsumoMarmitaria(unidadeId, payload) {
-  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+  if (!isSupabaseReady()) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
+    if (!uReal) return { data: null, error: 'Nenhuma unidade ativa encontrada.' };
     const isNovo = !payload.id;
     const dados = {
-      unidade_id: unidadeId,
+      unidade_id: uReal,
       nome: payload.nome,
       categoria: payload.categoria || 'Proteínas',
       departamento: payload.departamento || 'marmitaria',
@@ -494,7 +534,7 @@ export async function salvarInsumoMarmitaria(unidadeId, payload) {
         await supabase.from('estoque_atual').upsert(
           {
             insumo_id: id,
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             quantidade_atual: qtd,
           },
           { onConflict: 'insumo_id' }
@@ -604,16 +644,18 @@ export async function fetchEmbalagensMarmitaria(unidadeId) {
  * Cadastra ou edita uma embalagem com preço de custo e estoque.
  */
 export async function salvarEmbalagemMarmitaria(unidadeId, payload) {
-  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+  if (!isSupabaseReady()) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
+    if (!uReal) return { data: null, error: 'Nenhuma unidade ativa encontrada.' };
     const isNovo = !payload.id;
     const custoUnitario = Number(payload.custo_unitario) || 0;
     const estoqueMinimo = Number(payload.estoque_minimo) || 20;
     const estoqueAtual = Number(payload.quantidade_atual ?? payload.estoque_atual) || 0;
 
     const dadosInsumo = {
-      unidade_id: unidadeId,
+      unidade_id: uReal,
       nome: payload.nome,
       categoria: payload.tipo_embalagem || payload.categoria || 'Embalagens',
       departamento: 'embalagens',
@@ -662,7 +704,7 @@ export async function salvarEmbalagemMarmitaria(unidadeId, payload) {
         await supabase.from('estoque_atual').upsert(
           {
             insumo_id: id,
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             quantidade_atual: estoqueAtual,
           },
           { onConflict: 'insumo_id' }
@@ -682,14 +724,16 @@ export async function salvarEmbalagemMarmitaria(unidadeId, payload) {
  * Atualiza rapidamente o saldo físico de uma embalagem
  */
 export async function atualizarEstoqueEmbalagem(unidadeId, embalagemId, novaQuantidade) {
-  if (!isSupabaseReady() || !unidadeId || !embalagemId) return { error: 'Offline' };
+  if (!isSupabaseReady() || !embalagemId) return { error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
+    if (!uReal) return { error: 'Nenhuma unidade ativa encontrada.' };
     const qtd = Number(novaQuantidade) || 0;
     const { error } = await supabase.from('estoque_atual').upsert(
       {
         insumo_id: embalagemId,
-        unidade_id: unidadeId,
+        unidade_id: uReal,
         quantidade_atual: qtd,
       },
       { onConflict: 'insumo_id' }
@@ -742,11 +786,12 @@ export async function salvarPrecificacaoCanal(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const { error } = await supabase
       .from('marmitaria_precificacao_canais')
       .upsert(
         {
-          unidade_id: unidadeId,
+          unidade_id: uReal,
           ficha_id: payload.ficha_id,
           canal: payload.canal,
           preco_venda: Number(payload.preco_venda) || 0,
@@ -795,11 +840,12 @@ export async function salvarSimulacao(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const { data, error } = await supabase
       .from('marmitaria_simulacoes')
       .insert([
         {
-          unidade_id: unidadeId,
+          unidade_id: uReal,
           nome: payload.nome || 'Simulação de Vendas',
           descricao: payload.descricao || '',
           cenario_meta_diaria: Number(payload.cenario_meta_diaria) || 100,
@@ -847,6 +893,7 @@ export async function salvarProducaoLote(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const isNovo = !payload.id;
     if (isNovo) {
       const codigo = payload.codigo || `LOTE-${Date.now().toString().slice(-6)}`;
@@ -854,7 +901,7 @@ export async function salvarProducaoLote(unidadeId, payload) {
         .from('marmitaria_producao_lotes')
         .insert([
           {
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             codigo,
             tipo_demanda: payload.tipo_demanda || 'antecipada',
             status: payload.status || 'planejado',
@@ -923,11 +970,12 @@ export async function registrarTransferenciaEstoque(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const { data, error } = await supabase
       .from('marmitaria_transferencias')
       .insert([
         {
-          unidade_id: unidadeId,
+          unidade_id: uReal,
           insumo_id: payload.insumo_id,
           quantidade: Number(payload.quantidade) || 0,
           unidade_medida: payload.unidade_medida || 'un',
@@ -977,11 +1025,12 @@ export async function salvarRhAlocacao(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const { error } = await supabase
       .from('marmitaria_rh_alocacoes')
       .upsert(
         {
-          unidade_id: unidadeId,
+          unidade_id: uReal,
           colaborador_id: payload.colaborador_id,
           tipo_alocacao: payload.tipo_alocacao || 'compartilhado',
           percentual_tempo: Number(payload.percentual_tempo) || 100,
@@ -1050,11 +1099,12 @@ export async function salvarConfiguracoesMarmitaria(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const { error } = await supabase
       .from('marmitaria_configuracoes')
       .upsert(
         {
-          unidade_id: unidadeId,
+          unidade_id: uReal,
           ...payload,
           updated_at: new Date().toISOString(),
         },
@@ -1093,13 +1143,14 @@ export async function salvarPlanoOperacional(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const isNovo = !payload.id;
     if (isNovo) {
       const { data, error } = await supabase
         .from('marmitaria_planos_operacionais')
         .insert([
           {
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             data_planejada: payload.data_planejada || new Date().toISOString().slice(0, 10),
             periodo_tipo: payload.periodo_tipo || 'amanha',
             meta_total_marmitas: Number(payload.meta_total_marmitas) || 100,
@@ -1159,13 +1210,14 @@ export async function salvarAssinatura(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const isNovo = !payload.id;
     if (isNovo) {
       const { data, error } = await supabase
         .from('marmitaria_assinaturas')
         .insert([
           {
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             cliente_nome: payload.cliente_nome,
             cliente_telefone: payload.cliente_telefone || null,
             plano_tipo: payload.plano_tipo || 'semanal',
@@ -1228,13 +1280,14 @@ export async function salvarQualidadeOcorrencia(unidadeId, payload) {
   if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
 
   try {
+    const uReal = await obterUnidadeIdReal(unidadeId);
     const isNovo = !payload.id;
     if (isNovo) {
       const { data, error } = await supabase
         .from('marmitaria_qualidade_ocorrencias')
         .insert([
           {
-            unidade_id: unidadeId,
+            unidade_id: uReal,
             tipo: payload.tipo || 'erro_montagem',
             pedido_codigo: payload.pedido_codigo || null,
             produto_id: payload.produto_id || null,

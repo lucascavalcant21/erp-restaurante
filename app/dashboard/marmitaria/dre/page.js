@@ -21,12 +21,13 @@ import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchConfiguracoesMarmitaria,
   fetchProducaoLotes,
-  fetchRhAlocacoes,
+  fetchRhAlocacoes,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { calcularDreGerencialMarmitaria } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
 export default function MarmitariaDrePage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("mes_atual");
   const [lotes, setLotes] = useState([]);
@@ -38,7 +39,7 @@ export default function MarmitariaDrePage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resLotes, resCfg, resRh] = await Promise.all([
           fetchProducaoLotes(uId),
           fetchConfiguracoesMarmitaria(uId),
@@ -54,7 +55,7 @@ export default function MarmitariaDrePage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Volume do período
   const qtdMarmitas = lotes.reduce((t, l) => t + (Number(l.quantidade_produzida) || 0), 0) || 1850;

@@ -23,7 +23,8 @@ import { fmtBRL } from "../../../components/ui";
 import {
   fetchProducaoLotes,
   salvarProducaoLote,
-  fetchMarmitas,
+  fetchMarmitas,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   calcularRendimentoReal,
@@ -39,7 +40,7 @@ const STATUS_PRODUCAO = [
 ];
 
 export default function MarmitariaProducaoPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [lotes, setLotes] = useState([]);
@@ -71,7 +72,7 @@ export default function MarmitariaProducaoPage() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const [resLotes, resMarmitas] = await Promise.all([
         fetchProducaoLotes(uId),
         fetchMarmitas(uId),
@@ -93,7 +94,7 @@ export default function MarmitariaProducaoPage() {
 
   useEffect(() => {
     carregarDados();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   const lotesFiltrados = useMemo(() => {
     if (abaStatus === "todos") return lotes;
@@ -111,7 +112,7 @@ export default function MarmitariaProducaoPage() {
     if (atualIdx === -1 || atualIdx === ordem.length - 1) return;
 
     const proximoStatus = ordem[atualIdx + 1];
-    const uId = unidadeAtiva?.id || "matriz";
+    const uId = resolverUnidade(unidadeAtiva, unidades);
 
     // Regra de baixa de estoque auditável e sem duplicidade:
     // Na transição para 'em_preparo', marca que consumiu os ingredientes.
@@ -138,7 +139,7 @@ export default function MarmitariaProducaoPage() {
     const custoUnit = Number(marmita?.custo_total) || 8.5;
     const custoTotal = custoUnit * Number(formLote.quantidade_planejada);
 
-    const uId = unidadeAtiva?.id || "matriz";
+    const uId = resolverUnidade(unidadeAtiva, unidades);
     const res = await salvarProducaoLote(uId, {
       ...formLote,
       custo_total: custoTotal,

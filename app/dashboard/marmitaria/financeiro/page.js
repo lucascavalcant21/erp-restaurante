@@ -25,11 +25,12 @@ import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchConfiguracoesMarmitaria,
   fetchProducaoLotes,
-  fetchRhAlocacoes,
+  fetchRhAlocacoes,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 
 export default function MarmitariaFinanceiroPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [abaAtiva, setAbaAtiva] = useState("resultado"); // 'resultado', 'ifood', 'rateios'
   const [mesSelecionado, setMesSelecionado] = useState("Atual");
@@ -41,7 +42,7 @@ export default function MarmitariaFinanceiroPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resCfg, resLotes, resRh] = await Promise.all([
           fetchConfiguracoesMarmitaria(uId),
           fetchProducaoLotes(uId),
@@ -57,7 +58,7 @@ export default function MarmitariaFinanceiroPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Simulação de dados financeiros reais conectados aos lotes e configuração
   const qtdMarmitasMes = lotes.reduce((t, l) => t + (Number(l.quantidade_produzida) || 0), 0) || 1850;

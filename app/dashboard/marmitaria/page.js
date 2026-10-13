@@ -28,12 +28,13 @@ import {
   fetchMarmitas,
   fetchProducaoLotes,
   fetchConfiguracoesMarmitaria,
-  fetchRhAlocacoes,
+  fetchRhAlocacoes,,
+  resolverUnidade,
 } from "../../lib/marmitaria/marmitaria-service";
 
 export default function MarmitariaVisaoGeralPage() {
   const router = useRouter();
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [marmitas, setMarmitas] = useState([]);
   const [lotes, setLotes] = useState([]);
@@ -44,7 +45,7 @@ export default function MarmitariaVisaoGeralPage() {
     async function carregarDados() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resMarmitas, resLotes, resConfig, resRh] = await Promise.all([
           fetchMarmitas(uId),
           fetchProducaoLotes(uId),
@@ -63,7 +64,7 @@ export default function MarmitariaVisaoGeralPage() {
       }
     }
     carregarDados();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Indicadores consolidados da operação
   const totalMarmitasCadastradas = marmitas.length;

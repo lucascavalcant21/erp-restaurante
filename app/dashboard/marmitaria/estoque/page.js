@@ -42,13 +42,14 @@ import {
   excluirPrePreparo,
   fetchTransferenciasEstoque,
   registrarTransferenciaEstoque,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   CATEGORIAS_ESTOQUE_MARMITARIA,
 } from "../../../lib/marmitaria/marmitaria-calculos.mjs";
 
 export default function MarmitariaEstoquePage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -140,7 +141,7 @@ export default function MarmitariaEstoquePage() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const [resInsumos, resEmbs, resPreps, resTransf, resTodos] = await Promise.all([
         fetchInsumosEstoque(uId),
         fetchEmbalagensMarmitaria(uId),
@@ -171,7 +172,7 @@ export default function MarmitariaEstoquePage() {
 
   useEffect(() => {
     carregarDados();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // ─── FILTROS ────────────────────────────────────────────────────────────────
   const insumosFiltrados = useMemo(() => {
@@ -252,7 +253,7 @@ export default function MarmitariaEstoquePage() {
     }
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await salvarInsumoMarmitaria(uId, formInsumo);
       if (res.error) alert("Erro ao salvar insumo: " + res.error);
       else {
@@ -284,7 +285,7 @@ export default function MarmitariaEstoquePage() {
     }
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await migrarInsumosParaMarmitaria(uId, selecionadosMigrar);
       if (res.error) alert("Erro na migração: " + res.error);
       else {
@@ -348,7 +349,7 @@ export default function MarmitariaEstoquePage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const payload = {
         ...formEmbalagem,
         custo_unitario: custoFinal,
@@ -379,7 +380,7 @@ export default function MarmitariaEstoquePage() {
 
   const handleAjustarEstoqueRapido = async (item, tipo, novaQtd) => {
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await atualizarEstoqueEmbalagem(uId, item.id, novaQtd);
       if (res.error) alert("Erro ao ajustar estoque: " + res.error);
       else carregarDados();
@@ -426,7 +427,7 @@ export default function MarmitariaEstoquePage() {
     }
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await salvarPrePreparoMarmitaria(uId, formPrePreparo);
       if (res.error) alert("Erro ao salvar pré-preparo: " + res.error);
       else {
@@ -460,7 +461,7 @@ export default function MarmitariaEstoquePage() {
 
     setSalvando(true);
     try {
-      const uId = unidadeAtiva?.id || "matriz";
+      const uId = resolverUnidade(unidadeAtiva, unidades);
       const res = await registrarTransferenciaEstoque(uId, formTransf);
       if (res.error) alert("Erro ao transferir: " + res.error);
       else {

@@ -23,11 +23,12 @@ import {
   fetchMarmitas,
   fetchProducaoLotes,
   fetchRhAlocacoes,
-  fetchConfiguracoesMarmitaria,
+  fetchConfiguracoesMarmitaria,,
+  resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 
 export default function MarmitariaCmvCmoPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidades } = useERP();
   const [loading, setLoading] = useState(true);
   const [marmitas, setMarmitas] = useState([]);
   const [lotes, setLotes] = useState([]);
@@ -41,7 +42,7 @@ export default function MarmitariaCmvCmoPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const uId = unidadeAtiva?.id || "matriz";
+        const uId = resolverUnidade(unidadeAtiva, unidades);
         const [resMarmitas, resLotes, resRh, resCfg] = await Promise.all([
           fetchMarmitas(uId),
           fetchProducaoLotes(uId),
@@ -60,7 +61,7 @@ export default function MarmitariaCmvCmoPage() {
       }
     }
     carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, unidades]);
 
   // Cálculos consolidados da operação
   const totalMarmitasProduzidas = lotes.reduce((t, l) => t + (Number(l.quantidade_produzida) || 0), 0) || 1850;

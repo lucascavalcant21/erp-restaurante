@@ -52,6 +52,8 @@ import CampoDecimal from "../../components/CampoDecimal";
 import { formularioDeEdicao, validarCadastro, progressoCadastro, acharDuplicado } from "../../lib/colaborador-cadastro.mjs";
 import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
+import CadastroAssistente, { limparRascunhoCadastro } from "./CadastroAssistente";
+import { citar } from "../../lib/trabalhista/cct-foz-2026-2027.mjs";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -100,6 +102,7 @@ export default function RHPage() {
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [detalheKpi, setDetalheKpi] = useState(null);
   const [modalNovo, setModalNovo] = useState(false);
+  const [modoAssistente, setModoAssistente] = useState(true); // cadastro novo em etapas (Fase 5)
   const [menuAcoes, setMenuAcoes] = useState(null);
   const [abaMenuAcoes, setAbaMenuAcoes] = useState("trabalho");
   const [detAberto, setDetAberto] = useState({}); // detalhamento salarial por card // funcionário com o menu "Ações" aberto
@@ -1343,6 +1346,7 @@ export default function RHPage() {
     setEditandoId(null);
     limparEstadoCadastro();
     setNovoFunc(statePadrao);
+    setModoAssistente(true);
     setModalNovo(true);
   };
 
@@ -1376,6 +1380,7 @@ export default function RHPage() {
     setEditandoId(f.id);
     limparEstadoCadastro();
     setNovoFunc(formularioDeEdicao(f));
+    setModoAssistente(false);
     setModalNovo(true);
   };
 
@@ -1472,6 +1477,7 @@ export default function RHPage() {
       setSalvandoCadastro(false);
     }
     limparEstadoCadastro();
+    if (cadastroNovo) limparRascunhoCadastro(unidadeAtiva);
     setVersaoQuadro((v) => v + 1);
     
     setModalNovo(false);
@@ -2378,7 +2384,7 @@ export default function RHPage() {
                `}</style>
                <div className="flex justify-between items-center gap-4 shrink-0 border-b border-line-soft p-4 sm:px-6 sm:py-5">
                   <div className="min-w-0">
-                     <p className="text-3xs font-bold uppercase tracking-[.18em] text-accent">Equipe fixa · cadastro completo</p>
+                     <p className="text-3xs font-bold uppercase tracking-[.18em] text-accent">{!editandoId && modoAssistente ? "Cadastro em etapas" : "Equipe fixa · cadastro completo"}</p>
                      <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar colaborador" : "Novo colaborador"}</h2>
                      {(() => { const p = progressoCadastro(novoFunc); return (<>
                        <p className="mt-1 text-xs font-bold text-fg">{p.pct}% do essencial preenchido ({p.feitos} de {p.total}) · <span className="text-red-700">*</span> obrigatório</p>
@@ -2388,6 +2394,13 @@ export default function RHPage() {
                   <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-card rounded-full flex items-center justify-center text-fg hover:bg-slate-200"><X size={21}/></button>
                </div>
 
+               {!editandoId && modoAssistente ? (
+                  <CadastroAssistente unidadeId={unidadeAtiva} form={novoFunc} setForm={setNovoFunc}
+                     cargos={[...new Set([...CARGOS_LIDERANCA, ...cargos.map((c) => c.nome)])]}
+                     supervisores={funcionarios.filter((f) => (f.status || "ativo") !== "inativo" && f.tipo_contrato !== "Freelancer").map((f) => ({ id: f.id, nome: f.nome }))}
+                     piso={convencao?.cct?.piso ? { valor: convencao.cct.piso.mensal, fonte: citar(convencao.cct.piso.fonte) } : null}
+                     salvando={salvandoCadastro} onSalvar={() => handleSalvar()} onFormularioCompleto={() => setModoAssistente(false)} />
+               ) : (<>
                <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-line-soft bg-white px-4 py-3 sm:px-6">
                   {[
                     ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
@@ -2893,7 +2906,9 @@ export default function RHPage() {
 
                </div>
 
-               <div className="border-t border-line bg-card p-3 sm:p-4 shrink-0 space-y-2">
+               </>)}
+
+               <div className={`border-t border-line bg-card p-3 sm:p-4 shrink-0 space-y-2 ${!editandoId && modoAssistente && !duplicado && !erroSalvar && !Object.keys(errosCadastro).length ? "hidden" : ""}`}>
                   {duplicado && (
                     <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                       <p className="font-bold">{duplicado.motivo === "cpf" ? "Já existe um colaborador com este CPF" : "Já existe um colaborador com este nome e telefone"}: {duplicado.colaborador.nome}{(duplicado.colaborador.status || "ativo") === "inativo" ? " (desligado)" : ""}.</p>
@@ -2910,9 +2925,9 @@ export default function RHPage() {
                     </div>
                   )}
                   {erroSalvar && <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-800" role="alert">{erroSalvar}</div>}
-                  <button onClick={() => handleSalvar()} disabled={!novoFunc.nome || !novoFunc.cargo || salvandoCadastro} className="w-full min-h-14 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+                  {!(!editandoId && modoAssistente) && <button onClick={() => handleSalvar()} disabled={!novoFunc.nome || !novoFunc.cargo || salvandoCadastro} className="w-full min-h-14 bg-accent hover:bg-accent disabled:bg-slate-300 text-accent-fg font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                      {salvandoCadastro ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar colaborador"}
-                  </button>
+                  </button>}
                </div>
             </div>
          </div>

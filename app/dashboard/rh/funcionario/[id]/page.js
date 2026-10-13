@@ -40,6 +40,7 @@ import { useContextoInteligencia } from "../../../../components/intelligence/use
 import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
 import VinculosAba from "./VinculosAba";
+import SimulacaoMes from "./SimulacaoMes";
 import { avosFerias } from "../../../../lib/trabalhista/regras-cct.mjs";
 import {
   ABAS_PRONTUARIO, statusDoColaborador, vinculoAtual, supervisoresDe, pendenciasDoColaborador, tempoDeCasa, mascararCpf,
@@ -413,6 +414,7 @@ export default function ProntuarioColaboradorPage() {
                 )}
               </Card>
             ) : <EmptyState icon={DollarSign} title="Sem permissão para ver valores de remuneração." />}
+            {podeVerValores && !extra && <SimulacaoMes colaborador={func} competencia={new Date().toISOString().slice(0, 7)} ponto={extras.ponto} adicionais={adicionais} />}
             {podeVerValores && <ListaDoProntuario chave="bonificacoes" func={func} podeEditar={podeEditar} opcoesDinamicas={opcoesDinamicas} onAviso={setAviso} />}
           </div>
         )}

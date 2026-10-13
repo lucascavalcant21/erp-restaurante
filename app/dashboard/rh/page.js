@@ -816,68 +816,6 @@ export default function RHPage() {
     alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}${falhas.length ? `\n\n${falhas.length} NÃO foram lançadas:\n${falhas.join("\n")}` : ""}.`);
   };
 
-  // --- Funções de Consumo ---
-  // ── HOLERITE (recibo de pagamento) com INSS progressivo e FGTS ────────────
-  // Tabela INSS vigente (2025) — atualizar as faixas quando o governo reajustar.
-  const INSS_FAIXAS = [
-    { ate: 1518.00, aliq: 0.075 },
-    { ate: 2793.88, aliq: 0.09 },
-    { ate: 4190.83, aliq: 0.12 },
-    { ate: 8157.41, aliq: 0.14 },
-  ];
-  const calcularINSS = (base) => {
-    let inss = 0, anterior = 0;
-    for (const fx of INSS_FAIXAS) {
-      if (base > anterior) inss += (Math.min(base, fx.ate) - anterior) * fx.aliq;
-      anterior = fx.ate;
-    }
-    return Math.round(inss * 100) / 100;
-  };
-
-  const gerarHolerite = (f, p) => {
-    const mesLabel = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    const brutoTrib = (p.fixo || 0) + (p.adicionais || 0) + (p.taxa || 0); // base de INSS/FGTS
-    const inss = calcularINSS(brutoTrib);
-    const fgts = Math.round(brutoTrib * 0.08 * 100) / 100; // depósito do empregador (informativo)
-    const liquido = brutoTrib + (p.va || 0) - inss - (p.descontos || 0);
-    const linha = (desc, prov, descto) => `<tr><td>${desc}</td><td class="r">${prov ? fmtBRL(prov) : ""}</td><td class="r">${descto ? fmtBRL(descto) : ""}</td></tr>`;
-    let linhas = linha("Salário base", p.fixo, 0);
-    if (p.ad?.valorExtra > 0) linhas += linha("Horas extras (+50%)", p.ad.valorExtra, 0);
-    if (p.ad?.valorNoturno > 0) linhas += linha("Adicional noturno (+20%)", p.ad.valorNoturno, 0);
-    if (p.ad?.valorFeriado > 0) linhas += linha("Feriado trabalhado (+100%)", p.ad.valorFeriado, 0);
-    if (p.taxa > 0) linhas += linha("Taxa de serviço (gorjeta)", p.taxa, 0);
-    if (p.va > 0) linhas += linha("Vale-alimentação (benefício)", p.va, 0);
-    linhas += linha("INSS (tabela progressiva)", 0, inss);
-    if (p.descontos > 0) linhas += linha("Vales / adiantamentos", 0, p.descontos);
-    const win = window.open("", "_blank", "width=820,height=1000");
-    if (!win) return alert("Habilite os popups para gerar o holerite.");
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Holerite — ${f.nome}</title><style>
-      *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;padding:12mm;max-width:720px;margin:0 auto;font-size:13px}
-      .head{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-end}
-      h1{font-size:20px;text-transform:uppercase;letter-spacing:2px}.mes{font-weight:900;font-size:14px;text-transform:capitalize}
-      .dados{font-size:12px;color:#333;margin-bottom:10px;line-height:1.6}
-      table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:7px 8px;font-size:12px}
-      th{background:#f1f5f9;text-transform:uppercase;font-size:10px;letter-spacing:1px}td.r{text-align:right;width:110px;font-weight:bold}
-      .tot{background:#f8fafc;font-weight:900}
-      .liq{margin-top:10px;display:flex;justify-content:space-between;border:2px solid #111;border-radius:8px;padding:10px 14px;font-size:16px;font-weight:900}
-      .fgts{margin-top:8px;font-size:11px;color:#475569}
-      .assin{margin-top:34px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;text-align:center;color:#444}
-      @media print{@page{margin:10mm}}
-    </style></head><body>
-      <div class="head"><h1>Recibo de Pagamento</h1><span class="mes">${mesLabel}</span></div>
-      <div class="dados"><b>${f.nome}</b> · ${f.cargo || "—"}${f.cpf ? ` · CPF: ${f.cpf}` : ""}<br/>${unidadeInfoRH()}</div>
-      <table><thead><tr><th>Descrição</th><th>Proventos</th><th>Descontos</th></tr></thead>
-      <tbody>${linhas}</tbody>
-      <tfoot><tr class="tot"><td>Totais</td><td class="r">${fmtBRL(brutoTrib + (p.va || 0))}</td><td class="r">${fmtBRL(inss + (p.descontos || 0))}</td></tr></tfoot></table>
-      <div class="liq"><span>LÍQUIDO A RECEBER</span><span>${fmtBRL(liquido)}</span></div>
-      <div class="fgts">FGTS do mês (depósito do empregador, não descontado): <b>${fmtBRL(fgts)}</b> (8% sobre ${fmtBRL(brutoTrib)}) · Base INSS: ${fmtBRL(brutoTrib)} · DSR incluso na remuneração mensal (Lei 605/49).</div>
-      <div class="assin"><div>Empregador</div><div>${f.nome}</div></div>
-    </body></html>`);
-    win.document.close();
-    setTimeout(() => win.print(), 400);
-  };
-  const unidadeInfoRH = () => (unidadeInfo?.nome ? `Unidade: ${unidadeInfo.nome}` : "");
-
   // ── Ler a ficha do EXTRA preenchida à mão (foto) via IA e anexar ──────────
   const inputFichaExtraRef = useRef(null);
   const [lendoFichaExtra, setLendoFichaExtra] = useState(false);
@@ -2767,7 +2705,7 @@ export default function RHPage() {
                               <p className="text-3xs text-subtle font-medium mt-1">De 0,5 a 2 pontos. O valor em reais sai do rateio no fechamento do mês.</p>
                            </div>
                         </div>
-                        <p className="text-3xs font-medium text-emerald-700/70 mt-3">Adicional noturno (20% das 22h às 5h, com hora noturna reduzida de 52min30s) e hora extra (+50% além da jornada contratada) são calculados automaticamente pelo ponto. Hora normal = salário ÷ 220.</p>
+                        <p className="text-3xs font-medium text-emerald-700/70 mt-3">{(() => { const rg = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras; return `Adicional noturno (${rg.noturnoPct}% das ${rg.noturnoInicioH}h às ${rg.noturnoFimH}h, com hora noturna reduzida de 52min30s) e hora extra (+${rg.extraPct}% além da jornada contratada) são calculados automaticamente pelo ponto, pela regra ${rg.id === "clt" ? "da CLT" : "da convenção coletiva"}. Hora normal = salário ÷ 220.`; })()}</p>
                      </div>
                   )}
 

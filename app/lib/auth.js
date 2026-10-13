@@ -17,7 +17,7 @@ export const PAPEIS = [
     id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
     descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
     home: "/dashboard/tarefas",
-    nav: ["dashboard","tarefas","bar","cozinha","cervejas","vendas","mesas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","organograma","configuracoes","gestao_rh","recrutamento","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
+    nav: ["dashboard","tarefas","bar","cozinha","cervejas","vendas","mesas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","organograma","configuracoes","gestao_rh","recrutamento","ponto","colaborador","clientes","crm","campanhas","nps","heitor","marmitaria"],
   },
   {
     id: "financeiro", label: "Financeiro", cor: "#3b82f6",

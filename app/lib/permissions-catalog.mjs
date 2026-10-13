@@ -269,6 +269,25 @@ export const PERMISSION_MODULES = [
       { id: "departments", label: "Departamentos", route: "/dashboard/departamentos", actions: [...CRUD, "settings"] },
     ],
   },
+  {
+    id: "marmitaria", label: "Marmitaria & Delivery",
+    pages: [
+      { id: "overview", label: "Visão Geral", route: "/dashboard/marmitaria", actions: [...VIEW_EXPORT, "view_values", "settings"] },
+      { id: "orders", label: "Pedidos e iFood", route: "/dashboard/marmitaria/pedidos", actions: [...CRUD, "confirm", "cancel", "view_values"] },
+      { id: "menu", label: "Cardápio de Marmitas", route: "/dashboard/marmitaria/cardapio", actions: [...CRUD, "view_costs", "view_margin", "export"] },
+      { id: "recipes", label: "Fichas Técnicas de Marmitas", route: "/dashboard/marmitaria/fichas", actions: [...CRUD, "view_costs", "view_margin", "print", "export"] },
+      { id: "pricing", label: "Precificação Inteligente", route: "/dashboard/marmitaria/precificacao", actions: ["view", "edit", "approve", "view_costs", "view_margin"] },
+      { id: "simulator", label: "Simulador de Vendas", route: "/dashboard/marmitaria/simulador", actions: ["view", "create", "export", "view_values"] },
+      { id: "production", label: "Produção de Marmitas", route: "/dashboard/marmitaria/producao", actions: [...CRUD, "confirm", "cancel", "print"] },
+      { id: "stock", label: "Estoque e Embalagens", route: "/dashboard/marmitaria/estoque", actions: [...CRUD, "adjust_stock", "transfer", "view_costs"] },
+      { id: "purchases", label: "Lista de Compras", route: "/dashboard/marmitaria/compras", actions: [...CRUD, "approve", "confirm", "print", "export"] },
+      { id: "hr", label: "RH e Escalas", route: "/dashboard/marmitaria/rh", actions: [...CRUD, "view_values", "export"] },
+      { id: "financial", label: "Financeiro e Repasses", route: "/dashboard/marmitaria/financeiro", actions: [...VIEW_EXPORT, "view_values", "confirm"] },
+      { id: "cmv_cmo", label: "CMV e CMO", route: "/dashboard/marmitaria/cmv-cmo", actions: [...VIEW_EXPORT, "view_costs", "view_values"] },
+      { id: "dre", label: "DRE e Resultados", route: "/dashboard/marmitaria/dre", actions: [...VIEW_EXPORT, "view_values", "view_margin", "export"] },
+      { id: "settings", label: "Configurações da Marmitaria", route: "/dashboard/marmitaria/configuracoes", actions: ["view", "edit", "settings"] },
+    ],
+  },
 ];
 
 export const permissionKey = (moduleId, pageId, action = "view") =>

@@ -23,6 +23,8 @@ import { faseContratoCalculada, prazoExperiencia } from "../../lib/contrato-expe
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../lib/pessoas";
 import { abrirArquivoRH } from "../../lib/rh-arquivos";
 import { supabase } from "../../lib/supabase";
+import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
+import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Nome curto de cada batida, para caber na etiqueta de localização.
@@ -71,6 +73,8 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
   // Colaborador aberto + a vida dele
   const [sel, setSel] = useState(null);
   const [vida, setVida] = useState(null); // { docs, folgas, consumo, banco, ponto }
+  const [convencao, setConvencao] = useState(null); // convenção coletiva ativa (RH-3)
+  useEffect(() => { fetchConvencaoAtiva(unidadeAtiva).then(setConvencao); }, [unidadeAtiva]);
   const [vidaLoading, setVidaLoading] = useState(false);
   const [formAtestado, setFormAtestado] = useState(null);
   const [salvandoAtestado, setSalvandoAtestado] = useState(false);
@@ -342,6 +346,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
               {/* Remuneração do mês: fixo + VA + taxa + adicionais do ponto (CLT) */}
               {!isFree && (() => {
                 const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, {
+                  regras: regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras,
                   contratadaDoDia: (d) => jornadaContratadaMin(sel, d),
                   entradaDoDia: (d) => entradaContratadaDoDia(sel, d),
                 });

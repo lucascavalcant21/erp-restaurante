@@ -6,6 +6,8 @@ import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
 import { fetchFolgasEsporadicas, fetchFeriados, fetchAtestados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft, Download } from "lucide-react";
+import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
+import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
 
 export default function EspelhoDePonto() {
   const params = useParams();
@@ -21,6 +23,8 @@ export default function EspelhoDePonto() {
   };
 
   const [colaborador, setColaborador] = useState(null);
+  const [convencao, setConvencao] = useState(null); // convenção coletiva ativa (RH-3)
+  useEffect(() => { if (colaborador?.unidade_id) fetchConvencaoAtiva(colaborador.unidade_id).then(setConvencao); }, [colaborador?.unidade_id]);
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
   const [atestadosMes, setAtestadosMes] = useState([]);
@@ -495,6 +499,7 @@ export default function EspelhoDePonto() {
             // ter chegado cedo. A batida real continua no espelho e no livro;
             // o corte é só na conta.
             const dias = calcularAdicionaisPorDia(pontos, feriadosMes, {
+              regras: regrasDaCompetencia(mesParam, { convencao }).regras,
               contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d),
               entradaDoDia: (d) => entradaContratadaDoDia(colaborador, d),
             });

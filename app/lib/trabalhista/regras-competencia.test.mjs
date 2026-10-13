@@ -50,3 +50,11 @@ test("REGRAS_CLT continua congelado e citando a lei", () => {
   assert.ok(Object.isFrozen(REGRAS_CLT));
   assert.ok(REGRAS_CLT.fundamentos.some((f) => /CLT art\. 73/.test(f)));
 });
+
+test("ativada a partir de 2026-10: maio a setembro (já pagos) continuam CLT; outubro em diante, CCT", () => {
+  const conv = { status: "ativa", aplicar_desde: "2026-10" };
+  assert.equal(regrasDaCompetencia("2026-09", { convencao: conv }).regras.id, "clt");
+  assert.match(regrasDaCompetencia("2026-09", { convencao: conv }).motivo, /a partir de 2026-10/);
+  assert.equal(regrasDaCompetencia("2026-10", { convencao: conv }).regras.id, "cct-foz-hoteis-restaurantes-2026-2027");
+  assert.equal(regrasDaCompetencia("2027-04", { convencao: conv }).regras.id, "cct-foz-hoteis-restaurantes-2026-2027");
+});

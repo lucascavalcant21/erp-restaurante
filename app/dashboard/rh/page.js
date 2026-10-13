@@ -50,6 +50,8 @@ import BancoTalentos from "./components/BancoTalentos";
 import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 import CampoDecimal from "../../components/CampoDecimal";
 import { formularioDeEdicao, validarCadastro, progressoCadastro, acharDuplicado } from "../../lib/colaborador-cadastro.mjs";
+import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
+import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -81,6 +83,9 @@ export default function RHPage() {
   const [valesPendentes, setValesPendentes] = useState([]);       // desconto em folha pendente
   const [pontosMesUnidade, setPontosMesUnidade] = useState([]);   // p/ extras e feriados do mês
   const [feriadosMesAtual, setFeriadosMesAtual] = useState([]);
+  // Convenção coletiva ativa (RH-3): percentuais de extra/noturno da competência
+  const [convencao, setConvencao] = useState(null);
+  useEffect(() => { fetchConvencaoAtiva(unidadeAtiva).then(setConvencao); }, [unidadeAtiva]);
   const [folgasUnidade, setFolgasUnidade] = useState([]);       // p/ relatório de faltas
   const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);     // parâmetros ajustáveis
   useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setParamsSis(r.data)); }, [unidadeAtiva]);
@@ -575,7 +580,8 @@ export default function RHPage() {
     const taxa = Number(f.taxa_servico_mes) || 0;
     const base = fixo + va + taxa; // remuneração cheia
     const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
-    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
+    const { regras } = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao });
+    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d), regras });
     const descontos = valesPendentes
       .filter(v => v.funcionario_id === f.id)
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
@@ -774,7 +780,8 @@ export default function RHPage() {
     const folha = [];
     for (const f of fixos) {
       const { data: pontos } = await fetchPontosMes(f.id, mesISO);
-      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
+      const { regras } = regrasDaCompetencia(mesISO, { convencao });
+      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], { contratadaDoDia: (d) => jornadaContratadaMin(f, d), regras });
       const fixo = Number(f.salario) || 0;
       const va = Number(f.vale_alimentacao) || 0;
       const taxa = Number(f.taxa_servico_mes) || 0;

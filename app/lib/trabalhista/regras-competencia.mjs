@@ -25,7 +25,7 @@ export function regrasDaConvencao(cct = CCT_FOZ_2026_2027) {
 }
 
 /**
- * competencia: "AAAA-MM". convencao: { status, cct } vinda do cadastro.
+ * competencia: "AAAA-MM". convencao: { status, cct, aplicar_desde } vinda do cadastro.
  * fechada: true quando o espelho/folha daquele mês já foi fechado.
  */
 export function regrasDaCompetencia(competencia, { convencao = null, fechada = false } = {}) {
@@ -34,5 +34,8 @@ export function regrasDaCompetencia(competencia, { convencao = null, fechada = f
   const cct = convencao.cct || CCT_FOZ_2026_2027;
   const dia = `${competencia}-01`;
   if (dia < cct.vigencia.inicio.slice(0, 7) + "-01" || dia > cct.vigencia.fim) return { regras: REGRAS_CLT, motivo: "fora da vigência da convenção" };
+  // ativada a partir de uma competência: o que veio antes (já pago) não é recalculado aqui;
+  // a diferença do período anterior é levantamento à parte, com o contador
+  if (convencao.aplicar_desde && competencia < convencao.aplicar_desde) return { regras: REGRAS_CLT, motivo: `convenção aplicada a partir de ${convencao.aplicar_desde}` };
   return { regras: regrasDaConvencao(cct), motivo: `vigente: ${cct.nome}` };
 }

@@ -31,8 +31,11 @@ import {
   fetchMarmitas,
   salvarMarmita,
   fetchPreparacoesBase,
+  salvarPrePreparoMarmitaria,
   fetchInsumosEstoque,
+  salvarInsumoMarmitaria,
   fetchEmbalagensMarmitaria,
+  salvarEmbalagemMarmitaria,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {
   calcularCustoTecnicoMarmita,
@@ -55,10 +58,38 @@ export default function MarmitariaFichasPage() {
   const [busca, setBusca] = useState("");
   const [tamanhoFiltro, setTamanhoFiltro] = useState("todos");
 
-  // Modal de edição / cadastro
+  // Modal de edição / cadastro de Marmita
   const [modalAberto, setModalAberto] = useState(false);
   const [modoAvancado, setModoAvancado] = useState(false);
   const [modalMontagemImpressao, setModalMontagemImpressao] = useState(null);
+
+  // Modais de Criação Rápida Inline
+  const [modalNovoPrePreparo, setModalNovoPrePreparo] = useState(false);
+  const [formNovoPrePreparo, setFormNovoPrePreparo] = useState({
+    nome_receita: "",
+    categoria: "Guarnições",
+    rendimento: 5.0,
+    rendimento_unidade: "kg",
+    custo_total: 40.0,
+    tempo_preparo_min: 30,
+  });
+
+  const [modalNovoInsumo, setModalNovoInsumo] = useState(false);
+  const [formNovoInsumo, setFormNovoInsumo] = useState({
+    nome: "",
+    categoria: "Proteínas",
+    unidade_medida: "kg",
+    custo_unitario: 25.0,
+    estoque_minimo: 5,
+  });
+
+  const [modalNovaEmbalagem, setModalNovaEmbalagem] = useState(false);
+  const [formNovaEmbalagem, setFormNovaEmbalagem] = useState({
+    nome: "",
+    tipo_embalagem: "marmita",
+    custo_unitario: 1.30,
+    estoque_minimo: 30,
+  });
 
   // Form State
   const [form, setForm] = useState({
@@ -303,6 +334,143 @@ export default function MarmitariaFichasPage() {
         },
       ],
     }));
+  };
+
+  // Criação rápida Inline de Pré-preparo
+  const handleSalvarNovoPrePreparoInline = async () => {
+    if (!formNovoPrePreparo.nome_receita.trim()) {
+      alert("Informe o nome do pré-preparo.");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const uId = unidadeAtiva?.id || "matriz";
+      const res = await salvarPrePreparoMarmitaria(uId, formNovoPrePreparo);
+      if (res.error) alert("Erro ao salvar: " + res.error);
+      else {
+        const resPreps = await fetchPreparacoesBase(uId);
+        setPreparacoesBase(resPreps.data || []);
+        // Adiciona automaticamente à marmita aberta
+        const novoId = res.data?.id;
+        const rend = Number(formNovoPrePreparo.rendimento) || 1;
+        const custoUnit = rend > 0 ? (Number(formNovoPrePreparo.custo_total) || 0) / rend : 0;
+        setForm((prev) => ({
+          ...prev,
+          preparacoes: [
+            ...prev.preparacoes,
+            {
+              subficha_id: novoId,
+              nome: formNovoPrePreparo.nome_receita,
+              quantidade: 0.15,
+              unidade_medida: formNovoPrePreparo.rendimento_unidade || "kg",
+              custo_unitario: custoUnit,
+            },
+          ],
+        }));
+        setModalNovoPrePreparo(false);
+        setFormNovoPrePreparo({
+          nome_receita: "",
+          categoria: "Guarnições",
+          rendimento: 5.0,
+          rendimento_unidade: "kg",
+          custo_total: 40.0,
+          tempo_preparo_min: 30,
+        });
+      }
+    } catch (e) {
+      alert("Erro ao salvar pré-preparo: " + e.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  // Criação rápida Inline de Insumo
+  const handleSalvarNovoInsumoInline = async () => {
+    if (!formNovoInsumo.nome.trim()) {
+      alert("Informe o nome do insumo.");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const uId = unidadeAtiva?.id || "matriz";
+      const res = await salvarInsumoMarmitaria(uId, formNovoInsumo);
+      if (res.error) alert("Erro ao salvar: " + res.error);
+      else {
+        const resIns = await fetchInsumosEstoque(uId);
+        setInsumosEstoque(resIns.data || []);
+        const novoId = res.data?.id;
+        setForm((prev) => ({
+          ...prev,
+          ingredientes: [
+            ...prev.ingredientes,
+            {
+              insumo_id: novoId,
+              nome: formNovoInsumo.nome,
+              quantidade: 0.05,
+              unidade_medida: formNovoInsumo.unidade_medida || "kg",
+              fator_correcao: 1,
+              perda_pct: 0,
+              custo_unitario: Number(formNovoInsumo.custo_unitario) || 0,
+            },
+          ],
+        }));
+        setModalNovoInsumo(false);
+        setFormNovoInsumo({
+          nome: "",
+          categoria: "Proteínas",
+          unidade_medida: "kg",
+          custo_unitario: 25.0,
+          estoque_minimo: 5,
+        });
+      }
+    } catch (e) {
+      alert("Erro ao salvar insumo: " + e.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  // Criação rápida Inline de Embalagem
+  const handleSalvarNovaEmbalagemInline = async () => {
+    if (!formNovaEmbalagem.nome.trim()) {
+      alert("Informe o nome da embalagem.");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const uId = unidadeAtiva?.id || "matriz";
+      const res = await salvarEmbalagemMarmitaria(uId, formNovaEmbalagem);
+      if (res.error) alert("Erro ao salvar: " + res.error);
+      else {
+        const resEmbs = await fetchEmbalagensMarmitaria(uId);
+        setEmbalagensDisponiveis(resEmbs.data || []);
+        const novoId = res.data?.id;
+        setForm((prev) => ({
+          ...prev,
+          embalagens: [
+            ...prev.embalagens,
+            {
+              embalagem_insumo_id: novoId,
+              nome: formNovaEmbalagem.nome,
+              tipo_embalagem: formNovaEmbalagem.tipo_embalagem || "marmita",
+              quantidade: 1,
+              custo_unitario: Number(formNovaEmbalagem.custo_unitario) || 1.3,
+            },
+          ],
+        }));
+        setModalNovaEmbalagem(false);
+        setFormNovaEmbalagem({
+          nome: "",
+          tipo_embalagem: "marmita",
+          custo_unitario: 1.30,
+          estoque_minimo: 30,
+        });
+      }
+    } catch (e) {
+      alert("Erro ao salvar embalagem: " + e.message);
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
@@ -611,25 +779,37 @@ export default function MarmitariaFichasPage() {
                   </p>
                 </div>
 
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      adicionarPreparacao(e.target.value);
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalNovoPrePreparo(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-600/20 transition-all shrink-0"
+                  >
+                    <Plus size={13} /> Criar Pré-preparo
+                  </button>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value === "__CRIAR__") {
+                        setModalNovoPrePreparo(true);
+                      } else if (e.target.value) {
+                        adicionarPreparacao(e.target.value);
+                      }
                       e.target.value = "";
-                    }
-                  }}
-                  defaultValue=""
-                  className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-800"
-                >
-                  <option value="" disabled>
-                    + Adicionar Pré-preparo
-                  </option>
-                  {preparacoesBase.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome_receita} ({fmtBRL(p.custo_total)}/kg)
+                    }}
+                    defaultValue=""
+                    className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-800"
+                  >
+                    <option value="" disabled>
+                      + Adicionar Pré-preparo
                     </option>
-                  ))}
-                </select>
+                    <option value="__CRIAR__">+ Criar Novo Pré-preparo...</option>
+                    {preparacoesBase.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome_receita} ({fmtBRL(p.custo_total)}/kg)
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {form.preparacoes.length === 0 ? (
@@ -699,25 +879,37 @@ export default function MarmitariaFichasPage() {
                   </p>
                 </div>
 
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      adicionarIngrediente(e.target.value);
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalNovoInsumo(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all shrink-0"
+                  >
+                    <Plus size={13} /> Novo Insumo
+                  </button>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value === "__CRIAR__") {
+                        setModalNovoInsumo(true);
+                      } else if (e.target.value) {
+                        adicionarIngrediente(e.target.value);
+                      }
                       e.target.value = "";
-                    }
-                  }}
-                  defaultValue=""
-                  className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800"
-                >
-                  <option value="" disabled>
-                    + Adicionar Insumo
-                  </option>
-                  {insumosEstoque.slice(0, 30).map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.nome} ({fmtBRL(i.custo_unitario)}/{i.unidade_medida})
+                    }}
+                    defaultValue=""
+                    className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800"
+                  >
+                    <option value="" disabled>
+                      + Adicionar Insumo
                     </option>
-                  ))}
-                </select>
+                    <option value="__CRIAR__">+ Cadastrar Novo Insumo...</option>
+                    {insumosEstoque.slice(0, 40).map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.nome} ({fmtBRL(i.custo_unitario)}/{i.unidade_medida})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {form.ingredientes.map((ing, idx) => (
@@ -801,25 +993,37 @@ export default function MarmitariaFichasPage() {
                   </p>
                 </div>
 
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      adicionarEmbalagem(e.target.value);
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalNovaEmbalagem(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-amber-600/20 transition-all shrink-0"
+                  >
+                    <Plus size={13} /> Nova Embalagem
+                  </button>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value === "__CRIAR__") {
+                        setModalNovaEmbalagem(true);
+                      } else if (e.target.value) {
+                        adicionarEmbalagem(e.target.value);
+                      }
                       e.target.value = "";
-                    }
-                  }}
-                  defaultValue=""
-                  className="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-800"
-                >
-                  <option value="" disabled>
-                    + Adicionar Embalagem
-                  </option>
-                  {embalagensDisponiveis.map((emb) => (
-                    <option key={emb.id} value={emb.id}>
-                      {emb.nome} ({fmtBRL(emb.custo_unitario)})
+                    }}
+                    defaultValue=""
+                    className="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-800"
+                  >
+                    <option value="" disabled>
+                      + Adicionar Embalagem
                     </option>
-                  ))}
-                </select>
+                    <option value="__CRIAR__">+ Cadastrar Nova Embalagem...</option>
+                    {embalagensDisponiveis.map((emb) => (
+                      <option key={emb.id} value={emb.id}>
+                        {emb.nome} ({fmtBRL(emb.custo_unitario)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1009,6 +1213,254 @@ export default function MarmitariaFichasPage() {
                   {modalMontagemImpressao.embalagens?.map((e) => `${e.quantidade}x ${e.nome}`).join(" • ") || "Marmita, tampa térmica, sacola kraft e lacre de segurança."}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL INLINE: CRIAR NOVO PRÉ-PREPARO */}
+      {modalNovoPrePreparo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-hf-surface w-full max-w-md rounded-3xl border border-hf-border shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-blue-700 block">Criação Rápida</span>
+                <h4 className="text-base font-black text-slate-900">Novo Pré-preparo (Receita Base)</h4>
+              </div>
+              <button onClick={() => setModalNovoPrePreparo(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Nome da Receita Base:</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Arroz Branco Soltinho, Feijão Tropeiro..."
+                  value={formNovoPrePreparo.nome_receita}
+                  onChange={(e) => setFormNovoPrePreparo({ ...formNovoPrePreparo, nome_receita: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Rendimento:</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formNovoPrePreparo.rendimento}
+                      onChange={(e) => setFormNovoPrePreparo({ ...formNovoPrePreparo, rendimento: Number(e.target.value) })}
+                      className="w-full p-2 rounded-xl border border-hf-border bg-slate-50 text-xs font-black"
+                    />
+                    <select
+                      value={formNovoPrePreparo.rendimento_unidade}
+                      onChange={(e) => setFormNovoPrePreparo({ ...formNovoPrePreparo, rendimento_unidade: e.target.value })}
+                      className="p-2 rounded-xl border border-hf-border bg-slate-50 text-xs font-bold"
+                    >
+                      <option value="kg">kg</option>
+                      <option value="g">g</option>
+                      <option value="un">un</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Custo Total (R$):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formNovoPrePreparo.custo_total}
+                    onChange={(e) => setFormNovoPrePreparo({ ...formNovoPrePreparo, custo_total: Number(e.target.value) })}
+                    className="w-full p-2 rounded-xl border border-hf-border bg-slate-50 text-xs font-black"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-blue-50 text-blue-800 rounded-xl font-bold flex justify-between">
+                <span>Custo Médio Calculado:</span>
+                <span>
+                  {fmtBRL(
+                    Number(formNovoPrePreparo.rendimento) > 0
+                      ? formNovoPrePreparo.custo_total / formNovoPrePreparo.rendimento
+                      : 0
+                  )}{" "}
+                  / {formNovoPrePreparo.rendimento_unidade}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setModalNovoPrePreparo(false)}
+                className="px-3 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSalvarNovoPrePreparoInline}
+                disabled={salvando}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm"
+              >
+                {salvando ? "Salvando..." : "Salvar e Inserir na Marmita"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL INLINE: CRIAR NOVO INSUMO */}
+      {modalNovoInsumo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-hf-surface w-full max-w-md rounded-3xl border border-hf-border shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-emerald-700 block">Criação Rápida</span>
+                <h4 className="text-base font-black text-slate-900">Novo Insumo / Ingrediente</h4>
+              </div>
+              <button onClick={() => setModalNovoInsumo(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Nome do Insumo:</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Azeite Extra Virgem, Queijo Parmesão..."
+                  value={formNovoInsumo.nome}
+                  onChange={(e) => setFormNovoInsumo({ ...formNovoInsumo, nome: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Unidade:</label>
+                  <select
+                    value={formNovoInsumo.unidade_medida}
+                    onChange={(e) => setFormNovoInsumo({ ...formNovoInsumo, unidade_medida: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-semibold"
+                  >
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="l">l</option>
+                    <option value="ml">ml</option>
+                    <option value="un">un</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Custo Unitário (R$):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formNovoInsumo.custo_unitario}
+                    onChange={(e) => setFormNovoInsumo({ ...formNovoInsumo, custo_unitario: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-black"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setModalNovoInsumo(false)}
+                className="px-3 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSalvarNovoInsumoInline}
+                disabled={salvando}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm"
+              >
+                {salvando ? "Salvando..." : "Salvar e Inserir na Marmita"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL INLINE: CRIAR NOVA EMBALAGEM */}
+      {modalNovaEmbalagem && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-hf-surface w-full max-w-md rounded-3xl border border-hf-border shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-700 block">Criação Rápida</span>
+                <h4 className="text-base font-black text-slate-900">Nova Embalagem / Descartável</h4>
+              </div>
+              <button onClick={() => setModalNovaEmbalagem(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Nome da Embalagem:</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Marmita Térmica 500ml, Tampa de Isopor..."
+                  value={formNovaEmbalagem.nome}
+                  onChange={(e) => setFormNovaEmbalagem({ ...formNovaEmbalagem, nome: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Tipo:</label>
+                  <select
+                    value={formNovaEmbalagem.tipo_embalagem}
+                    onChange={(e) => setFormNovaEmbalagem({ ...formNovaEmbalagem, tipo_embalagem: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-semibold"
+                  >
+                    <option value="marmita">Marmita (Base)</option>
+                    <option value="tampa">Tampa</option>
+                    <option value="sacola">Sacola</option>
+                    <option value="lacre">Lacre</option>
+                    <option value="talher">Talher</option>
+                    <option value="pote">Pote de Molho</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Preço / Custo Unitário (R$):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formNovaEmbalagem.custo_unitario}
+                    onChange={(e) => setFormNovaEmbalagem({ ...formNovaEmbalagem, custo_unitario: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-hf-border bg-slate-50 text-xs font-black"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setModalNovaEmbalagem(false)}
+                className="px-3 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSalvarNovaEmbalagemInline}
+                disabled={salvando}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow-sm"
+              >
+                {salvando ? "Salvando..." : "Salvar e Inserir na Marmita"}
+              </button>
             </div>
           </div>
         </div>

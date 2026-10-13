@@ -143,17 +143,30 @@ export async function salvarMarmita(unidadeId, payload) {
       let res = await supabase
         .from('fichas_tecnicas')
         .insert([dadosFicha])
-        .select()
+        .select('id')
         .single();
 
       let errFicha = await retrySemColunaAusente(res.error, async () => {
-        const r = await supabase.from('fichas_tecnicas').insert([dadosFicha]).select().single();
+        const r = await supabase.from('fichas_tecnicas').insert([dadosFicha]).select('id').single();
         res = r;
         return r.error;
       }, dadosFicha);
 
-      if (errFicha) throw errFicha;
-      fichaId = res.data?.id;
+      if (errFicha) {
+        // Fallback seguro: tenta inserir sem .select() e recupera id
+        const r2 = await supabase.from('fichas_tecnicas').insert([dadosFicha]);
+        if (r2.error) throw r2.error;
+        const { data: rec } = await supabase
+          .from('fichas_tecnicas')
+          .select('id')
+          .eq('nome_receita', nome_receita)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        fichaId = rec?.id;
+      } else {
+        fichaId = res.data?.id;
+      }
     } else {
       let errUpdate = await supabase
         .from('fichas_tecnicas')
@@ -225,7 +238,7 @@ export async function salvarMarmita(unidadeId, payload) {
           nome_produto: nome_receita,
           preco_venda: preco,
           categoria: 'Marmitas',
-          departamento: 'marmitaria',
+          departamento: 'cozinha', // SalvarProduto valida 'cozinha' ou 'bar'
           observacoes: `Marmita tamanho ${tamanho} (${peso_final_g}g). ${descricao_comercial}`,
         });
       } catch (errProd) {
@@ -251,7 +264,7 @@ export async function fetchPreparacoesBase(unidadeId) {
   try {
     let query = supabase
       .from('fichas_tecnicas')
-      .select('id, nome_receita, categoria, rendimento, rendimento_unidade, custo_total, eh_base')
+      .select('id, nome_receita, categoria, rendimento, rendimento_unidade, custo_total, eh_base, departamento, tempo_preparo_min')
       .eq('eh_base', true);
 
     if (unidadeId && unidadeId !== 'matriz') {
@@ -268,7 +281,80 @@ export async function fetchPreparacoesBase(unidadeId) {
 }
 
 /**
- * Busca matérias-primas e insumos do estoque central.
+ * Cadastra ou atualiza uma ficha de pré-preparo (eh_base = true).
+ */
+export async function salvarPrePreparoMarmitaria(unidadeId, payload) {
+  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+
+  try {
+    const isNovo = !payload.id;
+    const dados = {
+      unidade_id: unidadeId,
+      nome_receita: payload.nome_receita,
+      categoria: payload.categoria || 'Pré-preparo',
+      departamento: payload.departamento || 'marmitaria',
+      eh_base: true,
+      rendimento: Number(payload.rendimento) || 1,
+      rendimento_unidade: payload.rendimento_unidade || 'kg',
+      custo_total: Number(payload.custo_total) || 0,
+      tempo_preparo_min: Number(payload.tempo_preparo_min) || 30,
+      instrucoes_preparo: payload.instrucoes_preparo || '',
+    };
+
+    let id = payload.id;
+    if (isNovo) {
+      let res = await supabase.from('fichas_tecnicas').insert([dados]).select('id').single();
+      let err = await retrySemColunaAusente(res.error, async () => {
+        const r = await supabase.from('fichas_tecnicas').insert([dados]).select('id').single();
+        res = r;
+        return r.error;
+      }, dados);
+
+      if (err) {
+        // Fallback sem select
+        const r2 = await supabase.from('fichas_tecnicas').insert([dados]);
+        if (r2.error) throw r2.error;
+        const { data: rec } = await supabase
+          .from('fichas_tecnicas')
+          .select('id')
+          .eq('nome_receita', dados.nome_receita)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        id = rec?.id;
+      } else {
+        id = res.data?.id;
+      }
+    } else {
+      let { error } = await supabase.from('fichas_tecnicas').update(dados).eq('id', id);
+      error = await retrySemColunaAusente(error, async () => {
+        const r = await supabase.from('fichas_tecnicas').update(dados).eq('id', id);
+        return r.error;
+      }, dados);
+      if (error) throw error;
+    }
+
+    return { data: { id, ...dados }, error: null };
+  } catch (err) {
+    return { data: null, error: erroTexto(err) };
+  }
+}
+
+/**
+ * Exclui uma ficha de pré-preparo
+ */
+export async function excluirPrePreparo(id) {
+  if (!isSupabaseReady() || !id) return { error: 'Offline' };
+  try {
+    const { error } = await supabase.from('fichas_tecnicas').delete().eq('id', id);
+    return { error: error ? erroTexto(error) : null };
+  } catch (err) {
+    return { error: erroTexto(err) };
+  }
+}
+
+/**
+ * Busca matérias-primas e insumos com saldo de estoque atual.
  */
 export async function fetchInsumosEstoque(unidadeId) {
   if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
@@ -276,7 +362,19 @@ export async function fetchInsumosEstoque(unidadeId) {
   try {
     let query = supabase
       .from('insumos')
-      .select('id, nome, categoria, departamento, unidade_medida, custo_unitario, custo_compra, perda_pct, fator_correcao, estoque_minimo')
+      .select(`
+        id,
+        nome,
+        categoria,
+        departamento,
+        unidade_medida,
+        custo_unitario,
+        custo_compra,
+        perda_pct,
+        fator_correcao,
+        estoque_minimo,
+        estoque_atual ( quantidade_atual )
+      `)
       .order('nome');
 
     if (unidadeId && unidadeId !== 'matriz') {
@@ -286,26 +384,182 @@ export async function fetchInsumosEstoque(unidadeId) {
     const { data, error } = await query;
     if (error) return { data: [], error: erroTexto(error) };
 
-    return { data: data || [], error: null };
+    const formatados = (data || []).map((ins) => ({
+      ...ins,
+      quantidade_atual: ins.estoque_atual?.[0]?.quantidade_atual ?? 0,
+    }));
+
+    return { data: formatados, error: null };
   } catch (err) {
     return { data: [], error: erroTexto(err) };
   }
 }
 
 /**
- * Busca embalagens cadastradas no ERP.
+ * Busca TODOS os insumos gerais do restaurante para possibilitar migração/seleção.
+ */
+export async function fetchTodosInsumosDoRestaurante(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
+
+  try {
+    let query = supabase
+      .from('insumos')
+      .select(`
+        id,
+        nome,
+        categoria,
+        departamento,
+        unidade_medida,
+        custo_unitario,
+        custo_compra,
+        estoque_minimo,
+        estoque_atual ( quantidade_atual )
+      `)
+      .order('nome');
+
+    if (unidadeId && unidadeId !== 'matriz') {
+      query = query.eq('unidade_id', unidadeId);
+    }
+
+    const { data, error } = await query;
+    if (error) return { data: [], error: erroTexto(error) };
+
+    const formatados = (data || []).map((ins) => ({
+      ...ins,
+      quantidade_atual: ins.estoque_atual?.[0]?.quantidade_atual ?? 0,
+    }));
+
+    return { data: formatados, error: null };
+  } catch (err) {
+    return { data: [], error: erroTexto(err) };
+  }
+}
+
+/**
+ * Cadastra ou edita um insumo (alimentício ou de marmitaria).
+ */
+export async function salvarInsumoMarmitaria(unidadeId, payload) {
+  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+
+  try {
+    const isNovo = !payload.id;
+    const dados = {
+      unidade_id: unidadeId,
+      nome: payload.nome,
+      categoria: payload.categoria || 'Proteínas',
+      departamento: payload.departamento || 'marmitaria',
+      unidade_medida: payload.unidade_medida || 'kg',
+      custo_unitario: Number(payload.custo_unitario) || 0,
+      custo_compra: Number(payload.custo_compra ?? payload.custo_unitario) || 0,
+      estoque_minimo: payload.estoque_minimo !== undefined && payload.estoque_minimo !== '' ? Number(payload.estoque_minimo) : 5,
+    };
+
+    let id = payload.id;
+    if (isNovo) {
+      let res = await supabase.from('insumos').insert([dados]).select('id').single();
+      let err = await retrySemColunaAusente(res.error, async () => {
+        const r = await supabase.from('insumos').insert([dados]).select('id').single();
+        res = r;
+        return r.error;
+      }, dados);
+
+      if (err) {
+        // Fallback sem select
+        const r2 = await supabase.from('insumos').insert([dados]);
+        if (r2.error) throw r2.error;
+        const { data: rec } = await supabase
+          .from('insumos')
+          .select('id')
+          .eq('nome', dados.nome)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        id = rec?.id;
+      } else {
+        id = res.data?.id;
+      }
+    } else {
+      let { error } = await supabase.from('insumos').update(dados).eq('id', id);
+      error = await retrySemColunaAusente(error, async () => {
+        const r = await supabase.from('insumos').update(dados).eq('id', id);
+        return r.error;
+      }, dados);
+      if (error) throw error;
+    }
+
+    // Atualiza saldo em estoque_atual se fornecido
+    if (id && payload.quantidade_atual !== undefined && payload.quantidade_atual !== '') {
+      try {
+        const qtd = Number(payload.quantidade_atual) || 0;
+        await supabase.from('estoque_atual').upsert(
+          {
+            insumo_id: id,
+            unidade_id: unidadeId,
+            quantidade_atual: qtd,
+          },
+          { onConflict: 'insumo_id' }
+        );
+      } catch (errEst) {
+        console.warn('estoque_atual upsert aviso:', errEst.message);
+      }
+    }
+
+    return { data: { id, ...dados }, error: null };
+  } catch (err) {
+    return { data: null, error: erroTexto(err) };
+  }
+}
+
+/**
+ * Vincula / migra insumos existentes para a Marmitaria.
+ */
+export async function migrarInsumosParaMarmitaria(unidadeId, insumoIds = []) {
+  if (!isSupabaseReady() || !unidadeId || !insumoIds.length) return { error: 'Nenhum insumo selecionado' };
+
+  try {
+    const { error } = await supabase
+      .from('insumos')
+      .update({ departamento: 'marmitaria' })
+      .in('id', insumoIds);
+
+    return { error: error ? erroTexto(error) : null };
+  } catch (err) {
+    return { error: erroTexto(err) };
+  }
+}
+
+/**
+ * Exclui um insumo
+ */
+export async function excluirInsumoMarmitaria(id) {
+  if (!isSupabaseReady() || !id) return { error: 'Offline' };
+  try {
+    const { error } = await supabase.from('insumos').delete().eq('id', id);
+    return { error: error ? erroTexto(error) : null };
+  } catch (err) {
+    return { error: erroTexto(err) };
+  }
+}
+
+/**
+ * Busca embalagens cadastradas no ERP com saldo de estoque.
  */
 export async function fetchEmbalagensMarmitaria(unidadeId) {
   if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
 
   try {
     // 1. Insumos com departamento = 'embalagens'
-    const { data: insumosEmb } = await supabase
+    let qInsumos = supabase
       .from('insumos')
-      .select('id, nome, categoria, unidade_medida, custo_unitario')
+      .select('id, nome, categoria, unidade_medida, custo_unitario, estoque_minimo, estoque_atual ( quantidade_atual )')
       .eq('departamento', 'embalagens');
 
-    // 2. Tabela operacao_embalagens
+    if (unidadeId && unidadeId !== 'matriz') {
+      qInsumos = qInsumos.eq('unidade_id', unidadeId);
+    }
+    const { data: insumosEmb } = await qInsumos;
+
+    // 2. Tabela operacao_embalagens (se existir)
     const { data: opEmb } = await supabase
       .from('operacao_embalagens')
       .select('id, nome, categoria, preco_unitario, insumo_id, departamento');
@@ -314,10 +568,13 @@ export async function fetchEmbalagensMarmitaria(unidadeId) {
     (insumosEmb || []).forEach((i) => {
       mapa.set(i.id, {
         id: i.id,
+        insumo_id: i.id,
         nome: i.nome,
         categoria: i.categoria || 'Embalagens',
         custo_unitario: Number(i.custo_unitario) || 0,
         unidade_medida: i.unidade_medida || 'un',
+        estoque_minimo: Number(i.estoque_minimo) || 20,
+        quantidade_atual: i.estoque_atual?.[0]?.quantidade_atual ?? 50,
       });
     });
 
@@ -326,10 +583,13 @@ export async function fetchEmbalagensMarmitaria(unidadeId) {
       if (!mapa.has(chave)) {
         mapa.set(chave, {
           id: chave,
+          insumo_id: e.insumo_id || e.id,
           nome: e.nome,
           categoria: e.categoria || 'Embalagens',
           custo_unitario: Number(e.preco_unitario) || 0,
           unidade_medida: 'un',
+          estoque_minimo: 20,
+          quantidade_atual: 50,
         });
       }
     });
@@ -337,6 +597,120 @@ export async function fetchEmbalagensMarmitaria(unidadeId) {
     return { data: [...mapa.values()], error: null };
   } catch (err) {
     return { data: [], error: erroTexto(err) };
+  }
+}
+
+/**
+ * Cadastra ou edita uma embalagem com preço de custo e estoque.
+ */
+export async function salvarEmbalagemMarmitaria(unidadeId, payload) {
+  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+
+  try {
+    const isNovo = !payload.id;
+    const custoUnitario = Number(payload.custo_unitario) || 0;
+    const estoqueMinimo = Number(payload.estoque_minimo) || 20;
+    const estoqueAtual = Number(payload.quantidade_atual ?? payload.estoque_atual) || 0;
+
+    const dadosInsumo = {
+      unidade_id: unidadeId,
+      nome: payload.nome,
+      categoria: payload.tipo_embalagem || payload.categoria || 'Embalagens',
+      departamento: 'embalagens',
+      unidade_medida: payload.unidade_medida || 'un',
+      custo_unitario: custoUnitario,
+      custo_compra: custoUnitario,
+      estoque_minimo: estoqueMinimo,
+    };
+
+    let id = payload.id;
+    if (isNovo) {
+      let res = await supabase.from('insumos').insert([dadosInsumo]).select('id').single();
+      let err = await retrySemColunaAusente(res.error, async () => {
+        const r = await supabase.from('insumos').insert([dadosInsumo]).select('id').single();
+        res = r;
+        return r.error;
+      }, dadosInsumo);
+
+      if (err) {
+        const r2 = await supabase.from('insumos').insert([dadosInsumo]);
+        if (r2.error) throw r2.error;
+        const { data: rec } = await supabase
+          .from('insumos')
+          .select('id')
+          .eq('nome', dadosInsumo.nome)
+          .eq('departamento', 'embalagens')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        id = rec?.id;
+      } else {
+        id = res.data?.id;
+      }
+    } else {
+      let { error } = await supabase.from('insumos').update(dadosInsumo).eq('id', id);
+      error = await retrySemColunaAusente(error, async () => {
+        const r = await supabase.from('insumos').update(dadosInsumo).eq('id', id);
+        return r.error;
+      }, dadosInsumo);
+      if (error) throw error;
+    }
+
+    // Atualiza saldo em estoque_atual
+    if (id) {
+      try {
+        await supabase.from('estoque_atual').upsert(
+          {
+            insumo_id: id,
+            unidade_id: unidadeId,
+            quantidade_atual: estoqueAtual,
+          },
+          { onConflict: 'insumo_id' }
+        );
+      } catch (errEst) {
+        console.warn('estoque_atual embalagem:', errEst.message);
+      }
+    }
+
+    return { data: { id, ...dadosInsumo, quantidade_atual: estoqueAtual }, error: null };
+  } catch (err) {
+    return { data: null, error: erroTexto(err) };
+  }
+}
+
+/**
+ * Atualiza rapidamente o saldo físico de uma embalagem
+ */
+export async function atualizarEstoqueEmbalagem(unidadeId, embalagemId, novaQuantidade) {
+  if (!isSupabaseReady() || !unidadeId || !embalagemId) return { error: 'Offline' };
+
+  try {
+    const qtd = Number(novaQuantidade) || 0;
+    const { error } = await supabase.from('estoque_atual').upsert(
+      {
+        insumo_id: embalagemId,
+        unidade_id: unidadeId,
+        quantidade_atual: qtd,
+      },
+      { onConflict: 'insumo_id' }
+    );
+
+    return { error: error ? erroTexto(error) : null };
+  } catch (err) {
+    return { error: erroTexto(err) };
+  }
+}
+
+/**
+ * Exclui uma embalagem
+ */
+export async function excluirEmbalagemMarmitaria(id) {
+  if (!isSupabaseReady() || !id) return { error: 'Offline' };
+  try {
+    const { error } = await supabase.from('insumos').delete().eq('id', id);
+    return { error: error ? erroTexto(error) : null };
+  } catch (err) {
+    return { error: erroTexto(err) };
   }
 }
 

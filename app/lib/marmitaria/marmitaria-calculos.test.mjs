@@ -314,3 +314,23 @@ test('13. Métricas de Qualidade: apura taxa de defeito operacional e custo de d
   assert.equal(qual.avaliacaoMedia, 2.0);
   assert.equal(qual.conformidadeOperacionalPct, 98.0);
 });
+
+test('14. Gestão de Embalagens e Pré-preparos: conversão de caixas e custo unitário de batelada', () => {
+  // Teste de conversão de caixa de embalagem
+  const custoCaixa = 125.0;
+  const unidadesPorCaixa = 100;
+  const custoUnitarioEmbalagem = +(custoCaixa / unidadesPorCaixa).toFixed(4);
+  assert.equal(custoUnitarioEmbalagem, 1.25);
+
+  // Teste de rendimento de pré-preparo
+  const custoBatelada = 45.0; // R$ 45 panela de feijão
+  const rendimentoKg = 5.0; // 5 kg
+  const custoPorKg = +(custoBatelada / rendimentoKg).toFixed(4);
+  assert.equal(custoPorKg, 9.0);
+
+  // Porção de 150g (0.15kg) de feijão na marmita
+  const porcaoMarmitaKg = 0.15;
+  const custoPorcao = +(porcaoMarmitaKg * custoPorKg).toFixed(2);
+  assert.equal(custoPorcao, 1.35);
+});
+

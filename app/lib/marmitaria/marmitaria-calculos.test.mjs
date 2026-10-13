@@ -9,6 +9,11 @@ import {
   calcularRendimentoReal,
   calcularCmoAlocadoMarmitaria,
   calcularDreGerencialMarmitaria,
+  gerarPlanoOperacionalCompleto,
+  classificarEngenhariaCardapio,
+  simularComboPromocional,
+  conciliarExtratoIfoodLote,
+  calcularMetricasQualidade,
 } from './marmitaria-calculos.mjs';
 
 test('1. Ficha Técnica Marmita: calcula custo técnico somando ingredientes, pré-preparos e embalagens', () => {
@@ -214,4 +219,98 @@ test('8. DRE Gerencial da Marmitaria', () => {
   assert.equal(dre.despesasOperacionais, 8800);
   assert.equal(dre.resultadoOperacional, 20660);
   assert.equal(dre.resultadoFinal, 20660);
+});
+
+test('9. Planejamento Inteligente 360º: gera plano diário de vendas, CMV, equipe e capacidade', () => {
+  const mix = [
+    { nome: 'Marmita Tradicional', precoVenda: 24, custoAlimentos: 6.0, custoEmbalagens: 2.0, pctMix: 50, tempoPreparoMin: 1.5 },
+    { nome: 'Marmita Executiva', precoVenda: 28, custoAlimentos: 7.5, custoEmbalagens: 2.0, pctMix: 50, tempoPreparoMin: 2.0 },
+  ];
+  const colaboradores = [
+    { id: '1', nome: 'Chef Cozinha', salario_base: 2400, percentual_tempo: 100 },
+    { id: '2', nome: 'Auxiliar Montagem', salario_base: 1800, percentual_tempo: 100 },
+  ];
+
+  const plano = gerarPlanoOperacionalCompleto({
+    metaMarmitas: 120,
+    mixProdutos: mix,
+    colaboradoresAlocados: colaboradores,
+    horasOperacaoDia: 6,
+  });
+
+  assert.equal(plano.metaTotal, 120);
+  assert.ok(plano.faturamentoPrevisto > 3000);
+  assert.ok(plano.cmvPrevistoTotal > 900);
+  assert.ok(plano.pessoasNecessarias >= 1);
+  assert.equal(plano.haSobrecarga, false);
+});
+
+test('10. Engenharia de Cardápio: classifica em Estrelas, Burros de Carga, Enigmas e Cães', () => {
+  const produtos = [
+    { nome: 'Executiva Frango', volumeVendido: 150, margemContribuicaoR$: 14.50 }, // Alta margem, Alto volume -> Estrela
+    { nome: 'Básica Feijoada', volumeVendido: 140, margemContribuicaoR$: 7.20 },  // Baixa margem, Alto volume -> Burro de Carga
+    { nome: 'Picanha Nobre', volumeVendido: 20, margemContribuicaoR$: 18.00 },   // Alta margem, Baixo volume -> Enigma
+    { nome: 'Omelete Simples', volumeVendido: 15, margemContribuicaoR$: 5.00 },   // Baixa margem, Baixo volume -> Cão
+  ];
+
+  const classif = classificarEngenhariaCardapio(produtos);
+  assert.equal(classif.totalEstrelas, 1);
+  assert.equal(classif.totalBurrosDeCarga, 1);
+  assert.equal(classif.totalEnigmas, 1);
+  assert.equal(classif.totalCaes, 1);
+});
+
+test('11. Simulador de Combos: calcula margem faturada com desconto e frete subsidiado', () => {
+  const combo = simularComboPromocional({
+    itensCombo: [
+      { nome: 'Marmita Executiva', precoAvulso: 26.0, custoTecnico: 8.5 },
+      { nome: 'Coca-Cola Zero', precoAvulso: 6.0, custoTecnico: 2.2 },
+      { nome: 'Pudim de Leite', precoAvulso: 8.0, custoTecnico: 2.0 },
+    ],
+    precoCombo: 34.0, // Avulso = 40.0
+    cupomDescontoLoja: 4.0, // Fatura 30.0
+    subsidioFreteLoja: 2.5,
+    taxaCanalPct: 15.0,
+    taxaPagamentoPct: 2.0,
+    impostosPct: 6.0,
+  });
+
+  assert.equal(combo.valorAvulsoTotal, 40.0);
+  assert.equal(combo.precoFaturado, 30.0);
+  assert.equal(combo.custoTecnicoTotal, 12.7);
+  assert.ok(combo.receitaLiquida > 18.0);
+  assert.ok(combo.margemContribuicaoR$ > 0);
+  assert.ok(combo.descontoOferecidoClienteR$ === 10.0);
+});
+
+test('12. Conciliação iFood: compara pedidos PDV x extrato oficial e aponta divergências', () => {
+  const pdv = [
+    { codigo_pedido: '1001', valor_bruto: 30.0, taxa_esperada: 15.0, valor_esperado: 25.5 },
+    { codigo_pedido: '1002', valor_bruto: 50.0, taxa_esperada: 15.0, valor_esperado: 42.5 },
+  ];
+  const extrato = [
+    { codigo_pedido: '1001', valor_bruto: 30.0, comissao_cobrada: 4.5, taxa_adquirente: 0.0, repasse_liquido: 25.5 },
+    { codigo_pedido: '1002', valor_bruto: 50.0, comissao_cobrada: 12.0, taxa_adquirente: 0.0, repasse_liquido: 38.0 }, // cobraram mais comissao (divergente)
+  ];
+
+  const conc = conciliarExtratoIfoodLote({ pedidosPdv: pdv, extratoItens: extrato });
+  assert.equal(conc.totalPedidosAnalisados, 2);
+  assert.equal(conc.pedidosConciliados, 1);
+  assert.equal(conc.pedidosDivergentes, 1);
+  assert.equal(conc.diferencaConsolidada, -4.5);
+});
+
+test('13. Métricas de Qualidade: apura taxa de defeito operacional e custo de devoluções', () => {
+  const ocorrencias = [
+    { tipo: 'erro_montagem', custo_reembolso: 26.0, nota_avaliacao: 1 },
+    { tipo: 'atraso', custo_reembolso: 10.0, nota_avaliacao: 3 },
+  ];
+
+  const qual = calcularMetricasQualidade({ ocorrencias, totalPedidos: 100 });
+  assert.equal(qual.totalPedidos, 100);
+  assert.equal(qual.totalOcorrencias, 2);
+  assert.equal(qual.taxaDefeitoPct, 2.0);
+  assert.equal(qual.custoTotalReembolsos, 36.0);
+  assert.equal(qual.avaliacaoMedia, 2.0);
+  assert.equal(qual.conformidadeOperacionalPct, 98.0);
 });

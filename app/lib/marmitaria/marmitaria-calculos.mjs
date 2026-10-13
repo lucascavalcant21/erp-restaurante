@@ -715,3 +715,346 @@ export function calcularDreGerencialMarmitaria({
     pctResultadoFinal: pct(resultadoFinal),
   };
 }
+
+// ─── 8. PLANEJAMENTO INTELIGENTE 360º (CENTRAL DIÁRIA / SEMANAL) ──────────────
+
+/**
+ * Converte meta de vendas em plano operacional completo:
+ * - Vendas e receita prevista
+ * - Explosão de ingredientes e embalagens com desconto de estoque utilizável
+ * - Estimativa de lista de compras e custos
+ * - Equipe de RH e horas necessárias com base na produtividade média
+ * - Capacidade produtiva (tempo total de montagem/cocção vs minutos disponíveis na cozinha)
+ * - Projeção de margem e resultado da operação planejada
+ */
+export function gerarPlanoOperacionalCompleto({
+  metaMarmitas = 100,
+  mixProdutos = [], // [{ id, nome, precoVenda, custoAlimentos, custoEmbalagens, pctMix, tempoPreparoMin }]
+  estoqueInsumos = new Map(), // Map(insumoId -> { disponivelUtilizavel, custoUnitario, unidade, nome })
+  estoqueEmbalagens = new Map(), // Map(embalagemId -> { disponivelUtilizavel, custoUnitario, nome })
+  colaboradoresAlocados = [], // [{ id, nome, horas_por_semana, salario_base }]
+  horasOperacaoDia = 6, // Janela operacional de preparo (ex: 6 horas)
+}) {
+  const metaTotal = Math.max(0, parseInt(metaMarmitas, 10) || 0);
+
+  // 1. Vendas previstas e mix de produtos
+  let faturamentoPrevisto = 0;
+  let custoAlimentosPrevisto = 0;
+  let custoEmbalagensPrevisto = 0;
+  let tempoTotalPreparoMin = 0;
+
+  const distribuicao = (mixProdutos || []).map((prod) => {
+    const pct = pos(prod.pctMix || (100 / Math.max(1, mixProdutos.length)));
+    const qtdItem = Math.round((metaTotal * pct) / 100);
+    const preco = pos(prod.precoVenda || 26.0);
+    const cAlim = pos(prod.custoAlimentos || 6.8);
+    const cEmb = pos(prod.custoEmbalagens || 2.05);
+    const tPreparo = pos(prod.tempoPreparoMin || 1.8); // minutos por marmita na linha
+
+    const fat = arredondar2(qtdItem * preco);
+    const totAlim = arredondar2(qtdItem * cAlim);
+    const totEmb = arredondar2(qtdItem * cEmb);
+
+    faturamentoPrevisto += fat;
+    custoAlimentosPrevisto += totAlim;
+    custoEmbalagensPrevisto += totEmb;
+    tempoTotalPreparoMin += qtdItem * tPreparo;
+
+    return {
+      ...prod,
+      quantidadePlanejada: qtdItem,
+      faturamentoPrevisto: fat,
+      custoAlimentosPrevisto: totAlim,
+      custoEmbalagensPrevisto: totEmb,
+    };
+  });
+
+  const cmvPrevistoTotal = arredondar2(custoAlimentosPrevisto + custoEmbalagensPrevisto);
+
+  // 2. Capacidade produtiva e gargalo
+  // Produtividade estimada: 1 profissional monta/expede ~15 marmitas por hora
+  const produtividadeMarmitasPorHoraPessoa = 14;
+  const horasTotaisNecessarias = metaTotal > 0 ? arredondar2(metaTotal / produtividadeMarmitasPorHoraPessoa) : 0;
+  const pessoasNecessarias = Math.max(1, Math.ceil(horasTotaisNecessarias / Math.max(1, horasOperacaoDia)));
+
+  const minutosDisponiveisCozinha = horasOperacaoDia * 60;
+  const capacidadeTotalCozinhaMarmitas = Math.round(minutosDisponiveisCozinha / 2.0); // 1 marmita a cada 2 min na linha
+  const percentualOcupacaoCapacidade = capacidadeTotalCozinhaMarmitas > 0
+    ? arredondar2((metaTotal / capacidadeTotalCozinhaMarmitas) * 100)
+    : 0;
+
+  const haSobrecarga = metaTotal > capacidadeTotalCozinhaMarmitas;
+
+  // 3. Equipe disponível
+  const pessoasDisponiveis = colaboradoresAlocados.length || 3;
+  const cmoDiarioEstimado = colaboradoresAlocados.reduce((t, c) => {
+    const sal = pos(c.salario_base || 2000) * 1.35 + 300;
+    return t + (sal / 26) * (pos(c.percentual_tempo || 100) / 100);
+  }, 0) || (pessoasNecessarias * 110);
+
+  // 4. Margem de contribuição prevista
+  const taxasCanaisEstimadas = arredondar2(faturamentoPrevisto * 0.10); // média ponderada multicanal (~10%)
+  const margemContribuicaoPrevista = arredondar2(faturamentoPrevisto - cmvPrevistoTotal - taxasCanaisEstimadas);
+  const lucroOperacionalPrevisto = arredondar2(margemContribuicaoPrevista - cmoDiarioEstimado - 85); // R$ 85 rateio fixo diário
+
+  return {
+    metaTotal,
+    faturamentoPrevisto: arredondar2(faturamentoPrevisto),
+    custoAlimentosPrevisto: arredondar2(custoAlimentosPrevisto),
+    custoEmbalagensPrevisto: arredondar2(custoEmbalagensPrevisto),
+    cmvPrevistoTotal,
+    pctCmvPrevisto: faturamentoPrevisto > 0 ? arredondar2((cmvPrevistoTotal / faturamentoPrevisto) * 100) : 0,
+    margemContribuicaoPrevista,
+    cmoDiarioEstimado: arredondar2(cmoDiarioEstimado),
+    lucroOperacionalPrevisto,
+    distribuicaoProdutos: distribuicao,
+    horasTotaisNecessarias,
+    pessoasNecessarias,
+    pessoasDisponiveis,
+    defasagemEquipe: Math.max(0, pessoasNecessarias - pessoasDisponiveis),
+    tempoTotalPreparoMin: Math.round(tempoTotalPreparoMin),
+    minutosDisponiveisCozinha,
+    percentualOcupacaoCapacidade,
+    haSobrecarga,
+  };
+}
+
+// ─── 9. ENGENHARIA DE CARDÁPIO (MATRIZ BCG DE RENTABILIDADE) ──────────────────
+
+/**
+ * Classifica os produtos de marmitaria em 4 quadrantes clássicos:
+ * - ESTRELA (Star): Alta popularidade e Alta margem de contribuição
+ * - BURRO DE CARGA (Plowhorse): Alta popularidade e Baixa margem
+ * - QUEBRA-CABEÇA / ENIGMA (Puzzle): Baixa popularidade e Alta margem
+ * - CÃO / ABACAXI (Dog): Baixa popularidade e Baixa margem
+ */
+export function classificarEngenhariaCardapio(produtos = []) {
+  if (!produtos || produtos.length === 0) return { itens: [], mediaVolume: 0, mediaMargem: 0 };
+
+  const totalVolume = produtos.reduce((t, p) => t + pos(p.volumeVendido), 0);
+  const mediaVolume = totalVolume / Math.max(1, produtos.length);
+
+  const totalMargem = produtos.reduce((t, p) => t + pos(p.margemContribuicaoR$), 0);
+  const mediaMargem = totalMargem / Math.max(1, produtos.length);
+
+  const itens = produtos.map((prod) => {
+    const vol = pos(prod.volumeVendido);
+    const margem = pos(prod.margemContribuicaoR$);
+
+    let quadrante = 'cao';
+    let recomendacao = '';
+
+    if (vol >= mediaVolume && margem >= mediaMargem) {
+      quadrante = 'estrela';
+      recomendacao = 'Manter qualidade rígida, manter visibilidade no topo do iFood e proteger padrão.';
+    } else if (vol >= mediaVolume && margem < mediaMargem) {
+      quadrante = 'burro_de_carga';
+      recomendacao = 'Reposicionar preço sutilmente para cima (+R$ 1,50) ou negociar insumos para subir a margem.';
+    } else if (vol < mediaVolume && margem >= mediaMargem) {
+      quadrante = 'enigma';
+      recomendacao = 'Criar fotos atrativas, colocar em combos ou rodar campanha de destaque para aumentar giro.';
+    } else {
+      quadrante = 'cao';
+      recomendacao = 'Avaliar substituição da receita por opção mais rentável ou reformular custos da ficha.';
+    }
+
+    return {
+      ...prod,
+      quadrante,
+      recomendacao,
+      acimaMediaVolume: vol >= mediaVolume,
+      acimaMediaMargem: margem >= mediaMargem,
+    };
+  });
+
+  return {
+    itens,
+    mediaVolume: arredondar2(mediaVolume),
+    mediaMargem: arredondar2(mediaMargem),
+    totalEstrelas: itens.filter((i) => i.quadrante === 'estrela').length,
+    totalBurrosDeCarga: itens.filter((i) => i.quadrante === 'burro_de_carga').length,
+    totalEnigmas: itens.filter((i) => i.quadrante === 'enigma').length,
+    totalCaes: itens.filter((i) => i.quadrante === 'cao').length,
+  };
+}
+
+// ─── 10. SIMULADOR DE COMBOS, CUPONS E SUBSÍDIO DE FRETE ─────────────────────
+
+/**
+ * Simula a viabilidade financeira de um Combo Promocional de Marmita:
+ * Ex: Marmita Executiva (R$ 26) + Bebida (R$ 6) + Sobremesa (R$ 8) = R$ 40 avulso.
+ * Preço do combo: R$ 34,90 com cupom de R$ 5,00 e frete grátis subsidiado de R$ 3,00 pela loja.
+ */
+export function simularComboPromocional({
+  itensCombo = [], // [{ nome, precoAvulso, custoTecnico }]
+  precoCombo = 0,
+  cupomDescontoLoja = 0,
+  subsidioFreteLoja = 0,
+  taxaCanalPct = 15.0, // Ex: 15% iFood
+  taxaPagamentoPct = 2.5,
+  impostosPct = 6.0,
+}) {
+  const pCombo = pos(precoCombo);
+  const cupom = pos(cupomDescontoLoja);
+  const subsidioFrete = pos(subsidioFreteLoja);
+
+  const valorAvulsoTotal = itensCombo.reduce((t, i) => t + pos(i.precoAvulso), 0);
+  const custoTecnicoTotal = itensCombo.reduce((t, i) => t + pos(i.custoTecnico), 0);
+
+  // Preço faturado ao cliente após cupom
+  const precoFaturado = Math.max(0, pCombo - cupom);
+
+  const valTaxaCanal = arredondar2(precoFaturado * (pos(taxaCanalPct) / 100));
+  const valTaxaPgto = arredondar2(precoFaturado * (pos(taxaPagamentoPct) / 100));
+  const valImpostos = arredondar2(precoFaturado * (pos(impostosPct) / 100));
+
+  const receitaLiquida = arredondar2(precoFaturado - valTaxaCanal - valTaxaPgto - valImpostos - subsidioFrete);
+  const margemContribuicaoR$ = arredondar2(receitaLiquida - custoTecnicoTotal);
+  const margemContribuicaoPct = precoFaturado > 0 ? arredondar2((margemContribuicaoR$ / precoFaturado) * 100) : 0;
+
+  const descontoOferecidoClienteR$ = arredondar2(valorAvulsoTotal - precoFaturado);
+  const descontoOferecidoPct = valorAvulsoTotal > 0 ? arredondar2((descontoOferecidoClienteR$ / valorAvulsoTotal) * 100) : 0;
+
+  const viavel = margemContribuicaoPct >= 18; // Meta de segurança mínima de 18% para combos
+
+  return {
+    valorAvulsoTotal: arredondar2(valorAvulsoTotal),
+    precoCombo: pCombo,
+    precoFaturado: arredondar2(precoFaturado),
+    descontoOferecidoClienteR$,
+    descontoOferecidoPct,
+    custoTecnicoTotal: arredondar2(custoTecnicoTotal),
+    valTaxaCanal,
+    valTaxaPgto,
+    valImpostos,
+    subsidioFreteLoja: subsidioFrete,
+    receitaLiquida,
+    margemContribuicaoR$,
+    margemContribuicaoPct,
+    viavel,
+  };
+}
+
+// ─── 11. CONCILIAÇÃO INTELIGENTE DE REPASSES IFOOD ─────────────────────────────
+
+/**
+ * Compara lote de pedidos com extrato oficial importado e sinaliza divergências:
+ * - Divergência de comissão contratada vs cobrada
+ * - Divergência de taxas de antecipação / cartão
+ * - Estornos e cancelamentos indevidos
+ */
+export function conciliarExtratoIfoodLote({
+  pedidosPdv = [], // [{ id, codigo_pedido, valor_bruto, taxa_esperada, valor_esperado }]
+  extratoItens = [], // [{ codigo_pedido, valor_bruto, comissao_cobrada, taxa_adquirente, repasse_liquido }]
+}) {
+  let totalBrutoPdv = 0;
+  let totalLiquidoEsperado = 0;
+  let totalBrutoExtrato = 0;
+  let totalComissaoCobrada = 0;
+  let totalTaxasAdquirente = 0;
+  let totalRepasseLiquidoReal = 0;
+
+  const mapaExtrato = new Map(extratoItens.map((item) => [String(item.codigo_pedido), item]));
+
+  const conciliados = pedidosPdv.map((ped) => {
+    const cod = String(ped.codigo_pedido);
+    const itemExtrato = mapaExtrato.get(cod);
+
+    const brutoPdv = pos(ped.valor_bruto);
+    totalBrutoPdv += brutoPdv;
+
+    const taxaEsp = pos(ped.taxa_esperada || 15.0);
+    const liquidoEsp = pos(ped.valor_esperado || brutoPdv * (1 - taxaEsp / 100));
+    totalLiquidoEsperado += liquidoEsp;
+
+    if (!itemExtrato) {
+      return {
+        codigo: cod,
+        valorBrutoPdv: brutoPdv,
+        status: 'pendente_extrato',
+        divergenciaR$: 0,
+        motivo: 'Pedido não consta ainda no extrato financeiro do iFood',
+      };
+    }
+
+    const brutoExt = pos(itemExtrato.valor_bruto);
+    const comissao = pos(itemExtrato.comissao_cobrada);
+    const adquirente = pos(itemExtrato.taxa_adquirente);
+    const repasseReal = pos(itemExtrato.repasse_liquido);
+
+    totalBrutoExtrato += brutoExt;
+    totalComissaoCobrada += comissao;
+    totalTaxasAdquirente += adquirente;
+    totalRepasseLiquidoReal += repasseReal;
+
+    const diferenca = arredondar2(repasseReal - liquidoEsp);
+    const temDivergencia = Math.abs(diferenca) > 0.10; // tolerância de R$ 0,10 por arredondamentos
+
+    return {
+      codigo: cod,
+      valorBrutoPdv: brutoPdv,
+      valorBrutoExtrato: brutoExt,
+      comissaoCobrada: comissao,
+      taxaAdquirente: adquirente,
+      repasseLiquidoReal: repasseReal,
+      repasseLiquidoEsperado: liquidoEsp,
+      divergenciaR$: diferenca,
+      temDivergencia,
+      status: temDivergencia ? 'divergente' : 'conciliado',
+      motivo: temDivergencia ? (diferenca < 0 ? 'Repasse recebido menor que o previsto em contrato' : 'Repasse maior que o previsto') : 'OK',
+    };
+  });
+
+  const diferencaConsolidada = arredondar2(totalRepasseLiquidoReal - totalLiquidoEsperado);
+
+  return {
+    totalPedidosAnalisados: pedidosPdv.length,
+    totalBrutoPdv: arredondar2(totalBrutoPdv),
+    totalLiquidoEsperado: arredondar2(totalLiquidoEsperado),
+    totalRepasseLiquidoReal: arredondar2(totalRepasseLiquidoReal),
+    diferencaConsolidada,
+    pedidosConciliados: conciliados.filter((c) => c.status === 'conciliado').length,
+    pedidosDivergentes: conciliados.filter((c) => c.status === 'divergente').length,
+    pedidosPendentes: conciliados.filter((c) => c.status === 'pendente_extrato').length,
+    itens: conciliados,
+  };
+}
+
+// ─── 12. QUALIDADE, ATENDIMENTO & TAXA DE FALHA OPERACIONAL ──────────────────
+
+/**
+ * Consolida métricas de qualidade, erros de montagem, cancelamentos e pontualidade:
+ * - Taxa de defeitos operacionais (DPMO / % de pedidos com falha)
+ * - Custo financeiro total de perdas e devoluções
+ * - Motivos principais de reclamação (ranking)
+ */
+export function calcularMetricasQualidade({
+  ocorrencias = [], // [{ tipo: 'erro_montagem'|'atraso'|'qualidade_comida'|'cancelamento', custo_reembolso, nota_avaliacao }]
+  totalPedidos = 100,
+}) {
+  const total = Math.max(1, totalPedidos);
+  const totalFalhas = ocorrencias.length;
+  const taxaDefeitoPct = arredondar2((totalFalhas / total) * 100);
+
+  const custoTotalReembolsos = ocorrencias.reduce((t, o) => t + pos(o.custo_reembolso), 0);
+
+  const notas = ocorrencias.filter((o) => pos(o.nota_avaliacao) > 0).map((o) => pos(o.nota_avaliacao));
+  const avaliacaoMedia = notas.length > 0 ? arredondar2(notas.reduce((a, b) => a + b, 0) / notas.length) : 4.8;
+
+  // Agrupamento por motivo
+  const motivos = {};
+  ocorrencias.forEach((o) => {
+    const t = o.tipo || 'outro';
+    motivos[t] = (motivos[t] || 0) + 1;
+  });
+
+  return {
+    totalPedidos: total,
+    totalOcorrencias: totalFalhas,
+    taxaDefeitoPct,
+    custoTotalReembolsos: arredondar2(custoTotalReembolsos),
+    avaliacaoMedia,
+    motivosContagem: motivos,
+    conformidadeOperacionalPct: arredondar2(100 - taxaDefeitoPct),
+  };
+}

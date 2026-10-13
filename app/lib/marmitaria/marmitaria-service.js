@@ -15,6 +15,20 @@ function isTabelaAusente(e) {
   return m.includes('does not exist') || m.includes('could not find') || m.includes('schema cache') || m.includes('relation');
 }
 
+async function retrySemColunaAusente(error, tentar, campos, tentativas = 0) {
+  const m = error?.message || "";
+  const match = m.match(/column "?([a-z_]+)"?(?: of relation "[a-z_]+")? does not exist/i)
+    || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+  if (error && match && tentativas < 30) {
+    const col = match[1];
+    if (col in campos) {
+      delete campos[col];
+      return retrySemColunaAusente(await tentar(), tentar, campos, tentativas + 1);
+    }
+  }
+  return error;
+}
+
 // ─── 1. FICHAS TÉCNICAS DE MARMITAS ──────────────────────────────────────────
 
 export async function fetchMarmitas(unidadeId) {
@@ -30,8 +44,7 @@ export async function fetchMarmitas(unidadeId) {
           insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, fator_correcao)
         )
       `)
-      .eq('departamento', 'marmitaria')
-      .eq('ativo', true);
+      .eq('departamento', 'marmitaria');
 
     if (unidadeId && unidadeId !== 'matriz') {
       query = query.eq('unidade_id', unidadeId);
@@ -122,25 +135,35 @@ export async function salvarMarmita(unidadeId, payload) {
       peso_final_g: Number(peso_final_g) || 500,
       tamanho_marmita: tamanho,
       descricao_comercial,
-      ativo: true,
       instrucoes_preparo: JSON.stringify(montagem_passos || []),
     };
 
     let fichaId = payload.id;
     if (isNovo) {
-      const { data: novaFicha, error: errFicha } = await supabase
+      let res = await supabase
         .from('fichas_tecnicas')
         .insert([dadosFicha])
         .select()
         .single();
 
+      let errFicha = await retrySemColunaAusente(res.error, async () => {
+        const r = await supabase.from('fichas_tecnicas').insert([dadosFicha]).select().single();
+        res = r;
+        return r.error;
+      }, dadosFicha);
+
       if (errFicha) throw errFicha;
-      fichaId = novaFicha.id;
+      fichaId = res.data?.id;
     } else {
-      const { error: errUpdate } = await supabase
+      let errUpdate = await supabase
         .from('fichas_tecnicas')
         .update(dadosFicha)
         .eq('id', fichaId);
+
+      errUpdate = await retrySemColunaAusente(errUpdate.error, async () => {
+        const r = await supabase.from('fichas_tecnicas').update(dadosFicha).eq('id', fichaId);
+        return r.error;
+      }, dadosFicha);
 
       if (errUpdate) throw errUpdate;
     }
@@ -229,8 +252,7 @@ export async function fetchPreparacoesBase(unidadeId) {
     let query = supabase
       .from('fichas_tecnicas')
       .select('id, nome_receita, categoria, rendimento, rendimento_unidade, custo_total, eh_base')
-      .eq('eh_base', true)
-      .eq('ativo', true);
+      .eq('eh_base', true);
 
     if (unidadeId && unidadeId !== 'matriz') {
       query = query.eq('unidade_id', unidadeId);
@@ -668,5 +690,204 @@ export async function salvarConfiguracoesMarmitaria(unidadeId, payload) {
     return { error: error ? erroTexto(error) : null };
   } catch (err) {
     return { error: erroTexto(err) };
+  }
+}
+
+// ─── 9. PLANOS OPERACIONAIS 360º ──────────────────────────────────────────────
+
+export async function fetchPlanosOperacionais(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
+
+  try {
+    const { data, error } = await supabase
+      .from('marmitaria_planos_operacionais')
+      .select('*')
+      .eq('unidade_id', unidadeId)
+      .order('data_planejada', { ascending: false });
+
+    if (error) {
+      if (isTabelaAusente(error)) return { data: [], error: 'sem_tabela' };
+      return { data: [], error: erroTexto(error) };
+    }
+    return { data: data || [], error: null };
+  } catch (err) {
+    return { data: [], error: erroTexto(err) };
+  }
+}
+
+export async function salvarPlanoOperacional(unidadeId, payload) {
+  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+
+  try {
+    const isNovo = !payload.id;
+    if (isNovo) {
+      const { data, error } = await supabase
+        .from('marmitaria_planos_operacionais')
+        .insert([
+          {
+            unidade_id: unidadeId,
+            data_planejada: payload.data_planejada || new Date().toISOString().slice(0, 10),
+            periodo_tipo: payload.periodo_tipo || 'amanha',
+            meta_total_marmitas: Number(payload.meta_total_marmitas) || 100,
+            faturamento_previsto: Number(payload.faturamento_previsto) || 0,
+            cmv_previsto: Number(payload.cmv_previsto) || 0,
+            margem_prevista: Number(payload.margem_prevista) || 0,
+            pessoas_necessarias: Number(payload.pessoas_necessarias) || 2,
+            status: payload.status || 'rascunho',
+            dados_completos: payload.dados_completos || {},
+          },
+        ])
+        .select()
+        .single();
+
+      return { data, error: error ? erroTexto(error) : null };
+    } else {
+      const { data, error } = await supabase
+        .from('marmitaria_planos_operacionais')
+        .update({
+          ...payload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', payload.id)
+        .select()
+        .single();
+
+      return { data, error: error ? erroTexto(error) : null };
+    }
+  } catch (err) {
+    return { data: null, error: erroTexto(err) };
+  }
+}
+
+// ─── 10. ASSINATURAS E RECORRÊNCIA ─────────────────────────────────────────────
+
+export async function fetchAssinaturas(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
+
+  try {
+    const { data, error } = await supabase
+      .from('marmitaria_assinaturas')
+      .select('*')
+      .eq('unidade_id', unidadeId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (isTabelaAusente(error)) return { data: [], error: 'sem_tabela' };
+      return { data: [], error: erroTexto(error) };
+    }
+    return { data: data || [], error: null };
+  } catch (err) {
+    return { data: [], error: erroTexto(err) };
+  }
+}
+
+export async function salvarAssinatura(unidadeId, payload) {
+  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+
+  try {
+    const isNovo = !payload.id;
+    if (isNovo) {
+      const { data, error } = await supabase
+        .from('marmitaria_assinaturas')
+        .insert([
+          {
+            unidade_id: unidadeId,
+            cliente_nome: payload.cliente_nome,
+            cliente_telefone: payload.cliente_telefone || null,
+            plano_tipo: payload.plano_tipo || 'semanal',
+            quantidade_marmitas_periodo: Number(payload.quantidade_marmitas_periodo) || 5,
+            dias_entrega: payload.dias_entrega || ['seg', 'qua', 'sex'],
+            valor_recorrente: Number(payload.valor_recorrente) || 120,
+            forma_cobranca: payload.forma_cobranca || 'pix_semanal',
+            status: payload.status || 'ativo',
+            data_inicio: payload.data_inicio || new Date().toISOString().slice(0, 10),
+            preferencias_cardapio: payload.preferencias_cardapio || '',
+            endereco_entrega: payload.endereco_entrega || '',
+          },
+        ])
+        .select()
+        .single();
+
+      return { data, error: error ? erroTexto(error) : null };
+    } else {
+      const { data, error } = await supabase
+        .from('marmitaria_assinaturas')
+        .update(payload)
+        .eq('id', payload.id)
+        .select()
+        .single();
+
+      return { data, error: error ? erroTexto(error) : null };
+    }
+  } catch (err) {
+    return { data: null, error: erroTexto(err) };
+  }
+}
+
+// ─── 11. GESTÃO DE QUALIDADE E ATENDIMENTO ─────────────────────────────────────
+
+export async function fetchQualidadeOcorrencias(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [], error: null };
+
+  try {
+    const { data, error } = await supabase
+      .from('marmitaria_qualidade_ocorrencias')
+      .select(`
+        *,
+        fichas_tecnicas(id, nome_receita),
+        colaboradores:responsavel_id(id, nome)
+      `)
+      .eq('unidade_id', unidadeId)
+      .order('data', { ascending: false });
+
+    if (error) {
+      if (isTabelaAusente(error)) return { data: [], error: 'sem_tabela' };
+      return { data: [], error: erroTexto(error) };
+    }
+    return { data: data || [], error: null };
+  } catch (err) {
+    return { data: [], error: erroTexto(err) };
+  }
+}
+
+export async function salvarQualidadeOcorrencia(unidadeId, payload) {
+  if (!isSupabaseReady() || !unidadeId) return { data: null, error: 'Offline' };
+
+  try {
+    const isNovo = !payload.id;
+    if (isNovo) {
+      const { data, error } = await supabase
+        .from('marmitaria_qualidade_ocorrencias')
+        .insert([
+          {
+            unidade_id: unidadeId,
+            tipo: payload.tipo || 'erro_montagem',
+            pedido_codigo: payload.pedido_codigo || null,
+            produto_id: payload.produto_id || null,
+            gravidade: payload.gravidade || 'baixa',
+            nota_avaliacao: payload.nota_avaliacao ? Number(payload.nota_avaliacao) : null,
+            custo_reembolso: Number(payload.custo_reembolso) || 0,
+            descricao: payload.descricao || '',
+            acao_corretiva: payload.acao_corretiva || '',
+            responsavel_id: payload.responsavel_id || null,
+            data: payload.data || new Date().toISOString().slice(0, 10),
+          },
+        ])
+        .select()
+        .single();
+
+      return { data, error: error ? erroTexto(error) : null };
+    } else {
+      const { data, error } = await supabase
+        .from('marmitaria_qualidade_ocorrencias')
+        .update(payload)
+        .eq('id', payload.id)
+        .select()
+        .single();
+
+      return { data, error: error ? erroTexto(error) : null };
+    }
+  } catch (err) {
+    return { data: null, error: erroTexto(err) };
   }
 }

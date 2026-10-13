@@ -2934,7 +2934,7 @@ export default function RHPage() {
                   {duplicado && (
                     <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                       <p className="font-bold">{duplicado.motivo === "cpf" ? "Já existe um colaborador com este CPF" : "Já existe um colaborador com este nome e telefone"}: {duplicado.colaborador.nome}{(duplicado.colaborador.status || "ativo") === "inativo" ? " (desligado)" : ""}.</p>
-                      <p className="mt-0.5 text-xs">Para não duplicar, abra o cadastro dele e atualize os dados.</p>
+                      <p className="mt-0.5 text-xs">Cada pessoa tem um cadastro só na empresa. Abra o cadastro existente: recontratação ou mudança de contrato vira um novo vínculo nele, sem criar outro cadastro.</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <button type="button" onClick={() => abrirModalEdicao(duplicado.colaborador)} className="min-h-10 rounded-xl bg-emerald-700 px-3 text-xs font-bold text-white">Abrir o cadastro existente</button>
                         {duplicado.motivo === "nome_telefone" && <button type="button" onClick={() => handleSalvar({ ignorarHomonimo: true })} className="min-h-10 rounded-xl border border-amber-400 px-3 text-xs font-bold">É outra pessoa: cadastrar mesmo assim</button>}

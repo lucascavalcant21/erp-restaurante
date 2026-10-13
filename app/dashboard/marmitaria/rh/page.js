@@ -21,7 +21,7 @@ import {
 import { fmtBRL, fmtPct } from "../../../components/ui";
 import {
   fetchRhAlocacoes,
-  salvarRhAlocacao,,
+  salvarRhAlocacao,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import { fetchColaboradores } from "../../../lib/rh";

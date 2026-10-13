@@ -18,7 +18,7 @@ import { fmtBRL } from "../../../components/ui";
 import {
   fetchMarmitas,
   fetchInsumosEstoque,
-  fetchEmbalagensMarmitaria,,
+  fetchEmbalagensMarmitaria,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {

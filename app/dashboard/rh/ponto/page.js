@@ -1095,12 +1095,12 @@ export default function PontoPage() {
 
         <div className="text-center mb-8 relative">
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
-          <p className="text-emerald-700 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
-          <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
+          <p className="text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
+          <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative text-slate-900 dark:text-white">
             {/* Segundos não são enfeite: o Anexo IX, item 3, exige que o
                 coletor exiba horas, minutos e segundos no momento da marcação. */}
-            {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-            <span className="text-3xl md:text-4xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
+            {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            <span className="text-4xl md:text-6xl text-emerald-600 dark:text-emerald-400 font-black ml-2">:{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
           <p className="text-hf-text-2 font-bold uppercase tracking-widest mt-2 relative">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}

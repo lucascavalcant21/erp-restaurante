@@ -52,15 +52,34 @@ export async function obterUnidadeIdReal(unidadeId) {
 
   if (cacheUnidadeIdPadrao) return cacheUnidadeIdPadrao;
 
+  // 1. Tenta buscar da tabela unidades
   try {
     const { data } = await supabase.from('unidades').select('id').order('nome').limit(1);
-    if (data && data[0]?.id) {
+    if (data && data[0]?.id && data[0].id !== 'matriz') {
       cacheUnidadeIdPadrao = data[0].id;
       return cacheUnidadeIdPadrao;
     }
   } catch (_) {}
 
-  return uLimpo || null;
+  // 2. Tenta buscar de fichas_tecnicas existentes
+  try {
+    const { data: f } = await supabase.from('fichas_tecnicas').select('unidade_id').not('unidade_id', 'is', null).limit(1);
+    if (f && f[0]?.unidade_id && f[0].unidade_id !== 'matriz') {
+      cacheUnidadeIdPadrao = f[0].unidade_id;
+      return cacheUnidadeIdPadrao;
+    }
+  } catch (_) {}
+
+  // 3. Tenta buscar de insumos existentes
+  try {
+    const { data: ins } = await supabase.from('insumos').select('unidade_id').not('unidade_id', 'is', null).limit(1);
+    if (ins && ins[0]?.unidade_id && ins[0].unidade_id !== 'matriz') {
+      cacheUnidadeIdPadrao = ins[0].unidade_id;
+      return cacheUnidadeIdPadrao;
+    }
+  } catch (_) {}
+
+  return null;
 }
 
 // ─── 1. FICHAS TÉCNICAS DE MARMITAS ──────────────────────────────────────────

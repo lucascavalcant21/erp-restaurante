@@ -28,7 +28,7 @@ import {
   fetchMarmitas,
   fetchProducaoLotes,
   fetchConfiguracoesMarmitaria,
-  fetchRhAlocacoes,,
+  fetchRhAlocacoes,
   resolverUnidade,
 } from "../../lib/marmitaria/marmitaria-service";
 

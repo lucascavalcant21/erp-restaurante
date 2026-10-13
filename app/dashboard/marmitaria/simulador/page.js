@@ -24,7 +24,7 @@ import {
   fetchConfiguracoesMarmitaria,
   fetchRhAlocacoes,
   salvarSimulacao,
-  fetchSimulacoes,,
+  fetchSimulacoes,
   resolverUnidade,
 } from "../../../lib/marmitaria/marmitaria-service";
 import {

@@ -1971,7 +1971,7 @@ export default function RHPage() {
       <RhNav />
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} versao={versaoQuadro} />}
+      {abaModulo === "quadro" && <VisaoColaboradores onEditar={abrirModalEdicao} onNovo={abrirModalNovo} onDesligar={abrirDesligamento} versao={versaoQuadro} />}
       {abaModulo === "escala" && <VisaoSemana />}
       {abaModulo === "visao" && (
       <>
@@ -2298,6 +2298,11 @@ export default function RHPage() {
          ) : null}
 
       </div>
+        </>
+      )}
+
+      {/* Modais e menus do RH: fora do bloco da Visão Geral para abrirem em qualquer aba
+          (o Editar do perfil, na aba Quadro, não abria nada porque o modal só existia na Visão Geral). */}
 
       {/* MENU DE AÇÕES DO FUNCIONÁRIO — uma categoria por vez para ficar compacto */}
       {menuAcoes && (() => {
@@ -4325,8 +4330,6 @@ export default function RHPage() {
          </div>
        )}
 
-        </>
-      )}
     </div>
   );
 }

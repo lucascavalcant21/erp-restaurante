@@ -103,3 +103,22 @@ test("tela: Gestão de Equipe (lista sempre vazia, formulário paralelo) leva ao
   assert.match(gestao, /\/dashboard\/rh\?aba=quadro/);
   assert.doesNotMatch(gestao, /inserirFuncionario|atualizarFuncionario/);
 });
+
+test("tela: os modais do RH ficam fora do bloco da Visão Geral (abrem na aba Quadro)", () => {
+  const p = pagina.replace(/\r\n/g, "\n");
+  const inicioVisao = p.indexOf('{abaModulo === "visao" && (');
+  const modalNovo = p.indexOf("{modalNovo && (");
+  const modalDeslig = p.indexOf("{modalDeslig && funcDeslig && (");
+  assert.ok(inicioVisao > 0 && modalNovo > inicioVisao && modalDeslig > inicioVisao);
+  // o bloco da Visão Geral fecha antes do primeiro modal
+  const trecho = p.slice(inicioVisao, modalNovo);
+  assert.match(trecho, /\n {8}<\/>\n {6}\)\}\n/);
+  // e não há outro fechamento de fragmento depois dos modais
+  assert.doesNotMatch(p.slice(modalNovo), /\n {8}<\/>\n {6}\)\}\n {4}<\/div>\n {2}\);/);
+});
+
+test("tela: Desligar do perfil abre o desligamento do RH (não a página antiga com ?acao=desligar)", () => {
+  assert.match(pagina, /<VisaoColaboradores[^>]*onDesligar=\{abrirDesligamento\}/);
+  const quadro = fs.readFileSync(new URL("../dashboard/rh/VisaoColaboradores.js", import.meta.url), "utf8");
+  assert.doesNotMatch(quadro, /\?acao=desligar/);
+});

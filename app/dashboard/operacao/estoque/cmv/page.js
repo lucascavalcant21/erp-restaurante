@@ -88,7 +88,7 @@ function Cmv() {
   const medias = mediasHistoricas(apurados);
 
   return (
-    <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
+    <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
       <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-5 text-hf-text">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">CMV Real</h1>

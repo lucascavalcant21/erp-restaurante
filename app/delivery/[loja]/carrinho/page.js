@@ -129,7 +129,7 @@ export default function CarrinhoPage({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-fg flex flex-col">
+    <div className="min-h-screen bg-hf-bg text-fg flex flex-col">
       <header className="bg-card px-4 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-sm border-b border-line">
         <button onClick={() => etapa === "checkout" ? setEtapa("sacola") : router.back()} className="w-10 h-10 bg-elevated rounded-full flex items-center justify-center text-slate-600 active:scale-95">
           <ArrowLeft size={20} />

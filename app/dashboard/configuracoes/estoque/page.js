@@ -59,7 +59,7 @@ export default function SegurancaEstoquePage() {
   if (!unidadeValida(unidadeAtiva)) return <p className="p-8 text-center font-bold text-fg">Selecione uma unidade.</p>;
 
   return (
-    <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
+    <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
       <div className="max-w-xl mx-auto px-4 pt-5 space-y-4">
         <Link href="/dashboard/configuracoes" className="inline-flex items-center gap-1 text-sm font-bold text-fg"><ArrowLeft size={16} /> Configurações</Link>
         <div>

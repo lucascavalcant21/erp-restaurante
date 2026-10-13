@@ -866,11 +866,11 @@ function IngredientesRunner() {
   };
 
   if (!unidadeAtiva) {
-    return <div className="min-h-screen bg-white p-12 text-center font-bold text-fg">Selecione uma unidade para consultar os ingredientes.</div>;
+    return <div className="min-h-screen bg-hf-bg p-12 text-center font-bold text-fg">Selecione uma unidade para consultar os ingredientes.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20 text-slate-800">
+    <div className="min-h-screen bg-hf-bg pb-20 text-slate-800">
       <header className="border-b border-line bg-card">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-4 sm:px-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
@@ -1775,7 +1775,7 @@ function IngredientesRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white p-12 text-center font-bold text-subtle">Carregando ingredientes...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-hf-bg p-12 text-center font-bold text-subtle">Carregando ingredientes...</div>}>
       <IngredientesRunner />
     </Suspense>
   );

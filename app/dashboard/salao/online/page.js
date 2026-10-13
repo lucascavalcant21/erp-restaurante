@@ -102,7 +102,7 @@ export default function GestorOnlinePage() {
   };
 
   return (
-    <div ref={containerRef} className="h-[100dvh] w-full flex font-sans overflow-hidden bg-[#EAEAEA]">
+    <div ref={containerRef} className="h-[100dvh] w-full flex font-sans overflow-hidden bg-hf-bg">
       
       {/* SIDEBAR ESQUERDA (TIRINHA VERMELHA) */}
       <div className="w-10 sm:w-12 bg-[#D12B2B] flex flex-col items-center py-4 z-20 shrink-0 border-r border-red-800">

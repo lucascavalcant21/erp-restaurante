@@ -141,7 +141,7 @@ export default function PaginaPublicaVagas() {
 
   if (carregando) {
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-50">
+      <div className="grid min-h-screen place-items-center bg-hf-bg">
         <Loader2 size={30} className="animate-spin text-success" />
       </div>
     );
@@ -149,7 +149,7 @@ export default function PaginaPublicaVagas() {
 
   if (enviado) {
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 p-5">
+      <div className="grid min-h-screen place-items-center bg-hf-bg p-5">
         <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-card p-7 text-center shadow-sm">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
             <CheckCircle2 size={34} />
@@ -163,7 +163,7 @@ export default function PaginaPublicaVagas() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
+    <div className="min-h-screen bg-hf-bg pb-16">
       {/* Cabeçalho */}
       <header className="bg-accent px-5 py-8 text-accent-fg sm:py-10">
         <div className="mx-auto max-w-2xl">

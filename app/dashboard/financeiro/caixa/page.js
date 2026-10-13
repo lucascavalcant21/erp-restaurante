@@ -93,7 +93,7 @@ export default function CaixaEContasPage() {
   const campo = "w-full p-2.5 bg-white border border-line rounded-xl font-bold text-slate-800 text-sm";
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
       <div className="bg-hf-surface pt-6 pb-5 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Caixa e Contas</h1>

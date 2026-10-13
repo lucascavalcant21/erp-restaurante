@@ -190,7 +190,7 @@ function AreaRunner() {
   const AIcon = area.Icon;
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto font-sans" style={{ background: "#0b1220" }}>
+    <div className="fixed inset-0 z-[9999] overflow-y-auto font-sans" style={{ background: "rgb(var(--hf-bg))" }}>
       {pedindoSenha && (
         <TecladoSenha cor={area.cor} senha={senhaArea} onSuccess={destravar} onClose={() => setPedindoSenha(false)} />
       )}
@@ -216,7 +216,7 @@ function AreaRunner() {
         {/* Kanban de submódulos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
           {area.colunas.map(col => (
-            <div key={col.titulo} className="rounded-2xl sm:rounded-3xl p-3 sm:p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            <div key={col.titulo} className="rounded-2xl sm:rounded-3xl p-3 sm:p-4" style={{ background: "rgba(255,255,255,0.55)", border: "1px solid rgb(var(--hf-border))" }}>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="w-2 h-2 rounded-full" style={{ background: area.cor }} />
                 <p className="text-2xs font-bold uppercase tracking-widest text-subtle">{col.titulo}</p>
@@ -225,7 +225,7 @@ function AreaRunner() {
                 {col.itens.map(item => (
                   <button key={item.label} onClick={() => router.push(item.href)}
                     className="w-full flex items-center gap-3 p-3 sm:p-4 rounded-2xl text-left transition-all active:scale-[0.98] hover:-translate-y-0.5"
-                    style={{ background: "#111a2e", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    style={{ background: "rgb(var(--hf-surface))", border: "1px solid rgb(var(--hf-border))" }}>
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${area.cor}18` }}>
                       <item.Icon size={20} style={{ color: area.cor }} />
                     </div>

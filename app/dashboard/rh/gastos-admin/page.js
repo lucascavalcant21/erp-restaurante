@@ -89,7 +89,7 @@ export default function ComprasDoMesPage() {
   const hojeNoPeriodo = isoData(new Date()) >= isoData(faixa.de) && isoData(new Date()) <= isoData(faixa.ate);
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-16">
+    <div className="min-h-screen bg-hf-bg pb-16">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900 hover:bg-slate-200"><ArrowLeft size={19} /></button>

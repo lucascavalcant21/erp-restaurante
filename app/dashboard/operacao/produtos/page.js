@@ -583,7 +583,7 @@ function CardapioRunner() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
       
       {/* TOPBAR */}
       <div className="bg-card border-b border-line py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">

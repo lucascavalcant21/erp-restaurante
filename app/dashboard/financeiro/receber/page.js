@@ -173,7 +173,7 @@ export default function ContasAReceberPage() {
   const cartao = form && MEIOS_CARTAO.includes(form.meio);
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
       <div className="bg-hf-surface pt-6 pb-6 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div>

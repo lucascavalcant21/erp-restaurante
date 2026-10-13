@@ -123,7 +123,7 @@ export default function CardapioPublicoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-32">
+    <div className="min-h-screen bg-hf-bg font-sans text-slate-800 pb-32">
       
       {/* HEADER DO RESTAURANTE */}
       <div className="bg-slate-900 text-white pt-10 sm:pt-16 pb-8 px-4 sm:px-6 rounded-b-[28px] sm:rounded-b-[40px] shadow-2xl relative overflow-hidden">

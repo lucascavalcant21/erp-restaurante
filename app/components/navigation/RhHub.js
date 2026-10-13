@@ -181,7 +181,7 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
   const meuBancoHoras = meuColaborador ? somaMinutosBanco(bancoPorColab.get(meuColaborador.id) || []) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
+    <div className="min-h-screen bg-hf-bg text-slate-900 font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* CABEÇALHO PADRONIZADO */}

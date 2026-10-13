@@ -74,6 +74,12 @@ module.exports = {
           "success":       "rgb(var(--hf-success) / <alpha-value>)",
           "warning":       "rgb(var(--hf-warning) / <alpha-value>)",
           "danger":        "rgb(var(--hf-danger) / <alpha-value>)",
+          "menu":          "rgb(var(--hf-menu) / <alpha-value>)",
+          "menu-hover":    "rgb(var(--hf-menu-hover) / <alpha-value>)",
+          "menu-border":   "rgb(var(--hf-menu-border) / <alpha-value>)",
+          "menu-text":     "rgb(var(--hf-menu-text) / <alpha-value>)",
+          "menu-muted":    "rgb(var(--hf-menu-muted) / <alpha-value>)",
+          "menu-accent":   "rgb(var(--hf-menu-accent) / <alpha-value>)",
         },
       },
       borderRadius: {

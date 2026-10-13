@@ -66,7 +66,7 @@ export default function OrcamentoPublicoPage({ params }) {
 
   if (sucesso) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <main className="min-h-screen bg-hf-bg flex items-center justify-center p-6">
         <div className="bg-white max-w-md w-full rounded-3xl p-8 text-center shadow-sm border border-slate-200">
           <CheckCircle className="text-emerald-500 w-20 h-20 mx-auto mb-6" />
           <h1 className="text-2xl font-black text-slate-900 mb-2">Pedido Recebido!</h1>
@@ -80,7 +80,7 @@ export default function OrcamentoPublicoPage({ params }) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-6">
+    <main className="min-h-screen bg-hf-bg py-12 px-6">
       <div className="max-w-2xl mx-auto">
         
         <header className="text-center mb-10">

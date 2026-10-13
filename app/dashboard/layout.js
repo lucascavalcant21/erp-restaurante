@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }) {
 
   if (interfaceTelaCheia) {
     return (
-      <div className="fixed inset-0 z-[200] overflow-hidden bg-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className="fixed inset-0 z-[200] overflow-hidden bg-hf-bg" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <Suspense fallback={<div className="grid h-screen place-items-center"><Loader2 className="animate-spin text-emerald-600" /></div>}>
           <ProtecaoPermissao sessao={sessao}>
             {children}
@@ -97,11 +97,11 @@ export default function DashboardLayout({ children }) {
 
   return (
     <HefistoPageContextProvider activeUnitId="matriz" userSession={sessao}>
-      <div className="erp-app-shell flex flex-col h-screen h-[100dvh] min-h-0 bg-[#F7F8F7] overflow-hidden print:bg-card print:block print:h-auto print:min-h-0 font-sans">
+      <div className="erp-app-shell flex flex-col h-screen h-[100dvh] min-h-0 bg-hf-bg overflow-hidden print:bg-card print:block print:h-auto print:min-h-0 font-sans">
         
         <TopNavigation sessao={sessao} onSair={sair} onOpenSearch={() => setCommandCenterOpen(true)} />
 
-        <main className="flex-1 w-full max-w-[1920px] mx-auto overflow-y-auto overflow-x-hidden custom-scrollbar relative print:overflow-visible print:block bg-[#F7F8F7]">
+        <main className="flex-1 w-full max-w-[1920px] mx-auto overflow-y-auto overflow-x-hidden custom-scrollbar relative print:overflow-visible print:block bg-hf-bg">
           <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-900"><Loader2 className="animate-spin text-emerald-600 mr-2" />Carregando módulo...</div>}>
             <ProtecaoPermissao sessao={sessao}>
               {children}

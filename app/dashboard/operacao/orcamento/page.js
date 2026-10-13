@@ -900,7 +900,7 @@ export default function OrcamentoEventoPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
 
       {/* TOPBAR — linha 1: título + ações do evento; linha 2: documentos p/ imprimir */}
       <div className="bg-card border-b border-line pt-5 pb-4 px-6 relative">

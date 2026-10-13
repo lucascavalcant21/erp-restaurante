@@ -86,7 +86,7 @@ function Compras() {
   const semMigracao = faltaMigracaoF24B(erro);
 
   return (
-    <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
+    <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
       <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-5 text-hf-text">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div>

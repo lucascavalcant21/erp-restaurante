@@ -66,7 +66,7 @@ export default function Rankings() {
   const vazio = !carregando && execucoes.length === 0;
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-20">
+    <div className="min-h-screen bg-hf-bg pb-20">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/operacao/inteligente")}

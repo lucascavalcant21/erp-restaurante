@@ -13,7 +13,7 @@ export default function FunilDeEventosPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   if (!unidadeAtiva) return <div className="p-8 text-center font-bold text-slate-700">Selecione uma loja.</div>;
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 text-slate-800">
+    <div className="min-h-screen bg-hf-bg pb-24 text-slate-800">
       <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-4 pb-5 pt-4 sm:px-6 sm:pt-5">
         <div className="flex items-center gap-3">
           <Link href="/dashboard/reservas-eventos" aria-label="Voltar para Reservas & Eventos"

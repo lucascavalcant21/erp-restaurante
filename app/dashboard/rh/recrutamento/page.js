@@ -8,7 +8,7 @@ export default function RecrutamentoPage() {
   const { abrirMenu, unidadeAtiva, unidadeInfo } = useERP();
 
   return (
-    <div className="min-h-screen bg-[var(--surface)]">
+    <div className="min-h-screen bg-hf-bg">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 sm:px-6 pt-12 pb-4 flex items-center gap-3">
         <button
           type="button"

@@ -393,7 +393,7 @@ export default function PizzaDoLucroPage() {
 
 
   return (
-    <div className="min-h-screen bg-white pb-16">
+    <div className="min-h-screen bg-hf-bg pb-16">
       <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/modulo/financeiro")}

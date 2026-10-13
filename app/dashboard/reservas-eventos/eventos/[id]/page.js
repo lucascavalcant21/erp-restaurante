@@ -222,7 +222,7 @@ export default function EventoPage() {
   const props = { orc, setOrc, resumo, fichas };
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-24 print:bg-white print:pb-0">
+    <main className="min-h-screen bg-hf-bg pb-24 print:bg-white print:pb-0">
       <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-8 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -263,7 +263,7 @@ export default function EventoPage() {
         </div>
       </header>
 
-      <nav className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-2 backdrop-blur sm:px-6 print:hidden" aria-label="Etapas do orçamento">
+      <nav className="sticky top-0 z-10 border-b border-slate-200 bg-hf-bg/95 px-2 backdrop-blur sm:px-6 print:hidden" aria-label="Etapas do orçamento">
         <ol className="mx-auto flex max-w-7xl gap-1 overflow-x-auto py-2">
           {ETAPAS.map((e, i) => {
             const ativo = e.id === etapa;

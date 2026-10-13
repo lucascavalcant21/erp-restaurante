@@ -113,7 +113,7 @@ function EmbalagensContent() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
       <div className="bg-hf-surface pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-hf-text">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -384,5 +384,5 @@ function EmbalagensContent() {
 }
 
 export default function EmbalagensPage() {
-  return <Suspense fallback={<div className="min-h-screen bg-[var(--surface)] p-10 text-center font-bold text-fg">Carregando embalagens...</div>}><EmbalagensContent /></Suspense>;
+  return <Suspense fallback={<div className="min-h-screen bg-hf-bg p-10 text-center font-bold text-fg">Carregando embalagens...</div>}><EmbalagensContent /></Suspense>;
 }

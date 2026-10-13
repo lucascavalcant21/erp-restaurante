@@ -89,7 +89,7 @@ function Cmv() {
 
   return (
     <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
-      <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-5 text-hf-text">
+      <div className="bg-hf-bg border-b border-hf-border px-4 sm:px-8 pt-6 pb-5 text-hf-text">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">CMV Real</h1>
           <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Estoque inicial + compras − estoque final · entre inventários fechados</p>

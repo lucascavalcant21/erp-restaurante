@@ -94,7 +94,7 @@ export default function CaixaEContasPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
-      <div className="bg-hf-surface pt-6 pb-5 px-4 sm:px-8 text-hf-text">
+      <div className="bg-hf-bg border-b border-hf-border pt-6 pb-5 px-4 sm:px-8 text-hf-text">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Caixa e Contas</h1>
           <p className="text-subtle font-bold uppercase tracking-widest text-3xs sm:text-xs mt-1">Fluxo de caixa · contas financeiras · taxas</p>

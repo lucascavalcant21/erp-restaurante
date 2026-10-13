@@ -127,8 +127,10 @@ body {
   --radius-lg: 24px;
 
   --shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-card:  0 8px 26px rgba(15, 23, 42, 0.09), 0 2px 6px rgba(15, 23, 42, 0.05);
-  --shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  /* Profundidade dos cards (pedido do dono, 2026-10-13): três camadas, sombra quente
+     para combinar com o fundo amarelo. Usada também pela regra de cards no fim do arquivo. */
+  --shadow-card:  0 1px 2px rgba(68, 54, 0, 0.07), 0 6px 14px -4px rgba(68, 54, 0, 0.12), 0 18px 34px -14px rgba(68, 54, 0, 0.22);
+  --shadow-hover: 0 2px 4px rgba(68, 54, 0, 0.08), 0 12px 24px -6px rgba(68, 54, 0, 0.16), 0 28px 48px -18px rgba(68, 54, 0, 0.28);
   --shadow-float: 0 24px 48px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
@@ -331,4 +333,19 @@ body {
   --hf-menu-text:     250 250 250;/* #FAFAFA texto (19:1 sobre o preto) */
   --hf-menu-muted:    161 161 170;/* #A1A1AA texto secundário (8:1) */
   --hf-menu-accent:   250 204 21; /* #FACC15 amarelo: item ativo */
+}
+
+/* ═══ CARDS COM PROFUNDIDADE ═════════════════════════════════════════════
+   Todo bloco branco de canto grande (rounded-2xl/3xl) vira card com sombra
+   em camadas, sem editar tela por tela. Fica de fora o que já tem sombra
+   forte (menus e janelas: shadow-xl/2xl), o que pediu shadow-none e
+   controles de formulário. Na impressão, sem sombra. */
+:is([class*="rounded-2xl"], [class*="rounded-3xl"]):is([class~="bg-hf-surface"], [class~="bg-white"], [class~="bg-card"], [class*="bg-[var(--surface)]"], [class*="bg-[var(--card)]"]):not([class*="shadow-xl"]):not([class*="shadow-2xl"]):not([class*="shadow-none"]):not(button):not(input):not(textarea):not(select) {
+  box-shadow: var(--shadow-card);
+}
+:is([class*="rounded-2xl"], [class*="rounded-3xl"]):is([class~="bg-hf-surface"], [class~="bg-white"], [class~="bg-card"], [class*="bg-[var(--surface)]"], [class*="bg-[var(--card)]"]):is([class*="hover:shadow"], [class*="hover:-translate"]):not([class*="shadow-xl"]):not([class*="shadow-2xl"]):hover {
+  box-shadow: var(--shadow-hover);
+}
+@media print {
+  :is([class*="rounded-2xl"], [class*="rounded-3xl"], .erp-card) { box-shadow: none !important; }
 }

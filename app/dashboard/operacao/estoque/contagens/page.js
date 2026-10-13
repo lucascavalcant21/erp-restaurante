@@ -101,7 +101,7 @@ function Painel({ unidade }) {
   return (
     <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
       <EstoqueAbas />
-      <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-6 text-hf-text">
+      <div className="bg-hf-bg border-b border-hf-border px-4 sm:px-8 pt-6 pb-6 text-hf-text">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Contagem de estoque</h1>

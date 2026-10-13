@@ -90,7 +90,9 @@ BEGIN
     'marmitaria_qualidade_ocorrencias'
   ] LOOP
     EXECUTE format('DROP POLICY IF EXISTS p_auth_all ON public.%I', t);
-    EXECUTE format('CREATE POLICY p_auth_all ON public.%I FOR ALL TO authenticated USING (true) WITH CHECK (true)', t);
+    -- isolamento por unidade (SEC-RLS-1); a policy aberta p_auth_all foi removida em SEC_MARMITARIA_RLS.sql
+    EXECUTE format('DROP POLICY IF EXISTS sec_unidade ON public.%I', t);
+    EXECUTE format('CREATE POLICY sec_unidade ON public.%I FOR ALL TO authenticated USING ((SELECT public.hefisto_ve_todas_unidades()) OR unidade_id IN (SELECT unnest(public.hefisto_unidades_do_usuario()))) WITH CHECK ((SELECT public.hefisto_ve_todas_unidades()) OR unidade_id IN (SELECT unnest(public.hefisto_unidades_do_usuario())))', t);
   END LOOP;
 END $$;
 

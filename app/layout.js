@@ -45,7 +45,7 @@ export const viewport = {
   // isto, tocar num campo de busca faz a tela inteira pular e o que você
   // estava lendo sai de vista.
   interactiveWidget: "resizes-content",
-  themeColor: "#FEF7DC",
+  themeColor: "#0A0A0A", // barra do navegador no celular = menu preto
 };
 
 export default function RootLayout({ children }) {

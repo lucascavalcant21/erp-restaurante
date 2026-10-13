@@ -152,7 +152,7 @@ export default function CozinhaHub({ onVerGestaoCompleta }) {
   const isRefreshing = loadingProducao || loadingEstoque || loadingChecklists;
 
   return (
-    <div className="min-h-screen bg-[#070F1E] text-hf-text font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
+    <div className="min-h-screen bg-hf-bg text-hf-text font-sans pb-24 pt-4 px-3 sm:px-6 md:px-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* CABEÇALHO PADRONIZADO */}

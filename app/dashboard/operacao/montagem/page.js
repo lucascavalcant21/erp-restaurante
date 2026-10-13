@@ -583,7 +583,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
   }, [currentGuia]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col bg-slate-950 text-white select-none">
+    <div className="fixed inset-0 z-[200] flex flex-col bg-hf-bg text-hf-text select-none">
       {/* Topbar */}
       <header className="flex h-16 items-center justify-between border-b border-hf-border bg-hf-surface px-6">
         <div className="flex items-center gap-3">
@@ -664,7 +664,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
         <div className="p-6 overflow-y-auto lg:col-span-7 flex flex-col justify-between">
           <div className="space-y-4">
             <h2 className="text-sm font-black uppercase tracking-widest text-subtle flex items-center gap-2">
-              <Sparkles size={18} className="text-amber-400" /> Passos de Montagem da Praça
+              <Sparkles size={18} className="text-amber-700" /> Passos de Montagem da Praça
             </h2>
 
             {passos.length === 0 ? (
@@ -679,23 +679,23 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
                       className={`group relative rounded-3xl border-2 p-5 transition-all ${
                         isCurrentActive
                           ? "border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10"
-                          : "border-slate-800 bg-slate-900/80 hover:border-slate-700"
+                          : "border-hf-border bg-hf-surface hover:border-hf-border-strong"
                       }`}
                     >
                       <div className="flex items-start gap-4">
                         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl font-black text-lg ${
-                          isCurrentActive ? "bg-amber-500 text-slate-950" : "bg-slate-800 text-emerald-400"
+                          isCurrentActive ? "bg-amber-500 text-slate-950" : "bg-hf-elevated text-emerald-700"
                         }`}>
                           {idx + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-lg lg:text-xl font-black text-slate-100 leading-snug">
+                          <p className="text-lg lg:text-xl font-black text-hf-text leading-snug">
                             {limparPasso(passo)}
                           </p>
                         </div>
                         <button
                           onClick={() => startTimer(30, idx)}
-                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-accent hover:text-accent-fg px-3 py-2 text-xs font-bold text-dim transition"
+                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-hf-elevated hover:bg-accent hover:text-accent-fg px-3 py-2 text-xs font-bold text-dim transition"
                           title="Iniciar cronômetro de 30s"
                         >
                           <Clock size={14} /> 30s
@@ -709,11 +709,11 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
           </div>
 
           {/* Navigation Controls Footer */}
-          <div className="mt-6 flex items-center justify-between gap-4 border-t border-slate-800 pt-5">
+          <div className="mt-6 flex items-center justify-between gap-4 border-t border-hf-border pt-5">
             <button
               disabled={currentIndex === 0}
               onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-800 px-6 font-black text-white hover:bg-slate-700 disabled:opacity-30 transition"
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-hf-elevated px-6 font-black text-hf-text hover:bg-hf-border disabled:opacity-30 transition"
             >
               ◄ Item Anterior
             </button>

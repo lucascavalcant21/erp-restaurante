@@ -85,7 +85,7 @@ export default function AutomacoesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070D18] text-hf-text p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="min-h-screen bg-hf-bg text-hf-text p-4 sm:p-6 md:p-8 space-y-6">
       {/* CABEÇALHO DO MÓDULO */}
       <HubHeader
         title="Automações do Héfisto"

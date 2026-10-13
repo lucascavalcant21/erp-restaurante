@@ -1558,6 +1558,19 @@ export default function RHPage() {
     motivo: "",
   });
 
+  // O prontuário (/dashboard/rh/funcionario/[id]) chama Editar e Desligar pelo
+  // endereço: ?editar=<id> ou ?desligar=<id>. Abre uma vez, quando o quadro carrega.
+  const pedidoDaUrl = useRef(false);
+  useEffect(() => {
+    const editarId = searchParams.get("editar"), desligarId = searchParams.get("desligar");
+    if ((!editarId && !desligarId) || pedidoDaUrl.current || !funcionarios.length) return;
+    const alvo = funcionarios.find((x) => x.id === (editarId || desligarId));
+    if (!alvo) return;
+    pedidoDaUrl.current = true;
+    if (editarId) abrirModalEdicao(alvo); else abrirDesligamento(alvo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [funcionarios, searchParams]);
+
   const abrirDesligamento = (f) => {
     setFuncDeslig(f);
     const hj = new Date().toISOString().split("T")[0];

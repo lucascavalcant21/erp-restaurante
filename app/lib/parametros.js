@@ -44,7 +44,7 @@ export const PARAMS_PADRAO = {
   cmo_folha_mes: 0,        // retrato do RH gravado pela Pizza do Lucro: salários + benefícios
   cmo_extras_mes: 0,       //   diárias de extras pagas
   cmo_encargos_mes: 0,     //   encargos calculados pelo % acima
-  rateio_por_faturamento: 0, // 0 = rateio por prato; 1 = proporcional ao faturamento
+  rateio_por_faturamento: 1, // 1 = proporcional ao faturamento (Alternativa 1); 0 = por prato
   faturamento_mes_ref: 0,  // faturamento mensal de referência para o rateio proporcional
 };
 

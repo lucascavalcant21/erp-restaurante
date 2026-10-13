@@ -10,6 +10,19 @@
 // contam como 1h08 para pagamento. Ignorar a hora ficta subpaga em 14%.
 export const NOTURNO_INICIO_H = 22;
 export const NOTURNO_FIM_H = 5;
+
+// Regras de pagamento. O padrão é o mínimo legal (CLT), que é o que o
+// Héfisto sempre pagou. Convenção coletiva entra por `opcoes.regras` (ver
+// app/lib/trabalhista/regras-competencia.mjs), só para a competência em que
+// ela vale e depois de ativada — folha fechada nunca é recalculada aqui.
+export const REGRAS_CLT = Object.freeze({
+  id: "clt",
+  noturnoPct: 20, extraPct: 50, feriadoPct: 100,
+  noturnoInicioH: NOTURNO_INICIO_H, noturnoFimH: NOTURNO_FIM_H,
+  naoNoturnoSeInicioAposH: null, // regra só de convenção
+  horaFictaSoEntre22e5: true,
+  fundamentos: ["CLT art. 73 (noturno 20%, 22h–5h, hora de 52min30s)", "CF art. 7º XVI (extra +50%)", "Lei 605/49 art. 9º (feriado em dobro)"],
+});
 export const HORA_FICTA_MIN = 52.5;
 
 // Tolerância de marcação (CLT art. 58 §1º): até 5 min por marcação não são
@@ -35,15 +48,15 @@ function minutosEmComum(iniA, fimA, iniB, fimB) {
 // As duas noites que podem tocar um turno: a que começa no dia anterior (para
 // quem entra depois da meia-noite) e a que começa no próprio dia. Elas não se
 // sobrepõem, então somar as duas é seguro.
-function janelasNoturnas(referencia) {
+function janelasNoturnas(referencia, inicioH = NOTURNO_INICIO_H, fimH = NOTURNO_FIM_H) {
   const janelas = [];
   for (const deslocamento of [-1, 0]) {
     const ini = new Date(referencia);
     ini.setDate(ini.getDate() + deslocamento);
-    ini.setHours(NOTURNO_INICIO_H, 0, 0, 0);
+    ini.setHours(inicioH, 0, 0, 0);
     const fim = new Date(ini);
     fim.setDate(fim.getDate() + 1);
-    fim.setHours(NOTURNO_FIM_H, 0, 0, 0);
+    fim.setHours(fimH, 0, 0, 0);
     janelas.push([ini.getTime(), fim.getTime()]);
   }
   return janelas;
@@ -51,13 +64,15 @@ function janelasNoturnas(referencia) {
 
 // Minutos de RELÓGIO dentro da faixa noturna, já descontado o intervalo — que
 // não é tempo trabalhado e portanto não gera adicional.
-export function minutosNoturnosRelogio(entrada, saida, intervaloIni = null, intervaloFim = null) {
+export function minutosNoturnosRelogio(entrada, saida, intervaloIni = null, intervaloFim = null, faixa = null) {
   const ini = new Date(entrada).getTime();
   const fim = new Date(saida).getTime();
   if (!(fim > ini)) return 0;
+  const inicioH = faixa?.inicioH ?? NOTURNO_INICIO_H;
+  const fimH = faixa?.fimH ?? NOTURNO_FIM_H;
 
   let total = 0;
-  for (const [jIni, jFim] of janelasNoturnas(new Date(entrada))) {
+  for (const [jIni, jFim] of janelasNoturnas(new Date(entrada), inicioH, fimH)) {
     let trecho = minutosEmComum(ini, fim, jIni, jFim);
     if (trecho > 0 && intervaloIni && intervaloFim) {
       const pIni = new Date(intervaloIni).getTime();
@@ -66,7 +81,20 @@ export function minutosNoturnosRelogio(entrada, saida, intervaloIni = null, inte
     }
     if (trecho > 0) total += trecho;
   }
-  return Math.round(total);
+  if (faixa?.naoNoturnoSeInicioAposH != null) {
+    const e = new Date(entrada);
+    const minutoDoDia = e.getHours() * 60 + e.getMinutes();
+    if (minutoDoDia > faixa.naoNoturnoSeInicioAposH * 60 && minutoDoDia < fimH * 60) {
+      const fimDaFaixa = new Date(e); fimDaFaixa.setHours(fimH, 0, 0, 0);
+      let manha = minutosEmComum(ini, fim, ini, fimDaFaixa.getTime());
+      if (manha > 0 && intervaloIni && intervaloFim) {
+        const pIni = new Date(intervaloIni).getTime(), pFim = new Date(intervaloFim).getTime();
+        if (pFim > pIni) manha -= minutosEmComum(pIni, pFim, ini, fimDaFaixa.getTime());
+      }
+      total -= Math.max(0, manha);
+    }
+  }
+  return Math.round(Math.max(0, total));
 }
 
 // Converte minutos de relógio em minutos de hora noturna ficta.
@@ -167,7 +195,10 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
     // Hora em que o turno abre naquele dia ("15:40"). Sem ela o cálculo segue
     // como antes, contando da batida — nenhuma tela quebra por não passar.
     entradaDoDia = null,
+    regras = REGRAS_CLT,
   } = opcoes;
+  const faixa = { inicioH: regras.noturnoInicioH, fimH: regras.noturnoFimH, naoNoturnoSeInicioAposH: regras.naoNoturnoSeInicioAposH };
+  const faixaLegal = { inicioH: NOTURNO_INICIO_H, fimH: NOTURNO_FIM_H, naoNoturnoSeInicioAposH: regras.naoNoturnoSeInicioAposH };
 
   const feriadosSet = new Set((feriados || []).map(f => (f?.data || f)).map(d => String(d).slice(0, 10)));
   const dias = [];
@@ -182,9 +213,15 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
     // Noturno: minutos de relógio na faixa 22h–5h, convertidos pela hora ficta.
     const noturnoRelogio = minutosNoturnosRelogio(
       reg.hora_entrada, reg.hora_saida,
-      reg.hora_saida_intervalo, reg.hora_retorno_intervalo,
+      reg.hora_saida_intervalo, reg.hora_retorno_intervalo, faixa,
     );
-    const minNoturno = comHoraFicta(noturnoRelogio);
+    // Hora ficta (52min30s) só na faixa legal 22h–5h; o que a convenção
+    // estende (ex.: 5h–7h) conta pelo relógio até o contador validar outra
+    // leitura (regras-cct.mjs, adicionalNoturno → exigeRevisao).
+    const noturnoLegal = regras.horaFictaSoEntre22e5 && (regras.noturnoFimH !== NOTURNO_FIM_H || regras.noturnoInicioH !== NOTURNO_INICIO_H)
+      ? Math.min(noturnoRelogio, minutosNoturnosRelogio(reg.hora_entrada, reg.hora_saida, reg.hora_saida_intervalo, reg.hora_retorno_intervalo, faixaLegal))
+      : noturnoRelogio;
+    const minNoturno = comHoraFicta(noturnoLegal) + (noturnoRelogio - noturnoLegal);
 
     // Extra: o que passou da jornada contratada, com a tolerância do dia.
     let minExtra = 0;
@@ -243,6 +280,7 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
 // consegue carregar para testar. Aqui roda sozinho: é a mesma razão pela qual
 // `calcularAdicionaisPorDia` já mora neste arquivo.
 export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = [], opcoes = {}) {
+  const regras = opcoes.regras || REGRAS_CLT;
   const valorHora = (Number(salarioBase) || 0) / 220;
   const totais = calcularAdicionaisPorDia(pontosMes, feriados, opcoes)
     .reduce((a, d) => ({
@@ -252,11 +290,12 @@ export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = [], opc
     }), { minNoturno: 0, minExtra: 0, minFeriado: 0 });
   const { minNoturno, minExtra, minFeriado } = totais;
 
-  const valorNoturno = (minNoturno / 60) * valorHora * 0.20;      // só o adicional de 20%
-  const valorExtra = (minExtra / 60) * valorHora * 1.50;          // hora cheia + 50%
-  const valorFeriado = (minFeriado / 60) * valorHora * 1.00;      // adicional de 100% (dobro)
+  const valorNoturno = (minNoturno / 60) * valorHora * regras.noturnoPct / 100;   // só o adicional (CLT 20%)
+  const valorExtra = (minExtra / 60) * valorHora * (1 + regras.extraPct / 100);    // hora cheia + adicional (CLT 50%)
+  const valorFeriado = (minFeriado / 60) * valorHora * regras.feriadoPct / 100;    // adicional (dobro = 100%)
   return {
     minNoturno, minExtra, minFeriado,
+    regras: regras.id, fundamentos: regras.fundamentos,
     valorNoturno: Math.round(valorNoturno * 100) / 100,
     valorExtra: Math.round(valorExtra * 100) / 100,
     valorFeriado: Math.round(valorFeriado * 100) / 100,

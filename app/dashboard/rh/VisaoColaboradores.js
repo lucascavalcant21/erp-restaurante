@@ -57,7 +57,7 @@ function Bloco({ icon: Icon, titulo, extra, children }) {
   );
 }
 
-export default function VidaColaboradorPage({ onEditar, onNovo, versao = 0 }) {
+export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, versao = 0 }) {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   const [colaboradores, setColaboradores] = useState([]);
@@ -316,7 +316,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, versao = 0 }) {
                         className="bg-emerald-600 border border-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">
                         Transformar em Fixo
                       </button>
-                      <button type="button" onClick={() => router.push(`/dashboard/rh/funcionario/${sel.id}?acao=desligar`)}
+                      <button type="button" onClick={() => (onDesligar ? onDesligar(sel) : router.push(`/dashboard/rh?aba=quadro`))}
                         className="bg-rose-100 border border-rose-300 text-rose-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-200 transition-colors">
                         Não Renovar (Desligar)
                       </button>

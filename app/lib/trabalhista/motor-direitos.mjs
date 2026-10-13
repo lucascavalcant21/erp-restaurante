@@ -12,11 +12,15 @@
 
 import { TABELAS, FGTS, tabelaDaCompetencia } from "./tabelas-oficiais.mjs";
 
+// Muda quando a regra de cálculo muda: o cálculo gravado (RH-5) guarda com qual versão foi feito.
+export const MOTOR_VERSAO = "2026-10-13.1";
+
 export const SITUACOES = Object.freeze({
   simulacao: "Simulação — conta feita pelo Héfisto, ninguém conferiu",
   calculo_validado: "Cálculo validado — conferido pelo contador ou DP",
   pagamento_registrado: "Pagamento registrado — saiu do caixa, com comprovante",
   obrigacao_cumprida: "Obrigação cumprida — informada ao governo (eSocial, FGTS Digital, DCTFWeb)",
+  substituido: "Substituído — refeito depois; guardado no histórico",
 });
 
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -213,4 +217,11 @@ export function diasDoMes(competencia, feriados = []) {
     if (new Date(`${dia}T12:00:00Z`).getUTCDay() === 0 || fer.has(dia)) descanso++;
   }
   return { diasUteis: total - descanso, diasDescanso: descanso };
+}
+
+/** O cálculo gravado ainda bate com o de agora? Compara os totais (centavos). */
+export function mesmoResultado(gravado, atual) {
+  if (!gravado?.totais || !atual?.totais) return false;
+  const k = ["proventos", "beneficios", "descontos", "liquido", "encargos", "provisoes"];
+  return k.every((c) => Math.round((Number(gravado.totais[c]) || 0) * 100) === Math.round((Number(atual.totais[c]) || 0) * 100));
 }

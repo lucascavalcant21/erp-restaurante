@@ -103,6 +103,27 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         { label: "Caixa e Contas", href: "/dashboard/financeiro/caixa" },
         { label: "DRE Gerencial", href: "/dashboard/financeiro/dre" }
       ]
+    },
+    {
+      id: "marmitaria",
+      label: "Marmitaria & Delivery",
+      href: "/dashboard/marmitaria",
+      submodules: [
+        { label: "Visão Geral", href: "/dashboard/marmitaria" },
+        { label: "Pedidos e iFood", href: "/dashboard/marmitaria/pedidos" },
+        { label: "Cardápio de Marmitas", href: "/dashboard/marmitaria/cardapio" },
+        { label: "Fichas Técnicas", href: "/dashboard/marmitaria/fichas" },
+        { label: "Precificação", href: "/dashboard/marmitaria/precificacao" },
+        { label: "Simulador de Vendas", href: "/dashboard/marmitaria/simulador" },
+        { label: "Produção", href: "/dashboard/marmitaria/producao" },
+        { label: "Estoque e Embalagens", href: "/dashboard/marmitaria/estoque" },
+        { label: "Lista de Compras", href: "/dashboard/marmitaria/compras" },
+        { label: "RH e Escalas", href: "/dashboard/marmitaria/rh" },
+        { label: "Financeiro e Repasses", href: "/dashboard/marmitaria/financeiro" },
+        { label: "CMV e CMO", href: "/dashboard/marmitaria/cmv-cmo" },
+        { label: "DRE e Resultados", href: "/dashboard/marmitaria/dre" },
+        { label: "Configurações", href: "/dashboard/marmitaria/configuracoes" }
+      ]
     }
   ];
 

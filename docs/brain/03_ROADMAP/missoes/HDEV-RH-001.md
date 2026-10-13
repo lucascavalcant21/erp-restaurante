@@ -28,8 +28,8 @@ Autorização do dono (13/10): publicar as fases com checks verdes e migrações
 - [x] Fase 2: prontuário com 10 abas (#158). TESTADO EM PRODUÇÃO
 - [x] Fase 3: vínculos e transições (RH-4, RH-4b, #159), 23 vínculos carregados. TESTADO EM PRODUÇÃO (aba conferida em 13/10)
 - [x] Fase 4a: motor de direitos e tabelas oficiais datadas; simulação do mês no prontuário (#160). TESTADO EM PRODUÇÃO (Eduarda, 10/2026: INSS 188,74 sobre 2.367,33, conferido à mão)
-- [ ] Fase 4b: guardar o cálculo do mês com situação (simulação → validado → pago → obrigação cumprida) e aprovação do contador. Exige migração aditiva.
-- [ ] Fase 5: cadastro em etapas
+- [x] Fase 4b: cálculo do mês gravado com situação (RH-5, #162): RH registra, contador valida/reabre, histórico. TESTADO NO SUPABASE REAL (ensaio 12/12) + TESTADO EM PRODUÇÃO (card e botão no ar; nenhum cálculo gravado ainda)
+- [x] Fase 5: cadastro novo em 8 etapas por modalidade, rascunho no navegador (#164); cabeçalho lê rh_vinculos; RH-6 cria o vínculo de quem é cadastrado. TESTADO EM PRODUÇÃO (validação, troca para eventual = 6 etapas, nada gravado) + RH-6 TESTADO NO SUPABASE REAL
 - [ ] Fase 6: controle de extras (habitualidade, intermitente)
 - [ ] Fase 7: desligamento completo
 - [ ] Fase 8: integrações (folha → financeiro/DRE/CMO, escala, portal)
@@ -42,4 +42,9 @@ Autorização do dono (13/10): publicar as fases com checks verdes e migrações
 - Vale-alimentação: PAT/cartão ou dinheiro (em dinheiro, integra o salário).
 - Diária dos extras "desmembrada" em INSS 5% + FGTS 8% + taxa 10% (`app/dashboard/rh/page.js`, recibo de extra): base legal não identificada. Não foi alterada. Decidir na Fase 6.
 - 21 cláusulas da CCT marcadas para revisão; regime de feriados e banco de horas; hora noturna reduzida entre 5h e 7h.
-- Cabeçalho do prontuário mostra a modalidade do cadastro antigo ("Contrato Definitivo") enquanto o vínculo diz "experiência" (ex.: Eduarda). Corrigir na Fase 5 para ler de `rh_vinculos`.
+- Formulário completo (edição) ainda mostra "o contrato passa automaticamente para o 2º período", que contradiz a Fase 3 (prorrogação precisa ser registrada). Ajustar junto com a Fase 7.
+- Rascunho do cadastro fica só no navegador de quem cadastra (sem foto).
+
+## Segurança fora do RH (13/10)
+
+- Marmitaria: 10 tabelas com policy aberta (p_auth_all, USING true) em produção, vazias. Trocadas por sec_unidade com autorização do dono (#163). TESTADO NO SUPABASE REAL.

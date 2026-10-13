@@ -110,3 +110,13 @@ test("dias do mês: outubro/2026 tem 4 domingos; feriado de 12/10 (segunda) soma
   assert.deepEqual(diasDoMes("2026-10", [{ data: "2026-10-12" }]), { diasUteis: 26, diasDescanso: 5 });
   assert.deepEqual(diasDoMes("2026-10", [{ data: "2026-10-04" }]), { diasUteis: 27, diasDescanso: 4 }); // domingo não conta 2x
 });
+
+import { mesmoResultado, SITUACOES } from "./motor-direitos.mjs";
+test("cálculo gravado x atual: iguais nos centavos; diferente quando o ponto muda", () => {
+  const a = { totais: { proventos: 100, beneficios: 0, descontos: 7.5, liquido: 92.5, encargos: 8, provisoes: 22 } };
+  assert.equal(mesmoResultado(a, { totais: { ...a.totais, liquido: 92.5000001 } }), true);
+  assert.equal(mesmoResultado(a, { totais: { ...a.totais, liquido: 93 } }), false);
+  assert.equal(mesmoResultado(null, a), false);
+  // as situações da tela são as mesmas do banco (RH-5)
+  assert.deepEqual(Object.keys(SITUACOES), ["simulacao", "calculo_validado", "pagamento_registrado", "obrigacao_cumprida", "substituido"]);
+});

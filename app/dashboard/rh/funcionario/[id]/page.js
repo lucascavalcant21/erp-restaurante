@@ -414,7 +414,7 @@ export default function ProntuarioColaboradorPage() {
                 )}
               </Card>
             ) : <EmptyState icon={DollarSign} title="Sem permissão para ver valores de remuneração." />}
-            {podeVerValores && !extra && <SimulacaoMes colaborador={func} competencia={new Date().toISOString().slice(0, 7)} ponto={extras.ponto} adicionais={adicionais} />}
+            {podeVerValores && !extra && <SimulacaoMes colaborador={func} competencia={new Date().toISOString().slice(0, 7)} ponto={extras.ponto} adicionais={adicionais} podeRegistrar={!gerenciado || hasPermission(sessao, "rh.payroll.manage")} podeValidar={!gerenciado || hasPermission(sessao, "dp.calculos.validar")} onAviso={setAviso} />}
             {podeVerValores && <ListaDoProntuario chave="bonificacoes" func={func} podeEditar={podeEditar} opcoesDinamicas={opcoesDinamicas} onAviso={setAviso} />}
           </div>
         )}

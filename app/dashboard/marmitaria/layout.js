@@ -22,6 +22,7 @@ import {
   Repeat,
   ShieldCheck,
   Bot,
+  TrendingUp,
 } from "lucide-react";
 
 const SUBMENUS = [

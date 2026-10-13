@@ -159,7 +159,7 @@ export default function SaaSControlPlanePage() {
     : "N/A (Aguardando dados de produção)";
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-hf-text font-sans p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-hf-bg text-hf-text font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Cabeçalho Principal SaaS */}

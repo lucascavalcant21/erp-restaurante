@@ -101,8 +101,8 @@ export default function GerarPagamentoFixoPage() {
   if (!func) return <div className="p-8 text-center text-red-500 font-bold">Funcionário não encontrado.</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <div className="min-h-screen bg-hf-bg pb-20 print:bg-white">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-hf-bg px-4 py-3 shadow-sm">
         <div className="mx-auto flex max-w-4xl items-center gap-3">
           <button onClick={() => router.back()} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"><ArrowLeft size={20} /></button>
           <div>

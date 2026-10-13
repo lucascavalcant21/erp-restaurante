@@ -155,7 +155,7 @@ export default function TreinamentoPage() {
 
   return (
     <div className="min-h-screen bg-card pb-24 text-fg">
-      <header className="sticky top-0 z-20 border-b border-line bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
+      <header className="sticky top-0 z-20 border-b border-line bg-hf-bg/95 px-4 py-4 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3">
           <button onClick={abrirMenu} className="grid h-11 w-11 place-items-center rounded-xl border border-line bg-card text-slate-900">
             <ArrowLeft size={20} />

@@ -54,7 +54,7 @@ export default function LojaDeliveryPage({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-hf-bg">
         <div className="animate-spin text-orange-600"><Flame size={48} /></div>
       </div>
     );
@@ -65,7 +65,7 @@ export default function LojaDeliveryPage({ params }) {
   const logoUrl = "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?auto=format&fit=crop&q=80&w=200&h=200";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 font-sans">
+    <div className="min-h-screen bg-hf-bg pb-28 font-sans">
       
       {/* HERO HEADER - Estilo UberEats / iFood */}
       <div className="relative bg-card pb-6 shadow-sm">
@@ -118,7 +118,7 @@ export default function LojaDeliveryPage({ params }) {
       </div>
 
       {/* NAVEGAÇÃO DE CATEGORIAS (STICKY) */}
-      <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-xl py-3 px-4 sm:px-5 border-b border-line">
+      <div className="sticky top-0 z-30 bg-hf-bg/90 backdrop-blur-xl py-3 px-4 sm:px-5 border-b border-line">
         <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
           {categorias.map(cat => (
             <button 

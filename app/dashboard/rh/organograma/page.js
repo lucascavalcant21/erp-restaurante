@@ -187,7 +187,7 @@ export default function OrganogramaCorporativoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
+    <div className="min-h-screen bg-hf-bg font-sans pb-24">
       
       {/* HEADER CORPORATIVO */}
       <div className="bg-hf-surface text-hf-text px-6 py-10 rounded-b-[40px] shadow-xl relative overflow-hidden">

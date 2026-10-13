@@ -344,7 +344,7 @@ export default function HeitorPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-white">
+    <div className="min-h-[100dvh] flex flex-col bg-hf-bg">
       {/* HEADER COCKPIT IA PREMIUM */}
       <div className="px-3 sm:px-4 py-3 sm:py-6 bg-hf-surface sticky top-0 z-30 shadow-2xl shadow-slate-900/20 border-b border-hf-border">
         <div className="max-w-4xl mx-auto flex items-center justify-between">

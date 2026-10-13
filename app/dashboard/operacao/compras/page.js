@@ -320,7 +320,7 @@ export default function ComprasHubPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
 
       {/* CABEÇALHO SUPERIOR */}
       <div className="bg-hf-surface pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-hf-text">

@@ -100,8 +100,8 @@ export default function SaudeHefistoPage() {
       {/* BANNER F11 RELEASE GATE */}
       <div className={`p-4 rounded-3xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
         evalMetadata.safetyPassStatus === "PASS"
-          ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-700"
-          : "bg-red-950/40 border-red-500/60 text-red-700 animate-pulse"
+          ? "bg-emerald-50 border-emerald-500/30 text-emerald-700"
+          : "bg-red-50 border-red-500/60 text-red-700 animate-pulse"
       }`}>
         <div className="flex items-center gap-3">
           {evalMetadata.safetyPassStatus === "PASS" ? (

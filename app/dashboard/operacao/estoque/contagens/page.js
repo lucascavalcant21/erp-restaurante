@@ -99,7 +99,7 @@ function Painel({ unidade }) {
   };
 
   return (
-    <div className="min-h-screen pb-24 bg-[var(--surface)] text-slate-800">
+    <div className="min-h-screen pb-24 bg-hf-bg text-slate-800">
       <EstoqueAbas />
       <div className="bg-hf-surface px-4 sm:px-8 pt-6 pb-6 text-hf-text">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
@@ -369,7 +369,7 @@ function TelaContagem({ id, unidade, sessao }) {
   if (!contagem) return <div className="p-8 text-center space-y-3"><p className="font-bold text-red-700">{erro || "Inventário não encontrado."}</p><button onClick={() => router.push("/dashboard/operacao/estoque/contagens")} className="font-black underline">Voltar</button></div>;
 
   return (
-    <div className="min-h-screen pb-32 bg-[var(--surface)] text-slate-800">
+    <div className="min-h-screen pb-32 bg-hf-bg text-slate-800">
       {/* topo fixo: título, status, progresso */}
       <div className="sticky top-0 z-20 bg-hf-surface text-hf-text px-4 sm:px-8 pt-4 pb-3 shadow-lg">
         <div className="max-w-5xl mx-auto">

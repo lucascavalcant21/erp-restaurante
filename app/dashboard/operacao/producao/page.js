@@ -317,7 +317,7 @@ function ProducaoRunner() {
   const fichasFiltradas = fichasDoSetor.filter(f => incluirPratos || ehEstoqueavel(f)).filter(ficha => String(ficha.nome_receita || "").toLowerCase().includes(buscaFicha.toLowerCase()));
 
   return (
-    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-white">
+    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-hf-bg">
       
       {erroCarga && <p role="alert" className="m-4 rounded-xl bg-red-50 p-4 text-red-700">Falha ao carregar: {erroCarga}</p>}
       {aviso && <p role="status" className="fixed bottom-4 left-1/2 z-[95] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg">{aviso}</p>}

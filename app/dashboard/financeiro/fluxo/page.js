@@ -133,7 +133,7 @@ export default function FluxoCaixaFintechPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
+    <div className="min-h-screen bg-hf-bg font-sans pb-24">
       <Toast show={salvou}>Transação contabilizada com sucesso!</Toast>
 
       {/* HEADER FINTECH */}

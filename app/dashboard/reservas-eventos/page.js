@@ -13,7 +13,7 @@ export default function ReservasEventosOverview() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24 text-slate-800">
+    <div className="min-h-screen bg-hf-bg font-sans pb-24 text-slate-800">
       {/* HEADER PADRÃO ERP */}
       <div className="pt-4 sm:pt-5 pb-5 px-4 sm:px-6 max-w-[1500px] mx-auto">
         <div className="flex items-center justify-between gap-4 flex-wrap">

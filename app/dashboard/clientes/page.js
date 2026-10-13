@@ -366,7 +366,7 @@ export default function CRMPage() {
   return (
     <div className="min-h-screen pb-20">
       {/* HEADER DA TORRE DE CRM */}
-      <div className="px-4 pt-8 md:pt-12 pb-6 bg-[var(--surface)] sticky top-0 z-30 border-b border-line-soft shadow-sm">
+      <div className="px-4 pt-8 md:pt-12 pb-6 bg-hf-bg sticky top-0 z-30 border-b border-line-soft shadow-sm">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 max-w-6xl mx-auto">
           <div>
             <p className="text-3xs md:text-xs font-bold uppercase tracking-widest text-fg mb-1">Marketing</p>

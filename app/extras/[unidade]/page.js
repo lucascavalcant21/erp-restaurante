@@ -80,7 +80,7 @@ export default function PortalExtras() {
   if (enviado) {
     const querVaga = enviado.interesse === "clt" || enviado.interesse === "ambos";
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 p-5">
+      <div className="grid min-h-screen place-items-center bg-hf-bg p-5">
         <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-card p-7 text-center shadow-sm">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 size={34} /></div>
           <h1 className="text-xl font-black text-fg">Cadastro enviado</h1>
@@ -107,7 +107,7 @@ export default function PortalExtras() {
   const campo = "h-12 w-full rounded-xl border border-slate-300 bg-card px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
+    <div className="min-h-screen bg-hf-bg pb-16">
       <header className="bg-accent px-5 py-8 text-accent-fg sm:py-10">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-2xl font-black leading-tight sm:text-3xl">{config.titulo}</h1>

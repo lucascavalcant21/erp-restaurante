@@ -13,7 +13,7 @@ export default function RhNav() {
   ];
 
   return (
-    <div className="bg-[var(--surface)] border-b border-[var(--line-soft)] px-4 pt-2 overflow-x-auto sticky top-0 z-40 shadow-sm">
+    <div className="bg-hf-bg border-b border-[var(--line-soft)] px-4 pt-2 overflow-x-auto sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto flex gap-6">
         {tabs.map(t => {
           const ativo = abaAtiva === t.id;

@@ -300,7 +300,7 @@ export default function ExecucaoGuiada() {
   if (concluida) {
     const naoConformes = Object.values(respostas).filter(r => r.conforme === false).length;
     return (
-      <div className="grid min-h-screen place-items-center bg-[var(--surface)] p-5">
+      <div className="grid min-h-screen place-items-center bg-hf-bg p-5">
         <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-card p-7 text-center shadow-sm">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 size={34} /></div>
           <h1 className="text-xl font-black text-fg">{processo?.nome} concluído</h1>
@@ -323,7 +323,7 @@ export default function ExecucaoGuiada() {
   const conformeAtual = item ? respostaConforme(item, { valor: rascunho.valor, valor_numero: Number(String(rascunho.valor).replace(",", ".")) }) : null;
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-32">
+    <div className="min-h-screen bg-hf-bg pb-32">
       <div className="sticky top-0 z-20 border-b border-line bg-card px-4 py-3.5 sm:px-6">
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <button onClick={() => router.push("/dashboard/operacao/inteligente")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card text-slate-900"><ArrowLeft size={19} /></button>

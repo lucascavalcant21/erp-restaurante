@@ -25,7 +25,7 @@ export function fmtData(iso) { return iso ? new Date(iso).toLocaleDateString("pt
 export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel = "Novo", back = true, children }) {
   const router = useRouter();
   return (
-    <div className="erp-page-header sticky top-0 z-20 border-b px-3 sm:px-5 py-3 sm:py-4 flex flex-col md:flex-row md:items-center gap-3 glass-panel min-w-0"
+    <div className="erp-page-header sticky top-0 z-20 border-b px-3 sm:px-5 py-3 sm:py-4 flex flex-col md:flex-row md:items-center gap-3 bg-hf-bg/90 backdrop-blur min-w-0"
       style={{ borderColor: "var(--line-soft)" }}>
       <div className="erp-page-header-main flex items-center gap-2.5 sm:gap-3 w-full md:w-auto min-w-0">
         {back && (

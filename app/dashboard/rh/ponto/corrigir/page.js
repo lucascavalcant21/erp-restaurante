@@ -124,7 +124,7 @@ export default function CorrigirPontoPage() {
   const rotulo = "text-2xs font-black uppercase tracking-wider text-fg";
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] pb-16 text-fg">
+    <div className="min-h-screen bg-hf-bg pb-16 text-fg">
       <header className="border-b border-line bg-card px-4 py-4 sm:px-7">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-line text-slate-900 hover:bg-white" aria-label="Voltar">

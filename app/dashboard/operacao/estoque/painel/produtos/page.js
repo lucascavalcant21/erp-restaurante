@@ -1091,7 +1091,7 @@ function EstoqueRunner() {
   const ativo = estoqueAtual?.status === "ativo";
 
   return (
-    <div className="min-h-screen bg-white pb-16 text-fg">
+    <div className="min-h-screen bg-hf-bg pb-16 text-fg">
       <EstoqueAbas />
       <header className="border-b border-line bg-card px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">

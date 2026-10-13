@@ -41,6 +41,7 @@ import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dado
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
 import VinculosAba from "./VinculosAba";
 import SimulacaoMes from "./SimulacaoMes";
+import { fetchVinculos } from "../../../../lib/vinculos-dados";
 import { avosFerias } from "../../../../lib/trabalhista/regras-cct.mjs";
 import {
   ABAS_PRONTUARIO, statusDoColaborador, vinculoAtual, supervisoresDe, pendenciasDoColaborador, tempoDeCasa, mascararCpf,
@@ -203,6 +204,8 @@ export default function ProntuarioColaboradorPage() {
   const [erro, setErro] = useState("");
   const [lista, setLista] = useState([]);
   const [convencao, setConvencao] = useState(null);
+  const [vinculoReg, setVinculoReg] = useState(null); // vínculo aberto em rh_vinculos (RH-4)
+  const [versaoVinculo, setVersaoVinculo] = useState(0);
   const [sessao, setSessao] = useState(null);
   const [aba, setAba] = useState("resumo");
   const [extras, setExtras] = useState({}); // dados carregados por aba
@@ -229,6 +232,11 @@ export default function ProntuarioColaboradorPage() {
     fetchTiposBonificacao(func.unidade_id).then(({ data }) => setTiposB(data || []));
   }, [func?.unidade_id]);
 
+  useEffect(() => {
+    if (!func?.id) return;
+    fetchVinculos(func.id).then(({ data }) => setVinculoReg((data || []).find((v) => !v.fim) || null));
+  }, [func?.id, versaoVinculo]);
+
   // Carrega o que cada aba precisa, uma vez
   useEffect(() => {
     if (!func) return;
@@ -252,7 +260,7 @@ export default function ProntuarioColaboradorPage() {
 
   const hoje = useMemo(() => new Date(), []);
   const status = func ? statusDoColaborador(func, hoje) : null;
-  const vinculo = func ? vinculoAtual(func, hoje) : null;
+  const vinculo = func ? vinculoAtual(func, hoje, vinculoReg) : null;
   const supervisores = func ? supervisoresDe(func, lista) : [];
   const pendencias = func ? pendenciasDoColaborador(func, { hoje, cct: convencao?.cct || null }) : [];
   const desligado = status?.id === "desligado";
@@ -290,7 +298,7 @@ export default function ProntuarioColaboradorPage() {
               </div>
               <p className="text-sm font-semibold text-hf-text-2 mt-0.5">{func.cargo || "Função não informada"}{func.area_escala ? ` · ${func.area_escala}` : ""} · {unidadeInfo?.nome}</p>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                <p><span className="text-hf-muted">Vínculo: </span><b className="text-hf-text">{vinculo.categoria}</b> · {vinculo.fase}</p>
+                <p><span className="text-hf-muted">Vínculo: </span><b className="text-hf-text">{vinculo.categoria}</b> · {vinculo.fase}{vinculo.fonte === "deduzido" && <span className="text-hf-muted" title="Sem vínculo registrado: deduzido do cadastro antigo"> (do cadastro)</span>}{vinculo.alerta && <span className="text-amber-700" title={vinculo.alerta}> ⚠</span>}</p>
                 <p><span className="text-hf-muted">Supervisão: </span><b className="text-hf-text">{supervisores.length ? supervisores.join(", ") : "não definida"}</b></p>
                 <p><span className="text-hf-muted">Na casa: </span><b className="text-hf-text">{tempoDeCasa(func, hoje) || "início não informado"}</b></p>
               </div>
@@ -355,7 +363,7 @@ export default function ProntuarioColaboradorPage() {
         {aba === "contratos" && (
           <div className="space-y-4">
             <VinculosAba colaborador={func} podeSolicitar={podeSolicitarContrato} podeAprovar={podeAprovarContrato} podeVerValores={podeVerValores}
-              onAviso={setAviso} onMudou={recarregarColaborador} />
+              onAviso={setAviso} onMudou={() => { recarregarColaborador(); setVersaoVinculo((n) => n + 1); }} />
             {func.data_desligamento && (
               <Card>
                 <SectionLabel>Desligamento</SectionLabel>

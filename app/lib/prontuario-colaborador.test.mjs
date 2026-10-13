@@ -71,3 +71,14 @@ test("tela: o RH abre a edição e o desligamento pelo endereço (?editar= / ?de
   assert.match(rh, /searchParams\.get\("editar"\)/);
   assert.match(rh, /searchParams\.get\("desligar"\)/);
 });
+
+test("vínculo registrado (rh_vinculos) prevalece sobre o cadastro antigo", () => {
+  const antigo = { tipo_contrato: "Fixo", status_contrato: "Contrato Definitivo", data_admissao: "2026-06-23" };
+  const reg = { categoria: "clt_experiencia", inicio: "2026-06-23", experiencia_dias: 30, prorrogacao_dias: null, fim: null };
+  const v = vinculoAtual(antigo, new Date("2026-10-13T12:00:00Z"), reg);
+  assert.equal(v.fonte, "registrado");
+  assert.equal(v.categoria, "CLT — contrato de experiência");
+  assert.equal(v.fase, "Experiência: 1º período terminado");
+  assert.ok(v.alerta.includes("efetivação"));
+  assert.equal(vinculoAtual(antigo, new Date("2026-10-13T12:00:00Z")).fonte, "deduzido");
+});

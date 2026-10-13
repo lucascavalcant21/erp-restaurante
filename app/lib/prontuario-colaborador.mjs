@@ -8,6 +8,7 @@
 import { faseContratoCalculada, prazoExperiencia, emExperiencia } from "./contrato-experiencia.mjs";
 import { alertasExperiencia, conferirPiso, anosCompletos } from "./trabalhista/regras-cct.mjs";
 import { cpfValido } from "./colaborador-cadastro.mjs";
+import { faseDoVinculo, CATEGORIAS } from "./vinculos.mjs";
 
 const txt = (v) => String(v ?? "").trim();
 
@@ -37,11 +38,24 @@ export function statusDoColaborador(c = {}, hoje = new Date()) {
 }
 
 /** Vínculo atual em linguagem simples, separando categoria e fase. */
-export function vinculoAtual(c = {}, hoje = new Date()) {
+/**
+ * Vínculo para o cabeçalho e o resumo. registrado: o vínculo aberto de
+ * rh_vinculos (RH-4), que é a fonte oficial; sem ele, deduz do cadastro antigo
+ * (tipo_contrato/status_contrato), marcado como deduzido.
+ */
+export function vinculoAtual(c = {}, hoje = new Date(), registrado = null) {
+  if (registrado) {
+    const f = faseDoVinculo(registrado, hoje.toISOString ? hoje.toISOString().slice(0, 10) : hoje);
+    const cat = registrado.categoria;
+    return {
+      categoria: CATEGORIAS[cat] || cat, fase: f.rotulo, detalhe: [f.detalhe, f.alerta].filter(Boolean).join(" "),
+      ehExperiencia: cat === "clt_experiencia", alerta: f.alerta || null, fonte: "registrado",
+    };
+  }
   const extra = c.tipo_contrato === "Freelancer";
   if (extra) return { categoria: "Trabalho eventual (extra)", fase: "Prestação de serviço avulsa", ehExperiencia: false };
   const fase = faseContratoCalculada(c, hoje);
-  return { categoria: "CLT", fase: fase.fase, detalhe: fase.detalhe, ehExperiencia: !fase.ehDefinitivo, periodo: fase.periodo };
+  return { categoria: "CLT", fase: fase.fase, detalhe: fase.detalhe, ehExperiencia: !fase.ehDefinitivo, periodo: fase.periodo, fonte: "deduzido" };
 }
 
 /** Nomes dos supervisores a partir da lista do quadro. */

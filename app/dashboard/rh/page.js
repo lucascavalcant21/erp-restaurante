@@ -2019,7 +2019,7 @@ export default function RHPage() {
             <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-card text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <Clock size={14} /> Faltas e Atrasos
             </button>
-            <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-card text-rose-600 border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
+            <button onClick={abrirModalFeriados} title="Feriado trabalhado sem folga compensatória paga em dobro (Lei 605/49; CCT Foz cl. 17: compensar no mês ou em até 30 dias)" className="flex items-center gap-1.5 bg-card text-rose-600 border border-line px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <CalendarDays size={14} /> Feriados
             </button>
             <button

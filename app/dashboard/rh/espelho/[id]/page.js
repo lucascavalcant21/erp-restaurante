@@ -25,6 +25,9 @@ export default function EspelhoDePonto() {
   const [colaborador, setColaborador] = useState(null);
   const [convencao, setConvencao] = useState(null); // convenção coletiva ativa (RH-3)
   useEffect(() => { if (colaborador?.unidade_id) fetchConvencaoAtiva(colaborador.unidade_id).then(setConvencao); }, [colaborador?.unidade_id]);
+  // regra da competência do espelho (CLT ou convenção ativa): números e textos saem daqui
+  const rgEsp = regrasDaCompetencia(mesParam, { convencao }).regras;
+  const rgCct = rgEsp.id !== "clt";
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
   const [atestadosMes, setAtestadosMes] = useState([]);
@@ -499,7 +502,7 @@ export default function EspelhoDePonto() {
             // ter chegado cedo. A batida real continua no espelho e no livro;
             // o corte é só na conta.
             const dias = calcularAdicionaisPorDia(pontos, feriadosMes, {
-              regras: regrasDaCompetencia(mesParam, { convencao }).regras,
+              regras: rgEsp,
               contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d),
               entradaDoDia: (d) => entradaContratadaDoDia(colaborador, d),
             });
@@ -513,8 +516,8 @@ export default function EspelhoDePonto() {
                      <thead>
                         <tr className="bg-card">
                            <th className="border border-slate-800 !py-1 !px-2 text-left">Dia</th>
-                           <th className="border border-slate-800 !py-1 !px-2 text-right">Hora extra (+50%)</th>
-                           <th className="border border-slate-800 !py-1 !px-2 text-right">Ad. noturno (+20%)</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-right">Hora extra (+{rgEsp.extraPct}%)</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-right">Ad. noturno (+{rgEsp.noturnoPct}%)</th>
                            <th className="border border-slate-800 !py-1 !px-2 text-right">Feriado (+100%)</th>
                         </tr>
                      </thead>
@@ -550,7 +553,9 @@ export default function EspelhoDePonto() {
          })()}
 
          <div className="mt-2 text-3xs text-slate-900 leading-snug">
-            <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% das 22h00 às 05h00, com hora noturna reduzida de 52min30s (CLT art. 73). Hora extra além da jornada contratada com acréscimo de 50%; tolerância de 5 min por marcação, limitada a 10 min diários (CLT art. 58, §1º). Feriado trabalhado com adicional de 100%.
+            <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). {rgCct
+              ? `Adicional noturno de ${rgEsp.noturnoPct}% das ${String(rgEsp.noturnoInicioH).padStart(2, "0")}h00 às ${String(rgEsp.noturnoFimH).padStart(2, "0")}h00 (CCT Foz 2026/2027, cl. 13; jornada iniciada após 05h00 não é noturna), com hora noturna reduzida de 52min30s entre 22h00 e 05h00 (CLT art. 73). Hora extra além da jornada contratada com acréscimo de ${rgEsp.extraPct}% (CCT cl. 10); tolerância de 5 min por marcação, limitada a 10 min diários (CLT art. 58, §1º). Feriado trabalhado sem compensação com adicional de ${rgEsp.feriadoPct}% (CCT cl. 17).`
+              : `Adicional noturno de ${rgEsp.noturnoPct}% das 22h00 às 05h00, com hora noturna reduzida de 52min30s (CLT art. 73). Hora extra além da jornada contratada com acréscimo de ${rgEsp.extraPct}%; tolerância de 5 min por marcação, limitada a 10 min diários (CLT art. 58, §1º). Feriado trabalhado com adicional de ${rgEsp.feriadoPct}%.`}
          </div>
 
          

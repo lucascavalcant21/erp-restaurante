@@ -343,10 +343,12 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
 
           {vidaLoading || !vida ? <SkeletonList rows={4} /> : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Remuneração do mês: fixo + VA + taxa + adicionais do ponto (CLT) */}
+              {/* Remuneração do mês: fixo + VA + taxa + adicionais do ponto (regras da competência: CLT ou convenção ativa) */}
               {!isFree && (() => {
+                const rg = regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras;
+                const fonteRg = rg.id === "clt" ? "CLT" : "CCT Foz 2026/27";
                 const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, {
-                  regras: regrasDaCompetencia(new Date().toISOString().slice(0, 7), { convencao }).regras,
+                  regras: rg,
                   contratadaDoDia: (d) => jornadaContratadaMin(sel, d),
                   entradaDoDia: (d) => entradaContratadaDoDia(sel, d),
                 });
@@ -368,9 +370,9 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                     <Linha rotulo="Salário fixo" valor={fixo} dica={diariabase > 0 ? `(${fmtBRL(diariabase)}/dia trabalhado)` : ""} />
                     <Linha rotulo="Vale alimentação" valor={va} />
                     <Linha rotulo="Taxa de serviço" valor={taxa} dica="definida no fim do mês" />
-                    <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} após 23h30 · 20% CLT`} />
-                    <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} após 00h00 · +50% CLT`} />
-                    <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +100% CLT`} />
+                    <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} · ${rg.noturnoPct}% das ${rg.noturnoInicioH}h às ${rg.noturnoFimH}h · ${fonteRg}`} />
+                    <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} · +${rg.extraPct}% · ${fonteRg}`} />
+                    <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +${rg.feriadoPct}% · ${fonteRg}`} />
                     <p className="text-3xs font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
                   </Bloco>
                 );

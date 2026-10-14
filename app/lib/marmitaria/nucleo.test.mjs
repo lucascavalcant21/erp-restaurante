@@ -364,3 +364,19 @@ test("período dos filtros: semana começa na segunda", () => {
   assert.deepEqual(periodo("mes", "2026-10-14"), { de: "2026-10-01", ate: "2026-10-14" });
   assert.deepEqual(periodo("personalizado", "2026-10-14", { de: "2026-10-20", ate: "2026-10-01" }), { de: "2026-10-01", ate: "2026-10-20" });
 });
+
+test("unidade só da marmitaria: toda conta da unidade entra 100%, sem rateio", async () => {
+  const { contasDaMarmitaria, unidadeExclusiva } = await import("./nucleo.mjs");
+  const contas = [
+    { competencia_efetiva: "2026-10-05", centro_custo_codigo: "cozinha", valor_original: 100, categoria_codigo: "x" },
+    { competencia_efetiva: "2026-10-06", centro_custo_codigo: "", valor_original: 50, categoria_codigo: "ocupacao_aluguel" },
+    { competencia_efetiva: "2026-10-07", situacao: "cancelado", centro_custo_codigo: "", valor_original: 999 },
+  ];
+  const r = contasDaMarmitaria(contas, "2026-10", { centrosDiretos: ["*"], rateio: {} });
+  assert.deepEqual(r.map((c) => [c.valorMarmitaria, c.criterio]), [[100, "unidade_exclusiva"], [50, "unidade_exclusiva"]]);
+  assert.equal(unidadeExclusiva({ centros_diretos: ["*"] }), true);
+  assert.equal(unidadeExclusiva({ centros_diretos: ["marmitaria"] }), false);
+  // modo antigo (mesma unidade do restaurante) continua igual
+  const antigo = contasDaMarmitaria(contas, "2026-10", { centrosDiretos: ["marmitaria"], rateio: {} });
+  assert.deepEqual(antigo.map((c) => c.criterio), ["outra_operacao", "rateio_nao_configurado"]);
+});

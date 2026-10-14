@@ -622,9 +622,17 @@ const FORA = new Set(["mercadoria", "investimento", "distribuicao", "perda_estoq
  *   rateio      centro compartilhado (geral, administrativo, sem centro) → % configurado
  *   fora        centro de outra operação (cozinha, bar, salão, eventos) → 0%
  * A política fica explícita em cada linha (`criterio`).
+ *
+ * Unidade só da marmitaria (centrosDiretos contém "*"): a marmitaria é um
+ * negócio separado, com unidade própria — toda conta da unidade é dela (100%),
+ * sem rateio com outro negócio.
  */
+export const UNIDADE_EXCLUSIVA = "*";
+export const unidadeExclusiva = (cfg = {}) => Array.isArray(cfg.centros_diretos) && cfg.centros_diretos.includes(UNIDADE_EXCLUSIVA);
+
 export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmitaria"], rateio = {} } = {}) {
   const diretos = new Set(centrosDiretos.map((c) => String(c).toLowerCase()));
+  const exclusiva = diretos.has(UNIDADE_EXCLUSIVA);
   const padrao = rateio?.padrao_pct === undefined || rateio?.padrao_pct === null || rateio?.padrao_pct === "" ? null : Math.max(0, Math.min(100, parseNumero(rateio.padrao_pct)));
   const porCat = rateio?.por_categoria || {};
   const out = [];
@@ -633,7 +641,8 @@ export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmit
     if (String(c?.competencia_efetiva || "").slice(0, 7) !== mes) continue;
     const centro = String(c.centro_custo_codigo || "").toLowerCase();
     let fracao = 0; let criterio;
-    if (diretos.has(centro)) { fracao = 1; criterio = "direta"; }
+    if (exclusiva) { fracao = 1; criterio = "unidade_exclusiva"; }
+    else if (diretos.has(centro)) { fracao = 1; criterio = "direta"; }
     else if (CENTROS_COMPARTILHADOS.has(centro)) {
       const especifico = porCat[c.categoria_codigo];
       const p = especifico === undefined || especifico === null || especifico === "" ? padrao : Math.max(0, Math.min(100, parseNumero(especifico)));

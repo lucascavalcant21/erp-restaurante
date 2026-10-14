@@ -106,12 +106,10 @@ export default function LojasPage() {
   const handleSalvar = async () => {
     if(!form.nome.trim()) return alert("O Nome da Unidade é obrigatório!");
 
-    if (editandoId) {
-      await atualizarUnidade(editandoId, form);
-    } else {
-      await inserirUnidade(form);
-    }
-    
+    const r = editandoId ? await atualizarUnidade(editandoId, form) : await inserirUnidade(form);
+    if (r?.error) return alert(`Não foi possível salvar: ${r.error}`);
+    if (r?.ignorados?.some((k) => ["latitude", "longitude", "raio_permitido_m"].includes(k))) alert("Dados da loja salvos. A localização (GPS) ainda não é guardada nesta versão.");
+
     setModalAberta(false);
     carregar();
   };

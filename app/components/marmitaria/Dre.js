@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMarmitaria } from "./contexto";
 import { Abas, Aviso, Campo, Indicador, Secao, Selo, brl, inputCls, pctTxt } from "./ui";
 import { carregarFinanceiro, carregarEquipe, fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
-import { cmoMarmitaria, cmvPrevisto, cmvRealDosEstoques, contasDaMarmitaria, dreMarmitaria, dreConsolidado, encargosDaConfig, fatorSaldo } from "../../lib/marmitaria/nucleo.mjs";
+import { cmoMarmitaria, cmvPrevisto, cmvRealDosEstoques, contasDaMarmitaria, dreMarmitaria, dreConsolidado, encargosDaConfig, fatorSaldo, unidadeExclusiva } from "../../lib/marmitaria/nucleo.mjs";
 import { custoUnitarioEfetivoInsumo } from "../../lib/ficha-calculos.mjs";
 import { somarDiasIso } from "../../lib/cmv-real.mjs";
 import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../lib/dre-dados";
@@ -22,7 +22,8 @@ const proximoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return 
 export function useDreMarmitaria(mes) {
   const { base, unidadeId, custos } = useMarmitaria();
   const [dados, setDados] = useState(null);
-  const estoqueIds = useMemo(() => (base?.estoques || []).filter((e) => e.slug === ESTOQUE_MARMITARIA || e.slug === ESTOQUE_EMBALAGENS).map((e) => e.id), [base]);
+  // unidade só da marmitaria: todos os estoques da unidade são dela
+  const estoqueIds = useMemo(() => (base?.estoques || []).filter((e) => (base && unidadeExclusiva(base.config)) || e.slug === ESTOQUE_MARMITARIA || e.slug === ESTOQUE_EMBALAGENS).map((e) => e.id), [base]);
 
   useEffect(() => {
     if (!unidadeId || !base) return;
@@ -76,16 +77,17 @@ function LinhaDre({ l }) {
 }
 
 export default function Dre() {
-  const { unidadeId } = useMarmitaria();
+  const { unidadeId, base } = useMarmitaria();
+  const exclusiva = !!base && unidadeExclusiva(base.config);
   const [mes, setMes] = useState(hojeIso().slice(0, 7));
   const [visao, setVisao] = useState("marmitaria");
   const r = useDreMarmitaria(mes);
   const [baseUnidade, setBaseUnidade] = useState(null);
 
   useEffect(() => {
-    if (visao !== "consolidado" || !unidadeId || baseUnidade) return;
+    if (exclusiva || visao !== "consolidado" || !unidadeId || baseUnidade) return;
     carregarBaseDre(unidadeId).then(setBaseUnidade);
-  }, [visao, unidadeId, baseUnidade]);
+  }, [exclusiva, visao, unidadeId, baseUnidade]);
 
   const consolidado = useMemo(() => {
     if (visao !== "consolidado" || !baseUnidade || !r) return null;
@@ -101,11 +103,11 @@ export default function Dre() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <Campo rotulo="Mês" className="w-[170px]"><input type="month" className={inputCls} value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} /></Campo>
-        <div className="min-w-[260px] flex-1"><Abas abas={[{ id: "marmitaria", rotulo: "Só a marmitaria" }, { id: "consolidado", rotulo: "Consolidado com o restaurante" }]} valor={visao} onChange={setVisao} /></div>
+        {!exclusiva && <div className="min-w-[260px] flex-1"><Abas abas={[{ id: "marmitaria", rotulo: "Só a marmitaria" }, { id: "consolidado", rotulo: "Consolidado com o restaurante" }]} valor={visao} onChange={setVisao} /></div>}
       </div>
       {r.erro && <Aviso tipo="alerta">Parte dos dados não carregou: {r.erro}</Aviso>}
 
-      {visao === "marmitaria" ? (
+      {visao === "marmitaria" || exclusiva ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Indicador rotulo="Receita de vendas" valor={ind.receita} natureza="real" nota={ind.marmitas !== null ? `${ind.marmitas} marmitas` : null} />

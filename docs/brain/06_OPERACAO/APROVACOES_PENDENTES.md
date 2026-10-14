@@ -83,7 +83,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** aplicada 10/10 ~08:30 em sessão acompanhada; verificação OK: RLS ligado, 0 policy, sem SELECT para anon/authenticated; 0 tabelas sem RLS; rota de saúde vê a tabela (TESTADO NO SUPABASE REAL)
 - **Chave:** migracao:db/whatsapp/WA_002_EVENTOS.sql
 
-### APR-005 · PENDENTE
+### APR-005 · EXECUTADO
 
 - **Missão:** Reformulação da Marmitaria (PR #168)
 - **Ação:** Aplicar db/MARMITARIA_V2_REFORMULACAO.sql no Supabase real (tabela marmitaria_vendas com RLS sec_unidade, funções marmitaria_salvar_ficha e marmitaria_registrar_producao, 5 colunas em marmitaria_configuracoes)
@@ -93,6 +93,21 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Impacto:** nenhum dado existente é alterado; funções SECURITY INVOKER (valem as policies de quem chama); EXECUTE só para authenticated
 - **Rollback:** documentado no cabeçalho do arquivo (não rodar sem decisão do dono)
 - **Evidências:** 37 casos no PGlite (app/lib/marmitaria/marmitaria-banco.test.mjs); ensaio no banco real em transação desfeita em 14/10 (salvar 2x = atualização, códigos MARM-0002/0003, RLS, venda) e rollback conferido
+- **Status:** EXECUTADO
+- **Criado em:** 2026-10-14
+- **Decidido em:** 2026-10-14 (dono: "pode publicar e fazer o merger")
+- **Nota:** aplicada 14/10 ~15:50; verificação 9/9 OK (tabela, RLS, policy, 2 funções, coluna, anon sem acesso, 167 fichas intactas); advisors sem alerta novo. PR #168 mergeado (7605a02). TESTADO NO SUPABASE REAL
+- **Chave:** migracao:db/MARMITARIA_V2_REFORMULACAO.sql
+
+### APR-006 · PENDENTE
+
+- **Missão:** Cadastro do iFood (PR do branch claude/ifood-cadastro)
+- **Ação:** (1) Aplicar db/integracoes/IFOOD_1_CONEXAO.sql no Supabase real: 3 tabelas de integração, RLS sem policy, só o servidor acessa. (2) Dono cria a variável INTEGRATION_MASTER_KEY (32+ caracteres aleatórios) na Vercel, ambiente Production. (3) Merge do PR.
+- **Ambiente:** supabase + vercel (produção)
+- **Risco:** MEDIUM
+- **Motivo:** sem as tabelas e sem a chave do cofre não há onde guardar a credencial do iFood com segurança
+- **Rollback:** no cabeçalho do arquivo (apaga a conexão salva)
+- **Evidências:** PGlite: anon/authenticated sem acesso às 3 tabelas, idempotente; 8 testes da lógica (segredo nunca volta à tela nem vai em texto puro; "Conectado" só com o merchant confirmado pelo iFood)
 - **Status:** PENDENTE
 - **Criado em:** 2026-10-14
-- **Chave:** migracao:db/MARMITARIA_V2_REFORMULACAO.sql
+- **Chave:** migracao:db/integracoes/IFOOD_1_CONEXAO.sql

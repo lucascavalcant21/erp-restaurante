@@ -9,6 +9,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Secao, inputCls, lerNumero } from "../../../components/marmitaria/ui";
 import { salvarConfig, carregarEquipe } from "../../../lib/marmitaria/dados";
+import IfoodConexao from "../../../components/integracoes/IfoodConexao";
 import { MODELOS_CANAL, normalizarCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../../lib/marmitaria/nucleo.mjs";
 
 const RATEAVEIS = [
@@ -67,6 +68,9 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="space-y-4">
+      <Secao titulo="iFood" subtitulo="Conexão com a sua loja no iFood. As taxas do iFood ficam no canal abaixo.">
+        <IfoodConexao unidadeId={unidadeId} />
+      </Secao>
       <Secao titulo="Canais de venda e taxas" subtitulo="Preencha com o que está no SEU contrato (plano do iFood, maquininha). Campo vazio = não configurado.">
         <div className="space-y-4">
           {cfg.canais.map((c, i) => (

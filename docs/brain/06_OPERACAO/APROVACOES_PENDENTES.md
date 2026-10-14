@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 0** (APR-007: falta só o merge do PR #171)
+**Pendentes agora: 1** (APR-008)
 
 ### APR-001 · EXECUTADO
 
@@ -114,7 +114,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** (1) IFOOD-1 aplicada 14/10 e verificada (3 tabelas com RLS, 0 policies, anon/authenticated sem acesso). (3) PR #169 mergeado (2b7ab03). (2) INTEGRATION_MASTER_KEY criada pelo dono; deploy de produção de 17:31 confirmado pelo GitHub; servidor responde cofreConfigurado=true (TESTADO EM PRODUÇÃO, 14/10, sem expor valor). Falta só o cadastro das credenciais reais do iFood pelo dono.
 - **Chave:** migracao:db/integracoes/IFOOD_1_CONEXAO.sql
 
-### APR-007 · EXECUTADO EM PARTE
+### APR-007 · EXECUTADO
 
 - **Missão:** Pedidos do iFood na Marmitaria (branch claude/ifood-2-pedidos)
 - **Ação:** (1) Aplicar db/integracoes/IFOOD_2_PEDIDOS.sql no Supabase real: 3 tabelas (pedidos, itens → marmita, repasses), 5 colunas de fila em integration_events, 2 funções. (2) Merge do PR.
@@ -124,8 +124,22 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Impacto:** nada existente é alterado (só colunas novas em integration_events, que está vazia). delivery_gravar_pedido só para service_role; marmitaria_baixar_pedidos passa por estoque_movimentar com o usuário logado. Sem credencial do iFood nada é buscado.
 - **Rollback:** no cabeçalho do arquivo (apaga pedidos importados; vendas importadas ficam)
 - **Evidências:** 26 casos de SQL real no PGlite (isolamento por unidade, idempotência, status só avança, baixa com versão); 37 casos de ponta a ponta da sincronização; 22 do núcleo; suíte app/lib inteira e build verdes
-- **Status:** EXECUTADO EM PARTE
+- **Status:** EXECUTADO
 - **Criado em:** 2026-10-14
 - **Decidido em:** 2026-10-14 (dono: "aprove a pr007")
-- **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171: pendente (bloqueado pela checagem de permissão do agente; o dono faz o merge).
+- **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171 feito pelo dono em 14/10 21:16 (1e8289c); deploy de produção concluído 21:18 e conferido: /api/ifood/webhook responde o formato novo e /api/ifood/sincronizacao existe e recusa sem sessão (401). TESTADO EM PRODUÇÃO.
 - **Chave:** migracao:db/integracoes/IFOOD_2_PEDIDOS.sql
+
+### APR-008 · PENDENTE
+
+- **Missão:** Marmitaria com unidade própria (PR #172)
+- **Ação:** (1) Aplicar db/UNID_MARM_1_TRANSFERENCIA_ENTRE_UNIDADES.sql no Supabase real: tabela estoque_transferencias_unidades (RLS: leitura por quem vê origem ou destino; ninguém grava direto), função estoque_transferir_unidades e o valor TRANSFERENCIA nas restrições de origem do custo (estoque_custos e estoque_custos_historico). (2) Merge do PR #172 (depois do #173).
+- **Ambiente:** supabase + vercel (produção)
+- **Risco:** MEDIUM
+- **Motivo:** sem ela não há transferência controlada entre os negócios (restaurante → marmitaria)
+- **Impacto:** nenhum movimento ou custo existente muda. As restrições de origem do custo são recriadas com a lista antiga + TRANSFERENCIA (toda linha existente continua válida). Função SECURITY DEFINER com checagem de login, mesma empresa e permissão de estoque nas duas unidades
+- **Rollback:** no cabeçalho do arquivo
+- **Evidências:** 22 casos com SQL real no PGlite (custo médio pelas funções reais da F2.1/F2.4B; idempotência; saldo insuficiente; unidade de medida; outra empresa; permissões; visibilidade; anônimo); CMV com transferências (5 testes); suíte app/lib 494/494; test:seguranca 24/24; test:agent 62/62; build OK
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-14
+- **Chave:** migracao:db/UNID_MARM_1_TRANSFERENCIA_ENTRE_UNIDADES.sql

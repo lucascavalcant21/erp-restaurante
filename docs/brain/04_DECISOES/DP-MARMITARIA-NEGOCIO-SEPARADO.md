@@ -1,6 +1,8 @@
-# Marmitaria é um negócio separado (14/10/2026)
+# Restaurante, Marmitaria e Eventos são negócios separados (14/10/2026)
 
-**Decisão do dono:** a Marmitaria, o restaurante Seldeestrela e Eventos são negócios diferentes e não se conectam. A Marmitaria terá **unidade própria** no Héfisto. A loja do iFood é **só da Marmitaria**.
+**Decisão do dono:** o restaurante Seldeestrela, a Marmitaria e Eventos são **três negócios separados**. A Marmitaria terá **unidade própria** no Héfisto (Eventos também é separado; a migração dele é decisão futura). A loja do iFood é **só da Marmitaria**.
+
+**Complemento (14/10, à noite):** operação independente, mas com **transferência controlada de estoque entre unidades**, **fichas e pré-preparos compartilháveis sem duplicar** e **visão consolidada da empresa**. Ver [[AUDITORIA_INTEGRACAO_MARMITARIA_2026-10-14]].
 
 ## Consequências no sistema
 
@@ -13,7 +15,8 @@
   - sem rateio com o restaurante e sem a aba "Consolidado com o restaurante".
   - Na unidade compartilhada, o comportamento antigo continua igual.
 - **Cadastro de produtos é por unidade.** A marmitaria cadastra os próprios ingredientes e embalagens, pelo cadastro rápido da marmita.
-- **Eventos:** também é negócio separado. Separá-lo em unidade própria é uma decisão futura; nada foi feito.
+- **Eventos:** negócio separado. Separar = criar a unidade "Eventos" e decidir se os 2 eventos existentes mudam de unidade (dado histórico: exige decisão).
+- **Entre unidades:** transferência de estoque ao custo médio (UNID-MARM-1, APR-008); "trazer de outra unidade" para fichas e pré-preparos (reaproveita, sem duplicar); pessoa cedida no CMO; aba "Empresa" no DRE.
 
 ## Passos do dono
 

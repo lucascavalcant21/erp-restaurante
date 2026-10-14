@@ -217,6 +217,39 @@ export function aniversario(colaborador, hoje = new Date()) {
   };
 }
 
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+/**
+ * Aniversariantes do mês de `hoje` entre os colaboradores ativos.
+ * Cada um: { colaborador, dia, diaMes, vaiFazer (idade no aniversário), jaFez, ehHoje }.
+ * semData: quantos ativos não têm data de nascimento (o aviso não os alcança).
+ */
+export function aniversariantesDoMes(lista = [], hoje = new Date()) {
+  const base = meiaNoite(hoje);
+  const mes = base.getMonth(), ano = base.getFullYear();
+  const ativos = (lista || []).filter((c) => c && (c.status || "ativo") !== "inativo");
+  const itens = [];
+  let semData = 0;
+  for (const c of ativos) {
+    const nasc = dataDe(c.data_nascimento);
+    if (!nasc) { semData++; continue; }
+    if (nasc.getMonth() !== mes) continue;
+    const dia = nasc.getDate();
+    const p = (n) => String(n).padStart(2, "0");
+    itens.push({ colaborador: c, dia, diaMes: `${p(dia)}/${p(mes + 1)}`, vaiFazer: ano - nasc.getFullYear(), jaFez: dia < base.getDate(), ehHoje: dia === base.getDate() });
+  }
+  itens.sort((x, y) => x.dia - y.dia || String(x.colaborador.nome).localeCompare(String(y.colaborador.nome)));
+  return { mes: MESES[mes], itens, semData, ativos: ativos.length };
+}
+
+/** Frase do aviso: "Hoje é aniversário da Ana: faz 25 anos." / "Dia 18 é aniversário do João: vai fazer 30 anos." */
+export function fraseAniversario(it) {
+  const nome = String(it.colaborador.nome || "").split(" ")[0];
+  if (it.ehHoje) return `Hoje é aniversário de ${nome}: faz ${it.vaiFazer} anos.`;
+  if (it.jaFez) return `Dia ${it.dia} foi aniversário de ${nome}: fez ${it.vaiFazer} anos.`;
+  return `Dia ${it.dia} é aniversário de ${nome}: vai fazer ${it.vaiFazer} anos.`;
+}
+
 export const ESTADOS_CIVIS = ["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"];
 export const ESCOLARIDADES = [
   "Fundamental incompleto", "Fundamental completo", "Médio incompleto",

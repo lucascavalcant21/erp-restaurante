@@ -17,6 +17,7 @@ import {
 } from "../../../lib/inventario";
 import { fetchColaboradores } from "../../../lib/rh";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 const TIPOS_BAIXA = [
   { id: "quebra", label: "Quebra" },
@@ -349,7 +350,7 @@ export default function InventarioPage() {
     setIaLoading(true);
     setIaItens(null);
     try {
-      const res = await fetch("/api/ia-inventario", {
+      const res = await fetchComSessao("/api/ia-inventario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

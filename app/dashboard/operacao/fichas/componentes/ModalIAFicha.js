@@ -14,6 +14,7 @@ import { itemDeOpcao } from "../../../../lib/ficha-editor.mjs";
 import { converterParaBaseDoInsumo } from "../../../../lib/ficha-calculos.mjs";
 import { unidadeNormalizada } from "../../../../lib/ingredientes-utils.mjs";
 import { ICONE_DO_TIPO } from "./EditorFicha";
+import { fetchComSessao } from "../../../../lib/api-sessao.js";
 
 const DIACRITICOS = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.fromCharCode(0x036f) + "]", "g");
 const normalizar = (s) => String(s || "").toLowerCase().normalize("NFD").replace(DIACRITICOS, "").trim();
@@ -59,7 +60,7 @@ export default function ModalIAFicha({ tipo, departamento, insumos = [], fichas 
     setErro("");
     setCarregando(true);
     try {
-      const resposta = await fetch("/api/ia-ficha", {
+      const resposta = await fetchComSessao("/api/ia-ficha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

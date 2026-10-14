@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Extrai itens de INVENTÁRIO/patrimônio (talheres, louça, potes, panelas,
 // freezers, móveis...) de um texto colado e/ou foto (lista escrita à mão,
@@ -10,6 +11,9 @@ const CATEGORIAS = [
 ];
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { texto, imagem_base64, imagem_media_type } = await request.json();
 

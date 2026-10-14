@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
+import { autorizarLeituraDaUnidade } from "../../../lib/server/autorizacao-unidade.mjs";
 
 export async function POST(req) {
   const fiscalUrl = String(process.env.FISCAL_API_URL || "").trim();
@@ -21,6 +22,10 @@ export async function POST(req) {
   try {
     const { pedido_id, unidade_id, cpf_cliente } = await req.json();
     if (!pedido_id || !unidade_id) return NextResponse.json({ error: "Pedido e unidade são obrigatórios." }, { status: 400 });
+    // SEC-API-1: a rota lê pedido e dados fiscais com service_role; a unidade
+    // vem do navegador e só vale depois de conferida contra o vínculo do usuário.
+    const acesso = await autorizarLeituraDaUnidade(req, unidade_id);
+    if (acesso.erro) return NextResponse.json({ error: acesso.erro.mensagem, codigo: acesso.erro.codigo }, { status: acesso.erro.status });
 
     const [{ data: pedido, error: erroPedido }, { data: unidade, error: erroUnidade }] = await Promise.all([
       supabase.from("pedidos").select("*, pedidos_itens(*, produtos(nome_produto))").eq("id", pedido_id).eq("unidade_id", unidade_id).single(),

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { integrationRegistry } from '../../../../lib/integrations/core/registry.mjs';
-import { getSupabaseServerClient } from '../../../../lib/server/supabase-server.mjs';
+import { autorizarLeituraDaUnidade } from '../../../../lib/server/autorizacao-unidade.mjs';
 
 export async function POST(request, context) {
   try {
@@ -14,27 +14,10 @@ export async function POST(request, context) {
     const body = await request.json().catch(() => ({}));
     const unidadeId = body.unidadeId || body.unidade_id;
 
-    // Proteção de Autorização Tenant: Valida se o usuário tem permissão para a unidade informada
-    if (unidadeId) {
-      try {
-        const supabaseServer = getSupabaseServerClient();
-        const { data: authUser } = await supabaseServer.auth.getUser();
-        if (authUser?.user) {
-          const { data: me } = await supabaseServer
-            .from('usuario_unidades')
-            .select('unidade_id')
-            .eq('usuario_id', authUser.user.id)
-            .eq('unidade_id', unidadeId)
-            .maybeSingle();
-
-          if (!me) {
-            return NextResponse.json({ ok: false, error: 'Acesso negado: Usuário não pertence à unidade solicitada' }, { status: 403 });
-          }
-        }
-      } catch {
-        // Ignorar em ambiente offline de teste
-      }
-    }
+    // SEC-API-1: sessão obrigatória e vínculo com a unidade. Antes, sem token,
+    // getUser() voltava vazio e a checagem era PULADA (falha aberta).
+    const acesso = await autorizarLeituraDaUnidade(request, unidadeId);
+    if (acesso.erro) return NextResponse.json({ ok: false, error: acesso.erro.mensagem, codigo: acesso.erro.codigo }, { status: acesso.erro.status });
 
     // Proteção Anti-SSRF: remove URLs arbitrárias enviadas pelo cliente
     const { apiUrl, clientSecret, ...safeConfig } = body;

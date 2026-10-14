@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Gera um GUIA DE MONTAGEM/EMPRATAMENTO padronizado de um prato, para os
 // funcionários seguirem: qual louça usar, quantidades exatas, ordem de montagem,
 // finalização e o visual esperado. Pensado para imprimir e colar na parede.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { nome_prato, categoria, ingredientes, observacoes } = await request.json();
 

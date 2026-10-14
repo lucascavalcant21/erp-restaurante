@@ -7,6 +7,7 @@ import { fetchTemplates, salvarTemplate, desativarTemplate, fetchExecucoesMes } 
 import { SkeletonList } from "../../../components/ui";
 import { Camera, CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2, BarChart3, ImagePlus, Clock3, Upload, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 // Tipos de checklist por setor:
 // - Cozinha: mise en place, abertura, pré-preparos p/ outro dia, fechamento, limpeza
@@ -254,7 +255,7 @@ function GerenciarChecklistsContent() {
     }
     setMontandoIA(true);
     try {
-      const res = await fetch("/api/ia-checklist", {
+      const res = await fetchComSessao("/api/ia-checklist", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           departamento: form.departamento,

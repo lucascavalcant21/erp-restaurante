@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Confere a foto de evidência contra o critério escrito no item do checklist.
 // A IA não decide sozinha se o funcionário fez o serviço: ela diz se a FOTO
 // comprova o que o item pede. Quando fica em dúvida devolve "revisar", porque
 // reprovar por engano gera não conformidade injusta e mina a confiança no módulo.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { imagem_base64, imagem_media_type, criterios, item_titulo } = await request.json();
 

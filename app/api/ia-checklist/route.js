@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Função para estruturar texto localmente (fallback sem IA ou sem internet/chave)
 function parseTextLocal(contexto, departamento, tipo) {
@@ -65,6 +66,9 @@ function parseTextLocal(contexto, departamento, tipo) {
 }
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { departamento, tipo, contexto, imagem, unidade_nome } = await request.json();
 

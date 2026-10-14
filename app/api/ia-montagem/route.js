@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Gera a ficha de montagem do prato/drink: a estrutura em camadas (de cima
 // para baixo) + um modo de preparo PROFISSIONAL passo a passo, a partir da
 // descrição informada. Usa a Anthropic (mesma chave das outras rotas de IA).
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { descritivo, nome, tipo } = await request.json();
 

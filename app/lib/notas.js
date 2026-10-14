@@ -34,6 +34,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { carimbarUnidade } from "./unidades";
+import { fetchComSessao } from "./api-sessao.js";
 
 export const CATEGORIAS_NOTA = [
   "Hortifruti", "Açougue/Proteína", "Laticínios", "Secos e Molhados", 
@@ -108,7 +109,7 @@ export async function deletarNota(id) {
  */
 export async function simularLeituraOCR(imagemBase64) {
   try {
-    const res = await fetch("/api/ocr", {
+    const res = await fetchComSessao("/api/ocr", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageBase64: imagemBase64 })

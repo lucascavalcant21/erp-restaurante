@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 function limparLista(lista) {
   return (Array.isArray(lista) ? lista : [])
@@ -8,6 +9,9 @@ function limparLista(lista) {
 }
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { cargo, contexto } = await request.json();
     const nomeCargo = String(cargo || "").trim();

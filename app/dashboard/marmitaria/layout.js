@@ -1,105 +1,57 @@
 "use client";
 
+// Marmitaria & Delivery: seis áreas, uma barra só. O menu de cima leva para
+// cá sem submenu (a navegação do módulo mora aqui), e o que é secundário vira
+// aba dentro de cada área.
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  BookOpen,
-  UtensilsCrossed,
-  Calculator,
-  BarChart3,
-  ChefHat,
-  Boxes,
-  ShoppingCart,
-  Users,
-  DollarSign,
-  PieChart,
-  Settings,
-  Sparkles,
-  Calendar,
-  Tag,
-  Repeat,
-  ShieldCheck,
-  Bot,
-  TrendingUp,
-} from "lucide-react";
+import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
+import { Aviso } from "../../components/marmitaria/ui";
+import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
 
-const SUBMENUS = [
-  { href: "/dashboard/marmitaria", label: "Visão Geral", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/marmitaria/planejamento", label: "Planejamento 360º", icon: Calendar },
-  { href: "/dashboard/marmitaria/pedidos", label: "Pedidos & iFood", icon: ShoppingBag },
-  { href: "/dashboard/marmitaria/cardapio", label: "Cardápio", icon: BookOpen },
-  { href: "/dashboard/marmitaria/fichas", label: "Fichas Técnicas", icon: UtensilsCrossed },
-  { href: "/dashboard/marmitaria/precificacao", label: "Precificação", icon: Calculator },
-  { href: "/dashboard/marmitaria/combos", label: "Combos & Margem", icon: Tag },
-  { href: "/dashboard/marmitaria/simulador", label: "Simulador de Vendas", icon: BarChart3 },
-  { href: "/dashboard/marmitaria/producao", label: "Produção", icon: ChefHat },
-  { href: "/dashboard/marmitaria/estoque", label: "Estoque & Embalagens", icon: Boxes },
-  { href: "/dashboard/marmitaria/compras", label: "Lista de Compras", icon: ShoppingCart },
-  { href: "/dashboard/marmitaria/assinaturas", label: "Assinaturas", icon: Repeat },
-  { href: "/dashboard/marmitaria/rh", label: "RH & Escalas", icon: Users },
-  { href: "/dashboard/marmitaria/qualidade", label: "Qualidade & ANVISA", icon: ShieldCheck },
-  { href: "/dashboard/marmitaria/financeiro", label: "Financeiro & Repasses", icon: DollarSign },
-  { href: "/dashboard/marmitaria/cmv-cmo", label: "CMV & CMO", icon: PieChart },
-  { href: "/dashboard/marmitaria/dre", label: "DRE & Resultados", icon: TrendingUp },
-  { href: "/dashboard/marmitaria/ia-otimizador", label: "Copiloto IA", icon: Bot },
-  { href: "/dashboard/marmitaria/configuracoes", label: "Configurações", icon: Settings },
+const AREAS = [
+  { href: "/dashboard/marmitaria", rotulo: "Visão geral", exato: true },
+  { href: "/dashboard/marmitaria/marmitas", rotulo: "Marmitas" },
+  { href: "/dashboard/marmitaria/estoque", rotulo: "Estoque e produção" },
+  { href: "/dashboard/marmitaria/funcionarios", rotulo: "Funcionários" },
+  { href: "/dashboard/marmitaria/financeiro", rotulo: "Financeiro" },
+  { href: "/dashboard/marmitaria/configuracoes", rotulo: "Configurações" },
 ];
 
+function Estado() {
+  const { unidadeId, carregando, erro, base } = useMarmitaria();
+  if (!unidadeId) return <Aviso tipo="alerta" className="mb-4">Selecione uma unidade no topo da tela para usar a marmitaria.</Aviso>;
+  if (base?.migracaoPendente) return <Aviso tipo="alerta" className="mb-4">{MSG_MIGRACAO}</Aviso>;
+  if (erro && !carregando) return <Aviso tipo="alerta" className="mb-4">Não foi possível carregar tudo: {erro}</Aviso>;
+  return null;
+}
+
 export default function MarmitariaLayout({ children }) {
-  const pathname = usePathname();
-
+  const pathname = usePathname() || "";
   return (
-    <div className="flex flex-col min-h-full bg-hf-bg">
-      {/* Sub-header de navegação rápida da Marmitaria */}
-      <div className="sticky top-0 z-30 bg-hf-bg/95 backdrop-blur-md border-b border-hf-border/80 px-4 lg:px-8 py-2.5">
-        <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-sm shadow-emerald-600/30">
-              <UtensilsCrossed size={16} />
-            </div>
-            <div>
-              <span className="text-xs font-black uppercase tracking-wider text-emerald-700 block leading-none">
-                Operação Integrada
-              </span>
-              <h2 className="text-sm font-bold text-slate-900 leading-tight">
-                Marmitaria & Delivery
-              </h2>
-            </div>
-          </div>
-
-          {/* Abas horizontais roláveis com scrollbar suave */}
-          <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 flex-1">
-            {SUBMENUS.map((sub) => {
-              const Icon = sub.icon;
-              const isActive = sub.exact
-                ? pathname === sub.href
-                : pathname === sub.href || pathname.startsWith(`${sub.href}/`);
-
+    <MarmitariaProvider>
+      <div className="min-h-full bg-hf-bg">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-4 sm:px-6">
+          <header className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-hf-accent">Operação</p>
+            <h1 className="text-xl font-black text-hf-text sm:text-2xl">Marmitaria &amp; Delivery</h1>
+          </header>
+          <nav aria-label="Áreas da marmitaria" className="mb-5 grid grid-cols-2 gap-1 rounded-2xl border border-hf-border bg-hf-surface p-1 sm:grid-cols-3 lg:grid-cols-6">
+            {AREAS.map((a) => {
+              const ativo = a.exato ? pathname === a.href : pathname === a.href || pathname.startsWith(`${a.href}/`);
               return (
-                <Link
-                  key={sub.href}
-                  href={sub.href}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
-                    isActive
-                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                  }`}
-                >
-                  <Icon size={14} className={isActive ? "text-white" : "text-slate-500"} />
-                  {sub.label}
+                <Link key={a.href} href={a.href} aria-current={ativo ? "page" : undefined}
+                  className={`flex min-h-[44px] items-center justify-center rounded-xl px-2 text-center text-sm font-semibold transition ${ativo ? "bg-hf-accent text-hf-accent-fg" : "text-hf-text-2 hover:bg-hf-elevated hover:text-hf-text"}`}>
+                  {a.rotulo}
                 </Link>
               );
             })}
           </nav>
+          <Estado />
+          {children}
         </div>
       </div>
-
-      {/* Conteúdo dinâmico da página selecionada */}
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 py-6">
-        {children}
-      </div>
-    </div>
+    </MarmitariaProvider>
   );
 }

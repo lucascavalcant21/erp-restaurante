@@ -45,7 +45,13 @@ conferir("retroativa avisa e diz o mês do espelho", retro, ["20/09 já passou: 
 const comPonto = avisosDaFolga({ data: "2026-09-20", hoje: "2026-10-03", nome: "Larissa", pontoDoDia: { hora_entrada: "2026-09-20T15:40:00" }, horaLocal: hora });
 conferir("ponto batido no dia avisa (sem prometer folga no espelho)", comPonto, ["20/09 já passou: é uma folga retroativa.", "Larissa bateu ponto nesse dia (entrada 15:40). Com ponto batido, o espelho continua mostrando o dia como trabalhado."]);
 const segunda = avisosDaFolga({ data: "2026-09-27", hoje: "2026-10-03", nome: "Eduarda de Lima", folgas });
-conferir("segunda folga de domingo no mês avisa", segunda[1], "Eduarda já tem folga de domingo em setembro/2026 (13/09). A regra é uma por mês.");
+conferir("segunda folga de domingo no mês avisa", segunda[1], "Eduarda já tem 1 folga(s) de domingo em setembro/2026 (13/09). A regra é 1 por mês.");
+// Mulher: domingo a cada 15 dias (CLT art. 386) → até 2 por mês sem aviso; a terceira avisa.
+conferir("mulher: segunda folga de domingo no mês não avisa",
+  avisosDaFolga({ data: "2026-09-27", hoje: "2026-09-01", nome: "Eduarda de Lima", folgas, genero: "Feminino" }), []);
+const terceira = avisosDaFolga({ data: "2026-09-27", hoje: "2026-09-01", nome: "Eduarda de Lima", genero: "Feminino",
+  folgas: [...folgas, { data_folga: "2026-09-06" }] });
+conferir("mulher: terceira folga de domingo no mês avisa", terceira[0], "Eduarda já tem 2 folga(s) de domingo em setembro/2026 (06/09, 13/09). A regra é 2 por mês para mulheres.");
 conferir("a própria data não conta como outra", avisosDaFolga({ data: "2026-09-13", hoje: "2026-09-01", folgas }), []);
 conferir("dia de semana não cobra a regra do domingo", avisosDaFolga({ data: "2026-10-07", hoje: "2026-10-03", folgas }), []);
 

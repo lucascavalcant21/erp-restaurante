@@ -62,7 +62,7 @@ export default function VisaoGeralPage() {
   const hoje = hojeIso();
   const alertasEstoque = base.itensEstoque.filter((i) => locais.includes(i.estoque_id)).map((i) => {
     const ins = base.insumos.get(i.insumo_id);
-    const saldo = (Number(i.quantidade_atual) || 0) / fatorSaldo(ins?.unidade_medida);
+    const saldo = (Number(i.quantidade_atual) || 0) / fatorSaldo(ins);
     const dias = i.validade ? Math.round((new Date(`${i.validade}T12:00:00`) - new Date(`${hoje}T12:00:00`)) / 86400000) : null;
     const min = i.estoque_minimo == null ? null : Number(i.estoque_minimo);
     const motivo = saldo <= 0 ? "zerado" : dias !== null && dias < 0 ? "vencido" : dias !== null && dias <= 2 ? `vence em ${dias} dia(s)` : min !== null && saldo < min ? "abaixo do mínimo" : null;

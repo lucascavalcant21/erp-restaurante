@@ -62,8 +62,11 @@ test("unidades: digitado em g vira kg do cadastro; grandezas diferentes recusam"
   assert.equal(paraUnidadeDoCadastro(150, "g", "kg"), 0.15);
   assert.equal(paraUnidadeDoCadastro(0.5, "l", "ml"), 500);
   assert.equal(paraUnidadeDoCadastro(1, "kg", "ml"), null);
-  assert.equal(fatorSaldo("kg"), 1000);
-  assert.equal(fatorSaldo("un"), 1);
+  // saldo na unidade do cadastro (como o banco); só a garrafa fracionada guarda em ml
+  assert.equal(fatorSaldo({ unidade_medida: "kg" }), 1);
+  assert.equal(fatorSaldo({ unidade_medida: "un" }), 1);
+  assert.equal(fatorSaldo({ unidade_medida: "garrafa", permite_fracionado: true, tamanho_embalagem: 750 }), 750);
+  assert.equal(fatorSaldo("kg"), 1);
 });
 
 // ── preço por canal ─────────────────────────────────────────────────────────
@@ -163,14 +166,14 @@ test("baixa da produção: pré-preparo sai como pré-preparo (sem baixar o arro
   const r = baixasDaProducao({
     marmita: MARMITA_FRANGO, quantidade: 10, fichas, insumos, espelho: new Map([["arroz-cozido", "esp-arroz"]]),
     saldos: new Map([
-      ["esp-arroz", [{ estoque_id: "pre", estoque_nome: "Pré-preparos", saldo: 2000, prioridade: 1 }]],
-      ["frango", [{ estoque_id: "marm", saldo: 1000, prioridade: 0 }, { estoque_id: "coz", saldo: 5000, prioridade: 1 }]],
+      ["esp-arroz", [{ estoque_id: "pre", estoque_nome: "Pré-preparos", saldo: 2, prioridade: 1 }]],
+      ["frango", [{ estoque_id: "marm", saldo: 1, prioridade: 0 }, { estoque_id: "coz", saldo: 5, prioridade: 1 }]],
       ["tampa", [{ estoque_id: "emb", saldo: 50, prioridade: 0 }]],
     ]),
   });
   const b = (id) => r.baixas.find((x) => x.insumo_id === id);
-  assert.deepEqual([b("esp-arroz").quantidade, b("esp-arroz").estoque_id], [1500, "pre"]); // 10 × 0,15 kg = 1.500 g
-  assert.deepEqual([b("frango").quantidade, b("frango").estoque_id], [1500, "coz"]);      // 10 × 0,12 × 1,25 kg
+  assert.deepEqual([b("esp-arroz").quantidade, b("esp-arroz").estoque_id], [1.5, "pre"]); // 10 × 0,15 kg = 1,5 kg (saldo em kg, como no banco)
+  assert.deepEqual([b("frango").quantidade, b("frango").estoque_id], [1.5, "coz"]);      // 10 × 0,12 × 1,25 kg
   assert.equal(b("arroz"), undefined);
   assert.equal(b("tampa").quantidade, 10);
   assert.equal(r.faltas.length, 1); // pote sem saldo em lugar nenhum

@@ -400,3 +400,49 @@ export async function executarCopia(unidadeId, plano) {
   }
   return { error: null, produtos: plano.criarInsumos.length, fichas };
 }
+
+// ─── Transferência entre unidades (UNID-MARM-1) ──────────────────────────────
+
+/** Estoques, saldos e produtos de outra unidade que o usuário pode ver. */
+export async function carregarOrigemTransferencia(origemUnidadeId) {
+  if (!isSupabaseReady() || !unidadeOk(origemUnidadeId)) return { error: SEM_BANCO };
+  const [estR, itR, insR] = await Promise.all([
+    supabase.from("estoques").select("id, nome, slug").eq("unidade_id", origemUnidadeId).eq("status", "ativo").order("ordem"),
+    supabase.from("estoque_itens").select("estoque_id, insumo_id, quantidade_atual").eq("unidade_id", origemUnidadeId).gt("quantidade_atual", 0),
+    supabase.from("insumos").select("id, nome, unidade_medida, departamento, categoria, tipo, tamanho_embalagem, custo_compra, custo_unitario, valor_embalagem, perda_pct, permite_fracionado, unidade_conteudo").eq("unidade_id", origemUnidadeId).is("arquivado_em", null),
+  ]);
+  const erro = [estR.error, itR.error, insR.error].find(Boolean);
+  if (erro) return { error: mensagemErro(erro) };
+  return { estoques: estR.data || [], itens: (itR.data || []).map((i) => ({ ...i, quantidade_atual: Number(i.quantidade_atual) })), insumos: new Map((insR.data || []).map((i) => [i.id, i])), error: null };
+}
+
+export async function transferirEntreUnidades(dados) {
+  if (!isSupabaseReady()) return { data: null, error: SEM_BANCO };
+  try {
+    const { data, error } = await supabase.rpc("estoque_transferir_unidades", { p_dados: dados });
+    if (error && /estoque_transferir_unidades|PGRST202|could not find the function/i.test(error.message || "")) {
+      return { data: null, error: "O banco ainda não recebeu a transferência entre unidades (UNID-MARM-1). Avise o administrador." };
+    }
+    return { data, error: mensagemErro(error) };
+  } catch (e) {
+    return { data: null, error: mensagemErro(e) };
+  }
+}
+
+/** Cria na unidade de destino o mesmo cadastro do produto da origem (quando ainda não existe). */
+export async function criarProdutoComoNaOrigem(unidadeId, origem) {
+  const { id, unidade_id, created_at, updated_at, arquivado_em, ficha_tecnica_id, ...dados } = origem || {};
+  const r = await salvarInsumo({ ...dados, unidade_id: unidadeId, nome_interno: dados.nome, unidade_comercial: dados.unidade_medida }, { origem: "marmitaria" });
+  return r?.error ? { error: mensagemErro(r.error) } : { id: r?.id || null, error: null };
+}
+
+export async function fetchTransferenciasUnidades(unidadeId, limite = 20) {
+  if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { data: [] };
+  const cols = "id, unidade_origem, unidade_destino, insumo_origem_id, insumo_destino_id, quantidade, unidade_medida, valor, criado_por_nome, created_at, observacao";
+  const [a, b] = await Promise.all([
+    supabase.from("estoque_transferencias_unidades").select(cols).eq("unidade_destino", unidadeId).order("created_at", { ascending: false }).limit(limite),
+    supabase.from("estoque_transferencias_unidades").select(cols).eq("unidade_origem", unidadeId).order("created_at", { ascending: false }).limit(limite),
+  ]);
+  const lista = [...(a.data || []), ...(b.data || [])].sort((x, y) => String(y.created_at).localeCompare(String(x.created_at))).slice(0, limite);
+  return { data: lista, migracaoPendente: !!(a.error && /estoque_transferencias_unidades|PGRST205/i.test(a.error.message || "")) };
+}

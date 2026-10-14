@@ -400,3 +400,22 @@ test("CMO na unidade só da marmitaria: equipe da unidade 100% sem alocação; c
   const antigo = cmoMarmitaria({ colaboradores, alocacoes: [], encargos: enc, mes: "2026-10" });
   assert.equal(antigo.linhas.length, 0);
 });
+
+test("DRE da empresa: uma coluna por unidade + marmitaria; pessoa cedida não conta duas vezes", async () => {
+  const { dreEmpresa } = await import("./nucleo.mjs");
+  const rest = { linhas: [{ id: "faturamento", valor: 100000 }, { id: "impostos", valor: 6000 }, { id: "cmv", valor: 30000 }, { id: "variaveis", valor: 5000 },
+    { id: "pessoal", valor: 25000 }, { id: "fixas", valor: 20000 }, { id: "resultado", valor: 14000 }] };
+  const marm = { indicadores: { receita: 20000, tributos: 1200, cmv: 7000, lucroBruto: 11800, margemContribuicao: 9000, cmo: 4000, resultadoOperacional: 2000, lucroLiquido: 1800 } };
+  const r = dreEmpresa({ unidades: [{ id: "rest", nome: "Restaurante", dre: rest }], marmitaria: { id: "marm", nome: "Marmitaria", dre: marm, cmoCedido: 1000 } });
+  const l = (id) => r.linhas.find((x) => x.id === id);
+  assert.deepEqual(l("receita").valores, [100000, 20000]);
+  assert.equal(l("receita").total, 120000);
+  assert.deepEqual(l("pessoal").valores, [25000, 3000]);       // 4000 − 1000 cedido (já no RH do restaurante)
+  assert.deepEqual(l("variaveis").valores, [5000, 2800]);       // lucro bruto − margem de contribuição
+  assert.deepEqual(l("fixas").valores, [20000, 3200]);          // (9000 − 2000) − 4000 + (2000 − 1800)
+  assert.deepEqual(l("resultado").valores, [14000, 2800]);      // 1800 + 1000 devolvido do cedido
+  assert.equal(l("resultado").total, 16800);
+  // coluna sem dado → total da linha sem dado (nunca soma parcial disfarçada)
+  const s = dreEmpresa({ unidades: [{ id: "rest", nome: "R", dre: { linhas: [{ id: "faturamento", valor: 1 }] } }], marmitaria: null });
+  assert.equal(s.linhas.find((x) => x.id === "cmv").total, null);
+});

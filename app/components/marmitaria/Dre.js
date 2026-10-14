@@ -7,13 +7,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useMarmitaria } from "./contexto";
 import { Abas, Aviso, Campo, Indicador, Secao, Selo, brl, inputCls, pctTxt } from "./ui";
 import { carregarFinanceiro, carregarEquipe, fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
-import { cmoMarmitaria, cmvPrevisto, cmvRealDosEstoques, contasDaMarmitaria, dreMarmitaria, dreConsolidado, encargosDaConfig, fatorSaldo, unidadeExclusiva } from "../../lib/marmitaria/nucleo.mjs";
+import { cmoMarmitaria, cmvPrevisto, cmvRealDosEstoques, contasDaMarmitaria, dreMarmitaria, dreConsolidado, dreEmpresa, encargosDaConfig, fatorSaldo, unidadeExclusiva } from "../../lib/marmitaria/nucleo.mjs";
 import { custoUnitarioEfetivoInsumo } from "../../lib/ficha-calculos.mjs";
 import { somarDiasIso } from "../../lib/cmv-real.mjs";
 import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../lib/dre-gerencial.mjs";
 import { duplicidadesDeFonte } from "../../lib/ifood/nucleo.mjs";
 import ConciliacaoIfood from "./ConciliacaoIfood";
+import { useERP } from "../../context/ERPContext";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const proximoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`; };
@@ -85,6 +86,24 @@ export default function Dre() {
   const [visao, setVisao] = useState("marmitaria");
   const r = useDreMarmitaria(mes);
   const [baseUnidade, setBaseUnidade] = useState(null);
+  const { unidades } = useERP();
+  const outras = useMemo(() => (unidades || []).filter((u) => u.id !== unidadeId && u.id !== "todas"), [unidades, unidadeId]);
+  const [basesEmpresa, setBasesEmpresa] = useState(null);
+
+  // empresa: o DRE gerencial de cada OUTRA unidade que o usuário pode ver
+  useEffect(() => {
+    if (!exclusiva || visao !== "empresa" || basesEmpresa) return;
+    Promise.all(outras.map((u) => carregarBaseDre(u.id).then((b) => ({ id: u.id, nome: u.nome, base: b })))).then(setBasesEmpresa);
+  }, [exclusiva, visao, outras, basesEmpresa]);
+
+  const empresa = useMemo(() => {
+    if (visao !== "empresa" || !basesEmpresa || !r) return null;
+    const janela = janelaDoMes(mes, hojeIso());
+    const doDre = (b) => montarDre({ mes, janela, fat: faturamentoDoMes(b.cmvDados?.fonteFaturamento, janela), contas: b.contas,
+      categorias: b.categorias, cmv: cmvDoMes(b.cmvDados, janela), cmo: cmoDoMesRH(b, mes), params: b.params, simulacao: null });
+    const unidadesDre = basesEmpresa.map((x) => ({ id: x.id, nome: x.nome, dre: doDre(x.base) }));
+    return { unidadesDre, e: dreEmpresa({ unidades: unidadesDre, marmitaria: { id: unidadeId, nome: base.unidade?.nome || "Marmitaria", dre: r.dre, cmoCedido: r.cmo?.totalCedido || 0 } }) };
+  }, [visao, basesEmpresa, r, mes, unidadeId, base]);
 
   useEffect(() => {
     if (exclusiva || visao !== "consolidado" || !unidadeId || baseUnidade) return;
@@ -105,11 +124,35 @@ export default function Dre() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <Campo rotulo="Mês" className="w-[170px]"><input type="month" className={inputCls} value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} /></Campo>
-        {!exclusiva && <div className="min-w-[260px] flex-1"><Abas abas={[{ id: "marmitaria", rotulo: "Só a marmitaria" }, { id: "consolidado", rotulo: "Consolidado com o restaurante" }]} valor={visao} onChange={setVisao} /></div>}
+        <div className="min-w-[260px] flex-1"><Abas abas={exclusiva
+          ? [{ id: "marmitaria", rotulo: "Só a marmitaria" }, { id: "empresa", rotulo: "Empresa (todas as unidades)" }]
+          : [{ id: "marmitaria", rotulo: "Só a marmitaria" }, { id: "consolidado", rotulo: "Consolidado com o restaurante" }]} valor={visao} onChange={setVisao} /></div>
       </div>
       {r.erro && <Aviso tipo="alerta">Parte dos dados não carregou: {r.erro}</Aviso>}
 
-      {visao === "marmitaria" || exclusiva ? (
+      {visao === "empresa" ? (
+        !empresa ? <Secao><p className="text-sm text-hf-muted">Carregando o DRE das outras unidades…</p></Secao> : (
+          <Secao titulo="Empresa: todas as unidades" subtitulo="Cada negócio com o seu DRE, lado a lado. Pessoa cedida conta só na unidade que paga o salário; transferência entre unidades sai do CMV de quem envia e entra no de quem recebe.">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead><tr className="text-left text-xs uppercase tracking-wide text-hf-muted"><th className="py-2 pr-2" />
+                  {empresa.e.colunas.map((c) => <th key={c.id} className="py-2 pr-2 text-right">{c.nome}</th>)}<th className="py-2 pr-2 text-right">Empresa</th></tr></thead>
+                <tbody className="divide-y divide-hf-border">
+                  {empresa.e.linhas.map((l) => (
+                    <tr key={l.id} className={l.tipo !== "linha" ? "bg-hf-elevated/50 font-bold" : ""}>
+                      <td className="py-2 pl-2 pr-2">{l.rotulo}</td>
+                      {[...l.valores, l.total].map((v, k) => <td key={k} className={`py-2 pr-2 text-right tabular-nums ${v < 0 ? "text-hf-danger" : ""}`}>{v === null || v === undefined ? <span className="text-xs font-normal text-hf-muted">Sem dados</span> : brl(v)}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {empresa.e.colunas.filter((c) => c.cedido > 0).map((c) => <Aviso key={c.id} className="mt-3">{c.nome}: {brl(c.cedido)} de pessoas cedidas foram retirados daqui (o salário está no RH de origem).</Aviso>)}
+            {!outras.length && <Aviso className="mt-3">Você não vê outras unidades: o total é só desta.</Aviso>}
+            {empresa.unidadesDre.flatMap((u) => (u.dre.alertas || []).slice(0, 2).map((a) => <Aviso key={u.id + a} tipo="alerta" className="mt-2">{u.nome}: {a}</Aviso>))}
+          </Secao>
+        )
+      ) : visao === "marmitaria" || exclusiva ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Indicador rotulo="Receita de vendas" valor={ind.receita} natureza="real" nota={ind.marmitas !== null ? `${ind.marmitas} marmitas` : null} />

@@ -925,3 +925,50 @@ export function periodo(tipo, hojeIso, personalizado = {}) {
   }
   return { de: `${hoje.slice(0, 7)}-01`, ate: hoje };
 }
+
+/**
+ * Visão da EMPRESA com negócios em unidades próprias (restaurante, eventos,
+ * marmitaria…): uma coluna por unidade + total. Nada é contado duas vezes:
+ *   - unidades comuns: DRE gerencial do Financeiro (dre-gerencial.mjs);
+ *   - marmitaria: o DRE dela, MENOS o CMO de pessoas cedidas por outra
+ *     unidade (o salário já está no RH da origem);
+ *   - transferências entre unidades já se anulam no CMV de cada unidade
+ *     (saída não é consumo da origem; entrada é compra do destino).
+ * Valor de uma coluna sem dado = null, e o total da linha também fica null.
+ */
+export function dreEmpresa({ unidades = [], marmitaria = null } = {}) {
+  const colunas = [];
+  for (const u of unidades) {
+    const v = (id, ausenteZero = false) => { const l = u.dre?.linhas?.find((x) => x.id === id); return l ? l.valor : ausenteZero ? 0 : null; };
+    const somaN = (...xs) => (xs.some((x) => x === null || x === undefined) ? null : r2(soma(xs)));
+    colunas.push({ id: u.id, nome: u.nome, tipo: "unidade", valores: {
+      receita: v("faturamento"), tributos: v("impostos"), cmv: v("cmv"), variaveis: v("variaveis"), pessoal: v("pessoal"),
+      fixas: somaN(v("fixas"), v("pro_labore", true), v("financeiro", true)), resultado: v("resultado"),
+    } });
+  }
+  if (marmitaria?.dre) {
+    const i = marmitaria.dre.indicadores || {};
+    const ced = pos(marmitaria.cmoCedido);
+    const sub = (a, b) => (a === null || a === undefined || b === null || b === undefined ? null : r2(a - b));
+    const variaveis = sub(i.lucroBruto, i.margemContribuicao);
+    const cmo = i.cmo ?? 0;
+    const operacionais = sub(i.margemContribuicao, i.resultadoOperacional);
+    const financeiro = sub(i.resultadoOperacional, i.lucroLiquido);
+    colunas.push({ id: marmitaria.id, nome: marmitaria.nome, tipo: "marmitaria", cedido: r2(ced), valores: {
+      receita: i.receita ?? null, tributos: i.tributos ?? null, cmv: i.cmv ?? null, variaveis,
+      pessoal: r2(cmo - ced),
+      fixas: operacionais === null || financeiro === null ? null : r2(operacionais - cmo + financeiro),
+      resultado: i.lucroLiquido === null || i.lucroLiquido === undefined ? null : r2(i.lucroLiquido + ced),
+    } });
+  }
+  const LINHAS = [
+    ["receita", "Receita de vendas", "subtotal"], ["tributos", "(−) Tributos sobre vendas"], ["cmv", "(−) CMV"],
+    ["variaveis", "(−) Custos variáveis (taxas, comissões)"], ["pessoal", "(−) Pessoal (CMO)"],
+    ["fixas", "(−) Despesas fixas, pró-labore e financeiras"], ["resultado", "(=) Resultado", "resultado"],
+  ];
+  const linhas = LINHAS.map(([id, rotulo, tipo = "linha"]) => {
+    const valores = colunas.map((c) => c.valores[id]);
+    return { id, rotulo, tipo, valores, total: !colunas.length || valores.some((x) => x === null || x === undefined) ? null : r2(soma(valores)) };
+  });
+  return { colunas: colunas.map(({ id, nome, tipo, cedido }) => ({ id, nome, tipo, cedido })), linhas };
+}

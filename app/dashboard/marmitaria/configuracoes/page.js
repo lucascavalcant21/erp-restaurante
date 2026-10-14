@@ -10,6 +10,7 @@ import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Secao, inputCls, lerNumero } from "../../../components/marmitaria/ui";
 import { salvarConfig, carregarEquipe } from "../../../lib/marmitaria/dados";
 import IfoodConexao from "../../../components/integracoes/IfoodConexao";
+import IfoodSincronizacao from "../../../components/integracoes/IfoodSincronizacao";
 import { MODELOS_CANAL, normalizarCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../../lib/marmitaria/nucleo.mjs";
 
 const RATEAVEIS = [
@@ -70,6 +71,7 @@ export default function ConfiguracoesPage() {
     <div className="space-y-4">
       <Secao titulo="iFood" subtitulo="Conexão com a sua loja no iFood. As taxas do iFood ficam no canal abaixo.">
         <IfoodConexao unidadeId={unidadeId} />
+        <IfoodSincronizacao unidadeId={unidadeId} marmitas={base.marmitas} />
       </Secao>
       <Secao titulo="Canais de venda e taxas" subtitulo="Preencha com o que está no SEU contrato (plano do iFood, maquininha). Campo vazio = não configurado.">
         <div className="space-y-4">

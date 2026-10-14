@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 0**
+**Pendentes agora: 0** (APR-007: falta só o merge do PR #171)
 
 ### APR-001 · EXECUTADO
 
@@ -99,7 +99,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** aplicada 14/10 ~15:50; verificação 9/9 OK (tabela, RLS, policy, 2 funções, coluna, anon sem acesso, 167 fichas intactas); advisors sem alerta novo. PR #168 mergeado (7605a02). TESTADO NO SUPABASE REAL
 - **Chave:** migracao:db/MARMITARIA_V2_REFORMULACAO.sql
 
-### APR-006 · PENDENTE
+### APR-006 · EXECUTADO EM PARTE
 
 - **Missão:** Cadastro do iFood (PR do branch claude/ifood-cadastro)
 - **Ação:** (1) Aplicar db/integracoes/IFOOD_1_CONEXAO.sql no Supabase real: 3 tabelas de integração, RLS sem policy, só o servidor acessa. (2) Dono cria a variável INTEGRATION_MASTER_KEY (32+ caracteres aleatórios) na Vercel, ambiente Production. (3) Merge do PR.
@@ -108,6 +108,24 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Motivo:** sem as tabelas e sem a chave do cofre não há onde guardar a credencial do iFood com segurança
 - **Rollback:** no cabeçalho do arquivo (apaga a conexão salva)
 - **Evidências:** PGlite: anon/authenticated sem acesso às 3 tabelas, idempotente; 8 testes da lógica (segredo nunca volta à tela nem vai em texto puro; "Conectado" só com o merchant confirmado pelo iFood)
-- **Status:** PENDENTE
+- **Status:** EXECUTADO EM PARTE
 - **Criado em:** 2026-10-14
+- **Decidido em:** 2026-10-14 (dono: "eu autorizo")
+- **Nota:** (1) IFOOD-1 aplicada 14/10 e verificada (3 tabelas com RLS, 0 policies, anon/authenticated sem acesso). (3) PR #169 mergeado (2b7ab03). (2) INTEGRATION_MASTER_KEY criada pelo dono; deploy de produção de 17:31 confirmado pelo GitHub; servidor responde cofreConfigurado=true (TESTADO EM PRODUÇÃO, 14/10, sem expor valor). Falta só o cadastro das credenciais reais do iFood pelo dono.
 - **Chave:** migracao:db/integracoes/IFOOD_1_CONEXAO.sql
+
+### APR-007 · EXECUTADO EM PARTE
+
+- **Missão:** Pedidos do iFood na Marmitaria (branch claude/ifood-2-pedidos)
+- **Ação:** (1) Aplicar db/integracoes/IFOOD_2_PEDIDOS.sql no Supabase real: 3 tabelas (pedidos, itens → marmita, repasses), 5 colunas de fila em integration_events, 2 funções. (2) Merge do PR.
+- **Ambiente:** supabase + vercel (produção)
+- **Risco:** MEDIUM
+- **Motivo:** sem as tabelas os pedidos do iFood não têm onde ser gravados; a tela mostra "atualização pendente"
+- **Impacto:** nada existente é alterado (só colunas novas em integration_events, que está vazia). delivery_gravar_pedido só para service_role; marmitaria_baixar_pedidos passa por estoque_movimentar com o usuário logado. Sem credencial do iFood nada é buscado.
+- **Rollback:** no cabeçalho do arquivo (apaga pedidos importados; vendas importadas ficam)
+- **Evidências:** 26 casos de SQL real no PGlite (isolamento por unidade, idempotência, status só avança, baixa com versão); 37 casos de ponta a ponta da sincronização; 22 do núcleo; suíte app/lib inteira e build verdes
+- **Status:** EXECUTADO EM PARTE
+- **Criado em:** 2026-10-14
+- **Decidido em:** 2026-10-14 (dono: "aprove a pr007")
+- **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171: pendente (bloqueado pela checagem de permissão do agente; o dono faz o merge).
+- **Chave:** migracao:db/integracoes/IFOOD_2_PEDIDOS.sql

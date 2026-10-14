@@ -31,10 +31,14 @@ export const INTEGRACOES = Object.freeze({
   "ifood-webhook": Object.freeze({
     nome: "iFood — eventos de pedido",
     canal: "integracao",
-    situacao: "nao_implementada",
+    // Implementada em app/lib/server/ifood-sync.mjs (receberWebhook): o segredo é
+    // o Client Secret do aplicativo de CADA unidade (cofre), não uma variável
+    // de ambiente — por isso não passa por autenticarIntegracao (a variável
+    // abaixo fica só como identidade do registro e não é lida).
+    situacao: "aguardando_homologacao",
     autenticacao: Object.freeze({ tipo: "hmac-sha256", variavel: "IFOOD_WEBHOOK_SECRET", cabecalho: "x-ifood-signature", formato: "hex", prefixo: "" }),
     permissoes: Object.freeze([]),
-    confirmar: "nome do cabeçalho e formato da assinatura na documentação do iFood",
+    confirmar: "formato da assinatura (hex sobre o corpo cru com o Client Secret) na homologação do iFood",
   }),
   whatsapp: Object.freeze({
     nome: "WhatsApp Business (Meta)",

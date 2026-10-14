@@ -569,7 +569,9 @@ export default function RhHub({ onVerGestaoCompleta, onAbrirPonto }) {
 
               <button
                 type="button"
-                onClick={() => router.push("/dashboard/rh/colaborador")}
+                disabled={!meuColaborador}
+                title={meuColaborador ? undefined : "Seu usuário não está ligado a um cadastro de funcionário."}
+                onClick={() => meuColaborador && router.push(`/dashboard/rh/espelho/${meuColaborador.id}`)}
                 className="p-5 rounded-2xl bg-white/60 border border-slate-200 hover:border-slate-700 text-left transition-all flex flex-col justify-between min-h-[100px] cursor-pointer"
               >
                 <div>

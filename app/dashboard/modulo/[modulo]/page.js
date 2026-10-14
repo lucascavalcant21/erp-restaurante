@@ -118,7 +118,7 @@ const MODULOS = {
       ]},
       { title: "Pessoas", subtitle: "Cargos, organograma e contratação", icon: Users, accent: "#7c3aed", items: [
         { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },
-        { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users, countKey: "colaboradores" },
+        { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh?aba=quadro", icon: Users, countKey: "colaboradores" },
         { label: "Organograma", desc: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
         { label: "Guia de Funções", desc: "A rotina de cada função, hora a hora", href: "/dashboard/rh/funcoes", icon: Clock },
         { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },

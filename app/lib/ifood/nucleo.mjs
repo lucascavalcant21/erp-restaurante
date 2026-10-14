@@ -452,3 +452,34 @@ export function itensVistos(pedidos = []) {
   }
   return [...m.values()].sort((a, b) => b.vezes - a.vezes);
 }
+
+// ─── Repasses (financeiro do iFood) ──────────────────────────────────────────
+
+/**
+ * Resposta da API de repasses (Settlement) → lançamentos REAIS.
+ * Campos documentados: closingItems[].type (REPASSE, BOLETO, RENEGOCIADA…),
+ * amount, status, paymentDate. O caminho exato da API e o identificador de
+ * cada item ficam A CONFIRMAR NA HOMOLOGAÇÃO; sem id, a referência é derivada
+ * do conteúdo (mesmo item = mesma referência, então reimportar não duplica).
+ */
+export function normalizarRepasses(resposta, { unidadeId } = {}) {
+  const lista = Array.isArray(resposta) ? resposta : [resposta];
+  const out = []; const ignorados = [];
+  for (const bloco of lista) {
+    const itens = Array.isArray(bloco?.closingItems) ? bloco.closingItems : [];
+    for (const it of itens) {
+      const valor = Number(it?.amount ?? it?.value);
+      const tipo = String(it?.type || "").toUpperCase();
+      if (!tipo || !Number.isFinite(valor)) { ignorados.push(it); continue; }
+      const data = it.paymentDate || it.expectedPaymentDate || null;
+      const ref = it.id || it.closingItemId || `${tipo}:${data || "sem-data"}:${cent(valor)}:${it.status || ""}`;
+      out.push({
+        unidade_id: unidadeId, canal: "ifood", referencia_externa: String(ref), tipo, status: it.status || null,
+        competencia: it.competence || bloco.competence || null, data_pagamento: data ? String(data).slice(0, 10) : null,
+        valor: reais(cent(valor)), pedido_externo_id: it.orderId || null,
+        payload: { type: it.type, amount: it.amount, status: it.status, paymentDate: it.paymentDate },
+      });
+    }
+  }
+  return { repasses: out, ignorados: ignorados.length };
+}

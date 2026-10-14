@@ -23,7 +23,7 @@
 import crypto from "node:crypto";
 import { PROVEDOR, IFOOD_API, clienteIfood } from "./ifood-conexao.mjs";
 import { verificarHmac } from "./integracoes.mjs";
-import { normalizarEvento, situacaoDoPedido, normalizarPedido, vendasDoPedido, dataLocal, STATUS_DO_EVENTO } from "../ifood/nucleo.mjs";
+import { normalizarEvento, situacaoDoPedido, normalizarPedido, vendasDoPedido, normalizarRepasses, dataLocal, STATUS_DO_EVENTO } from "../ifood/nucleo.mjs";
 
 export const CAMINHOS = Object.freeze({
   polling: "/events/v1.0/events:polling",
@@ -370,4 +370,18 @@ export async function receberWebhook(db, { corpoBruto, assinatura, decifrar, ago
   const g = await receberEventos(db, { unidadeId: dono.unidade_id, merchantId: String(dono.external_merchant_id || "").toLowerCase(), eventos, agora });
   if (g.erro) return { status: 503, corpo: { ok: false, erro: "não guardado" } }; // o iFood reenvia
   return { status: 202, corpo: { ok: true, recebidos: eventos.length } };
+}
+
+// ─── Repasses (preparado; sem chamada de rede até a homologação) ─────────────
+
+/**
+ * Grava os repasses REAIS de uma resposta da API financeira do iFood.
+ * Idempotente (único por unidade + referência). Não é chamado por nenhuma rota
+ * nem pelo agendador até o caminho da API ser confirmado na homologação.
+ */
+export async function importarRepasses(db, { unidadeId, resposta } = {}) {
+  const { repasses, ignorados } = normalizarRepasses(resposta, { unidadeId });
+  if (!repasses.length) return { ok: true, gravados: 0, ignorados };
+  const { error } = await db.from("delivery_repasses").upsert(repasses, { onConflict: "unidade_id,canal,referencia_externa" });
+  return error ? { ok: false, erro: "Não foi possível gravar os repasses." } : { ok: true, gravados: repasses.length, ignorados };
 }

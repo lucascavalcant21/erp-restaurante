@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { sincronizarUnidade, processarFila, receberWebhook, reprocessar, resumoSincronizacao, salvarPreferencias, mensagemSegura, sincronizarTodas } from "./ifood-sync.mjs";
+import { importarRepasses, sincronizarUnidade, processarFila, receberWebhook, reprocessar, resumoSincronizacao, salvarPreferencias, mensagemSegura, sincronizarTodas } from "./ifood-sync.mjs";
 import { evento, detalhes, CANAL_TESTE, MERCHANT, PEDIDO } from "../ifood/fixtures.mjs";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -229,6 +229,12 @@ conferir("opção inválida recusada", (await salvarPreferencias(db(), "marmitar
 conferir("mensagem segura remove Bearer", mensagemSegura(new Error("falhou Bearer abc.123 token=xyz")), "falhou Bearer *** token=***");
 const todas = await sincronizarTodas(db(), { decifrar, ifood, agora: mais(2004) });
 conferir("agendador percorre só as unidades conectadas", todas.unidades.map((u) => u.unidadeId), ["marmitaria"]);
+// 11. repasses reais: gravados uma vez só
+const resp = { closingItems: [{ type: "REPASSE", amount: 100.5, status: "PAID", paymentDate: "2026-10-08" }] };
+await importarRepasses(db(), { unidadeId: "marmitaria", resposta: resp });
+await importarRepasses(db(), { unidadeId: "marmitaria", resposta: resp });
+conferir("repasse importado duas vezes = um lançamento", (await q("select count(*)::int n, sum(valor)::numeric v from public.delivery_repasses"))[0], { n: 1, v: "100.5" });
+
 conferir("nenhuma ação de pedido foi chamada no iFood (só leitura + ACK)", Object.keys(ifood).filter((k) => /confirm|dispatch|cancel|ready|start/i.test(k)), []);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os testes passaram.");

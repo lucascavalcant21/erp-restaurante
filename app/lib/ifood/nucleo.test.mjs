@@ -227,3 +227,18 @@ test("cozinha: soma por marmita só dos confirmados, não cancelados e não sepa
   assert.deepEqual(t.map((x) => [x.nome, x.quantidade, x.associado]), [["Marmita de frango", 3, true], ["NOVO", 1, false]]);
   assert.deepEqual(itensVistos(ps).map((x) => x.codigo), ["MARM-FRANGO", "REFRI-350", "NOVO"]);
 });
+
+test("repasses: itens documentados viram lançamentos reais; reimportar dá a mesma referência", async () => {
+  const { normalizarRepasses } = await import("./nucleo.mjs");
+  const resp = { merchantId: "m", balance: 100, closingItems: [
+    { type: "REPASSE", amount: 812.4, status: "PAID", paymentDate: "2026-10-08" },
+    { type: "BOLETO", amount: -20, status: "OPEN", paymentDate: "2026-10-15" },
+    { type: "", amount: 1 },
+  ] };
+  const a = normalizarRepasses(resp, { unidadeId: "marmitaria" });
+  const b = normalizarRepasses(resp, { unidadeId: "marmitaria" });
+  assert.equal(a.repasses.length, 2);
+  assert.equal(a.ignorados, 1);
+  assert.deepEqual(a.repasses.map((r) => r.referencia_externa), b.repasses.map((r) => r.referencia_externa));
+  assert.deepEqual([a.repasses[0].tipo, a.repasses[0].valor, a.repasses[0].data_pagamento], ["REPASSE", 812.4, "2026-10-08"]);
+});

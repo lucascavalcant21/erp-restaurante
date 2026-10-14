@@ -92,6 +92,8 @@ create table if not exists public.delivery_pedidos (
   merchant_id text,
   status text not null default 'RECEBIDO',
   status_canal text,
+  confirmado boolean not null default false,
+  preparo_iniciado boolean not null default false,
   tipo text,
   agendado boolean not null default false,
   agendado_para timestamptz,
@@ -223,11 +225,12 @@ begin
   end if;
 
   insert into public.delivery_pedidos as d (
-    unidade_id, canal, pedido_externo_id, display_id, merchant_id, status, status_canal, tipo, agendado, agendado_para,
+    unidade_id, canal, pedido_externo_id, display_id, merchant_id, status, status_canal, confirmado, preparo_iniciado, tipo, agendado, agendado_para,
     criado_no_canal_em, data_operacao, cliente_nome, itens, subtotal, taxa_entrega, descontos_loja, beneficios_canal,
     taxas_adicionais, valor_pedido, pagamento, entregue_por, teste, detalhes_carregados, cancelado_em, cancelamento, disputa, fonte)
   values (
     v_unidade, v_canal, v_ext, p_pedido ->> 'display_id', p_pedido ->> 'merchant_id', v_status, p_pedido ->> 'status_canal',
+    coalesce((p_pedido ->> 'confirmado')::boolean, false), coalesce((p_pedido ->> 'preparo_iniciado')::boolean, false),
     p_pedido ->> 'tipo', coalesce((p_pedido ->> 'agendado')::boolean, false), nullif(p_pedido ->> 'agendado_para', '')::timestamptz,
     nullif(p_pedido ->> 'criado_no_canal_em', '')::timestamptz, coalesce(nullif(p_pedido ->> 'data_operacao', '')::date, current_date),
     p_pedido ->> 'cliente_nome', coalesce(p_pedido -> 'itens', '[]'::jsonb),
@@ -247,6 +250,9 @@ begin
     status_canal = case when d.status = 'CANCELADO' then d.status_canal
       when excluded.status = 'CANCELADO' or public._delivery_rank(excluded.status) > public._delivery_rank(d.status) then excluded.status_canal
       else d.status_canal end,
+    -- confirmado e preparo iniciado só ligam, nunca desligam
+    confirmado = d.confirmado or excluded.confirmado,
+    preparo_iniciado = d.preparo_iniciado or excluded.preparo_iniciado,
     -- detalhes: só sobrescreve quando a nova versão veio dos detalhes do canal
     display_id = case when excluded.detalhes_carregados then excluded.display_id else coalesce(d.display_id, excluded.display_id) end,
     merchant_id = coalesce(excluded.merchant_id, d.merchant_id),

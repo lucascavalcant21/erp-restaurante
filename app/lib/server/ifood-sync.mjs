@@ -197,6 +197,7 @@ export async function processarFila(db, { unidadeId, ifood = null, credenciais =
       };
       const linha = {
         ...base, status: situacao.status, status_canal: situacao.statusCanal,
+        confirmado: situacao.confirmado, preparo_iniciado: situacao.preparoIniciado,
         cancelado_em: situacao.cancelamento?.em || null, cancelamento: situacao.cancelamento, disputa: situacao.disputa,
       };
       // vendas só com detalhes (novos ou já gravados); sem detalhes, o status é gravado e as vendas não são tocadas

@@ -154,6 +154,8 @@ ifood.fila = [evento("CAN", 30, { metadata: { CANCEL_CODE: "506", CANCEL_ORIGIN:
 await sincronizarUnidade(db(), { unidadeId: "marmitaria", decifrar, ifood, agora: mais(3) });
 p = (await q("select status, cancelamento from public.delivery_pedidos"))[0];
 conferir("cancelado com motivo e origem", [p.status, p.cancelamento.codigo, p.cancelamento.origem], ["CANCELADO", "506", "CUSTOMER"]);
+conferir("cancelamento não guarda metadado pessoal", JSON.stringify(p.cancelamento).includes("999"), false);
+conferir("pedido guarda que foi confirmado e que o preparo começou", (await q("select confirmado, preparo_iniciado from public.delivery_pedidos"))[0], { confirmado: true, preparo_iniciado: true });
 v = await q("select sum(valor_bruto - descontos - cancelamentos)::numeric receita, sum(quantidade)::numeric q from public.marmitaria_vendas");
 conferir("cancelamento zera receita e quantidade", [Number(v[0].receita), Number(v[0].q)], [0, 0]);
 

@@ -338,32 +338,8 @@ export function necessidadeDeProducao({ plano = [], marmitas = new Map(), fichas
  *         (menor prioridade primeiro: estoque da marmitaria antes do da cozinha)
  */
 export function baixasDaProducao({ marmita, quantidade, fichas = [], insumos = new Map(), espelho = new Map(), saldos = new Map() } = {}) {
-  const n = pos(quantidade);
-  const precisa = new Map();
-  const faltas = [];
-  const fichaPorId = new Map(fichas.map((f) => [f.id, f]));
-  const add = (insumoId, qCadastro, nome) => {
-    const ins = insumos.get(insumoId);
-    const qSaldo = qCadastro * fatorSaldo(ins?.unidade_medida);
-    const a = precisa.get(insumoId) || { q: 0, nome: nome || ins?.nome || "Item" };
-    a.q += qSaldo;
-    precisa.set(insumoId, a);
-  };
-  if (!n || !marmita) return { baixas: [], faltas: ["Informe a marmita e a quantidade."] };
-  for (const fi of marmita.itens || []) {
-    const q = parseNumero(fi.quantidade) * n;
-    if (!(q > 0)) continue;
-    if (fi.subficha_id) {
-      const id = espelho.get(fi.subficha_id);
-      const nome = fichaPorId.get(fi.subficha_id)?.nome_receita || "Pré-preparo";
-      if (!id) { faltas.push(`"${nome}" não tem item de estoque de pré-preparo.`); continue; }
-      add(id, q, nome);
-    } else {
-      const ins = insumos.get(fi.insumo_id);
-      add(fi.insumo_id, q * fatorDeCorrecaoNormalizado(fatorCorrecaoDoItem(ins, fi.fator_correcao)));
-    }
-  }
-  for (const e of marmita.embalagens || []) add(e.insumo_id, pos(e.quantidade) * n);
+  if (!pos(quantidade) || !marmita) return { baixas: [], faltas: ["Informe a marmita e a quantidade."] };
+  const { precisa, faltas } = consumoDaMarmita({ marmita, quantidade, fichas, insumos, espelho });
 
   const baixas = [];
   for (const [insumoId, { q, nome }] of precisa) {
@@ -378,6 +354,42 @@ export function baixasDaProducao({ marmita, quantidade, fichas = [], insumos = n
     baixas.push({ estoque_id: local.estoque_id, estoque_nome: local.estoque_nome, insumo_id: insumoId, nome, quantidade: qtd });
   }
   return { baixas, faltas };
+}
+
+/**
+ * Quanto de cada item de estoque N marmitas consomem (unidade do saldo):
+ * ingrediente direto com fator de correção, o PRÓPRIO pré-preparo (pelo item
+ * espelho) e as embalagens. Base da baixa da produção e da baixa por pedido.
+ *   → { precisa: Map insumo_id → { q, nome }, faltas: [texto] }
+ */
+export function consumoDaMarmita({ marmita, quantidade, fichas = [], insumos = new Map(), espelho = new Map() } = {}) {
+  const n = pos(quantidade);
+  const precisa = new Map();
+  const faltas = [];
+  const fichaPorId = new Map(fichas.map((f) => [f.id, f]));
+  const add = (insumoId, qCadastro, nome) => {
+    const ins = insumos.get(insumoId);
+    const qSaldo = qCadastro * fatorSaldo(ins?.unidade_medida);
+    const a = precisa.get(insumoId) || { q: 0, nome: nome || ins?.nome || "Item" };
+    a.q += qSaldo;
+    precisa.set(insumoId, a);
+  };
+  if (!n || !marmita) return { precisa, faltas };
+  for (const fi of marmita.itens || []) {
+    const q = parseNumero(fi.quantidade) * n;
+    if (!(q > 0)) continue;
+    if (fi.subficha_id) {
+      const id = espelho.get(fi.subficha_id);
+      const nome = fichaPorId.get(fi.subficha_id)?.nome_receita || "Pré-preparo";
+      if (!id) { faltas.push(`"${nome}" não tem item de estoque de pré-preparo.`); continue; }
+      add(id, q, nome);
+    } else {
+      const ins = insumos.get(fi.insumo_id);
+      add(fi.insumo_id, q * fatorDeCorrecaoNormalizado(fatorCorrecaoDoItem(ins, fi.fator_correcao)));
+    }
+  }
+  for (const e of marmita.embalagens || []) add(e.insumo_id, pos(e.quantidade) * n);
+  return { precisa, faltas };
 }
 
 // ─── CMO da marmitaria ───────────────────────────────────────────────────────

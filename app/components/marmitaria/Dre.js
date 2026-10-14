@@ -41,7 +41,8 @@ export function useDreMarmitaria(mes) {
       const ins = base.insumos.get(insumoId);
       if (!ins) return null;
       const c = custoUnitarioEfetivoInsumo(ins);
-      return c > 0 ? c / fatorSaldo(["g", "kg"].includes(String(ins.unidade_medida).toLowerCase()) ? "kg" : ["ml", "l"].includes(String(ins.unidade_medida).toLowerCase()) ? "l" : "un") : null;
+      // R$ por unidade do SALDO (= do cadastro; garrafa fracionada: por ml)
+      return c > 0 ? c / fatorSaldo(ins) : null;
     };
     const cmvReal = cmvRealDosEstoques({ de: `${mes}-01`, ateExclusivo: proximoMes(mes), estoqueIds, contagens: fin.contagens || [], itensPorContagem: fin.itensPorContagem || new Map(),
       compras: fin.compras || [], comprasItens: fin.comprasItens || [], movimentos: fin.movimentos || [], custoPorBase });

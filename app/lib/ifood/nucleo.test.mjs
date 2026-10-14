@@ -130,26 +130,26 @@ test("vendas: item sem marmita associada entra na receita e é apontado", () => 
 // ── estoque ──
 const INS = new Map([["arroz", { id: "arroz", nome: "Arroz", unidade_medida: "kg" }], ["pote", { id: "pote", nome: "Pote", unidade_medida: "un" }]]);
 const MARMITAS = new Map([[FICHA, { itens: [{ insumo_id: "arroz", quantidade: 0.15, fator_correcao: 0 }], embalagens: [{ insumo_id: "pote", quantidade: 1 }] }]]);
-const SALDOS = new Map([["arroz", [{ estoque_id: "E-MARM", saldo: 10000, prioridade: 0 }]], ["pote", [{ estoque_id: "E-EMB", saldo: 100, prioridade: 0 }]]]);
+const SALDOS = new Map([["arroz", [{ estoque_id: "E-MARM", saldo: 10, prioridade: 0 }]], ["pote", [{ estoque_id: "E-EMB", saldo: 100, prioridade: 0 }]]]);
 
 test("estoque: consumo pela ficha (gramas e unidades) e reprocessar não move nada", () => {
   const { pedido } = normalizarPedido(detalhes(), { unidadeId: "m" });
   const sit = situacaoDoPedido(evs("PLC", "CFM"));
   const { consumo } = consumoDoPedido({ pedido, situacao: sit, mapeamento: MAP, marmitas: MARMITAS, insumos: INS });
-  assert.equal(consumo.get("arroz").q, 300); // 2 × 0,15 kg = 300 g
+  assert.equal(consumo.get("arroz").q, 0.3); // 2 × 0,15 kg = 0,3 kg (saldo em kg, como no banco)
   assert.equal(consumo.get("pote").q, 2);
   const a1 = ajusteDeEstoque({ aplicado: {}, consumo, saldos: SALDOS });
-  assert.deepEqual(a1.movimentos.map((m) => [m.estoque_id, m.tipo, m.quantidade]), [["E-MARM", "saida", 300], ["E-EMB", "saida", 2]]);
+  assert.deepEqual(a1.movimentos.map((m) => [m.estoque_id, m.tipo, m.quantidade]), [["E-MARM", "saida", 0.3], ["E-EMB", "saida", 2]]);
   const a2 = ajusteDeEstoque({ aplicado: a1.aplicado, consumo, saldos: SALDOS });
   assert.equal(a2.movimentos.length, 0);
 });
 
 test("estoque: cancelado antes do preparo devolve ao mesmo local; depois do preparo mantém", () => {
   const { pedido } = normalizarPedido(detalhes(), { unidadeId: "m" });
-  const aplicado = { "E-MARM:arroz": 300, "E-EMB:pote": 2 };
+  const aplicado = { "E-MARM:arroz": 0.3, "E-EMB:pote": 2 };
   const antes = consumoDoPedido({ pedido, situacao: situacaoDoPedido(evs("PLC", "CFM", "CAN")), mapeamento: MAP, marmitas: MARMITAS, insumos: INS });
   const dev = ajusteDeEstoque({ aplicado, consumo: antes.consumo, saldos: SALDOS });
-  assert.deepEqual(dev.movimentos.map((m) => [m.estoque_id, m.tipo, m.quantidade]), [["E-MARM", "entrada", 300], ["E-EMB", "entrada", 2]]);
+  assert.deepEqual(dev.movimentos.map((m) => [m.estoque_id, m.tipo, m.quantidade]), [["E-MARM", "entrada", 0.3], ["E-EMB", "entrada", 2]]);
   assert.deepEqual(dev.aplicado, {});
   const depois = consumoDoPedido({ pedido, situacao: situacaoDoPedido(evs("PLC", "CFM", "PRS", "CAN")), mapeamento: MAP, marmitas: MARMITAS, insumos: INS });
   assert.equal(ajusteDeEstoque({ aplicado, consumo: depois.consumo, saldos: SALDOS }).movimentos.length, 0);

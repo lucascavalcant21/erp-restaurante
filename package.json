@@ -12,7 +12,7 @@
     "test:agent": "node --test \"scripts/hefisto-agent/__tests__/*.test.mjs\"",
     "test:qa": "node --test \"scripts/qa/__tests__/*.test.mjs\"",
     "test:skills": "node --test \"scripts/skills/__tests__/*.test.mjs\"",
-    "test:seguranca": "node --test --test-concurrency=1 app/lib/seguranca-rls.test.mjs app/lib/seguranca-rls-2.test.mjs",
+    "test:seguranca": "node --test --test-concurrency=1 app/lib/seguranca-rls.test.mjs app/lib/seguranca-rls-2.test.mjs app/lib/seguranca-multi-unidade.test.mjs",
     "qa:smoke": "node scripts/qa/smoke-intelligence.mjs",
     "hefisto:agent": "node scripts/hefisto-agent/runner.mjs",
     "hefisto:noite": "node scripts/hefisto-agent/vigia.mjs",

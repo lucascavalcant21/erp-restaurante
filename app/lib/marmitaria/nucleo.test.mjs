@@ -380,3 +380,20 @@ test("unidade só da marmitaria: toda conta da unidade entra 100%, sem rateio", 
   const antigo = contasDaMarmitaria(contas, "2026-10", { centrosDiretos: ["marmitaria"], rateio: {} });
   assert.deepEqual(antigo.map((c) => c.criterio), ["outra_operacao", "rateio_nao_configurado"]);
 });
+
+test("CMO na unidade só da marmitaria: equipe da unidade 100% sem alocação; cedido de outra unidade separado", async () => {
+  const { cmoMarmitaria } = await import("./nucleo.mjs");
+  const colaboradores = [
+    { id: "a", nome: "Ana", unidade_id: "marmitaria", salario: 2000, status: "ativo" },
+    { id: "b", nome: "Bia", unidade_id: "marmitaria", salario: 1000, status: "inativo" },
+    { id: "c", nome: "Caio", unidade_id: "restaurante", salario: 3000, status: "ativo" },
+  ];
+  const enc = { fgts_pct: 0, inss_patronal_pct: 0, provisao_13_pct: 0, provisao_ferias_pct: 0, criterio: "percentual" };
+  const r = cmoMarmitaria({ colaboradores, alocacoes: [{ colaborador_id: "c", tipo_alocacao: "compartilhado", percentual_tempo: 25 }], encargos: enc, mes: "2026-10", unidadeId: "marmitaria", exclusiva: true });
+  assert.deepEqual(r.linhas.map((l) => [l.nome, l.marmitaria, l.cedido, l.implicita]), [["Caio", 750, true, false], ["Ana", 2000, false, true]]);
+  assert.equal(r.total, 2750);
+  assert.equal(r.totalCedido, 750);
+  // fora do modo exclusivo: só quem foi alocado (comportamento antigo)
+  const antigo = cmoMarmitaria({ colaboradores, alocacoes: [], encargos: enc, mes: "2026-10" });
+  assert.equal(antigo.linhas.length, 0);
+});

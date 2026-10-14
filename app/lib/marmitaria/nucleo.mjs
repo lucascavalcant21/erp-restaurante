@@ -427,12 +427,26 @@ const ativoColab = (c) => (c?.status || "ativo") !== "inativo" && !c?.data_desli
  * Cada salário entra UMA vez: a parte da marmitaria é a fração alocada; o
  * restante continua no restaurante (campo `restaurante`).
  */
-export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = [], encargos, mes, horasSemanaPadrao = 44, marmitasVendidas = null } = {}) {
+/**
+ * unidadeId + exclusiva (unidade só da marmitaria): todo funcionário ATIVO da
+ * unidade entra 100% sem precisar de alocação; quem é de OUTRA unidade da
+ * empresa e está alocado aqui é "cedido" — custo gerencial da marmitaria, mas
+ * o salário continua pago (e contado) na unidade de origem. totalCedido serve
+ * para a visão consolidada não contar duas vezes.
+ */
+export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = [], encargos, mes, horasSemanaPadrao = 44, marmitasVendidas = null, unidadeId = null, exclusiva = false } = {}) {
   const enc = encargos || encargosDaConfig();
   const porId = new Map(colaboradores.map((c) => [c.id, c]));
   const linhas = [];
   const avisos = [];
-  for (const a of alocacoes.filter((x) => x.ativo !== false)) {
+  const ativas = alocacoes.filter((x) => x.ativo !== false);
+  if (exclusiva && unidadeId) {
+    const ja = new Set(alocacoes.map((a) => a.colaborador_id));
+    for (const c of colaboradores) {
+      if (c.unidade_id === unidadeId && ativoColab(c) && !ja.has(c.id)) ativas.push({ colaborador_id: c.id, tipo_alocacao: "exclusivo", implicita: true });
+    }
+  }
+  for (const a of ativas) {
     const c = porId.get(a.colaborador_id);
     if (!c) { avisos.push("Uma alocação aponta para colaborador que não existe mais no RH."); continue; }
     if (!ativoColab(c)) { avisos.push(`${c.nome} está desligado(a) e continua alocado(a): revise.`); continue; }
@@ -451,8 +465,10 @@ export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = []
     extras = soma((recibos || []).filter((r) => r.colaborador_id === c.id && r.pagamento_realizado
       && String(r.data_pagamento || r.data_trabalho || "").slice(0, 7) === mes), (r) => r.valor_total);
     const total = salario + encargosV + provisoes + beneficios + extras;
+    const cedido = !!(unidadeId && c.unidade_id && c.unidade_id !== unidadeId);
     linhas.push({
       colaborador_id: c.id, nome: c.nome, cargo: c.cargo || "", tipo: a.tipo_alocacao === "exclusivo" ? "exclusivo" : "compartilhado",
+      cedido, unidadeOrigem: cedido ? c.unidade_id : null, implicita: !!a.implicita,
       fracaoPct: r2(fracao * 100), salario: r2(salario), encargos: r2(encargosV), provisoes: r2(provisoes),
       beneficios: r2(beneficios), extras: r2(extras), custoTotal: r2(total),
       marmitaria: r2(total * fracao), restaurante: r2(total * (1 - fracao)),
@@ -462,6 +478,7 @@ export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = []
   return {
     linhas, avisos, natureza: "estimativa", encargos: enc,
     total, restaurante: r2(soma(linhas, (l) => l.restaurante)),
+    totalCedido: r2(soma(linhas.filter((l) => l.cedido), (l) => l.marmitaria)),
     porMarmita: marmitasVendidas > 0 ? r2(total / marmitasVendidas) : null,
     motivoPorMarmita: marmitasVendidas > 0 ? null : "Sem marmitas vendidas lançadas no mês.",
   };

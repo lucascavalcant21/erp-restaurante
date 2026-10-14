@@ -29,7 +29,7 @@ export function useDreMarmitaria(mes) {
     if (!unidadeId || !base) return;
     let vivo = true;
     const de = `${mes}-01`; const ate = somarDiasIso(proximoMes(mes), -1);
-    Promise.all([carregarFinanceiro(unidadeId, estoqueIds), fetchVendas(unidadeId, de, ate), carregarEquipe(unidadeId)])
+    Promise.all([carregarFinanceiro(unidadeId, estoqueIds), fetchVendas(unidadeId, de, ate), carregarEquipe(unidadeId, { comOutrasUnidades: unidadeExclusiva(base.config) })])
       .then(([fin, vendas, equipe]) => { if (vivo) setDados({ fin, vendas: vendas.data || [], equipe, erro: [fin.error, vendas.error, equipe.error].filter(Boolean).join(" · ") || null }); });
     return () => { vivo = false; };
   }, [unidadeId, base, mes, estoqueIds]);
@@ -48,7 +48,8 @@ export function useDreMarmitaria(mes) {
       compras: fin.compras || [], comprasItens: fin.comprasItens || [], movimentos: fin.movimentos || [], custoPorBase });
     const cmvPrev = cmvPrevisto(vendas, new Map([...custos.entries()].filter(([, c]) => c.completo).map(([id, c]) => [id, c.total])));
     const rv = vendas.reduce((t, v) => t + (Number(v.quantidade) || 0), 0);
-    const cmo = cmoMarmitaria({ alocacoes: equipe.alocacoes || [], colaboradores: equipe.colaboradores || [], recibos: equipe.recibos || [],
+    const cmo = cmoMarmitaria({ alocacoes: equipe.alocacoes || [], colaboradores: [...(equipe.colaboradores || []), ...(equipe.outrasUnidades || [])], recibos: equipe.recibos || [],
+      unidadeId, exclusiva: unidadeExclusiva(cfg),
       encargos: encargosDaConfig(cfg.encargos, equipe.rhConfig), mes, marmitasVendidas: rv });
     const contas = contasDaMarmitaria(fin.contas || [], mes, { centrosDiretos: cfg.centros_diretos, rateio: cfg.rateio });
     const dre = dreMarmitaria({ vendas, contas, cmvReal, cmvPrev, cmo, tributosPct: cfg.tributos_pct,

@@ -174,7 +174,7 @@ function linhasDaContagem(itens) {
  *   motivos: por que não apurou (texto para a tela)
  *   ei / compras / ef / cmv / faturamento / cmvPct + produtos (por insumo)
  */
-export function apurarPeriodo(periodo, { itensPorContagem, compras, comprasItens, insumoPorId = new Map(), fonteFaturamento = null, cfg = CONFIG_CMV }) {
+export function apurarPeriodo(periodo, { itensPorContagem, compras, comprasItens, transferencias = [], insumoPorId = new Map(), fonteFaturamento = null, cfg = CONFIG_CMV }) {
   const motivos = [];
   const ini = periodo.inicio; const fim = periodo.fim;
   if (!ini) motivos.push(periodo.porDatas ? `Não há inventário fechado no início do período (${fmtDia(periodo.de)}).` : "Inventário inicial não fechado.");
@@ -188,25 +188,40 @@ export function apurarPeriodo(periodo, { itensPorContagem, compras, comprasItens
     a.q += i.quantidade_base; a.v += i.valor_rateado; a.bases.add(i.unidade_base);
     cq.set(i.insumo_id, a);
   }
-  const ids = new Set([...ei.keys(), ...ef.keys(), ...cq.keys()]);
+  // Transferências ENTRE UNIDADES (outro negócio da empresa): a que sai não é
+  // consumo desta unidade; a que entra conta como uma compra. Entre estoques
+  // da mesma unidade nada muda (o inventário é da unidade inteira).
+  const tq = new Map();
+  const tDentro = (transferencias || []).filter((t) => { const d = String(t.data || "").slice(0, 10); return d >= periodo.de && d < periodo.ateExclusivo; });
+  for (const t of tDentro) {
+    const sinal = t.sentido === "saida" ? -1 : 1;
+    const a = tq.get(t.insumo_id) || { q: 0, v: 0, semValor: false, bases: new Set() };
+    a.q += sinal * (Number(t.quantidade_base) || 0);
+    if (t.valor == null) a.semValor = true; else a.v += sinal * Number(t.valor);
+    if (t.unidade_base) a.bases.add(t.unidade_base);
+    tq.set(t.insumo_id, a);
+  }
+  const ids = new Set([...ei.keys(), ...ef.keys(), ...cq.keys(), ...tq.keys()]);
   const produtos = [];
   for (const id of ids) {
     const ins = insumoPorId.get(id);
-    const e = ei.get(id); const f = ef.get(id); const c = cq.get(id);
-    const bases = new Set([...(e?.bases || []), ...(f?.bases || []), ...(c?.bases || [])]);
+    const e = ei.get(id); const f = ef.get(id); const c = cq.get(id); const t = tq.get(id);
+    const bases = new Set([...(e?.bases || []), ...(f?.bases || []), ...(c?.bases || []), ...(t?.bases || [])]);
     let cobertura = "ok";
     if (bases.size > 1) cobertura = "unidade_incompativel";
-    else if (ini && fim && !f && ((e?.q || 0) > 0 || (c?.q || 0) > 0)) cobertura = "sem_contagem_final";
+    else if (t?.semValor) cobertura = "transferencia_sem_valor";
+    else if (ini && fim && !f && ((e?.q || 0) > 0 || (c?.q || 0) > 0 || (t?.q || 0) > 0)) cobertura = "sem_contagem_final";
     else if (ini && fim && !e && (f?.q || 0) > 0) cobertura = "sem_contagem_inicial";
     const base = [...bases][0] || "un";
     const p = {
       insumo_id: id, nome: ins?.nome || "(produto removido)", categoria: ins?.categoria || "Sem categoria", grupo: grupoDoInsumo(ins, cfg), unidade_base: base,
       ei_q: e ? r3(e.q) : null, ei_v: e ? r2(e.v) : null, compras_q: r3(c?.q || 0), compras_v: r2(c?.v || 0), ef_q: f ? r3(f.q) : null, ef_v: f ? r2(f.v) : null,
+      transf_q: r3(t?.q || 0), transf_v: r2(t?.v || 0),
       cobertura,
     };
     if (cobertura === "ok" && ini && fim) {
-      p.consumo_q = r3((e?.q || 0) + p.compras_q - (f?.q || 0));
-      p.consumo_v = r2((e?.v || 0) + p.compras_v - (f?.v || 0));
+      p.consumo_q = r3((e?.q || 0) + p.compras_q + p.transf_q - (f?.q || 0));
+      p.consumo_v = r2((e?.v || 0) + p.compras_v + p.transf_v - (f?.v || 0));
     } else { p.consumo_q = null; p.consumo_v = null; }
     produtos.push(p);
   }
@@ -214,7 +229,8 @@ export function apurarPeriodo(periodo, { itensPorContagem, compras, comprasItens
   const problemas = produtos.filter((p) => noCmv(p) && p.cobertura !== "ok");
   if (ini && fim && problemas.length) {
     const nomes = (tipo) => problemas.filter((p) => p.cobertura === tipo).map((p) => p.nome);
-    const sf = nomes("sem_contagem_final"); const si = nomes("sem_contagem_inicial"); const ui = nomes("unidade_incompativel");
+    const sf = nomes("sem_contagem_final"); const si = nomes("sem_contagem_inicial"); const ui = nomes("unidade_incompativel"); const tv = nomes("transferencia_sem_valor");
+    if (tv.length) motivos.push(`${tv.length} produto(s) transferidos entre unidades sem custo médio na origem: ${listar(tv)}.`);
     if (sf.length) motivos.push(`${sf.length} produto(s) tinham estoque inicial ou foram comprados e não foram contados no inventário final: ${listar(sf)}.`);
     if (si.length) motivos.push(`${si.length} produto(s) contados no inventário final não foram contados no inicial: ${listar(si)}.`);
     if (ui.length) motivos.push(`${ui.length} produto(s) com unidades diferentes entre contagens e compras: ${listar(ui)}.`);
@@ -223,10 +239,10 @@ export function apurarPeriodo(periodo, { itensPorContagem, compras, comprasItens
   const valorEi = ini ? r2(soma([...ei.values()], (x) => x.v)) : null;
   const valorEf = fim ? r2(soma([...ef.values()], (x) => x.v)) : null;
   const valorCompras = r2(soma(cp.confirmadas, (c) => c.valor_total));
-  const eiG = porGrupo((p) => p.ei_v); const efG = porGrupo((p) => p.ef_v); const cG = porGrupo((p) => p.compras_v);
+  const eiG = porGrupo((p) => p.ei_v); const efG = porGrupo((p) => p.ef_v); const cG = porGrupo((p) => p.compras_v); const tG = porGrupo((p) => p.transf_v);
   const apurado = !!(ini && fim) && !problemas.length;
   const emAndamento = !fim && periodo.emAndamento;
-  const cmvGrupo = (g) => (apurado ? r2(eiG[g] + cG[g] - efG[g]) : null);
+  const cmvGrupo = (g) => (apurado ? r2(eiG[g] + cG[g] + tG[g] - efG[g]) : null);
   const cmvValor = apurado ? r2(cfg.gruposNoCmv.reduce((s, g) => s + cmvGrupo(g), 0)) : null;
   // valor parcial: só produtos com contagem nas duas pontas (para a tela explicar; NÃO é o CMV)
   const parcial = ini && fim && problemas.length ? r2(soma(produtos.filter((p) => noCmv(p) && p.cobertura === "ok"), (p) => p.consumo_v)) : null;
@@ -243,7 +259,8 @@ export function apurarPeriodo(periodo, { itensPorContagem, compras, comprasItens
     ei: { valor: valorEi, porGrupo: ini ? eiG : null, contagem: ini || null },
     compras: { valor: valorCompras, porGrupo: cG, confirmadas: cp.confirmadas, canceladas: cp.canceladas, rascunhos: cp.rascunhos, itens: cp.itens },
     ef: { valor: valorEf, porGrupo: fim ? efG : null, contagem: fim || null },
-    cmv: { valor: cmvValor, mercadoria: cmvGrupo("mercadoria"), embalagem: cmvGrupo("embalagem"), operacional: apurado ? r2(eiG.operacional + cG.operacional - efG.operacional) : null, parcial },
+    cmv: { valor: cmvValor, mercadoria: cmvGrupo("mercadoria"), embalagem: cmvGrupo("embalagem"), operacional: apurado ? r2(eiG.operacional + cG.operacional + tG.operacional - efG.operacional) : null, parcial },
+    transferenciasUnidades: { valor: tDentro.length ? r2(soma([...tq.values()], (x) => x.v)) : 0, quantidade: tDentro.length },
     faturamento: fat,
     cmvPct, motivoPct,
     produtos,

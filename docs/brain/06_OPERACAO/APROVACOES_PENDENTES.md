@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 0** (APR-007: falta só o merge do PR #171)
+**Pendentes agora: 1** (APR-010)
 
 ### APR-001 · EXECUTADO
 
@@ -129,3 +129,17 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido em:** 2026-10-14 (dono: "aprove a pr007")
 - **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171: pendente (bloqueado pela checagem de permissão do agente; o dono faz o merge).
 - **Chave:** migracao:db/integracoes/IFOOD_2_PEDIDOS.sql
+
+### APR-010 · PENDENTE
+
+- **Missão:** S-20 + S-21 — dado financeiro e de RH só com permissão do módulo; RPCs financeiras com permissão da ação
+- **Ação:** aplicar db/security/SEC_FIN_3_PERMISSAO_FINANCEIRA.sql: função hefisto_tem_alguma; 13 tabelas com policies separadas por leitura e escrita (unidade como hoje + chave do módulo); 5 RPCs financeiras com o texto do F2.1 mais a checagem da ação
+- **Ambiente:** supabase (produção)
+- **Risco:** HIGH (mudança de RLS e de funções financeiras)
+- **Motivo:** fechar a leitura financeira indevida pela API (S-20) e a escrita financeira por qualquer usuário da unidade (S-21, crítico)
+- **Impacto:** medido em produção pela função de permissão do banco: 3 mantêm (super admin, 2 gerente-geral), 13 perdem (somente-consulta 11, cozinheiro 2), nenhum deles com tela financeira ou de RH. Sem mudança de dados. Detalhes em docs/brain/07_RELATORIOS/SEC_FIN_3_IMPACTO.md
+- **Rollback:** db/security/SEC_FIN_3_ROLLBACK.sql (testado: devolve exatamente o comportamento atual)
+- **Evidências:** teste com SQL real (9 perfis × 13 tabelas × leitura/escrita × 5 RPCs × unidade cruzada × anônimo + rollback); preflight por texto das policies e hash das RPCs; test:seguranca 25/25; app/lib 479/479; test:agent 62/62
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-14
+- **Chave:** migracao:db/security/SEC_FIN_3_PERMISSAO_FINANCEIRA.sql

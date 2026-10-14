@@ -12,6 +12,8 @@ import { custoUnitarioEfetivoInsumo } from "../../lib/ficha-calculos.mjs";
 import { somarDiasIso } from "../../lib/cmv-real.mjs";
 import { carregarBaseDre, cmvDoMes, cmoDoMesRH } from "../../lib/dre-dados";
 import { janelaDoMes, faturamentoDoMes, montarDre } from "../../lib/dre-gerencial.mjs";
+import { duplicidadesDeFonte } from "../../lib/ifood/nucleo.mjs";
+import ConciliacaoIfood from "./ConciliacaoIfood";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const proximoMes = (mes) => { const [a, m] = mes.split("-").map(Number); return m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`; };
@@ -112,6 +114,9 @@ export default function Dre() {
             <Indicador rotulo="Ponto de equilíbrio" valor={ind.pontoEquilibrio} natureza={r.dre.natureza} nota={ind.pontoEquilibrioMarmitas ? `${ind.pontoEquilibrioMarmitas} marmitas no mês` : ind.motivoPontoEquilibrio} />
           </div>
           {r.dre.alertas.map((a) => <Aviso key={a} tipo="alerta">{a}</Aviso>)}
+          {duplicidadesDeFonte(r.vendas).map((d) => (
+            <Aviso key={d.data} tipo="alerta">Possível duplicidade em {new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR")}: há {brl(d.valorManual)} de iFood lançado à mão e {brl(d.valorAutomatico)} que chegou sozinho do iFood. Se for o mesmo movimento, exclua o lançamento manual em Vendas.</Aviso>
+          ))}
           <Secao titulo="DRE gerencial da marmitaria" subtitulo="Percentuais sobre a receita de vendas. CMV real = estoque inicial + compras + transferências recebidas − enviadas − estoque final dos locais da marmitaria.">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[480px] text-sm"><tbody className="divide-y divide-hf-border">{r.dre.linhas.map((l) => <LinhaDre key={l.id} l={l} />)}</tbody></table>
@@ -122,6 +127,7 @@ export default function Dre() {
               <p>Lucro líquido gerencial = resultado operacional − despesas financeiras (antes de IR e pró-labore).</p>
             </div>
           </Secao>
+          <ConciliacaoIfood mes={mes} vendas={r.vendas} />
         </>
       ) : !consolidado ? (
         <Secao><p className="text-sm text-hf-muted">Carregando o DRE do restaurante…</p></Secao>

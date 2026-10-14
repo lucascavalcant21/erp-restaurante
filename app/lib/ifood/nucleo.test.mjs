@@ -211,3 +211,19 @@ test("pendências: falhas, pedidos sem detalhe, parados e itens sem marmita", ()
   });
   assert.deepEqual([p.falhas, p.semDetalhes, p.parados, p.itensSemMarmita.length, p.tudoCerto], [1, 1, 1, 1, false]);
 });
+
+test("cozinha: soma por marmita só dos confirmados, não cancelados e não separados", async () => {
+  const { totaisParaSeparar, itensVistos } = await import("./nucleo.mjs");
+  const it = (codigo, q) => ({ codigo, nome: codigo, quantidade: q });
+  const ps = [
+    { status: "CONFIRMADO", itens: [it("MARM-FRANGO", 2), it("REFRI-350", 1)] },
+    { status: "EM_PREPARO", itens: [it("MARM-FRANGO", 1), it("NOVO", 1)] },
+    { status: "CANCELADO", itens: [it("MARM-FRANGO", 5)] },
+    { status: "RECEBIDO", itens: [it("MARM-FRANGO", 7)] },
+    { status: "CONFIRMADO", separacao: "separado", itens: [it("MARM-FRANGO", 9)] },
+    { status: "CONFIRMADO", teste: true, itens: [it("MARM-FRANGO", 11)] },
+  ];
+  const t = totaisParaSeparar(ps, MAP, new Map([[FICHA, "Marmita de frango"]]));
+  assert.deepEqual(t.map((x) => [x.nome, x.quantidade, x.associado]), [["Marmita de frango", 3, true], ["NOVO", 1, false]]);
+  assert.deepEqual(itensVistos(ps).map((x) => x.codigo), ["MARM-FRANGO", "REFRI-350", "NOVO"]);
+});

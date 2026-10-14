@@ -415,3 +415,40 @@ export function conciliarRepasses({ vendas = [], repasses = [] } = {}) {
     situacao: !doIfood.length ? "sem_pedidos" : temReal ? "conciliavel" : "aguardando_dados_ifood",
   };
 }
+
+// ─── Cozinha ─────────────────────────────────────────────────────────────────
+
+/**
+ * Quanto separar de cada marmita: pedidos confirmados, não cancelados e ainda
+ * não separados. Item sem marmita associada aparece pelo nome do iFood.
+ */
+export function totaisParaSeparar(pedidos = [], mapeamento = new Map(), nomes = new Map()) {
+  const m = new Map();
+  for (const p of pedidos) {
+    if (p.teste || p.status === "CANCELADO" || p.separacao === "separado" || !(RANK[p.status] >= RANK.CONFIRMADO)) continue;
+    for (const it of p.itens || []) {
+      const map = mapeamento.get(it.codigo);
+      if (map?.ignorar) continue;
+      const chave = map?.ficha_id || `item:${it.codigo}`;
+      const a = m.get(chave) || { chave, nome: map?.ficha_id ? (nomes.get(map.ficha_id) || "Marmita") : it.nome, associado: !!map?.ficha_id, quantidade: 0 };
+      a.quantidade += pos(it.quantidade) * (map?.ficha_id ? (pos(map.quantidade_por_item) || 1) : 1);
+      m.set(chave, a);
+    }
+  }
+  return [...m.values()].sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/** Itens distintos que apareceram nos pedidos (para associar às marmitas). */
+export function itensVistos(pedidos = []) {
+  const m = new Map();
+  for (const p of pedidos) {
+    if (p.teste) continue;
+    for (const it of p.itens || []) {
+      if (!it.codigo) continue;
+      const a = m.get(it.codigo) || { codigo: it.codigo, nome: it.nome, vezes: 0 };
+      a.vezes += pos(it.quantidade) || 1;
+      m.set(it.codigo, a);
+    }
+  }
+  return [...m.values()].sort((a, b) => b.vezes - a.vezes);
+}

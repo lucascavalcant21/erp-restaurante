@@ -4,6 +4,7 @@
 //   Planejar   quanto produzir → o que falta comprar (desconta o estoque)
 //   Estoque    os dois locais da marmitaria, com validade (FEFO) e mínimo;
 //              traz da cozinha por transferência (estoque_transferir)
+//   Pedidos    pedidos do iFood do dia: o que separar e (opcional) baixa por pedido
 //   Produção   registra o lote e baixa ingredientes, pré-preparos e
 //              embalagens numa transação (marmitaria_registrar_producao)
 // Entrada, retirada, perda e inventário usam a tela oficial do estoque.
@@ -14,6 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, SemDados, brl, inputCls, num, lerNumero } from "../../../components/marmitaria/ui";
 import { ativarEstoques, vincularProduto, transferir, registrarProducao, fetchProducoes, novaChave, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../../lib/marmitaria/dados";
+import PedidosIfood from "../../../components/marmitaria/PedidosIfood";
 import { necessidadeDeProducao, baixasDaProducao, fatorSaldo, paraUnidadeDoCadastro, unidadesCompativeis } from "../../../lib/marmitaria/nucleo.mjs";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
@@ -38,15 +40,16 @@ function Conteudo() {
   const { base } = useMarmitaria();
   const params = useSearchParams();
   const router = useRouter();
-  const [aba, setAba] = useState(["estoque", "producao"].includes(params.get("aba")) ? params.get("aba") : "planejar");
+  const [aba, setAba] = useState(["estoque", "producao", "pedidos"].includes(params.get("aba")) ? params.get("aba") : "planejar");
   if (!base) return null;
   return (
     <div className="space-y-4">
-      <Abas abas={[{ id: "planejar", rotulo: "Planejar e comprar" }, { id: "estoque", rotulo: "Estoque" }, { id: "producao", rotulo: "Registrar produção" }]}
+      <Abas abas={[{ id: "planejar", rotulo: "Planejar e comprar" }, { id: "estoque", rotulo: "Estoque" }, { id: "producao", rotulo: "Registrar produção" }, { id: "pedidos", rotulo: "Pedidos do iFood" }]}
         valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} />
       {aba === "planejar" && <Planejar />}
       {aba === "estoque" && <Estoque />}
       {aba === "producao" && <Producao />}
+      {aba === "pedidos" && <PedidosIfood />}
     </div>
   );
 }

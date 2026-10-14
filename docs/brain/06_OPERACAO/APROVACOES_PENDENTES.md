@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 1** (APR-008)
+**Pendentes agora: 0** (APR-008: migração aplicada; falta o merge do PR #172)
 
 ### APR-001 · EXECUTADO
 
@@ -130,7 +130,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171 feito pelo dono em 14/10 21:16 (1e8289c); deploy de produção concluído 21:18 e conferido: /api/ifood/webhook responde o formato novo e /api/ifood/sincronizacao existe e recusa sem sessão (401). TESTADO EM PRODUÇÃO.
 - **Chave:** migracao:db/integracoes/IFOOD_2_PEDIDOS.sql
 
-### APR-008 · PENDENTE
+### APR-008 · EXECUTADO EM PARTE
 
 - **Missão:** Marmitaria com unidade própria (PR #172)
 - **Ação:** (1) Aplicar db/UNID_MARM_1_TRANSFERENCIA_ENTRE_UNIDADES.sql no Supabase real: tabela estoque_transferencias_unidades (RLS: leitura por quem vê origem ou destino; ninguém grava direto), função estoque_transferir_unidades e o valor TRANSFERENCIA nas restrições de origem do custo (estoque_custos e estoque_custos_historico). (2) Merge do PR #172 (depois do #173).
@@ -140,6 +140,8 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Impacto:** nenhum movimento ou custo existente muda. As restrições de origem do custo são recriadas com a lista antiga + TRANSFERENCIA (toda linha existente continua válida). Função SECURITY DEFINER com checagem de login, mesma empresa e permissão de estoque nas duas unidades
 - **Rollback:** no cabeçalho do arquivo
 - **Evidências:** 22 casos com SQL real no PGlite (custo médio pelas funções reais da F2.1/F2.4B; idempotência; saldo insuficiente; unidade de medida; outra empresa; permissões; visibilidade; anônimo); CMV com transferências (5 testes); suíte app/lib 494/494; test:seguranca 24/24; test:agent 62/62; build OK
-- **Status:** PENDENTE
+- **Status:** EXECUTADO EM PARTE
 - **Criado em:** 2026-10-14
+- **Decidido em:** 2026-10-14 (dono: "autorizo a aplicação da migração aditiva de transferências, desde que você confirme previamente o estado real do banco...")
+- **Nota:** pré-checagem no banco real: tabela/função inexistentes, restrições de custo idênticas às esperadas, estoque_custos e histórico VAZIOS (0 linhas), 350 movimentos intocados. Ensaio no banco real em transação desfeita (sem DROP, para não depender de confirmação manual): transferência de 1 g de açafrão restaurante → unidade de ensaio (1000 → 999; 2 movimentos; 1 registro; valor vazio porque não há custo médio), reenvio idempotente, saldo insuficiente recusado, usuário sem permissão de estoque recusado, anônimo sem execução. Aplicada 14/10 ~22h20 (unid_marm_1_transferencia_entre_unidades) e verificada: RLS + 1 policy, anon sem acesso, authenticated só lê, restrições com TRANSFERENCIA, dados intactos. TESTADO NO SUPABASE REAL. Recuperação: rollback documentado (as restrições voltam à lista antiga; as tabelas de custo estão vazias). Falta: merge do #172 (aguarda validação das telas no navegador).
 - **Chave:** migracao:db/UNID_MARM_1_TRANSFERENCIA_ENTRE_UNIDADES.sql

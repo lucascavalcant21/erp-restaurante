@@ -99,7 +99,7 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** aplicada 14/10 ~15:50; verificação 9/9 OK (tabela, RLS, policy, 2 funções, coluna, anon sem acesso, 167 fichas intactas); advisors sem alerta novo. PR #168 mergeado (7605a02). TESTADO NO SUPABASE REAL
 - **Chave:** migracao:db/MARMITARIA_V2_REFORMULACAO.sql
 
-### APR-006 · PENDENTE
+### APR-006 · EXECUTADO EM PARTE
 
 - **Missão:** Cadastro do iFood (PR do branch claude/ifood-cadastro)
 - **Ação:** (1) Aplicar db/integracoes/IFOOD_1_CONEXAO.sql no Supabase real: 3 tabelas de integração, RLS sem policy, só o servidor acessa. (2) Dono cria a variável INTEGRATION_MASTER_KEY (32+ caracteres aleatórios) na Vercel, ambiente Production. (3) Merge do PR.
@@ -110,4 +110,6 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Evidências:** PGlite: anon/authenticated sem acesso às 3 tabelas, idempotente; 8 testes da lógica (segredo nunca volta à tela nem vai em texto puro; "Conectado" só com o merchant confirmado pelo iFood)
 - **Status:** PENDENTE
 - **Criado em:** 2026-10-14
+- **Decidido em:** 2026-10-14 (dono: "eu autorizo")
+- **Nota:** (1) IFOOD-1 aplicada 14/10; verificação: 3 tabelas com RLS, 0 policy, anon/authenticated sem leitura, service_role grava (TESTADO NO SUPABASE REAL). (3) PR #169 mergeado (2b7ab03). FALTA (2): o dono criar INTEGRATION_MASTER_KEY na Vercel (Production); até lá a tela recusa guardar o Client Secret
 - **Chave:** migracao:db/integracoes/IFOOD_1_CONEXAO.sql

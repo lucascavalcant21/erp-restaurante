@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   custoDaMarmita, resultadoPorCanal, precoSugerido, necessidadeDeProducao, baixasDaProducao,
   cmoMarmitaria, encargosDaConfig, cmvRealDosEstoques, contasDaMarmitaria, dreMarmitaria, simular,
-  periodo, paraUnidadeDoCadastro, canalConfigurado, validarCanal, cmvPrevisto, resumoVendas, rankingMarmitas, fatorSaldo,
+  periodo, paraUnidadeDoCadastro, canalConfigurado, validarCanal, cmvPrevisto, resumoVendas, rankingMarmitas, fatorSaldo, dreConsolidado,
 } from "./nucleo.mjs";
 
 // ── cadastro de teste ──────────────────────────────────────────────────────
@@ -315,6 +315,26 @@ test("DRE usa o CMV previsto pela ficha só quando o real falta, marcado como es
   assert.equal(cmv.natureza, "estimado");
   assert.equal(d.natureza, "estimado");
   assert.equal(cmvPrevisto([{ ficha_id: "z", quantidade: 2 }], new Map()).valor, null);
+});
+
+test("consolidado: unidade inteira + só o que ela não vê da marmitaria (vendas, tributos e taxas delas)", () => {
+  const marm = dreMarmitaria({ vendas, contas: [], cmvReal: { valor: 1300 }, tributosPct: 6 });
+  // marmitaria acrescenta: receita 4250 − tributos 255 − taxas das vendas 456 = 3539
+  const unidade = { linhas: [
+    { id: "faturamento", valor: 100000 }, { id: "impostos", valor: 6000 }, { id: "cmv", valor: 30000 },
+    { id: "variaveis", valor: 4000 }, { id: "contribuicao", valor: 60000 }, { id: "pessoal", valor: 25000 },
+    { id: "fixas", valor: 20000 }, { id: "resultado", valor: 15000 },
+  ] };
+  const c = dreConsolidado({ unidade, marmitaria: marm });
+  const l = (id) => c.linhas.find((x) => x.id === id);
+  assert.equal(l("receita").consolidado, 104250);
+  assert.equal(l("cmv").consolidado, 30000);          // o inventário geral já conta o estoque da marmitaria
+  assert.equal(l("pessoal").consolidado, 25000);      // a folha do RH não entra duas vezes
+  assert.equal(l("variaveis").consolidado, 4456);
+  assert.equal(l("resultado").marmitaria, 3539);
+  assert.equal(l("resultado").consolidado, 18539);
+  // sem DRE da unidade apurado → consolidado sem dado
+  assert.equal(dreConsolidado({ unidade: { linhas: [{ id: "faturamento", valor: null }] }, marmitaria: marm }).receita, null);
 });
 
 test("resumo e ranking das vendas", () => {

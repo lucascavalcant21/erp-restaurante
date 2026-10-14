@@ -742,6 +742,7 @@ export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPre
   const financeiro = finContas.length ? add("financeiro", "(−) Despesas financeiras", soma(finContas, (c) => c.valorMarmitaria)) : 0;
   const lucro = add("lucro_liquido", "(=) Lucro líquido gerencial", menos(resultadoOp, financeiro), { tipo: "resultado" });
 
+  const taxasVendas = temVendas ? r2(rv.comissao + rv.outrasTaxas + rv.taxaPagamento + rv.entrega + rv.promocoes) : null;
   const fixos = operacionais + (financeiro || 0);
   const mcPct = mc === null || !(receita > 0) ? null : mc / receita;
   const ticket = rv.quantidade > 0 && receita !== null ? receita / rv.quantidade : null;
@@ -751,6 +752,7 @@ export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPre
     linhas, alertas,
     natureza: linhas.some((l) => l.natureza === "sem_dado" && ["cmv", "tributos", "receita_vendas"].includes(l.id)) ? "sem_dado" : estimado ? "estimado" : "real",
     indicadores: {
+      taxasVendas, tributos,
       marmitas: temVendas ? rv.quantidade : null,
       receita, receitaLiquida, cmv, cmvPct: P(cmv), lucroBruto, margemBrutaPct: P(lucroBruto),
       margemContribuicao: mc, margemContribuicaoPct: P(mc), cmo: cmo?.linhas?.length ? cmo.total : null, cmoPct: cmo?.linhas?.length ? P(cmo.total) : null,
@@ -760,6 +762,47 @@ export function dreMarmitaria({ vendas = [], contas = [], cmvReal = null, cmvPre
       motivoPontoEquilibrio: pe === null ? (mcPct !== null && mcPct <= 0 ? "Margem de contribuição negativa: não há ponto de equilíbrio." : "Depende da margem de contribuição apurada.") : null,
     },
   };
+}
+
+/**
+ * Consolidado = DRE gerencial da unidade (dre-gerencial.mjs, intocado) + só o
+ * que ele não enxerga da marmitaria. O DRE da unidade já soma todas as contas
+ * a pagar (inclusive as da marmitaria e as compartilhadas), a folha inteira do
+ * RH e o CMV do inventário geral (todos os estoques). Então a marmitaria
+ * acrescenta apenas: as vendas dela (fonte separada), os tributos dessas
+ * vendas e as taxas que vêm nessas vendas. Nada é contado duas vezes.
+ *
+ * Política (vale anunciar na tela): as vendas da marmitaria NÃO entram no
+ * faturamento diário do restaurante; entram em Marmitaria → Vendas.
+ */
+export function dreConsolidado({ unidade, marmitaria } = {}) {
+  const u = (id, ausenteZero = false) => {
+    const l = unidade?.linhas?.find((x) => x.id === id);
+    if (!l) return ausenteZero ? 0 : null;
+    return l.valor;
+  };
+  const im = marmitaria?.indicadores || {};
+  const somar = (a, b) => (a === null || b === null || a === undefined || b === undefined ? null : r2(a + b));
+  const menos = (a, ...bs) => (a === null || bs.some((b) => b === null) ? null : r2(a - soma(bs)));
+  const linhas = [];
+  const add = (id, rotulo, un, marm, tipo = "linha", nota = null) => {
+    const cons = un === null || marm === null ? null : r2(un + marm);
+    linhas.push({ id, rotulo, unidade: un === null ? null : r2(un), marmitaria: marm === null ? null : r2(marm), consolidado: cons, tipo, nota });
+    return cons;
+  };
+  const receita = add("receita", "Receita de vendas", u("faturamento"), im.receita ?? null, "subtotal");
+  const tributos = add("tributos", "(−) Tributos sobre vendas", u("impostos"), im.tributos ?? null);
+  const rl = add("receita_liquida", "(=) Receita líquida", menos(u("faturamento"), u("impostos")), menos(im.receita ?? null, im.tributos ?? null), "subtotal");
+  const cmv = add("cmv", "(−) CMV real", u("cmv"), 0, "linha", "O inventário geral da unidade já conta os estoques da marmitaria.");
+  const variaveis = add("variaveis", "(−) Custos variáveis", u("variaveis"), im.taxasVendas ?? null, "linha", "Marmitaria: taxas e promoções das vendas dela (as contas a pagar já estão na unidade).");
+  // o que a marmitaria acrescenta ao resultado da unidade: vendas − tributos − taxas dessas vendas
+  const acrescimo = menos(im.receita ?? null, im.tributos ?? null, im.taxasVendas ?? null);
+  add("contribuicao", "(=) Margem de contribuição", u("contribuicao"), acrescimo, "subtotal");
+  add("pessoal", "(−) Pessoal (CMO)", u("pessoal"), 0, "linha", "A folha do RH já inclui quem trabalha na marmitaria.");
+  add("fixas", "(−) Despesas fixas, pró-labore e financeiras", somar(somar(u("fixas"), u("pro_labore", true)), u("financeiro", true)), 0, "linha",
+    "As contas da marmitaria e as compartilhadas já estão nas despesas da unidade.");
+  const resultado = add("resultado", "(=) Resultado consolidado", u("resultado"), acrescimo, "resultado");
+  return { linhas, receita, tributos, receitaLiquida: rl, cmv, variaveis, resultado };
 }
 
 function agruparValor(xs, chave) {

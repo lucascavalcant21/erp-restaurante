@@ -1,406 +1,149 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useERP } from "../../context/ERPContext";
-import {
-  ShoppingBag,
-  TrendingUp,
-  DollarSign,
-  UtensilsCrossed,
-  AlertTriangle,
-  Boxes,
-  Users,
-  ChefHat,
-  ArrowRight,
-  Sparkles,
-  PieChart,
-  Percent,
-  Calculator,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-} from "lucide-react";
-import { fmtBRL, fmtPct } from "../../components/ui";
-import {
-  fetchMarmitas,
-  fetchProducaoLotes,
-  fetchConfiguracoesMarmitaria,
-  fetchRhAlocacoes,
-  resolverUnidade,
-} from "../../lib/marmitaria/marmitaria-service";
+// Painel da marmitaria. Seis números primeiro; depois rankings, alertas e o
+// que falta cadastrar. Sem dado → "Sem dados apurados" e o caminho para
+// resolver. Nenhum número de demonstração.
 
-export default function MarmitariaVisaoGeralPage() {
-  const router = useRouter();
-  const { unidadeAtiva, unidades } = useERP();
-  const [loading, setLoading] = useState(true);
-  const [marmitas, setMarmitas] = useState([]);
-  const [lotes, setLotes] = useState([]);
-  const [alocacoes, setAlocacoes] = useState([]);
-  const [config, setConfig] = useState(null);
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useMarmitaria } from "../../components/marmitaria/contexto";
+import { useDreMarmitaria } from "../../components/marmitaria/Dre";
+import { Abas, Aviso, Campo, Indicador, Secao, SemDados, brl, inputCls, pctTxt, num } from "../../components/marmitaria/ui";
+import { fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
+import { cmvPrevisto, dreMarmitaria, fatorSaldo, periodo, rankingMarmitas, resultadoPorCanal } from "../../lib/marmitaria/nucleo.mjs";
+
+const hojeIso = () => new Date().toLocaleDateString("sv-SE");
+const FILTROS = [{ id: "hoje", rotulo: "Hoje" }, { id: "semana", rotulo: "Semana" }, { id: "mes", rotulo: "Mês" }, { id: "personalizado", rotulo: "Personalizado" }];
+
+export default function VisaoGeralPage() {
+  const { base, unidadeId, custos, carregando } = useMarmitaria();
+  const [filtro, setFiltro] = useState("mes");
+  const [pers, setPers] = useState({ de: `${hojeIso().slice(0, 7)}-01`, ate: hojeIso() });
+  const p = periodo(filtro, hojeIso(), pers);
+  const mes = p.ate.slice(0, 7);
+  const doMes = useDreMarmitaria(mes);
+  const [vendas, setVendas] = useState(null);
 
   useEffect(() => {
-    async function carregarDados() {
-      setLoading(true);
-      try {
-        const uId = resolverUnidade(unidadeAtiva, unidades);
-        const [resMarmitas, resLotes, resConfig, resRh] = await Promise.all([
-          fetchMarmitas(uId),
-          fetchProducaoLotes(uId),
-          fetchConfiguracoesMarmitaria(uId),
-          fetchRhAlocacoes(uId),
-        ]);
+    if (!unidadeId) return;
+    let vivo = true;
+    fetchVendas(unidadeId, p.de, p.ate).then((r) => { if (vivo) setVendas(r.data || []); });
+    return () => { vivo = false; };
+  }, [unidadeId, p.de, p.ate]);
 
-        setMarmitas(resMarmitas.data || []);
-        setLotes(resLotes.data || []);
-        setConfig(resConfig.data || {});
-        setAlocacoes(resRh.data || []);
-      } catch (e) {
-        console.error("Erro ao carregar visão geral:", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    carregarDados();
-  }, [unidadeAtiva, unidades]);
+  const custoCompleto = useMemo(() => new Map([...custos.entries()].filter(([, c]) => c.completo).map(([id, c]) => [id, c.total])), [custos]);
+  const doPeriodo = useMemo(() => {
+    if (!base || !vendas) return null;
+    const mesInteiro = filtro === "mes";
+    return dreMarmitaria({ vendas, contas: [], cmvReal: mesInteiro ? doMes?.cmvReal : null, cmvPrev: cmvPrevisto(vendas, custoCompleto), tributosPct: base.config.tributos_pct });
+  }, [base, vendas, filtro, doMes, custoCompleto]);
 
-  // Indicadores consolidados da operação
-  const totalMarmitasCadastradas = marmitas.length;
-  const capacidadeDiaria = config?.capacidade_diaria_marmitas || 150;
+  const canal = base?.config.canais.find((c) => c.ativo) || null;
+  const porMarmita = useMemo(() => {
+    if (!base || !canal) return [];
+    return base.marmitas.filter((m) => m.ativo !== false).map((m) => {
+      const c = custos.get(m.id);
+      const preco = m.precos[canal.id] ?? Number(m.preco_venda);
+      const r = c && preco > 0 ? resultadoPorCanal({ preco, custoTecnico: c.total, canal, tributosPct: base.config.tributos_pct }) : null;
+      return { m, c, r };
+    }).filter((x) => x.r?.valido && x.r.margemContribuicao !== null);
+  }, [base, canal, custos]);
 
-  // Métricas do dia / mês
-  const marmitasVendidasMes = lotes.reduce((t, l) => t + (Number(l.quantidade_produzida) || 0), 0) || 1840;
-  const faturamentoEstimadoMes = marmitasVendidasMes * 26.5; // Ticket médio R$ 26,50
-  const ticketMedio = 26.5;
+  if (!base) return carregando ? <Secao><p className="text-sm text-hf-muted">Carregando o painel…</p></Secao> : null;
 
-  const custoMedioMarmita = marmitas.length > 0
-    ? marmitas.reduce((t, m) => t + (Number(m.custo_total) || 0), 0) / marmitas.length
-    : 8.85;
+  const ip = doPeriodo?.indicadores;
+  const im = doMes?.dre?.indicadores;
+  const cmvLinha = doPeriodo?.linhas.find((l) => l.id === "cmv");
+  const ranking = vendas ? rankingMarmitas(vendas, new Map(base.marmitas.map((m) => [m.id, { nome: m.nome_receita }]))).slice(0, 5) : [];
+  const maisLucro = [...porMarmita].sort((a, b) => b.r.margemContribuicao - a.r.margemContribuicao).slice(0, 5);
+  const negativas = porMarmita.filter((x) => x.r.margemContribuicao < 0);
 
-  const cmvPct = ticketMedio > 0 ? (custoMedioMarmita / ticketMedio) * 100 : 33.4;
-  const taxaIfoodTotalEstimada = faturamentoEstimadoMes * ((config?.taxa_ifood_padrao_pct || 15) / 100) * 0.65; // 65% das vendas pelo iFood
-  const cmoTotalAlocado = alocacoes.reduce((t, a) => t + (Number(a.colaboradores?.salario_base || 1800) * (Number(a.percentual_tempo || 100) / 100)), 0) || 4800;
-  const cmoPct = faturamentoEstimadoMes > 0 ? (cmoTotalAlocado / faturamentoEstimadoMes) * 100 : 9.8;
+  const locais = base.estoques.filter((e) => e.slug === ESTOQUE_MARMITARIA || e.slug === ESTOQUE_EMBALAGENS).map((e) => e.id);
+  const hoje = hojeIso();
+  const alertasEstoque = base.itensEstoque.filter((i) => locais.includes(i.estoque_id)).map((i) => {
+    const ins = base.insumos.get(i.insumo_id);
+    const saldo = (Number(i.quantidade_atual) || 0) / fatorSaldo(ins?.unidade_medida);
+    const dias = i.validade ? Math.round((new Date(`${i.validade}T12:00:00`) - new Date(`${hoje}T12:00:00`)) / 86400000) : null;
+    const min = i.estoque_minimo == null ? null : Number(i.estoque_minimo);
+    const motivo = saldo <= 0 ? "zerado" : dias !== null && dias < 0 ? "vencido" : dias !== null && dias <= 2 ? `vence em ${dias} dia(s)` : min !== null && saldo < min ? "abaixo do mínimo" : null;
+    return motivo ? { nome: ins?.nome || "Produto", motivo } : null;
+  }).filter(Boolean);
 
-  const margemContribuicaoMes = faturamentoEstimadoMes - (marmitasVendidasMes * custoMedioMarmita) - taxaIfoodTotalEstimada;
-  const lucroOperacionalMes = margemContribuicaoMes - cmoTotalAlocado - 2200; // rateio de custos fixos
+  const pendencias = [];
+  if (!base.marmitas.length) pendencias.push(["Nenhuma marmita cadastrada.", "/dashboard/marmitaria/marmitas", "Cadastrar marmita"]);
+  if (!base.config.canais.length) pendencias.push(["Canais de venda e taxas não configurados.", "/dashboard/marmitaria/configuracoes", "Configurar canais"]);
+  if (base.config.tributos_pct === null) pendencias.push(["Alíquota de tributos não configurada.", "/dashboard/marmitaria/configuracoes", "Configurar"]);
+  if (base.config.margem_alvo_pct === null) pendencias.push(["Margem-alvo não configurada (sem sugestão de preço).", "/dashboard/marmitaria/configuracoes", "Configurar"]);
+  if (!locais.length) pendencias.push(["Estoque da marmitaria não ativado (sem CMV real).", "/dashboard/marmitaria/estoque?aba=estoque", "Ativar estoque"]);
+  const incompletas = base.marmitas.filter((m) => !custos.get(m.id)?.completo).length;
+  if (incompletas) pendencias.push([`${incompletas} marmita(s) com custo incompleto.`, "/dashboard/marmitaria/marmitas", "Revisar"]);
+  if (vendas && !vendas.length) pendencias.push(["Nenhuma venda lançada no período.", "/dashboard/marmitaria/financeiro?aba=vendas", "Lançar vendas"]);
+  if (doMes && !doMes.cmo.linhas.length) pendencias.push(["Nenhum funcionário alocado (sem CMO).", "/dashboard/marmitaria/funcionarios", "Alocar"]);
 
-  const marmitaMaisVendida = marmitas[0]?.nome_receita || "Marmita Executiva Frango Grelhado";
-  const marmitaMaisLucrativa = marmitas[1]?.nome_receita || "Marmita Tradicional Carne de Panela";
-
+  const mesTxt = new Date(`${mes}-15T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Cabeçalho do Dashboard */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-700 mb-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Centro de Resultado: Marmitaria & Delivery
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-[280px] flex-1"><Abas abas={FILTROS} valor={filtro} onChange={setFiltro} /></div>
+        {filtro === "personalizado" && (
+          <div className="flex gap-2">
+            <Campo rotulo="De"><input type="date" className={inputCls} value={pers.de} onChange={(e) => setPers({ ...pers, de: e.target.value })} /></Campo>
+            <Campo rotulo="Até"><input type="date" className={inputCls} value={pers.ate} onChange={(e) => setPers({ ...pers, ate: e.target.value })} /></Campo>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Painel Executivo da Marmitaria
-          </h1>
-          <p className="text-sm font-medium text-slate-500 mt-0.5">
-            Operação conectada à unidade Seldeestrela com segregação de custos, produção e DRE.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/dashboard/marmitaria/simulador"
-            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold px-4 py-2.5 rounded-2xl transition-all"
-          >
-            <Calculator size={16} />
-            Simulador de Vendas
-          </Link>
-          <Link
-            href="/dashboard/marmitaria/fichas?nova=1"
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-5 py-2.5 rounded-2xl shadow-sm shadow-emerald-600/30 transition-all active:scale-95"
-          >
-            <UtensilsCrossed size={16} />
-            Nova Marmita
-          </Link>
-        </div>
+        )}
       </div>
 
-      {/* Grade Principal de KPIs Executivos */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {/* Marmitas Vendidas */}
-        <Link
-          href="/dashboard/marmitaria/pedidos"
-          className="group bg-hf-surface p-5 rounded-2xl border border-hf-border hover:border-emerald-500/50 hover:shadow-md transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Marmitas Vendidas</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ShoppingBag size={16} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {marmitasVendidasMes.toLocaleString("pt-BR")} un
-            </div>
-            <div className="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1">
-              <TrendingUp size={12} /> Meta 85% atingida
-            </div>
-          </div>
-        </Link>
-
-        {/* Faturamento */}
-        <Link
-          href="/dashboard/marmitaria/financeiro"
-          className="group bg-hf-surface p-5 rounded-2xl border border-hf-border hover:border-emerald-500/50 hover:shadow-md transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Faturamento</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <DollarSign size={16} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {fmtBRL(faturamentoEstimadoMes)}
-            </div>
-            <div className="text-xs font-medium text-slate-500 mt-1">
-              Ticket Médio: <strong className="text-slate-800">{fmtBRL(ticketMedio)}</strong>
-            </div>
-          </div>
-        </Link>
-
-        {/* CMV Técnico */}
-        <Link
-          href="/dashboard/marmitaria/cmv-cmo"
-          className="group bg-hf-surface p-5 rounded-2xl border border-hf-border hover:border-emerald-500/50 hover:shadow-md transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">CMV Técnico</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <PieChart size={16} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {fmtPct(cmvPct, 1)}
-            </div>
-            <div className="text-xs font-medium text-slate-500 mt-1">
-              Custo médio: <strong className="text-slate-800">{fmtBRL(custoMedioMarmita)}</strong>
-            </div>
-          </div>
-        </Link>
-
-        {/* CMO Alocado */}
-        <Link
-          href="/dashboard/marmitaria/rh"
-          className="group bg-hf-surface p-5 rounded-2xl border border-hf-border hover:border-emerald-500/50 hover:shadow-md transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">CMO Alocado</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Users size={16} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
-              {fmtPct(cmoPct, 1)}
-            </div>
-            <div className="text-xs font-medium text-slate-500 mt-1">
-              Folha alocada: <strong className="text-slate-800">{fmtBRL(cmoTotalAlocado)}</strong>
-            </div>
-          </div>
-        </Link>
-
-        {/* Lucro Operacional */}
-        <Link
-          href="/dashboard/marmitaria/dre"
-          className="group bg-hf-surface p-5 rounded-2xl border border-hf-border hover:border-emerald-500/50 hover:shadow-md transition-all flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Lucro Operacional</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Sparkles size={16} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-black text-emerald-600 tracking-tight">
-              {fmtBRL(lucroOperacionalMes)}
-            </div>
-            <div className="text-xs font-bold text-emerald-700 mt-1">
-              Margem Líquida: {fmtPct((lucroOperacionalMes / faturamentoEstimadoMes) * 100, 1)}
-            </div>
-          </div>
-        </Link>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Indicador rotulo="Marmitas vendidas" valor={ip?.marmitas ?? null} formato="int" natureza="real" />
+        <Indicador rotulo="Faturamento" valor={ip?.receita ?? null} natureza="real" nota="vendas − descontos − cancelamentos" />
+        <Indicador rotulo={cmvLinha?.rotulo?.includes("real") ? "CMV real" : "CMV"} valor={ip?.cmv ?? null} natureza={cmvLinha?.natureza} nota={ip?.cmvPct !== null && ip?.cmvPct !== undefined ? `${pctTxt(ip.cmvPct)} do faturamento${cmvLinha?.natureza === "estimado" ? " · previsto pelas fichas" : ""}` : cmvLinha?.nota} />
+        <Indicador rotulo="CMO" valor={im?.cmo ?? null} natureza="estimativa" nota={im?.cmo !== null && im?.cmo !== undefined ? `${mesTxt}${im.cmoPct !== null ? ` · ${pctTxt(im.cmoPct)} do faturamento` : ""}` : "aloque os funcionários"} />
+        <Indicador rotulo="Margem de contribuição" valor={ip?.margemContribuicao ?? null} natureza={doPeriodo?.natureza} nota={ip?.margemContribuicaoPct !== null && ip?.margemContribuicaoPct !== undefined ? pctTxt(ip.margemContribuicaoPct) : null} />
+        <Indicador rotulo="Lucro líquido" valor={im?.lucroLiquido ?? null} natureza={doMes?.dre?.natureza} nota={im?.lucroLiquido !== null && im?.lucroLiquido !== undefined ? `${mesTxt} · gerencial` : "depende de vendas, CMV, CMO e despesas do mês"} destaque />
       </div>
 
-      {/* Destaques Operacionais & Drill-down */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cardápio & Melhores Marmitas */}
-        <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <UtensilsCrossed size={18} className="text-emerald-600" />
-                Engenharia de Marmitas
-              </h3>
-              <Link
-                href="/dashboard/marmitaria/cardapio"
-                className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-              >
-                Ver cardápio <ArrowRight size={12} />
-              </Link>
-            </div>
+      {pendencias.length > 0 && (
+        <Secao titulo="Para os números aparecerem" subtitulo="O que ainda falta cadastrar ou lançar.">
+          <ul className="divide-y divide-hf-border">
+            {pendencias.map(([t, href, acao]) => (
+              <li key={t} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <span className="text-hf-text-2">{t}</span>
+                <Link href={href} className="inline-flex min-h-[40px] items-center rounded-lg px-2 font-semibold text-hf-accent hover:bg-hf-accent/5">{acao} →</Link>
+              </li>
+            ))}
+          </ul>
+        </Secao>
+      )}
 
-            <div className="space-y-3">
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Mais Vendida (Volume)
-                </span>
-                <span className="text-sm font-bold text-slate-900 block mt-0.5">
-                  {marmitaMaisVendida}
-                </span>
-                <div className="flex items-center justify-between text-xs text-slate-600 mt-2 pt-2 border-t border-slate-200/60">
-                  <span>Preço: <strong>R$ 25,00</strong></span>
-                  <span className="text-emerald-600 font-bold">640 vendidas</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">
-                  Mais Lucrativa (Margem R$)
-                </span>
-                <span className="text-sm font-bold text-slate-900 block mt-0.5">
-                  {marmitaMaisLucrativa}
-                </span>
-                <div className="flex items-center justify-between text-xs text-slate-600 mt-2 pt-2 border-t border-emerald-100">
-                  <span>Margem Unit: <strong className="text-emerald-700">R$ 13,80</strong></span>
-                  <span className="text-slate-500 font-semibold">CMV 28%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              href="/dashboard/marmitaria/precificacao"
-              className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
-            >
-              <Calculator size={14} />
-              Conferir Margens e Preços por Canal
-            </Link>
-          </div>
-        </div>
-
-        {/* Produção & Capacidade da Cozinha */}
-        <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <ChefHat size={18} className="text-blue-600" />
-                Produção & Cozinha
-              </h3>
-              <Link
-                href="/dashboard/marmitaria/producao"
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-              >
-                Abrir KDS <ArrowRight size={12} />
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <Clock size={16} className="text-slate-400" />
-                  Capacidade Diária
-                </div>
-                <div className="text-sm font-black text-slate-900">
-                  {capacidadeDiaria} marmitas/dia
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <CheckCircle2 size={16} className="text-emerald-500" />
-                  Lotes Concluídos Hoje
-                </div>
-                <div className="text-sm font-black text-emerald-600">
-                  {lotes.filter((l) => l.status === "disponivel" || l.status === "expedido").length} lotes
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-amber-50 rounded-2xl border border-amber-200/70">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
-                  <AlertTriangle size={16} className="text-amber-500" />
-                  Perdas & Aparas Registradas
-                </div>
-                <div className="text-sm font-black text-amber-700">
-                  3.2% (Dentro da meta)
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              href="/dashboard/marmitaria/producao"
-              className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
-            >
-              <ChefHat size={14} />
-              Gerenciar Lotes e Rendimento Real
-            </Link>
-          </div>
-        </div>
-
-        {/* Estoque, Embalagens & Alertas */}
-        <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <Boxes size={18} className="text-purple-600" />
-                Estoque & Compras
-              </h3>
-              <Link
-                href="/dashboard/marmitaria/estoque"
-                className="text-xs font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1"
-              >
-                Ver estoque <ArrowRight size={12} />
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              <div className="p-3.5 bg-red-50 rounded-2xl border border-red-200/80 flex items-start gap-3">
-                <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-red-900">Alerta de Embalagens</h4>
-                  <p className="text-xs text-red-700 mt-0.5">
-                    Estoque de <strong>Potes 500ml</strong> cobre apenas 2 dias de produção prevista.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Transferências da Cozinha</span>
-                  <span className="text-xs font-bold text-slate-900">4 esta semana</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Arroz cozido, carne e feijão transferidos sem alterar compras/vendas.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              href="/dashboard/marmitaria/compras"
-              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
-            >
-              <Boxes size={14} />
-              Gerar Lista de Compras Inteligente
-            </Link>
-          </div>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Secao titulo="Mais vendidas no período">
+          {ranking.length ? (
+            <ol className="divide-y divide-hf-border">{ranking.map((r, i) => <li key={r.ficha_id} className="flex justify-between gap-2 py-2 text-sm"><span>{i + 1}. {r.nome}</span><span className="tabular-nums text-hf-text-2">{num(r.quantidade, 0)} un · {brl(r.receita)}</span></li>)}</ol>
+          ) : <SemDados motivo="Lance as vendas com a marmita identificada para ver o ranking." href="/dashboard/marmitaria/financeiro?aba=vendas" acao="Lançar vendas" />}
+        </Secao>
+        <Secao titulo="Maior margem por marmita" subtitulo={canal ? `Prevista pela ficha no ${canal.nome}` : null}>
+          {maisLucro.length ? (
+            <ol className="divide-y divide-hf-border">{maisLucro.map(({ m, r }) => <li key={m.id} className="flex justify-between gap-2 py-2 text-sm"><span>{m.nome_receita}</span><span className="tabular-nums font-semibold">{brl(r.margemContribuicao)} · {pctTxt(r.margemContribuicaoPct)}</span></li>)}</ol>
+          ) : <SemDados motivo={canal ? "Cadastre marmitas com preço e custo." : "Configure os canais de venda."} href={canal ? "/dashboard/marmitaria/marmitas" : "/dashboard/marmitaria/configuracoes"} acao={canal ? "Ver marmitas" : "Configurar canais"} />}
+        </Secao>
       </div>
+
+      {negativas.length > 0 && (
+        <Aviso tipo="alerta">
+          <p className="font-semibold">Margem negativa (vende abaixo do custo variável):</p>
+          <ul className="ml-4 list-disc">{negativas.map(({ m, r }) => <li key={m.id}>{m.nome_receita}: {brl(r.margemContribuicao)} por marmita no {canal.nome}</li>)}</ul>
+        </Aviso>
+      )}
+
+      <Secao titulo="Alertas de estoque" subtitulo="Locais da marmitaria.">
+        {!locais.length ? <SemDados motivo="Ative o estoque da marmitaria." href="/dashboard/marmitaria/estoque?aba=estoque" acao="Ativar" />
+          : alertasEstoque.length ? <ul className="divide-y divide-hf-border">{alertasEstoque.slice(0, 12).map((a) => <li key={a.nome} className="flex justify-between py-2 text-sm"><span>{a.nome}</span><span className="font-semibold text-hf-warning">{a.motivo}</span></li>)}</ul>
+            : <p className="text-sm text-hf-text-2">Nada zerado, vencendo ou abaixo do mínimo.</p>}
+      </Secao>
+
+      {base.unidade?.ifood_conectado && (
+        <Aviso>A unidade está marcada como conectada ao iFood, mas a importação de pedidos para a marmitaria ainda não foi homologada: os pedidos pendentes aparecerão aqui quando estiver.</Aviso>
+      )}
     </div>
   );
 }

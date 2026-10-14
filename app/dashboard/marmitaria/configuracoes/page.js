@@ -1,343 +1,150 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useERP } from "../../../context/ERPContext";
-import {
-  Settings,
-  Save,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Printer,
-  ShoppingBag,
-  Percent,
-  Sliders,
-  Building2,
-  DollarSign,
-  UtensilsCrossed,
-  Sparkles,
-} from "lucide-react";
-import {
-  fetchConfiguracoesMarmitaria,
-  salvarConfiguracoesMarmitaria,
-  resolverUnidade,
-} from "../../../lib/marmitaria/marmitaria-service";
+// Os números que só o dono sabe: taxas do contrato de cada canal, alíquota,
+// margem-alvo, encargos e o critério de rateio das despesas compartilhadas.
+// Nenhum vem preenchido com "valor de mercado": campo vazio = não configurado.
 
-export default function MarmitariaConfiguracoesPage() {
-  const { unidadeAtiva, unidades } = useERP();
-  const [loading, setLoading] = useState(true);
+import { useEffect, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useMarmitaria } from "../../../components/marmitaria/contexto";
+import { Aviso, Botao, Campo, CampoNumero, Secao, inputCls, lerNumero } from "../../../components/marmitaria/ui";
+import { salvarConfig, carregarEquipe } from "../../../lib/marmitaria/dados";
+import { MODELOS_CANAL, normalizarCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../../lib/marmitaria/nucleo.mjs";
+
+const RATEAVEIS = [
+  ["ocupacao_aluguel", "Aluguel"], ["ocupacao_condominio", "Condomínio"], ["utilidades_energia", "Energia"], ["utilidades_agua", "Água"],
+  ["utilidades_gas", "Gás"], ["utilidades_internet", "Internet e telefone"], ["adm_sistemas", "Sistemas"], ["adm_contabilidade", "Contabilidade"],
+  ["marketing", "Marketing"], ["manutencao", "Manutenção"], ["limpeza", "Limpeza"],
+];
+const vazio = (v) => v === null || v === undefined ? "" : String(v).replace(".", ",");
+
+export default function ConfiguracoesPage() {
+  const { base, unidadeId, recarregar } = useMarmitaria();
+  const [cfg, setCfg] = useState(null);
+  const [rhConfig, setRhConfig] = useState(null);
   const [salvando, setSalvando] = useState(false);
-  const [mensagemSucesso, setMensagemSucesso] = useState("");
-
-  const [form, setForm] = useState({
-    taxa_ifood_padrao_pct: 15.0,
-    taxa_cartao_padrao_pct: 2.5,
-    impostos_padrao_pct: 6.0,
-    margem_lucro_alvo_pct: 20.0,
-    capacidade_diaria_marmitas: 150,
-    horario_inicio: "09:00",
-    horario_fim: "15:00",
-    alocacao_custos_fixos_pct: 25.0,
-    canais_ativos: ["ifood", "whatsapp", "balcao"],
-    impressao_automatica_kds: true,
-    impressora_etiquetas: "Zebra ZD220 (Cozinha)",
-    impressora_comandas: "Epson TM-T20X (Expedição)",
-    alerta_estoque_minimo_dias: 2,
-  });
+  const [msg, setMsg] = useState(null);
 
   useEffect(() => {
-    async function carregar() {
-      setLoading(true);
-      try {
-        const uId = resolverUnidade(unidadeAtiva, unidades);
-        const { data } = await fetchConfiguracoesMarmitaria(uId);
-        if (data) {
-          setForm((prev) => ({
-            ...prev,
-            ...data,
-          }));
-        }
-      } catch (err) {
-        console.error("Erro ao carregar configurações:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    carregar();
-  }, [unidadeAtiva, unidades]);
+    if (!base) return;
+    const c = base.config;
+    setCfg({
+      canais: c.canais.map((x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, typeof v === "number" && !["itens_por_pedido"].includes(k) ? vazio(v) : v]))),
+      tributos_pct: vazio(c.tributos_pct), margem_alvo_pct: vazio(c.margem_alvo_pct),
+      encargos: { ...c.encargos }, rateio: { padrao_pct: vazio(c.rateio?.padrao_pct), por_categoria: { ...(c.rateio?.por_categoria || {}) } },
+      centros_diretos: c.centros_diretos,
+    });
+  }, [base]);
+  useEffect(() => { if (unidadeId) carregarEquipe(unidadeId).then((r) => setRhConfig(r.rhConfig || null)); }, [unidadeId]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (!base || !cfg) return null;
+  const usados = new Set(cfg.canais.map((c) => c.id));
+  const mudarCanal = (i, campo, valor) => setCfg({ ...cfg, canais: cfg.canais.map((c, j) => (j === i ? { ...c, [campo]: valor } : c)) });
+  const enc = encargosDaConfig(Object.fromEntries(Object.entries(cfg.encargos).map(([k, v]) => [k, typeof v === "string" ? lerNumero(v) : v])), rhConfig);
+
+  async function salvar() {
+    if (salvando) return;
+    setMsg(null);
+    const canais = cfg.canais.map((c) => normalizarCanal({ ...c, ...Object.fromEntries(["comissao_pct", "taxa_pagamento_pct", "promocao_pct", "taxa_fixa_pedido", "entrega_subsidiada_pedido", "itens_por_pedido"].map((k) => [k, lerNumero(c[k])])) }));
+    const erros = canais.flatMap((c) => validarCanal(c).map((e) => `${c.nome || "Canal"}: ${e}`));
+    if (new Set(canais.map((c) => c.id)).size !== canais.length) erros.push("Há dois canais com o mesmo identificador.");
+    const t = lerNumero(cfg.tributos_pct); const m = lerNumero(cfg.margem_alvo_pct);
+    if (t !== "" && (t < 0 || t >= 100)) erros.push("Alíquota de tributos precisa ficar entre 0 e 100%.");
+    if (m !== "" && (m < 0 || m >= 100)) erros.push("Margem-alvo precisa ficar entre 0 e 100%.");
+    if (erros.length) return setMsg({ tipo: "alerta", texto: erros.join(" ") });
+    const encargos = Object.fromEntries(Object.entries(cfg.encargos).map(([k, v]) => [k, k === "criterio" ? v : lerNumero(v)]).filter(([, v]) => v !== ""));
+    const porCat = Object.fromEntries(Object.entries(cfg.rateio.por_categoria).map(([k, v]) => [k, lerNumero(v)]).filter(([, v]) => v !== ""));
     setSalvando(true);
     try {
-      const uId = resolverUnidade(unidadeAtiva, unidades);
-      const { error } = await salvarConfiguracoesMarmitaria(uId, form);
-      if (error) {
-        alert("Erro ao salvar: " + error);
-      } else {
-        setMensagemSucesso("Configurações da Marmitaria salvas com sucesso!");
-        setTimeout(() => setMensagemSucesso(""), 4000);
-      }
-    } catch (err) {
-      alert("Erro ao salvar: " + err.message);
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  const toggleCanal = (canalId) => {
-    setForm((prev) => {
-      const ativos = prev.canais_ativos || [];
-      if (ativos.includes(canalId)) {
-        return { ...prev, canais_ativos: ativos.filter((c) => c !== canalId) };
-      } else {
-        return { ...prev, canais_ativos: [...ativos, canalId] };
-      }
-    });
-  };
+      const r = await salvarConfig(unidadeId, {
+        canais, tributos_pct: t, margem_alvo_pct: m, encargos,
+        rateio: { padrao_pct: lerNumero(cfg.rateio.padrao_pct), por_categoria: porCat }, centros_diretos: cfg.centros_diretos,
+      });
+      if (r.error) setMsg({ tipo: "alerta", texto: r.error });
+      else { setMsg({ tipo: "info", texto: "Configurações salvas." }); await recarregar(); }
+    } finally { setSalvando(false); }
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-700 mb-1">
-            <Settings size={16} />
-            Parâmetros Operacionais & Financeiros
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Configurações da Marmitaria
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Regras de rateio da cozinha matriz, taxas de canais de venda, capacidade produtiva e rotas de impressão KDS.
-          </p>
+    <div className="space-y-4">
+      <Secao titulo="Canais de venda e taxas" subtitulo="Preencha com o que está no SEU contrato (plano do iFood, maquininha). Campo vazio = não configurado.">
+        <div className="space-y-4">
+          {cfg.canais.map((c, i) => (
+            <div key={i} className="rounded-xl border border-hf-border p-3">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <input className={`${inputCls} max-w-[200px] font-bold`} value={c.nome} onChange={(e) => mudarCanal(i, "nome", e.target.value)} aria-label="Nome do canal" />
+                <input className={`${inputCls} max-w-[240px]`} value={c.modalidade || ""} onChange={(e) => mudarCanal(i, "modalidade", e.target.value)} placeholder="Modalidade (ex.: Plano Básico, entrega própria)" aria-label="Modalidade" />
+                <label className="flex min-h-[44px] items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={c.ativo !== false} onChange={(e) => mudarCanal(i, "ativo", e.target.checked)} />Ativo</label>
+                <button type="button" aria-label="Remover canal" onClick={() => setCfg({ ...cfg, canais: cfg.canais.filter((_, j) => j !== i) })} className="ml-auto flex h-11 w-11 items-center justify-center rounded-lg text-hf-muted hover:bg-hf-elevated"><Trash2 size={16} /></button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                <Campo rotulo="Comissão (%)"><CampoNumero valor={c.comissao_pct} onChange={(v) => mudarCanal(i, "comissao_pct", v)} placeholder="não configurado" /></Campo>
+                <Campo rotulo="Comissão calculada sobre">
+                  <select className={inputCls} value={c.comissao_base} onChange={(e) => mudarCanal(i, "comissao_base", e.target.value)}>
+                    <option value="receita">Preço com desconto</option><option value="bruto">Preço cheio</option>
+                  </select>
+                </Campo>
+                <Campo rotulo="Taxa de pagamento (%)"><CampoNumero valor={c.taxa_pagamento_pct} onChange={(v) => mudarCanal(i, "taxa_pagamento_pct", v)} placeholder="não configurado" disabled={c.pagamento_na_comissao} /></Campo>
+                <label className="flex min-h-[44px] items-end gap-2 pb-2 text-sm text-hf-text-2"><input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={!!c.pagamento_na_comissao} onChange={(e) => mudarCanal(i, "pagamento_na_comissao", e.target.checked)} />Pagamento já incluso na comissão</label>
+                <Campo rotulo="Taxa fixa por pedido (R$)"><CampoNumero valor={c.taxa_fixa_pedido} onChange={(v) => mudarCanal(i, "taxa_fixa_pedido", v)} placeholder="0,00" /></Campo>
+                <Campo rotulo="Entrega paga pela empresa por pedido (R$)"><CampoNumero valor={c.entrega_subsidiada_pedido} onChange={(v) => mudarCanal(i, "entrega_subsidiada_pedido", v)} placeholder="0,00" /></Campo>
+                <Campo rotulo="Promoção custeada (% do preço)"><CampoNumero valor={c.promocao_pct} onChange={(v) => mudarCanal(i, "promocao_pct", v)} placeholder="0" /></Campo>
+                <Campo rotulo="Marmitas por pedido (média)" dica="Divide as taxas por pedido."><CampoNumero valor={c.itens_por_pedido} onChange={(v) => mudarCanal(i, "itens_por_pedido", v)} placeholder="1" /></Campo>
+              </div>
+            </div>
+          ))}
         </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {MODELOS_CANAL.filter((m) => !usados.has(m.id)).map((m) => (
+            <Botao key={m.id} variante="secundario" type="button" onClick={() => setCfg({ ...cfg, canais: [...cfg.canais, { ...normalizarCanal(m), comissao_pct: "", taxa_pagamento_pct: "", taxa_fixa_pedido: "", entrega_subsidiada_pedido: "", promocao_pct: "", itens_por_pedido: 1 }] })}><Plus size={15} /> {m.nome}</Botao>
+          ))}
+          <Botao variante="texto" type="button" onClick={() => {
+            let n = cfg.canais.length + 1;
+            while (usados.has(`canal_${n}`)) n++;
+            setCfg({ ...cfg, canais: [...cfg.canais, { ...normalizarCanal({ id: `canal_${n}`, nome: "Outro canal" }), comissao_pct: "", taxa_pagamento_pct: "", itens_por_pedido: 1 }] });
+          }}><Plus size={15} /> Outro canal</Botao>
+        </div>
+      </Secao>
 
-        <button
-          onClick={handleSubmit}
-          disabled={salvando}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm shadow-emerald-600/20 disabled:opacity-50 shrink-0"
-        >
-          <Save size={16} />
-          {salvando ? "Salvando..." : "Salvar Alterações"}
-        </button>
+      <Secao titulo="Tributos e meta">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo rotulo="Alíquota sobre as vendas da marmitaria (%)" dica="Ex.: a alíquota efetiva do Simples. Confirme com o contador."><CampoNumero valor={cfg.tributos_pct} onChange={(v) => setCfg({ ...cfg, tributos_pct: v })} placeholder="não configurado" /></Campo>
+          <Campo rotulo="Margem de contribuição-alvo (%)" dica="Usada para sugerir preços."><CampoNumero valor={cfg.margem_alvo_pct} onChange={(v) => setCfg({ ...cfg, margem_alvo_pct: v })} placeholder="não configurado" /></Campo>
+        </div>
+      </Secao>
+
+      <Secao titulo="Encargos e provisões (CMO)" subtitulo="Somados ao salário do cadastro do RH para estimar o custo de quem trabalha na marmitaria.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Campo rotulo="FGTS (%)" dica={`Legal: ${ENCARGOS_LEGAIS.fgts_pct}%`}><CampoNumero valor={cfg.encargos.fgts_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, fgts_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.fgts_pct)} /></Campo>
+          <Campo rotulo="INSS patronal + RAT + terceiros (%)" dica={`Atual: ${enc.inss_patronal_pct}% — ${enc.origemInss}`}><CampoNumero valor={cfg.encargos.inss_patronal_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, inss_patronal_pct: v } })} placeholder={String(enc.inss_patronal_pct)} /></Campo>
+          <Campo rotulo="Critério de divisão do compartilhado">
+            <select className={inputCls} value={cfg.encargos.criterio || "percentual"} onChange={(e) => setCfg({ ...cfg, encargos: { ...cfg.encargos, criterio: e.target.value } })}>
+              <option value="percentual">% do tempo informado</option><option value="horas">Horas por semana ÷ 44 h</option>
+            </select>
+          </Campo>
+          <Campo rotulo="Provisão de 13º (%)" dica="1/12 do salário"><CampoNumero valor={cfg.encargos.provisao_13_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_13_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_13_pct).replace(".", ",")} /></Campo>
+          <Campo rotulo="Provisão de férias + 1/3 (%)" dica="1/12 × 4/3 do salário"><CampoNumero valor={cfg.encargos.provisao_ferias_pct ?? ""} onChange={(v) => setCfg({ ...cfg, encargos: { ...cfg.encargos, provisao_ferias_pct: v } })} placeholder={String(ENCARGOS_LEGAIS.provisao_ferias_pct).replace(".", ",")} /></Campo>
+        </div>
+      </Secao>
+
+      <Secao titulo="Despesas compartilhadas com o restaurante" subtitulo="Contas com centro de custo Geral/Administrativo (ou sem centro). Conta com centro Marmitaria entra 100%; de Cozinha, Bar, Salão ou Eventos não entra.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Campo rotulo="% padrão para a marmitaria" dica="Vale para a categoria sem % próprio. Vazio = 0% e aviso no DRE."><CampoNumero valor={cfg.rateio.padrao_pct} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, padrao_pct: v } })} placeholder="não configurado" /></Campo>
+          {RATEAVEIS.map(([cod, rot]) => (
+            <Campo key={cod} rotulo={`${rot} (%)`}><CampoNumero valor={cfg.rateio.por_categoria[cod] ?? ""} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, por_categoria: { ...cfg.rateio.por_categoria, [cod]: v } } })} placeholder="usa o padrão" /></Campo>
+          ))}
+        </div>
+        <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
+          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={cfg.centros_diretos.includes("delivery")}
+            onChange={(e) => setCfg({ ...cfg, centros_diretos: e.target.checked ? [...new Set([...cfg.centros_diretos, "delivery"])] : cfg.centros_diretos.filter((x) => x !== "delivery") })} />
+          Contas com centro de custo “Delivery” também são da marmitaria (100%)
+        </label>
+      </Secao>
+
+      {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}
+      <div className="sticky bottom-3 z-10 flex justify-end rounded-2xl border border-hf-border bg-hf-surface/95 p-2 backdrop-blur">
+        <Botao onClick={salvar} disabled={salvando} className="min-w-[180px]">{salvando ? "Salvando…" : "Salvar configurações"}</Botao>
       </div>
-
-      {mensagemSucesso && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm font-semibold animate-in fade-in">
-          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-          {mensagemSucesso}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="p-12 text-center text-sm text-slate-500">
-          Carregando parâmetros da Marmitaria...
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Seção 1: Taxas e Parâmetros Financeiros */}
-          <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <DollarSign size={18} className="text-emerald-600" />
-              Taxas Comerciais & Metas de Precificação
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Taxa Padrão iFood (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.taxa_ifood_padrao_pct}
-                  onChange={(e) => setForm({ ...form, taxa_ifood_padrao_pct: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Comissão básica contratada</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Taxa Média Cartão (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.taxa_cartao_padrao_pct}
-                  onChange={(e) => setForm({ ...form, taxa_cartao_padrao_pct: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Débito, crédito e vouchers</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Tributos Estimados (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.impostos_padrao_pct}
-                  onChange={(e) => setForm({ ...form, impostos_padrao_pct: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Alíquota Simples Nacional</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Margem Alvo Mínima (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.margem_lucro_alvo_pct}
-                  onChange={(e) => setForm({ ...form, margem_lucro_alvo_pct: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Dispara alerta se menor</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Seção 2: Rateio e Operação da Cozinha */}
-          <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Building2 size={18} className="text-emerald-600" />
-              Regras de Alocação da Cozinha Matriz & Capacidade
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Rateio Custos Fixos (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={form.alocacao_custos_fixos_pct}
-                  onChange={(e) => setForm({ ...form, alocacao_custos_fixos_pct: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">% da energia, gás e aluguel</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Capacidade Diária (Marmitas)
-                </label>
-                <input
-                  type="number"
-                  value={form.capacidade_diaria_marmitas}
-                  onChange={(e) => setForm({ ...form, capacidade_diaria_marmitas: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Limite técnico da cozinha</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Início da Produção / Vendas
-                </label>
-                <input
-                  type="time"
-                  value={form.horario_inicio}
-                  onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Término do Turno Delivery
-                </label>
-                <input
-                  type="time"
-                  value={form.horario_fim}
-                  onChange={(e) => setForm({ ...form, horario_fim: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Seção 3: Canais de Venda Ativos */}
-          <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <ShoppingBag size={18} className="text-emerald-600" />
-              Canais de Venda Habilitados
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { id: "ifood", nome: "iFood Delivery" },
-                { id: "whatsapp", nome: "WhatsApp Direto" },
-                { id: "balcao", nome: "Balcão / Retirada" },
-                { id: "site", nome: "Cardápio Digital Web" },
-              ].map((c) => {
-                const ativo = (form.canais_ativos || []).includes(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => toggleCanal(c.id)}
-                    className={`p-4 rounded-2xl border text-left font-bold text-xs transition-all flex items-center justify-between ${
-                      ativo
-                        ? "bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-400"
-                    }`}
-                  >
-                    <span>{c.nome}</span>
-                    <span
-                      className={`w-3.5 h-3.5 rounded-full ${
-                        ativo ? "bg-emerald-600" : "bg-slate-300"
-                      }`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Seção 4: Automação KDS e Impressão */}
-          <div className="bg-hf-surface p-6 rounded-3xl border border-hf-border shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Printer size={18} className="text-emerald-600" />
-              Integração com KDS & Rotas de Impressão
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Impressora de Etiquetas de Montagem
-                </label>
-                <input
-                  type="text"
-                  value={form.impressora_etiquetas}
-                  onChange={(e) => setForm({ ...form, impressora_etiquetas: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Imprime peso, ingredientes e data de validade na marmita</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Impressora de Comandas / Expedição
-                </label>
-                <input
-                  type="text"
-                  value={form.impressora_comandas}
-                  onChange={(e) => setForm({ ...form, impressora_comandas: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">Imprime via de conferência para sacola e motoboy</p>
-              </div>
-            </div>
-          </div>
-        </form>
-      )}
     </div>
   );
 }

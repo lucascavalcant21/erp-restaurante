@@ -26,7 +26,7 @@
 | A5 | MÉDIA | Ativar o iFood exige: cadastrar o iFood **na unidade Marmitaria** (a conexão é por unidade), cadastrar o webhook no portal e criar `CRON_SECRET` + agendamento para o polling de segurança | Dono (BLQ-013/014) |
 | A6 | BAIXA | **Fornecedores** e **contas financeiras** (bancos/caixas) são por unidade: a marmitaria precisa dos dela. Não há cópia automática de fornecedor | Cadastrar na unidade nova. Sugestão futura: "trazer fornecedor de outra unidade", como as fichas |
 | A7 | BAIXA | Na unidade nova, a configuração trabalhista (`rh_config_trabalhista`) começa vazia; o CMO usa os encargos da marmitaria (FGTS e provisões legais; INSS patronal pela configuração) | Preencher em RH → Configuração da unidade nova |
-| A8 | INFO | Eventos é negócio separado, mas continua dentro da unidade do restaurante (2 eventos). Separar = criar a unidade "Eventos" (a tela agora funciona) e decidir se os 2 eventos mudam de unidade (mexe em dado histórico, exige decisão) | Decisão do dono |
+| A8 | INFO | Eventos: **decisão do dono (14/10, noite)** — continua como operação/centro de resultado do restaurante. Nenhuma unidade criada, nenhum evento histórico movido | Encerrado |
 
 ## Integração conferida (o que está certo)
 

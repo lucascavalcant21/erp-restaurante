@@ -135,7 +135,7 @@ export default function ConfiguracoesPage() {
         </div>
       </Secao>
 
-      <Secao titulo="Negócio e despesas" subtitulo="A marmitaria é um negócio separado do restaurante e de Eventos? Então ela tem unidade própria e todas as contas, estoques e funcionários desta unidade são dela.">
+      <Secao titulo="Negócio e despesas" subtitulo="A marmitaria é um negócio separado do restaurante (Eventos continua dentro do restaurante). Com unidade própria, todas as contas, estoques e funcionários desta unidade são dela.">
         <label className={`flex cursor-pointer gap-3 rounded-xl border p-3 ${exclusiva ? "border-hf-accent bg-hf-accent/5" : "border-hf-border"}`}>
           <input type="checkbox" className="mt-1 h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={exclusiva}
             onChange={(e) => setCfg({ ...cfg, centros_diretos: e.target.checked ? [UNIDADE_EXCLUSIVA] : ["marmitaria"] })} />

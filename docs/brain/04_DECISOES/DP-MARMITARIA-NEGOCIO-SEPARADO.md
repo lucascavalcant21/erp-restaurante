@@ -1,4 +1,4 @@
-# Restaurante, Marmitaria e Eventos são negócios separados (14/10/2026)
+# Marmitaria é uma operação separada do restaurante (14/10/2026)
 
 **Decisão do dono:** o restaurante Seldeestrela, a Marmitaria e Eventos são **três negócios separados**. A Marmitaria terá **unidade própria** no Héfisto (Eventos também é separado; a migração dele é decisão futura). A loja do iFood é **só da Marmitaria**.
 
@@ -24,3 +24,7 @@
 2. Selecionar a unidade Marmitaria no topo.
 3. Marmitaria → Configurações: marcar "Esta unidade é só da marmitaria"; preencher as taxas do canal iFood; cadastrar o iFood.
 4. Usuários: dar acesso à unidade Marmitaria a quem trabalha nela.
+
+## Revisão (14/10, noite) — Eventos fica no restaurante
+
+Decisão do dono: **Eventos continua como operação/centro de resultado do restaurante principal** (centro de custo `eventos` dentro da unidade do restaurante). Não criar unidade Eventos automaticamente e não transferir eventos históricos. A separação operacional e financeira vale para a **Marmitaria**: estoque, produção, funcionários, compras, custos, CMV, CMO, DRE e iFood próprios, com visão consolidada para usuários autorizados.

@@ -115,22 +115,27 @@ export async function salvarConexao(db, unidadeId, dados = {}, { cifrar, cofreCo
 
 /** Chamadas reais ao iFood (injetável). Token por client_credentials e lista de lojas. */
 export function clienteIfood(fetchFn = fetch, base = IFOOD_API) {
+  // Token + validade. A documentação manda reaproveitar o token até perto de
+  // expirar; sem `expiresIn` na resposta, vale 1 h (conservador).
+  async function autenticar(clientId, clientSecret) {
+    const res = await fetchFn(`${base}/authentication/v1.0/oauth/token`, {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grantType: "client_credentials", clientId, clientSecret }).toString(),
+    });
+    if (!res.ok) {
+      const e = new Error(res.status === 401 || res.status === 400 ? "O iFood recusou o Client ID ou o Client Secret." : `O iFood respondeu com erro ${res.status} ao autenticar.`);
+      e.http = res.status;
+      throw e;
+    }
+    const d = await res.json();
+    const t = d.accessToken || d.access_token;
+    if (!t) throw new Error("O iFood não devolveu o token de acesso.");
+    const seg = Number(d.expiresIn || d.expires_in) > 0 ? Number(d.expiresIn || d.expires_in) : 3600;
+    return { token: t, expiraEm: Date.now() + seg * 1000 };
+  }
   return {
-    async token(clientId, clientSecret) {
-      const res = await fetchFn(`${base}/authentication/v1.0/oauth/token`, {
-        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ grantType: "client_credentials", clientId, clientSecret }).toString(),
-      });
-      if (!res.ok) {
-        const e = new Error(res.status === 401 || res.status === 400 ? "O iFood recusou o Client ID ou o Client Secret." : `O iFood respondeu com erro ${res.status} ao autenticar.`);
-        e.http = res.status;
-        throw e;
-      }
-      const d = await res.json();
-      const t = d.accessToken || d.access_token;
-      if (!t) throw new Error("O iFood não devolveu o token de acesso.");
-      return t;
-    },
+    autenticar,
+    async token(clientId, clientSecret) { return (await autenticar(clientId, clientSecret)).token; },
     async lojas(token) {
       const res = await fetchFn(`${base}/merchant/v1.0/merchants`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error(res.status === 403 ? "As credenciais não têm permissão para listar lojas (módulo Merchant)." : `O iFood respondeu com erro ${res.status} ao listar as lojas.`);

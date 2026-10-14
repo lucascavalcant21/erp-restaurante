@@ -16,6 +16,7 @@ import {
 import { fatorCorrecaoDoItem } from "../custo-rendimento.mjs";
 import { unidadeNormalizada } from "../ingredientes-utils.mjs";
 import { comprasDaJanela, fronteiraDaContagem, somarDiasIso } from "../cmv-real.mjs";
+import { ehFracionavel, ehUnidadeContavel } from "../inventario-saldo.mjs";
 
 export const r2 = (n) => (n == null || !Number.isFinite(Number(n)) ? null : Math.round(Number(n) * 100) / 100);
 const r4 = (n) => Math.round(Number(n) * 10000) / 10000;
@@ -25,11 +26,14 @@ const soma = (xs, f = (x) => x) => xs.reduce((t, x) => t + (Number(f(x)) || 0), 
 
 // ─── Unidades ────────────────────────────────────────────────────────────────
 
-// Fator entre a unidade do cadastro (kg, L, g, ml, un) e a unidade do saldo no
-// estoque (g, ml, un) — o mesmo estoque_fator_base do banco.
-export function fatorSaldo(unidadeMedida) {
-  const u = String(unidadeMedida || "").trim().toLowerCase();
-  return u === "kg" || u === "l" ? 1000 : 1;
+// Fator entre a unidade do CADASTRO e a do SALDO no estoque — o mesmo
+// _estoque_fator_saldo do banco: o saldo fica na unidade do cadastro (kg, L,
+// un…), exceto a garrafa fracionada, que guarda em conteúdo (ml): aí o fator é
+// o tamanho da embalagem. (Antes era 1000 para kg/L: produção e transferência
+// da marmitaria moveriam 1000× a quantidade — B-018.)
+export function fatorSaldo(insumo) {
+  if (!insumo || typeof insumo !== "object") return 1;
+  return ehFracionavel(insumo) && ehUnidadeContavel(insumo.unidade_medida) ? Math.max(Number(insumo.tamanho_embalagem) || 1, 0.000001) : 1;
 }
 
 // Quantidade digitada (g, kg, ml, L, un) → unidade do cadastro do insumo ou do
@@ -369,7 +373,7 @@ export function consumoDaMarmita({ marmita, quantidade, fichas = [], insumos = n
   const fichaPorId = new Map(fichas.map((f) => [f.id, f]));
   const add = (insumoId, qCadastro, nome) => {
     const ins = insumos.get(insumoId);
-    const qSaldo = qCadastro * fatorSaldo(ins?.unidade_medida);
+    const qSaldo = qCadastro * fatorSaldo(ins);
     const a = precisa.get(insumoId) || { q: 0, nome: nome || ins?.nome || "Item" };
     a.q += qSaldo;
     precisa.set(insumoId, a);

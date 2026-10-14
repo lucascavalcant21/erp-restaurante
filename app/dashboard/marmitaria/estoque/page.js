@@ -29,7 +29,7 @@ function useSaldos(base, estoquesIds) {
     for (const it of base.itensEstoque) {
       if (!ids.has(it.estoque_id)) continue;
       const ins = base.insumos.get(it.insumo_id);
-      const v = (Number(it.quantidade_atual) || 0) / fatorSaldo(ins?.unidade_medida);
+      const v = (Number(it.quantidade_atual) || 0) / fatorSaldo(ins);
       m.set(it.insumo_id, (m.get(it.insumo_id) || 0) + v);
     }
     return m;
@@ -200,7 +200,7 @@ function Estoque() {
       {locais.map((e) => {
         const itens = base.itensEstoque.filter((i) => i.estoque_id === e.id).map((i) => {
           const ins = base.insumos.get(i.insumo_id);
-          const saldo = (Number(i.quantidade_atual) || 0) / fatorSaldo(ins?.unidade_medida);
+          const saldo = (Number(i.quantidade_atual) || 0) / fatorSaldo(ins);
           const min = i.estoque_minimo === null || i.estoque_minimo === undefined ? null : Number(i.estoque_minimo);
           const dias = i.validade ? Math.round((new Date(`${i.validade}T12:00:00`) - new Date(`${agora}T12:00:00`)) / 86400000) : null;
           return { ...i, ins, saldo, min, dias };
@@ -237,8 +237,8 @@ function Transferir({ inicial, onFechar }) {
   const sel = itensOrigem.find((i) => i.insumo_id === f.insumo);
   const unCad = String(sel?.ins?.unidade_medida || "un").toLowerCase();
   const qCad = sel ? paraUnidadeDoCadastro(f.qtd, f.un || unCad, unCad) : null;
-  const qSaldo = qCad === null ? null : Math.round(qCad * fatorSaldo(unCad) * 1000) / 1000;
-  const saldoCad = sel ? Number(sel.quantidade_atual) / fatorSaldo(unCad) : 0;
+  const qSaldo = qCad === null ? null : Math.round(qCad * fatorSaldo(sel?.ins) * 1000) / 1000;
+  const saldoCad = sel ? Number(sel.quantidade_atual) / fatorSaldo(sel.ins) : 0;
 
   async function confirmar() {
     if (salvando) return;
@@ -328,7 +328,7 @@ function Producao() {
             <Tabela cab={["Baixa", "Quantidade", "De"]} linhas={calc.baixas.map((b) => {
               const ins = base.insumos.get(b.insumo_id);
               const un = String(ins?.unidade_medida || "un").toLowerCase();
-              return [b.nome, `${num(b.quantidade / fatorSaldo(un))} ${rotuloUn(un)}`, b.estoque_nome];
+              return [b.nome, `${num(b.quantidade / fatorSaldo(ins))} ${rotuloUn(un)}`, b.estoque_nome];
             })} />
             {calc.faltas.map((x) => <Aviso key={x} tipo="alerta" className="mt-2">{x}</Aviso>)}
             {custo && <p className="mt-2 text-sm text-hf-text-2">Custo previsto do lote: <b className="tabular-nums">{brl(custo.total * qtd)}</b></p>}

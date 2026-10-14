@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { MarmitariaProvider, useMarmitaria } from "../../components/marmitaria/contexto";
 import { Aviso } from "../../components/marmitaria/ui";
 import { MSG_MIGRACAO } from "../../lib/marmitaria/dados";
+import { unidadeExclusiva } from "../../lib/marmitaria/nucleo.mjs";
 
 const AREAS = [
   { href: "/dashboard/marmitaria", rotulo: "Visão geral", exato: true },
@@ -24,6 +25,17 @@ function Estado() {
   if (!unidadeId) return <Aviso tipo="alerta" className="mb-4">Selecione uma unidade no topo da tela para usar a marmitaria.</Aviso>;
   if (base?.migracaoPendente) return <Aviso tipo="alerta" className="mb-4">{MSG_MIGRACAO}</Aviso>;
   if (erro && !carregando) return <Aviso tipo="alerta" className="mb-4">Não foi possível carregar tudo: {erro}</Aviso>;
+  // A marmitaria é um negócio separado (decisão do dono, 14/10/2026): o certo
+  // é ela ter unidade própria. Enquanto estiver dentro da unidade de outro
+  // negócio, avisa como separar.
+  if (base && !unidadeExclusiva(base.config)) {
+    return (
+      <Aviso className="mb-4">
+        A marmitaria está dentro da unidade <b>{base.unidade?.nome || unidadeId}</b>. Para separar do restaurante: crie a unidade “Marmitaria” em{" "}
+        <Link href="/dashboard/configuracoes" className="font-semibold text-hf-accent hover:underline">Configurações → Unidades</Link>, selecione-a no topo e marque “Esta unidade é só da marmitaria” em Configurações da marmitaria.
+      </Aviso>
+    );
+  }
   return null;
 }
 

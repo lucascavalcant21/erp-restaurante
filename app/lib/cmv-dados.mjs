@@ -16,6 +16,8 @@ export const MOTIVO_SEM_FATURAMENTO = "Não há fonte de faturamento no Héfisto
 // data/hora vindas do banco: texto (Supabase) ou Date (driver) → texto ISO
 const isoData = (v) => (v == null ? null : v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10));
 const isoHora = (v) => (v == null ? null : v instanceof Date ? v.toISOString() : String(v));
+// dia no fuso da operação (a transferência das 22h de SP é do mesmo dia, não do seguinte em UTC)
+const diaLocal = (v) => (v == null ? null : new Date(v).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }));
 const tabelaAusente = (e) => /does not exist|não existe|schema cache|could not find/i.test(String(e?.message || e || ""));
 
 export async function carregarDadosCmv(db, unidadeId) {
@@ -32,11 +34,21 @@ export async function carregarDadosCmv(db, unidadeId) {
   const contagens = (c.data || []).filter((x) => !x.estoque_id);
   const idsC = contagens.map((x) => x.id);
   const idsCompra = (compras.data || []).map((x) => x.id);
-  const [itC, itCp, fat] = await Promise.all([
+  const COLS_T = "unidade_origem, unidade_destino, insumo_origem_id, insumo_destino_id, quantidade_base, unidade_base, valor, created_at";
+  const [itC, itCp, fat, tSai, tEnt] = await Promise.all([
     idsC.length ? db.from("estoque_contagens_itens").select("contagem_id, insumo_id, estoque_id, quantidade_contada, unidade_base, custo_unitario, valor_total").in("contagem_id", idsC) : { data: [] },
     idsCompra.length ? db.from("compras_itens").select("*").in("compra_id", idsCompra) : { data: [] },
     db.from("fin_faturamento_diario").select("data, vendas_brutas, cancelamentos, descontos, receita, fonte, observacao, updated_at").eq("unidade_id", unidadeId),
+    // transferências entre unidades (UNID-MARM-1); sem a tabela = nenhuma
+    db.from("estoque_transferencias_unidades").select(COLS_T).eq("unidade_origem", unidadeId),
+    db.from("estoque_transferencias_unidades").select(COLS_T).eq("unidade_destino", unidadeId),
   ]);
+  const erroT = [tSai.error, tEnt.error].find((e) => e && !tabelaAusente(e));
+  if (erroT) return falha(erroDb(erroT));
+  const transferencias = [
+    ...(tSai.error ? [] : tSai.data || []).map((t) => ({ insumo_id: t.insumo_origem_id, sentido: "saida", quantidade_base: Number(t.quantidade_base), unidade_base: t.unidade_base, valor: t.valor == null ? null : Number(t.valor), data: diaLocal(t.created_at) })),
+    ...(tEnt.error ? [] : tEnt.data || []).map((t) => ({ insumo_id: t.insumo_destino_id, sentido: "entrada", quantidade_base: Number(t.quantidade_base), unidade_base: t.unidade_base, valor: t.valor == null ? null : Number(t.valor), data: diaLocal(t.created_at) })),
+  ];
   const erro2 = [itC.error, itCp.error].find(Boolean);
   if (erro2) return falha(erroDb(erro2));
   const itensPorContagem = new Map(idsC.map((id) => [id, []]));
@@ -58,6 +70,7 @@ export async function carregarDadosCmv(db, unidadeId) {
       insumoPorId: new Map((ins.data || []).map((i) => [i.id, i])),
       fornecedorPorId: new Map((forn.data || []).map((f) => [f.id, f])),
       fonteFaturamento,
+      transferencias,
     },
     error: null,
   };

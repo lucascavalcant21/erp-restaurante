@@ -16,6 +16,7 @@ import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Secao, SemDados, brl, inputCls, num, lerNumero } from "../../../components/marmitaria/ui";
 import { ativarEstoques, vincularProduto, transferir, registrarProducao, fetchProducoes, novaChave, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../../lib/marmitaria/dados";
 import PedidosIfood from "../../../components/marmitaria/PedidosIfood";
+import TransferirEntreUnidades from "../../../components/marmitaria/TransferirEntreUnidades";
 import { necessidadeDeProducao, baixasDaProducao, fatorSaldo, paraUnidadeDoCadastro, unidadesCompativeis } from "../../../lib/marmitaria/nucleo.mjs";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
@@ -140,6 +141,7 @@ function Estoque() {
   const [msg, setMsg] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const [transf, setTransf] = useState(null);
+  const [transfUnidade, setTransfUnidade] = useState(null);
   const locais = base.estoques.filter(ehDaMarmitaria);
   const est = locais.find((e) => e.slug === ESTOQUE_MARMITARIA);
   const estEmb = locais.find((e) => e.slug === ESTOQUE_EMBALAGENS);
@@ -197,6 +199,7 @@ function Estoque() {
       {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}
       <Aviso>Entrada, retirada, perda e inventário semanal: use a <Link href="/dashboard/operacao/estoque" className="font-semibold text-hf-accent">tela oficial do Estoque</Link> escolhendo o local “Marmitaria”. Compras entram por <Link href="/dashboard/operacao/compras" className="font-semibold text-hf-accent">Compras</Link>, destinando ao local da marmitaria.</Aviso>
       {transf && <Transferir key={transf.chave} inicial={transf} onFechar={() => setTransf(null)} />}
+      {transfUnidade && <TransferirEntreUnidades key={transfUnidade.chave} inicial={transfUnidade} onFechar={() => setTransfUnidade(null)} />}
       {locais.map((e) => {
         const itens = base.itensEstoque.filter((i) => i.estoque_id === e.id).map((i) => {
           const ins = base.insumos.get(i.insumo_id);
@@ -207,7 +210,10 @@ function Estoque() {
         }).sort((a, b) => (a.validade || "9999").localeCompare(b.validade || "9999") || String(a.ins?.nome).localeCompare(String(b.ins?.nome), "pt-BR"));
         return (
           <Secao key={e.id} titulo={e.nome} subtitulo={`${itens.length} produto(s) · ordenado por validade (primeiro a vencer, primeiro a sair)`}
-            direita={<Botao variante="secundario" onClick={() => setTransf({ chave: novaChave(), destino: e.id })}>Trazer de outro estoque</Botao>}>
+            direita={<div className="flex flex-wrap gap-2">
+              <Botao variante="secundario" onClick={() => setTransf({ chave: novaChave(), destino: e.id })}>Trazer de outro estoque</Botao>
+              <Botao variante="secundario" onClick={() => setTransfUnidade({ chave: novaChave(), destino: e.id })}>Trazer de outra unidade</Botao>
+            </div>}>
             {itens.length ? (
               <Tabela cab={["Produto", "Saldo", "Mínimo", "Validade", "Situação"]}
                 linhas={itens.map((i) => {

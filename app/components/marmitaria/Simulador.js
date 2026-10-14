@@ -9,7 +9,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useMarmitaria } from "./contexto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, lerNumero, pctTxt } from "./ui";
 import { carregarEquipe, salvarSimulacao } from "../../lib/marmitaria/dados";
-import { CENARIOS_PADRAO, cmoMarmitaria, encargosDaConfig, simular } from "../../lib/marmitaria/nucleo.mjs";
+import { CENARIOS_PADRAO, cmoMarmitaria, encargosDaConfig, simular, unidadeExclusiva } from "../../lib/marmitaria/nucleo.mjs";
 
 const txt = (n) => (n === null || n === undefined ? "" : String(Math.round(n * 100) / 100).replace(".", ","));
 
@@ -34,8 +34,9 @@ export default function Simulador() {
 
   useEffect(() => {
     if (!unidadeId) return;
-    carregarEquipe(unidadeId).then((e) => {
-      const r = cmoMarmitaria({ alocacoes: e.alocacoes || [], colaboradores: e.colaboradores || [], recibos: [], encargos: encargosDaConfig(base.config.encargos, e.rhConfig), mes: "" });
+    const exclusiva = unidadeExclusiva(base.config);
+    carregarEquipe(unidadeId, { comOutrasUnidades: exclusiva }).then((e) => {
+      const r = cmoMarmitaria({ alocacoes: e.alocacoes || [], colaboradores: [...(e.colaboradores || []), ...(e.outrasUnidades || [])], recibos: [], encargos: encargosDaConfig(base.config.encargos, e.rhConfig), mes: "", unidadeId, exclusiva });
       setCmoAtual(r.linhas.length ? r.total : null);
     });
   }, [unidadeId, base]);

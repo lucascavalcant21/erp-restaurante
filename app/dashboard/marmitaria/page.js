@@ -10,7 +10,7 @@ import { useMarmitaria } from "../../components/marmitaria/contexto";
 import { useDreMarmitaria } from "../../components/marmitaria/Dre";
 import { Abas, Aviso, Campo, Indicador, Secao, SemDados, brl, inputCls, pctTxt, num } from "../../components/marmitaria/ui";
 import { fetchVendas, ESTOQUE_MARMITARIA, ESTOQUE_EMBALAGENS } from "../../lib/marmitaria/dados";
-import { cmvPrevisto, dreMarmitaria, fatorSaldo, periodo, rankingMarmitas, resultadoPorCanal } from "../../lib/marmitaria/nucleo.mjs";
+import { cmvPrevisto, dreMarmitaria, fatorSaldo, periodo, rankingMarmitas, resultadoPorCanal, unidadeExclusiva } from "../../lib/marmitaria/nucleo.mjs";
 
 const hojeIso = () => new Date().toLocaleDateString("sv-SE");
 const FILTROS = [{ id: "hoje", rotulo: "Hoje" }, { id: "semana", rotulo: "Semana" }, { id: "mes", rotulo: "Mês" }, { id: "personalizado", rotulo: "Personalizado" }];
@@ -58,7 +58,7 @@ export default function VisaoGeralPage() {
   const maisLucro = [...porMarmita].sort((a, b) => b.r.margemContribuicao - a.r.margemContribuicao).slice(0, 5);
   const negativas = porMarmita.filter((x) => x.r.margemContribuicao < 0);
 
-  const locais = base.estoques.filter((e) => e.slug === ESTOQUE_MARMITARIA || e.slug === ESTOQUE_EMBALAGENS).map((e) => e.id);
+  const locais = base.estoques.filter((e) => unidadeExclusiva(base.config) || e.slug === ESTOQUE_MARMITARIA || e.slug === ESTOQUE_EMBALAGENS).map((e) => e.id);
   const hoje = hojeIso();
   const alertasEstoque = base.itensEstoque.filter((i) => locais.includes(i.estoque_id)).map((i) => {
     const ins = base.insumos.get(i.insumo_id);

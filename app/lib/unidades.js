@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { idDaUnidade, empresaPadrao } from "./unidades-id.mjs";
 
 // Unidade de demonstração: só existe quando NÃO há Supabase configurado, para
 // a tela abrir em desenvolvimento. Ela é marcada, e nada que grava aceita uma
@@ -47,23 +48,43 @@ export async function fetchUnidades() {
   return { data: data || [], error: null };
 }
 
+// unidades.id é texto obrigatório sem valor padrão: a tela mandava só o nome e
+// a criação falhava. O id sai do nome e a empresa é herdada quando há uma só.
 export async function inserirUnidade(u) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
-  const { data, error } = await supabase.from("unidades").insert([u]).select(COLUNAS_UNIDADE).single();
+  const { data: existentes } = await supabase.from("unidades").select("id, empresa_id");
+  const { linha: dados, ignorados } = colunasDeUnidade(u);
+  const linha = {
+    ...Object.fromEntries(Object.entries(dados).filter(([, v]) => v !== "")),
+    id: u?.id || idDaUnidade(u?.nome, (existentes || []).map((x) => x.id)),
+    empresa_id: u?.empresa_id || empresaPadrao(existentes || []),
+  };
+  if (!linha.empresa_id) delete linha.empresa_id;
+  const { data, error } = await supabase.from("unidades").insert([linha]).select(COLUNAS_UNIDADE).single();
   if (error) {
     const m = error.message || "";
     if (/row-level security|violates row-level|permission denied|policy/i.test(m)) {
-      return { data: null, error: "Sem permissão para criar unidades (política RLS). Rode o SQL das políticas da tabela unidades que te passei no chat." };
+      return { data: null, error: "Só quem enxerga todas as unidades (dono) pode criar unidade nova." };
     }
     return { data: null, error: m };
   }
-  return { data, error: null };
+  return { data, error: null, ignorados };
+}
+
+// Só colunas que existem em `unidades`. Campo desconhecido derrubava a
+// gravação inteira sem aviso (B-017); agora ele é devolvido em `ignorados`.
+export function colunasDeUnidade(dados = {}) {
+  const permitidas = new Set(COLUNAS_UNIDADE.split(", ").filter((c) => !["id", "created_at"].includes(c)));
+  const linha = {}; const ignorados = [];
+  for (const [k, v] of Object.entries(dados || {})) (permitidas.has(k) ? (linha[k] = v) : (v !== "" && v != null && ignorados.push(k)));
+  return { linha, ignorados };
 }
 
 export async function atualizarUnidade(id, updates) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("unidades").update(updates).eq("id", id);
-  return { error: error?.message };
+  const { linha, ignorados } = colunasDeUnidade(updates);
+  const { error } = await supabase.from("unidades").update(linha).eq("id", id);
+  return { error: error?.message, ignorados };
 }
 
 // Token da NF-e: o navegador nunca recebe o valor, só se está preenchido.

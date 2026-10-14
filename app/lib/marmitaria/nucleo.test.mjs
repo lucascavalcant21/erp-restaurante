@@ -367,3 +367,55 @@ test("período dos filtros: semana começa na segunda", () => {
   assert.deepEqual(periodo("mes", "2026-10-14"), { de: "2026-10-01", ate: "2026-10-14" });
   assert.deepEqual(periodo("personalizado", "2026-10-14", { de: "2026-10-20", ate: "2026-10-01" }), { de: "2026-10-01", ate: "2026-10-20" });
 });
+
+test("unidade só da marmitaria: toda conta da unidade entra 100%, sem rateio", async () => {
+  const { contasDaMarmitaria, unidadeExclusiva } = await import("./nucleo.mjs");
+  const contas = [
+    { competencia_efetiva: "2026-10-05", centro_custo_codigo: "cozinha", valor_original: 100, categoria_codigo: "x" },
+    { competencia_efetiva: "2026-10-06", centro_custo_codigo: "", valor_original: 50, categoria_codigo: "ocupacao_aluguel" },
+    { competencia_efetiva: "2026-10-07", situacao: "cancelado", centro_custo_codigo: "", valor_original: 999 },
+  ];
+  const r = contasDaMarmitaria(contas, "2026-10", { centrosDiretos: ["*"], rateio: {} });
+  assert.deepEqual(r.map((c) => [c.valorMarmitaria, c.criterio]), [[100, "unidade_exclusiva"], [50, "unidade_exclusiva"]]);
+  assert.equal(unidadeExclusiva({ centros_diretos: ["*"] }), true);
+  assert.equal(unidadeExclusiva({ centros_diretos: ["marmitaria"] }), false);
+  // modo antigo (mesma unidade do restaurante) continua igual
+  const antigo = contasDaMarmitaria(contas, "2026-10", { centrosDiretos: ["marmitaria"], rateio: {} });
+  assert.deepEqual(antigo.map((c) => c.criterio), ["outra_operacao", "rateio_nao_configurado"]);
+});
+
+test("CMO na unidade só da marmitaria: equipe da unidade 100% sem alocação; cedido de outra unidade separado", async () => {
+  const { cmoMarmitaria } = await import("./nucleo.mjs");
+  const colaboradores = [
+    { id: "a", nome: "Ana", unidade_id: "marmitaria", salario: 2000, status: "ativo" },
+    { id: "b", nome: "Bia", unidade_id: "marmitaria", salario: 1000, status: "inativo" },
+    { id: "c", nome: "Caio", unidade_id: "restaurante", salario: 3000, status: "ativo" },
+  ];
+  const enc = { fgts_pct: 0, inss_patronal_pct: 0, provisao_13_pct: 0, provisao_ferias_pct: 0, criterio: "percentual" };
+  const r = cmoMarmitaria({ colaboradores, alocacoes: [{ colaborador_id: "c", tipo_alocacao: "compartilhado", percentual_tempo: 25 }], encargos: enc, mes: "2026-10", unidadeId: "marmitaria", exclusiva: true });
+  assert.deepEqual(r.linhas.map((l) => [l.nome, l.marmitaria, l.cedido, l.implicita]), [["Caio", 750, true, false], ["Ana", 2000, false, true]]);
+  assert.equal(r.total, 2750);
+  assert.equal(r.totalCedido, 750);
+  // fora do modo exclusivo: só quem foi alocado (comportamento antigo)
+  const antigo = cmoMarmitaria({ colaboradores, alocacoes: [], encargos: enc, mes: "2026-10" });
+  assert.equal(antigo.linhas.length, 0);
+});
+
+test("DRE da empresa: uma coluna por unidade + marmitaria; pessoa cedida não conta duas vezes", async () => {
+  const { dreEmpresa } = await import("./nucleo.mjs");
+  const rest = { linhas: [{ id: "faturamento", valor: 100000 }, { id: "impostos", valor: 6000 }, { id: "cmv", valor: 30000 }, { id: "variaveis", valor: 5000 },
+    { id: "pessoal", valor: 25000 }, { id: "fixas", valor: 20000 }, { id: "resultado", valor: 14000 }] };
+  const marm = { indicadores: { receita: 20000, tributos: 1200, cmv: 7000, lucroBruto: 11800, margemContribuicao: 9000, cmo: 4000, resultadoOperacional: 2000, lucroLiquido: 1800 } };
+  const r = dreEmpresa({ unidades: [{ id: "rest", nome: "Restaurante", dre: rest }], marmitaria: { id: "marm", nome: "Marmitaria", dre: marm, cmoCedido: 1000 } });
+  const l = (id) => r.linhas.find((x) => x.id === id);
+  assert.deepEqual(l("receita").valores, [100000, 20000]);
+  assert.equal(l("receita").total, 120000);
+  assert.deepEqual(l("pessoal").valores, [25000, 3000]);       // 4000 − 1000 cedido (já no RH do restaurante)
+  assert.deepEqual(l("variaveis").valores, [5000, 2800]);       // lucro bruto − margem de contribuição
+  assert.deepEqual(l("fixas").valores, [20000, 3200]);          // (9000 − 2000) − 4000 + (2000 − 1800)
+  assert.deepEqual(l("resultado").valores, [14000, 2800]);      // 1800 + 1000 devolvido do cedido
+  assert.equal(l("resultado").total, 16800);
+  // coluna sem dado → total da linha sem dado (nunca soma parcial disfarçada)
+  const s = dreEmpresa({ unidades: [{ id: "rest", nome: "R", dre: { linhas: [{ id: "faturamento", valor: 1 }] } }], marmitaria: null });
+  assert.equal(s.linhas.find((x) => x.id === "cmv").total, null);
+});

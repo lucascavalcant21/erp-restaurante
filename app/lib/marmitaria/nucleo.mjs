@@ -431,12 +431,26 @@ const ativoColab = (c) => (c?.status || "ativo") !== "inativo" && !c?.data_desli
  * Cada salário entra UMA vez: a parte da marmitaria é a fração alocada; o
  * restante continua no restaurante (campo `restaurante`).
  */
-export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = [], encargos, mes, horasSemanaPadrao = 44, marmitasVendidas = null } = {}) {
+/**
+ * unidadeId + exclusiva (unidade só da marmitaria): todo funcionário ATIVO da
+ * unidade entra 100% sem precisar de alocação; quem é de OUTRA unidade da
+ * empresa e está alocado aqui é "cedido" — custo gerencial da marmitaria, mas
+ * o salário continua pago (e contado) na unidade de origem. totalCedido serve
+ * para a visão consolidada não contar duas vezes.
+ */
+export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = [], encargos, mes, horasSemanaPadrao = 44, marmitasVendidas = null, unidadeId = null, exclusiva = false } = {}) {
   const enc = encargos || encargosDaConfig();
   const porId = new Map(colaboradores.map((c) => [c.id, c]));
   const linhas = [];
   const avisos = [];
-  for (const a of alocacoes.filter((x) => x.ativo !== false)) {
+  const ativas = alocacoes.filter((x) => x.ativo !== false);
+  if (exclusiva && unidadeId) {
+    const ja = new Set(alocacoes.map((a) => a.colaborador_id));
+    for (const c of colaboradores) {
+      if (c.unidade_id === unidadeId && ativoColab(c) && !ja.has(c.id)) ativas.push({ colaborador_id: c.id, tipo_alocacao: "exclusivo", implicita: true });
+    }
+  }
+  for (const a of ativas) {
     const c = porId.get(a.colaborador_id);
     if (!c) { avisos.push("Uma alocação aponta para colaborador que não existe mais no RH."); continue; }
     if (!ativoColab(c)) { avisos.push(`${c.nome} está desligado(a) e continua alocado(a): revise.`); continue; }
@@ -455,8 +469,10 @@ export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = []
     extras = soma((recibos || []).filter((r) => r.colaborador_id === c.id && r.pagamento_realizado
       && String(r.data_pagamento || r.data_trabalho || "").slice(0, 7) === mes), (r) => r.valor_total);
     const total = salario + encargosV + provisoes + beneficios + extras;
+    const cedido = !!(unidadeId && c.unidade_id && c.unidade_id !== unidadeId);
     linhas.push({
       colaborador_id: c.id, nome: c.nome, cargo: c.cargo || "", tipo: a.tipo_alocacao === "exclusivo" ? "exclusivo" : "compartilhado",
+      cedido, unidadeOrigem: cedido ? c.unidade_id : null, implicita: !!a.implicita,
       fracaoPct: r2(fracao * 100), salario: r2(salario), encargos: r2(encargosV), provisoes: r2(provisoes),
       beneficios: r2(beneficios), extras: r2(extras), custoTotal: r2(total),
       marmitaria: r2(total * fracao), restaurante: r2(total * (1 - fracao)),
@@ -466,6 +482,7 @@ export function cmoMarmitaria({ alocacoes = [], colaboradores = [], recibos = []
   return {
     linhas, avisos, natureza: "estimativa", encargos: enc,
     total, restaurante: r2(soma(linhas, (l) => l.restaurante)),
+    totalCedido: r2(soma(linhas.filter((l) => l.cedido), (l) => l.marmitaria)),
     porMarmita: marmitasVendidas > 0 ? r2(total / marmitasVendidas) : null,
     motivoPorMarmita: marmitasVendidas > 0 ? null : "Sem marmitas vendidas lançadas no mês.",
   };
@@ -626,9 +643,17 @@ const FORA = new Set(["mercadoria", "investimento", "distribuicao", "perda_estoq
  *   rateio      centro compartilhado (geral, administrativo, sem centro) → % configurado
  *   fora        centro de outra operação (cozinha, bar, salão, eventos) → 0%
  * A política fica explícita em cada linha (`criterio`).
+ *
+ * Unidade só da marmitaria (centrosDiretos contém "*"): a marmitaria é um
+ * negócio separado, com unidade própria — toda conta da unidade é dela (100%),
+ * sem rateio com outro negócio.
  */
+export const UNIDADE_EXCLUSIVA = "*";
+export const unidadeExclusiva = (cfg = {}) => Array.isArray(cfg.centros_diretos) && cfg.centros_diretos.includes(UNIDADE_EXCLUSIVA);
+
 export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmitaria"], rateio = {} } = {}) {
   const diretos = new Set(centrosDiretos.map((c) => String(c).toLowerCase()));
+  const exclusiva = diretos.has(UNIDADE_EXCLUSIVA);
   const padrao = rateio?.padrao_pct === undefined || rateio?.padrao_pct === null || rateio?.padrao_pct === "" ? null : Math.max(0, Math.min(100, parseNumero(rateio.padrao_pct)));
   const porCat = rateio?.por_categoria || {};
   const out = [];
@@ -637,7 +662,8 @@ export function contasDaMarmitaria(contas = [], mes, { centrosDiretos = ["marmit
     if (String(c?.competencia_efetiva || "").slice(0, 7) !== mes) continue;
     const centro = String(c.centro_custo_codigo || "").toLowerCase();
     let fracao = 0; let criterio;
-    if (diretos.has(centro)) { fracao = 1; criterio = "direta"; }
+    if (exclusiva) { fracao = 1; criterio = "unidade_exclusiva"; }
+    else if (diretos.has(centro)) { fracao = 1; criterio = "direta"; }
     else if (CENTROS_COMPARTILHADOS.has(centro)) {
       const especifico = porCat[c.categoria_codigo];
       const p = especifico === undefined || especifico === null || especifico === "" ? padrao : Math.max(0, Math.min(100, parseNumero(especifico)));
@@ -898,4 +924,51 @@ export function periodo(tipo, hojeIso, personalizado = {}) {
     return de <= ate ? { de, ate } : { de: ate, ate: de };
   }
   return { de: `${hoje.slice(0, 7)}-01`, ate: hoje };
+}
+
+/**
+ * Visão da EMPRESA com negócios em unidades próprias (restaurante, eventos,
+ * marmitaria…): uma coluna por unidade + total. Nada é contado duas vezes:
+ *   - unidades comuns: DRE gerencial do Financeiro (dre-gerencial.mjs);
+ *   - marmitaria: o DRE dela, MENOS o CMO de pessoas cedidas por outra
+ *     unidade (o salário já está no RH da origem);
+ *   - transferências entre unidades já se anulam no CMV de cada unidade
+ *     (saída não é consumo da origem; entrada é compra do destino).
+ * Valor de uma coluna sem dado = null, e o total da linha também fica null.
+ */
+export function dreEmpresa({ unidades = [], marmitaria = null } = {}) {
+  const colunas = [];
+  for (const u of unidades) {
+    const v = (id, ausenteZero = false) => { const l = u.dre?.linhas?.find((x) => x.id === id); return l ? l.valor : ausenteZero ? 0 : null; };
+    const somaN = (...xs) => (xs.some((x) => x === null || x === undefined) ? null : r2(soma(xs)));
+    colunas.push({ id: u.id, nome: u.nome, tipo: "unidade", valores: {
+      receita: v("faturamento"), tributos: v("impostos"), cmv: v("cmv"), variaveis: v("variaveis"), pessoal: v("pessoal"),
+      fixas: somaN(v("fixas"), v("pro_labore", true), v("financeiro", true)), resultado: v("resultado"),
+    } });
+  }
+  if (marmitaria?.dre) {
+    const i = marmitaria.dre.indicadores || {};
+    const ced = pos(marmitaria.cmoCedido);
+    const sub = (a, b) => (a === null || a === undefined || b === null || b === undefined ? null : r2(a - b));
+    const variaveis = sub(i.lucroBruto, i.margemContribuicao);
+    const cmo = i.cmo ?? 0;
+    const operacionais = sub(i.margemContribuicao, i.resultadoOperacional);
+    const financeiro = sub(i.resultadoOperacional, i.lucroLiquido);
+    colunas.push({ id: marmitaria.id, nome: marmitaria.nome, tipo: "marmitaria", cedido: r2(ced), valores: {
+      receita: i.receita ?? null, tributos: i.tributos ?? null, cmv: i.cmv ?? null, variaveis,
+      pessoal: r2(cmo - ced),
+      fixas: operacionais === null || financeiro === null ? null : r2(operacionais - cmo + financeiro),
+      resultado: i.lucroLiquido === null || i.lucroLiquido === undefined ? null : r2(i.lucroLiquido + ced),
+    } });
+  }
+  const LINHAS = [
+    ["receita", "Receita de vendas", "subtotal"], ["tributos", "(−) Tributos sobre vendas"], ["cmv", "(−) CMV"],
+    ["variaveis", "(−) Custos variáveis (taxas, comissões)"], ["pessoal", "(−) Pessoal (CMO)"],
+    ["fixas", "(−) Despesas fixas, pró-labore e financeiras"], ["resultado", "(=) Resultado", "resultado"],
+  ];
+  const linhas = LINHAS.map(([id, rotulo, tipo = "linha"]) => {
+    const valores = colunas.map((c) => c.valores[id]);
+    return { id, rotulo, tipo, valores, total: !colunas.length || valores.some((x) => x === null || x === undefined) ? null : r2(soma(valores)) };
+  });
+  return { colunas: colunas.map(({ id, nome, tipo, cedido }) => ({ id, nome, tipo, cedido })), linhas };
 }

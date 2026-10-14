@@ -1,7 +1,8 @@
 "use client";
 
 // Os números que só o dono sabe: taxas do contrato de cada canal, alíquota,
-// margem-alvo, encargos e o critério de rateio das despesas compartilhadas.
+// margem-alvo, encargos e se a unidade é só da marmitaria (negócio separado)
+// ou compartilhada com o restaurante (aí entra o critério de rateio).
 // Nenhum vem preenchido com "valor de mercado": campo vazio = não configurado.
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { Aviso, Botao, Campo, CampoNumero, Secao, inputCls, lerNumero } from "..
 import { salvarConfig, carregarEquipe } from "../../../lib/marmitaria/dados";
 import IfoodConexao from "../../../components/integracoes/IfoodConexao";
 import IfoodSincronizacao from "../../../components/integracoes/IfoodSincronizacao";
-import { MODELOS_CANAL, normalizarCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS } from "../../../lib/marmitaria/nucleo.mjs";
+import { MODELOS_CANAL, normalizarCanal, validarCanal, encargosDaConfig, ENCARGOS_LEGAIS, UNIDADE_EXCLUSIVA } from "../../../lib/marmitaria/nucleo.mjs";
 
 const RATEAVEIS = [
   ["ocupacao_aluguel", "Aluguel"], ["ocupacao_condominio", "Condomínio"], ["utilidades_energia", "Energia"], ["utilidades_agua", "Água"],
@@ -41,6 +42,7 @@ export default function ConfiguracoesPage() {
 
   if (!base || !cfg) return null;
   const usados = new Set(cfg.canais.map((c) => c.id));
+  const exclusiva = cfg.centros_diretos.includes(UNIDADE_EXCLUSIVA);
   const mudarCanal = (i, campo, valor) => setCfg({ ...cfg, canais: cfg.canais.map((c, j) => (j === i ? { ...c, [campo]: valor } : c)) });
   const enc = encargosDaConfig(Object.fromEntries(Object.entries(cfg.encargos).map(([k, v]) => [k, typeof v === "string" ? lerNumero(v) : v])), rhConfig);
 
@@ -133,18 +135,31 @@ export default function ConfiguracoesPage() {
         </div>
       </Secao>
 
-      <Secao titulo="Despesas compartilhadas com o restaurante" subtitulo="Contas com centro de custo Geral/Administrativo (ou sem centro). Conta com centro Marmitaria entra 100%; de Cozinha, Bar, Salão ou Eventos não entra.">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Campo rotulo="% padrão para a marmitaria" dica="Vale para a categoria sem % próprio. Vazio = 0% e aviso no DRE."><CampoNumero valor={cfg.rateio.padrao_pct} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, padrao_pct: v } })} placeholder="não configurado" /></Campo>
-          {RATEAVEIS.map(([cod, rot]) => (
-            <Campo key={cod} rotulo={`${rot} (%)`}><CampoNumero valor={cfg.rateio.por_categoria[cod] ?? ""} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, por_categoria: { ...cfg.rateio.por_categoria, [cod]: v } } })} placeholder="usa o padrão" /></Campo>
-          ))}
-        </div>
-        <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
-          <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={cfg.centros_diretos.includes("delivery")}
-            onChange={(e) => setCfg({ ...cfg, centros_diretos: e.target.checked ? [...new Set([...cfg.centros_diretos, "delivery"])] : cfg.centros_diretos.filter((x) => x !== "delivery") })} />
-          Contas com centro de custo “Delivery” também são da marmitaria (100%)
+      <Secao titulo="Negócio e despesas" subtitulo="A marmitaria é um negócio separado do restaurante (Eventos continua dentro do restaurante). Com unidade própria, todas as contas, estoques e funcionários desta unidade são dela.">
+        <label className={`flex cursor-pointer gap-3 rounded-xl border p-3 ${exclusiva ? "border-hf-accent bg-hf-accent/5" : "border-hf-border"}`}>
+          <input type="checkbox" className="mt-1 h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={exclusiva}
+            onChange={(e) => setCfg({ ...cfg, centros_diretos: e.target.checked ? [UNIDADE_EXCLUSIVA] : ["marmitaria"] })} />
+          <span>
+            <span className="block text-sm font-semibold text-hf-text">Esta unidade é só da marmitaria</span>
+            <span className="block text-xs text-hf-muted">Toda conta a pagar desta unidade entra 100% no DRE da marmitaria, sem rateio e sem consolidar com o restaurante. Para criar a unidade: Configurações → Unidades → nova unidade “Marmitaria”.</span>
+          </span>
         </label>
+        {!exclusiva && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs text-hf-muted">Unidade compartilhada com o restaurante: contas com centro de custo Geral/Administrativo (ou sem centro) entram pelo % abaixo. Conta com centro Marmitaria entra 100%; de Cozinha, Bar, Salão ou Eventos não entra.</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Campo rotulo="% padrão para a marmitaria" dica="Vale para a categoria sem % próprio. Vazio = 0% e aviso no DRE."><CampoNumero valor={cfg.rateio.padrao_pct} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, padrao_pct: v } })} placeholder="não configurado" /></Campo>
+              {RATEAVEIS.map(([cod, rot]) => (
+                <Campo key={cod} rotulo={`${rot} (%)`}><CampoNumero valor={cfg.rateio.por_categoria[cod] ?? ""} onChange={(v) => setCfg({ ...cfg, rateio: { ...cfg.rateio, por_categoria: { ...cfg.rateio.por_categoria, [cod]: v } } })} placeholder="usa o padrão" /></Campo>
+              ))}
+            </div>
+            <label className="mt-3 flex min-h-[44px] items-center gap-2 text-sm text-hf-text-2">
+              <input type="checkbox" className="h-5 w-5 accent-[rgb(var(--hf-accent))]" checked={cfg.centros_diretos.includes("delivery")}
+                onChange={(e) => setCfg({ ...cfg, centros_diretos: e.target.checked ? [...new Set([...cfg.centros_diretos, "delivery"])] : cfg.centros_diretos.filter((x) => x !== "delivery") })} />
+              Contas com centro de custo “Delivery” também são da marmitaria (100%)
+            </label>
+          </div>
+        )}
       </Secao>
 
       {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}

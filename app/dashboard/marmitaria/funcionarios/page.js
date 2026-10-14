@@ -9,12 +9,16 @@ import Link from "next/link";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import { Aviso, Botao, Campo, CampoNumero, Cartao, Indicador, Secao, SemDados, brl, inputCls, pctTxt, lerNumero } from "../../../components/marmitaria/ui";
 import { carregarEquipe, salvarAlocacao, fetchVendas } from "../../../lib/marmitaria/dados";
-import { cmoMarmitaria, encargosDaConfig, resumoVendas, periodo } from "../../../lib/marmitaria/nucleo.mjs";
+import { cmoMarmitaria, encargosDaConfig, resumoVendas, periodo, unidadeExclusiva } from "../../../lib/marmitaria/nucleo.mjs";
+import { useERP } from "../../../context/ERPContext";
 
 const hoje = () => new Date().toLocaleDateString("sv-SE");
 
 export default function FuncionariosPage() {
   const { base, unidadeId } = useMarmitaria();
+  const { unidades } = useERP();
+  const exclusiva = !!base && unidadeExclusiva(base.config);
+  const nomeUnidade = (id) => (unidades || []).find((u) => u.id === id)?.nome || id;
   const [equipe, setEquipe] = useState(null);
   const [vendasMes, setVendasMes] = useState([]);
   const [novo, setNovo] = useState({ colaborador_id: "", tipo_alocacao: "compartilhado", percentual_tempo: "", horas_por_semana: "", turno: "" });
@@ -25,19 +29,21 @@ export default function FuncionariosPage() {
   const carregar = useCallback(async () => {
     if (!unidadeId) return;
     const p = periodo("mes", hoje());
-    const [e, v] = await Promise.all([carregarEquipe(unidadeId), fetchVendas(unidadeId, p.de, p.ate)]);
+    const [e, v] = await Promise.all([carregarEquipe(unidadeId, { comOutrasUnidades: exclusiva }), fetchVendas(unidadeId, p.de, p.ate)]);
     setEquipe(e); setVendasMes(v.data || []);
-  }, [unidadeId]);
+  }, [unidadeId, exclusiva]);
   useEffect(() => { carregar(); }, [carregar]);
 
   const enc = useMemo(() => encargosDaConfig(base?.config?.encargos || {}, equipe?.rhConfig), [base, equipe]);
   const rv = resumoVendas(vendasMes);
-  const cmo = useMemo(() => equipe ? cmoMarmitaria({ alocacoes: equipe.alocacoes, colaboradores: equipe.colaboradores, recibos: equipe.recibos, encargos: enc, mes, marmitasVendidas: rv.quantidade }) : null,
-    [equipe, enc, mes, rv.quantidade]);
+  const cmo = useMemo(() => equipe ? cmoMarmitaria({ alocacoes: equipe.alocacoes, colaboradores: [...equipe.colaboradores, ...(equipe.outrasUnidades || [])], recibos: equipe.recibos, encargos: enc, mes, marmitasVendidas: rv.quantidade, unidadeId, exclusiva }) : null,
+    [equipe, enc, mes, rv.quantidade, unidadeId, exclusiva]);
 
   if (!base || !equipe) return <Cartao><p className="text-sm text-hf-muted">Carregando equipe…</p></Cartao>;
   const alocados = new Set(equipe.alocacoes.filter((a) => a.ativo !== false).map((a) => a.colaborador_id));
-  const disponiveis = equipe.colaboradores.filter((c) => (c.status || "ativo") !== "inativo" && !c.data_desligamento && !alocados.has(c.id));
+  // unidade só da marmitaria: a equipe dela já entra 100%; aqui se aloca quem vem cedido de outra unidade
+  const candidatos = exclusiva ? (equipe.outrasUnidades || []) : equipe.colaboradores;
+  const disponiveis = candidatos.filter((c) => (c.status || "ativo") !== "inativo" && !c.data_desligamento && !alocados.has(c.id));
 
   async function gravar(a) {
     if (salvando) return;
@@ -69,7 +75,7 @@ export default function FuncionariosPage() {
             <table className="w-full min-w-[720px] text-sm">
               <thead><tr className="text-left text-xs uppercase tracking-wide text-hf-muted">
                 <th className="py-2 pr-2">Funcionário</th><th className="py-2 pr-2">Alocação</th><th className="py-2 pr-2 text-right">Salário</th><th className="py-2 pr-2 text-right">Encargos + provisões</th>
-                <th className="py-2 pr-2 text-right">Benefícios + diárias</th><th className="py-2 pr-2 text-right">Marmitaria</th><th className="py-2 pr-2 text-right">Restaurante</th><th className="py-2" />
+                <th className="py-2 pr-2 text-right">Benefícios + diárias</th><th className="py-2 pr-2 text-right">Marmitaria</th><th className="py-2 pr-2 text-right">{exclusiva ? "Fica na origem" : "Restaurante"}</th><th className="py-2" />
               </tr></thead>
               <tbody className="divide-y divide-hf-border">
                 {cmo.linhas.map((l) => {
@@ -77,32 +83,34 @@ export default function FuncionariosPage() {
                   return (
                     <tr key={l.colaborador_id}>
                       <td className="py-2 pr-2"><p className="font-semibold">{l.nome}</p><p className="text-xs text-hf-muted">{l.cargo}</p></td>
-                      <td className="py-2 pr-2">{l.tipo === "exclusivo" ? "Exclusivo" : `Compartilhado · ${pctTxt(l.fracaoPct, 0)}`}{a?.turno ? <p className="text-xs text-hf-muted">{a.turno}</p> : null}</td>
+                      <td className="py-2 pr-2">{l.implicita ? "Equipe da unidade · 100%" : l.tipo === "exclusivo" ? "Exclusivo" : `Compartilhado · ${pctTxt(l.fracaoPct, 0)}`}
+                        {l.cedido ? <p className="text-xs font-semibold text-hf-warning">Cedido por {nomeUnidade(l.unidadeOrigem)} (salário pago lá)</p> : null}
+                        {a?.turno ? <p className="text-xs text-hf-muted">{a.turno}</p> : null}</td>
                       <td className="py-2 pr-2 text-right tabular-nums">{brl(l.salario)}</td>
                       <td className="py-2 pr-2 text-right tabular-nums">{brl(l.encargos + l.provisoes)}</td>
                       <td className="py-2 pr-2 text-right tabular-nums">{brl(l.beneficios + l.extras)}</td>
                       <td className="py-2 pr-2 text-right font-bold tabular-nums">{brl(l.marmitaria)}</td>
                       <td className="py-2 pr-2 text-right tabular-nums text-hf-muted">{brl(l.restaurante)}</td>
-                      <td className="py-2 text-right"><Botao variante="texto" onClick={() => gravar({ ...a, ativo: false })}>Tirar</Botao></td>
+                      <td className="py-2 text-right">{a ? <Botao variante="texto" onClick={() => gravar({ ...a, ativo: false })}>Tirar</Botao> : null}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        ) : <SemDados titulo="Nenhum funcionário alocado" motivo="Escolha abaixo quem trabalha na marmitaria. O cadastro é o do RH: nada é duplicado." />}
+        ) : <SemDados titulo={exclusiva ? "Nenhum funcionário na unidade" : "Nenhum funcionário alocado"} motivo={exclusiva ? "Cadastre a equipe da marmitaria no RH desta unidade: ela entra aqui sozinha." : "Escolha abaixo quem trabalha na marmitaria. O cadastro é o do RH: nada é duplicado."} />}
         {cmo?.avisos.map((a) => <Aviso key={a} tipo="alerta" className="mt-2">{a}</Aviso>)}
       </Secao>
 
-      <Secao titulo="Alocar funcionário" subtitulo="Exclusivo: 100% do custo na marmitaria. Compartilhado: só a fração informada; o resto fica no restaurante.">
-        {!equipe.colaboradores.length ? (
+      <Secao titulo={exclusiva ? "Pessoas cedidas por outra unidade" : "Alocar funcionário"} subtitulo={exclusiva ? "Quem é de outro negócio da empresa e ajuda na marmitaria. A fração entra no CMO daqui; o salário continua pago (e contado) na unidade de origem — o consolidado não soma duas vezes." : "Exclusivo: 100% do custo na marmitaria. Compartilhado: só a fração informada; o resto fica no restaurante."}>
+        {!candidatos.length ? (exclusiva ? <p className="text-sm text-hf-muted">Nenhuma pessoa de outra unidade visível para você.</p> :
           <SemDados titulo="Nenhum funcionário no RH" motivo="Cadastre a equipe no RH primeiro." href="/dashboard/rh" acao="Abrir o RH" />
         ) : (
           <div className="grid gap-3 sm:grid-cols-5">
             <Campo rotulo="Funcionário" className="sm:col-span-2">
               <select className={inputCls} value={novo.colaborador_id} onChange={(e) => setNovo({ ...novo, colaborador_id: e.target.value })}>
                 <option value="">Escolha…</option>
-                {disponiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` · ${c.cargo}` : ""}</option>)}
+                {disponiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` · ${c.cargo}` : ""}{exclusiva ? ` (${nomeUnidade(c.unidade_id)})` : ""}</option>)}
               </select>
             </Campo>
             <Campo rotulo="Alocação">

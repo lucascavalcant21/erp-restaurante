@@ -270,16 +270,23 @@ export async function excluirVenda(id) {
 
 // ─── Funcionários (RH existente, sem cadastro duplicado) ─────────────────────
 
-export async function carregarEquipe(unidadeId) {
+/**
+ * comOutrasUnidades: também as pessoas de OUTRAS unidades que o usuário pode
+ * ver (para alocar como "cedidas" na unidade só da marmitaria). O RLS do RH
+ * decide quem aparece; nada é copiado.
+ */
+export async function carregarEquipe(unidadeId, { comOutrasUnidades = false } = {}) {
   if (!isSupabaseReady() || !unidadeOk(unidadeId)) return { error: SEM_BANCO };
-  const [col, aloc, rec, rhCfg] = await Promise.all([
+  const [col, aloc, rec, rhCfg, todas] = await Promise.all([
     fetchColaboradores(unidadeId),
     supabase.from("marmitaria_rh_alocacoes").select("*").eq("unidade_id", unidadeId),
     fetchRecibosPrestacaoUnidade(unidadeId),
     supabase.from("rh_config_trabalhista").select("anexo_simples, rat_pct, fap, terceiros_pct").eq("unidade_id", unidadeId).maybeSingle(),
+    comOutrasUnidades ? fetchColaboradores(null) : { data: [] },
   ]);
   return {
     colaboradores: col.data || [],
+    outrasUnidades: (todas.data || []).filter((c) => c.unidade_id && c.unidade_id !== unidadeId),
     alocacoes: aloc.data || [],
     recibos: rec.data || [],
     rhConfig: rhCfg.data || null,
@@ -348,4 +355,48 @@ export async function salvarSimulacao(unidadeId, { nome, diasMes, entradas, resu
     cenario_meta_diaria: Math.round(Number(entradas?.cenarios?.[0]) || 0), itens: entradas || {}, resultado_consolidado: resultado || {},
   });
   return { error: mensagemErro(error) };
+}
+
+// ─── Trazer fichas de outra unidade da empresa ───────────────────────────────
+
+/** Fichas (pré-preparos e pratos/marmitas) de outra unidade que o usuário pode ver. */
+export async function carregarOrigemDeCopia(origemUnidadeId) {
+  if (!isSupabaseReady() || !unidadeOk(origemUnidadeId)) return { error: SEM_BANCO };
+  const [fichasR, insR, embR] = await Promise.all([
+    fetchFichas(origemUnidadeId),
+    supabase.from("insumos").select("*").eq("unidade_id", origemUnidadeId).is("arquivado_em", null),
+    supabase.from("marmitaria_fichas_embalagens").select("ficha_id, embalagem_insumo_id, quantidade, tipo_embalagem").eq("unidade_id", origemUnidadeId),
+  ]);
+  if (fichasR.error) return { error: `Fichas da outra unidade: ${fichasR.error}` };
+  if (insR.error) return { error: mensagemErro(insR.error) };
+  const embalagens = new Map();
+  for (const e of embR.data || []) {
+    const l = embalagens.get(e.ficha_id) || [];
+    l.push({ insumo_id: e.embalagem_insumo_id, quantidade: Number(e.quantidade) || 0, tipo: e.tipo_embalagem });
+    embalagens.set(e.ficha_id, l);
+  }
+  return { fichas: fichasR.data || [], insumos: new Map((insR.data || []).map((i) => [i.id, i])), embalagens, error: null };
+}
+
+/**
+ * Executa um plano de planoDeCopia: cria só os produtos que faltam (pelo
+ * cadastro oficial) e as fichas novas (pela gravação atômica das marmitas).
+ * Interrompido no meio? Rode de novo: o que já foi criado é reaproveitado.
+ */
+export async function executarCopia(unidadeId, plano) {
+  if (!plano?.ok) return { error: "Resolva os conflitos antes de trazer." };
+  const remap = new Map();
+  for (const ins of plano.criarInsumos) {
+    const { origemId, id, ...dados } = ins;
+    const r = await salvarInsumo({ ...dados, unidade_id: unidadeId, nome_interno: dados.nome, unidade_comercial: dados.unidade_medida }, { origem: "marmitaria" });
+    if (r?.error) return { error: `Produto "${dados.nome}": ${mensagemErro(r.error)}` };
+    if (r?.id) remap.set(id, r.id);
+  }
+  let fichas = 0;
+  for (const item of plano.fichas.filter((f) => !f.existente)) {
+    const r = await rpcFicha(plano.payload(item, unidadeId, remap));
+    if (r.error) return { error: `Ficha "${item.nome}": ${r.error}`, parcial: true };
+    fichas++;
+  }
+  return { error: null, produtos: plano.criarInsumos.length, fichas };
 }

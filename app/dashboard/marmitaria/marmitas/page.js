@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { useMarmitaria } from "../../../components/marmitaria/contexto";
 import EditorMarmita from "../../../components/marmitaria/EditorMarmita";
+import TrazerDeOutraUnidade from "../../../components/marmitaria/TrazerDeOutraUnidade";
 import { Abas, Aviso, Botao, Campo, CampoNumero, Cartao, Secao, SemDados, Selo, brl, inputCls, pctTxt } from "../../../components/marmitaria/ui";
 import { formDaMarmita } from "../../../lib/marmitaria/formulario.mjs";
 import { resultadoPorCanal, precoSugerido } from "../../../lib/marmitaria/nucleo.mjs";
@@ -19,6 +20,7 @@ function Conteudo() {
   const [aba, setAba] = useState(params.get("aba") === "precos" ? "precos" : "cardapio");
   const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [trazendo, setTrazendo] = useState(false);
 
   if (!base) return carregando ? <Cartao><p className="text-sm text-hf-muted">Carregando marmitas…</p></Cartao> : null;
 
@@ -37,8 +39,10 @@ function Conteudo() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-[240px] flex-1"><Abas abas={[{ id: "cardapio", rotulo: "Cardápio" }, { id: "precos", rotulo: "Preços por canal" }]} valor={aba} onChange={(v) => { setAba(v); router.replace(`?aba=${v}`); }} /></div>
+        <Botao variante="secundario" onClick={() => setTrazendo(!trazendo)}>Trazer de outra unidade</Botao>
         <Botao onClick={nova}><Plus size={16} /> Nova marmita</Botao>
       </div>
+      {trazendo && <TrazerDeOutraUnidade onFechar={() => setTrazendo(false)} />}
       {aviso && <Aviso>{aviso}</Aviso>}
       {aba === "cardapio" ? <Cardapio onEditar={editar} onNova={nova} recarregar={recarregar} /> : <PrecosPorCanal onEditar={editar} />}
     </div>

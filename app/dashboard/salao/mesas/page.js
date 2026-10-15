@@ -1950,6 +1950,56 @@ export default function SaloesMesasPage() {
             </div>
 
             <button
+              onClick={() => {
+                const url = `${window.location.origin}/experience/${unidadeAtiva}/${qrMesa.numero_mesa}`;
+                const janela = window.open("", "_blank");
+                if (!janela) {
+                  alert("Pop-up bloqueado. Libere os pop-ups para imprimir.");
+                  return;
+                }
+                janela.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <meta charset="utf-8"/>
+                    <title>Display Mesa ${qrMesa.numero_mesa} - Héfisto Experience</title>
+                    <style>
+                      body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #fafafa; }
+                      .card { width: 10.5cm; height: 14.8cm; border: 2px dashed #d97706; border-radius: 24px; padding: 24px; box-sizing: border-box; text-align: center; background: #1a1411; color: #fdf8f6; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+                      .logo { font-size: 20px; font-weight: 900; letter-spacing: 2px; color: #f59e0b; text-transform: uppercase; }
+                      .mesa { font-size: 36px; font-weight: 900; color: #fff; margin: 6px 0; }
+                      .instrucao { font-size: 13px; color: #e5d5cb; line-height: 1.4; max-width: 90%; }
+                      .qr-box { background: white; padding: 14px; border-radius: 20px; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+                      .rodape { font-size: 11px; color: #fbbf24; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+                      @media print { body { background: none; } }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="card">
+                      <div>
+                        <div class="logo">HÉFISTO EXPERIENCE</div>
+                        <div class="mesa">MESA ${qrMesa.numero_mesa}</div>
+                        <div class="instrucao">Aponte a câmera do celular para fazer pedidos, conhecer a história dos pratos e chamar atendimento.</div>
+                      </div>
+                      <div class="qr-box">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}" width="200" height="200" alt="QR Code Mesa"/>
+                      </div>
+                      <div class="rodape">O RESTAURANTE NA PALMA DA MÃO</div>
+                    </div>
+                    <script>
+                      setTimeout(() => { window.print(); }, 500);
+                    </script>
+                  </body>
+                  </html>
+                `);
+                janela.document.close();
+              }}
+              className="w-full py-2.5 bg-gradient-to-r from-amber-700 to-amber-800 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md mt-2"
+            >
+              <Printer size={16} /> Imprimir Display de Mesa
+            </button>
+
+            <button
               onClick={() => setQrMesa(null)}
               className="mt-3 text-xs text-subtle hover:text-fg font-semibold py-1.5"
             >

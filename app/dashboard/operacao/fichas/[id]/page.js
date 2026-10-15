@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  AlertTriangle, ArrowLeft, ChefHat, Copy, Edit3, FileDown, GitBranch, History, Info, Loader2,
+  AlertTriangle, ArrowLeft, BookOpen, ChefHat, Copy, Edit3, FileDown, GitBranch, History, Info, Loader2,
   Percent, Power, Printer, QrCode, Sparkles, X,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
@@ -41,6 +41,7 @@ import { FichaDocumento } from "../componentes/VisualizacaoFicha";
 import PainelCustosInternos from "../componentes/PainelCustosInternos";
 import ModoCozinha from "./ModoCozinha";
 import AssistenteReceita from "./AssistenteReceita";
+import ModalExperienciaPrato from "../componentes/ModalExperienciaPrato";
 import { useContextoInteligencia } from "../../../../components/intelligence/useContextoInteligencia";
 
 const CMV_ATALHOS = [25, 30, 35, 40];
@@ -77,6 +78,7 @@ export default function FichaTecnicaPage() {
   const [assistenteAberto, setAssistenteAberto] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
   const [cmvSimulado, setCmvSimulado] = useState("");
+  const [modalExperiencia, setModalExperiencia] = useState(false);
 
   // ── Carga ────────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
@@ -363,6 +365,7 @@ export default function FichaTecnicaPage() {
         {tipo === "pre_preparo" ? <AcaoBtn icone={QrCode} onClick={gerarEtiqueta}>Etiqueta</AcaoBtn> : null}
         <AcaoBtn icone={Power} onClick={alternarStatus}>{status === "ativa" ? "Inativar" : "Reativar"}</AcaoBtn>
         {podeVerCustos ? <AcaoBtn icone={Sparkles} onClick={() => setAssistenteAberto(true)}>Assistente de custo</AcaoBtn> : null}
+        <AcaoBtn icone={BookOpen} onClick={() => setModalExperiencia(true)}>Experiência do Prato (Discover)</AcaoBtn>
       </div>
 
       {aviso ? (
@@ -435,6 +438,19 @@ export default function FichaTecnicaPage() {
           podeVerCustos={podeVerCustos}
           onAplicar={aplicarProposta}
           onFechar={() => setAssistenteAberto(false)}
+        />
+      ) : null}
+
+      {modalExperiencia ? (
+        <ModalExperienciaPrato
+          ficha={ficha}
+          produto={produto}
+          unidadeId={ficha.unidade_id || unidadeAtiva}
+          onFechar={() => setModalExperiencia(false)}
+          onSalvo={() => {
+            setAviso("Experiência gastronômica (Discover) atualizada com sucesso.");
+            carregar();
+          }}
         />
       ) : null}
 

@@ -669,8 +669,13 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
       <header className="sticky top-0 z-30 bg-[#1c1613]/90 backdrop-blur-md border-b border-amber-900/20 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-md shadow-amber-950/40 text-amber-100 font-black text-lg">
-              {unidadeInfo?.nome?.slice(0, 1) || "H"}
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-md shadow-amber-950/40 text-amber-100 font-black text-lg overflow-hidden border border-amber-500/20">
+              {unidadeInfo?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={unidadeInfo.logo_url} alt={unidadeInfo.nome || "Logo"} className="w-full h-full object-cover" />
+              ) : (
+                unidadeInfo?.nome?.slice(0, 1) || "H"
+              )}
             </div>
             <div>
               <p className="text-3xs tracking-widest uppercase font-bold text-amber-400/80">{t.bemVindo}</p>

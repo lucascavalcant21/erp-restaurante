@@ -297,6 +297,14 @@ begin
   return jsonb_build_object('recebimento_id', p_recebimento_id, 'status', v_status);
 end $$;
 
-drop function if exists public.hefisto_tem_alguma(text[]);
+-- Só remove o verificador se nenhuma policy ainda o usa (a SEC-RH-2 também o
+-- usa; com ela aplicada, o drop falharia e desfaria este rollback inteiro).
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public'
+                  and (qual like '%hefisto_tem_alguma%' or with_check like '%hefisto_tem_alguma%')) then
+    drop function if exists public.hefisto_tem_alguma(text[]);
+  end if;
+end $$;
 
 commit;

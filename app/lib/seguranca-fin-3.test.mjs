@@ -181,3 +181,16 @@ test("SEC-FIN-3: antes, depois e rollback — leitura, escrita, RPCs, unidade cr
   const resto = (await pg.query("select count(*)::int n from pg_proc where proname = 'hefisto_tem_alguma'")).rows[0].n;
   assert.equal(resto, 0, "rollback remove o verificador");
 });
+
+test("SEC-FIN-3: rollback não quebra quando outra migração (SEC-RH-2) também usa hefisto_tem_alguma", { skip: pular }, async () => {
+  const pg = await banco();
+  await pg.exec(ler("security/SEC_FIN_3_PERMISSAO_FINANCEIRA.sql"));
+  // Simula a SEC-RH-2: uma policy de outra tabela que depende do verificador.
+  await pg.exec("create table public.teste_rh2 (id int); alter table public.teste_rh2 enable row level security;" +
+    " create policy teste_rh2_ler on public.teste_rh2 for select to authenticated using ((select public.hefisto_tem_alguma(array['rh.employees.view'])));");
+  await pg.exec(ler("security/SEC_FIN_3_ROLLBACK.sql"));
+  const resto = (await pg.query("select count(*)::int n from pg_proc where proname = 'hefisto_tem_alguma'")).rows[0].n;
+  assert.equal(resto, 1, "verificador fica enquanto outra policy usa");
+  const pol = (await pg.query("select count(*)::int n from pg_policies where tablename = 'teste_rh2'")).rows[0].n;
+  assert.equal(pol, 1, "policy da outra migração intacta");
+});

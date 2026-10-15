@@ -185,7 +185,7 @@ export default function ModalAjustePonto({
         passouMeiaNoite,
         registradoPor: autor,
         motivo: motivo || "Ajuste manual no sistema",
-        ehFolgaDomingo: ehDomingo ? ehFolgaDomingo : undefined,
+        ehFolgaDomingo: ehFolgaDomingo,
         limparTudo: apenasLimpar,
       });
 
@@ -264,20 +264,26 @@ export default function ModalAjustePonto({
               Preencher Turno Contratado
             </button>
 
-            {ehDomingo && (
-              <button
-                type="button"
-                onClick={() => setEhFolgaDomingo(!ehFolgaDomingo)}
-                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
-                  ehFolgaDomingo
-                    ? "border-amber-300 bg-amber-100 text-amber-900"
-                    : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                <Sun size={13} className={ehFolgaDomingo ? "text-amber-600" : "text-slate-500"} />
-                {ehFolgaDomingo ? "✓ Folga de Domingo Ativa" : "Marcar como Folga de Domingo"}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                const novoValor = !ehFolgaDomingo;
+                setEhFolgaDomingo(novoValor);
+                if (novoValor && !entrada && !saida) {
+                  setMotivo(ehDomingo ? "Folga de domingo" : "Folga semanal");
+                }
+              }}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
+                ehFolgaDomingo
+                  ? "border-amber-300 bg-amber-100 text-amber-900"
+                  : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              <Sun size={13} className={ehFolgaDomingo ? "text-amber-600" : "text-slate-500"} />
+              {ehFolgaDomingo
+                ? (ehDomingo ? "✓ Folga de Domingo Ativa" : "✓ Folga Registrada (Ativa)")
+                : (ehDomingo ? "Marcar como Folga de Domingo" : "Marcar como Folga (Semanal/Esporádica)")}
+            </button>
 
             <button
               type="button"

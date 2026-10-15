@@ -245,7 +245,7 @@ export default function CorrigirPontoPage() {
       passouMeiaNoite,
       registradoPor: autor,
       motivo: motivo || (apenasLimpar ? "Limpeza de batidas" : "Ajuste manual de horários"),
-      ehFolgaDomingo: ehDomingo ? ehFolgaDomingo : undefined,
+      ehFolgaDomingo: ehFolgaDomingo,
       limparTudo: apenasLimpar,
     });
     setSalvando(false);
@@ -415,20 +415,26 @@ export default function CorrigirPontoPage() {
                 </p>
               </div>
 
-              {ehDomingo && (
-                <button
-                  type="button"
-                  onClick={() => setEhFolgaDomingo(!ehFolgaDomingo)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-bold border transition-colors ${
-                    ehFolgaDomingo
-                      ? "bg-amber-100 border-amber-300 text-amber-900 font-black"
-                      : "bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  <Sun size={12} className="inline mr-1 text-amber-600" />
-                  {ehFolgaDomingo ? "Folga de Domingo Marcada" : "Marcar Folga de Domingo"}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const novoValor = !ehFolgaDomingo;
+                  setEhFolgaDomingo(novoValor);
+                  if (novoValor && !entrada && !saida) {
+                    setMotivo(ehDomingo ? "Folga de domingo" : "Folga semanal");
+                  }
+                }}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold border transition-colors ${
+                  ehFolgaDomingo
+                    ? "bg-amber-100 border-amber-300 text-amber-900 font-black"
+                    : "bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <Sun size={12} className="inline mr-1 text-amber-600" />
+                {ehFolgaDomingo
+                  ? (ehDomingo ? "✓ Folga de Domingo Marcada" : "✓ Folga Marcada")
+                  : (ehDomingo ? "Marcar Folga de Domingo" : "Marcar Folga (Semanal / Esporádica)")}
+              </button>
             </div>
           )}
 

@@ -588,7 +588,7 @@ export async function salvarAjusteDiaCompleto({
     if (erroInsert) return { error: `Erro ao criar ponto do dia: ${erroInsert.message}` };
   }
 
-  // 3) Gerencia Folga de Domingo se especificado
+  // 3) Gerencia Folga em rh_folgas_esporadicas se especificado
   if (ehFolgaDomingo === true) {
     const { data: jaExiste } = await supabase.from("rh_folgas_esporadicas")
       .select("id")
@@ -596,11 +596,13 @@ export async function salvarAjusteDiaCompleto({
       .eq("data_folga", dataReferencia)
       .maybeSingle();
     if (!jaExiste) {
+      const dObj = new Date(dataReferencia + "T12:00:00");
+      const descFolga = dObj.getDay() === 0 ? "Folga de domingo" : "Folga semanal";
       await supabase.from("rh_folgas_esporadicas").insert([{
         unidade_id: unidadeId,
         colaborador_id: colaboradorId,
         data_folga: dataReferencia,
-        descricao: "Folga de domingo",
+        descricao: descFolga,
       }]);
     }
   } else if (ehFolgaDomingo === false) {

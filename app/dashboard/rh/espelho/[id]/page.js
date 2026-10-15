@@ -421,13 +421,16 @@ export default function EspelhoDePonto() {
                   const isFolga = isFolgaFixa || isFolgaEsporadica;
                   const feriado = feriadosMes.find(f => String(f.data).slice(0, 10) === dataString);
 
+                  // Verifica se há batidas reais gravadas no dia
+                  const temBatida = Boolean(reg && (reg.hora_entrada || reg.hora_saida_intervalo || reg.hora_retorno_intervalo || reg.hora_saida));
+
                   // Se tem Atestado Médico no dia (e não bateu ponto)
-                  if (atestado && !reg) {
+                  if (atestado && !temBatida) {
                       return (
                          <tr key={dia} className="bg-zinc-100/80">
                             <td className="border border-slate-800 !py-0 !px-1 font-bold text-zinc-900 text-left">{rotuloDia(dia)}</td>
                             <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.15em] text-zinc-900 bg-zinc-100/60">
-                               🏥 ATESTADO MÉDICO — AUSÊNCIA ABONADA {atestado.cid ? `(CID ${atestado.cid})` : ""}
+                                🏥 ATESTADO MÉDICO — AUSÊNCIA ABONADA {atestado.cid ? `(CID ${atestado.cid})` : ""}
                             </td>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.10em] text-zinc-900 bg-zinc-100/60 text-3xs">ABONADO — NÃO DESCONTAR</td>
                             <td className="border border-slate-800 !py-0 !px-1 print:hidden text-center"><button type="button" onClick={() => abrirAjusteDia(dataString)} className="p-0.5 hover:bg-slate-200 rounded text-slate-700" title="Ajustar batidas ou presença neste dia"><Edit3 size={11} className="inline" /></button></td>
@@ -441,7 +444,7 @@ export default function EspelhoDePonto() {
                   if (feriado) partesFolga.push(`FERIADO${feriado.nome ? " - " + String(feriado.nome).toUpperCase() : ""}`);
                   const textoFolga = partesFolga.join("   ·   ");
 
-                  if ((isFolga || feriado) && !reg) {
+                  if ((isFolga || feriado) && !temBatida) {
                       return (
                          <tr key={dia}>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold bg-white text-fg text-left">{rotuloDia(dia)}</td>

@@ -157,9 +157,14 @@ export default function ModalAjustePonto({
     setErro("");
     setSucesso("");
 
-    // Valida PIN se exigido
-    if (pinGerente && pinDigitado !== pinGerente) {
+    // Valida PIN se exigido (se gestor já estiver em sessão autenticada, PIN é opcional)
+    const temSessao = Boolean(sessao?.user || sessao?.email || sessao?.nome);
+    if (!temSessao && pinGerente && pinDigitado !== pinGerente) {
       setErro("PIN do gerente incorreto. Digite o PIN de 4 dígitos para autorizar.");
+      return;
+    }
+    if (temSessao && pinDigitado && pinDigitado !== pinGerente) {
+      setErro("PIN do gerente incorreto.");
       return;
     }
 
@@ -269,7 +274,12 @@ export default function ModalAjustePonto({
               onClick={() => {
                 const novoValor = !ehFolgaDomingo;
                 setEhFolgaDomingo(novoValor);
-                if (novoValor && !entrada && !saida) {
+                if (novoValor) {
+                  setEntrada("");
+                  setSaidaInt("");
+                  setRetornoInt("");
+                  setSaida("");
+                  setPassouMeiaNoite(false);
                   setMotivo(ehDomingo ? "Folga de domingo" : "Folga semanal");
                 }
               }}

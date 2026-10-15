@@ -572,7 +572,7 @@ export async function salvarAjusteDiaCompleto({
     const { error: erroUpdate } = await supabase.from("registro_ponto")
       .update({
         ...novosValores,
-        status_jornada: novoStatus || registro.status_jornada || 1,
+        status_jornada: novoStatus,
       })
       .eq("id", registro.id);
     if (erroUpdate) return { error: `Erro ao atualizar resumo do ponto: ${erroUpdate.message}` };
@@ -598,18 +598,24 @@ export async function salvarAjusteDiaCompleto({
     if (!jaExiste) {
       const dObj = new Date(dataReferencia + "T12:00:00");
       const descFolga = dObj.getDay() === 0 ? "Folga de domingo" : "Folga semanal";
-      await supabase.from("rh_folgas_esporadicas").insert([{
+      const { error: erroFolga } = await supabase.from("rh_folgas_esporadicas").insert([{
         unidade_id: unidadeId,
         colaborador_id: colaboradorId,
         data_folga: dataReferencia,
         descricao: descFolga,
       }]);
+      if (erroFolga) {
+        return { error: `Erro ao registrar folga: ${erroFolga.message}` };
+      }
     }
   } else if (ehFolgaDomingo === false) {
-    await supabase.from("rh_folgas_esporadicas")
+    const { error: erroDel } = await supabase.from("rh_folgas_esporadicas")
       .delete()
       .eq("colaborador_id", colaboradorId)
       .eq("data_folga", dataReferencia);
+    if (erroDel) {
+      return { error: `Erro ao remover folga: ${erroDel.message}` };
+    }
   }
 
   return {

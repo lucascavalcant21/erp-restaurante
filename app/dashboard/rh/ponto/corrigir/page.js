@@ -223,7 +223,11 @@ export default function CorrigirPontoPage() {
   // Salva no modo Completo
   const salvarCompleto = async (apenasLimpar = false) => {
     setAviso(null);
-    if (pinGerente && pinDigitado !== pinGerente) {
+    const temSessao = Boolean(sessao?.user || sessao?.email || sessao?.nome);
+    if (!temSessao && pinGerente && pinDigitado !== pinGerente) {
+      return setAviso({ erro: true, msg: "PIN do gerente incorreto. Digite o PIN de 4 dígitos para autorizar." });
+    }
+    if (temSessao && pinDigitado && pinDigitado !== pinGerente) {
       return setAviso({ erro: true, msg: "PIN do gerente incorreto." });
     }
     if (!colabId) return setAviso({ erro: true, msg: "Escolha o colaborador." });
@@ -273,7 +277,11 @@ export default function CorrigirPontoPage() {
   // Salva no modo Individual (compatibilidade)
   const salvarIndividual = async () => {
     setAviso(null);
-    if (pinGerente && pinDigitado !== pinGerente) {
+    const temSessao = Boolean(sessao?.user || sessao?.email || sessao?.nome);
+    if (!temSessao && pinGerente && pinDigitado !== pinGerente) {
+      return setAviso({ erro: true, msg: "PIN do gerente incorreto. Digite o PIN de 4 dígitos para autorizar." });
+    }
+    if (temSessao && pinDigitado && pinDigitado !== pinGerente) {
       return setAviso({ erro: true, msg: "PIN do gerente incorreto." });
     }
     if (!colabId) return setAviso({ erro: true, msg: "Escolha o colaborador." });
@@ -420,7 +428,12 @@ export default function CorrigirPontoPage() {
                 onClick={() => {
                   const novoValor = !ehFolgaDomingo;
                   setEhFolgaDomingo(novoValor);
-                  if (novoValor && !entrada && !saida) {
+                  if (novoValor) {
+                    setEntrada("");
+                    setSaidaInt("");
+                    setRetornoInt("");
+                    setSaida("");
+                    setPassouMeiaNoite(false);
                     setMotivo(ehDomingo ? "Folga de domingo" : "Folga semanal");
                   }
                 }}

@@ -29,7 +29,8 @@ import {
   Heart,
   SlidersHorizontal,
   ShieldAlert,
-  Check
+  Check,
+  RotateCcw
 } from "lucide-react";
 import ConciergeModal from "./ConciergeModal";
 import DiscoverModal from "./DiscoverModal";
@@ -55,6 +56,7 @@ const I18N = {
     comandaVazia: "Nenhum pedido lançado nesta mesa ainda.",
     comandaSub: "Faça seu primeiro pedido pelo cardápio!",
     totalConsumo: "Total acumulado",
+    repetirPedido: "Pedir mais um",
     dividirConta: "Divisão Inteligente da Conta",
     pessoas: "pessoas na mesa",
     taxaServico: "Taxa de serviço sugerida (10%)",
@@ -116,6 +118,7 @@ const I18N = {
     comandaVazia: "No orders placed on this table yet.",
     comandaSub: "Make your first order from the menu!",
     totalConsumo: "Accumulated total",
+    repetirPedido: "Order another",
     dividirConta: "Smart Bill Splitting",
     pessoas: "people at table",
     taxaServico: "Suggested service fee (10%)",
@@ -177,6 +180,7 @@ const I18N = {
     comandaVazia: "Aún no hay pedidos en esta mesa.",
     comandaSub: "¡Haga su primer pedido desde la carta!",
     totalConsumo: "Total acumulado",
+    repetirPedido: "Pedir otro",
     dividirConta: "División Inteligente de Cuenta",
     pessoas: "personas en la mesa",
     taxaServico: "Servicio sugerido (10%)",
@@ -1431,22 +1435,43 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                             {it.hora && <span className="text-3xs text-amber-500/60 font-mono">{it.hora}</span>}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const prodRel = produtos.find(p => String(p.id) === String(it.produto_id) || p.nome_produto === it.nome) || {
-                                id: it.produto_id || idx,
-                                nome_produto: it.nome,
-                                preco_venda: it.subtotal / (it.quantidade || 1)
-                              };
-                              setPratoDiscover(prodRel);
-                              setModalDiscover(true);
-                            }}
-                            className="mt-2 flex items-center gap-1.5 text-3xs font-bold text-amber-400 hover:text-amber-200 transition"
-                          >
-                            <BookOpen size={12} />
-                            <span>Descubra a história deste prato ✨</span>
-                          </button>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const prodRel = produtos.find(p => String(p.id) === String(it.produto_id) || p.nome_produto === it.nome) || {
+                                  id: it.produto_id || idx,
+                                  nome_produto: it.nome,
+                                  preco_venda: it.subtotal / (it.quantidade || 1)
+                                };
+                                setPratoDiscover(prodRel);
+                                setModalDiscover(true);
+                              }}
+                              className="flex items-center gap-1.5 text-3xs font-bold text-amber-400 hover:text-amber-200 transition"
+                            >
+                              <BookOpen size={12} />
+                              <span>Descubra a história ✨</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const prodRel = produtos.find(p => String(p.id) === String(it.produto_id) || p.nome_produto === it.nome) || {
+                                  id: it.produto_id || idx,
+                                  nome_produto: it.nome,
+                                  preco_venda: it.subtotal / (it.quantidade || 1)
+                                };
+                                adicionarAoCarrinho(prodRel, 1, it.observacao || "");
+                                setAlertaSucesso(`+1x ${it.nome} adicionado ao seu pedido!`);
+                                setTimeout(() => setAlertaSucesso(null), 3000);
+                              }}
+                              className="flex items-center gap-1 text-3xs font-bold text-emerald-400 hover:text-emerald-200 transition bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded-lg active:scale-95"
+                              title="Pedir mais uma unidade deste item"
+                            >
+                              <RotateCcw size={11} />
+                              <span>{t.repetirPedido}</span>
+                            </button>
+                          </div>
                         </div>
                         <span className="font-black text-sm text-amber-300 font-mono">{fmtMoeda(it.subtotal)}</span>
                       </div>

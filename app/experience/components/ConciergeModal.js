@@ -16,7 +16,9 @@ import {
   Fish,
   Flame,
   Users,
-  Leaf
+  Leaf,
+  Mic,
+  MicOff
 } from "lucide-react";
 
 const ICONES_BOTOES = {
@@ -44,7 +46,55 @@ export default function ConciergeModal({
   const [subBotoes, setSubBotoes] = useState(null);
   const [perguntasFrequentes, setPerguntasFrequentes] = useState([]);
   const [perguntaTexto, setPerguntaTexto] = useState("");
+  const [ouvindoVoz, setOuvindoVoz] = useState(false);
+  const recognitionRef = useRef(null);
   const fimChatRef = useRef(null);
+
+  const alternarReconhecimentoVoz = () => {
+    if (ouvindoVoz) {
+      recognitionRef.current?.stop();
+      setOuvindoVoz(false);
+      return;
+    }
+
+    const SpeechRec = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!SpeechRec) {
+      alert(idioma === "en" ? "Voice speech recognition is not supported in this browser." : idioma === "es" ? "El reconocimiento de voz no está disponible en este navegador." : "Reconhecimento de voz não suportado neste navegador. Digite sua pergunta.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setOuvindoVoz(true);
+      };
+
+      recognition.onresult = (event) => {
+        const textoFalado = event.results[0]?.[0]?.transcript;
+        if (textoFalado) {
+          setPerguntaTexto(textoFalado);
+          enviarPergunta(textoFalado);
+        }
+      };
+
+      recognition.onerror = () => {
+        setOuvindoVoz(false);
+      };
+
+      recognition.onend = () => {
+        setOuvindoVoz(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setOuvindoVoz(false);
+    }
+  };
 
   // Carrega mensagem inicial e botões de boas-vindas
   useEffect(() => {
@@ -398,7 +448,7 @@ export default function ConciergeModal({
             </div>
           )}
 
-          {/* Barra de Pergunta Livre + Chamar Garçom */}
+          {/* Barra de Pergunta Livre + Chamar Garçom + Microfone */}
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={() => {
@@ -411,13 +461,26 @@ export default function ConciergeModal({
               <Bell size={18} />
             </button>
 
+            <button
+              type="button"
+              onClick={alternarReconhecimentoVoz}
+              className={`p-3 rounded-2xl border transition shrink-0 ${
+                ouvindoVoz
+                  ? "bg-red-600 text-white border-red-500 animate-pulse shadow-lg shadow-red-900/50"
+                  : "bg-amber-950/40 border-amber-800/30 text-amber-300 hover:text-amber-100"
+              }`}
+              title={ouvindoVoz ? "Ouvindo... Toque para finalizar" : "Falar pergunta com voz"}
+            >
+              {ouvindoVoz ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+
             <div className="flex-1 relative flex items-center">
               <input
                 type="text"
                 value={perguntaTexto}
                 onChange={(e) => setPerguntaTexto(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && enviarPergunta()}
-                placeholder="Pergunte ao Concierge (ex: vinho para peixe)..."
+                placeholder={ouvindoVoz ? "Ouvindo sua voz..." : "Pergunte ou toque no microfone..."}
                 disabled={carregando}
                 className="w-full bg-[#120e0c] border border-amber-900/40 rounded-2xl py-3 pl-4 pr-11 text-xs text-amber-100 placeholder:text-amber-500/30 outline-none focus:border-amber-500 transition"
               />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Sparkles,
   X,
@@ -15,7 +15,9 @@ import {
   CheckCircle2,
   ChevronRight,
   Flame,
-  Award
+  Award,
+  Camera,
+  RotateCcw
 } from "lucide-react";
 
 export default function DiscoverModal({
@@ -30,6 +32,16 @@ export default function DiscoverModal({
   const [indiceAtivo, setIndiceAtivo] = useState(0);
   const [falando, setFalando] = useState(false);
   const [compartilhado, setCompartilhado] = useState(false);
+  const [fotoClienteUrl, setFotoClienteUrl] = useState(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (fotoClienteUrl) {
+        URL.revokeObjectURL(fotoClienteUrl);
+      }
+    };
+  }, [fotoClienteUrl]);
 
   useEffect(() => {
     if (!aberto || !prato?.id) {
@@ -152,6 +164,34 @@ export default function DiscoverModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Câmera do Cliente */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (fotoClienteUrl) URL.revokeObjectURL(fotoClienteUrl);
+                  const url = URL.createObjectURL(file);
+                  setFotoClienteUrl(url);
+                }
+              }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-2 rounded-xl border transition ${
+                fotoClienteUrl
+                  ? "bg-amber-500 text-amber-950 border-amber-400 font-bold shadow-md shadow-amber-950/40"
+                  : "bg-[#291f1a] text-amber-300 border-amber-900/40 hover:bg-[#342721]"
+              }`}
+              title={fotoClienteUrl ? "Foto da sua mesa ativa (toque para tirar outra)" : "Fotografar prato servido na sua mesa"}
+            >
+              <Camera size={17} />
+            </button>
+
             {/* Botão Áudio */}
             {typeof window !== "undefined" && "speechSynthesis" in window && (
               <button
@@ -198,12 +238,35 @@ export default function DiscoverModal({
 
         {/* FOTOGRAFIA INTERATIVA COM HOTSPOTS */}
         <div className="relative h-56 sm:h-64 bg-[#231b17] overflow-hidden shrink-0">
-          {prato.imagem_url ? (
+          {fotoClienteUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={fotoClienteUrl} alt="Foto da sua mesa" className="w-full h-full object-cover" />
+          ) : prato.imagem_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={prato.imagem_url} alt={prato.nome_produto} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-amber-700/30">
               <UtensilsCrossed size={52} />
+            </div>
+          )}
+
+          {/* Badge & Reset de Foto do Cliente */}
+          {fotoClienteUrl && (
+            <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 animate-in fade-in">
+              <span className="bg-black/70 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded-full text-3xs font-extrabold backdrop-blur-sm">
+                Foto da sua mesa 📸
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  URL.revokeObjectURL(fotoClienteUrl);
+                  setFotoClienteUrl(null);
+                }}
+                className="p-1 rounded-lg bg-black/70 text-amber-200 hover:text-white border border-amber-900/40 backdrop-blur-sm transition"
+                title="Restaurar foto original do cardápio"
+              >
+                <RotateCcw size={12} />
+              </button>
             </div>
           )}
 

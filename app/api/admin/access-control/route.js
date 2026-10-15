@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/server/supabase-server.mjs";
+import { verificarConcessao, filtrarListagem } from "../../../lib/server/concessao.mjs";
+import { criarDepsConcessao } from "../../../lib/server/concessao-deps.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +139,7 @@ export async function GET(request) {
   if (firstError) return json({ error: firstError.message }, 500);
 
   const [users, profiles, profilePermissions, userPermissions, scopes, companies, units, sectors, employees, legacy, accessLogs] = results;
-  return json({
+  const dados = {
     users: users.data || [],
     profiles: (profiles.data || []).map((profile) => ({
       ...profile,
@@ -153,7 +155,22 @@ export async function GET(request) {
     employees: employees.data || [],
     legacyCount: legacy.count || 0,
     accessLogs: accessLogs.data || [],
-  });
+  };
+  // S-31: quem não é administrador geral só vê os usuários que gerencia, as
+  // unidades do próprio escopo e as empresas delas — nunca outra empresa.
+  const { actor, actorRecord } = context;
+  if (actorRecord?.super_admin === true) return json(dados);
+  try {
+    const deps = criarDepsConcessao(db);
+    const unidadesDoAtor = await deps.unidadesDoAtor(actor.id);
+    const filtrado = await filtrarListagem({
+      ator: actor.id, atorSuper: false, atorUsuarioId: actorRecord?.id, dados, unidadesDoAtor, deps,
+    });
+    const empresasVisiveis = new Set(filtrado.units.map((u) => u.empresa_id).filter(Boolean));
+    return json({ ...filtrado, companies: filtrado.companies.filter((c) => empresasVisiveis.has(c.id)) });
+  } catch {
+    return json({ error: "Não foi possível filtrar a listagem de acessos." }, 503);
+  }
 }
 
 export async function POST(request) {
@@ -176,6 +193,17 @@ export async function POST(request) {
   const context = await requireAdmin(request, permissionByAction[body.action] || "configuracoes.users.settings");
   if (context.response) return context.response;
   const { db, actor, actorRecord } = context;
+
+  // S-31: ter a permissão da tela não autoriza dar mais do que se tem. Antes
+  // estas regras existiam (concessao.mjs) mas a rota não as chamava.
+  try {
+    const negado = await verificarConcessao({
+      acao: body.action, ator: actor.id, atorSuper: actorRecord?.super_admin === true, corpo: body, deps: criarDepsConcessao(db),
+    });
+    if (negado) return json({ error: negado.mensagem, codigo: negado.codigo, detalhe: negado.detalhe }, negado.status);
+  } catch {
+    return json({ error: "Não foi possível verificar a concessão. Nada foi alterado." }, 503);
+  }
 
   try {
     if (body.action === "create-user") {

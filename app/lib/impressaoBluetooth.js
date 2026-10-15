@@ -1,5 +1,7 @@
 "use client";
 
+import { nativoDisponivel, estadoNativo, escolherNativo, enviarNativo, imprimirTesteNativo } from "./bluetooth-nativo.mjs";
+
 // IMPRESSÃO BLUETOOTH DIRETA (Web Bluetooth)
 // O tablet/celular Android fala direto com a impressora térmica, sem PC, sem
 // driver e sem AirPrint. No iPhone/iPad os navegadores comuns (Safari, Chrome
@@ -26,14 +28,26 @@ const SERVICOS_CONHECIDOS = [
 const TAMANHO_BLOCO = 180;
 const PAUSA_MS = 22;
 
+// Dentro do app Android "Héfisto Etiquetas" o Bluetooth é nativo (clássico
+// SPP + BLE). É o caminho da MDK-022, que o navegador não alcança.
 export function bluetoothDisponivel() {
-  return typeof navigator !== "undefined" && !!navigator.bluetooth;
+  return nativoDisponivel() || (typeof navigator !== "undefined" && !!navigator.bluetooth);
+}
+
+export function bluetoothNativo() {
+  return nativoDisponivel();
+}
+
+// Impressora já salva no app: o funcionário só escolhe o produto e imprime.
+export function impressoraSalvaNativa() {
+  const e = estadoNativo();
+  return e && e.salva ? (e.nome || "Impressora Bluetooth") : "";
 }
 
 // Explica por que não dá, em vez de só sumir com o botão.
 export function motivoBluetoothIndisponivel() {
   if (typeof navigator === "undefined") return "";
-  if (navigator.bluetooth) return "";
+  if (nativoDisponivel() || navigator.bluetooth) return "";
 
   // Sem https o navegador esconde o Bluetooth mesmo no aparelho certo.
   if (typeof window !== "undefined" && window.isSecureContext === false) {
@@ -63,7 +77,13 @@ let dispositivo = null;
 let caracteristica = null;
 
 // Pede o pareamento e guarda a conexão. Precisa partir de um toque do usuário.
+let nomeNativo = "";
+
 export async function conectarImpressoraBluetooth() {
+  if (nativoDisponivel()) {
+    nomeNativo = await escolherNativo();
+    return { nome: nomeNativo || "Impressora Bluetooth" };
+  }
   if (!bluetoothDisponivel()) throw new Error(motivoBluetoothIndisponivel());
 
   dispositivo = await navigator.bluetooth.requestDevice({
@@ -93,11 +113,34 @@ export async function conectarImpressoraBluetooth() {
 }
 
 export function impressoraBluetoothConectada() {
+  // No app a impressora salva reconecta sozinha a cada impressão.
+  if (nativoDisponivel()) return !!(nomeNativo || impressoraSalvaNativa());
   return !!(caracteristica && dispositivo?.gatt?.connected);
 }
 
 export function nomeImpressoraBluetooth() {
+  if (nativoDisponivel()) return nomeNativo || impressoraSalvaNativa();
   return dispositivo?.name || "";
+}
+
+// Etiqueta de teste TSPL (60×40, GAP 2, QR). Mesmos comandos do teste USB.
+export function etiquetaTesteTspl() {
+  return new TextEncoder().encode([
+    "SIZE 60 mm,40 mm",
+    "GAP 2 mm,0 mm",
+    "DIRECTION 1",
+    "CLS",
+    "TEXT 24,24,\"3\",0,1,1,\"HEFISTO\"",
+    "TEXT 24,80,\"3\",0,1,1,\"TESTE BLUETOOTH\"",
+    "TEXT 24,136,\"2\",0,1,1,\"MDK-022 60x40 GAP 2\"",
+    "QRCODE 330,40,L,5,A,0,\"HEFISTO BLUETOOTH OK\"",
+    "PRINT 1,1",
+  ].map((l) => l + "\r\n").join(""));
+}
+
+export async function imprimirTesteBluetooth() {
+  if (nativoDisponivel()) return imprimirTesteNativo();
+  return enviarBytesBluetooth(etiquetaTesteTspl());
 }
 
 export async function desconectarImpressoraBluetooth() {
@@ -108,6 +151,7 @@ export async function desconectarImpressoraBluetooth() {
 // Envia os bytes em blocos pequenos, com pausa — impressora térmica engasga
 // quando recebe tudo de uma vez.
 export async function enviarBytesBluetooth(bytes) {
+  if (nativoDisponivel()) { await enviarNativo(bytes); return; }
   if (!impressoraBluetoothConectada()) {
     // A conexão pode ter caído sozinha; tenta reabrir sem novo pareamento.
     if (dispositivo?.gatt && !dispositivo.gatt.connected) {

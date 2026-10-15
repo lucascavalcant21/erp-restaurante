@@ -20,7 +20,7 @@ public final class Origens {
             if (!"https".equalsIgnoreCase(u.getScheme())) return false;
             String h = u.getHost();
             if (h == null) return false;
-            h = h.toLowerCase();
+            h = h.toLowerCase(java.util.Locale.ROOT);
             if (h.equals("app.hefisto.com.br")) return true;
             // Previews do projeto erp-restaurante na Vercel (time lucas-cavalcante)
             return h.endsWith("-lucas-cavalcante.vercel.app") && h.startsWith("erp-restaurante-");

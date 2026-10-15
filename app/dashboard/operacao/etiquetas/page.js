@@ -23,7 +23,9 @@ import {
 import {
   bluetoothDisponivel, motivoBluetoothIndisponivel, conectarImpressoraBluetooth,
   impressoraBluetoothConectada, nomeImpressoraBluetooth, enviarBytesBluetooth,
+  bluetoothNativo, impressoraSalvaNativa, imprimirTesteBluetooth,
 } from "../../../lib/impressaoBluetooth";
+import { abrirDiagnosticoNativo } from "../../../lib/bluetooth-nativo.mjs";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { imprimirHtml } from "../../../lib/imprimir";
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, gerarComandosTsplMdk022 } from "../../../lib/impressaoMdk022";
@@ -236,6 +238,17 @@ function EtiquetasRunner() {
   };
   const temBluetooth = typeof window !== "undefined" && bluetoothDisponivel();
   const temWebUsb = typeof window !== "undefined" && WebUsbDisponivel();
+  // App Héfisto Etiquetas: a impressora salva já vem pronta (reconecta sozinha).
+  useEffect(() => {
+    if (bluetoothNativo()) { const salva = impressoraSalvaNativa(); if (salva) setBtNome(salva); }
+  }, []);
+  const [btTestando, setBtTestando] = useState(false);
+  const imprimirTesteBt = async () => {
+    setBtErro(""); setBtTestando(true);
+    try { await imprimirTesteBluetooth(); setSalvou("Etiqueta de teste enviada por Bluetooth (60×40, GAP 2, QR)."); }
+    catch (e) { setBtErro(e?.message || "Não consegui imprimir o teste."); }
+    finally { setBtTestando(false); }
+  };
   const conectarBluetooth = async () => {
     setBtErro("");
     setBtConectando(true);
@@ -1005,10 +1018,23 @@ function EtiquetasRunner() {
                       className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 shrink-0"
                       style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
                       <RefreshCw size={13} className={btConectando ? "animate-spin" : ""} />
-                      {btNome ? "Trocar" : "Conectar"}
+                      {btNome ? "Trocar" : "Conectar impressora Bluetooth"}
                     </button>
                   </div>
                   {btErro && <p className="text-2xs font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-2">{btErro}</p>}
+                  {btNome && (
+                    <button type="button" onClick={imprimirTesteBt} disabled={btTestando}
+                      className="w-full mt-2 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                      style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
+                      {btTestando ? "Enviando teste…" : "Imprimir teste"}
+                    </button>
+                  )}
+                  {bluetoothNativo() && (
+                    <button type="button" onClick={() => abrirDiagnosticoNativo()}
+                      className="w-full mt-2 text-3xs font-bold underline" style={{ color: "var(--dim)" }}>
+                      Diagnóstico Bluetooth
+                    </button>
+                  )}
                   <label className="block text-3xs font-bold uppercase tracking-wide mt-3" style={{ color: "var(--dim)" }}>Linguagem da impressora</label>
                   <select value={btLinguagem} onChange={(e) => setBtLinguagem(e.target.value)}
                     className="w-full mt-1 rounded-lg border border-line bg-card px-3 py-2 text-xs font-bold text-fg">

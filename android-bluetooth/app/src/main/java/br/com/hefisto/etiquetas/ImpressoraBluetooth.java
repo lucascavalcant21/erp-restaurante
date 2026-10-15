@@ -324,7 +324,7 @@ public class ImpressoraBluetooth {
             }
         };
         try {
-            gatt = Build.VERSION.SDK_INT >= 23 ? d.connectGatt(ctx, false, cb, BluetoothDevice.TRANSPORT_LE) : d.connectGatt(ctx, false, cb);
+            gatt = d.connectGatt(ctx, false, cb, BluetoothDevice.TRANSPORT_LE);
             pronto.await(15, TimeUnit.SECONDS);
         } catch (Exception e) {
             registrar("  BLE falhou: " + e);

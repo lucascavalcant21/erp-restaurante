@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
  * Tela de diagnóstico: mostra o que o Android sabe da impressora e o erro
  * exato de cada tentativa. Funciona sem o Héfisto (não precisa de login).
  */
+@android.annotation.SuppressLint("MissingPermission") // procurar() só roda com Permissoes.ok()
 public class DiagnosticoActivity extends Activity {
     private final ExecutorService fila = Executors.newSingleThreadExecutor();
     private final Handler tela = new Handler(Looper.getMainLooper());
@@ -107,7 +108,7 @@ public class DiagnosticoActivity extends Activity {
             for (BluetoothDevice d : imp.pareadas()) todos.put(d.getAddress(), d);
             imp.registrar("Pareadas no Android: " + todos.size());
             List<BluetoothDevice> achadas = imp.procurar(12);
-            for (BluetoothDevice d : achadas) todos.putIfAbsent(d.getAddress(), d);
+            for (BluetoothDevice d : achadas) if (!todos.containsKey(d.getAddress())) todos.put(d.getAddress(), d);
             tela.post(() -> {
                 lista.removeAllViews();
                 if (todos.isEmpty()) lista.addView(texto("Nada encontrado. A impressora está ligada? O Bluetooth dela está aceso?", 14, false));

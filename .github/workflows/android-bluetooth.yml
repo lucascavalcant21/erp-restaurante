@@ -36,10 +36,9 @@ jobs:
         working-directory: android-bluetooth
         run: gradle --no-daemon assembleDebug
 
-      - name: Lint (erros de API/permissão)
+      - name: Lint (erro de API ou permissão para o build)
         working-directory: android-bluetooth
         run: gradle --no-daemon lintDebug
-        continue-on-error: true
 
       - uses: actions/upload-artifact@v4
         with:

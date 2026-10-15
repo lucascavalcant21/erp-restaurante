@@ -17,6 +17,7 @@ import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth, enviarBytesTermicaBluetooth } from "../lib/impressaoTermica";
 import { escolherLinguagemBluetooth } from "../lib/bluetooth-linguagem.mjs";
+import { estadoNativo } from "../lib/bluetooth-nativo.mjs";
 const lerLinguagemBt = () => { try { return localStorage.getItem("hefisto.bt.linguagem") || "auto"; } catch { return "auto"; } };
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
 import { limitarEscala, rotuloEscala, PASSO_ESCALA, ESCALA_MIN, ESCALA_MAX, carregarImagem, layoutNome } from "../lib/etiqueta-centralizada.mjs";
@@ -327,6 +328,8 @@ export default function EtiquetasRapidas() {
     setLogoEtiqueta(""); setMostrarLogo(false); setErroLogo("");
   };
   const [conectandoBluetooth, setConectandoBluetooth] = useState(false);
+  // App Héfisto Etiquetas: impressora salva já vem conectada (reconecta sozinha).
+  useEffect(() => { const e = estadoNativo(); if (e?.salva) setBluetoothNome(e.nome || "Impressora Bluetooth"); }, []);
   const [tamanho] = useState(() => { try { return localStorage.getItem("hefisto_etq_tamanho") || "60x40"; } catch { return "60x40"; } });
   const [momento, setMomento] = useState(() => new Date());
   const [statusMdk, setStatusMdk] = useState("");

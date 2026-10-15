@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
  * O Héfisto (tela de etiquetas) dentro do app, com a ponte Bluetooth nativa.
  * A ponte só responde quando a página aberta é do Héfisto (Origens.permitida).
  */
+@SuppressLint("MissingPermission") // escolher() confere Permissoes.ok() antes
 public class MainActivity extends Activity {
     private WebView web;
     private volatile String urlAtual = "";

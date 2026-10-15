@@ -32,7 +32,12 @@ const U = {
   outra: "00000000-0000-0000-0000-0000000000a6",      // outra empresa, escopo empresa
   bloqueado: "00000000-0000-0000-0000-0000000000a7",  // restaurante, bloqueado
   semPrincipal: "00000000-0000-0000-0000-0000000000a8", // sem principal, escopos marmitaria e seldeestrela
+  semChave: "00000000-0000-0000-0000-0000000000a9",   // como o duplo, mas sem nenhuma chave financeira
 };
+const FIN = new Set(["contas_pagar", "fin_contas_financeiras", "fin_contas_receber", "fin_faturamento_diario", "fin_pagamentos", "fin_recebimentos", "fin_taxas_meio_pagamento"]);
+// policies EXATAS da SEC-FIN-3 (a SEC-MULTI-1 roda depois dela nas financeiras)
+const FIN3 = ler("SEC_FIN_3_PERMISSAO_FINANCEIRA.sql").replace(/\r\n/g, "\n");
+const policiesFin3 = (t) => ["ler", "incluir", "alterar", "excluir"].map((a) => { const i = FIN3.indexOf(`create policy ${t}_${a} on public.${t} `); assert.ok(i >= 0, `FIN-3 tem ${t}_${a}`); return FIN3.slice(i, FIN3.indexOf(";\n", i) + 1); }).join("\n");
 
 async function banco() {
   const { PGlite } = await import(pathToFileURL(path.join(process.env.PGLITE, "dist", "index.js")).href);
@@ -53,8 +58,11 @@ async function banco() {
     insert into public.usuarios_erp (auth_user_id, super_admin, unidade_principal_id, locked_until) values
       ('${U.super}', true, 'seldeestrela', null), ('${U.rest}', false, 'seldeestrela', null), ('${U.marm}', false, 'marmitaria', null),
       ('${U.duplo}', false, 'seldeestrela', null), ('${U.dono}', false, 'seldeestrela', null), ('${U.outra}', false, 'outra', null),
-      ('${U.bloqueado}', false, 'seldeestrela', now() + interval '1 day'), ('${U.semPrincipal}', false, null, null);
-    insert into public.usuario_escopos (usuario_id, unidade_id, data_scope) select id, 'marmitaria', 'unidade' from public.usuarios_erp where auth_user_id = '${U.duplo}';
+      ('${U.bloqueado}', false, 'seldeestrela', now() + interval '1 day'), ('${U.semPrincipal}', false, null, null),
+      ('${U.semChave}', false, 'seldeestrela', null);
+    insert into public.usuario_escopos (usuario_id, unidade_id, data_scope) select id, 'marmitaria', 'unidade' from public.usuarios_erp where auth_user_id in ('${U.duplo}', '${U.semChave}');
+    -- dublê da permissão por chave: todos têm as chaves financeiras, menos o semChave
+    create function public.hefisto_user_has_permission(p_uid uuid, p_chave text) returns boolean language sql stable as $$ select p_uid <> '${U.semChave}' $$;
     insert into public.usuario_escopos (usuario_id, data_scope) select id, 'empresa' from public.usuarios_erp where auth_user_id in ('${U.dono}', '${U.outra}');
     insert into public.usuario_escopos (usuario_id, unidade_id, data_scope) select id, u, 'unidade' from public.usuarios_erp, unnest(array['marmitaria', 'seldeestrela']) u where auth_user_id = '${U.semPrincipal}';
     -- auth_unidade_id como em produção (principal; sem ela, a 1ª unidade de escopo)
@@ -64,10 +72,11 @@ async function banco() {
   `);
   // funções de escopo REAIS (SEC-RLS-2)
   for (const f of ["pode_ver_todas", "hefisto_ve_todas_unidades", "hefisto_unidades_do_usuario"]) await pg.exec(funcao(fase2, f));
+  await pg.exec(funcao(FIN3, "hefisto_tem_alguma")); // verificador REAL da SEC-FIN-3
   for (const [t, p, cmd] of TABELAS) {
     await pg.exec(`create table public.${t} (id uuid primary key default gen_random_uuid(), unidade_id text, nome text);
       alter table public.${t} enable row level security;
-      ${cmd === "select"
+      ${FIN.has(t) ? policiesFin3(t) : cmd === "select"
         ? `create policy ${p} on public.${t} for select to authenticated using (pode_ver_todas() or unidade_id = auth_unidade_id());`
         : `create policy ${p} on public.${t} for all to authenticated using (pode_ver_todas() or unidade_id = auth_unidade_id()) with check (pode_ver_todas() or unidade_id = auth_unidade_id());`}
       grant select, insert, update, delete on public.${t} to authenticated;
@@ -84,9 +93,9 @@ const visiveis = (pg, uid, t = "contas_pagar") => como(pg, uid, async () => (awa
 const grava = (pg, uid, unidade, t = "contas_pagar") => como(pg, uid, async () => { try { await pg.query(`insert into public.${t} (unidade_id, nome) values ($1, 'novo')`, [unidade]); return true; } catch { return false; } });
 
 const ANTES = { super: "marmitaria,outra,seldeestrela", rest: "seldeestrela", marm: "marmitaria", duplo: "seldeestrela", dono: "seldeestrela",
-  outra: "outra", bloqueado: "seldeestrela", semPrincipal: "marmitaria" };
+  outra: "outra", bloqueado: "seldeestrela", semPrincipal: "marmitaria", semChave: "" };
 const DEPOIS = { super: "marmitaria,outra,seldeestrela", rest: "seldeestrela", marm: "marmitaria", duplo: "marmitaria,seldeestrela", dono: "marmitaria,seldeestrela",
-  outra: "outra", bloqueado: "", semPrincipal: "marmitaria,seldeestrela" };
+  outra: "outra", bloqueado: "", semPrincipal: "marmitaria,seldeestrela", semChave: "" };
 
 test("SEC-MULTI-1: antes / depois / rollback, nas 16 tabelas", { skip: pular }, async () => {
   const pg = await banco();
@@ -102,7 +111,14 @@ test("SEC-MULTI-1: antes / depois / rollback, nas 16 tabelas", { skip: pular }, 
   for (const [t] of TABELAS) {
     assert.equal(await visiveis(pg, U.duplo, t), "marmitaria,seldeestrela", `duplo em ${t}`);
     assert.equal(await visiveis(pg, U.outra, t), "outra", `outra empresa isolada em ${t}`);
+    // sem chave do módulo: financeiro continua fechado nas DUAS unidades; estoque abre nas duas
+    assert.equal(await visiveis(pg, U.semChave, t), FIN.has(t) ? "" : "marmitaria,seldeestrela", `semChave em ${t}`);
   }
+  assert.equal(await grava(pg, U.semChave, "marmitaria"), false, "sem chave não grava financeiro na outra unidade");
+  assert.equal(await grava(pg, U.semChave, "seldeestrela"), false, "sem chave não grava financeiro nem na principal");
+  assert.equal(await grava(pg, U.semChave, "marmitaria", "estoque_itens"), true, "semChave opera estoque da unidade concedida");
+  const comChave = (await pg.query("select count(*)::int n from pg_policies where coalesce(qual, with_check) ilike '%hefisto_tem_alguma%'")).rows[0].n;
+  assert.equal(comChave, 28, "as 28 policies financeiras mantêm a chave do módulo");
   // escrita segue o mesmo escopo (with check)
   assert.equal(await grava(pg, U.duplo, "marmitaria"), true, "duplo grava na marmitaria");
   assert.equal(await grava(pg, U.duplo, "outra"), false, "duplo não grava em outra empresa");
@@ -117,6 +133,22 @@ test("SEC-MULTI-1: antes / depois / rollback, nas 16 tabelas", { skip: pular }, 
   // rollback devolve exatamente o comportamento antigo
   await pg.exec(ler("SEC_MULTI_1_ROLLBACK.sql"));
   for (const [k, uid] of Object.entries(U)) assert.equal(await visiveis(pg, uid), ANTES[k], `rollback: ${k}`);
-  const nAntigas = (await pg.query(`select count(*)::int n from pg_policies where qual ilike '%auth_unidade_id%'`)).rows[0].n;
-  assert.equal(nAntigas, 16);
+  const nAntigas = (await pg.query(`select count(*)::int n from pg_policies where coalesce(qual, with_check) ilike '%auth_unidade_id%'`)).rows[0].n;
+  assert.equal(nAntigas, 9 + 28, "9 de estoque no padrão F2.1 + 28 financeiras no estado da SEC-FIN-3");
+  for (const t of FIN) {
+    const pol = (await pg.query("select string_agg(policyname, ',' order by policyname) p from pg_policies where tablename = $1", [t])).rows[0].p;
+    assert.equal(pol, [`${t}_alterar`, `${t}_excluir`, `${t}_incluir`, `${t}_ler`].join(","), `rollback devolve as policies da FIN-3 em ${t}`);
+  }
+});
+
+test("SEC-MULTI-1: sem a SEC-FIN-3 aplicada, aborta sem mudar nada", { skip: pular }, async () => {
+  const pg = await banco();
+  // financeiro ainda no padrão F2.1 (SEC-FIN-3 não aplicada)
+  await pg.exec(`drop policy contas_pagar_ler on public.contas_pagar; drop policy contas_pagar_incluir on public.contas_pagar;
+    drop policy contas_pagar_alterar on public.contas_pagar; drop policy contas_pagar_excluir on public.contas_pagar;
+    create policy contas_pagar_unidade on public.contas_pagar for all to authenticated using (pode_ver_todas() or unidade_id = auth_unidade_id()) with check (pode_ver_todas() or unidade_id = auth_unidade_id());`);
+  await assert.rejects(pg.exec(ler("SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql")), /não estão como a SEC-FIN-3 deixa/);
+  await pg.exec("rollback");
+  assert.equal(await visiveis(pg, U.duplo, "estoque_itens"), "seldeestrela", "estoque não mudou");
+  assert.equal(await visiveis(pg, U.duplo), "seldeestrela", "financeiro não mudou");
 });

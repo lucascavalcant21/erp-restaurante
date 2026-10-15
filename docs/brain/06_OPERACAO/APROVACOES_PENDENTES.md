@@ -133,13 +133,13 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 ### APR-009 · PENDENTE
 
 - **Missão:** A3 / S-19 — estoque e financeiro de várias unidades com acesso explícito (PR próprio)
-- **Ação:** aplicar db/security/SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql: recriar 16 policies (mesmo nome, comando e papel) trocando "super admin OU unidade principal" por "super admin OU unidades concedidas explicitamente" (hefisto_unidades_do_usuario: principal + escopos; escopo de empresa só na própria empresa)
+- **Ação:** (SÓ DEPOIS DA APR-010 / SEC-FIN-3; o preflight aborta sem ela) aplicar db/security/SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql: 9 policies de estoque/compras no padrão sec_unidade + nas 7 financeiras as 28 policies da SEC-FIN-3 com a unidade principal trocada pelas concedidas e as MESMAS chaves. Texto anterior: recriar 16 policies (mesmo nome, comando e papel) trocando "super admin OU unidade principal" por "super admin OU unidades concedidas explicitamente" (hefisto_unidades_do_usuario: principal + escopos; escopo de empresa só na própria empresa)
 - **Ambiente:** supabase (produção)
 - **Risco:** MEDIUM (mudança de RLS)
 - **Motivo:** com a Marmitaria em unidade própria, quem tem acesso aos dois negócios precisa ver estoque e financeiro dos dois
 - **Impacto:** medido em produção 14/10: **0 usuários mudam hoje** (15 iguais + 1 super admin). Passa a valer quando o dono conceder uma segunda unidade a alguém. Mais restritivo para usuário bloqueado. Privilégios de tabela e funções não mudam
-- **Rollback:** db/security/SEC_MULTI_1_ROLLBACK.sql (recria as policies F2.1; testado)
-- **Evidências:** teste com SQL real (funções de escopo da SEC-RLS-2): 8 perfis × 3 unidades × 2 empresas, antes/depois/rollback nas 16 tabelas, escrita com with check, anônimo, outra empresa isolada; test:seguranca 25/25; classificador: SAFE
+- **Rollback:** db/security/SEC_MULTI_1_ROLLBACK.sql (estoque/compras voltam à F2.1; financeiro volta exatamente ao estado da SEC-FIN-3; testado)
+- **Evidências:** teste com SQL real (funções de escopo da SEC-RLS-2): 8 perfis × 3 unidades × 2 empresas, antes/depois/rollback nas 16 tabelas, escrita com with check, anônimo, outra empresa isolada; test:seguranca 25/25; classificador: SAFE Atualizado 15/10: começa do estado da SEC-FIN-3; usuário com 2 unidades e sem chave financeira não vê financeiro em nenhuma (vê estoque nas duas); sem a SEC-FIN-3 aborta sem mudar nada; test:seguranca 28/28; app/lib 508/508 (TESTADO LOCAL, PGlite).
 - **Status:** PENDENTE
 - **Criado em:** 2026-10-14
 - **Chave:** migracao:db/security/SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql

@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
 import { fetchFolgasEsporadicas, fetchFeriados, fetchAtestados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho, refazerEspelho } from "../../../../lib/rh";
-import { Printer, ArrowLeft, Download } from "lucide-react";
+import { Printer, ArrowLeft, Download, Clock3, Edit3 } from "lucide-react";
 import { fetchConvencaoAtiva } from "../../../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../../../lib/trabalhista/regras-competencia.mjs";
+import ModalAjustePonto from "../../components/ModalAjustePonto";
 
 export default function EspelhoDePonto() {
   const params = useParams();
@@ -22,6 +24,7 @@ export default function EspelhoDePonto() {
     router.replace(`/dashboard/rh/espelho/${colabId}?mes=${novoMes}`);
   };
 
+  const { unidadeAtiva, sessao } = useERP();
   const [colaborador, setColaborador] = useState(null);
   const [convencao, setConvencao] = useState(null); // convenção coletiva ativa (RH-3)
   useEffect(() => { if (colaborador?.unidade_id) fetchConvencaoAtiva(colaborador.unidade_id).then(setConvencao); }, [colaborador?.unidade_id]);
@@ -34,12 +37,26 @@ export default function EspelhoDePonto() {
   const [feriadosMes, setFeriadosMes] = useState([]);
   const [fechamento, setFechamento] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [modalAjusteAberto, setModalAjusteAberto] = useState(false);
+  const [diaParaAjustar, setDiaParaAjustar] = useState(null);
   // Este estado fica aqui em cima com os outros de proposito. Mais abaixo a
   // tela tem `if (loading) return ...` e `if (!colaborador) return ...`; um
   // useState depois deles roda em um render e nao roda no outro, e o React
   // derruba a tela com o erro #310 ("rendered more hooks than during the
   // previous render"). Hook nenhum pode ficar abaixo daqueles returns.
   const [refazendo, setRefazendo] = useState(false);
+
+  const recarregarPontos = async () => {
+    const { data: pts } = await fetchPontosMes(colabId, mesParam);
+    setPontos(pts || []);
+    const resFolgas = await fetchFolgasEsporadicas(colabId);
+    setFolgasEsporadicas(resFolgas.data || []);
+  };
+
+  const abrirAjusteDia = (dataISO) => {
+    setDiaParaAjustar(dataISO || `${mesParam}-01`);
+    setModalAjusteAberto(true);
+  };
 
   useEffect(() => {
     async function carregar() {
@@ -242,6 +259,10 @@ export default function EspelhoDePonto() {
                   {refazendo ? "Atualizando..." : "Refazer retrato do contrato"}
                </button>
             )}
+            <button onClick={() => abrirAjusteDia(`${mesParam}-01`)} title="Ajustar ou lançar ponto deste colaborador em qualquer dia do mês"
+               className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-2.5 font-bold text-white shadow-lg shadow-emerald-600/20 transition-colors hover:bg-emerald-700 sm:flex-none sm:px-4 sm:py-2">
+               <Clock3 size={18}/> Ajustar Ponto
+            </button>
             <button onClick={() => window.print()} title="Enviar a folha para a impressora"
                className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-3 py-2.5 font-bold text-accent-fg shadow-lg shadow-emerald-600/20 transition-colors hover:bg-accent sm:flex-none sm:px-5 sm:py-2">
                <Printer size={18}/> Imprimir
@@ -369,6 +390,7 @@ export default function EspelhoDePonto() {
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-16">SAÍDA</th>
                   <th colSpan={3} className="border border-slate-800 !py-0 !px-1">HORAS EXTRAS</th>
                   <th rowSpan={2} className="border border-slate-800 !py-0 !px-1">ASSINATURA<br/>DO TRABALHADOR</th>
+                  <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-10 print:hidden text-3xs font-black">AJUSTAR</th>
                </tr>
                <tr className="bg-card">
                   <th className="border border-slate-800 !py-0 !px-1 w-16">INÍCIO</th>
@@ -408,6 +430,7 @@ export default function EspelhoDePonto() {
                                🏥 ATESTADO MÉDICO — AUSÊNCIA ABONADA {atestado.cid ? `(CID ${atestado.cid})` : ""}
                             </td>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.10em] text-zinc-900 bg-zinc-100/60 text-3xs">ABONADO — NÃO DESCONTAR</td>
+                            <td className="border border-slate-800 !py-0 !px-1 print:hidden text-center"><button type="button" onClick={() => abrirAjusteDia(dataString)} className="p-0.5 hover:bg-slate-200 rounded text-slate-700" title="Ajustar batidas ou presença neste dia"><Edit3 size={11} className="inline" /></button></td>
                          </tr>
                       );
                   }
@@ -424,6 +447,7 @@ export default function EspelhoDePonto() {
                             <td className="border border-slate-800 !py-0 !px-1 font-bold bg-white text-fg text-left">{rotuloDia(dia)}</td>
                             <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-white">{textoFolga}</td>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold tracking-[0.12em] bg-white text-3xs">{partesFolga[0]} — NÃO ASSINAR</td>
+                            <td className="border border-slate-800 !py-0 !px-1 print:hidden text-center"><button type="button" onClick={() => abrirAjusteDia(dataString)} className="p-0.5 hover:bg-slate-200 rounded text-slate-700" title="Lançar batidas ou alterar folga deste domingo/dia"><Edit3 size={11} className="inline" /></button></td>
                          </tr>
                       );
                   }
@@ -453,6 +477,7 @@ export default function EspelhoDePonto() {
                         <td className="border border-slate-800 !py-0 !px-1"></td>
                         <td className="border border-slate-800 !py-0 !px-1"></td>
                         <td className="border border-slate-800 !py-0 !px-1"></td>
+                        <td className="border border-slate-800 !py-0 !px-1 print:hidden text-center"><button type="button" onClick={() => abrirAjusteDia(dataString)} className="p-0.5 hover:bg-emerald-100 rounded text-emerald-800" title="Ajustar batidas deste dia"><Edit3 size={11} className="inline" /></button></td>
                      </tr>
                   );
                })}
@@ -461,6 +486,7 @@ export default function EspelhoDePonto() {
                <tr className="bg-card">
                   <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-bold uppercase text-3xs">Total de Horas no Mês:</td>
                   <td colSpan={4} className="border border-slate-800 !py-1 !px-2 text-left font-bold text-2xs">{fmtHoras(totalHorasMes)} hrs</td>
+                  <td className="border border-slate-800 !py-1 !px-2 print:hidden"></td>
                </tr>
             </tfoot>
          </table>
@@ -565,6 +591,18 @@ export default function EspelhoDePonto() {
          </div>
 
       </div>
+
+      <ModalAjustePonto
+        aberto={modalAjusteAberto}
+        onClose={() => setModalAjusteAberto(false)}
+        colaborador={colaborador}
+        dataReferencia={diaParaAjustar}
+        registroPonto={pontos.find((p) => p.data_referencia === diaParaAjustar) || null}
+        ehFolgaDomingoAtual={folgasEsporadicas.some((f) => String(f.data_folga).slice(0, 10) === diaParaAjustar)}
+        unidadeId={colaborador?.unidade_id || unidadeAtiva}
+        sessao={sessao}
+        onSalvo={recarregarPontos}
+      />
 
     </div>
   );

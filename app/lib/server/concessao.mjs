@@ -161,6 +161,13 @@ export async function filtrarListagem({ ator, atorSuper, atorUsuarioId, dados, u
     sectors: (dados.sectors || []).filter((s) => !s.unidade_id || naUnidade(s.unidade_id)),
     employees: (dados.employees || []).filter((e) => naUnidade(e.unidade_id)),
     accessLogs: (dados.accessLogs || []).filter((l) => visiveis.has(l.usuario_id) || authVisiveis.has(l.auth_user_id)),
+    // Histórico de alterações: só dos usuários que ele gerencia e dos perfis
+    // (que ele já vê); a lista de "perfil aplicado a usuários" fica só com os visíveis.
+    permissionLogs: (dados.permissionLogs || [])
+      .filter((l) => (l.alvo_tipo === "usuario" && visiveis.has(l.alvo_id)) || l.alvo_tipo === "perfil")
+      .map((l) => (l.alvo_tipo === "perfil" && Array.isArray(l.depois?.userIds)
+        ? { ...l, depois: { ...l.depois, userIds: l.depois.userIds.filter((id) => visiveis.has(id)) } }
+        : l)),
     legacyCount: 0,
   };
 }

@@ -45,8 +45,10 @@ async function requireAdmin(request, permission = "configuracoes.users.view") {
   return { db, actor: auth.user, actorRecord: actorRecord.data };
 }
 
+// A alteração já foi feita quando a auditoria grava; se a gravação falhar, o
+// erro vai para o log do servidor (Vercel) em vez de sumir em silêncio.
 async function audit(db, actorId, targetType, targetId, event, before = null, after = null) {
-  await db.from("permissoes_auditoria").insert({
+  const { error } = await db.from("permissoes_auditoria").insert({
     ator_auth_user_id: actorId,
     alvo_tipo: targetType,
     alvo_id: targetId || null,
@@ -54,6 +56,8 @@ async function audit(db, actorId, targetType, targetId, event, before = null, af
     antes: before,
     depois: after,
   });
+  if (error) console.error("[acessos] auditoria NÃO gravada:", event, targetType, targetId, error.message);
+  return !error;
 }
 
 async function replacePermissions(db, table, idColumn, id, permissions = [], effect = null) {
@@ -134,11 +138,12 @@ export async function GET(request) {
     db.from("funcionarios").select("id,nome,cargo,email,telefone,unidade_id,ativo").order("nome"),
     db.from("acessos_modulo").select("id", { count: "exact", head: true }),
     db.from("acessos_auditoria").select("*").order("created_at", { ascending: false }).limit(500),
+    db.from("permissoes_auditoria").select("*").order("created_at", { ascending: false }).limit(500),
   ]);
   const firstError = results.find((result, index) => index < 9 && result.error)?.error;
   if (firstError) return json({ error: firstError.message }, 500);
 
-  const [users, profiles, profilePermissions, userPermissions, scopes, companies, units, sectors, employees, legacy, accessLogs] = results;
+  const [users, profiles, profilePermissions, userPermissions, scopes, companies, units, sectors, employees, legacy, accessLogs, permissionLogs] = results;
   const dados = {
     users: users.data || [],
     profiles: (profiles.data || []).map((profile) => ({
@@ -155,6 +160,7 @@ export async function GET(request) {
     employees: employees.data || [],
     legacyCount: legacy.count || 0,
     accessLogs: accessLogs.data || [],
+    permissionLogs: permissionLogs.data || [],
   };
   // S-31: quem não é administrador geral só vê os usuários que gerencia, as
   // unidades do próprio escopo e as empresas delas — nunca outra empresa.

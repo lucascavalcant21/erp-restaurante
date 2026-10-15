@@ -115,3 +115,22 @@ test("listagem para não administrador: só quem ele gerencia, ele mesmo e dados
   assert.deepEqual(r.accessLogs.map((l) => l.usuario_id), ["u-garcom-a"]);
   assert.equal((await filtrarListagem({ ator: "x", atorSuper: true, dados, unidadesDoAtor: ["*"], deps })).users.length, 4);
 });
+
+test("histórico de alterações para não administrador: só dos usuários que gerencia e dos perfis", async () => {
+  const dados = {
+    users: [{ id: "u-garcom-a", auth_user_id: "g" }, { id: "u-gerente-b", auth_user_id: "b" }, { id: "u-gerente-a", auth_user_id: GERENTE }],
+    units: [{ id: "unidade-a" }, { id: "unidade-b" }],
+    permissionLogs: [
+      { id: 1, alvo_tipo: "usuario", alvo_id: "u-garcom-a", evento: "atualizado" },
+      { id: 2, alvo_tipo: "usuario", alvo_id: "u-gerente-b", evento: "atualizado" },   // outra unidade: some
+      { id: 3, alvo_tipo: "usuario", alvo_id: "u-removido", evento: "excluido" },      // não está na lista: some
+      { id: 4, alvo_tipo: "perfil", alvo_id: "p-misto", evento: "aplicado_a_usuarios", depois: { userIds: ["u-garcom-a", "u-gerente-b"] } },
+    ],
+  };
+  const r = await filtrarListagem({ ator: GERENTE, atorSuper: false, atorUsuarioId: "u-gerente-a", dados, unidadesDoAtor: ["unidade-a"], deps });
+  assert.deepEqual(r.permissionLogs.map((l) => l.id), [1, 4]);
+  assert.deepEqual(r.permissionLogs[1].depois.userIds, ["u-garcom-a"], "não revela quem é de fora do escopo");
+  assert.deepEqual(dados.permissionLogs[3].depois.userIds, ["u-garcom-a", "u-gerente-b"], "não altera o original");
+  const s = await filtrarListagem({ ator: "x", atorSuper: true, dados, unidadesDoAtor: ["*"], deps });
+  assert.equal(s.permissionLogs.length, 4, "administrador geral vê tudo");
+});

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 export const maxDuration = 60;
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { texto, imagem_base64, imagem_media_type, imagens, departamento } = await request.json();
 

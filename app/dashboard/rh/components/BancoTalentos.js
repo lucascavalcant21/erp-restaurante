@@ -3,6 +3,7 @@ import { fetchCandidatos, atualizarStatusCandidato, removerCandidato, fetchPorta
 import { supabase } from "../../../lib/supabase";
 import { Loader2, Search, ExternalLink, FileText, Trash2, ShieldAlert, X, Phone, MapPin, Briefcase, Pencil, Plus, Save, UserRound, GraduationCap, Baby, Car, MessageSquareText, CalendarDays, RefreshCw, Copy, Check, Sparkles } from "lucide-react";
 import { imprimirHtml } from "../../../lib/imprimir";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 const valorOuTraco = valor => valor === null || valor === undefined || valor === "" ? "Não informado" : String(valor);
 
@@ -246,7 +247,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
     if (!vaga.cargo?.trim()) return alert("Informe o cargo antes de gerar os pré-requisitos.");
     setGerandoRequisitos(vaga.id);
     try {
-      const resposta = await fetch("/api/ia-requisitos-vaga", {
+      const resposta = await fetchComSessao("/api/ia-requisitos-vaga", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

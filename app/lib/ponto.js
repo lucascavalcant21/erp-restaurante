@@ -432,3 +432,189 @@ export async function corrigirBatida({
 
   return { error: null, nsr: marcacao?.nsr ?? null, valorAnterior };
 }
+
+// Constrói string ISO no fuso de Brasília (-03:00) a partir de data YYYY-MM-DD e hora HH:MM
+export function montarHoraISO(dataReferencia, hhmm, ehProximoDia = false) {
+  if (!hhmm) return null;
+  const str = String(hhmm).trim();
+  if (!str) return null;
+  if (str.includes("T") || str.includes("Z")) return str;
+  const partes = str.split(":");
+  const h = String(Number(partes[0]) || 0).padStart(2, "0");
+  const m = String(Number(partes[1]) || 0).padStart(2, "0");
+  let dataFinal = dataReferencia;
+  if (ehProximoDia) {
+    const [y, mes, d] = dataReferencia.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, mes - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 1);
+    dataFinal = dt.toISOString().slice(0, 10);
+  }
+  return new Date(`${dataFinal}T${h}:${m}:00-03:00`).toISOString();
+}
+
+// Salva o dia completo de ponto (ou ajusta batidas individuais/todas as quatro,
+// além de folga de domingo).
+export async function salvarAjusteDiaCompleto({
+  unidadeId,
+  colaboradorId,
+  dataReferencia,
+  horarios = {}, // { hora_entrada, hora_saida_intervalo, hora_retorno_intervalo, hora_saida } (em HH:MM ou ISO)
+  passouMeiaNoite = false, // saída no dia seguinte (+1 dia)
+  registradoPor = "Gerência",
+  motivo = "",
+  ehFolgaDomingo = undefined, // true: garante folga; false: remove folga; undefined: não mexe
+  limparTudo = false, // se true, remove o registro_ponto do dia
+}) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  if (!unidadeId || !colaboradorId || !dataReferencia) return { error: "Faltam dados da identificação (unidade, colaborador ou data)." };
+
+  // Lê o que está gravado atualmente no registro_ponto
+  const { data: registro, error: erroLeitura } = await supabase
+    .from("registro_ponto")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .eq("data_referencia", dataReferencia)
+    .maybeSingle();
+  if (erroLeitura) return { error: erroLeitura.message };
+
+  // 1) Caso queira apagar/limpar o ponto do dia:
+  if (limparTudo) {
+    if (registro) {
+      // Registra ajuste de remoção no livro legal para cada campo que existia
+      for (const [tipo, campo] of Object.entries(CAMPO_POR_TIPO)) {
+        if (registro[campo]) {
+          await registrarMarcacao({
+            unidadeId, colaboradorId, dataReferencia,
+            tipo: "ajuste",
+            tipoAlvo: tipo,
+            marcadoEm: registro[campo],
+            valorAnterior: registro[campo],
+            origem: "ajuste",
+            registradoPor,
+            motivo: String(motivo || "Limpeza manual de batidas").trim(),
+          });
+        }
+      }
+      const { error: erroDel } = await supabase.from("registro_ponto").delete().eq("id", registro.id);
+      if (erroDel) return { error: `Erro ao limpar ponto: ${erroDel.message}` };
+    }
+    // Trata folga de domingo se solicitado
+    if (ehFolgaDomingo === false) {
+      await supabase.from("rh_folgas_esporadicas")
+        .delete()
+        .eq("colaborador_id", colaboradorId)
+        .eq("data_folga", dataReferencia);
+    } else if (ehFolgaDomingo === true) {
+      const { data: jaExiste } = await supabase.from("rh_folgas_esporadicas")
+        .select("id")
+        .eq("colaborador_id", colaboradorId)
+        .eq("data_folga", dataReferencia)
+        .maybeSingle();
+      if (!jaExiste) {
+        await supabase.from("rh_folgas_esporadicas").insert([{
+          unidade_id: unidadeId,
+          colaborador_id: colaboradorId,
+          data_folga: dataReferencia,
+          descricao: "Folga de domingo",
+        }]);
+      }
+    }
+    return { error: null, sucesso: true, apagado: true };
+  }
+
+  // 2) Constrói os novos valores ISO para cada um dos 4 campos
+  const novosValores = {};
+  const camposMapeados = [
+    { tipo: "entrada", campo: "hora_entrada", valor: horarios.hora_entrada, proximoDia: false },
+    { tipo: "saida_intervalo", campo: "hora_saida_intervalo", valor: horarios.hora_saida_intervalo, proximoDia: false },
+    { tipo: "retorno_intervalo", campo: "hora_retorno_intervalo", valor: horarios.hora_retorno_intervalo, proximoDia: false },
+    { tipo: "saida_trabalho", campo: "hora_saida", valor: horarios.hora_saida, proximoDia: Boolean(passouMeiaNoite) },
+  ];
+
+  let ultimasAlteracoes = [];
+
+  for (const item of camposMapeados) {
+    const valStr = String(item.valor || "").trim();
+    const novoISO = valStr ? montarHoraISO(dataReferencia, valStr, item.proximoDia) : null;
+    novosValores[item.campo] = novoISO;
+
+    const valorAnterior = registro ? registro[item.campo] : null;
+
+    // Se houve mudança no campo: registra ajuste no livro legal
+    const mudou = (novoISO && !valorAnterior) ||
+                  (!novoISO && valorAnterior) ||
+                  (novoISO && valorAnterior && novoISO.slice(0, 16) !== valorAnterior.slice(0, 16));
+
+    if (mudou) {
+      const marcacao = await registrarMarcacao({
+        unidadeId, colaboradorId, dataReferencia,
+        tipo: "ajuste",
+        tipoAlvo: item.tipo,
+        marcadoEm: novoISO || valorAnterior,
+        valorAnterior,
+        origem: "ajuste",
+        registradoPor,
+        motivo: String(motivo || "").trim() || null,
+      });
+      ultimasAlteracoes.push({ tipo: item.tipo, nsr: marcacao?.nsr });
+    }
+  }
+
+  // Calcula novo status_jornada
+  let novoStatus = 0;
+  if (novosValores.hora_saida) novoStatus = 4;
+  else if (novosValores.hora_retorno_intervalo) novoStatus = 3;
+  else if (novosValores.hora_saida_intervalo) novoStatus = 2;
+  else if (novosValores.hora_entrada) novoStatus = 1;
+
+  // Atualiza ou cria em registro_ponto
+  if (registro) {
+    const { error: erroUpdate } = await supabase.from("registro_ponto")
+      .update({
+        ...novosValores,
+        status_jornada: novoStatus || registro.status_jornada || 1,
+      })
+      .eq("id", registro.id);
+    if (erroUpdate) return { error: `Erro ao atualizar resumo do ponto: ${erroUpdate.message}` };
+  } else if (novoStatus > 0) {
+    const { error: erroInsert } = await supabase.from("registro_ponto").insert([{
+      colaborador_id: colaboradorId,
+      unidade_id: unidadeId,
+      data_referencia: dataReferencia,
+      ...novosValores,
+      status_jornada: novoStatus,
+      origem_batida: "ajuste_manual",
+    }]);
+    if (erroInsert) return { error: `Erro ao criar ponto do dia: ${erroInsert.message}` };
+  }
+
+  // 3) Gerencia Folga de Domingo se especificado
+  if (ehFolgaDomingo === true) {
+    const { data: jaExiste } = await supabase.from("rh_folgas_esporadicas")
+      .select("id")
+      .eq("colaborador_id", colaboradorId)
+      .eq("data_folga", dataReferencia)
+      .maybeSingle();
+    if (!jaExiste) {
+      await supabase.from("rh_folgas_esporadicas").insert([{
+        unidade_id: unidadeId,
+        colaborador_id: colaboradorId,
+        data_folga: dataReferencia,
+        descricao: "Folga de domingo",
+      }]);
+    }
+  } else if (ehFolgaDomingo === false) {
+    await supabase.from("rh_folgas_esporadicas")
+      .delete()
+      .eq("colaborador_id", colaboradorId)
+      .eq("data_folga", dataReferencia);
+  }
+
+  return {
+    error: null,
+    sucesso: true,
+    novoStatus,
+    alteracoes: ultimasAlteracoes,
+  };
+}
+

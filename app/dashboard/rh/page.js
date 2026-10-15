@@ -54,6 +54,7 @@ import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
 import CadastroAssistente, { limparRascunhoCadastro } from "./CadastroAssistente";
 import { citar } from "../../lib/trabalhista/cct-foz-2026-2027.mjs";
+import { fetchComSessao } from "../../lib/api-sessao.js";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -829,7 +830,7 @@ export default function RHPage() {
     setLendoFichaExtra(true);
     try {
       const base64 = await comprimirFotoParaIA(file); // comprime: foto de celular estourava o limite da Vercel
-      const resp = await fetch("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }) });
+      const resp = await fetchComSessao("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }) });
       const d = await resp.json();
       if (!resp.ok || d.error) { alert(d.error || "Falha ao ler a ficha."); return; }
       if (!confirm(`A IA leu na ficha:\n\nNome: ${d.nome}\nDiária: R$ ${(d.diaria || 0).toFixed(2)}\nTelefone: ${d.telefone || "—"}\nCPF: ${d.cpf || "—"}\nPIX: ${d.chave_pix || "—"}\n\nCadastrar como EXTRA e anexar a foto da ficha no sistema?`)) return;
@@ -2341,12 +2342,13 @@ export default function RHPage() {
                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-4">
                   {abaMenuAcoes === "trabalho" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
+                     <Acao icon={Clock} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => router.push(`/dashboard/rh/ponto/corrigir?colab=${f.id}&data=${new Date().toISOString().slice(0,10)}`))}>Ajustar / Corrigir Ponto</Acao>
                      <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-zinc-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-zinc-100 group-hover:bg-zinc-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
                         extra={tb > 0 && <span className="shrink-0 rounded-lg bg-card px-2 py-1 text-3xs font-bold text-fg-soft">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
-                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
+                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas e Domingos</Acao>
                      <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
                   </div>}
 

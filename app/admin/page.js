@@ -8,6 +8,7 @@ import {
   Download, Terminal, Zap, AlertTriangle, Cpu
 } from "lucide-react";
 import { supabase } from "../lib/supabase.js";
+import { fetchComSessao } from "../lib/api-sessao.js";
 
 export default function SaaSControlPlanePage() {
   const router = useRouter();
@@ -118,8 +119,24 @@ export default function SaaSControlPlanePage() {
     }
   };
 
-  const handleExportarTenant = (empresaId) => {
-    window.open(`/api/saas/export?empresa_id=${empresaId}`, '_blank');
+  // A rota exige a sessão no cabeçalho (SEC-API-1): baixa pelo fetch e salva o arquivo.
+  const handleExportarTenant = async (empresaId) => {
+    try {
+      const res = await fetchComSessao(`/api/saas/export?empresa_id=${encodeURIComponent(empresaId)}`);
+      if (!res.ok) {
+        const corpo = await res.json().catch(() => ({}));
+        alert(corpo.erro || corpo.error || "Não foi possível exportar.");
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hefisto_export_${empresaId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Não foi possível exportar.");
+    }
   };
 
   if (loading) {

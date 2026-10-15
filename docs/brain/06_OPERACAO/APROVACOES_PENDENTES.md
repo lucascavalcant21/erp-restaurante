@@ -143,3 +143,27 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Status:** PENDENTE
 - **Criado em:** 2026-10-14
 - **Chave:** migracao:db/security/SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql
+
+### APR-011 · PENDENTE
+
+- **Missão:** S-25, S-26, S-28 e B-013 — rotas de API sem login; servidor antigo exposto
+- **Ação:** merge do PR SEC-API-1 (deploy de produção)
+  - vercel.json manda todo /api para o Next (menos auth/policy e o cron antigo);
+  - sessão obrigatória nas rotas de IA, OCR e hefisto;
+  - export só para super admin;
+  - fiscal e integrações com vínculo de unidade;
+  - cron sem segredo padrão
+- **Ambiente:** vercel (produção)
+- **Risco:** HIGH (muda o roteamento de produção e liga telas que estavam mortas, entre elas Usuários e Perfis)
+- **Motivo:** hoje qualquer pessoa usa as chaves de IA (OpenAI pelo servidor antigo; Anthropic pelas rotas ia-*) e grava no Firestore antigo sem login
+- **Impacto:**
+  - quem usa logado não muda;
+  - chamadas sem login passam a dar 401;
+  - Usuários/Perfis, OCR, comprovante por e-mail e IAs de evidência/receita/cardápio voltam a funcionar;
+  - Saipos sem mudança.
+  - Detalhes em docs/brain/07_RELATORIOS/SEC_API_1_ROTAS.md
+- **Rollback:** reverter o commit do PR (o vercel.json antigo volta inteiro); não há mudança de banco
+- **Evidências:** 25 testes da SEC-API-1 (22 rotas reais com 401 sem sessão e sem chamar IA, integrações, cron); trava do vercel.json; app/lib 504/504; build; bundle sem service_role. Telas logadas NÃO VALIDADO (Preview sem variáveis públicas)
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-14
+- **Chave:** deploy:vercel.json:sec-api-1

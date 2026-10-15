@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { promptDasInstrucoes, textoDasInstrucoesIA } from "../../lib/ficha-ia.mjs";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // "Organizar com IA" no editor da ficha: a pessoa explica com as próprias
 // palavras e a IA devolve os passos. No prato, passos de MONTAGEM; no
 // pré-preparo, etapas de produção com equipamento, fogo e tempo. Usa Claude
 // (Anthropic). O pedido e a limpeza da resposta ficam em lib/ficha-ia.mjs.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { explicacao, nome_receita, ingredientes, tipo } = await request.json();
 

@@ -55,6 +55,7 @@ import { custoDoInsumo, empanamentoDaComposicao, unidadesDaComposicao } from "..
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 const PAGE_SIZE = 10;
 
@@ -500,7 +501,7 @@ function IngredientesRunner() {
         })
       );
 
-      const res = await fetch("/api/ia-insumos", {
+      const res = await fetchComSessao("/api/ia-insumos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

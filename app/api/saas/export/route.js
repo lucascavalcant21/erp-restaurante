@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { exportarDadosTenant } from '../../../lib/saas-export.js';
+import { sessaoOuNegar } from '../../../lib/server/sessao-rota.mjs';
 
 export async function GET(request) {
+  // SEC-API-1: exportar uma empresa inteira é coisa do dono da plataforma.
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+  if (sessao.usuario?.super_admin !== true) {
+    return NextResponse.json({ sucesso: false, erro: 'Só o administrador da plataforma exporta dados de uma empresa.' }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const empresaId = searchParams.get('empresa_id');

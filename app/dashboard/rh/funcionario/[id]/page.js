@@ -396,8 +396,10 @@ export default function ProntuarioColaboradorPage() {
                 <>
                   <Linha rotulo="Dias com batida" valor={extras.ponto.pontos.filter((p) => p.hora_entrada).length} />
                   <Linha rotulo="Banco de horas no mês" valor={`${Math.round(somaMinutosBanco(extras.ponto.banco) / 6) / 10} h`} />
-                  <Linha rotulo="Folgas avulsas registradas" valor={extras.ponto.folgas.length} />
-                  <div className="mt-3 no-print"><Btn variant="ghost" onClick={() => router.push(`/dashboard/rh/espelho/${func.id}?mes=${new Date().toISOString().slice(0, 7)}`)}><Clock size={15} /> Abrir espelho de ponto</Btn></div>
+                  <div className="mt-3 flex flex-wrap gap-2 no-print">
+                    <Btn variant="ghost" onClick={() => router.push(`/dashboard/rh/espelho/${func.id}?mes=${new Date().toISOString().slice(0, 7)}`)}><Clock size={15} /> Abrir espelho de ponto</Btn>
+                    <Btn variant="ghost" onClick={() => router.push(`/dashboard/rh/ponto/corrigir?colab=${func.id}&data=${new Date().toISOString().slice(0, 10)}`)}><Clock size={15} /> Ajustar / Corrigir ponto</Btn>
+                  </div>
                 </>
               )}
             </Card>

@@ -5,6 +5,7 @@ import { Wrench, Plus, Trash2, Printer, X, CheckCircle2, Loader2, Sparkles, Cloc
 import { PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, DecimalInput, Select, Btn, Toast, SkeletonList, fmtBRL } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchServicosManutencao, salvarServicoManutencao, removerServicoManutencao, finalizarServicoManutencao, CATEGORIAS_MANUTENCAO } from "../../../lib/manutencao";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 const FORMAS = ["Dinheiro", "PIX", "Cartão", "Transferência", "A pagar"];
 const fmtDataBR = (d) => d ? d.split("-").reverse().join("/") : "—";
@@ -74,7 +75,7 @@ export default function ManutencaoPage() {
     const s = modalFinal;
     setGerandoIA(true);
     try {
-      const res = await fetch("/api/ia-recibo", {
+      const res = await fetchComSessao("/api/ia-recibo", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ servico: s.servico, descricao: s.descricao, valor: s.valor, prestador: s.prestador, pagador: s.pagador || unidadeInfo?.nome, forma_pagamento: s.forma_pagamento, data: s.data, unidade_nome: unidadeInfo?.nome }),
       });

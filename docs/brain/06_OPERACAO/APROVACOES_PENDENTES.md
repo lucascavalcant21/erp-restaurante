@@ -9,7 +9,7 @@ O agente para só a etapa pedida e segue no resto. Regras em [[POLITICA_PUBLICAC
 
 Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: é o histórico.
 
-**Pendentes agora: 1** (APR-010)
+**Pendentes agora: 2** (APR-009, APR-010; a APR-009 só depois da APR-010)
 
 ### APR-001 · EXECUTADO
 
@@ -129,6 +129,20 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Decidido em:** 2026-10-14 (dono: "aprove a pr007")
 - **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171: pendente (bloqueado pela checagem de permissão do agente; o dono faz o merge).
 - **Chave:** migracao:db/integracoes/IFOOD_2_PEDIDOS.sql
+
+### APR-009 · PENDENTE
+
+- **Missão:** A3 / S-19 — estoque e financeiro de várias unidades com acesso explícito (PR próprio)
+- **Ação:** (SÓ DEPOIS DA APR-010 / SEC-FIN-3; o preflight aborta sem ela) aplicar db/security/SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql: 9 policies de estoque/compras no padrão sec_unidade + nas 7 financeiras as 28 policies da SEC-FIN-3 com a unidade principal trocada pelas concedidas e as MESMAS chaves. Texto anterior: recriar 16 policies (mesmo nome, comando e papel) trocando "super admin OU unidade principal" por "super admin OU unidades concedidas explicitamente" (hefisto_unidades_do_usuario: principal + escopos; escopo de empresa só na própria empresa)
+- **Ambiente:** supabase (produção)
+- **Risco:** MEDIUM (mudança de RLS)
+- **Motivo:** com a Marmitaria em unidade própria, quem tem acesso aos dois negócios precisa ver estoque e financeiro dos dois
+- **Impacto:** medido em produção 14/10: **0 usuários mudam hoje** (15 iguais + 1 super admin). Passa a valer quando o dono conceder uma segunda unidade a alguém. Mais restritivo para usuário bloqueado. Privilégios de tabela e funções não mudam
+- **Rollback:** db/security/SEC_MULTI_1_ROLLBACK.sql (estoque/compras voltam à F2.1; financeiro volta exatamente ao estado da SEC-FIN-3; testado)
+- **Evidências:** teste com SQL real (funções de escopo da SEC-RLS-2): 8 perfis × 3 unidades × 2 empresas, antes/depois/rollback nas 16 tabelas, escrita com with check, anônimo, outra empresa isolada; test:seguranca 25/25; classificador: SAFE Atualizado 15/10: começa do estado da SEC-FIN-3; usuário com 2 unidades e sem chave financeira não vê financeiro em nenhuma (vê estoque nas duas); sem a SEC-FIN-3 aborta sem mudar nada; test:seguranca 28/28; app/lib 508/508 (TESTADO LOCAL, PGlite).
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-14
+- **Chave:** migracao:db/security/SEC_MULTI_1_ACESSO_MULTIUNIDADE.sql
 
 ### APR-011 · PENDENTE
 

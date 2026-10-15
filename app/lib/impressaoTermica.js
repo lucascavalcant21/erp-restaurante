@@ -1,6 +1,7 @@
 "use client";
 
 import { motivoBluetoothIndisponivel } from "./impressaoBluetooth";
+import { nativoDisponivel, estadoNativo, escolherNativo, enviarNativo } from "./bluetooth-nativo.mjs";
 import { desenharNomeCentralizado, desenharImagemCentralizada } from "./etiqueta-centralizada.mjs";
 
 // Perfis medidos fisicamente na EPSON TM-T20 deste computador (203 dpi).
@@ -448,10 +449,12 @@ const SERVICOS_BLE_TERMICA = [
 let impressoraBluetooth = null;
 
 export function bluetoothTermicoDisponivel() {
-  return typeof navigator !== "undefined" && !!navigator.bluetooth;
+  return nativoDisponivel() || (typeof navigator !== "undefined" && !!navigator.bluetooth);
 }
 
 export async function conectarImpressoraBluetooth() {
+  // App Héfisto Etiquetas: Bluetooth nativo (clássico SPP + BLE).
+  if (nativoDisponivel()) return { nome: (await escolherNativo()) || "Impressora Bluetooth" };
   if (!bluetoothTermicoDisponivel()) {
     // A explicação vem do aparelho de verdade: falar em iPhone para quem está
     // num tablet Android só confunde.
@@ -493,6 +496,7 @@ export async function conectarImpressoraBluetooth() {
 }
 
 export function impressoraBluetoothConectada() {
+  if (nativoDisponivel()) return !!estadoNativo()?.salva;
   return !!(impressoraBluetooth?.device?.gatt?.connected && impressoraBluetooth?.escrita);
 }
 
@@ -500,6 +504,7 @@ export function impressoraBluetoothConectada() {
 export async function enviarBytesTermicaBluetooth(bytes) { return escreverBluetooth(bytes); }
 
 async function escreverBluetooth(bytes) {
+  if (nativoDisponivel()) return enviarNativo(bytes);
   if (!impressoraBluetoothConectada()) throw new Error("Conecte a impressora Bluetooth dentro do sistema antes de imprimir.");
   const caracteristica = impressoraBluetooth.escrita;
   const tamanhoBloco = 20;

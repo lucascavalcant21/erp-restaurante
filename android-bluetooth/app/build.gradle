@@ -1,0 +1,30 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "br.com.hefisto.etiquetas"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "br.com.hefisto.etiquetas"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0-diagnostico"
+    }
+
+    buildTypes {
+        debug { }
+        release { minifyEnabled false }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    testImplementation "junit:junit:4.13.2"
+}

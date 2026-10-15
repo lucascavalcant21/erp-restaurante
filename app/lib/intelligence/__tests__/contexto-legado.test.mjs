@@ -22,6 +22,8 @@ function banco(uid, { inUnit = (u) => u === "loja-a", sessao = sessoes[uid] } = 
     rpcs: {
       hefisto_session_context: async () => sessao ?? null,
       hefisto_user_in_unit: async (a) => a.p_auth_user_id === uid && inUnit(a.p_unidade_id),
+      // a regra de produção depois da SEC-EMPRESA-1: só as unidades da própria empresa
+      hefisto_unidades_do_usuario: async () => ["loja-a"],
     },
   });
 }
@@ -82,12 +84,12 @@ test("sem a 1B: quem só vê o painel geral não abre a inteligência (403 na po
   assert.equal(porta.status, 403);
 });
 
-test("super admin e escopo amplo: todas as unidades, como hefisto_user_in_unit em produção", async () => {
+test("super admin vê todas; escopo amplo vê só as unidades da própria empresa (SEC-EMPRESA-1)", async () => {
   const db = banco(UID, { sessao: { ...sessoes[UID], super_admin: true, permissions: "*" } });
   const c = await contextoLegado(db, UID, "loja-a");
   assert.deepEqual([c.unidades, c.permissoes, c.super_admin], [["*"], ["*"], true]);
   const db2 = banco(UID, { sessao: { ...sessoes[UID], scopes: [{ data_scope: "empresa", unidade_id: null }] } });
-  assert.deepEqual((await contextoLegado(db2, UID, null)).unidades, ["*"]);
+  assert.deepEqual((await contextoLegado(db2, UID, null)).unidades, ["loja-a"], "nunca \"*\": a loja-b é de outra empresa");
 });
 
 test("erro que não é 'função ausente' não cai no caminho legado (falha fechada)", () => {

@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, MicOff, Send, Sparkles, X } from "lucide-react";
 import { interpretar, executar, EXEMPLOS } from "../../../../lib/ficha-assistente.mjs";
 import { criarEscuta, vozDisponivel } from "../../../../lib/hefisto-voz";
+import { fetchComSessao } from "../../../../lib/api-sessao.js";
 
 export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerCustos = true, onAplicar, onFechar }) {
   const [conversa, setConversa] = useState([]);
@@ -43,7 +44,7 @@ export default function AssistenteReceita({ ficha, todasFichas, custos, podeVerC
     // 2) Só o que ele não reconheceu vai para a IA, que apenas classifica.
     if (!intencao) {
       try {
-        const r = await fetch("/api/ia-ficha-assistente", {
+        const r = await fetchComSessao("/api/ia-ficha-assistente", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

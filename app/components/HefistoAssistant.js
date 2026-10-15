@@ -11,6 +11,7 @@ import {
   ACOES, camposFaltantes, resolverProduto, carregarContextoEstoque,
   executarMovimento, desfazerMovimento, registrarAuditoria, fmtQtd, mostrarUn,
 } from "../lib/hefisto-acoes";
+import { fetchComSessao } from "../lib/api-sessao.js";
 
 const SUGESTOES = [
   "Quanto tenho de camarão?",
@@ -145,7 +146,7 @@ export default function HefistoAssistant() {
     diz("user", cmd);
     setOcupado(true);
     try {
-      const resposta = await fetch("/api/hefisto", {
+      const resposta = await fetchComSessao("/api/hefisto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -9,15 +9,14 @@ export async function GET(request) {
   try {
     const authHeader = request.headers.get("authorization") || "";
     const { searchParams } = new URL(request.url);
-    const secretParam = searchParams.get("secret");
 
-    const expectedSecret = process.env.CRON_SECRET || "hefisto_cron_secret_dev";
-    const isValidSecret = authHeader === `Bearer ${expectedSecret}` || secretParam === expectedSecret;
+    // SEC-API-1: sem CRON_SECRET configurado, ninguém entra (antes valia um
+    // segredo padrão fixo, escrito no código). Só pelo cabeçalho: segredo na
+    // URL fica gravado em log.
+    const expectedSecret = (process.env.CRON_SECRET || "").trim();
+    const isValidSecret = Boolean(expectedSecret) && authHeader === `Bearer ${expectedSecret}`;
 
-    // Em desenvolvimento local, permite execução para testes
-    const isDev = process.env.NODE_ENV !== "production";
-
-    if (!isValidSecret && !isDev) {
+    if (!isValidSecret) {
       return NextResponse.json(
         { success: false, error: "Acesso não autorizado ao scheduler de automações." },
         { status: 401 }

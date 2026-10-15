@@ -54,6 +54,7 @@ import { fetchConvencaoAtiva } from "../../lib/trabalhista/convencoes-dados";
 import { regrasDaCompetencia } from "../../lib/trabalhista/regras-competencia.mjs";
 import CadastroAssistente, { limparRascunhoCadastro } from "./CadastroAssistente";
 import { citar } from "../../lib/trabalhista/cct-foz-2026-2027.mjs";
+import { fetchComSessao } from "../../lib/api-sessao.js";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -829,7 +830,7 @@ export default function RHPage() {
     setLendoFichaExtra(true);
     try {
       const base64 = await comprimirFotoParaIA(file); // comprime: foto de celular estourava o limite da Vercel
-      const resp = await fetch("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }) });
+      const resp = await fetchComSessao("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }) });
       const d = await resp.json();
       if (!resp.ok || d.error) { alert(d.error || "Falha ao ler a ficha."); return; }
       if (!confirm(`A IA leu na ficha:\n\nNome: ${d.nome}\nDiária: R$ ${(d.diaria || 0).toFixed(2)}\nTelefone: ${d.telefone || "—"}\nCPF: ${d.cpf || "—"}\nPIX: ${d.chave_pix || "—"}\n\nCadastrar como EXTRA e anexar a foto da ficha no sistema?`)) return;

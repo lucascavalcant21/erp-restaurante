@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 export const maxDuration = 60; // Aumenta o tempo limite da Vercel para 60s (necessário para a IA processar imagens pesadas)
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { imageBase64 } = await request.json();
 

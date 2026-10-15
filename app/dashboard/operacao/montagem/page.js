@@ -19,6 +19,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, imagemCopoHTML } from "../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import RecipeWorkspace from "../../../components/RecipeWorkspace";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 // O guia já numera os passos por conta própria, na bolinha e no <ol>. Quando o
 // texto vinha com "Passo 1:" ou "1." escrito dentro, a linha saía numerada duas
@@ -883,7 +884,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     setGerandoIA(true);
     setErro("");
     try {
-      const res = await fetch("/api/ia-montagem", {
+      const res = await fetchComSessao("/api/ia-montagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ descritivo: fonte, nome: f.nome, tipo: f.tipo })
@@ -907,7 +908,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     setGerandoIA(true);
     setErro("");
     try {
-      const res = await fetch("/api/ia-montagem", {
+      const res = await fetchComSessao("/api/ia-montagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ descritivo: receitaIA, nome: f.nome, tipo: "drink" })
@@ -1894,7 +1895,7 @@ function MontagemPageInner() {
         const parte = vazios.slice(i, i + BLOCO);
         setSalvou(`Montando receitas com IA... ${Math.min(i + BLOCO, vazios.length)}/${vazios.length}`);
         try {
-          const res = await fetch("/api/ia-drinks", {
+          const res = await fetchComSessao("/api/ia-drinks", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ nomes: parte.map((v) => v.nome) }),
           });

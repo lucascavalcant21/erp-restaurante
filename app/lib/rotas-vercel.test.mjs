@@ -1,7 +1,17 @@
-// Trava (08/10/2026): o vercel.json só manda para o Next as rotas /api da lista do primeiro
-// "routes"; o resto vai para o servidor antigo (backend_cloud_code/server.js), que responde 404.
-// As APIs do Intelligence Core ficaram de fora e dariam 404 em produção (achado no smoke do
-// preview do PR #127). Rota NOVA em app/api precisa entrar na lista.
+// Trava do roteamento da Vercel (SEC-API-1, 14/10/2026).
+//
+// Antes: o vercel.json mandava para o Next só uma lista de rotas /api; o resto
+// caía no servidor antigo (backend_cloud_code/server.js). Isso deixava 14 rotas
+// do Next mortas em produção (Usuários e Perfis, emissão fiscal, OCR…, B-013) e
+// expunha o servidor antigo sem login: /api/ocr repassava para a OpenAI com a
+// chave de produção e as rotas de escrita gravavam no Firestore.
+//
+// Agora: TODO /api vai para o Next. No servidor antigo ficam só:
+//   - /api/auth/policy: a versão do Next bloqueia conta de terceiros por 5
+//     tentativas sem login (S-27); até ser corrigida, o login segue como hoje
+//     (o servidor antigo responde 404 e o login segue sem a política).
+//   - /api/triggers/verificar: o cron antigo (dados de demonstração).
+// Essa lista só pode diminuir.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -10,15 +20,16 @@ import { fileURLToPath } from "node:url";
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const vercel = JSON.parse(fs.readFileSync(path.join(raiz, "vercel.json"), "utf8"));
-const lista = new RegExp(vercel.routes[0].src.replace(/^\^\/api\//, "^"));
+const NO_SERVIDOR_ANTIGO = ["auth/policy", "triggers/verificar"];
 
-// Já estavam fora do Next em produção antes do PR #127 (B-013). Não liberar no escuro:
-// saas/export não tem autenticação (S-05). A lista só pode diminuir.
-const FORA_CONHECIDAS = new Set([
-  "admin/access-control", "auth/policy", "comprovante-email", "fiscal/emitir", "hefisto/automation/cron",
-  "ia-cardapio-fichas", "ia-evidencia", "ia-ficha-assistente", "integrations", "integrations/events",
-  "integrations/[provider]/test", "ocr", "saas/export", "versao",
-]);
+// Primeiro route que casa decide, como na Vercel.
+function destino(caminho) {
+  for (const r of vercel.routes) {
+    const m = caminho.match(new RegExp(r.src));
+    if (m) return r.dest.replace(/\$(\d)/g,(_, i) => m[Number(i)]);
+  }
+  return null;
+}
 
 function rotas(dir, base = "") {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((f) => {
@@ -27,16 +38,24 @@ function rotas(dir, base = "") {
   });
 }
 
-test("toda rota nova de app/api chega ao Next pela Vercel", () => {
-  const todas = rotas(path.join(raiz, "app", "api"));
-  const fora = todas.filter((r) => !lista.test(r));
-  assert.deepEqual(fora.filter((r) => !FORA_CONHECIDAS.has(r)), [], "rota nova fora do vercel.json (daria 404 em produção)");
-  assert.deepEqual([...FORA_CONHECIDAS].filter((r) => !fora.includes(r)), [], "já chega ao Next: tire da lista FORA_CONHECIDAS");
+test("toda rota de app/api chega ao Next, exceto a lista do servidor antigo", () => {
+  for (const r of rotas(path.join(raiz, "app", "api"))) {
+    const caminho = "/api/" + r.replace(/\[[^\]]+\]/g, "x");
+    const esperado = NO_SERVIDOR_ANTIGO.includes(r) ? "backend_cloud_code/server.js" : caminho.replace(/^\/api\/(.*)$/, "/api/$1");
+    assert.equal(destino(caminho), esperado, r);
+  }
 });
 
-test("as APIs do Intelligence Core chegam ao Next; saas/export continua fora (sem autenticação)", () => {
-  for (const r of ["intelligence/brief", "intelligence/ask", "intelligence/history", "intelligence/preferences", "intelligence/feedback", "intelligence/actions/confirm", "intelligence/actions/cancel"]) {
-    assert.ok(lista.test(r), r);
+test("o servidor antigo não recebe mais nenhuma outra rota /api", () => {
+  for (const c of ["/api/ocr", "/api/chat", "/api/db/lojas", "/api/contexto", "/api/config/unidades", "/api/crm/clientes", "/api/firebase/reload", "/api/qualquer/coisa"]) {
+    assert.notEqual(destino(c), "backend_cloud_code/server.js", c);
   }
-  assert.ok(!lista.test("saas/export"));
+  const antigos = vercel.routes.filter((r) => r.dest === "backend_cloud_code/server.js" && r.src.includes("/api/"));
+  assert.deepEqual(antigos.map((r) => r.src).sort(), NO_SERVIDOR_ANTIGO.map((r) => `^/api/${r}$`).sort(), "a lista só pode diminuir");
+});
+
+test("as APIs do Intelligence Core e as públicas seguem no Next", () => {
+  for (const c of ["/api/intelligence/ask", "/api/intelligence/brief", "/api/public/pedidos", "/api/ifood/webhook", "/api/etiquetas/financeiro/drenar"]) {
+    assert.equal(destino(c), c, c);
+  }
 });

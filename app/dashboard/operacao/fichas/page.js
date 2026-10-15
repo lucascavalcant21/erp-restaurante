@@ -89,6 +89,7 @@ import { fatorCorrecaoDoItem, rendimentoDoInsumo } from "../../../lib/custo-rend
 // (g/ml × 1000). A mesma conversão do editor novo (ficha-salvar.js).
 import { quantidadeParaGravar } from "../../../lib/ficha-modelo.mjs";
 import CampoDecimal from "../../../components/CampoDecimal";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -517,7 +518,7 @@ function FichasRunner() {
     if (!iaFTexto.trim() && !iaFImagem) return alert("Cole a receita em texto ou envie uma foto.");
     setIaFLoading(true);
     try {
-      const res = await fetch("/api/ia-ficha", {
+      const res = await fetchComSessao("/api/ia-ficha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -641,7 +642,7 @@ function FichasRunner() {
     if (!iaExplicacao.trim()) return alert("Explique com suas palavras como o prato é feito.");
     setIaLoading(true);
     try {
-      const res = await fetch("/api/ia-preparo", {
+      const res = await fetchComSessao("/api/ia-preparo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2303,7 +2304,7 @@ function FichasRunner() {
       for (const file of files) {
         try {
           const base64 = await fileParaBase64(file);
-          const res = await fetch("/api/ia-cardapio", {
+          const res = await fetchComSessao("/api/ia-cardapio", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
           });

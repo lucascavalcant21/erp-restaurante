@@ -261,6 +261,7 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
           <button onClick={() => { setSel(null); setVida(null); }} className="erp-btn erp-btn-ghost !h-9 text-xs"><ArrowLeft size={14} /> Todos</button>
           <button onClick={() => router.push(`/dashboard/rh/funcionario/${sel.id}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><FileText size={14} /> Prontuário</button>
           <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho</button>
+          <button onClick={() => router.push(`/dashboard/rh/ponto/corrigir?colab=${sel.id}&data=${new Date().toISOString().slice(0, 10)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Clock size={14} /> Corrigir Ponto</button>
           <button onClick={() => router.push(isFree ? `/dashboard/rh/extra/${sel.id}/recibo` : `/dashboard/rh/funcionario/${sel.id}/recibo`)} className="erp-btn erp-btn-ghost !h-9 text-xs" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}><FileText size={14} /> Recibo</button>
           <button onClick={() => { if (onEditar) onEditar(sel); else router.push("/dashboard/rh"); }} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar</button>
         </PageHeader>
@@ -447,12 +448,14 @@ export default function VidaColaboradorPage({ onEditar, onNovo, onDesligar, vers
                         else if (ehFolgaEsp) { bg = "rgba(244,114,182,0.18)"; fg = "#BE185D"; }
                         else if (ehFolgaSemanal) { bg = "var(--line-soft)"; fg = "var(--dim)"; }
                         return (
-                          <div key={d} className="relative rounded-lg py-1.5 text-center"
+                          <button type="button" key={d}
+                            onClick={() => router.push(`/dashboard/rh/ponto/corrigir?colab=${sel.id}&data=${dataISO}`)}
+                            className="relative rounded-lg py-1.5 text-center cursor-pointer hover:ring-2 hover:ring-emerald-400 transition-all block w-full"
                             style={{ background: bg, outline: ehHoje ? "2px solid var(--accent)" : "none" }}
-                            title={`${dataISO.split("-").reverse().join("/")}${ehFeriado ? " · Feriado" : ""}${ehFolgaEsp ? " · Folga marcada" : ""}${ehFolgaSemanal ? " · Folga semanal" : ""}${bateu ? " · trabalhou" : ""}`}>
+                            title={`${dataISO.split("-").reverse().join("/")}${ehFeriado ? " · Feriado" : ""}${ehFolgaEsp ? " · Folga marcada" : ""}${ehFolgaSemanal ? " · Folga semanal" : ""}${bateu ? " · trabalhou" : ""} — Clique para ajustar o ponto deste dia`}>
                             <span className="text-2xs font-bold" style={{ color: fg }}>{d}</span>
                             {bateu && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: "var(--accent)" }} />}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

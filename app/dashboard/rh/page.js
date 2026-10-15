@@ -2342,12 +2342,13 @@ export default function RHPage() {
                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-4">
                   {abaMenuAcoes === "trabalho" && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
+                     <Acao icon={Clock} cor="text-emerald-700" bg="bg-emerald-50 group-hover:bg-emerald-100" onClick={() => ir(() => router.push(`/dashboard/rh/ponto/corrigir?colab=${f.id}&data=${new Date().toISOString().slice(0,10)}`))}>Ajustar / Corrigir Ponto</Acao>
                      <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-zinc-700"} bg={critico ? "bg-red-50 group-hover:bg-red-100" : alerta ? "bg-amber-50 group-hover:bg-amber-100" : "bg-zinc-100 group-hover:bg-zinc-100"}
                         onClick={() => ir(() => abrirModalBanco(f))}
                         extra={tb > 0 && <span className="shrink-0 rounded-lg bg-card px-2 py-1 text-3xs font-bold text-fg-soft">{fmtMin(tb)}{critico ? "!" : ""}</span>}>
                         Banco de Horas
                      </Acao>
-                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
+                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 group-hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas e Domingos</Acao>
                      <Acao icon={Award} cor="text-emerald-700" bg="bg-zinc-100 group-hover:bg-zinc-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Carreira e promoções</Acao>
                   </div>}
 

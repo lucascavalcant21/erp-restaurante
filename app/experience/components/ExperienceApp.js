@@ -22,8 +22,13 @@ import {
   Send,
   Globe,
   Flame,
-  Info
+  Info,
+  Fish,
+  Users,
+  BookOpen
 } from "lucide-react";
+import ConciergeModal from "./ConciergeModal";
+import DiscoverModal from "./DiscoverModal";
 
 // Dicionário de Idiomas
 const I18N = {
@@ -213,6 +218,11 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
   const [pratoModal, setPratoModal] = useState(null);
   const [obsPrato, setObsPrato] = useState("");
   const [qtdPrato, setQtdPrato] = useState(1);
+
+  // Concierge & Discover
+  const [modalConcierge, setModalConcierge] = useState(false);
+  const [modalDiscover, setModalDiscover] = useState(false);
+  const [pratoDiscover, setPratoDiscover] = useState(null);
 
   // Carregar cardápio ao montar
   useEffect(() => {
@@ -502,6 +512,77 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
 
       {/* BANNER / BUSCA E CATEGORIAS */}
       <main className="max-w-2xl mx-auto px-4 mt-4">
+        {/* BANNER HÉFISTO CONCIERGE — GARÇOM VIRTUAL */}
+        <div className="mb-4 bg-gradient-to-r from-[#241a14] via-[#2c1e17] to-[#201612] border border-amber-600/35 rounded-3xl p-4 shadow-xl shadow-amber-950/30 relative overflow-hidden">
+          <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-amber-950 flex items-center justify-center shadow-lg shadow-amber-900/40 shrink-0">
+                <Sparkles size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <span className="text-3xs font-black uppercase tracking-widest text-amber-400 block">
+                  Garçom Virtual Inteligente
+                </span>
+                <h3 className="text-sm sm:text-base font-black text-amber-50 mt-0.5">
+                  {idioma === "en" ? "Explore Amazonian flavors & Chef pairings" : idioma === "es" ? "Descubra los sabores de la Amazonía" : "Descubra os sabores e segredos da Amazônia"}
+                </h3>
+                <p className="text-3xs text-amber-200/70 mt-0.5">
+                  {idioma === "en" ? "Instant dish and drink suggestions curated by our Chef" : idioma === "es" ? "Sugerencias y maridajes especiales guiados por IA" : "Sugestões guiadas por botões, estilos de drinks e harmonizações"}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setModalConcierge(true)}
+              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-black shrink-0 transition active:scale-95 shadow-md shadow-amber-950/40 flex items-center gap-1.5"
+            >
+              <span>Explorar</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {/* Atalhos rápidos do Concierge */}
+          <div className="flex gap-1.5 overflow-x-auto pt-3 mt-3 border-t border-amber-900/20 scrollbar-none">
+            <button
+              onClick={() => setModalConcierge(true)}
+              className="px-2.5 py-1 rounded-xl bg-amber-900/25 hover:bg-amber-800/40 border border-amber-700/30 text-amber-200 text-3xs font-bold whitespace-nowrap transition flex items-center gap-1"
+            >
+              <Sparkles size={11} className="text-amber-400" />
+              <span>Sugestões da Casa</span>
+            </button>
+            <button
+              onClick={() => setModalConcierge(true)}
+              className="px-2.5 py-1 rounded-xl bg-amber-900/25 hover:bg-amber-800/40 border border-amber-700/30 text-amber-200 text-3xs font-bold whitespace-nowrap transition flex items-center gap-1"
+            >
+              <Fish size={11} className="text-cyan-400" />
+              <span>Peixes Amazônicos</span>
+            </button>
+            <button
+              onClick={() => setModalConcierge(true)}
+              className="px-2.5 py-1 rounded-xl bg-amber-900/25 hover:bg-amber-800/40 border border-amber-700/30 text-amber-200 text-3xs font-bold whitespace-nowrap transition flex items-center gap-1"
+            >
+              <Flame size={11} className="text-orange-400" />
+              <span>Carnes Nobres</span>
+            </button>
+            <button
+              onClick={() => setModalConcierge(true)}
+              className="px-2.5 py-1 rounded-xl bg-amber-900/25 hover:bg-amber-800/40 border border-amber-700/30 text-amber-200 text-3xs font-bold whitespace-nowrap transition flex items-center gap-1"
+            >
+              <Wine size={11} className="text-rose-400" />
+              <span>Drinks & Estilos</span>
+            </button>
+            <button
+              onClick={() => setModalConcierge(true)}
+              className="px-2.5 py-1 rounded-xl bg-amber-900/25 hover:bg-amber-800/40 border border-amber-700/30 text-amber-200 text-3xs font-bold whitespace-nowrap transition flex items-center gap-1"
+            >
+              <Users size={11} className="text-emerald-400" />
+              <span>Para Compartilhar</span>
+            </button>
+          </div>
+        </div>
+
         {/* Barra de Busca */}
         <div className="relative mb-4">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400/50" />
@@ -642,10 +723,19 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
           onClick={() => {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className="flex flex-col items-center gap-1 px-3 py-1.5 text-amber-300 hover:text-amber-100 transition"
+          className="flex flex-col items-center gap-1 px-2.5 py-1.5 text-amber-300 hover:text-amber-100 transition"
         >
-          <UtensilsCrossed size={20} />
+          <UtensilsCrossed size={18} />
           <span className="text-3xs font-bold uppercase tracking-wider">Cardápio</span>
+        </button>
+
+        {/* Concierge IA */}
+        <button
+          onClick={() => setModalConcierge(true)}
+          className="flex flex-col items-center gap-1 px-2.5 py-1.5 text-amber-300 hover:text-amber-100 transition relative"
+        >
+          <Sparkles size={18} className="text-amber-400 animate-pulse" />
+          <span className="text-3xs font-black uppercase tracking-wider text-amber-300">Concierge</span>
         </button>
 
         {/* Chamar Garçom */}
@@ -736,6 +826,22 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                   </div>
                 </div>
               )}
+
+              {/* Botão Discover: História do Prato */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPratoDiscover(pratoModal);
+                  setModalDiscover(true);
+                }}
+                className="w-full py-2.5 px-3.5 bg-gradient-to-r from-amber-950/70 to-amber-900/50 hover:from-amber-900/70 hover:to-amber-800/60 border border-amber-600/40 rounded-2xl flex items-center justify-between text-amber-200 transition shadow-sm active:scale-98"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen size={16} className="text-amber-400" />
+                  <span className="text-xs font-bold">Descubra a história e ingredientes deste prato</span>
+                </div>
+                <ChevronRight size={16} className="text-amber-400/80" />
+              </button>
 
               {/* Observações / Personalização */}
               <div>
@@ -887,7 +993,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
               ) : (
                 comandaMesa.itens.map((it, idx) => (
                   <div key={idx} className="bg-[#14100e] border border-amber-900/20 rounded-2xl p-3 flex justify-between items-center gap-3">
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-amber-400 text-sm">{it.quantidade}x</span>
                         <h4 className="font-bold text-sm text-amber-100">{it.nome}</h4>
@@ -898,6 +1004,23 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                         </span>
                         {it.hora && <span className="text-3xs text-amber-500/60 font-mono">{it.hora}</span>}
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const prodRel = produtos.find(p => String(p.id) === String(it.produto_id) || p.nome_produto === it.nome) || {
+                            id: it.produto_id || idx,
+                            nome_produto: it.nome,
+                            preco_venda: it.subtotal / (it.quantidade || 1)
+                          };
+                          setPratoDiscover(prodRel);
+                          setModalDiscover(true);
+                        }}
+                        className="mt-2 flex items-center gap-1.5 text-3xs font-bold text-amber-400 hover:text-amber-200 transition"
+                      >
+                        <BookOpen size={12} />
+                        <span>Descubra a história deste prato ✨</span>
+                      </button>
                     </div>
                     <span className="font-black text-sm text-amber-300">{fmtMoeda(it.subtotal)}</span>
                   </div>
@@ -1026,6 +1149,30 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
           </div>
         </div>
       )}
+
+      {/* MODAL DO CONCIERGE — GARÇOM VIRTUAL */}
+      <ConciergeModal
+        aberto={modalConcierge}
+        onClose={() => setModalConcierge(false)}
+        unidadeId={unidadeId}
+        unidadeNome={unidadeInfo?.nome || "Seldeestrela"}
+        idioma={idioma}
+        setIdioma={setIdioma}
+        onAdicionarAoCarrinho={(p, obs) => adicionarAoCarrinho(p, 1, obs)}
+        onChamarGarcom={() => setModalChamado(true)}
+      />
+
+      {/* MODAL DO DISCOVER — HISTÓRIA E BOTÂNICA DO PRATO */}
+      <DiscoverModal
+        aberto={modalDiscover}
+        onClose={() => {
+          setModalDiscover(false);
+          setPratoDiscover(null);
+        }}
+        unidadeId={unidadeId}
+        prato={pratoDiscover}
+        onAdicionarAoCarrinho={(p, obs) => adicionarAoCarrinho(p, 1, obs)}
+      />
 
     </div>
   );

@@ -15,7 +15,9 @@ import { imprimirHtml } from "../lib/imprimir";
 import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
-import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
+import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth, enviarBytesTermicaBluetooth } from "../lib/impressaoTermica";
+import { escolherLinguagemBluetooth } from "../lib/bluetooth-linguagem.mjs";
+const lerLinguagemBt = () => { try { return localStorage.getItem("hefisto.bt.linguagem") || "auto"; } catch { return "auto"; } };
 import { WebUsbDisponivel, imprimirEtiquetaMdk022Usb, imprimirFilaMdk022Usb } from "../lib/impressaoMdk022";
 import { limitarEscala, rotuloEscala, PASSO_ESCALA, ESCALA_MIN, ESCALA_MAX, carregarImagem, layoutNome } from "../lib/etiqueta-centralizada.mjs";
 
@@ -448,7 +450,7 @@ export default function EtiquetasRapidas() {
     const direta = true;
 
     // FLUXO DE IMPRESSÃO (NÃO ALTERAR LÓGICA)
-    if (WebUsbDisponivel()) {
+    if (WebUsbDisponivel() && !bluetoothNome) {
       setSalvando(true); setStatusMdk("Conectando à MDK-022..."); setDetalhesMdk(null);
       try {
         if (modeloEtiqueta === "validade") {
@@ -560,7 +562,7 @@ export default function EtiquetasRapidas() {
     if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
     if (!lista.length) return setAviso({ tipo: "erro", texto: "Fila vazia." });
 
-    if (WebUsbDisponivel()) {
+    if (WebUsbDisponivel() && !bluetoothNome) {
       setSalvando(true); setStatusMdk("Enviando fila..."); setDetalhesMdk(null);
       try {
         const resLote = await imprimirFilaMdk022Usb({ fila: lista, tamanho, responsavel, unidadeInfo, setor, momento, perfilFisico, onStatusChange: (s) => setStatusMdk(s) });
@@ -577,7 +579,13 @@ export default function EtiquetasRapidas() {
     setSalvando(true);
     if (direta) { setFilaImpressao(lista); await new Promise(r => setTimeout(r, 80)); }
     try {
-      if (bluetoothNome) { for (const produto of lista) await imprimirEtiquetasBluetooth({ tamanho, copias: Math.max(1, Math.floor(numero(produto.copias))), larguraImpressora: "58mm", perfilFisico, dados: { ...produto } }); } 
+      const linguagemBt = bluetoothNome ? escolherLinguagemBluetooth({ escolha: lerLinguagemBt(), printerType: perfilFisico?.printerType, nome: bluetoothNome }) : "";
+      if (linguagemBt === "tspl") {
+        // Etiquetadora (MDK-022) pelo Bluetooth: os mesmos comandos TSPL do cabo.
+        const r = await imprimirFilaMdk022Usb({ fila: lista, tamanho, responsavel, unidadeInfo, setor, momento, perfilFisico, enviar: enviarBytesTermicaBluetooth, onStatusChange: (s) => setStatusMdk(s) });
+        if (r && r.ok === false) throw new Error(r.erro);
+        setAviso({ tipo: "ok", texto: `✓ ${total} etiqueta(s) enviadas por Bluetooth.` });
+      } else if (bluetoothNome) { for (const produto of lista) await imprimirEtiquetasBluetooth({ tamanho, copias: Math.max(1, Math.floor(numero(produto.copias))), larguraImpressora: "58mm", perfilFisico, dados: { ...produto } }); } 
       else { const f = document.getElementById("etiquetas-rapidas-print"); if (f) imprimirHtml(`<!doctype html><html><head><style>@page{size:${(TAMANHOS[tamanho] || TAMANHOS["60x40"]).w}mm ${(TAMANHOS[tamanho] || TAMANHOS["60x40"]).h}mm;margin:0}*{box-sizing:border-box}body{margin:0}#etiquetas-rapidas-print{width:${(TAMANHOS[tamanho] || TAMANHOS["60x40"]).w}mm}</style></head><body>${f.outerHTML}</body></html>`, { aoFalhar: () => setAviso({tipo:"erro", texto:"Falha"})}); }
     } catch (e) { setAviso({ tipo: "erro", texto: e?.message }); }
     setSalvando(false);

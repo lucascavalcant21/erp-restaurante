@@ -7,6 +7,9 @@ import {
   lancarPedidoMesaExperience,
   lerComandaMesaExperience,
   criarChamadoGarcomExperience,
+  calcularDivisaoConta,
+  sanitizarModificadoresPrato,
+  obterMetricasIntelligenceExperience,
   centavos,
   numeroSeguro
 } from "./server/experience.mjs";
@@ -303,3 +306,104 @@ test("criarChamadoGarcomExperience - validação e registro", async () => {
   assert.equal(chamadoRegistrado.mesa_numero, "04");
   assert.equal(chamadoRegistrado.solicitante_nome, "Maria");
 });
+
+test("calcularDivisaoConta - cálculo exato com e sem taxa de serviço", () => {
+  // 1 pessoa com 10%
+  const r1 = calcularDivisaoConta({ subtotal: 100, quantidadePessoas: 1, incluirServico: true, percentualServico: 10 });
+  assert.equal(r1.subtotal, 100);
+  assert.equal(r1.taxaServico, 10);
+  assert.equal(r1.totalGeral, 110);
+  assert.equal(r1.valorPorPessoa, 110);
+
+  // 4 pessoas com 10% de R$ 200,00 -> total 220,00 -> 55,00 por pessoa
+  const r2 = calcularDivisaoConta({ subtotal: 200, quantidadePessoas: 4, incluirServico: true });
+  assert.equal(r2.subtotal, 200);
+  assert.equal(r2.taxaServico, 20);
+  assert.equal(r2.totalGeral, 220);
+  assert.equal(r2.valorPorPessoa, 55);
+
+  // 3 pessoas sem serviço de R$ 150,00 -> 50,00 cada
+  const r3 = calcularDivisaoConta({ subtotal: 150, quantidadePessoas: 3, incluirServico: false });
+  assert.equal(r3.subtotal, 150);
+  assert.equal(r3.taxaServico, 0);
+  assert.equal(r3.totalGeral, 150);
+  assert.equal(r3.valorPorPessoa, 50);
+
+  // Limite de pessoas: 0 deve virar ao menos 1
+  const r4 = calcularDivisaoConta({ subtotal: 80, quantidadePessoas: 0 });
+  assert.equal(r4.quantidadePessoas, 1);
+  assert.equal(r4.valorPorPessoa, 88);
+});
+
+test("sanitizarModificadoresPrato - concatenação de modificadores estruturados", () => {
+  const mod = sanitizarModificadoresPrato({
+    pontoCarne: "Ao ponto",
+    remocoes: ["Sem cebola", "Sem pimenta"],
+    adicionais: ["Molho extra"],
+    textoLivre: "Caprichar no ponto"
+  });
+
+  assert.equal(mod, "Ao ponto • Sem cebola, Sem pimenta • Molho extra • Caprichar no ponto");
+
+  // Vazio
+  assert.equal(sanitizarModificadoresPrato({}), "");
+});
+
+test("obterMetricasIntelligenceExperience - consolidação de kpis e chamados", async () => {
+  const mockDb = {
+    from: (tabela) => {
+      if (tabela === "pedidos") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: async () => ({
+                data: [
+                  { id: "ped-1", valor_total: 150, origem_experience: true, created_at: new Date().toISOString() },
+                  { id: "ped-2", valor_total: 250, origem_experience: true, created_at: new Date().toISOString() },
+                  { id: "ped-3", valor_total: 100, origem_experience: false, created_at: new Date().toISOString() }
+                ]
+              })
+            })
+          })
+        };
+      }
+      if (tabela === "experience_chamados") {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: async () => ({
+                data: [
+                  { id: "c-1", tipo: "garcom", status: "concluido", created_at: "2026-10-15T18:00:00Z", concluido_em: "2026-10-15T18:04:00Z" },
+                  { id: "c-2", tipo: "agua", status: "pendente", created_at: "2026-10-15T18:10:00Z" }
+                ]
+              })
+            })
+          })
+        };
+      }
+      if (tabela === "experience_campanhas") {
+        return {
+          select: () => ({
+            eq: async () => ({
+              data: [
+                { id: "camp-1", produto_nome: "Drink Amazônia", visualizacoes: 100, cliques: 30, adicoes_carrinho: 20, compras_efetivas: 15, receita_gerada: 525, status: "ativa" }
+              ]
+            })
+          })
+        };
+      }
+      throw new Error(`Tabela não mockada: ${tabela}`);
+    }
+  };
+
+  const res = await obterMetricasIntelligenceExperience({ db: mockDb, unidadeId: "seldeestrela", dias: 7 });
+  assert.equal(res.ok, true);
+  assert.equal(res.metricas.totalPedidosExp, 2);
+  assert.equal(res.metricas.faturamentoExp, 400);
+  assert.equal(res.metricas.ticketMedioExp, 200);
+  assert.equal(res.metricas.chamados.total, 2);
+  assert.equal(res.metricas.chamados.concluidos, 1);
+  assert.equal(res.metricas.chamados.pendentes, 1);
+  assert.equal(res.metricas.campanhas.totalCampanhas, 1);
+});
+

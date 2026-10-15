@@ -25,7 +25,11 @@ import {
   Info,
   Fish,
   Users,
-  BookOpen
+  BookOpen,
+  Heart,
+  SlidersHorizontal,
+  ShieldAlert,
+  Check
 } from "lucide-react";
 import ConciergeModal from "./ConciergeModal";
 import DiscoverModal from "./DiscoverModal";
@@ -40,16 +44,31 @@ const I18N = {
     selecioneMesa: "Qual o número da sua mesa?",
     confirmarMesa: "Entrar na Mesa",
     todasCategorias: "Todos",
+    favoritos: "Favoritos",
     buscarPrato: "Buscar prato ou bebida...",
     tempoMedio: "Tempo médio",
     adicionar: "Adicionar",
     adicionado: "Adicionado!",
-    personalizar: "Observação",
-    obsPlaceholder: "Ex: sem cebola, ponto da carne, sem gelo...",
+    personalizar: "Observação livre",
+    obsPlaceholder: "Ex: observação para o garçom e a cozinha...",
     minhaMesa: "Minha Mesa",
     comandaVazia: "Nenhum pedido lançado nesta mesa ainda.",
     comandaSub: "Faça seu primeiro pedido pelo cardápio!",
     totalConsumo: "Total acumulado",
+    dividirConta: "Divisão Inteligente da Conta",
+    pessoas: "pessoas na mesa",
+    taxaServico: "Taxa de serviço sugerida (10%)",
+    valorPorPessoa: "Valor por pessoa",
+    solicitarContaDividida: "Pedir Conta com Garçom",
+    preferencias: "Minhas Preferências",
+    preferenciasDesc: "Personalize sua experiência gastronômica de forma anônima e segura (LGPD):",
+    salvarPreferencias: "Aplicar Preferências",
+    sugestaoChef: "Sugestão da Casa para seu pedido",
+    pontoCarne: "Ponto da Carne",
+    estiloBebida: "Serviço de Bebida",
+    personalizacaoRapida: "Personalizações Rápidas",
+    combinaComVc: "Combina com você",
+    alertaAlergenico: "Atenção: contém ingrediente restrito",
     carrinho: "Meu Pedido",
     carrinhoVazio: "Seu carrinho está vazio",
     carrinhoSub: "Toque em um prato para adicioná-lo ao seu pedido.",
@@ -86,16 +105,31 @@ const I18N = {
     selecioneMesa: "What is your table number?",
     confirmarMesa: "Confirm Table",
     todasCategorias: "All",
+    favoritos: "Favorites",
     buscarPrato: "Search dish or beverage...",
     tempoMedio: "Est. time",
     adicionar: "Add",
     adicionado: "Added!",
-    personalizar: "Notes",
-    obsPlaceholder: "E.g. no onions, meat temperature, no ice...",
+    personalizar: "Custom notes",
+    obsPlaceholder: "E.g. special instructions for kitchen and bar...",
     minhaMesa: "My Table",
     comandaVazia: "No orders placed on this table yet.",
     comandaSub: "Make your first order from the menu!",
     totalConsumo: "Accumulated total",
+    dividirConta: "Smart Bill Splitting",
+    pessoas: "people at table",
+    taxaServico: "Suggested service fee (10%)",
+    valorPorPessoa: "Per person",
+    solicitarContaDividida: "Request Bill from Waiter",
+    preferencias: "My Preferences",
+    preferenciasDesc: "Tailor your dining experience anonymously and privately (LGPD):",
+    salvarPreferencias: "Apply Preferences",
+    sugestaoChef: "Chef's pairing recommendation",
+    pontoCarne: "Meat Temperature",
+    estiloBebida: "Beverage Service",
+    personalizacaoRapida: "Quick Customizations",
+    combinaComVc: "Matches your taste",
+    alertaAlergenico: "Notice: contains restricted ingredient",
     carrinho: "My Order",
     carrinhoVazio: "Your cart is empty",
     carrinhoSub: "Tap on a dish to add it to your order.",
@@ -132,16 +166,31 @@ const I18N = {
     selecioneMesa: "¿Cuál es el número de su mesa?",
     confirmarMesa: "Entrar a la Mesa",
     todasCategorias: "Todos",
+    favoritos: "Favoritos",
     buscarPrato: "Buscar plato o bebida...",
     tempoMedio: "Tiempo est.",
     adicionar: "Agregar",
     adicionado: "¡Agregado!",
-    personalizar: "Nota",
-    obsPlaceholder: "Ej: sin cebolla, término de carne, sin hielo...",
+    personalizar: "Nota libre",
+    obsPlaceholder: "Ej: instrucciones especiales para cocina y bar...",
     minhaMesa: "Mi Mesa",
     comandaVazia: "Aún no hay pedidos en esta mesa.",
     comandaSub: "¡Haga su primer pedido desde la carta!",
     totalConsumo: "Total acumulado",
+    dividirConta: "División Inteligente de Cuenta",
+    pessoas: "personas en la mesa",
+    taxaServico: "Servicio sugerido (10%)",
+    valorPorPessoa: "Por persona",
+    solicitarContaDividida: "Pedir la Cuenta al Camarero",
+    preferencias: "Mis Preferencias",
+    preferenciasDesc: "Personalice su experiencia de forma anónima y segura (LGPD):",
+    salvarPreferencias: "Aplicar Preferencias",
+    sugestaoChef: "Sugerencia del Chef para tu pedido",
+    pontoCarne: "Término de la Carne",
+    estiloBebida: "Servicio de Bebida",
+    personalizacaoRapida: "Personalización Rápida",
+    combinaComVc: "Ideal para ti",
+    alertaAlergenico: "Atención: contiene ingrediente restringido",
     carrinho: "Mi Pedido",
     carrinhoVazio: "Tu pedido está vacío",
     carrinhoSub: "Toca un plato para agregarlo a tu pedido.",
@@ -179,6 +228,8 @@ const fmtMoeda = (val) => {
   });
 };
 
+const centavos = (v) => Math.round((Number(v) || 0) * 100) / 100;
+
 export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
   const [idioma, setIdioma] = useState("pt");
   const t = I18N[idioma] || I18N.pt;
@@ -194,6 +245,17 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
   const [unidadeInfo, setUnidadeInfo] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [produtos, setProdutos] = useState([]);
+  const [campanhas, setCampanhas] = useState([]);
+
+  // CRM Local & Preferências sem Fricção (Fase 8 - LGPD)
+  const [modalPreferencias, setModalPreferencias] = useState(false);
+  const [preferencias, setPreferencias] = useState({
+    vegetariano: false,
+    semLactose: false,
+    semGluten: false,
+    peixes: false
+  });
+  const [favoritos, setFavoritos] = useState([]);
 
   // Filtros
   const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
@@ -205,19 +267,23 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
   const [enviandoPedido, setEnviandoPedido] = useState(false);
   const [alertaSucesso, setAlertaSucesso] = useState(null);
 
-  // Comanda da Mesa
+  // Comanda da Mesa & Divisão Inteligente (Fase 6)
   const [comandaMesa, setComandaMesa] = useState(null);
   const [modalComanda, setModalComanda] = useState(false);
   const [carregandoComanda, setCarregandoComanda] = useState(false);
+  const [dividirPessoas, setDividirPessoas] = useState(1);
+  const [incluirServico, setIncluirServico] = useState(true);
 
   // Chamada de Garçom
   const [modalChamado, setModalChamado] = useState(false);
   const [enviandoChamado, setEnviandoChamado] = useState(false);
 
-  // Modal Detalhes do Prato
+  // Modal Detalhes do Prato & Modificadores (Fase 4)
   const [pratoModal, setPratoModal] = useState(null);
   const [obsPrato, setObsPrato] = useState("");
   const [qtdPrato, setQtdPrato] = useState(1);
+  const [pontoCarneModal, setPontoCarneModal] = useState("");
+  const [modificadoresModal, setModificadoresModal] = useState([]);
 
   // Concierge & Discover
   const [modalConcierge, setModalConcierge] = useState(false);
@@ -240,6 +306,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         setUnidadeInfo(json.unidade);
         setCategorias(json.categorias || []);
         setProdutos(json.produtos || []);
+        setCampanhas(json.campanhas || []);
       } catch (err) {
         setErro(err.message || "Erro de conexão ao abrir cardápio.");
       } finally {
@@ -247,7 +314,42 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
       }
     }
     carregarCardapio();
+
+    // Carregar preferências e favoritos do localStorage de forma segura
+    try {
+      const prefSalvas = localStorage.getItem("hefisto_experience_pref");
+      if (prefSalvas) setPreferencias(JSON.parse(prefSalvas));
+
+      const favsSalvos = localStorage.getItem("hefisto_experience_favs");
+      if (favsSalvos) setFavoritos(JSON.parse(favsSalvos));
+    } catch {
+      // Ignora erro de storage desabilitado
+    }
   }, [unidadeId]);
+
+  // Salvar preferências do cliente no localStorage (LGPD)
+  const atualizarPreferencia = (chave, valor) => {
+    setPreferencias(prev => {
+      const novo = { ...prev, [chave]: valor };
+      try {
+        localStorage.setItem("hefisto_experience_pref", JSON.stringify(novo));
+      } catch {}
+      return novo;
+    });
+  };
+
+  // Alternar favorito no localStorage
+  const toggleFavorito = (produtoId, e) => {
+    if (e) e.stopPropagation();
+    setFavoritos(prev => {
+      const existe = prev.includes(produtoId);
+      const novo = existe ? prev.filter(id => id !== produtoId) : [...prev, produtoId];
+      try {
+        localStorage.setItem("hefisto_experience_favs", JSON.stringify(novo));
+      } catch {}
+      return novo;
+    });
+  };
 
   // Carregar Comanda da Mesa quando a mesa estiver definida
   const carregarComanda = async () => {
@@ -274,25 +376,61 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
     }
   }, [mesa, unidadeId]);
 
+  // Contagem de preferências ativas
+  const totalPreferenciasAtivas = useMemo(() => {
+    return Object.values(preferencias).filter(Boolean).length;
+  }, [preferencias]);
+
   // Produtos Filtrados
   const produtosFiltrados = useMemo(() => {
     return produtos.filter(p => {
-      const matchCat = categoriaAtiva === "Todos" || p.categoria === categoriaAtiva;
-      const matchBusca = !busca || p.nome_produto.toLowerCase().includes(busca.toLowerCase()) || (p.descricao && p.descricao.toLowerCase().includes(busca.toLowerCase()));
-      return matchCat && matchBusca;
-    });
-  }, [produtos, categoriaAtiva, busca]);
+      if (categoriaAtiva === "Favoritos") {
+        if (!favoritos.includes(p.id)) return false;
+      } else if (categoriaAtiva !== "Todos" && p.categoria !== categoriaAtiva) {
+        return false;
+      }
 
-  // Manipulação do Carrinho
+      if (busca) {
+        const termo = busca.toLowerCase();
+        const matchNome = p.nome_produto.toLowerCase().includes(termo);
+        const matchDesc = p.descricao && p.descricao.toLowerCase().includes(termo);
+        if (!matchNome && !matchDesc) return false;
+      }
+
+      return true;
+    });
+  }, [produtos, categoriaAtiva, busca, favoritos]);
+
+  // Manipulação do Detalhe do Prato & Modificadores Rápidos (Fase 4)
   const abrirModalPrato = (p) => {
     setPratoModal(p);
     setQtdPrato(1);
     setObsPrato("");
+    setPontoCarneModal("");
+    setModificadoresModal([]);
   };
 
-  const adicionarAoCarrinho = (p, qtd = 1, obs = "") => {
+  const toggleModificador = (mod) => {
+    setModificadoresModal(prev => {
+      return prev.includes(mod) ? prev.filter(m => m !== mod) : [...prev, mod];
+    });
+  };
+
+  const adicionarAoCarrinho = (p, qtd = 1, obsCustom = null) => {
+    // Monta a observação estruturada combinando ponto da carne, modificadores selecionados e texto livre
+    let obsFinal = "";
+    if (obsCustom !== null) {
+      obsFinal = obsCustom;
+    } else {
+      const partes = [];
+      if (pontoCarneModal) partes.push(pontoCarneModal);
+      if (modificadoresModal.length > 0) partes.push(modificadoresModal.join(", "));
+      if (obsPrato.trim()) partes.push(obsPrato.trim());
+      obsFinal = partes.join(" • ");
+    }
+
     setCarrinho(prev => {
-      const existenteIdx = prev.findIndex(item => item.id === p.id && item.observacao === obs);
+      const existenteIdx = prev.findIndex(item => item.id === p.id && item.observacao === obsFinal);
       if (existenteIdx >= 0) {
         const novo = [...prev];
         novo[existenteIdx].quantidade += qtd;
@@ -303,7 +441,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         nome_produto: p.nome_produto,
         preco_venda: p.preco_venda,
         quantidade: qtd,
-        observacao: obs,
+        observacao: obsFinal,
         departamento: p.departamento
       }];
     });
@@ -333,6 +471,42 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
   const totalQtdCarrinho = useMemo(() => {
     return carrinho.reduce((acc, it) => acc + it.quantidade, 0);
   }, [carrinho]);
+
+  // Sugestão de Upsell de Campanha IA no Carrinho (Fase 7b)
+  const sugestaoCampanhaCarrinho = useMemo(() => {
+    if (!campanhas || campanhas.length === 0) return null;
+    const idsNoCarrinho = new Set(carrinho.map(it => String(it.id)));
+    const campanhaAtiva = campanhas.find(c => {
+      const ehFinalizacao = c.local_exibicao === "finalizacao" || c.local_exibicao === "ambos";
+      return ehFinalizacao && !idsNoCarrinho.has(String(c.produto_id));
+    });
+
+    if (!campanhaAtiva) return null;
+    const prod = produtos.find(p => String(p.id) === String(campanhaAtiva.produto_id));
+    if (!prod) return null;
+
+    return {
+      campanha: campanhaAtiva,
+      produto: prod
+    };
+  }, [campanhas, carrinho, produtos]);
+
+  // Cálculos de Divisão de Conta (Fase 6)
+  const calculoDivisao = useMemo(() => {
+    const subtotal = comandaMesa?.total || 0;
+    const pessoas = Math.max(1, Math.min(20, Number(dividirPessoas) || 1));
+    const taxaServico = incluirServico ? centavos(subtotal * 0.10) : 0;
+    const totalGeral = centavos(subtotal + taxaServico);
+    const porPessoa = centavos(totalGeral / pessoas);
+
+    return {
+      subtotal,
+      pessoas,
+      taxaServico,
+      totalGeral,
+      porPessoa
+    };
+  }, [comandaMesa, dividirPessoas, incluirServico]);
 
   // Enviar Pedido para a Cozinha
   const confirmarPedido = async () => {
@@ -379,8 +553,8 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
     }
   };
 
-  // Enviar Chamado de Garçom
-  const dispararChamado = async (tipo) => {
+  // Enviar Chamado de Garçom ou Conta Dividida
+  const dispararChamado = async (tipo, observacaoExtra = null) => {
     if (!mesa) {
       setModalMesa(true);
       return;
@@ -393,7 +567,8 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mesa,
-          tipo
+          tipo,
+          observacao: observacaoExtra
         })
       });
 
@@ -404,6 +579,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
       }
 
       setModalChamado(false);
+      setModalComanda(false);
       setAlertaSucesso(t.chamadoEnviado);
       setTimeout(() => setAlertaSucesso(null), 4000);
     } catch {
@@ -411,6 +587,41 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
     } finally {
       setEnviandoChamado(false);
     }
+  };
+
+  // Verificador de compatibilidade com preferências do cliente
+  const checarCompatibilidadePrato = (prato) => {
+    const nome = (prato.nome_produto || "").toLowerCase();
+    const desc = (prato.descricao || "").toLowerCase();
+    const cat = (prato.categoria || "").toLowerCase();
+    const alerg = (prato.alergenicos || "").toLowerCase();
+
+    const ePeixe = cat.includes("peixe") || nome.includes("peixe") || nome.includes("pirarucu") || nome.includes("tambaqui") || desc.includes("peixe");
+    const eCarne = cat.includes("carne") || nome.includes("carne") || nome.includes("picanha") || nome.includes("filé") || nome.includes("bife") || nome.includes("costela");
+    const temLactose = desc.includes("queijo") || desc.includes("manteiga") || desc.includes("leite") || desc.includes("creme") || alerg.includes("lactose");
+    const temGluten = desc.includes("farinha de trigo") || desc.includes("massa") || desc.includes("pão") || desc.includes("cerveja") || alerg.includes("glúten");
+
+    let combina = false;
+    let avisoAlergeno = null;
+
+    if (preferencias.vegetariano) {
+      if (eCarne || ePeixe) avisoAlergeno = "Contém proteína animal";
+      else if (!eCarne && !ePeixe) combina = true;
+    }
+
+    if (preferencias.semLactose && temLactose) {
+      avisoAlergeno = "Contém lactose";
+    }
+
+    if (preferencias.semGluten && temGluten) {
+      avisoAlergeno = "Contém glúten";
+    }
+
+    if (preferencias.peixes && ePeixe) {
+      combina = true;
+    }
+
+    return { combina, avisoAlergeno };
   };
 
   if (carregando) {
@@ -470,6 +681,22 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Botão de Preferências do Cliente (LGPD) */}
+            <button
+              onClick={() => setModalPreferencias(true)}
+              className={`p-2 rounded-xl border transition relative ${
+                totalPreferenciasAtivas > 0
+                  ? "bg-amber-600/20 border-amber-500/50 text-amber-300"
+                  : "bg-[#251e1a] border-amber-900/30 text-amber-400/60 hover:text-amber-200"
+              }`}
+              title="Preferências Alimentares (LGPD)"
+            >
+              <SlidersHorizontal size={16} />
+              {totalPreferenciasAtivas > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500" />
+              )}
+            </button>
+
             {/* Seletor de Idioma */}
             <div className="flex items-center bg-[#251e1a] rounded-xl p-1 border border-amber-900/30 text-xs">
               <button
@@ -584,7 +811,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         </div>
 
         {/* Barra de Busca */}
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400/50" />
           <input
             type="text"
@@ -600,7 +827,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
           )}
         </div>
 
-        {/* Carrossel de Categorias */}
+        {/* Carrossel de Categorias & Favoritos */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
           <button
             onClick={() => setCategoriaAtiva("Todos")}
@@ -612,6 +839,21 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
           >
             {t.todasCategorias}
           </button>
+
+          {favoritos.length > 0 && (
+            <button
+              onClick={() => setCategoriaAtiva("Favoritos")}
+              className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-1.5 ${
+                categoriaAtiva === "Favoritos"
+                  ? "bg-rose-600 text-white shadow-rose-950/40"
+                  : "bg-[#211a16] text-rose-300/80 border border-rose-900/30 hover:bg-[#2b221d]"
+              }`}
+            >
+              <Heart size={13} className="fill-current text-rose-400" />
+              <span>{t.favoritos} ({favoritos.length})</span>
+            </button>
+          )}
+
           {categorias.map(cat => (
             <button
               key={cat}
@@ -635,83 +877,119 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
               <p className="text-sm font-semibold">Nenhum item encontrado nesta categoria.</p>
             </div>
           ) : (
-            produtosFiltrados.map(prod => (
-              <div
-                key={prod.id}
-                onClick={() => abrirModalPrato(prod)}
-                className="bg-[#1b1512] border border-amber-900/25 rounded-3xl p-3.5 sm:p-4 hover:border-amber-700/50 transition-all cursor-pointer shadow-lg shadow-black/20 flex gap-3.5 sm:gap-4 group active:scale-[0.99]"
-              >
-                {/* Imagem do Prato */}
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[#261e19] shrink-0 relative border border-amber-950/40">
-                  {prod.imagem_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={prod.imagem_url}
-                      alt={prod.nome_produto}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-amber-700/40">
-                      <UtensilsCrossed size={28} />
-                    </div>
-                  )}
-                  {prod.destaque && (
-                    <span className="absolute top-1.5 left-1.5 bg-amber-500 text-amber-950 text-3xs font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow">
-                      Chef
-                    </span>
-                  )}
-                </div>
+            produtosFiltrados.map(prod => {
+              const { combina, avisoAlergeno } = checarCompatibilidadePrato(prod);
+              const eFavorito = favoritos.includes(prod.id);
 
-                {/* Dados do Prato */}
-                <div className="flex-1 flex flex-col justify-between min-w-0">
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-black text-sm sm:text-base text-amber-50 leading-snug group-hover:text-amber-300 transition-colors line-clamp-1">
-                        {prod.nome_produto}
-                      </h3>
-                      <span className="font-black text-sm sm:text-base text-amber-400 shrink-0">
-                        {fmtMoeda(prod.preco_venda)}
+              return (
+                <div
+                  key={prod.id}
+                  onClick={() => abrirModalPrato(prod)}
+                  className="bg-[#1b1512] border border-amber-900/25 rounded-3xl p-3.5 sm:p-4 hover:border-amber-700/50 transition-all cursor-pointer shadow-lg shadow-black/20 flex gap-3.5 sm:gap-4 group active:scale-[0.99] relative"
+                >
+                  {/* Imagem do Prato */}
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[#261e19] shrink-0 relative border border-amber-950/40">
+                    {prod.imagem_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={prod.imagem_url}
+                        alt={prod.nome_produto}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-amber-700/40">
+                        <UtensilsCrossed size={28} />
+                      </div>
+                    )}
+
+                    {/* Botão de Favorito no Canto Superior da Foto */}
+                    <button
+                      type="button"
+                      onClick={(e) => toggleFavorito(prod.id, e)}
+                      className={`absolute top-1.5 right-1.5 p-1 rounded-lg backdrop-blur-md transition ${
+                        eFavorito
+                          ? "bg-rose-950/80 text-rose-400"
+                          : "bg-black/40 text-amber-200/60 hover:text-white"
+                      }`}
+                      title="Salvar como Favorito"
+                    >
+                      <Heart size={14} className={eFavorito ? "fill-current" : ""} />
+                    </button>
+
+                    {prod.destaque && (
+                      <span className="absolute top-1.5 left-1.5 bg-amber-500 text-amber-950 text-3xs font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow">
+                        Chef
                       </span>
-                    </div>
-
-                    {prod.descricao && (
-                      <p className="text-xs text-amber-200/60 line-clamp-2 mt-1 leading-relaxed">
-                        {prod.descricao}
-                      </p>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-amber-900/15 mt-2">
-                    <div className="flex items-center gap-2 text-3xs text-amber-300/60 font-semibold">
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} className="text-amber-500/70" />
-                        {prod.tempo_preparo_base} min
-                      </span>
-                      {prod.departamento === "bar" ? (
-                        <span className="flex items-center gap-0.5 text-amber-400/80">
-                          <Wine size={12} /> Bar
+                  {/* Dados do Prato */}
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-black text-sm sm:text-base text-amber-50 leading-snug group-hover:text-amber-300 transition-colors line-clamp-1">
+                          {prod.nome_produto}
+                        </h3>
+                        <span className="font-black text-sm sm:text-base text-amber-400 shrink-0">
+                          {fmtMoeda(prod.preco_venda)}
                         </span>
-                      ) : (
-                        <span className="flex items-center gap-0.5 text-orange-400/80">
-                          <Flame size={12} /> Cozinha
-                        </span>
+                      </div>
+
+                      {prod.descricao && (
+                        <p className="text-xs text-amber-200/60 line-clamp-2 mt-1 leading-relaxed">
+                          {prod.descricao}
+                        </p>
+                      )}
+
+                      {/* Badges de CRM / Preferências do Cliente */}
+                      {(combina || avisoAlergeno) && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {combina && (
+                            <span className="inline-flex items-center gap-1 text-3xs px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-700/40 text-emerald-300 font-bold">
+                              <Sparkles size={10} /> {t.combinaComVc}
+                            </span>
+                          )}
+                          {avisoAlergeno && (
+                            <span className="inline-flex items-center gap-1 text-3xs px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-600/40 text-amber-300 font-bold">
+                              <ShieldAlert size={10} className="text-amber-400" /> {avisoAlergeno}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        adicionarAoCarrinho(prod, 1, "");
-                      }}
-                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-amber-900/30 transition-all active:scale-95"
-                    >
-                      <Plus size={14} />
-                      <span>{t.adicionar}</span>
-                    </button>
+                    <div className="flex items-center justify-between pt-2 border-t border-amber-900/15 mt-2">
+                      <div className="flex items-center gap-2 text-3xs text-amber-300/60 font-semibold">
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} className="text-amber-500/70" />
+                          {prod.tempo_preparo_base} min
+                        </span>
+                        {prod.departamento === "bar" ? (
+                          <span className="flex items-center gap-0.5 text-amber-400/80">
+                            <Wine size={12} /> Bar
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-0.5 text-orange-400/80">
+                            <Flame size={12} /> Cozinha
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          adicionarAoCarrinho(prod, 1, "");
+                        }}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-amber-900/30 transition-all active:scale-95"
+                      >
+                        <Plus size={14} />
+                        <span>{t.adicionar}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </main>
@@ -775,7 +1053,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         </button>
       </nav>
 
-      {/* MODAL DETALHES / PERSONALIZAÇÃO DO PRATO */}
+      {/* MODAL DETALHES / MODIFICADORES DO PRATO (Fase 4) */}
       {pratoModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
           <div className="bg-[#1b1512] border border-amber-900/40 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -806,7 +1084,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                     {pratoModal.categoria} • {pratoModal.tempo_preparo_base} min
                   </p>
                 </div>
-                <span className="text-xl font-black text-amber-400">
+                <span className="text-xl font-black text-amber-400 font-mono">
                   {fmtMoeda(pratoModal.preco_venda)}
                 </span>
               </div>
@@ -815,6 +1093,14 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                 <p className="text-sm text-amber-200/80 leading-relaxed">
                   {pratoModal.descricao}
                 </p>
+              )}
+
+              {/* Informações de Alergênicos Conhecidos */}
+              {pratoModal.alergenicos && (
+                <div className="bg-amber-950/30 border border-amber-800/30 p-2.5 rounded-2xl flex items-center gap-2 text-xs text-amber-300">
+                  <ShieldAlert size={16} className="text-amber-400 shrink-0" />
+                  <span><strong>Alergênicos conhecidos:</strong> {pratoModal.alergenicos}</span>
+                </div>
               )}
 
               {pratoModal.harmonizacao && (
@@ -843,7 +1129,94 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                 <ChevronRight size={16} className="text-amber-400/80" />
               </button>
 
-              {/* Observações / Personalização */}
+              {/* MODIFICADORES INTELIGENTES (Fase 4) */}
+              {/* Opções de Ponto da Carne se for prato de carne */}
+              {(pratoModal.categoria?.toLowerCase().includes("carne") ||
+                pratoModal.nome_produto?.toLowerCase().includes("picanha") ||
+                pratoModal.nome_produto?.toLowerCase().includes("filé") ||
+                pratoModal.nome_produto?.toLowerCase().includes("hambúrguer")) && (
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Flame size={14} className="text-orange-400" />
+                    <span>{t.pontoCarne}</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["Mal passada", "Ao ponto", "Bem passada"].map(ponto => (
+                      <button
+                        key={ponto}
+                        type="button"
+                        onClick={() => setPontoCarneModal(prev => prev === ponto ? "" : ponto)}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition border ${
+                          pontoCarneModal === ponto
+                            ? "bg-amber-600 text-white border-amber-500 shadow-sm"
+                            : "bg-[#14100e] text-amber-200/80 border-amber-900/30 hover:border-amber-700/50"
+                        }`}
+                      >
+                        {ponto}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Opções de Bebidas/Drinks se for departamento bar */}
+              {pratoModal.departamento === "bar" && (
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Wine size={14} className="text-rose-400" />
+                    <span>{t.estiloBebida}</span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Com gelo e limão", "Sem gelo", "Gelo à parte", "Sem açúcar", "Com adoçante"].map(mod => {
+                      const sel = modificadoresModal.includes(mod);
+                      return (
+                        <button
+                          key={mod}
+                          type="button"
+                          onClick={() => toggleModificador(mod)}
+                          className={`py-1.5 px-3 rounded-xl text-xs font-bold transition border ${
+                            sel
+                              ? "bg-amber-600 text-white border-amber-500 shadow-sm"
+                              : "bg-[#14100e] text-amber-200/80 border-amber-900/30 hover:border-amber-700/50"
+                          }`}
+                        >
+                          {mod}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Modificadores de Cozinha Frequentes */}
+              {pratoModal.departamento !== "bar" && (
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-amber-300 block">
+                    {t.personalizacaoRapida}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Sem cebola", "Sem pimenta", "Sem coentro", "Sem alho", "Molho à parte"].map(mod => {
+                      const sel = modificadoresModal.includes(mod);
+                      return (
+                        <button
+                          key={mod}
+                          type="button"
+                          onClick={() => toggleModificador(mod)}
+                          className={`py-1.5 px-3 rounded-xl text-xs font-bold transition border ${
+                            sel
+                              ? "bg-amber-600 text-white border-amber-500 shadow-sm"
+                              : "bg-[#14100e] text-amber-200/80 border-amber-900/30 hover:border-amber-700/50"
+                          }`}
+                        >
+                          {mod}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Observações Livres */}
               <div>
                 <label className="text-xs font-bold text-amber-300 block mb-1.5">{t.personalizar}</label>
                 <textarea
@@ -874,7 +1247,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                 </div>
 
                 <button
-                  onClick={() => adicionarAoCarrinho(pratoModal, qtdPrato, obsPrato)}
+                  onClick={() => adicionarAoCarrinho(pratoModal, qtdPrato)}
                   className="flex-1 ml-4 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl font-bold text-sm shadow-xl shadow-amber-900/40 transition active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Plus size={18} />
@@ -886,7 +1259,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         </div>
       )}
 
-      {/* MODAL DO CARRINHO / ENVIAR PEDIDO */}
+      {/* MODAL DO CARRINHO / ENVIAR PEDIDO COM UPSELL IA (Fase 7b) */}
       {modalCarrinho && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
           <div className="bg-[#1b1512] border border-amber-900/40 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
@@ -908,41 +1281,87 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                   <p className="text-xs text-amber-400/50 mt-1">{t.carrinhoSub}</p>
                 </div>
               ) : (
-                carrinho.map((it, idx) => (
-                  <div key={idx} className="bg-[#14100e] border border-amber-900/20 rounded-2xl p-3 flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm text-amber-100 truncate">{it.nome_produto}</h4>
-                      {it.observacao && (
-                        <p className="text-3xs text-amber-400/70 italic mt-0.5">Obs: {it.observacao}</p>
-                      )}
-                      <p className="text-xs font-black text-amber-400 mt-1">
-                        {fmtMoeda(it.preco_venda * it.quantidade)}
-                      </p>
-                    </div>
+                <>
+                  {carrinho.map((it, idx) => (
+                    <div key={idx} className="bg-[#14100e] border border-amber-900/20 rounded-2xl p-3 flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm text-amber-100 truncate">{it.nome_produto}</h4>
+                        {it.observacao && (
+                          <p className="text-3xs text-amber-400/80 italic mt-0.5 font-medium">Obs: {it.observacao}</p>
+                        )}
+                        <p className="text-xs font-black text-amber-400 mt-1 font-mono">
+                          {fmtMoeda(it.preco_venda * it.quantidade)}
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => alterarQtdCarrinho(idx, -1)}
+                          className="w-7 h-7 rounded-lg bg-amber-900/30 text-amber-200 flex items-center justify-center font-bold hover:bg-amber-800/40"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="font-bold text-sm w-5 text-center text-amber-100">{it.quantidade}</span>
+                        <button
+                          onClick={() => alterarQtdCarrinho(idx, 1)}
+                          className="w-7 h-7 rounded-lg bg-amber-900/30 text-amber-200 flex items-center justify-center font-bold hover:bg-amber-800/40"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button
+                          onClick={() => removerDoCarrinho(idx)}
+                          className="p-1.5 text-amber-400/50 hover:text-red-400 ml-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* UPSELL INTELIGENTE DE CAMPANHA IA (Fase 7b) */}
+                  {sugestaoCampanhaCarrinho && (
+                    <div className="bg-gradient-to-r from-amber-950/70 via-[#271d17] to-[#1c1511] border border-amber-600/45 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-md mt-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-[#1b1512] overflow-hidden shrink-0 border border-amber-800/40">
+                          {sugestaoCampanhaCarrinho.produto.imagem_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={sugestaoCampanhaCarrinho.produto.imagem_url}
+                              alt={sugestaoCampanhaCarrinho.produto.nome_produto}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-amber-500">
+                              <Sparkles size={18} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-3xs uppercase tracking-wider font-black text-amber-400 flex items-center gap-1">
+                            <Sparkles size={10} className="animate-pulse" /> {t.sugestaoChef}
+                          </span>
+                          <h4 className="text-xs font-bold text-amber-100 truncate">
+                            {sugestaoCampanhaCarrinho.produto.nome_produto}
+                          </h4>
+                          <p className="text-3xs text-amber-300/80 line-clamp-1">
+                            {sugestaoCampanhaCarrinho.campanha.mensagem_ia}
+                          </p>
+                          <span className="text-xs font-black text-amber-400 font-mono">
+                            {fmtMoeda(sugestaoCampanhaCarrinho.produto.preco_venda)}
+                          </span>
+                        </div>
+                      </div>
+
                       <button
-                        onClick={() => alterarQtdCarrinho(idx, -1)}
-                        className="w-7 h-7 rounded-lg bg-amber-900/30 text-amber-200 flex items-center justify-center font-bold hover:bg-amber-800/40"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="font-bold text-sm w-5 text-center text-amber-100">{it.quantidade}</span>
-                      <button
-                        onClick={() => alterarQtdCarrinho(idx, 1)}
-                        className="w-7 h-7 rounded-lg bg-amber-900/30 text-amber-200 flex items-center justify-center font-bold hover:bg-amber-800/40"
+                        onClick={() => adicionarAoCarrinho(sugestaoCampanhaCarrinho.produto, 1, "Sugestão da Casa")}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shrink-0 transition active:scale-95 flex items-center gap-1 shadow-md shadow-amber-950/40"
                       >
                         <Plus size={14} />
-                      </button>
-                      <button
-                        onClick={() => removerDoCarrinho(idx)}
-                        className="p-1.5 text-amber-400/50 hover:text-red-400 ml-1"
-                      >
-                        <Trash2 size={16} />
+                        <span>Adicionar</span>
                       </button>
                     </div>
-                  </div>
-                ))
+                  )}
+                </>
               )}
             </div>
 
@@ -950,7 +1369,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
               <div className="p-4 border-t border-amber-900/25 bg-[#221a16] space-y-3">
                 <div className="flex justify-between items-center text-sm font-bold text-amber-200">
                   <span>{t.subtotal}</span>
-                  <span className="text-lg font-black text-amber-400">{fmtMoeda(totalCarrinho)}</span>
+                  <span className="text-lg font-black text-amber-400 font-mono">{fmtMoeda(totalCarrinho)}</span>
                 </div>
 
                 <button
@@ -967,10 +1386,10 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
         </div>
       )}
 
-      {/* MODAL MINHA MESA / COMANDA */}
+      {/* MODAL MINHA MESA / COMANDA & DIVIDIR CONTA (Fase 6) */}
       {modalComanda && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-[#1b1512] border border-amber-900/40 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+          <div className="bg-[#1b1512] border border-amber-900/40 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-amber-900/25 flex items-center justify-between bg-[#221a16]">
               <div className="flex items-center gap-2">
                 <Receipt size={20} className="text-amber-400" />
@@ -981,7 +1400,7 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+            <div className="p-4 overflow-y-auto flex-1 space-y-4">
               {carregandoComanda ? (
                 <div className="py-12 text-center text-amber-300/50 font-bold">Atualizando comanda...</div>
               ) : !comandaMesa || comandaMesa.itens.length === 0 ? (
@@ -991,47 +1410,118 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                   <p className="text-xs text-amber-400/50 mt-1">{t.comandaSub}</p>
                 </div>
               ) : (
-                comandaMesa.itens.map((it, idx) => (
-                  <div key={idx} className="bg-[#14100e] border border-amber-900/20 rounded-2xl p-3 flex justify-between items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-amber-400 text-sm">{it.quantidade}x</span>
-                        <h4 className="font-bold text-sm text-amber-100">{it.nome}</h4>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-3xs px-2 py-0.5 rounded-full bg-amber-900/30 text-amber-300 border border-amber-800/30">
-                          {t.statusKds[it.status_kds] || it.status_kds}
-                        </span>
-                        {it.hora && <span className="text-3xs text-amber-500/60 font-mono">{it.hora}</span>}
-                      </div>
+                <>
+                  <div className="space-y-2.5">
+                    {comandaMesa.itens.map((it, idx) => (
+                      <div key={idx} className="bg-[#14100e] border border-amber-900/20 rounded-2xl p-3 flex justify-between items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-amber-400 text-sm">{it.quantidade}x</span>
+                            <h4 className="font-bold text-sm text-amber-100 truncate">{it.nome}</h4>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-3xs px-2 py-0.5 rounded-full bg-amber-900/30 text-amber-300 border border-amber-800/30">
+                              {t.statusKds[it.status_kds] || it.status_kds}
+                            </span>
+                            {it.hora && <span className="text-3xs text-amber-500/60 font-mono">{it.hora}</span>}
+                          </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const prodRel = produtos.find(p => String(p.id) === String(it.produto_id) || p.nome_produto === it.nome) || {
-                            id: it.produto_id || idx,
-                            nome_produto: it.nome,
-                            preco_venda: it.subtotal / (it.quantidade || 1)
-                          };
-                          setPratoDiscover(prodRel);
-                          setModalDiscover(true);
-                        }}
-                        className="mt-2 flex items-center gap-1.5 text-3xs font-bold text-amber-400 hover:text-amber-200 transition"
-                      >
-                        <BookOpen size={12} />
-                        <span>Descubra a história deste prato ✨</span>
-                      </button>
-                    </div>
-                    <span className="font-black text-sm text-amber-300">{fmtMoeda(it.subtotal)}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const prodRel = produtos.find(p => String(p.id) === String(it.produto_id) || p.nome_produto === it.nome) || {
+                                id: it.produto_id || idx,
+                                nome_produto: it.nome,
+                                preco_venda: it.subtotal / (it.quantidade || 1)
+                              };
+                              setPratoDiscover(prodRel);
+                              setModalDiscover(true);
+                            }}
+                            className="mt-2 flex items-center gap-1.5 text-3xs font-bold text-amber-400 hover:text-amber-200 transition"
+                          >
+                            <BookOpen size={12} />
+                            <span>Descubra a história deste prato ✨</span>
+                          </button>
+                        </div>
+                        <span className="font-black text-sm text-amber-300 font-mono">{fmtMoeda(it.subtotal)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))
+
+                  {/* CALCULADORA DE DIVISÃO DE CONTA (Fase 6) */}
+                  <div className="bg-gradient-to-b from-[#201814] to-[#17110e] border border-amber-700/40 rounded-3xl p-4 space-y-3.5 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users size={18} className="text-amber-400" />
+                        <h3 className="text-sm font-black text-amber-50">{t.dividirConta}</h3>
+                      </div>
+                      
+                      {/* Seletor de Pessoas */}
+                      <div className="flex items-center gap-2 bg-[#120e0c] border border-amber-900/40 rounded-xl p-1">
+                        <button
+                          onClick={() => setDividirPessoas(Math.max(1, dividirPessoas - 1))}
+                          className="w-7 h-7 rounded-lg bg-amber-900/30 text-amber-200 flex items-center justify-center font-bold hover:bg-amber-800/40"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="font-black text-sm w-7 text-center text-amber-100 font-mono">
+                          {dividirPessoas}
+                        </span>
+                        <button
+                          onClick={() => setDividirPessoas(Math.min(20, dividirPessoas + 1))}
+                          className="w-7 h-7 rounded-lg bg-amber-900/30 text-amber-200 flex items-center justify-center font-bold hover:bg-amber-800/40"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Toggle de Serviço Sugerido (10%) */}
+                    <label className="flex items-center justify-between text-xs text-amber-200/90 cursor-pointer pt-1 border-t border-amber-900/20">
+                      <span>{t.taxaServico}</span>
+                      <input
+                        type="checkbox"
+                        checked={incluirServico}
+                        onChange={(e) => setIncluirServico(e.target.checked)}
+                        className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
+                      />
+                    </label>
+
+                    {/* Resumo Financeiro da Divisão */}
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-amber-900/20">
+                      <div>
+                        <span className="text-3xs text-amber-400/70 block">Total da Mesa</span>
+                        <span className="font-black text-amber-200 font-mono">{fmtMoeda(calculoDivisao.totalGeral)}</span>
+                      </div>
+                      <div className="text-right bg-amber-950/40 border border-amber-700/40 rounded-xl p-2">
+                        <span className="text-3xs text-amber-300 font-bold block">{t.valorPorPessoa}</span>
+                        <span className="text-base font-black text-amber-400 font-mono">
+                          {fmtMoeda(calculoDivisao.porPessoa)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Botão de Solicitar Fechamento com Garçom */}
+                    <button
+                      onClick={() => {
+                        const obsConta = `Mesa ${mesa}: Dividir em ${calculoDivisao.pessoas} pessoas (${fmtMoeda(calculoDivisao.porPessoa)} cada)${incluirServico ? ' com 10%' : ' sem 10%'}`;
+                        dispararChamado("conta", obsConta);
+                      }}
+                      disabled={enviandoChamado}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black rounded-2xl shadow-lg shadow-emerald-950/40 transition active:scale-98 flex items-center justify-center gap-2 text-xs"
+                    >
+                      <Receipt size={16} />
+                      <span>{t.solicitarContaDividida}</span>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
 
             {comandaMesa && comandaMesa.itens.length > 0 && (
               <div className="p-4 border-t border-amber-900/25 bg-[#221a16] flex justify-between items-center">
                 <span className="text-sm font-bold text-amber-200">{t.totalConsumo}</span>
-                <span className="text-xl font-black text-amber-400">{fmtMoeda(comandaMesa.total)}</span>
+                <span className="text-xl font-black text-amber-400 font-mono">{fmtMoeda(comandaMesa.total)}</span>
               </div>
             )}
           </div>
@@ -1111,6 +1601,67 @@ export default function ExperienceApp({ unidadeId, mesaInicial = null }) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CRM LOCAL & PREFERÊNCIAS (Fase 8 - LGPD) */}
+      {modalPreferencias && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#1c1613] border border-amber-800/40 w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-amber-900/30 pb-3">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal size={20} className="text-amber-400" />
+                <h3 className="text-base font-black text-amber-50">{t.preferencias}</h3>
+              </div>
+              <button onClick={() => setModalPreferencias(false)} className="p-1 text-amber-300 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-amber-200/70 leading-relaxed">
+              {t.preferenciasDesc}
+            </p>
+
+            <div className="space-y-2.5 pt-1">
+              {[
+                { chave: "vegetariano", rotulo: "🌿 Vegetariano", desc: "Priorizar receitas sem carne ou peixe" },
+                { chave: "semLactose", rotulo: "🚫 Sem Lactose", desc: "Destacar pratos livres de derivados do leite" },
+                { chave: "semGluten", rotulo: "🌾 Sem Glúten", desc: "Alertar ingredientes com farinha e trigo" },
+                { chave: "peixes", rotulo: "🐟 Foco em Peixes Amazônicos", desc: "Destacar Pirarucu, Tambaqui e pescados" }
+              ].map(opt => {
+                const ativo = Boolean(preferencias[opt.chave]);
+                return (
+                  <button
+                    key={opt.chave}
+                    type="button"
+                    onClick={() => atualizarPreferencia(opt.chave, !ativo)}
+                    className={`w-full p-3 rounded-2xl border text-left transition flex items-center justify-between ${
+                      ativo
+                        ? "bg-amber-600/20 border-amber-500/60 text-amber-100"
+                        : "bg-[#14100e] border-amber-900/30 text-amber-300/60 hover:border-amber-700/40"
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xs font-bold block text-amber-100">{opt.rotulo}</span>
+                      <span className="text-3xs text-amber-300/60 block">{opt.desc}</span>
+                    </div>
+                    <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${
+                      ativo ? "bg-amber-600 border-amber-500 text-white" : "border-amber-800/40 bg-black/20"
+                    }`}>
+                      {ativo && <Check size={13} />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setModalPreferencias(false)}
+              className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-2xl shadow-lg shadow-amber-900/40 transition active:scale-95 text-xs"
+            >
+              {t.salvarPreferencias}
+            </button>
           </div>
         </div>
       )}

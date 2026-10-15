@@ -58,6 +58,7 @@ export default function TopNavigation({ sessao, onSair, onOpenSearch }) {
         { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas" },
         { label: "Cardápio Digital", href: "/dashboard/operacao/cardapio" },
         { label: "Campanhas IA (Experience)", href: "/dashboard/experience/campanhas" },
+        { label: "Intelligence (Experience)", href: "/dashboard/experience/intelligence" },
         { label: "Produção Diária", href: "/dashboard/operacao/producao" },
         { label: "Engenharia de Menu", href: "/dashboard/operacao/engenharia" }
       ]

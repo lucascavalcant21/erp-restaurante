@@ -237,6 +237,7 @@ export const PERMISSION_MODULES = [
     pages: [
       { id: "menu", label: "Cardápio", route: "/dashboard/operacao/cardapio", actions: [...CRUD, "view_costs", "view_margin", "import", "export"] },
       { id: "campaigns", label: "Campanhas IA (Experience)", route: "/dashboard/experience/campanhas", actions: [...CRUD, "view_values", "export"] },
+      { id: "intelligence_exp", label: "Intelligence (Experience)", route: "/dashboard/experience/intelligence", actions: ["view", "view_values", "export"] },
       { id: "products", label: "Produtos de venda", route: "/dashboard/operacao/produtos", actions: [...CRUD, "view_costs", "view_margin"] },
       { id: "engineering", label: "Engenharia de cardápio", route: "/dashboard/operacao/engenharia", actions: ["view", "edit", "view_costs", "view_margin", "export"] },
       { id: "packaging", label: "Embalagens", route: "/dashboard/operacao/embalagens", actions: CRUD },

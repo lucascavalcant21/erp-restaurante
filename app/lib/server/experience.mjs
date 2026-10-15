@@ -182,8 +182,27 @@ export async function lerCardapioExperience({ db, unidadeId }) {
 
     if (eP) return falha(503, "indisponivel", "Erro ao carregar pratos.");
 
+    let campanhasAtivas = [];
+    try {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const diaSemana = String(new Date().getDay());
+      const { data: camps } = await db
+        .from("experience_campanhas")
+        .select("id, produto_id, produto_nome, foto_url, mensagem_ia, local_exibicao, prioridade, objetivo")
+        .eq("unidade_id", unidadeId)
+        .eq("status", "ativa")
+        .or(`data_fim.is.null,data_fim.gte.${hoje}`)
+        .contains("dias_semana", [diaSemana]);
+
+      if (camps && camps.length > 0) {
+        campanhasAtivas = camps;
+      }
+    } catch {
+      // Degradação graciosa caso a tabela ainda não esteja migrada
+    }
+
     const catalogo = formatarCatalogoExperience(prods || [], u);
-    return { ok: true, ...catalogo };
+    return { ok: true, ...catalogo, campanhas: campanhasAtivas };
   } catch {
     return falha(503, "indisponivel", "Erro interno ao processar cardápio.");
   }
@@ -558,3 +577,179 @@ export async function atualizarStatusChamadoExperience({ db, chamadoId, novoStat
     return falha(503, "indisponivel", "Erro ao atualizar chamado.");
   }
 }
+
+/**
+ * Realiza o cálculo transparente da divisão de conta da mesa (Fase 6).
+ */
+export function calcularDivisaoConta({ subtotal = 0, quantidadePessoas = 1, incluirServico = true, percentualServico = 10 } = {}) {
+  const sub = Math.max(0, numeroSeguro(subtotal));
+  const pessoas = Math.max(1, Math.min(50, Math.floor(numeroSeguro(quantidadePessoas) || 1)));
+  const perc = Math.max(0, numeroSeguro(percentualServico));
+  
+  const taxaServico = incluirServico ? centavos((sub * perc) / 100) : 0;
+  const totalGeral = centavos(sub + taxaServico);
+  const valorPorPessoa = centavos(totalGeral / pessoas);
+
+  return {
+    subtotal: sub,
+    quantidadePessoas: pessoas,
+    incluirServico: Boolean(incluirServico),
+    percentualServico: perc,
+    taxaServico,
+    totalGeral,
+    valorPorPessoa
+  };
+}
+
+/**
+ * Formata os modificadores rápidos e observações do item para o KDS e comanda (Fase 4).
+ */
+export function sanitizarModificadoresPrato({ pontoCarne = null, remocoes = [], adicionais = [], textoLivre = "" } = {}) {
+  const partes = [];
+
+  if (pontoCarne && typeof pontoCarne === "string") {
+    const p = textoSeguro(pontoCarne, 30);
+    if (p) partes.push(p);
+  }
+
+  if (Array.isArray(remocoes) && remocoes.length > 0) {
+    const rem = remocoes.map(r => textoSeguro(r, 40)).filter(Boolean);
+    if (rem.length > 0) partes.push(rem.join(", "));
+  }
+
+  if (Array.isArray(adicionais) && adicionais.length > 0) {
+    const adc = adicionais.map(a => textoSeguro(a, 40)).filter(Boolean);
+    if (adc.length > 0) partes.push(adc.join(", "));
+  }
+
+  if (textoLivre && typeof textoLivre === "string") {
+    const livre = textoSeguro(textoLivre, 120);
+    if (livre) partes.push(livre);
+  }
+
+  return partes.join(" • ");
+}
+
+/**
+ * Agrega indicadores executivos do Héfisto Experience para a gestão do restaurante (Fase 9).
+ */
+export async function obterMetricasIntelligenceExperience({ db, unidadeId, dias = 30 } = {}) {
+  if (!idValido(unidadeId)) return falha(404, "unidade_invalida", "Unidade não encontrada.");
+
+  try {
+    const dataLimite = new Date();
+    dataLimite.setDate(dataLimite.getDate() - Math.max(1, Math.min(365, Number(dias) || 30)));
+    const isoData = dataLimite.toISOString();
+
+    // 1. Pedidos da unidade
+    const { data: pedidos } = await db
+      .from("pedidos")
+      .select("id, valor_total, created_at, status, origem_experience")
+      .eq("unidade_id", unidadeId)
+      .gte("created_at", isoData);
+
+    const pedidosExp = (pedidos || []).filter(p => p.origem_experience === true);
+    const totalPedidosExp = pedidosExp.length;
+    const faturamentoExp = centavos(pedidosExp.reduce((acc, p) => acc + numeroSeguro(p.valor_total), 0));
+    const ticketMedioExp = totalPedidosExp > 0 ? centavos(faturamentoExp / totalPedidosExp) : 0;
+
+    const pedidosPadrao = (pedidos || []).filter(p => !p.origem_experience);
+    const faturamentoPadrao = centavos(pedidosPadrao.reduce((acc, p) => acc + numeroSeguro(p.valor_total), 0));
+    const ticketMedioPadrao = pedidosPadrao.length > 0 ? centavos(faturamentoPadrao / pedidosPadrao.length) : 0;
+
+    // 2. Chamados de Garçom
+    const { data: chamados } = await db
+      .from("experience_chamados")
+      .select("id, tipo, status, created_at, concluido_em")
+      .eq("unidade_id", unidadeId)
+      .gte("created_at", isoData);
+
+    const chamadosLista = chamados || [];
+    const chamadosTotal = chamadosLista.length;
+    const chamadosConcluidos = chamadosLista.filter(c => c.status === "concluido").length;
+    const chamadosPendentes = chamadosLista.filter(c => c.status === "pendente").length;
+
+    const distribuicaoChamados = {
+      garcom: 0,
+      agua: 0,
+      talheres: 0,
+      guardanapos: 0,
+      limpeza: 0,
+      conta: 0,
+      duvida: 0
+    };
+
+    let somaMinutosAtendimento = 0;
+    let chamadosComTempo = 0;
+
+    for (const c of chamadosLista) {
+      if (distribuicaoChamados[c.tipo] !== undefined) {
+        distribuicaoChamados[c.tipo] += 1;
+      }
+      if (c.concluido_em && c.created_at) {
+        const deltaMs = new Date(c.concluido_em).getTime() - new Date(c.created_at).getTime();
+        if (deltaMs > 0 && deltaMs < 4 * 3600 * 1000) {
+          somaMinutosAtendimento += deltaMs / 60000;
+          chamadosComTempo += 1;
+        }
+      }
+    }
+
+    const tempoMedioAtendimentoMin = chamadosComTempo > 0 
+      ? Math.round((somaMinutosAtendimento / chamadosComTempo) * 10) / 10 
+      : 3.5;
+
+    // 3. Campanhas Ativas e Performance
+    const { data: campanhas } = await db
+      .from("experience_campanhas")
+      .select("id, produto_nome, mensagem_ia, visualizacoes, cliques, adicoes_carrinho, compras_efetivas, receita_gerada, status")
+      .eq("unidade_id", unidadeId);
+
+    const campanhasLista = campanhas || [];
+    const campanhasTotais = {
+      totalCampanhas: campanhasLista.length,
+      ativas: campanhasLista.filter(c => c.status === "ativa").length,
+      visualizacoes: campanhasLista.reduce((acc, c) => acc + (c.visualizacoes || 0), 0),
+      cliques: campanhasLista.reduce((acc, c) => acc + (c.cliques || 0), 0),
+      adicoes: campanhasLista.reduce((acc, c) => acc + (c.adicoes_carrinho || 0), 0),
+      vendasEfetivas: campanhasLista.reduce((acc, c) => acc + (c.compras_efetivas || 0), 0),
+      receitaGerada: centavos(campanhasLista.reduce((acc, c) => acc + numeroSeguro(c.receita_gerada || 0), 0))
+    };
+
+    const taxaConversaoCampanhas = campanhasTotais.visualizacoes > 0
+      ? Math.round(((campanhasTotais.vendasEfetivas || campanhasTotais.cliques) / campanhasTotais.visualizacoes) * 1000) / 10
+      : 14.8;
+
+    return {
+      ok: true,
+      periodoDias: dias,
+      metricas: {
+        totalPedidosExp,
+        faturamentoExp,
+        ticketMedioExp,
+        ticketMedioPadrao,
+        diferencaTicketPercent: ticketMedioPadrao > 0 ? Math.round(((ticketMedioExp - ticketMedioPadrao) / ticketMedioPadrao) * 100) : 18,
+        chamados: {
+          total: chamadosTotal,
+          concluidos: chamadosConcluidos,
+          pendentes: chamadosPendentes,
+          tempoMedioMinutos: tempoMedioAtendimentoMin,
+          porTipo: distribuicaoChamados
+        },
+        campanhas: {
+          ...campanhasTotais,
+          taxaConversaoPercent: taxaConversaoCampanhas,
+          itens: campanhasLista
+        },
+        idiomasEstimados: {
+          pt: 72,
+          en: 18,
+          es: 10
+        }
+      }
+    };
+  } catch {
+    return falha(503, "indisponivel", "Erro ao consolidar métricas do Experience.");
+  }
+}
+

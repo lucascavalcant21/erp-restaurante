@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
 import { imprimirHtml } from "../lib/imprimir";
+import { fetchComSessao } from "../lib/api-sessao.js";
 
 const semAcento = (v) => {
   const d = String(v || "").normalize("NFD");
@@ -73,7 +74,7 @@ export default function ContagemInventarioVoz({
     if (!String(texto || "").trim()) return;
     setLendo(true); setErro("");
     try {
-      const r = await fetch("/api/ia-inventario", {
+      const r = await fetchComSessao("/api/ia-inventario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ texto }),

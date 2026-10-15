@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { fetchComSessao } from "./api-sessao.js";
 
 // Evidência da execução guiada: a foto vive no storage e o banco guarda só o
 // caminho, a prova (hash) e o contexto (quem tirou, quando e onde). Foto em
@@ -102,7 +103,7 @@ async function hashDoArquivo(blob) {
 
 export async function conferirEvidenciaComIA({ base64, mediaType, criterios, itemTitulo }) {
   try {
-    const resposta = await fetch("/api/ia-evidencia", {
+    const resposta = await fetchComSessao("/api/ia-evidencia", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

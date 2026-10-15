@@ -130,6 +130,30 @@ Status: PENDENTE → APROVADO / REJEITADO → EXECUTADO. Não apague seções: �
 - **Nota:** (1) migração ifood_2_pedidos aplicada 14/10 (~21h) e verificada: 3 tabelas com RLS (pedidos 2 policies, itens 1, repasses 1), anon sem acesso, authenticated sem gravar pedido nem mudar status (só separacao), delivery_gravar_pedido só service_role, marmitaria_baixar_pedidos só authenticated, 5 colunas novas na fila, 167 fichas intactas; ensaio em transação desfeita (pedido regravado = 1 linha, status não volta, venda 1x). Advisor: só o aviso esperado de SECURITY DEFINER executável por authenticated (mesmo padrão de estoque_movimentar). TESTADO NO SUPABASE REAL. (2) Merge do PR #171: pendente (bloqueado pela checagem de permissão do agente; o dono faz o merge).
 - **Chave:** migracao:db/integracoes/IFOOD_2_PEDIDOS.sql
 
+### APR-011 · PENDENTE
+
+- **Missão:** S-25, S-26, S-28 e B-013 — rotas de API sem login; servidor antigo exposto
+- **Ação:** merge do PR SEC-API-1 (deploy de produção)
+  - vercel.json manda todo /api para o Next (menos auth/policy e o cron antigo);
+  - sessão obrigatória nas rotas de IA, OCR e hefisto;
+  - export só para super admin;
+  - fiscal e integrações com vínculo de unidade;
+  - cron sem segredo padrão
+- **Ambiente:** vercel (produção)
+- **Risco:** HIGH (muda o roteamento de produção e liga telas que estavam mortas, entre elas Usuários e Perfis)
+- **Motivo:** hoje qualquer pessoa usa as chaves de IA (OpenAI pelo servidor antigo; Anthropic pelas rotas ia-*) e grava no Firestore antigo sem login
+- **Impacto:**
+  - quem usa logado não muda;
+  - chamadas sem login passam a dar 401;
+  - Usuários/Perfis, OCR, comprovante por e-mail e IAs de evidência/receita/cardápio voltam a funcionar;
+  - Saipos sem mudança.
+  - Detalhes em docs/brain/07_RELATORIOS/SEC_API_1_ROTAS.md
+- **Rollback:** reverter o commit do PR (o vercel.json antigo volta inteiro); não há mudança de banco
+- **Evidências:** 25 testes da SEC-API-1 (22 rotas reais com 401 sem sessão e sem chamar IA, integrações, cron); trava do vercel.json; app/lib 504/504; build; bundle sem service_role. Telas logadas NÃO VALIDADO (Preview sem variáveis públicas)
+- **Status:** PENDENTE
+- **Criado em:** 2026-10-14
+- **Chave:** deploy:vercel.json:sec-api-1
+
 ### APR-010 · PENDENTE
 
 - **Missão:** S-20 + S-21 — dado financeiro e de RH só com permissão do módulo; RPCs financeiras com permissão da ação

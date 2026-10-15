@@ -11,6 +11,7 @@ import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
 import CampoDecimal from "../../../components/CampoDecimal";
 import { mascaraCPF, somenteDigitos } from "../../../lib/mascaras.mjs";
+import { fetchComSessao } from "../../../lib/api-sessao.js";
 
 export default function SaloesMesasPage() {
   const { unidadeAtiva, usuarioLogado } = useERP();
@@ -657,7 +658,7 @@ export default function SaloesMesasPage() {
         let nfcePayload = null;
         if (emitirNFCe) {
            try {
-              const resNF = await fetch('/api/fiscal/emitir', {
+              const resNF = await fetchComSessao('/api/fiscal/emitir', {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json' },
                  body: JSON.stringify({

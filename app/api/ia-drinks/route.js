@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 // Receitas em lote demoram: estende o tempo máximo da função na Vercel.
 export const maxDuration = 60;
@@ -8,6 +9,9 @@ export const maxDuration = 60;
 // Bebidas engarrafadas prontas (água, cerveja, refrigerante) voltam marcadas
 // como "engarrafada" e não ganham receita.
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { nomes } = await request.json();
     const lista = Array.isArray(nomes) ? nomes.map((n) => String(n || "").trim()).filter(Boolean) : [];

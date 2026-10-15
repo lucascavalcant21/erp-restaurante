@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { sessaoOuNegar } from "../../lib/server/sessao-rota.mjs";
 
 export async function POST(request) {
+  const sessao = await sessaoOuNegar(request);
+  if (sessao.resposta) return sessao.resposta;
+
   try {
     const { tema, assuntos, data, hora, local, condutor, unidade_nome, imagem_base64, imagem_media_type, imagens } = await request.json();
 

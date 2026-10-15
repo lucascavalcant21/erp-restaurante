@@ -226,6 +226,10 @@ export default function SaloesMesasPage() {
   const [pedidosOnlineDetalhes, setPedidosOnlineDetalhes] = useState([]);
   const [carregandoPainel, setCarregandoPainel] = useState(false);
 
+  // --- CHAMADOS DE GARÇOM (HÉFISTO EXPERIENCE) ---
+  const [chamadosMesas, setChamadosMesas] = useState([]);
+  const [painelChamados, setPainelChamados] = useState(false);
+
   // ==========================================
   // INITIAL LOAD
   // ==========================================
@@ -348,6 +352,37 @@ export default function SaloesMesasPage() {
   const handleEntregue = async (pedidoId) => {
     await atualizarStatusPedido(pedidoId, 'entregue');
     setPedidosOnlineDetalhes(prev => prev.filter(p => p.id !== pedidoId));
+  };
+
+  // --- CHAMADOS DE MESA / HÉFISTO EXPERIENCE ---
+  const carregarChamados = async () => {
+    if (!unidadeAtiva) return;
+    try {
+      const r = await fetch(`/api/public/experience/${encodeURIComponent(unidadeAtiva)}/chamados`, { cache: 'no-store' });
+      if (r.ok) {
+        const json = await r.json();
+        setChamadosMesas(json.chamados || []);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (unidadeAtiva) {
+      carregarChamados();
+      const timer = setInterval(carregarChamados, 6000);
+      return () => clearInterval(timer);
+    }
+  }, [unidadeAtiva]);
+
+  const handleAtualizarChamado = async (chamadoId, novoStatus) => {
+    try {
+      await fetch(`/api/public/experience/${encodeURIComponent(unidadeAtiva)}/chamados`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chamadoId, novoStatus, atendidoPor: usuarioLogado?.nome || 'Garçom' })
+      });
+      await carregarChamados();
+    } catch {}
   };
 
   useEffect(() => {
@@ -910,6 +945,15 @@ export default function SaloesMesasPage() {
          </div>
 
          <div className="hidden lg:flex gap-2 shrink-0">
+            <button onClick={() => setPainelChamados(true)} className="relative flex items-center gap-1.5 px-3 py-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-200 font-bold text-xs rounded-lg transition-colors">
+               <Bell size={16} className={chamadosMesas.length > 0 ? "animate-bounce text-amber-400" : ""} />
+               <span>Chamados Mesas</span>
+               {chamadosMesas.length > 0 && (
+                 <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-amber-950 text-3xs font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md animate-pulse">
+                   {chamadosMesas.length}
+                 </span>
+               )}
+            </button>
             <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-hf-elevated hover:bg-hf-border font-bold text-xs rounded-lg transition-colors text-hf-text">
                <Bell size={16} /> Pedidos Online
                {pedidosOnline.length > 0 && (
@@ -1854,6 +1898,129 @@ export default function SaloesMesasPage() {
                   </div>
             </div>
          </div>
+      )}
+
+      {/* MODAL QR CODE HÉFISTO EXPERIENCE */}
+      {qrMesa && (
+        <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-line rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center flex flex-col items-center animate-in fade-in">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/30 flex items-center justify-center mb-3">
+              <Utensils size={24} />
+            </div>
+            
+            <h3 className="text-xl font-black text-fg">Mesa {qrMesa.numero_mesa}</h3>
+            <p className="text-xs text-subtle mt-1 mb-6">
+              Héfisto Experience • O restaurante na palma da mão
+            </p>
+
+            <div className="bg-white p-4 rounded-2xl border-4 border-line shadow-inner mb-6">
+              <QRCodeSVG
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/experience/${unidadeAtiva}/${qrMesa.numero_mesa}`}
+                size={200}
+                level="H"
+                includeMargin={false}
+              />
+            </div>
+
+            <p className="text-3xs text-subtle font-mono truncate max-w-full px-2 mb-4">
+              {`${typeof window !== 'undefined' ? window.location.origin : ''}/experience/${unidadeAtiva}/${qrMesa.numero_mesa}`}
+            </p>
+
+            <div className="flex gap-2 w-full">
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/experience/${unidadeAtiva}/${qrMesa.numero_mesa}`;
+                  navigator.clipboard.writeText(url);
+                  alert("Link da mesa copiado!");
+                }}
+                className="flex-1 py-3 bg-muted hover:bg-muted/80 text-fg rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+              >
+                <Share2 size={16} /> Copiar Link
+              </button>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/experience/${unidadeAtiva}/${qrMesa.numero_mesa}`;
+                  window.open(url, '_blank');
+                }}
+                className="flex-1 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center gap-1.5"
+              >
+                Testar Mesa
+              </button>
+            </div>
+
+            <button
+              onClick={() => setQrMesa(null)}
+              className="mt-3 text-xs text-subtle hover:text-fg font-semibold py-1.5"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PAINEL LATERAL: CHAMADOS DE GARÇOM (HÉFISTO EXPERIENCE) */}
+      {painelChamados && (
+        <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm">
+           <div className="w-full sm:w-[420px] bg-card h-full shadow-2xl flex flex-col animate-slide-in-right">
+            
+            {/* Header do Painel */}
+            <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 relative">
+               <div className="flex items-center gap-2">
+                 <Bell size={20} className="animate-pulse" />
+                 <h2 className="font-black text-lg">Chamados de Mesas</h2>
+               </div>
+               <button onClick={() => setPainelChamados(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                 <X size={20} />
+               </button>
+            </div>
+
+            {/* Lista de Chamados */}
+            <div className="flex-1 overflow-y-auto p-4 bg-white flex flex-col gap-3 relative">
+               {chamadosMesas.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-subtle gap-2 opacity-60">
+                     <CheckCircle size={48} strokeWidth={1} className="text-emerald-500" />
+                     <p className="font-bold">Nenhum chamado pendente no salão.</p>
+                     <p className="text-xs">Todas as mesas estão bem atendidas!</p>
+                  </div>
+               ) : (
+                  chamadosMesas.map(c => (
+                     <div key={c.id} className="bg-card rounded-2xl border border-line shadow-sm p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                           <div>
+                              <span className="text-3xs uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                                 Mesa {c.mesa_numero}
+                              </span>
+                              <h3 className="font-black text-base text-fg mt-1">{c.rotulo}</h3>
+                              {c.solicitante_nome && (
+                                 <p className="text-xs text-subtle">Cliente: {c.solicitante_nome}</p>
+                              )}
+                              {c.observacao && (
+                                 <p className="text-xs text-dim italic mt-0.5">Obs: {c.observacao}</p>
+                              )}
+                           </div>
+                           <span className="text-3xs font-mono text-subtle">{c.hora}</span>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-line">
+                           <button
+                              onClick={() => handleAtualizarChamado(c.id, 'em_atendimento')}
+                              className="flex-1 py-2 text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 rounded-xl transition"
+                           >
+                              Atendendo
+                           </button>
+                           <button
+                              onClick={() => handleAtualizarChamado(c.id, 'concluido')}
+                              className="flex-1 py-2 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 rounded-xl transition shadow-sm"
+                           >
+                              Concluir
+                           </button>
+                        </div>
+                     </div>
+                  ))
+               )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* PAINEL LATERAL: PEDIDOS ONLINE (QR CODE / DELIVERY) */}
